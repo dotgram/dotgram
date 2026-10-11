@@ -649,7 +649,7 @@ partial class HandSqlStandard
 
 				if (TableSubquery(ref cursor, out var query))
 				{
-					predicate = new Expression.In(null!, false, new InSource.Query(query));
+					predicate = new Expression.In(null!, false, new InSource.Subquery(query));
 
 					return true;
 				}

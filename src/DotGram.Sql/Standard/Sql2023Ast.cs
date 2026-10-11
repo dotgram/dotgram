@@ -60,36 +60,29 @@ public abstract partial record Statement : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	// BNF: <query expression>, <query specification>, <select statement: single row>, <dynamic single row select statement>
+	/// <summary>
+	/// BNF: <c>&lt;direct select statement: multiple rows&gt;</c>, <c>&lt;cursor specification&gt;</c>,
+	/// <c>&lt;select statement: single row&gt;</c>, <c>&lt;dynamic single row select statement&gt;</c>. A
+	/// query as a statement: the query, and what only a statement has.
+	/// </summary>
+	/// <remarks>
+	/// Everything a query says is in <see cref="Query"/>, which is what a subquery, a derived table, a
+	/// common table expression and an INSERT's source hold as well; a statement adds only what no
+	/// subquery may write.
+	/// </remarks>
 	public record Select : Statement
 	{
-		public WithClause? With { get; init; }
-		public SetQuantifier? Quantifier { get; init; }
-		public SqlList<SelectItem> Items { get; init; } = [];
-		public IntoClause? Into { get; init; }
-		public FromClause? From { get; init; }
-		public Expression? Where { get; init; }
-		public GroupByClause? GroupBy { get; init; }
-		public Expression? Having { get; init; }
-		public WindowClause? Window { get; init; }
-		public SqlList<SetOperation> SetOperations { get; init; } = [];
-		public OrderByClause? OrderBy { get; init; }
-		public OffsetClause? Offset { get; init; }
-		public FetchClause? Fetch { get; init; }
-		// BNF: a <query expression body> that is no <query specification> — `VALUES (1)`, `TABLE t`, or a
-		// query in brackets — as the first operand. The specification's own properties are then empty.
-		public QueryOperand? Body { get; init; }
+		public required Query Query { get; init; }
 
-		// How many pairs of brackets were written around the whole query: `((SELECT 1))` is two.
-		public int Parentheses { get; init; }
-
-		// BNF: <updatability clause> of a <cursor specification>, `FOR UPDATE OF a`.
-		public UpdatabilityClause? Updatability { get; init; }
+		/// <summary>T-SQL: Query Hints. The statement's <c>OPTION (…)</c>, which a subquery may not write.</summary>
+		public SqlList<QueryHint> Hints { get; init; } = [];
 	}
 
 	// BNF: <insert statement>
 	public record Insert : Statement
 	{
+		/// <summary>T-SQL: TOP. <c>INSERT TOP (n) INTO t …</c>.</summary>
+		public TopClause? Top { get; init; }
 		public required TableSource Target { get; init; }
 		public SqlList<Identifier> Columns { get; init; } = [];
 		public OverrideKind? Override { get; init; }
@@ -99,6 +92,8 @@ public abstract partial record Statement : ISqlNode
 	// BNF: <update statement: searched>, <update statement: positioned>, dynamic/preparable positioned update
 	public record Update : Statement
 	{
+		/// <summary>T-SQL: TOP. <c>UPDATE TOP (n) t SET …</c>.</summary>
+		public TopClause? Top { get; init; }
 		// Null in a preparable positioned statement, which may leave its table out.
 		public TableSource? Target { get; init; }
 		public PeriodPortion? Portion { get; init; }
@@ -111,6 +106,8 @@ public abstract partial record Statement : ISqlNode
 	// BNF: <delete statement: searched>, <delete statement: positioned>, dynamic/preparable positioned delete
 	public record Delete : Statement
 	{
+		/// <summary>T-SQL: TOP. <c>DELETE TOP (n) FROM t …</c>.</summary>
+		public TopClause? Top { get; init; }
 		// Null in a preparable positioned statement, which may leave its table out.
 		public TableSource? Target { get; init; }
 		public PeriodPortion? Portion { get; init; }
@@ -122,6 +119,8 @@ public abstract partial record Statement : ISqlNode
 	// BNF: <merge statement>
 	public record Merge : Statement
 	{
+		/// <summary>T-SQL: TOP. <c>MERGE TOP (n) INTO t …</c>.</summary>
+		public TopClause? Top { get; init; }
 		public required TableSource Target { get; init; }
 		public Alias? Alias { get; init; }
 		public required TableSource SourceTable { get; init; }
@@ -178,7 +177,7 @@ public abstract partial record Statement : ISqlNode
 		public bool Recursive { get; init; }
 		public required QualifiedName Name { get; init; }
 		public ViewSpecification? Specification { get; init; }
-		public required Select Query { get; init; }
+		public required Query Query { get; init; }
 		public CheckOption? CheckOption { get; init; }
 	}
 
@@ -324,8 +323,39 @@ public abstract partial record Statement : ISqlNode
 	public record Extension : Statement { public required string Dialect { get; init; } public required string Kind { get; init; } public SqlList<ISqlNode> Parts { get; init; } = []; }
 }
 
-/// <summary>BNF: <c>&lt;select list&gt;</c>, <c>&lt;select sublist&gt;</c>, <c>&lt;derived column&gt;</c>, <c>&lt;qualified asterisk&gt;</c>, <c>&lt;all fields reference&gt;</c>.</summary>
-public abstract partial record SelectItem : ISqlNode
+/// <summary>
+/// BNF: <c>&lt;query expression&gt;</c>, <c>&lt;query expression body&gt;</c>, <c>&lt;query term&gt;</c>,
+/// <c>&lt;query primary&gt;</c>. A query, wherever one stands: a SELECT statement's, a subquery's, a
+/// derived table's, a common table expression's, a view's, an INSERT's source.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Set operations are a list on the query they follow.</b> <c>A UNION B EXCEPT C</c> is
+/// <c>A</c> with <c>[UNION B, EXCEPT C]</c> in <see cref="SetOperations"/>, read as a left fold:
+/// <c>(A UNION B) EXCEPT C</c>. What binds tighter is an operand with a list of its own and no
+/// brackets: <c>A UNION B INTERSECT C</c> is <c>A [UNION B [INTERSECT C]]</c>, and
+/// <c>A INTERSECT B UNION C</c> is the flat <c>A [INTERSECT B, UNION C]</c>.
+/// </para>
+/// <para>
+/// <b>Which clauses are whose.</b> A query's <see cref="With"/>, <see cref="OrderBy"/>,
+/// <see cref="Limit"/>, <see cref="For"/> and <see cref="Locking"/> apply to its whole result — the
+/// query followed by its <see cref="SetOperations"/> — and are written before the first operand
+/// (<c>WITH</c>) or after the last (the rest). The specification's members of a
+/// <see cref="Select"/> (<c>TOP</c>, the columns, <c>FROM</c>, <c>WHERE</c> and the rest) are the
+/// first operand's. So <c>SELECT a FROM t UNION SELECT b FROM u ORDER BY 1</c> sorts the union, and
+/// <c>(SELECT a FROM t ORDER BY a) UNION …</c> keeps its own ORDER BY inside a
+/// <see cref="Parenthesized"/>. Two consequences: T-SQL's <c>INTO</c> is written in the first operand
+/// but receives the whole result's rows; and adding set operations to a query that has an ORDER BY or
+/// a limit makes them the compound's — <see cref="Combine"/> brackets the query first to keep them its
+/// own.
+/// </para>
+/// <para>
+/// <b>Brackets are a node.</b> A pair written around a query is a <see cref="Parenthesized"/>; the
+/// brackets a subquery, a derived table or <c>IN (…)</c> needs are that construct's own and are not
+/// one — only a second pair, <c>x IN ((SELECT 1))</c>, is.
+/// </para>
+/// </remarks>
+public abstract record Query : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -334,16 +364,167 @@ public abstract partial record SelectItem : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record All : SelectItem;
-	public record ExpressionItem(Expression Expression, Identifier? Alias = null, bool AsKeyword = false) : SelectItem;
-	public record QualifiedAll(Expression Qualifier, SqlList<Identifier>? RenamedFields = null) : SelectItem;
+	/// <summary>
+	/// <c>WITH …</c>, written before the first operand. Of the whole result: the query and its
+	/// <see cref="SetOperations"/>.
+	/// </summary>
+	public WithClause? With { get; init; }
+
+	/// <summary>
+	/// The operations after this query, in text order, each with its operand: a left fold. Empty on a
+	/// query with no set operator.
+	/// </summary>
+	public SqlList<SetOperation> SetOperations { get; init; } = [];
+
+	/// <summary>
+	/// <c>ORDER BY …</c>. Of the whole result: where <see cref="SetOperations"/> is not empty it sorts
+	/// the compound, not the first operand. An operand's own ORDER BY stands inside a
+	/// <see cref="Parenthesized"/>.
+	/// </summary>
+	public OrderByClause? OrderBy { get; init; }
+
+	/// <summary>
+	/// <c>OFFSET … FETCH …</c>. Of the whole result: where <see cref="SetOperations"/> is not empty it
+	/// limits the compound, not the first operand.
+	/// </summary>
+	public Limit? Limit { get; init; }
+
+	/// <summary>
+	/// T-SQL: FOR Clause. <c>FOR XML</c>, <c>FOR JSON</c>, <c>FOR BROWSE</c>. Of the whole result, as
+	/// <see cref="OrderBy"/> is.
+	/// </summary>
+	public ForClause? For { get; init; }
+
+	/// <summary>
+	/// <c>FOR UPDATE [OF …]</c>, <c>FOR READ ONLY</c> and the other locking clauses. Of the whole
+	/// result, as <see cref="OrderBy"/> is.
+	/// </summary>
+	public SqlList<LockingClause> Locking { get; init; } = [];
+
+	/// <summary>
+	/// BNF: <c>&lt;query specification&gt;</c>, <c>&lt;table value constructor&gt;</c>,
+	/// <c>&lt;explicit table&gt;</c>. One <c>SELECT … FROM …</c>, a <c>VALUES</c> list, or
+	/// <c>TABLE t</c>, which is <c>SELECT * FROM t</c> with <see cref="Table"/> set.
+	/// </summary>
+	/// <remarks>
+	/// Its members are the first operand's where the query has set operations; the clauses on
+	/// <see cref="Query"/> are the whole result's.
+	/// </remarks>
+	public record Select : Query
+	{
+		/// <summary>T-SQL: TOP. Of this operand alone, not of the whole result.</summary>
+		public TopClause? Top { get; init; }
+		public SetQuantifier? Quantifier { get; init; }
+
+		/// <summary>
+		/// The select list: expressions with optional aliases, and wildcards (<c>*</c>, <c>t.*</c>); a
+		/// wildcard entry stands for several result columns.
+		/// </summary>
+		public SqlList<SelectColumn> Columns { get; init; } = [];
+
+		/// <summary>
+		/// <c>VALUES (1), (2)</c>: the rows, written out. A query with rows has no columns, FROM or the
+		/// clauses that go with them.
+		/// </summary>
+		public SqlList<RowValue> Values { get; init; } = [];
+
+		/// <summary>
+		/// <c>TABLE t</c> was written for <c>SELECT * FROM t</c>. Written so while the query is exactly
+		/// that; a query changed into anything else is written in full.
+		/// </summary>
+		[Spelling] public bool Table { get; init; }
+
+		/// <summary>
+		/// <c>INTO …</c>. In T-SQL it is written in the first operand and receives the whole result's
+		/// rows.
+		/// </summary>
+		public IntoClause? Into { get; init; }
+		public FromClause? From { get; init; }
+		public Expression? Where { get; init; }
+		public GroupByClause? GroupBy { get; init; }
+		public Expression? Having { get; init; }
+		public WindowClause? Window { get; init; }
+	}
+
+	/// <summary>
+	/// A pair of brackets written around a query: <c>(SELECT a FROM t ORDER BY a) UNION …</c>,
+	/// <c>((SELECT 1))</c>. What is inside is <see cref="Query"/>, with its own clauses; this node's
+	/// members are outside the brackets.
+	/// </summary>
+	public record Parenthesized(Query Query) : Query;
+
+	/// <summary>
+	/// The query specifications, <c>VALUES</c> lists and explicit tables this query combines, in text
+	/// order: itself or what its brackets hold, then the operand of every set operation, through every
+	/// level of nesting. Not the queries of subqueries inside them.
+	/// </summary>
+	public IEnumerable<Select> Operands()
+	{
+		var pending = new Stack<Query>();
+
+		pending.Push(this);
+
+		while (pending.Count > 0)
+		{
+			var query = pending.Pop();
+
+			for (var at = query.SetOperations.Count - 1; at >= 0; at--)
+				pending.Push(query.SetOperations[at].Query);
+
+			if (query is Parenthesized parenthesized)
+				pending.Push(parenthesized.Query);
+			else
+				yield return (Select)query;
+		}
+	}
+
+	/// <summary>
+	/// This query followed by one more set operation. Where it has an ORDER BY, a limit, a FOR or a
+	/// locking clause, which would then be the compound's, it is bracketed first so that they stay its
+	/// own.
+	/// </summary>
+	public Query Combine(SetOperation operation)
+	{
+		if (operation is null)
+			throw new ArgumentNullException(nameof(operation));
+
+		if (OrderBy is not null || Limit is not null || For is not null || Locking.Count > 0)
+			return new Parenthesized(this) { SetOperations = [operation] };
+
+		return this with { SetOperations = [.. SetOperations, operation] };
+	}
+}
+
+/// <summary>BNF: <c>&lt;select list&gt;</c>, <c>&lt;select sublist&gt;</c>, <c>&lt;derived column&gt;</c>, <c>&lt;qualified asterisk&gt;</c>, <c>&lt;all fields reference&gt;</c>.</summary>
+public abstract partial record SelectColumn : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	public record All : SelectColumn;
+	public record ExpressionItem(Expression Expression, Identifier? Alias = null, bool AsKeyword = false) : SelectColumn;
+	public record QualifiedAll(Expression Qualifier, SqlList<Identifier>? RenamedFields = null) : SelectColumn;
 }
 
 public enum SetQuantifier { All, Distinct }
-public enum SetOperator { Union, Except, Intersect }
 
-/// <summary>BNF: UNION/EXCEPT/INTERSECT portions of <c>&lt;query expression body&gt;</c>/<c>&lt;query term&gt;</c>.</summary>
-public sealed record SetOperation : ISqlNode
+/// <summary>
+/// The six set operations. <c>ALL</c> changes the result — a bag rather than a set — so each kind with
+/// it is an operation of its own; a <c>DISTINCT</c> written out changes nothing, and is
+/// <see cref="SetOperation.Distinct"/>.
+/// </summary>
+public enum SetOperator { Union, UnionAll, Intersect, IntersectAll, Except, ExceptAll }
+
+/// <summary>
+/// BNF: the <c>UNION</c>, <c>EXCEPT</c> and <c>INTERSECT</c> of <c>&lt;query expression body&gt;</c> and
+/// <c>&lt;query term&gt;</c>. One operation of a query's <see cref="Query.SetOperations"/> and the
+/// operand after it.
+/// </summary>
+public sealed record SetOperation(SetOperator Operator, Query Query) : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
@@ -353,25 +534,9 @@ public sealed record SetOperation : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public required SetOperator Operator { get; init; }
-	public SetQuantifier? Quantifier { get; init; }
+	/// <summary><c>UNION DISTINCT</c> was written for <c>UNION</c>. Only with a kind without <c>ALL</c>.</summary>
+	[Spelling] public bool Distinct { get; init; }
 	public CorrespondingClause? Corresponding { get; init; }
-	public required QueryOperand Operand { get; init; }
-}
-
-/// <summary>BNF: <c>&lt;simple table&gt;</c>, parenthesized <c>&lt;query primary&gt;</c>. Grammar precedence nodes are intentionally erased.</summary>
-public abstract record QueryOperand : ISqlNode
-{
-	SqlLocation _location;
-	public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-
-	public record Select(Statement.Select Query) : QueryOperand;
-	public record Values(SqlList<RowValue> Rows) : QueryOperand;
-	public record Table(QualifiedName Name) : QueryOperand;
 }
 
 public sealed record WithClause(bool Recursive, SqlList<CommonTableExpression> Items) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
@@ -380,7 +545,7 @@ public sealed record WithClause(bool Recursive, SqlList<CommonTableExpression> I
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record CommonTableExpression(Identifier Name, SqlList<Identifier> Columns, Statement.Select Query, SearchClause? Search = null, CycleClause? Cycle = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record CommonTableExpression(Identifier Name, SqlList<Identifier> Columns, Query Query, SearchClause? Search = null, CycleClause? Cycle = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -433,21 +598,60 @@ public sealed record OrderByClause(SqlList<SortItem> Items) : ISqlNode { SqlLoca
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record OffsetClause(Expression Count, RowWord RowWord) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+
+/// <summary>
+/// BNF: <c>&lt;result offset clause&gt;</c>, <c>&lt;fetch first clause&gt;</c>. How many rows a query
+/// skips and how many it returns, however the dialect spells it.
+/// </summary>
+/// <remarks>
+/// <c>FETCH</c> is written where <see cref="Count"/> or <see cref="FetchRowWord"/> is set, <c>OFFSET</c>
+/// where <see cref="Offset"/> is.
+/// </remarks>
+public sealed record Limit : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
-}
-public sealed record FetchClause(FetchPosition Position, Expression? Quantity, bool Percent, RowWord RowWord, FetchMode Mode) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
+
+	/// <summary>The rows skipped, <c>OFFSET m ROWS</c>; null where no OFFSET was written.</summary>
+	public Expression? Offset { get; init; }
+
+	/// <summary>The rows returned, <c>FETCH FIRST n ROWS ONLY</c>; null where none was written, as in <c>FETCH FIRST ROW ONLY</c>.</summary>
+	public Expression? Count { get; init; }
+
+	/// <summary><c>FETCH FIRST n PERCENT ROWS ONLY</c>.</summary>
+	public bool Percent { get; init; }
+
+	/// <summary><c>WITH TIES</c> rather than <c>ONLY</c>.</summary>
+	public bool WithTies { get; init; }
+
+	/// <summary><c>OFFSET m ROW</c> or <c>ROWS</c>; null where no OFFSET was written.</summary>
+	[Spelling] public RowWord? OffsetRowWord { get; init; }
+
+	/// <summary><c>FETCH … ROW</c> or <c>ROWS</c>; null where no FETCH was written.</summary>
+	[Spelling] public RowWord? FetchRowWord { get; init; }
+
+	/// <summary><c>FETCH FIRST</c> or <c>FETCH NEXT</c>.</summary>
+	[Spelling] public FetchPosition Position { get; init; }
 }
 public enum RowWord { Row, Rows }
 public enum FetchPosition { First, Next }
-public enum FetchMode { Only, WithTies }
+
+/// <summary>
+/// BNF: <c>&lt;updatability clause&gt;</c> of a <c>&lt;cursor specification&gt;</c>, and the row locks
+/// other dialects write in its place. One of a query's <see cref="Query.Locking"/>: <c>FOR UPDATE OF a</c>.
+/// </summary>
+public sealed record LockingClause(LockingMode Mode, SqlList<Identifier> Of) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+public enum LockingMode { ReadOnly, Update, NoKeyUpdate, Share, KeyShare }
 public sealed record CorrespondingClause(bool By, SqlList<Identifier> Columns) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -482,7 +686,7 @@ public abstract partial record TableSource : ISqlNode
 		public bool Only { get; init; }
 	}
 
-	public record Subquery(Statement.Select Query) : TableSource
+	public record Subquery(Query Query) : TableSource
 	{
 		public bool Lateral { get; init; }
 		public Alias? Alias { get; init; }
@@ -582,7 +786,7 @@ public abstract partial record Expression : ISqlNode
 
 	public record Row(SqlList<Expression> Items, bool RowKeyword = false) : Expression;
 	public record Parenthesized(Expression Value) : Expression;
-	public record Subquery(Statement.Select Query) : Expression;
+	public record Subquery(Query Query) : Expression;
 
 	// BNF: <case expression>. In a simple CASE a when operand may be a predicate without its left side,
 	// `WHEN < 5`, whose missing operand is written as CaseOperand.
@@ -640,7 +844,7 @@ public abstract partial record Expression : ISqlNode
 
 	public record Array(SqlList<Expression> Items, bool Trigraphs = false) : Expression;
 	public record Multiset(SqlList<Expression> Items, bool Trigraphs = false) : Expression;
-	public record CollectionQuery(CollectionKind Kind, Statement.Select Query) : Expression;
+	public record CollectionQuery(CollectionKind Kind, Query Query) : Expression;
 
 	// BNF: <array element reference>, and a JSON simplified accessor's `[1 TO 3]`. Trigraphs are `??(` and `??)`.
 	public record Element(Expression Collection, Expression Index, Expression? To = null, bool Trigraphs = false) : Expression;
@@ -708,12 +912,12 @@ public abstract partial record Expression : ISqlNode
 	// BNF: <boolean test>, `a IS NOT UNKNOWN`.
 	public record IsTruth(Expression Value, bool Not, BooleanLiteral Truth) : Expression;
 
-	public record QuantifiedComparison(Expression Left, ComparisonOperator Operator, Quantifier Quantifier, Statement.Select Query) : Expression;
-	public record Exists(Statement.Select Query) : Expression;
-	public record Unique(NullDistinctness? Nulls, Statement.Select Query) : Expression;
+	public record QuantifiedComparison(Expression Left, ComparisonOperator Operator, Quantifier Quantifier, Query Query) : Expression;
+	public record Exists(Query Query) : Expression;
+	public record Unique(NullDistinctness? Nulls, Query Query) : Expression;
 
 	// BNF: <match predicate>.
-	public record Match(Expression Value, bool UniqueKeyword, MatchType? Type, Statement.Select Query) : Expression;
+	public record Match(Expression Value, bool UniqueKeyword, MatchType? Type, Query Query) : Expression;
 
 	// BNF: <overlaps predicate>, whose two sides are rows.
 	public record Overlaps(Expression Left, Expression Right) : Expression;
@@ -733,7 +937,7 @@ public abstract partial record Expression : ISqlNode
 	public record JsonQuery(JsonApiCommon Common, JsonOutput? Output, JsonWrapperBehavior? Wrapper, JsonQuotes? Quotes, JsonQueryBehavior? OnEmpty, JsonQueryBehavior? OnError) : Expression;
 	public record JsonObject(SqlList<JsonMember> Members, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression;
 	public record JsonArray(SqlList<JsonElement> Elements, JsonNullHandling? Nulls, JsonOutput? Output) : Expression;
-	public record JsonArrayQuery(Statement.Select Query, JsonInputClause? Format, JsonOutput? Output, JsonNullHandling? Nulls = null) : Expression;
+	public record JsonArrayQuery(Query Query, JsonInputClause? Format, JsonOutput? Output, JsonNullHandling? Nulls = null) : Expression;
 	public record JsonObjectAggregate(JsonMember Pair, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression
 	{
 		// BNF: <aggregate function>'s <filter clause>, a <window function>'s window, a navigation's `RUNNING` or `FINAL`.
@@ -909,7 +1113,7 @@ public sealed record WindowFrameBound(WindowBoundKind Kind, Expression? Offset =
 public enum WindowBoundKind { UnboundedPreceding, Preceding, CurrentRow, Following, UnboundedFollowing }
 public enum WindowFrameExclusion { CurrentRow, Group, Ties, NoOthers }
 
-public abstract record InSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Query(Statement.Select Value) : InSource; public record Values(SqlList<Expression> Items) : InSource; }
+public abstract record InSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Subquery(Query Query) : InSource; public record Values(SqlList<Expression> Items) : InSource; }
 public sealed record TypeTest(QualifiedName TypeName, bool Only) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -985,7 +1189,7 @@ public abstract record TableContents : ISqlNode
 
 	public record Elements(SqlList<TableElement> Items) : TableContents;
 	public record Typed(QualifiedName TypeName, QualifiedName? Under, SqlList<TableElement> Items) : TableContents;
-	public record AsQuery(SqlList<Identifier> Columns, Statement.Select Query, WithDataMode Data) : TableContents;
+	public record AsQuery(SqlList<Identifier> Columns, Query Query, WithDataMode Data) : TableContents;
 }
 public enum WithDataMode { WithData, WithNoData }
 public abstract record TableElement : ISqlNode
@@ -1402,7 +1606,7 @@ public abstract partial record InsertSource : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Query(Statement.Select Select) : InsertSource;
+	public record Subquery(Query Query) : InsertSource;
 	public record Values(SqlList<RowValue> Rows) : InsertSource;
 	public record DefaultValues : InsertSource;
 }

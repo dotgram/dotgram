@@ -5,9 +5,10 @@ using DotGram.Sql.Ast;
 
 namespace DotGram.Sql.Standard;
 
-// Inside the namespace, where they are asked before DotGram.Sql's own Expression and Statement — the
+// Inside the namespace, where they are asked before DotGram.Sql's own Expression, Query and Statement — the
 // tree T-SQL builds, which a using directive above the namespace would lose to.
 using Expression = DotGram.Sql.Ast.Expression;
+using Query = DotGram.Sql.Ast.Query;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
@@ -1137,12 +1138,12 @@ static class Nodes
 	public sealed record TableExpression(FromClause From, Expression? Where, GroupByClause? GroupBy, Expression? Having, WindowClause? Window);
 
 	/// <summary>`SELECT`, its quantifier, its list, and its table expression.</summary>
-	public static Statement.Select Specified(string? quantifier, SqlList<SelectItem> items, TableExpression table)
+	public static Query.Select Specified(string? quantifier, SqlList<SelectColumn> columns, TableExpression table)
 	{
 		return new()
 		{
 			Quantifier = Quantifier(quantifier),
-			Items = items,
+			Columns = columns,
 			From = table.From,
 			Where = table.Where,
 			GroupBy = table.GroupBy,
@@ -1151,9 +1152,15 @@ static class Nodes
 		};
 	}
 
-	public static SqlList<SelectItem> Everything()
+	/// <summary>`TABLE t`, which is `SELECT * FROM t` and says so.</summary>
+	public static Query.Select Tabled(QualifiedName name)
 	{
-		return [new SelectItem.All()];
+		return new() { Columns = Everything(), From = new FromClause([new TableSource.Named(name)]), Table = true };
+	}
+
+	public static SqlList<SelectColumn> Everything()
+	{
+		return [new SelectColumn.All()];
 	}
 
 	/// <summary>What follows a select sublist's expression: a name and whether `AS` stood before it, or `AS` and the fields' names.</summary>
@@ -1165,12 +1172,12 @@ static class Nodes
 	}
 
 	/// <summary>A select sublist: a qualified asterisk where the expression ends in `.*` and no name follows, a derived column where one does.</summary>
-	public static SelectItem Selected(Expression value, Fields fields)
+	public static SelectColumn Selected(Expression value, Fields fields)
 	{
 		if (value is Expression.Wildcard { Kind: WildcardKind.Member } all && fields.Alias is null)
-			return new SelectItem.QualifiedAll(all.Target, fields.Columns);
+			return new SelectColumn.QualifiedAll(all.Target, fields.Columns);
 
-		return new SelectItem.ExpressionItem(value, fields.Alias, fields.AsKeyword);
+		return new SelectColumn.ExpressionItem(value, fields.Alias, fields.AsKeyword);
 	}
 
 	/// <summary>A value of a table value constructor as the row it is: an explicit row's values, or a value alone.</summary>
@@ -1189,60 +1196,77 @@ static class Nodes
 	}
 
 	/// <summary>
-	/// A body and the clauses around it. They are the body's where it has none of its own and no
-	/// brackets; otherwise the body is the operand of a query that has them.
+	/// A body and the clauses around it, which are the body's: of its whole result where it has set
+	/// operations. The body has none of its own — a query with clauses is an operand only in brackets,
+	/// where they are the bracketed query's.
 	/// </summary>
-	public static Statement.Select Expressed(Statement.Select body, WithClause? with, OrderByClause? order, OffsetClause? offset, FetchClause? fetch)
+	public static Query Expressed(Query body, WithClause? with, OrderByClause? order, Limit? offset, Limit? fetch)
 	{
 		if (with is null && order is null && offset is null && fetch is null)
 			return body;
 
-		if (body.Parentheses == 0 && body.With is null && body.OrderBy is null && body.Offset is null && body.Fetch is null)
-			return body with { With = with, OrderBy = order, Offset = offset, Fetch = fetch };
-
-		return new Statement.Select { Body = new QueryOperand.Select(body), With = with, OrderBy = order, Offset = offset, Fetch = fetch };
+		return body with { With = with, OrderBy = order, Limit = Limited(offset, fetch) };
 	}
 
-	/// <summary>A query in the brackets of a query primary.</summary>
-	public static Statement.Select InBrackets(Statement.Select query)
+	/// <summary>`OFFSET` and `FETCH`, each read as a limit of its own, as one.</summary>
+	static Limit? Limited(Limit? offset, Limit? fetch)
 	{
-		return query with { Parentheses = query.Parentheses + 1 };
+		if (offset is null)
+			return fetch;
+
+		if (fetch is null)
+			return offset;
+
+		return offset with
+		{
+			Count = fetch.Count,
+			Percent = fetch.Percent,
+			WithTies = fetch.WithTies,
+			FetchRowWord = fetch.FetchRowWord,
+			Position = fetch.Position,
+		};
+	}
+
+	/// <summary>A query in the brackets of a query primary: a node of its own, so that what is inside them is told from what follows.</summary>
+	public static Query InBrackets(Query query)
+	{
+		return new Query.Parenthesized(query);
 	}
 
 	/// <summary>
-	/// An operand and the operations after it. Where the first operand has operations of its own — a term
-	/// with an `INTERSECT` that a `UNION` follows — it is an operand of its own.
+	/// An operand and the operations after it, appended to the operations it has: the list is a left
+	/// fold, so `A INTERSECT B UNION C` is one list. An operand in brackets has none outside them, so
+	/// what is inside is never added to.
 	/// </summary>
-	public static Statement.Select Combined(Statement.Select first, SetOperation[]? rest)
+	public static Query Combined(Query first, SetOperation[]? rest)
 	{
 		if (rest is not { Length: > 0 })
 			return first;
 
-		if (first.SetOperations.Count == 0 && first.Parentheses == 0 && first.With is null && first.OrderBy is null && first.Offset is null && first.Fetch is null)
+		if (first.SetOperations.Count == 0)
 			return first with { SetOperations = SqlList.Own(rest) };
 
-		return new Statement.Select { Body = new QueryOperand.Select(first), SetOperations = SqlList.Own(rest) };
+		return first with { SetOperations = [.. first.SetOperations, .. rest] };
 	}
 
 	/// <summary>One `UNION`, `EXCEPT` or `INTERSECT`, its quantifier and correspondence, and the operand after it.</summary>
-	public static SetOperation Operation(string word, string? quantifier, CorrespondingClause? corresponding, Statement.Select operand)
+	public static SetOperation Operation(string word, string? quantifier, CorrespondingClause? corresponding, Query operand)
 	{
-		return new()
+		var all = Quantifier(quantifier) == SetQuantifier.All;
+		var kind = (word[0] | 0x20) switch
 		{
-			Operator = (word[0] | 0x20) switch { 'u' => SetOperator.Union, 'e' => SetOperator.Except, _ => SetOperator.Intersect },
-			Quantifier = Quantifier(quantifier),
-			Corresponding = corresponding,
-			Operand = OperandOf(operand),
+			'u' => all ? SetOperator.UnionAll : SetOperator.Union,
+			'e' => all ? SetOperator.ExceptAll : SetOperator.Except,
+			_   => all ? SetOperator.IntersectAll : SetOperator.Intersect,
 		};
+
+		return new SetOperation(kind, operand) { Distinct = quantifier is not null && !all, Corresponding = corresponding };
 	}
 
-	/// <summary>An operand as the kind it is: a table value constructor or an explicit table alone, or a query.</summary>
-	static QueryOperand OperandOf(Statement.Select query)
+	/// <summary>A cursor specification: a query as a statement, and the updatability written after it.</summary>
+	public static Statement.Select Cursor(Query query, LockingClause? locking)
 	{
-		return query.Body is QueryOperand.Values or QueryOperand.Table
-		&& query.Parentheses == 0 && query.SetOperations.Count == 0 && query.With is null && query.OrderBy is null && query.Offset is null && query.Fetch is null
-			? query.Body
-			: new QueryOperand.Select(query);
+		return new Statement.Select { Query = locking is null ? query : query with { Locking = [locking] } };
 	}
 
 	public static RowWord RowWordOf(string word)
@@ -1253,14 +1277,16 @@ static class Nodes
 	/// <summary>A fetch first quantity and whether `PERCENT` followed it.</summary>
 	public sealed record Quantity(Expression Value, bool Percent);
 
-	public static FetchClause Fetched(string position, Quantity? quantity, string rows, string mode)
+	public static Limit Fetched(string position, Quantity? quantity, string rows, string mode)
 	{
-		return new(
-			(position[0] | 0x20) == 'f' ? FetchPosition.First : FetchPosition.Next,
-			quantity?.Value,
-			quantity?.Percent ?? false,
-			RowWordOf(rows),
-			(mode.TrimStart()[0] | 0x20) == 'o' ? FetchMode.Only : FetchMode.WithTies);
+		return new()
+		{
+			Position = (position[0] | 0x20) == 'f' ? FetchPosition.First : FetchPosition.Next,
+			Count = quantity?.Value,
+			Percent = quantity?.Percent ?? false,
+			FetchRowWord = RowWordOf(rows),
+			WithTies = (mode.TrimStart()[0] | 0x20) != 'o',
+		};
 	}
 
 	/// <summary>A with list element's search clause and cycle clause, either or both.</summary>

@@ -9,17 +9,20 @@ public static partial class Sql2023Writer
 	{
 		// ── §7.13 Query expression ─────────────────────────────────────────────────
 
-		/// <summary>A subquery: its brackets are its own, and the query in them has none.</summary>
-		void PutSubquery(Statement.Select query)
+		/// <summary>A subquery: its brackets are its own, and a query in brackets in them is a second pair.</summary>
+		void PutSubquery(Query query)
 		{
 			Open();
 			PutQuery(query);
 			Close();
 		}
 
-		// The brackets counted around a query hold its body, its set operations and its clauses; what a
-		// cursor specification says of it after them stands outside.
-		void PutQuery(Statement.Select query)
+		// A query, its set operations and the clauses of its whole result. The brackets written are the
+		// tree's Parenthesized nodes; a pair is added only where a tree built by hand would otherwise be
+		// read back with another meaning — a list whose later operator binds tighter than an earlier one,
+		// an operand whose own operations bind no tighter than the operator before it, or an operand with
+		// clauses of its own. A tree read from text needs none of them.
+		void PutQuery(Query query)
 		{
 			if (!SqlStack.Enough())
 			{
@@ -28,36 +31,39 @@ public static partial class Sql2023Writer
 				return;
 			}
 
-			for (var at = 0; at < query.Parentheses; at++)
-				Open();
-
 			if (query.With is { } with)
 				PutWith(with);
 
-			if (query.Body is { } body)
-				PutOperand(body);
-			else
-				PutSpecification(query);
+			var operations = query.SetOperations;
 
-			foreach (var operation in query.SetOperations)
+			for (var at = Regroupings(operations); at > 0; at--)
+				Open();
+
+			if (query is Query.Parenthesized parenthesized)
 			{
-				Word(operation.Operator switch { SetOperator.Union => "UNION", SetOperator.Except => "EXCEPT", SetOperator.Intersect => "INTERSECT", _ => throw NoText(operation.Operator) });
-				PutQuantifier(operation.Quantifier);
+				Open();
+				PutQuery(parenthesized.Query);
+				Close();
+			}
+			else
+				PutSpecification((Query.Select)query);
 
-				if (operation.Corresponding is { } corresponding)
+			var loosest = int.MaxValue;
+
+			foreach (var operation in operations)
+			{
+				var binding = Binding(operation.Operator);
+
+				if (binding > loosest)
 				{
-					Word("CORRESPONDING");
-
-					if (corresponding.By)
-					{
-						Word("BY");
-						Open();
-						Each(corresponding.Columns, PutIdentifier);
-						Close();
-					}
+					Close();
+					loosest = binding;
 				}
+				else
+					loosest = Math.Min(loosest, binding);
 
-				PutOperand(operation.Operand);
+				PutOperation(operation);
+				PutOperand(operation.Query, binding);
 			}
 
 			if (query.OrderBy is { } order)
@@ -66,52 +72,190 @@ public static partial class Sql2023Writer
 				PutSorts(order);
 			}
 
-			if (query.Offset is { } offset)
+			if (query.Limit is { } limit)
+				PutLimit(limit);
+
+			if (query.For is { } forClause)
+				throw Unwritten(forClause);
+
+			foreach (var locking in query.Locking)
 			{
-				Word("OFFSET");
-				PutExpression(offset.Count);
-				Word(offset.RowWord == RowWord.Row ? "ROW" : "ROWS");
-			}
-
-			if (query.Fetch is { } fetch)
-			{
-				Word(fetch.Position == FetchPosition.First ? "FETCH FIRST" : "FETCH NEXT");
-
-				if (fetch.Quantity is { } quantity)
-					PutExpression(quantity);
-
-				if (fetch.Percent)
-					Word("PERCENT");
-
-				Word(fetch.RowWord == RowWord.Row ? "ROW" : "ROWS");
-				Word(fetch.Mode == FetchMode.Only ? "ONLY" : "WITH TIES");
-			}
-
-			for (var at = 0; at < query.Parentheses; at++)
-				Close();
-
-			if (query.Updatability is { } updatability)
-			{
-				if (updatability.ReadOnly)
-					Word("FOR READ ONLY");
-				else
+				Word(locking.Mode switch
 				{
-					Word("FOR UPDATE");
+					LockingMode.ReadOnly    => "FOR READ ONLY",
+					LockingMode.Update      => "FOR UPDATE",
+					LockingMode.NoKeyUpdate => "FOR NO KEY UPDATE",
+					LockingMode.Share       => "FOR SHARE",
+					LockingMode.KeyShare    => "FOR KEY SHARE",
+					_                       => throw NoText(locking.Mode),
+				});
 
-					if (updatability.UpdateColumns.Count > 0)
-					{
-						Word("OF");
-						Each(updatability.UpdateColumns, PutIdentifier);
-					}
+				if (locking.Of.Count > 0)
+				{
+					Word("OF");
+					Each(locking.Of, PutIdentifier);
 				}
 			}
 		}
 
-		void PutSpecification(Statement.Select query)
+		// INTERSECT binds tighter than UNION and EXCEPT, which bind alike.
+		static int Binding(SetOperator op)
 		{
+			return op is SetOperator.Intersect or SetOperator.IntersectAll ? 2 : 1;
+		}
+
+		// How many leading parts of a list need brackets: one for each operator that binds tighter than
+		// the loosest before it since the last such pair, since the list is a left fold and the text
+		// would otherwise give that operator its left neighbour alone.
+		static int Regroupings(SqlList<SetOperation> operations)
+		{
+			var count   = 0;
+			var loosest = int.MaxValue;
+
+			foreach (var operation in operations)
+			{
+				var binding = Binding(operation.Operator);
+
+				if (binding > loosest)
+				{
+					count++;
+					loosest = binding;
+				}
+				else
+					loosest = Math.Min(loosest, binding);
+			}
+
+			return count;
+		}
+
+		void PutOperation(SetOperation operation)
+		{
+			Word(operation.Operator switch
+			{
+				SetOperator.Union        => "UNION",
+				SetOperator.UnionAll     => "UNION ALL",
+				SetOperator.Intersect    => "INTERSECT",
+				SetOperator.IntersectAll => "INTERSECT ALL",
+				SetOperator.Except       => "EXCEPT",
+				SetOperator.ExceptAll    => "EXCEPT ALL",
+				_                        => throw NoText(operation.Operator),
+			});
+
+			if (operation.Distinct)
+			{
+				if (operation.Operator is SetOperator.UnionAll or SetOperator.IntersectAll or SetOperator.ExceptAll)
+					throw Both(operation, "ALL", "Distinct");
+
+				Word("DISTINCT");
+			}
+
+			if (operation.Corresponding is { } corresponding)
+			{
+				Word("CORRESPONDING");
+
+				if (corresponding.By)
+				{
+					Word("BY");
+					Open();
+					Each(corresponding.Columns, PutIdentifier);
+					Close();
+				}
+			}
+		}
+
+		// An operand after an operator that binds as `binding` does. Its own operations stay its own
+		// without brackets only where all of them bind tighter; its own clauses never do.
+		void PutOperand(Query operand, int binding)
+		{
+			var bracketed = operand.With is not null || operand.OrderBy is not null || operand.Limit is not null
+				|| operand.For is not null || operand.Locking.Count > 0;
+
+			foreach (var operation in operand.SetOperations)
+				bracketed |= Binding(operation.Operator) <= binding;
+
+			if (bracketed)
+				PutSubquery(operand);
+			else
+				PutQuery(operand);
+		}
+
+		void PutLimit(Limit limit)
+		{
+			if (limit.Offset is { } offset)
+			{
+				Word("OFFSET");
+				PutExpression(offset);
+				Word(limit.OffsetRowWord == RowWord.Row ? "ROW" : "ROWS");
+			}
+
+			if (limit.Count is null && limit.FetchRowWord is null)
+				return;
+
+			Word(limit.Position == FetchPosition.First ? "FETCH FIRST" : "FETCH NEXT");
+
+			if (limit.Count is { } count)
+				PutExpression(count);
+
+			if (limit.Percent)
+				Word("PERCENT");
+
+			Word(limit.FetchRowWord == RowWord.Row ? "ROW" : "ROWS");
+			Word(limit.WithTies ? "WITH TIES" : "ONLY");
+		}
+
+		void PutTop(TopClause? top)
+		{
+			if (top is null)
+				return;
+
+			Word("TOP");
+
+			if (top.Parentheses)
+			{
+				Open();
+				PutExpression(top.Value);
+				Close();
+			}
+			else
+				PutExpression(top.Value);
+
+			if (top.Percent)
+				Word("PERCENT");
+
+			if (top.WithTies)
+				Word("WITH TIES");
+		}
+
+		void PutSpecification(Query.Select query)
+		{
+			if (query.Values.Count > 0)
+			{
+				if (query.Top is not null || query.Quantifier is not null || query.Columns.Count > 0 || query.Table
+					|| query.Into is not null || query.From is not null || query.Where is not null
+					|| query.GroupBy is not null || query.Having is not null || query.Window is not null)
+					throw Both(query, "Values", "a select list or its clauses");
+
+				Word("VALUES");
+				Each(query.Values, PutRow);
+
+				return;
+			}
+
+			if (query.Table && Explicit(query) is { } table)
+			{
+				Word("TABLE");
+				PutName(table);
+
+				return;
+			}
+
+			if (query.Columns.Count == 0)
+				throw Empty(query, "Columns", "Values");
+
 			Word("SELECT");
 			PutQuantifier(query.Quantifier);
-			Each(query.Items, PutItem);
+			PutTop(query.Top);
+			Each(query.Columns, PutColumn);
 
 			if (query.Into is { } into)
 			{
@@ -156,31 +300,14 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutOperand(QueryOperand operand)
+		// The table of `TABLE t` where the query is still exactly `SELECT * FROM t`; null where it has
+		// been changed into anything more, which is then written in full rather than lost.
+		static QualifiedName? Explicit(Query.Select query)
 		{
-			if (!SqlStack.Enough())
-			{
-				SqlStack.Deeper(this, operand, static (into, node) => into.PutOperand(node));
+			if (query is not { Columns: [SelectColumn.All], From.Sources: [TableSource.Named named], Top: null, Quantifier: null, Into: null, Where: null, GroupBy: null, Having: null, Window: null })
+				return null;
 
-				return;
-			}
-
-			switch (operand)
-			{
-				case QueryOperand.Select select:
-					PutQuery(select.Query);
-					break;
-
-				case QueryOperand.Values values:
-					Word("VALUES");
-					Each(values.Rows, PutRow);
-					break;
-
-				default:
-					Word("TABLE");
-					PutName(((QueryOperand.Table)operand).Name);
-					break;
-			}
+			return named == new TableSource.Named(named.Name) ? named.Name : null;
 		}
 
 		// A row of values: its values in brackets, or a value alone, which may have brackets of its own.
@@ -203,15 +330,15 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutItem(SelectItem item)
+		void PutColumn(SelectColumn column)
 		{
-			switch (item)
+			switch (column)
 			{
-				case SelectItem.All:
+				case SelectColumn.All:
 					Word("*");
 					break;
 
-				case SelectItem.ExpressionItem expression:
+				case SelectColumn.ExpressionItem expression:
 					PutExpression(expression.Expression);
 
 					if (expression.Alias is { } alias)
@@ -225,7 +352,7 @@ public static partial class Sql2023Writer
 					break;
 
 				default:
-					var all = (SelectItem.QualifiedAll)item;
+					var all = (SelectColumn.QualifiedAll)column;
 
 					PutExpression(all.Qualifier);
 					Tight(".*");
@@ -1096,11 +1223,17 @@ public static partial class Sql2023Writer
 			switch (statement)
 			{
 				case Statement.Select select:
-					PutQuery(select);
+					PutQuery(select.Query);
+
+					if (select.Hints.Count > 0)
+						throw Unwritten(select.Hints[0]);
+
 					break;
 
 				case Statement.Insert insert:
-					Word("INSERT INTO");
+					Word("INSERT");
+					PutTop(insert.Top);
+					Word("INTO");
 					PutSource(insert.Target);
 
 					if (insert.SourceValue is InsertSource.DefaultValues)
@@ -1124,12 +1257,13 @@ public static partial class Sql2023Writer
 						Each(values.Rows, PutRow);
 					}
 					else
-						PutQuery(((InsertSource.Query)insert.SourceValue).Select);
+						PutQuery(((InsertSource.Subquery)insert.SourceValue).Query);
 
 					break;
 
 				case Statement.Update update:
 					Word("UPDATE");
+					PutTop(update.Top);
 					PutSource(update.Target!);
 					PutPortion(update.Portion);
 					PutAlias(update.Alias);
@@ -1139,7 +1273,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.Delete delete:
-					Word("DELETE FROM");
+					Word("DELETE");
+					PutTop(delete.Top);
+					Word("FROM");
 					PutSource(delete.Target!);
 					PutPortion(delete.Portion);
 					PutAlias(delete.Alias);
@@ -1147,7 +1283,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.Merge merge:
-					Word("MERGE INTO");
+					Word("MERGE");
+					PutTop(merge.Top);
+					Word("INTO");
 					PutSource(merge.Target);
 					PutAlias(merge.Alias);
 					Word("USING");

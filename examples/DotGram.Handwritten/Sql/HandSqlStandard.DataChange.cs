@@ -401,7 +401,7 @@ partial class HandSqlStandard
 
 		if (QueryExpression(ref cursor, out var query))
 		{
-			source = new InsertSource.Query(query);
+			source = new InsertSource.Subquery(query);
 
 			return true;
 		}

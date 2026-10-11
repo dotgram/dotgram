@@ -17,13 +17,13 @@ partial class HandSqlStandard
 	// ── The publications ───────────────────────────────────────────────────────
 
 	/// <summary>Reads the whole input as a <c>&lt;query expression&gt;</c>.</summary>
-	public static Statement.Select ParseQueryExpression(string input)
+	public static Query ParseQueryExpression(string input)
 	{
 		return TryParseQueryExpression(input, out var value) ? value : throw Refused(input, "query expression");
 	}
 
 	/// <summary>Reads the whole input as a <c>&lt;query expression&gt;</c>, answering rather than throwing.</summary>
-	public static bool TryParseQueryExpression(string input, out Statement.Select value)
+	public static bool TryParseQueryExpression(string input, out Query value)
 	{
 		var cursor = new SqlCursor(input);
 
@@ -35,12 +35,12 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	public static Statement.Select ParseQuerySpecification(string input)
+	public static Query.Select ParseQuerySpecification(string input)
 	{
 		return TryParseQuerySpecification(input, out var value) ? value : throw Refused(input, "query specification");
 	}
 
-	public static bool TryParseQuerySpecification(string input, out Statement.Select value)
+	public static bool TryParseQuerySpecification(string input, out Query.Select value)
 	{
 		var cursor = new SqlCursor(input);
 
@@ -72,10 +72,10 @@ partial class HandSqlStandard
 	// ── §7.13 Query expression ─────────────────────────────────────────────────
 
 	/// <summary>
-	/// <c>&lt;query expression&gt;</c>. The clauses around a body are the body's own where it has
-	/// none of them, and a query of their own around it where it has.
+	/// <c>&lt;query expression&gt;</c>. The clauses around a body are the body's own, and of its whole
+	/// result where it has set operations; a body never has clauses of its own outside brackets.
 	/// </summary>
-	static bool QueryExpression(ref SqlCursor cursor, out Statement.Select query)
+	static bool QueryExpression(ref SqlCursor cursor, out Query query)
 	{
 		var save = cursor;
 		var with = WithClause(ref cursor);
@@ -97,15 +97,31 @@ partial class HandSqlStandard
 		return true;
 	}
 
-	static Statement.Select Expressed(Statement.Select body, WithClause? with, OrderByClause? order, OffsetClause? offset, FetchClause? fetch)
+	static Query Expressed(Query body, WithClause? with, OrderByClause? order, Limit? offset, Limit? fetch)
 	{
 		if (with is null && order is null && offset is null && fetch is null)
 			return body;
 
-		if (body.Parentheses == 0 && body.With is null && body.OrderBy is null && body.Offset is null && body.Fetch is null)
-			return body with { With = with, OrderBy = order, Offset = offset, Fetch = fetch };
+		return body with { With = with, OrderBy = order, Limit = Limited(offset, fetch) };
+	}
 
-		return new Statement.Select { Body = new QueryOperand.Select(body), With = with, OrderBy = order, Offset = offset, Fetch = fetch };
+	/// <summary>`OFFSET` and `FETCH`, each read as a limit of its own, as one.</summary>
+	static Limit? Limited(Limit? offset, Limit? fetch)
+	{
+		if (offset is null)
+			return fetch;
+
+		if (fetch is null)
+			return offset;
+
+		return offset with
+		{
+			Count        = fetch.Count,
+			Percent      = fetch.Percent,
+			WithTies     = fetch.WithTies,
+			FetchRowWord = fetch.FetchRowWord,
+			Position     = fetch.Position,
+		};
 	}
 
 	static WithClause? WithClause(ref SqlCursor cursor)
@@ -230,7 +246,7 @@ partial class HandSqlStandard
 	/// <c>&lt;query expression body&gt;</c>: query terms, and the <c>UNION</c>s and <c>EXCEPT</c>s
 	/// between them, which are a repetition here because the BNF recurses on the left.
 	/// </summary>
-	static bool QueryExpressionBody(ref SqlCursor cursor, out Statement.Select query)
+	static bool QueryExpressionBody(ref SqlCursor cursor, out Query query)
 	{
 		if (!QueryTerm(ref cursor, out query))
 			return false;
@@ -240,7 +256,7 @@ partial class HandSqlStandard
 		while (cursor.Word is SqlWord.Union or SqlWord.Except)
 		{
 			var save = cursor;
-			var op   = cursor.Word == SqlWord.Union ? SetOperator.Union : SetOperator.Except;
+			var union = cursor.Word == SqlWord.Union;
 
 			cursor.Take();
 
@@ -254,12 +270,12 @@ partial class HandSqlStandard
 				break;
 			}
 
-			(rest ??= []).Add(new SetOperation
+			var all = quantifier == Ast.SetQuantifier.All;
+
+			(rest ??= []).Add(new SetOperation(union ? (all ? SetOperator.UnionAll : SetOperator.Union) : (all ? SetOperator.ExceptAll : SetOperator.Except), operand)
 			{
-				Operator      = op,
-				Quantifier    = quantifier,
+				Distinct      = quantifier == Ast.SetQuantifier.Distinct,
 				Corresponding = corresponding,
-				Operand       = OperandOf(operand),
 			});
 		}
 
@@ -268,7 +284,7 @@ partial class HandSqlStandard
 		return true;
 	}
 
-	static bool QueryTerm(ref SqlCursor cursor, out Statement.Select query)
+	static bool QueryTerm(ref SqlCursor cursor, out Query query)
 	{
 		if (!QueryPrimary(ref cursor, out query))
 			return false;
@@ -291,12 +307,10 @@ partial class HandSqlStandard
 				break;
 			}
 
-			(rest ??= []).Add(new SetOperation
+			(rest ??= []).Add(new SetOperation(quantifier == Ast.SetQuantifier.All ? SetOperator.IntersectAll : SetOperator.Intersect, operand)
 			{
-				Operator      = SetOperator.Intersect,
-				Quantifier    = quantifier,
+				Distinct      = quantifier == Ast.SetQuantifier.Distinct,
 				Corresponding = corresponding,
-				Operand       = OperandOf(operand),
 			});
 		}
 
@@ -305,31 +319,29 @@ partial class HandSqlStandard
 		return true;
 	}
 
-	/// <summary>An operand as the kind it is: a table value constructor or an explicit table alone, or a query.</summary>
-	static QueryOperand OperandOf(Statement.Select query)
-	{
-		return query.Body is QueryOperand.Values or QueryOperand.Table
-		&& query.Parentheses == 0 && query.SetOperations.Count == 0 && query.With is null && query.OrderBy is null && query.Offset is null && query.Fetch is null
-			? query.Body
-			: new QueryOperand.Select(query);
-	}
-
-	/// <summary>An operand and the operations after it, where the first has none of its own.</summary>
-	static Statement.Select Combined(Statement.Select first, List<SetOperation>? rest)
+	/// <summary>
+	/// An operand and the operations after it, appended to the ones it has: the list is a left fold. An
+	/// operand in brackets has none outside them, so what is inside is never added to.
+	/// </summary>
+	static Query Combined(Query first, List<SetOperation>? rest)
 	{
 		if (rest is not { Count: > 0 })
 			return first;
 
-		if (first.SetOperations.Count == 0 && first.Parentheses == 0 && first.With is null && first.OrderBy is null && first.Offset is null && first.Fetch is null)
+		if (first.SetOperations.Count == 0)
 			return first with { SetOperations = Sql.SqlList.From(rest) };
 
-		return new Statement.Select { Body = new QueryOperand.Select(first), SetOperations = Sql.SqlList.From(rest) };
+		return first with { SetOperations = [.. first.SetOperations, .. rest] };
 	}
 
-	static bool QueryPrimary(ref SqlCursor cursor, out Statement.Select query)
+	static bool QueryPrimary(ref SqlCursor cursor, out Query query)
 	{
-		if (SimpleTable(ref cursor, out query))
+		if (SimpleTable(ref cursor, out var simple))
+		{
+			query = simple;
+
 			return true;
+		}
 
 		var save = cursor;
 
@@ -341,9 +353,7 @@ partial class HandSqlStandard
 
 			if (cursor.Take(SqlTokenKind.RightParen))
 			{
-				var inner = Expressed(body, null, order, offset, fetch);
-
-				query = inner with { Parentheses = inner.Parentheses + 1 };
+				query = new Query.Parenthesized(Expressed(body, null, order, offset, fetch));
 
 				return true;
 			}
@@ -356,7 +366,7 @@ partial class HandSqlStandard
 	}
 
 	/// <summary><c>&lt;simple table&gt;</c>: a query specification, a table value constructor, or an explicit table.</summary>
-	static bool SimpleTable(ref SqlCursor cursor, out Statement.Select query)
+	static bool SimpleTable(ref SqlCursor cursor, out Query.Select query)
 	{
 		if (cursor.Word == SqlWord.Select)
 			return QuerySpecification(ref cursor, out query);
@@ -383,14 +393,14 @@ partial class HandSqlStandard
 					break;
 			}
 
-			query = new Statement.Select { Body = new QueryOperand.Values(Sql.SqlList.From(rows)) };
+			query = new Query.Select { Values = Sql.SqlList.From(rows) };
 
 			return true;
 		}
 
 		if (cursor.Take(SqlWord.Table) && TableName(ref cursor, out var name))
 		{
-			query = new Statement.Select { Body = new QueryOperand.Table(name) };
+			query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.Named(name)]), Table = true };
 
 			return true;
 		}
@@ -433,7 +443,7 @@ partial class HandSqlStandard
 		return null;
 	}
 
-	static OffsetClause? ResultOffsetClause(ref SqlCursor cursor)
+	static Limit? ResultOffsetClause(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -442,7 +452,7 @@ partial class HandSqlStandard
 			var word = RowWord(ref cursor);
 
 			if (word is not null)
-				return new OffsetClause(value, word.Value);
+				return new Limit { Offset = value, OffsetRowWord = word.Value };
 		}
 
 		cursor = save;
@@ -457,7 +467,7 @@ partial class HandSqlStandard
 		null;
 	}
 
-	static FetchClause? FetchFirstClause(ref SqlCursor cursor)
+	static Limit? FetchFirstClause(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -492,11 +502,13 @@ partial class HandSqlStandard
 
 		if (rows is not null)
 		{
+			var fetched = new Limit { Position = first ? FetchPosition.First : FetchPosition.Next, Count = quantity, Percent = percent, FetchRowWord = rows.Value };
+
 			if (cursor.Take(SqlWord.Only))
-				return new FetchClause(first ? FetchPosition.First : FetchPosition.Next, quantity, percent, rows.Value, FetchMode.Only);
+				return fetched;
 
 			if (cursor.Take(SqlWord.With) && cursor.TakeWord("TIES"))
-				return new FetchClause(first ? FetchPosition.First : FetchPosition.Next, quantity, percent, rows.Value, FetchMode.WithTies);
+				return fetched with { WithTies = true };
 		}
 
 		cursor = save;
@@ -555,7 +567,7 @@ partial class HandSqlStandard
 
 	// ── §7.12 Query specification ──────────────────────────────────────────────
 
-	static bool QuerySpecification(ref SqlCursor cursor, out Statement.Select query)
+	static bool QuerySpecification(ref SqlCursor cursor, out Query.Select query)
 	{
 		var save = cursor;
 
@@ -573,10 +585,10 @@ partial class HandSqlStandard
 			return false;
 		}
 
-		query = new Statement.Select
+		query = new Query.Select
 		{
 			Quantifier = quantifier,
-			Items      = items,
+			Columns    = items,
 			From       = table.From,
 			Where      = table.Where,
 			GroupBy    = table.GroupBy,
@@ -587,17 +599,17 @@ partial class HandSqlStandard
 		return true;
 	}
 
-	static bool SelectList(ref SqlCursor cursor, out Sql.SqlList<SelectItem> items)
+	static bool SelectList(ref SqlCursor cursor, out Sql.SqlList<SelectColumn> items)
 	{
 		if (cursor.Take(SqlTokenKind.Asterisk))
 		{
-			items = [new SelectItem.All()];
+			items = [new SelectColumn.All()];
 
 			return true;
 		}
 
 		var save    = cursor;
-		var sublist = new List<SelectItem>();
+		var sublist = new List<SelectColumn>();
 
 		items = default;
 
@@ -626,7 +638,7 @@ partial class HandSqlStandard
 	/// identifier chain is a column reference in shape — so the expression is read once, and its
 	/// <c>.*</c> is a step of the primary.
 	/// </summary>
-	static bool SelectSublist(ref SqlCursor cursor, out SelectItem item)
+	static bool SelectSublist(ref SqlCursor cursor, out SelectColumn item)
 	{
 		var save = cursor;
 
@@ -675,12 +687,12 @@ partial class HandSqlStandard
 		return true;
 	}
 
-	static SelectItem Selected(Expression value, Identifier? alias, bool keyword, Sql.SqlList<Identifier>? columns)
+	static SelectColumn Selected(Expression value, Identifier? alias, bool keyword, Sql.SqlList<Identifier>? columns)
 	{
 		if (value is Expression.Wildcard { Kind: WildcardKind.Member } all && alias is null)
-			return new SelectItem.QualifiedAll(all.Target, columns);
+			return new SelectColumn.QualifiedAll(all.Target, columns);
 
-		return new SelectItem.ExpressionItem(value, alias, keyword);
+		return new SelectColumn.ExpressionItem(value, alias, keyword);
 	}
 
 	// ── §7.4 Table expression ──────────────────────────────────────────────────
@@ -2007,7 +2019,7 @@ partial class HandSqlStandard
 	// ── §7.15 Subquery ─────────────────────────────────────────────────────────
 
 	/// <summary>A subquery's brackets are the subquery's, and the query in them has none of its own.</summary>
-	static bool Subquery(ref SqlCursor cursor, out Statement.Select query)
+	static bool Subquery(ref SqlCursor cursor, out Query query)
 	{
 		var save = cursor;
 
@@ -2020,12 +2032,12 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool ScalarSubquery(ref SqlCursor cursor, out Statement.Select query)
+	static bool ScalarSubquery(ref SqlCursor cursor, out Query query)
 	{
 		return Subquery(ref cursor, out query);
 	}
 
-	static bool TableSubquery(ref SqlCursor cursor, out Statement.Select query)
+	static bool TableSubquery(ref SqlCursor cursor, out Query query)
 	{
 		return Subquery(ref cursor, out query);
 	}

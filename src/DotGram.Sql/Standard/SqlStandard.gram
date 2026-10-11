@@ -556,7 +556,7 @@ CompOp = "<>" | "<=" | ">=" | '=' | '<' | '>'
 // 2>, <regex like predicate part 2>, <member predicate part 2>, <submultiset predicate part 2>.
 NegatablePredicatePart2 : @Expression
 	= "BETWEEN"i & s: ("ASYMMETRIC"i | "SYMMETRIC"i)? & l: RowValuePredicand & "AND"i & h: RowValuePredicand => @(new Expression.Between(null!, false, Nodes.Symmetry(s), l.Node, h.Node))
-	| "IN"i & q: TableSubquery => @(new Expression.In(null!, false, new InSource.Query(q)))
+	| "IN"i & q: TableSubquery => @(new Expression.In(null!, false, new InSource.Subquery(q)))
 	| "IN"i & '(' & { first: RowValueExpression & (',' & rest: RowValueExpression)* } & ')' => @(new Expression.In(null!, false, new InSource.Values(Nodes.Values(first, rest))))
 	| "LIKE"i & p: StringValueExpression & e: LikeEscape & when @((Towers.RolesOf(p) & Towers.RolesOf(e) & Towers.String) != 0) => @(new Expression.Like(null!, false, LikeKind.Like, p.Node, e.Node))
 	| "SIMILAR"i & "TO"i & p: CharacterValueExpression & ("ESCAPE"i & x: CharacterNode)? => @(new Expression.Like(null!, false, LikeKind.Similar, p.Node, x))
@@ -1411,10 +1411,10 @@ SimpleValueSpecification   : @Expression = l: Literal => @(new Expression.Litera
 
 // ── §7.12 Query specification ───────────────────────────────────────────────
 
-QuerySpecification : @Statement.Select = "SELECT"i & q: SetQuantifier? & l: SelectList & t: TableExpression => @(Nodes.Specified(q, l, t))
+QuerySpecification : @Query.Select = "SELECT"i & q: SetQuantifier? & l: SelectList & t: TableExpression => @(Nodes.Specified(q, l, t))
 SetQuantifier      = "DISTINCT"i | "ALL"i
 
-SelectList : @Sql.SqlList<SelectItem> = '*' => @(Nodes.Everything())
+SelectList : @Sql.SqlList<SelectColumn> = '*' => @(Nodes.Everything())
                                         | { first: SelectSublist & (',' & rest: SelectSublist)* } => @(Nodes.List(first, rest))
 
 // <select sublist>: a <derived column>, or a <qualified asterisk>. Each begins with a value
@@ -1429,7 +1429,7 @@ SelectList : @Sql.SqlList<SelectItem> = '*' => @(Nodes.Everything())
 //
 // A `.*` with nothing after it is a qualified asterisk, the reading a select list is written for; with
 // a name after it, the JSON accessor it is too, named.
-SelectSublist : @SelectItem = e: ValueExpression & f: AllFields & when @(!Nodes.RenamesFields(f) || (Towers.RolesOf(e) & Towers.Starred) != 0) => @(Nodes.Selected(e.Node, f))
+SelectSublist : @SelectColumn = e: ValueExpression & f: AllFields & when @(!Nodes.RenamesFields(f) || (Towers.RolesOf(e) & Towers.Starred) != 0) => @(Nodes.Selected(e.Node, f))
 AllFields     : @Nodes.Fields = "AS"i & '(' & columns: ColumnNameList & ')' => @(new Nodes.Fields(null, false, columns))
                               | a: AsClause => @(a)
                               | none => @(new Nodes.Fields(null, false, null))
@@ -1438,38 +1438,41 @@ AsClause : @Nodes.Fields = a: "AS"i? & n: ColumnName => @(new Nodes.Fields(n, a 
 
 // ── §7.13 Query expression ──────────────────────────────────────────────────
 
-// <query expression>. The clauses around a body are the body's own where it has none of them, and a
-// query of their own around it where it has: `(SELECT a FROM t ORDER BY a) ORDER BY b` is two orders.
-QueryExpression : @Statement.Select = w: WithClause? & b: QueryExpressionBody & o: OrderByClause? & f: ResultOffsetClause? & x: FetchFirstClause? => @(Nodes.Expressed(b, w, o, f, x))
+// <query expression>. The clauses around a body are the body's own, and of its whole result where it has
+// set operations; a body never has clauses of its own, since a query that has them is an operand only in
+// brackets: `(SELECT a FROM t ORDER BY a) ORDER BY b` is two orders, the inner one in the brackets' node.
+QueryExpression : @Query = w: WithClause? & b: QueryExpressionBody & o: OrderByClause? & f: ResultOffsetClause? & x: FetchFirstClause? => @(Nodes.Expressed(b, w, o, f, x))
 
 WithClause      : @WithClause = "WITH"i & r: "RECURSIVE"i? & { first: WithListElement & (',' & rest: WithListElement)* } => @(new WithClause(r is not null, Nodes.List(first, rest)))
 WithListElement : @CommonTableExpression = n: QueryName & ('(' & columns: ColumnNameList & ')')? & "AS"i & q: TableSubquery & s: SearchOrCycleClause? => @(new CommonTableExpression(n, columns ?? [], q, s?.Search, s?.Cycle))
 
 // <query expression body>, <query term>: each recurses through itself on the left, so the operators
-// are a repetition here, and `INTERSECT` is read inside a term. A term with an `INTERSECT` in it is an
-// operand of its own where `UNION` or `EXCEPT` joins it, so the tree keeps what binds tighter.
-QueryExpressionBody : @Statement.Select = { first: QueryTerm & (trivia & rest: UnionOrExcept)* } => @(Nodes.Combined(first, rest))
-QueryTerm           : @Statement.Select = { first: QueryPrimary & (trivia & rest: Intersected)* } => @(Nodes.Combined(first, rest))
+// are a repetition here, and `INTERSECT` is read inside a term. The operations follow the first operand
+// in one list, read as a left fold: a term's `INTERSECT`s are the start of it, and the `UNION`s and
+// `EXCEPT`s after the term continue it. A term on the right of `UNION` or `EXCEPT` is an operand with a
+// list of its own, so the tree keeps what binds tighter.
+QueryExpressionBody : @Query = { first: QueryTerm & (trivia & rest: UnionOrExcept)* } => @(Nodes.Combined(first, rest))
+QueryTerm           : @Query = { first: QueryPrimary & (trivia & rest: Intersected)* } => @(Nodes.Combined(first, rest))
 
 UnionOrExcept : @SetOperation = o: ("UNION"i | "EXCEPT"i) & q: ("ALL"i | "DISTINCT"i)? & c: CorrespondingSpec? & t: QueryTerm => @(Nodes.Operation(o, q, c, t))
 Intersected   : @SetOperation = o: "INTERSECT"i & q: ("ALL"i | "DISTINCT"i)? & c: CorrespondingSpec? & t: QueryPrimary => @(Nodes.Operation(o, q, c, t))
 
-QueryPrimary : @Statement.Select
+QueryPrimary : @Query
 	= s: SimpleTable => @(s)
 	| '(' & b: QueryExpressionBody & o: OrderByClause? & f: ResultOffsetClause? & x: FetchFirstClause? & ')' => @(Nodes.InBrackets(Nodes.Expressed(b, null, o, f, x)))
 
-// <simple table>, with <explicit table>.
-SimpleTable : @Statement.Select
+// <simple table>, with <explicit table>, which is `SELECT * FROM t` written short.
+SimpleTable : @Query.Select
 	= s: QuerySpecification => @(s)
-	| v: TableValueConstructor => @(new Statement.Select { Body = new QueryOperand.Values(v) })
-	| "TABLE"i & n: TableOrQueryName => @(new Statement.Select { Body = new QueryOperand.Table(n) })
+	| v: TableValueConstructor => @(new Query.Select { Values = v })
+	| "TABLE"i & n: TableOrQueryName => @(Nodes.Tabled(n))
 
 CorrespondingSpec  : @CorrespondingClause = "CORRESPONDING"i & ("BY"i & '(' & columns: ColumnNameList & ')')? => @(new CorrespondingClause(columns is not null, columns ?? []))
 OrderByClause      : @OrderByClause = "ORDER"i & "BY"i & s: SortSpecificationList => @(s)
-ResultOffsetClause : @OffsetClause = "OFFSET"i & v: SimpleValueSpecification & w: ("ROW"i | "ROWS"i) => @(new OffsetClause(v, Nodes.RowWordOf(w)))
+ResultOffsetClause : @Limit = "OFFSET"i & v: SimpleValueSpecification & w: ("ROW"i | "ROWS"i) => @(new Limit { Offset = v, OffsetRowWord = Nodes.RowWordOf(w) })
 
 // <fetch first clause>. A <fetch first percentage> is a row count and `PERCENT`.
-FetchFirstClause   : @FetchClause = "FETCH"i & p: ("FIRST"i | "NEXT"i) & q: FetchFirstQuantity? & w: ("ROW"i | "ROWS"i) & m: ("ONLY"i | "WITH"i & "TIES"i) => @(Nodes.Fetched(p, q, w, m))
+FetchFirstClause   : @Limit = "FETCH"i & p: ("FIRST"i | "NEXT"i) & q: FetchFirstQuantity? & w: ("ROW"i | "ROWS"i) & m: ("ONLY"i | "WITH"i & "TIES"i) => @(Nodes.Fetched(p, q, w, m))
 FetchFirstQuantity : @Nodes.Quantity = v: SimpleValueSpecification & p: "PERCENT"i? => @(new Nodes.Quantity(v, p is not null))
 
 // ── §7.14 Search or cycle clause ────────────────────────────────────────────
@@ -1484,9 +1487,9 @@ CycleClause  : @CycleClause = "CYCLE"i & columns: ColumnNameList & "SET"i & m: C
 // ── §7.15 Subquery ──────────────────────────────────────────────────────────
 
 // A subquery's brackets are the subquery's, and no query's brackets: the query in them has none of its own.
-ScalarSubquery : @Statement.Select = q: Subquery => @(q)
-TableSubquery  : @Statement.Select = q: Subquery => @(q)
-Subquery       : @Statement.Select = '(' & q: QueryExpression & ')' => @(q)
+ScalarSubquery : @Query = q: Subquery => @(q)
+TableSubquery  : @Query = q: Subquery => @(q)
+Subquery       : @Query = '(' & q: QueryExpression & ')' => @(q)
 
 // ── §10.10 Sort specification list ──────────────────────────────────────────
 
@@ -1535,7 +1538,7 @@ InsertColumnsAndSource : @Nodes.InsertBody
 // hold DEFAULT and a query's may not, so they share no beginning to read once, and a reading of
 // the rows that the second alternative replaces is meant (Q7.1 §5).
 InsertValues : @InsertSource = r: ContextuallyTypedTableValueConstructor & ?!("UNION"i | "EXCEPT"i | "INTERSECT"i | "ORDER"i | "OFFSET"i | "FETCH"i) => @(new InsertSource.Values(r))
-                             | q: QueryExpression => @(new InsertSource.Query(q))
+                             | q: QueryExpression => @(new InsertSource.Subquery(q))
 
 OverrideClause : @OverrideKind = "OVERRIDING"i & w: ("USER"i | "SYSTEM"i) & "VALUE"i => @((w[0] | 0x20) == 'u' ? OverrideKind.UserValue : OverrideKind.SystemValue)
 
@@ -2331,10 +2334,10 @@ GranteeItem : @Grantee = "PUBLIC"i => @(new Grantee.Public())
 // executable statements.
 
 // <cursor specification>: a query, and whether it is updated through.
-CursorSpecification : @Statement.Select = q: QueryExpression & u: UpdatabilityClause? => @(u is null ? q : q with { Updatability = u })
+CursorSpecification : @Statement.Select = q: QueryExpression & u: UpdatabilityClause? => @(Nodes.Cursor(q, u))
 
-UpdatabilityClause : @UpdatabilityClause = "FOR"i & "READ"i & "ONLY"i => @(new UpdatabilityClause(true, []))
-                                         | "FOR"i & "UPDATE"i & ("OF"i & columns: ColumnNameList)? => @(new UpdatabilityClause(false, columns ?? []))
+UpdatabilityClause : @LockingClause = "FOR"i & "READ"i & "ONLY"i => @(new LockingClause(LockingMode.ReadOnly, []))
+                                    | "FOR"i & "UPDATE"i & ("OF"i & columns: ColumnNameList)? => @(new LockingClause(LockingMode.Update, columns ?? []))
 
 TemporaryTableDeclaration : @Statement.DeclareLocalTemporaryTable = "DECLARE"i & "LOCAL"i & "TEMPORARY"i & "TABLE"i & n: TableName & e: TableElementList & ("ON"i & "COMMIT"i & o: ("PRESERVE"i | "DELETE"i) & "ROWS"i)?
 	  => @(new Statement.DeclareLocalTemporaryTable { Name = n, Elements = e, OnCommit = Nodes.CommitOf(o) })
@@ -2368,7 +2371,7 @@ FetchOrientation : @FetchOrientation
 
 // <select statement: single row>: a query specification whose select list is followed by `INTO`.
 SelectStatementSingleRow : @Statement.Select = "SELECT"i & q: SetQuantifier? & l: SelectList & "INTO"i & { first: TargetSpecification & (',' & rest: TargetSpecification)* } & t: TableExpression
-	  => @(Nodes.Specified(q, l, t) with { Into = new IntoClause(Nodes.List(first, rest)) })
+	  => @(new Statement.Select { Query = Nodes.Specified(q, l, t) with { Into = new IntoClause(Nodes.List(first, rest)) } })
 
 // <target specification>: a host parameter with its indicator, an SQL parameter or a column — an
 // identifier chain either — an element of an array, or a dynamic parameter. An embedded variable is

@@ -244,20 +244,23 @@ partial class HandSqlStandard
 		return false;
 	}
 
-	static bool CursorSpecification(ref SqlCursor cursor, out Statement.Select query)
+	static bool CursorSpecification(ref SqlCursor cursor, out Statement.Select statement)
 	{
-		if (!QueryExpression(ref cursor, out query))
+		if (!QueryExpression(ref cursor, out var query))
+		{
+			statement = null!;
+
 			return false;
+		}
 
 		var updatability = UpdatabilityClause(ref cursor);
 
-		if (updatability is not null)
-			query = query with { Updatability = updatability };
+		statement = new Statement.Select { Query = updatability is null ? query : query with { Locking = [updatability] } };
 
 		return true;
 	}
 
-	static UpdatabilityClause? UpdatabilityClause(ref SqlCursor cursor)
+	static LockingClause? UpdatabilityClause(ref SqlCursor cursor)
 	{
 		var save = cursor;
 
@@ -265,7 +268,7 @@ partial class HandSqlStandard
 			return null;
 
 		if (cursor.TakeWord("READ") && cursor.Take(SqlWord.Only))
-			return new UpdatabilityClause(true, []);
+			return new LockingClause(LockingMode.ReadOnly, []);
 
 		cursor = save;
 		cursor.Take();
@@ -282,7 +285,7 @@ partial class HandSqlStandard
 				columns = [];
 			}
 
-			return new UpdatabilityClause(false, columns);
+			return new LockingClause(LockingMode.Update, columns);
 		}
 
 		cursor = save;
@@ -594,14 +597,17 @@ partial class HandSqlStandard
 		{
 			statement = new Statement.Select
 			{
-				Quantifier = quantifier,
-				Items      = items,
-				Into       = new IntoClause(targets),
-				From       = table.From,
-				Where      = table.Where,
-				GroupBy    = table.GroupBy,
-				Having     = table.Having,
-				Window     = table.Window,
+				Query = new Query.Select
+				{
+					Quantifier = quantifier,
+					Columns    = items,
+					Into       = new IntoClause(targets),
+					From       = table.From,
+					Where      = table.Where,
+					GroupBy    = table.GroupBy,
+					Having     = table.Having,
+					Window     = table.Window,
+				},
 			};
 
 			return true;

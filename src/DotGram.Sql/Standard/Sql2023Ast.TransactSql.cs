@@ -130,7 +130,7 @@ public enum PlacementKind { On, TextImageOn, FilestreamOn }
 /// <see cref="Next"/> because a statement may write both an <c>OUTPUT INTO</c> and a second
 /// <c>OUTPUT</c> to the caller.
 /// </remarks>
-public sealed record OutputClause(SqlList<SelectItem> Items, TableSource? Into, SqlList<Identifier>? Columns, OutputClause? Next) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record OutputClause(SqlList<SelectColumn> Items, TableSource? Into, SqlList<Identifier>? Columns, OutputClause? Next) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));

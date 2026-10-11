@@ -16,8 +16,9 @@ namespace DotGram.Sql.Ast;
 /// </para>
 /// <para>
 /// <b>It writes what the tree holds.</b> Brackets are written where the tree has them — a
-/// <see cref="Expression.Parenthesized"/>, a query's <see cref="Statement.Select.Parentheses"/> — and
-/// nowhere else: a tree read from text holds every bracket that changed its shape. Key words are written in
+/// <see cref="Expression.Parenthesized"/>, a <see cref="Query.Parenthesized"/> — and nowhere else: a tree
+/// read from text holds every bracket that changed its shape. The one exception is a set operation built by
+/// hand whose text would mean something else without a pair, which gets one (<c>PutQuery</c>). Key words are written in
 /// capitals, one space between tokens, none inside a name or a call; which of two spellings was written, the
 /// tree says and this repeats.
 /// </para>
@@ -59,7 +60,8 @@ public static partial class Sql2023Writer
 				case LiteralValue literal:  PutLiteral(literal); break;
 				case QualifiedName name:    PutName(name); break;
 				case Identifier identifier: PutIdentifier(identifier); break;
-				case SelectItem item:       PutItem(item); break;
+				case Query query:           PutQuery(query); break;
+				case SelectColumn column:   PutColumn(column); break;
 				default:                    throw Unwritten(node);
 			}
 		}
@@ -960,8 +962,8 @@ public static partial class Sql2023Writer
 					PutNot(@in.Not);
 					Word("IN");
 
-					if (@in.SourceValue is InSource.Query inQuery)
-						PutSubquery(inQuery.Value);
+					if (@in.SourceValue is InSource.Subquery inQuery)
+						PutSubquery(inQuery.Query);
 					else
 					{
 						Open();
