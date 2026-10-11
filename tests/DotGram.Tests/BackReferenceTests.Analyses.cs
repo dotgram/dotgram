@@ -51,7 +51,6 @@ public sealed partial class BackReferenceTests
 	[InlineData("R = $q: 'a'+ & 'b'{0,#q}", true)]
 	[InlineData("R = $q: 'a'+ & 'b'{2,#q}", false)]
 	[InlineData("R = $q: 'a'+ & 'b'{#q,}", false)]
-	[InlineData("R = $q: 'a'+ & ('b'?){#q,4}", true)]
 	public void A_count_by_a_length_may_take_no_turn_where_the_length_may_be_zero(string grammar, bool nullable)
 	{
 		var graph   = Normalize(grammar + "\nparse R");

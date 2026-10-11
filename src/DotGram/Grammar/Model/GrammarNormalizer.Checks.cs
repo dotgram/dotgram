@@ -714,12 +714,12 @@ public sealed partial class GrammarNormalizer
 
 	void CheckRepetitions(Node node, RuleSymbol rule)
 	{
-		// A count with no upper bound is a loop like any other; one whose upper bound is a length
-		// ends when the count does.
+		// A count by a length is refused over an empty body as a count by numbers is, bounded
+		// or not: a turn that reads nothing is one the reader and the engine would count apart.
 		var looped = node switch
 		{
 			Node.Repeat(var body, _, var max) when max != 1 => body,
-			Node.Counted(var body, _, null)                  => body,
+			Node.Counted(var body, _, _)                     => body,
 			_                                                => null,
 		};
 

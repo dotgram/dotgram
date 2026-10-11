@@ -322,10 +322,17 @@ public sealed partial class BackReferenceTests
 	}
 
 	[Fact]
-	public void A_count_by_a_length_with_no_upper_bound_over_what_can_be_empty_is_refused()
+	public void A_count_by_a_length_over_what_can_be_empty_is_refused()
 	{
+		// Bounded or not, as `('b'?){1,3}` is: the same count is no loop at all over a body that
+		// cannot be empty.
 		Assert.Contains(GrammarNormalizer.NullableRepetition, Errors("R = $q: 'a' & ('b'?){#q,}\nparse R"));
-		Assert.DoesNotContain(GrammarNormalizer.NullableRepetition, Errors("R = $q: 'a' & ('b'?){1,#q}\nparse R"));
+		Assert.Contains(GrammarNormalizer.NullableRepetition, Errors("R = $q: 'a' & ('b'?){1,#q}\nparse R"));
+		Assert.Contains(GrammarNormalizer.NullableRepetition, Errors("R = $q: 'a' & ('b'?){#q}\nparse R"));
+		Assert.Contains(GrammarNormalizer.NullableRepetition, Errors("R = $q: 'a' & (\"bc\"?){#q,3}\nparse R"));
+		Assert.Contains(GrammarNormalizer.NullableRepetition, Errors("R = $q: 'a' & $r: 'c' & ('b'?){#q,#r}\nparse R"));
+		Assert.Contains(GrammarNormalizer.NullableRepetition, Errors("R = ':' & ('b'?){1,3}\nparse R"));
+		Assert.DoesNotContain(GrammarNormalizer.NullableRepetition, Errors("R = $q: 'a' & 'b'{1,#q}\nparse R"));
 	}
 
 	[Fact]
