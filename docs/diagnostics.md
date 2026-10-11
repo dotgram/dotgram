@@ -54,6 +54,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM1008` | Expected a Unicode category in the form `\p{Lu}`. | Braces and a category name. |
 | `GRAM1009` | Not a Unicode category. | One of `Lu`, `Ll`, `Nd`, `Zs`, … or a group such as `L` or `N`. |
 | `GRAM1010` | A character literal holds one character. | `''` holds none and `'ab'` holds two. Write `"ab"` for a string. |
+| `GRAM1011` | `$` or `#` needs a name right after it. | The sigil and the name are one token: `$name: X` binds the text `X` matched, `$name` matches it again, and `X{#name}` counts by its length. Write them with no space, and with a name rather than a number. |
 
 ## GRAM2xxx — reading the shape
 
@@ -68,6 +69,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM2007` | A publication of anything but a rule's name needs `as`. | `parse` and `find` name the method after the rule; an expression has no name to make one from, so give it one: `parse X & Y as Both`. |
 | `GRAM2008` | A named yield publication places a result type before `yield`. | Write the element contract after `yield : @T` (§6). |
 | `GRAM2009` | A condition after `when` whose operand is not followed by `is`. | A `when` is either a C# guard, written `when @(…)` and asked while the parser runs, or a condition about the grammar, written `when A is B` and answered while it is built. Both sides of that question are written out, so an operand with no `is` after it is neither one thing nor the other. |
+| `GRAM2010` | A length `#q` stands only inside count braces. | `#q` is the length of the text bound to `$q`, and a length is a count: `X{#q}`, `X{#q,}`, `X{2,#q}`. To match the bound text itself, write `$q`. |
 
 ## GRAM3xxx — resolving the names
 
