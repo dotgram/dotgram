@@ -39,24 +39,86 @@ public sealed partial class BackReferenceTests
 		Agree(row, readings.Select(static one => ($"reader, {one.Key}", one.Value)));
 	}
 
+	/// <remarks>
+	/// The engine's carriers agree on everything, and the engine agrees with the reader on the
+	/// answer, the value and where a refusal stopped, and why — except where the two back ends
+	/// say a refusal differently over grammars with no binding as well (<see cref="WordedApart"/>,
+	/// <see cref="PlacedApart"/>).
+	/// </remarks>
 	[Theory]
 	[MemberData(nameof(RowNames))]
 	public void The_engine_reads_every_row_as_the_reader_does(string name)
 	{
 		BackReferenceEmission.RequireBoth();
 
-		var row      = Named(name);
-		var readings = new List<(string, Reading[])> { ("reader, Tape", Readings(row, CarrierKind.Tape, direct: true)) };
+		var row     = Named(name);
+		var reader  = Readings(row, CarrierKind.Tape, direct: true);
+		var engines = new List<(string, Reading[])>();
 
 		foreach (var carrier in Carriers)
 		{
 			var read = Readings(row, carrier, direct: false);
 
 			Decided(row, read, $"engine, {carrier}");
-			readings.Add(($"engine, {carrier}", read));
+			engines.Add(($"engine, {carrier}", read));
 		}
 
-		Agree(row, readings);
+		Agree(row, engines);
+		Agree(row, [("reader, Tape", Comparable(row, reader)), .. engines.Select(one => (one.Item1, Comparable(row, one.Item2)))]);
+	}
+
+	/// <summary>
+	/// The rows whose refusals the reader and the engine word differently, for reasons that are
+	/// not the bindings': each difference is one the two back ends make over a grammar with no
+	/// binding in it as well.
+	/// </summary>
+	/// <remarks>
+	/// <list type="bullet">
+	/// <item><c>any</c> refused at the end of the input: the reader says <c>[^ ]</c>, the class it
+	/// reads, and the engine <c>any</c>, the rule it calls.</item>
+	/// <item>The turn of <c>(?!X &amp; any)*</c> refused at the end of the input: the engine tries it
+	/// and says what refused it, where the reader may see that it cannot begin and say nothing —
+	/// <c>"[==[" &amp; (?!"]==]" &amp; any)* &amp; "]==]"</c> on <c>[==[a]=]</c> is
+	/// <c>"]==]"</c> to the one and <c>any or "]==]"</c> to the other, and the trivia between two
+	/// words in the same way.</item>
+	/// <item><c>eol</c> wanted after a run: the reader may say the class that begins it,
+	/// <c>['\r' | '\n']</c>, where the engine says <c>'\r'</c> — <c>'`'{3,} &amp; [^ '`' | '\r' |
+	/// '\n']* &amp; eol &amp; { (?!('`'{3}) &amp; Line)* } &amp; '`'{3}</c> on a fence line holding a
+	/// backtick.</item>
+	/// <item>A rule wanted inside a group of looks around: the reader says the class the rule is,
+	/// the engine its name — <c>'"' &amp; { ('\\' &amp; '#'* &amp; Escape | ?!('"' &amp; '#'*) &amp;
+	/// ?!('\\' &amp; '#'*) &amp; any)* } &amp; '"' &amp; '#'*</c> on <c>"a\q"</c>.</item>
+	/// </list>
+	/// </remarks>
+	static readonly HashSet<string> WordedApart =
+	[
+		"CppRaw", "CSharpRawString", "Heredoc", "HeredocWithQuotedTag", "LuaLongComment", "LuaLongString",
+		"MarkdownFence", "PostgreSqlDollarQuoted", "RawStringWithoutAtomicGroups", "RestructuredTextHeading",
+		"RustRaw", "SwiftExtendedDelimiter", "UntilTheSameCharacter",
+	];
+
+	/// <summary>
+	/// The inputs whose refusals the two back ends place differently as well, for a reason that is
+	/// not the bindings': a refusal by a negative look at the end of a rule, which the engine says
+	/// where the look refused and the reader does not say at all — <c>{ '"'{3} } &amp; { (?!('"'{3}) &amp;
+	/// any)* } &amp; '"'{3} &amp; ?!'"'</c> on four closing quotes is refused at the fourth by the one and
+	/// where the input began by the other.
+	/// </summary>
+	static readonly HashSet<(string Row, string Input)> PlacedApart =
+	[
+		("CSharpRawString", "\"\"\"a\"\"\"\""),
+	];
+
+	/// <summary>The readings with only what both back ends say alike about the row: <see cref="WordedApart"/>, <see cref="PlacedApart"/>.</summary>
+	static Reading[] Comparable(Row row, Reading[] readings)
+	{
+		return
+		[
+			.. readings.Select(one =>
+				PlacedApart.Contains((row.Name, one.Input)) ? one with { Error = null, Position = -1 } :
+				WordedApart.Contains(row.Name) ? one with { Error = null } :
+				one),
+		];
 	}
 
 	[Theory]

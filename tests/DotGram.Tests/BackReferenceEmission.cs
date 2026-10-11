@@ -33,7 +33,7 @@ static class BackReferenceEmission
 	static readonly bool ReaderGenerates = true;
 
 	/// <summary>The engine: <c>Direct</c> off, <c>find</c>, and what the reader hands it.</summary>
-	static readonly bool EngineGenerates = false;
+	static readonly bool EngineGenerates = true;
 
 	public static bool Reader => ReaderGenerates || Asked("reader");
 
