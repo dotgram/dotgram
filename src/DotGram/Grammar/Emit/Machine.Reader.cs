@@ -5366,6 +5366,16 @@ sealed partial class Machine
 				if (turn is not null)
 					code.Line($"{turn}++;");
 			}
+
+			// A count whose most is below its fewest stops at the most and is short of the
+			// fewest there: one more turn was wanted. A repetition's bounds never cross.
+			if (repeat is null && min is not null && max is not null)
+			{
+				code.Line();
+
+				using (code.Block($"if ({turn} < {min})"))
+					Refused(code, machine.DeclareExpected(machine.Displays(body)));
+			}
 		}
 
 		/// <summary>
