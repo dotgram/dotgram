@@ -378,7 +378,8 @@ and nothing else). It is an ordinary operand and composes as one: `?!$q`, `$q*`,
 `($q & X)`. `$q*` is refused where `q` can be empty, as `(A?)*` is.
 
 **`X{#q}` repeats `X` by the length of `q`**, counted in input items as `{n}` and `any`
-are — characters over characters, kinds over kinds. The forms are `{#q}`, `{#q,}`,
+are — characters, since a binding is read only over characters (one over kinds is refused,
+below). The forms are `{#q}`, `{#q,}`,
 `{n,#q}`, `{#q,m}` and `{#q,#r}`; the bound is read when the count is reached, and there
 is no arithmetic (`{#q-1}` is not a count). A count whose lower
 bound is greater than its upper bound cannot be met, and simply fails when it is read —
