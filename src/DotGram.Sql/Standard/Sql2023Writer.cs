@@ -1320,7 +1320,18 @@ public static partial class Sql2023Writer
 				case Expression.JsonQuery query:
 					Word("JSON_QUERY");
 					Call();
-					PutCommon(query.Common);
+
+					// T-SQL: JSON_QUERY (Transact-SQL). `JSON_QUERY (x)`, with no path, which the standard has no
+					// text for: the context alone, with nothing of the standard's beside it.
+					if (query.Common.Path is null)
+					{
+						if (query is not { Output: null, Quotes: null, OnEmpty: null, OnError: null, Common: { PathName: null, Passing.Count: 0, ContextFormat: null } })
+							throw Misplaced(query, "Common.Path", "null beside what only the standard's JSON_QUERY writes");
+
+						PutExpression(query.Common.Context);
+					}
+					else
+						PutCommon(query.Common);
 					PutOutput(query.Output);
 
 					if (query.Wrapper is { } wrapper)
@@ -1885,8 +1896,9 @@ public static partial class Sql2023Writer
 			if (common.ContextFormat is { } format)
 				PutInput(format);
 
+			// The standard's path, or T-SQL's value; JSON_QUERY's one-argument form is its own writer's.
 			Tight(",");
-			Word(common.PathSpecification);
+			PutExpression(common.Path ?? throw Empty(common, "Path"));
 
 			if (common.PathName is { } name)
 			{

@@ -336,6 +336,130 @@ static partial class Bridge
 		};
 
 		/// <summary>
+		/// T-SQL's JSON constructors and functions as the standard's JSON nodes: the old tree keeps them as a call, a
+		/// pair as a JsonPair, and the clauses after the last argument as its words. JSON_VALUE of another argument
+		/// count stays a call, as the grammar reads it; the standard's functions T-SQL has no syntax for are a gap.
+		/// </summary>
+		static Ast.Expression? JsonCall(Expression.RoutineInvocation old, string upper)
+		{
+			// The words after the last argument, and that argument without them.
+			var arguments = old.Arguments.ToList();
+			var words     = "";
+
+			if (arguments is [.., Expression.Hinted(var last, var tail)])
+			{
+				arguments[^1] = last;
+				words         = tail;
+			}
+
+			// Read from the end: RETURNING and its type, then the null clause, then what is left.
+			var said = Words(words).ToList();
+
+			string? returning = null;
+			var at = said.LastIndexOf("RETURNING");
+
+			if (at >= 0)
+			{
+				returning = words[(words.LastIndexOf("RETURNING", StringComparison.OrdinalIgnoreCase) + "RETURNING".Length)..].Trim();
+				said      = said[..at];
+			}
+
+			Ast.JsonNullHandling? nulls = said switch
+			{
+				[.., "NULL", "ON", "NULL"]   => Ast.JsonNullHandling.NullOnNull,
+				[.., "ABSENT", "ON", "NULL"] => Ast.JsonNullHandling.AbsentOnNull,
+				_                            => null,
+			};
+
+			if (nulls is not null)
+				said = said[..^3];
+
+			Ast.JsonOutput? Output()
+			{
+				return returning is null ? null
+					: returning.Equals("JSON", StringComparison.OrdinalIgnoreCase) ? new Ast.JsonOutput(new Ast.DataType.Json())
+					: throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({upper} RETURNING {returning})");
+			}
+
+			Ast.JsonMember Member(Expression one)
+			{
+				return one is Expression.JsonPair(var key, var value)
+					? new Ast.JsonMember(Of(key), Of(value), Ast.JsonMemberSyntax.Colon)
+					: throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({upper} with a member that is not a key and a value)");
+			}
+
+			BridgeGap Rest()
+			{
+				return BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({upper} with the words `{words}`)");
+			}
+
+			switch (upper)
+			{
+				case "JSON_OBJECT":
+					if (said.Count > 0)
+						throw Rest();
+
+					return new Ast.Expression.JsonObject(Each([.. arguments], Member), nulls, null, Output());
+
+				case "JSON_ARRAY":
+					if (said.Count > 0)
+						throw Rest();
+
+					return new Ast.Expression.JsonArray(Each([.. arguments], one => new Ast.JsonElement(Of(one))), nulls, Output());
+
+				case "JSON_OBJECTAGG":
+					if (said.Count > 0)
+						throw Rest();
+
+					return arguments is [var pair]
+						? new Ast.Expression.JsonObjectAggregate(Member(pair), nulls, null, Output())
+						: throw BridgeGap.Open(old, "inventory Expression.RoutineInvocation (JSON_OBJECTAGG of several pairs, where the record holds one)");
+
+				case "JSON_ARRAYAGG":
+					if (arguments is not [var item])
+						throw BridgeGap.Open(old, "inventory Expression.RoutineInvocation (JSON_ARRAYAGG of other than one value, where the record holds one)");
+
+					// What is left is the aggregate's order, read again as an order.
+					var order = said.Count == 0 ? null
+						: said is ["ORDER", "BY", ..] ? Ordering(old, string.Join(" ", SqlTokens.Of(words).Take(said.Count).Select(static one => one.Text)))
+						: throw Rest();
+
+					return new Ast.Expression.JsonArrayAggregate(new Ast.JsonElement(Of(item)), order, nulls, Output());
+
+				// JSON_VALUE (x, path [RETURNING type]); a type is its alone, and JSON is not one.
+				case "JSON_VALUE" when arguments.Count == 2 && said.Count == 0 && nulls is null:
+					return new Ast.Expression.JsonValue(
+						new Ast.JsonApiCommon(Of(arguments[0]), Of(arguments[1]), null, []),
+						returning is null ? null : Type(old, returning),
+						null,
+						null);
+
+				case "JSON_VALUE":
+					return null;
+
+				// JSON_QUERY (x [, path] [WITH ARRAY WRAPPER]).
+				case "JSON_QUERY" when arguments.Count is 1 or 2 && returning is null && nulls is null:
+					Ast.JsonWrapperBehavior? wrapper = said switch
+					{
+						[]                            => null,
+						["WITH", "ARRAY", "WRAPPER"] => Ast.JsonWrapperBehavior.WithArray,
+						_                             => throw Rest(),
+					};
+
+					return new Ast.Expression.JsonQuery(
+						new Ast.JsonApiCommon(Of(arguments[0]), arguments.Count > 1 ? Of(arguments[1]) : null, null, []),
+						null,
+						wrapper,
+						null,
+						null,
+						null);
+
+				default:
+					throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({upper} as a call, which the standard reads as its own node)");
+			}
+		}
+
+		/// <summary>
 		/// The functions written without brackets, which the old tree keeps as a call with no arguments.
 		/// </summary>
 		static readonly Dictionary<string, Ast.CurrentValue> Niladic = new(StringComparer.OrdinalIgnoreCase)
@@ -407,8 +531,8 @@ static partial class Bridge
 			if (name.Equals("TRIM", StringComparison.OrdinalIgnoreCase))
 				return Trim(old);
 
-			if (Json.Contains(name))
-				throw BridgeGap.Open(old, "inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes)");
+			if (Json.Contains(name) && JsonCall(old, upper) is { } json)
+				return json;
 
 			if (Syntax.IsDatePartFunction(upper) && old.Word is null)
 				return DatePart(old);
@@ -560,6 +684,19 @@ static partial class Bridge
 					throw BridgeGap.Open(old, "inventory Expression.WindowFunction (NEXT VALUE FOR over something that is not a window)");
 
 				return next with { Over = Specification(window) };
+			}
+
+			// A JSON aggregate takes its window as the standard's record does; WITHIN GROUP after it has no place there.
+			if (old.Function is Expression.RoutineInvocation aggregate && Function(aggregate) is Ast.Expression.JsonObjectAggregate or Ast.Expression.JsonArrayAggregate)
+			{
+				if (old.Within is not null || old.Over is null)
+					throw BridgeGap.Open(old, "inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for)");
+
+				return Function(aggregate) switch
+				{
+					Ast.Expression.JsonObjectAggregate objects => objects with { Over = Window(old.Over) },
+					var arrays                                 => ((Ast.Expression.JsonArrayAggregate)arrays) with { Over = Window(old.Over) },
+				};
 			}
 
 			// The words between the call and its window are text in the old tree: a null treatment is two words,

@@ -1519,8 +1519,10 @@ public sealed record JsonPath(JsonPathMode Mode, JsonPathExpression Expression) 
 public enum JsonPathMode { Strict, Lax }
 
 // --- JSON SQL structures ----------------------------------------------------
-// PathSpecification is the literal as written, like LiteralValue.String.Text. ContextFormat is the context item's `FORMAT JSON`.
-public sealed record JsonApiCommon(Expression Context, string PathSpecification, Identifier? PathName, SqlList<JsonArgument> Passing, JsonInputClause? ContextFormat = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+// Path is the standard's character string literal, a value like any other; T-SQL takes any value there
+// (`JSON_VALUE (@j, @p)`), and its one-argument `JSON_QUERY (x)` has none, the one place Path is null.
+// ContextFormat is the context item's `FORMAT JSON`.
+public sealed record JsonApiCommon(Expression Context, Expression? Path, Identifier? PathName, SqlList<JsonArgument> Passing, JsonInputClause? ContextFormat = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));

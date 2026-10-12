@@ -133,12 +133,15 @@ partial class HandSqlStandard
 
 		common = null!;
 
-		if (!JSONInputExpression(ref cursor, out var context) || !cursor.Take(SqlTokenKind.Comma) || !PathSpecification(ref cursor, out var path))
+		if (!JSONInputExpression(ref cursor, out var context) || !cursor.Take(SqlTokenKind.Comma) || cursor.Kind != SqlTokenKind.String)
 		{
 			cursor = save;
 
 			return false;
 		}
+
+		// The path is a character string literal, a value as any other is.
+		var path = new Expression.Literal(StringLiteral(ref cursor, StringLiteralKind.Character));
 
 		Identifier? name = null;
 

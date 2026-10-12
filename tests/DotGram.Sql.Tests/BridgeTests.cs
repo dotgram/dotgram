@@ -416,6 +416,21 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// A JSON function both parsers read is the standard's node, path literal included.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT JSON_VALUE(a, '$.x') FROM t")]
+	[InlineData("SELECT JSON_QUERY(a, '$.x' WITH ARRAY WRAPPER) FROM t")]
+	[InlineData("SELECT JSON_OBJECT('a' : 1, 'b' : c) FROM t")]
+	[InlineData("SELECT JSON_ARRAY(1, 2) FROM t")]
+	[InlineData("SELECT JSON_OBJECT('a' : 1 ABSENT ON NULL RETURNING JSON) FROM t")]
+	[InlineData("SELECT JSON_ARRAYAGG(a ORDER BY b) FROM t")]
+	public void A_json_function_is_the_standards_node(string text)
+	{
+		Assert.Equal(SqlStandardParser.ParseStatement(text), Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+	}
+
+	/// <summary>
 	/// Statements that must convert: the case of what the tree does not keep is folded, and a system type's name
 	/// however written is the type.
 	/// </summary>
@@ -466,6 +481,16 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT SUM (a) OVER (ORDER BY a ROWS 2 PRECEDING)",  "WindowFrame { Rows, 2 Preceding }")]
 	[InlineData("SELECT STRING_AGG (a, ',') WITHIN GROUP (ORDER BY a)", "Expression.Invocation { WithinGroup }")]
 	[InlineData("SELECT {fn LCASE (a)}",                              "Expression.OdbcEscape { fn, Invocation }")]
+	[InlineData("SELECT JSON_OBJECT ('a': 1, 'b': NULL ABSENT ON NULL RETURNING JSON)", "Expression.JsonObject")]
+	[InlineData("SELECT JSON_OBJECT ()",                              "Expression.JsonObject { }")]
+	[InlineData("SELECT JSON_ARRAY (1, 2 NULL ON NULL)",              "Expression.JsonArray")]
+	[InlineData("SELECT JSON_OBJECTAGG ('a': b) OVER (PARTITION BY c)", "Expression.JsonObjectAggregate { Over }")]
+	[InlineData("SELECT JSON_ARRAYAGG (a ORDER BY b ABSENT ON NULL RETURNING JSON)", "Expression.JsonArrayAggregate")]
+	[InlineData("SELECT JSON_VALUE (a, @p RETURNING INT)",            "Expression.JsonValue")]
+	[InlineData("SELECT JSON_VALUE ('{}')",                           "Expression.Invocation JSON_VALUE")]
+	[InlineData("SELECT JSON_QUERY (a)",                              "Expression.JsonQuery { no path }")]
+	[InlineData("SELECT JSON_QUERY (a, '$.x' WITH ARRAY WRAPPER)",    "Expression.JsonQuery { WithArray }")]
+	[InlineData("SELECT ISJSON (a)",                                  "Expression.Invocation ISJSON")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made  = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -514,6 +539,30 @@ public sealed class BridgeTests(ITestOutputHelper output)
 				value is Ast.Expression.Invocation { Over: Ast.WindowReference.Specification { Value.Frame: { Unit: Ast.WindowFrameUnit.Rows, Extent: Ast.WindowFrameExtent.Single { Bound: { Kind: Ast.WindowBoundKind.Preceding, Offset: not null } } } } },
 			"Expression.Invocation { WithinGroup }" =>
 				value is Ast.Expression.Invocation { WithinGroup.OrderBy.Items.Count: 1 },
+			"Expression.JsonObject" =>
+				value is Ast.Expression.JsonObject
+				{
+					Members: [{ Syntax: Ast.JsonMemberSyntax.Colon }, { Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Null } }],
+					Nulls: Ast.JsonNullHandling.AbsentOnNull, Output.Type: Ast.DataType.Json,
+				},
+			"Expression.JsonObject { }" =>
+				value is Ast.Expression.JsonObject { Members.Count: 0, Nulls: null, Output: null },
+			"Expression.JsonArray" =>
+				value is Ast.Expression.JsonArray { Elements.Count: 2, Nulls: Ast.JsonNullHandling.NullOnNull, Output: null },
+			"Expression.JsonObjectAggregate { Over }" =>
+				value is Ast.Expression.JsonObjectAggregate { Pair.Syntax: Ast.JsonMemberSyntax.Colon, Over: Ast.WindowReference.Specification { Value.PartitionBy.Count: 1 } },
+			"Expression.JsonArrayAggregate" =>
+				value is Ast.Expression.JsonArrayAggregate { OrderBy.Items.Count: 1, Nulls: Ast.JsonNullHandling.AbsentOnNull, Output: not null, Over: null },
+			"Expression.JsonValue" =>
+				value is Ast.Expression.JsonValue { Common.Path: Ast.Expression.Variable, Returning: Ast.DataType.Numeric { Kind: Ast.NumericTypeKind.Int } },
+			"Expression.Invocation JSON_VALUE" =>
+				value is Ast.Expression.Invocation { Name.Parts: [{ Text: "JSON_VALUE" }], Arguments.Count: 1 },
+			"Expression.JsonQuery { no path }" =>
+				value is Ast.Expression.JsonQuery { Common.Path: null, Wrapper: null },
+			"Expression.JsonQuery { WithArray }" =>
+				value is Ast.Expression.JsonQuery { Common.Path: Ast.Expression.Literal, Wrapper: Ast.JsonWrapperBehavior.WithArray },
+			"Expression.Invocation ISJSON" =>
+				value is Ast.Expression.Invocation { Name.Parts: [{ Text: "ISJSON" }] },
 			_ =>
 				value is Ast.Expression.OdbcEscape { Kind.Text: "fn", Value: Ast.Expression.Invocation { Name.Parts: [{ Text: "LCASE" }] } },
 		};

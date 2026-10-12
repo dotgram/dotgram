@@ -1026,7 +1026,7 @@ JSON representation,family/value/enum,JsonRepresentation; JsonEncoding,JSON/JSON
 implementation-defined JSON representation option,enum/value,JsonRepresentation.ImplementationDefined,Enum/value/helper,no,no,0,!! See the Syntax Rules.
 JSON API common syntax,family/value/enum,JsonApiCommon,JSON/JSON Path AST,no,no,5,<JSON context item> <comma> <JSON path specification> [ AS <JSON table path name> ] [ <JSON passing clause> ]
 JSON context item,family/value/enum,JsonApiCommon.Context; JsonApiCommon.ContextFormat,JSON/JSON Path AST,yes,yes,1,<JSON input expression>
-JSON path specification,family/value/enum,JsonApiCommon.PathSpecification,JSON/JSON Path AST,yes,yes,1,<character string literal>
+JSON path specification,family/value/enum,JsonApiCommon.Path,JSON/JSON Path AST,yes,yes,1,<character string literal>
 JSON passing clause,family/value/enum,JsonApiCommon.Passing,JSON/JSON Path AST,no,no,3,PASSING <JSON argument> [ { <comma> <JSON argument> }... ]
 JSON argument,family/value/enum,JsonArgument; JsonArgument.Format,JSON/JSON Path AST,no,no,2,<JSON input expression> AS <identifier>
 schema definition,statement/property,Statement.CreateSchema; Statement.CreateSchema.PathFirst,Statement,no,no,3,CREATE SCHEMA <schema name clause> [ <schema character set or path> ] [ <schema element>... ]
