@@ -55,6 +55,9 @@ public sealed class Sql2023WriterCoverageTests
 	static readonly QualifiedName T = new([new Identifier("t")]);
 	static readonly QualifiedName U = new([new Identifier("u")]);
 
+	/// <summary><c>@p</c>, which every value of a text statement may be.</summary>
+	static readonly Expression P = new Expression.Variable(new Identifier("@p"));
+
 	/// <summary><c>SELECT a FROM</c> the source given.</summary>
 	static Query.Select Joined(TableSource source)
 	{
@@ -575,14 +578,14 @@ public sealed class Sql2023WriterCoverageTests
 				Sql2023Writer.Write(Merged()),
 				Sql2023Writer.Write(Merged() with { Clauses = [new MergeClause.NotMatchedBySource(new MergeMatchedAction.Delete())] })),
 			"HoldLock on READTEXT" => (
-				Sql2023Writer.Write(new Statement.ReadText(T, A, A, A, false)),
-				Sql2023Writer.Write(new Statement.ReadText(T, A, A, A, true))),
+				Sql2023Writer.Write(new Statement.ReadText(T, P, P, P, false)),
+				Sql2023Writer.Write(new Statement.ReadText(T, P, P, P, true))),
 			"Bulk on WRITETEXT" => (
-				Sql2023Writer.Write(new Statement.WriteText(T, A, null, false, false, null)),
-				Sql2023Writer.Write(new Statement.WriteText(T, A, null, true, false, null))),
+				Sql2023Writer.Write(new Statement.WriteText(T, P, null, false, false, null)),
+				Sql2023Writer.Write(new Statement.WriteText(T, P, null, true, false, null))),
 			"Log on UPDATETEXT" => (
-				Sql2023Writer.Write(new Statement.UpdateText(T, A, A, A, null, null, null, false, false, null)),
-				Sql2023Writer.Write(new Statement.UpdateText(T, A, A, A, null, null, null, false, true, null))),
+				Sql2023Writer.Write(new Statement.UpdateText(T, P, P, P, null, null, null, false, false, null)),
+				Sql2023Writer.Write(new Statement.UpdateText(T, P, P, P, null, null, null, false, true, null))),
 			"ForceSeek on CHANGETABLE CHANGES" => (
 				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, false))),
 				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, true)))),
@@ -795,6 +798,45 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a 0x literal that is not hex digits")]
 	[InlineData("a table variable with hints in a FROM")]
 	[InlineData("a table variable with a sample in a FROM")]
+	[InlineData("a variable given a comparison")]
+	[InlineData("a variable given a comparison through a column")]
+	[InlineData("an INSERT into a call that reads as its columns")]
+	[InlineData("a function after OUTPUT INTO")]
+	[InlineData("a mutation path beside a compound operator")]
+	[InlineData("an index beside a variable")]
+	[InlineData("FOR PATH on a data change target")]
+	[InlineData("FOR SYSTEM_TIME on a data change target")]
+	[InlineData("T-SQL's data change table whose OUTPUT has INTO")]
+	[InlineData("T-SQL's data change table with OPTION")]
+	[InlineData("T-SQL's data change table with WITH")]
+	[InlineData("T-SQL's data change table outside an INSERT")]
+	[InlineData("T-SQL's data change table beside another table")]
+	[InlineData("a bare * in OUTPUT")]
+	[InlineData("a variable assigned in OUTPUT")]
+	[InlineData("DEFAULT given to a variable")]
+	[InlineData("DEFAULT after a compound operator")]
+	[InlineData("DEFAULT after a compound operator through a column")]
+	[InlineData("a BULK INSERT file that is a number")]
+	[InlineData("a BULK INSERT file that is a variable")]
+	[InlineData("a READTEXT pointer that is a column")]
+	[InlineData("a READTEXT size that is NULL")]
+	[InlineData("a READTEXT offset that is negative")]
+	[InlineData("a WRITETEXT pointer that is the server's variable")]
+	[InlineData("a WRITETEXT timestamp that is a variable")]
+	[InlineData("WRITETEXT data that is a number")]
+	[InlineData("an UPDATETEXT place that is a string")]
+	[InlineData("an UPDATETEXT source pointer that is NULL")]
+	[InlineData("KEEPNULLS on INSERT BULK")]
+	[InlineData("a bulk option written twice")]
+	[InlineData("a bulk option BULK INSERT does not read")]
+	[InlineData("a bulk flag with a value")]
+	[InlineData("a bulk count with an exponent")]
+	[InlineData("a bulk whole count with a point")]
+	[InlineData("a bulk string that is a number")]
+	[InlineData("a data file type outside the list")]
+	[InlineData("ORDER's rows under another name")]
+	[InlineData("TRUNCATE with IDENTITY and partitions")]
+	[InlineData("ONLY on an INSERT's target")]
 	public void A_value_with_no_text_is_refused(string which)
 	{
 		var type = new DataType.Numeric(NumericTypeKind.Int);
@@ -831,8 +873,8 @@ public sealed class Sql2023WriterCoverageTests
 				new Statement.InsertBulk(T, [new ColumnDefinition(new Identifier("a"), null, null, [], new CollationName(T))], []),
 			"UNIQUE on BULK INSERT's ORDER"         => new Statement.BulkInsert(T, A, [new Option(new Identifier("ORDER"), null, []) { Order = new RowOrder([new SortItem(A)], true) }]),
 			"a bulk option with options"            => new Statement.BulkInsert(T, A, [new Option(new Identifier("TABLOCK"), null, [new Option(new Identifier("X"), null, [])])]),
-			"UPDATETEXT's source without its pointer" => new Statement.UpdateText(T, A, A, A, null, U, null, false, false, null),
-			"UPDATETEXT's source with data"         => new Statement.UpdateText(T, A, A, A, B, U, B, false, false, null),
+			"UPDATETEXT's source without its pointer" => new Statement.UpdateText(T, P, P, P, null, U, null, false, false, null),
+			"UPDATETEXT's source with data"         => new Statement.UpdateText(T, P, P, P, P, U, P, false, false, null),
 			"T-SQL's data change table on a statement with no OUTPUT" =>
 				Joined(new TableSource.DataChange(null, new Statement.Delete { Target = new TableSource.Named(T) }, new Alias(new Identifier("c")))),
 			"T-SQL's data change table with no name" =>
@@ -864,10 +906,108 @@ public sealed class Sql2023WriterCoverageTests
 			"GraphPath with a WITHIN GROUP order"   => new Expression.Invocation(T, [new Argument(A)]) { GraphPath = true, WithinGroup = new WithinGroupClause(new OrderByClause([new SortItem(A)])) },
 			"a table variable with hints in a FROM" => Joined(new TableSource.Variable(new Identifier("@t")) { Hints = [new TableHint.Named(new Identifier("NOLOCK"), [])] }),
 			"a table variable with a sample in a FROM" => Joined(new TableSource.Variable(new Identifier("@t")) { Sample = new SampleClause(SampleMethod.System, A) }),
+			"a variable given a comparison"         => Updated(new Assignment([], new Expression.Comparison(A, ComparisonOperator.Equal, Two)) { Variable = V }),
+			"a variable given a comparison through a column" => Updated(Assigned() with { Value = new Expression.Comparison(A, ComparisonOperator.Equal, Two), Variable = V }),
+			"an INSERT into a call that reads as its columns" => new Statement.Insert
+			{
+				Target      = new TableSource.Function(new Expression.Invocation(T, [new Argument(A)])),
+				SourceValue = new InsertSource.Values([new RowValue([Two])]),
+			},
+			"a function after OUTPUT INTO"          => new Statement.Delete
+			{
+				Target = new TableSource.Named(T),
+				Output = new OutputClause([new SelectColumn.ExpressionItem(A)], new TableSource.Function(new Expression.Invocation(U, [new Argument(A)])), null, null),
+			},
+			"a mutation path beside a compound operator" => Updated(new Assignment([new AssignmentTarget(T, MutationPath: [new Identifier("b")])], Two) { Operator = AssignmentOperator.Add }),
+			"an index beside a variable"            => Updated(new Assignment([new AssignmentTarget(T, Index: Two)], Two) { Variable = V }),
+			"FOR PATH on a data change target"      => new Statement.Delete { Target = new TableSource.Named(T) { ForPath = true } },
+			"FOR SYSTEM_TIME on a data change target" => new Statement.Delete { Target = new TableSource.Named(T) { SystemTime = new SystemTimeSpecification.All() } },
+			"T-SQL's data change table whose OUTPUT has INTO" => ReturnedInto(Returning() with { Output = Returning().Output! with { Into = new TableSource.Named(U) } }),
+			"T-SQL's data change table with OPTION" => ReturnedInto(Returning() with { Hints = [new QueryHint.OptimizeForUnknown()] }),
+			"T-SQL's data change table with WITH"   => ReturnedInto(Returning() with { With = new WithClause(false, [new CommonTableExpression(new Identifier("q"), [], Selected)]) }),
+			"T-SQL's data change table outside an INSERT" => Joined(new TableSource.DataChange(null, Returning(), new Alias(new Identifier("c")))),
+			"T-SQL's data change table beside another table" => ReturnedInto(Returning(), new TableSource.Named(U)),
+			"a bare * in OUTPUT"                    => new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([new SelectColumn.All()], null, null, null) },
+			"a variable assigned in OUTPUT"         => new Statement.Delete
+			{
+				Target = new TableSource.Named(T),
+				Output = new OutputClause([new SelectColumn.VariableAssignment(new Identifier("@v"), AssignmentOperator.Assign, A)], null, null, null),
+			},
+			"DEFAULT given to a variable"           => Updated(new Assignment([], new Expression.Default()) { Variable = V }),
+			"DEFAULT after a compound operator through a column" => Updated(Assigned() with { Value = new Expression.Default(), Operator = AssignmentOperator.Add, Variable = V }),
+			"DEFAULT after a compound operator"     => Updated(Assigned() with { Value = new Expression.Default(), Operator = AssignmentOperator.Add }),
+			"a BULK INSERT file that is a number"   => new Statement.BulkInsert(T, Two, []),
+			"a BULK INSERT file that is a variable" => new Statement.BulkInsert(T, P, []),
+			"a READTEXT pointer that is a column"   => new Statement.ReadText(T, A, P, P, false),
+			"a READTEXT size that is NULL"          => new Statement.ReadText(T, P, P, Null, false),
+			"a READTEXT offset that is negative"    => new Statement.ReadText(T, P, Number("-1"), P, false),
+			"a WRITETEXT pointer that is the server's variable" => new Statement.WriteText(T, new Expression.Variable(new Identifier("@@p")), null, false, false, null),
+			"a WRITETEXT timestamp that is a variable" => new Statement.WriteText(T, P, null, false, false, P),
+			"WRITETEXT data that is a number"       => new Statement.WriteText(T, P, Two, false, false, null),
+			"an UPDATETEXT place that is a string"  => new Statement.UpdateText(T, P, Str, P, null, null, null, false, false, null),
+			"an UPDATETEXT source pointer that is NULL" => new Statement.UpdateText(T, P, P, P, null, U, Null, false, false, null),
+			"KEEPNULLS on INSERT BULK"              => new Statement.InsertBulk(T, [new ColumnDefinition(new Identifier("a"), null, null, [], null)], [Flag("KEEPNULLS")]),
+			"a bulk option written twice"           => new Statement.BulkInsert(T, Str, [Flag("TABLOCK"), Flag("tablock")]),
+			"a bulk option BULK INSERT does not read" => new Statement.BulkInsert(T, Str, [Flag("INCLUDE_HIDDEN")]),
+			"a bulk flag with a value"              => new Statement.BulkInsert(T, Str, [new Option(new Identifier("TABLOCK"), Two, [])]),
+			"a bulk count with an exponent"         => new Statement.BulkInsert(T, Str, [new Option(new Identifier("BATCHSIZE"), Number("1e3", NumericLiteralKind.Approximate), [])]),
+			"a bulk whole count with a point"       => new Statement.BulkInsert(T, Str, [new Option(new Identifier("MAXERRORS"), Number("10.0", NumericLiteralKind.Decimal), [])]),
+			"a bulk string that is a number"        => new Statement.BulkInsert(T, Str, [new Option(new Identifier("FIELDTERMINATOR"), Two, [])]),
+			"a data file type outside the list"     => new Statement.BulkInsert(T, Str, [new Option(new Identifier("DATAFILETYPE"), Str, [])]),
+			"ORDER's rows under another name"       => new Statement.BulkInsert(T, Str, [new Option(new Identifier("TABLOCK"), null, []) { Order = new RowOrder([new SortItem(A)], false) }]),
+			"ONLY on an INSERT's target"            => new Statement.Insert { Target = new TableSource.Named(T) { Only = true } },
+			"TRUNCATE with IDENTITY and partitions" => new Statement.TruncateTable
+			{
+				Target     = new TableSource.Named(T),
+				Identity   = IdentityRestart.Restart,
+				Partitions = [new PartitionRange(Two, null)],
+			},
 			_                                       => new Expression.Literal(new LiteralValue.Binary("0A")),
 		};
 
 		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+	}
+
+	/// <summary><c>2</c>.</summary>
+	static readonly Expression Two = Number("2");
+
+	static readonly Expression Null = new Expression.Literal(new LiteralValue.Null());
+
+	static readonly Expression.Variable V = new(new Identifier("@v"));
+
+	static Expression Number(string text, NumericLiteralKind kind = NumericLiteralKind.DecimalInteger)
+	{
+		return new Expression.Literal(new LiteralValue.Numeric(text, kind));
+	}
+
+	/// <summary>A bulk option that is a word alone.</summary>
+	static Option Flag(string name)
+	{
+		return new Option(new Identifier(name), null, []);
+	}
+
+	/// <summary><c>UPDATE t SET</c> the assignment given.</summary>
+	static Statement.Update Updated(Assignment assignment)
+	{
+		return new Statement.Update { Target = new TableSource.Named(T), Assignments = [assignment] };
+	}
+
+	/// <summary><c>DELETE t OUTPUT a</c>, a statement that returns its rows.</summary>
+	static Statement.Delete Returning()
+	{
+		return new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null) };
+	}
+
+	/// <summary><c>INSERT u SELECT a FROM (</c>the statement<c>) AS c</c>, and any other tables given beside it.</summary>
+	static Statement.Insert ReturnedInto(Statement change, params TableSource[] beside)
+	{
+		var rows = new TableSource.DataChange(null, change, new Alias(new Identifier("c")));
+
+		return new Statement.Insert
+		{
+			Target      = new TableSource.Named(U),
+			SourceValue = new InsertSource.Subquery(Selected with { From = new FromClause([rows, ..beside]) }),
+		};
 	}
 
 	/// <summary>A pivot of t, for a refusal to be asked of.</summary>

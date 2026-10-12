@@ -59,6 +59,9 @@ and is exempted (`BridgeOracle.Meaning`); any other difference makes the stateme
   `Alias` the standard reads the word OPTION as.
 - `SELECT x = a`: an alias in T-SQL, a comparison in the standard. A `SelectColumn.ExpressionItem` that is
   `AliasFirst`.
+- `UPDATE ONLY (t)`, `DELETE FROM ONLY (t)`: a call to a function `ONLY` in T-SQL, the table `t` alone in the
+  standard. The statement's `Target`, a `TableSource.Function` of the one-part name `ONLY`. The standard's
+  `INSERT` reads no `ONLY`, and the writer refuses it there.
 
 ## Words read from the text
 
@@ -183,6 +186,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Meaning SELECT x = a: an alias in T-SQL, a comparison in the standard | 1 |
 | Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard | 15 |
 | Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard | 2 |
+| Meaning UPDATE ONLY (t): a call to a function ONLY in T-SQL, the table t alone in the standard | 0 |
 | Recovered Alias.AsKeyword of MERGE's target | 19 |
 | Recovered Alias.AsKeyword of a table source | 919 |
 | Recovered Clause.DerivedColumn alias = expression | 372 |
