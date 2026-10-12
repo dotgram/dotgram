@@ -60,15 +60,12 @@ static partial class Bridge
 			if (old.Tail is not { } tail)
 				return made;
 
-			var words = tail.Trim();
-
-			if (!words.StartsWith("AUTHORIZATION ", StringComparison.OrdinalIgnoreCase))
+			// Exactly AUTHORIZATION and one name; anything after it is a schema element, kept as text.
+			if (SqlTokens.Of(tail) is not [{ Kind: SqlTokens.Kind.Word } authorization, { Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited } name]
+				|| !authorization.Text.Equals("AUTHORIZATION", StringComparison.OrdinalIgnoreCase))
 				throw BridgeGap.Open(old, "inventory Statement.SchemaDefinition (elements kept as text)");
 
-			var owner = words["AUTHORIZATION ".Length..].Trim();
-
-			if (owner.Length == 0 || owner.Any(char.IsWhiteSpace) && owner[0] is not '[' and not '"')
-				throw BridgeGap.Open(old, "inventory Statement.SchemaDefinition (elements kept as text)");
+			var owner = name.Text;
 
 			return made with { Authorization = new Ast.AuthorizationIdentifier(Values.Part(old, owner)) };
 		}

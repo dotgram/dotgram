@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 using Ast = DotGram.Sql.Ast;
 
@@ -51,16 +52,28 @@ static class Inventory
 	}
 
 	/// <summary>
-	/// The T-SQL statements the new tree declares (<c>Sql2023Ast.TransactSql.cs</c>) and <c>Sql2023Writer</c>
-	/// has no arm for, which a target named by the inventory may be one of.
+	/// Whether <c>Sql2023Writer</c> has an arm for a record of the new tree, asked of the writer itself: a node
+	/// made without its constructor is handed to it, and a writer with no arm refuses it with
+	/// <see cref="NotSupportedException"/> before it reads a member, where one with an arm reads a member that
+	/// is null and fails some other way.
 	/// </summary>
-	static readonly HashSet<string> Unwritten = new(StringComparer.Ordinal)
+	public static bool Written(Type type)
 	{
-		"Statement.DropObject", "Statement.DropAssembly", "Statement.DropEventSession", "Statement.DropEventNotification",
-		"Statement.DropExternalLibrary", "Statement.DropFulltextIndex", "Statement.DropSensitivityClassification",
-		"Statement.DropMasterKey", "Statement.DropDatabaseEncryptionKey", "Statement.DropIndex", "Statement.DropSignature",
-		"Statement.DeallocateCursor", "Statement.SetCursorVariable", "Statement.BeginTransaction", "Statement.SaveTransaction",
-	};
+		try
+		{
+			Ast.Sql2023Writer.Write((Ast.ISqlNode)RuntimeHelpers.GetUninitializedObject(type));
+
+			return true;
+		}
+		catch (NotSupportedException)
+		{
+			return false;
+		}
+		catch (Exception)
+		{
+			return true;
+		}
+	}
 
 	/// <summary>
 	/// The gap for an old record a family owns and has no arm for, from its inventory row: a record only
@@ -78,11 +91,11 @@ static class Inventory
 
 		return row.Category switch
 		{
-			"C" when target is not null && Unwritten.Contains(target) => BridgeGap.Unwritten(old, target),
-			"C" when target is not null && Declared(target)           => BridgeGap.Open(old, $"inventory {name} (target {target} declared, no arm yet)"),
+			"C" when Declared(target) is { } type && !Written(type)   => BridgeGap.Unwritten(old, target!),
+			"C" when Declared(target) is not null                     => BridgeGap.Unbridged(old, target!),
 			"C"                                                        => BridgeGap.Missing(old, target ?? row.Target),
 			"B"                                                        => BridgeGap.Open(old, $"inventory {name}"),
-			_                                                          => BridgeGap.Open(old, $"inventory {name} (category {row.Category}, no arm yet)"),
+			_                                                          => BridgeGap.Unbridged(old, $"inventory {name} (category {row.Category})"),
 		};
 	}
 
@@ -98,16 +111,19 @@ static class Inventory
 	}
 
 	/// <summary>
-	/// Whether a name like <c>Statement.CreateIndex</c> is a record of the new tree.
+	/// The record of the new tree a name like <c>Statement.CreateIndex</c> names, or null.
 	/// </summary>
-	static bool Declared(string name)
+	public static Type? Declared(string? name)
 	{
+		if (name is null)
+			return null;
+
 		var parts = name.Split('.');
 		var type  = typeof(Ast.Statement).Assembly.GetType("DotGram.Sql.Ast." + parts[0]);
 
 		for (var at = 1; type is not null && at < parts.Length; at++)
 			type = type.GetNestedType(parts[at]);
 
-		return type is not null;
+		return type;
 	}
 }

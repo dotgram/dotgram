@@ -10,7 +10,7 @@ static partial class Bridge
 {
 	/// <summary>
 	/// The sixty-five <c>DROP</c> statements. The standard's take a list, <c>IF EXISTS</c> and a behavior that
-	/// may be left out (decided 2026-09-15); the rest are <c>Statement.DropObject</c> or a record of their own.
+	/// may be left out (decided 2026-09-15); the rest are to be a record each (task 10).
 	/// </summary>
 	internal static class Drop
 	{
@@ -20,7 +20,7 @@ static partial class Bridge
 		];
 
 		/// <summary>
-		/// The old drops <c>Statement.DropObject</c> stands for, by the name of its kind.
+		/// The old drops <c>Statement.DropObject</c> was declared for, by the name of its kind: one record for many, which is rejected.
 		/// </summary>
 		static readonly string[] Objects = Enum.GetNames<Ast.DropObjectKind>();
 
@@ -55,10 +55,12 @@ static partial class Bridge
 				Statement.DropProcedure => Routines(removal, Ast.RoutineKind.Procedure),
 				Statement.DropTrigger  => Trigger(removal),
 
+				// Statement.DropObject, one record for many kinds, is rejected: each kind is to have a record of its own (task 10).
 				_ when Array.Exists(Objects, one => name.Equals("Statement.Drop" + one, StringComparison.OrdinalIgnoreCase)) =>
-					throw BridgeGap.Unwritten(old, "Statement.DropObject"),
+					throw BridgeGap.Missing(old, $"{name} (one record per kind, task 10)"),
 
-				_ when Array.IndexOf(Own, name) >= 0 => throw BridgeGap.Unwritten(old, name),
+				_ when Array.IndexOf(Own, name) >= 0 && Inventory.Declared(name) is { } type =>
+					throw (Inventory.Written(type) ? BridgeGap.Unbridged(old, name) : BridgeGap.Unwritten(old, name)),
 
 				_ => throw Inventory.Unconverted(old),
 			};
@@ -90,7 +92,8 @@ static partial class Bridge
 		/// </summary>
 		static Ast.Statement Routines(Statement.Removal old, Ast.RoutineKind kind)
 		{
-			var proc = kind == Ast.RoutineKind.Procedure && Spelled(old) is { } text && Words(text) is [_, "PROC", ..];
+			var proc = kind == Ast.RoutineKind.Procedure
+				&& Recover("Statement.DropRoutine.Proc", Spelled(old), static text => Words(text) is [_, "PROC", ..], false);
 
 			return new Ast.Statement.DropRoutine
 			{

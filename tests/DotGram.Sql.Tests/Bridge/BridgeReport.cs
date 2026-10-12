@@ -7,10 +7,10 @@ using System.Text;
 namespace DotGram.Sql.Tests;
 
 /// <summary>
-/// <c>docs/design/sql-tsql-bridge.md</c>: what the bridge is for and how it is run, and a table written by
-/// <c>BridgeTests</c> of every old record — its inventory category, what became of the statements counted
-/// under it, and how often the corpus holds it — sorted by how often, so that the next task starts with
-/// what matters.
+/// <c>docs/design/sql-tsql-bridge.md</c>: what the bridge is for and how it is run, the closed lists the oracle
+/// reads by, the known writer defects, and a table written by <c>BridgeTests</c> of every old record — its
+/// inventory category, what became of the statements counted under it, every gap it has, and how often it
+/// occurs — sorted by how often, so that the next task starts with what matters.
 /// </summary>
 static class BridgeReport
 {
@@ -38,54 +38,130 @@ static class BridgeReport
 
 		1. `TransactSqlParser.Located` reads a statement into the old tree;
 		2. `Bridge.ToAst` carries it onto the new tree, or throws a `BridgeGap` naming the old record and why;
-		3. `Sql2023Writer.Write` prints the new tree, or refuses;
+		3. `Sql2023Writer.Write` prints the new tree, refuses it, or crashes;
 		4. `TransactSqlParser` reads the text back, and the old tree it builds is held to the first.
 
-		Each statement is **converted** (the same tree came back), a **gap**, **refused** by the writer, **unread**
-		(the text written does not read), or **different** (it reads as another tree). Where `SqlStandardParser`
-		reads the same text, the bridge's tree is also held to the one the standard's parser builds, and one that
-		is not equal is a **shape** mismatch — unless the two dialects give the text different meanings, as T-SQL's
-		`TOP (n) a` is a row count and the standard's a call to `TOP` aliased `a`; those are listed apart
-		(`BridgeOracle.Meaning`) and are not counted. The statements are those of `tests/Corpus/ScriptDom`,
-		enumerated as `TreeEqualityTests` does, and every input `TransactSqlTests` expects to read (gathered by
-		reflection over its `[InlineData]`, leaving out the theories that refuse).
+		Each statement is **converted** (the same tree came back), a **gap**, **refused** by the writer (it said no:
+		`NotSupportedException`, a rejected argument or operation), **crashed** (anything else the writer threw),
+		**unread** (the text written does not read), or **different** (it reads as another tree). Where
+		`SqlStandardParser` reads the same text, the bridge's tree is also held to the one the standard's parser
+		builds. The statements are those of `tests/Corpus/ScriptDom`, enumerated as `TreeEqualityTests` does, and every
+		input `TransactSqlTests` expects to read (gathered by reflection over its `[InlineData]`, leaving out the
+		theories whose name says they refuse and the rows whose `bool` says not read).
 
-		## How it reads what the old tree drops
+		A gap is one of five reasons: **no target record**, **target exists, no writer arm**, **needs decision**
+		(naming the inventory row), **not kept by the old tree**, and **bridge arm missing** (the target is there and
+		written, and the bridge has no arm yet). Whether the writer has an arm for a declared target is asked of the
+		writer itself.
 
-		The old tree keeps some words as text and drops others the new tree records: `AS` before an alias, `ROW`
-		against `ROWS`, `FIRST` against `NEXT`, `PROC` against `PROCEDURE`, `OVER w` against `OVER (w)`. The bridge
-		reads those from the statement's text through the old nodes' spans. And the old tree keeps some key words in
-		the case they were written in (`distinct`, `current_user`, a cast's `varchar (10)`), which the new tree keeps
-		as a meaning and prints in capitals: the comparison of old trees takes those members without case, and only
-		those (`Trees.KeyWords`).
+		## The shape check, and the dialects' different meanings
+
+		Every place the two trees differ is collected. A difference inside one of four subtrees, found by its
+		construct and never by the statement's text, is the two dialects reading the text with different meanings,
+		and is exempted (`BridgeOracle.Meaning`); any other difference makes the statement a **shape** mismatch.
+
+		- `TOP (n) a`: a row count in T-SQL, a call to `TOP` aliased `a` in the standard. The `Query.Select`'s `Top`
+		  and its first column.
+		- `SET t.c = …`: a qualified column in T-SQL, a mutated set clause on `t` in the standard. The
+		  `AssignmentTarget` whose name has more than one part.
+		- `GLOBAL c`: a cursor of the connection in T-SQL, an extended name in the standard. The `CursorReference`
+		  that is `Global`.
+		- `FREETEXT ((c), …)`, `CONTAINS ((c), …)`: a column list in T-SQL, a value in brackets in the standard. The
+		  first argument of an invocation of either.
+
+		## Words read from the text
+
+		The old tree does not keep every word the new tree records. The bridge reads these, and only these, from the
+		statement's text through the old nodes' spans (`Bridge.Recoverable`); each reading is counted, the shape check
+		still applies to it, and only the phase-A exit gate leaves them out:
+
+		- `SelectColumn.ExpressionItem.AsKeyword`: `a AS x` against `a x`.
+		- `Clause.DerivedColumn alias = expression`: `x = a`, which has no place yet.
+		- `Alias.AsKeyword of a table source`: `t AS x` against `t x`; a word AS, never a name `"as"` or `[as]`, and
+		  not the AS of `FOR SYSTEM_TIME AS OF`.
+		- `Alias.AsKeyword of MERGE's target`.
+		- `Limit.OffsetRowWord`, `Limit.Position`, `Limit.FetchRowWord`: `ROW` against `ROWS`, `FIRST` against `NEXT`.
+		- `WindowReference.NameRef against (name)`: `OVER w` against `OVER (w)`.
+		- `Expression.Invocation without brackets`: a call with no arguments written without its brackets.
+		- `Expression.Trim.FromKeyword`: `TRIM (LEADING FROM s)` against `TRIM (LEADING s)`.
+		- `Statement.DropRoutine.Proc`: `PROC` against `PROCEDURE`.
+		- `Statement.SetTransaction.Tran`: `TRAN` against `TRANSACTION`.
+
+		## Key words kept as written
+
+		The old tree keeps some key words in the case they were written in (`distinct`, `current_user`, a cast's
+		`varchar (10)`), which the new tree keeps as a meaning and prints in capitals. The members that hold such text
+		are a closed list (`Trees.FreeText`) and compare token by token: blanks only between tokens, a word without
+		case only where both are in the closed list of key words the writer capitalises (`Trees.KeyWords`), a
+		national string's `N` without case, and every other token — a name in brackets or quotes, a string, a
+		number, any other word — exactly. A statement that passes only so is converted, and counted per member.
+
+		## Checks for the grammar switch
+
+		Where the new tree reads a text differently from the old one, the T-SQL grammar has to build the new form
+		when it is switched:
+
+		- `((SELECT 1))` as a value is `Subquery(Query.Parenthesized(…))`: a subquery's brackets are its own, and only
+		  the second pair is a node. The old tree has `Parenthesized(Subquery(…))`.
 
 		## The ratchet
 
-		`Bridge/Baseline.<Family>.txt` holds, for every old record a family owns, `converted/gap/refused/unread/
-		different/shape`: a statement is counted under the record its gap names, or else under its own root.
-		`BridgeTests` fails where `converted` falls or any of the last four rises, and prints a gain without
-		failing. A plain run writes nothing.
-
-		## The records
-
-		Category is the inventory's (`sql-tsql-tree-inventory.md`). Status is what became of the statements counted
-		under the record, with the commonest gap reasons. Occurrences are how many nodes of the record the corpus
-		holds, at any depth.
-
-		| Old record | Family | Category | Status | Occurrences |
-		| --- | --- | --- | --- | ---: |
+		`Bridge/Baseline.<Family>.txt` holds, for every old record a family owns,
+		`converted/gap/refused/crashed/unread/different/shape`: a statement is counted under the record its first gap
+		names, or else under its own root. `Bridge/Baseline.Counters.txt` holds the debts: per member, how many
+		statements passed only with key words' case aside (`ByCase`) and how many readings came from the text
+		(`Recovered`); per pattern, how many differences its subtrees exempted (`Meaning`). `BridgeTests` fails where `converted`
+		falls or anything else rises, where a statement fails the round trip and is not one of its `Expected`, and
+		prints a gain without failing. A plain run writes nothing.
 		""";
 
 	public static void Write(
 		IReadOnlyDictionary<string, string> families,
 		IReadOnlyDictionary<string, Baselines.Counts> counts,
-		IReadOnlyDictionary<string, Dictionary<string, int>> reasons,
-		IReadOnlyDictionary<string, int> occurrences)
+		IReadOnlyDictionary<string, Dictionary<string, int>> gaps,
+		IReadOnlyDictionary<string, int> occurrences,
+		IReadOnlyDictionary<string, int> counters,
+		IReadOnlyDictionary<string, BridgeOracle.Status> expected)
 	{
 		var text = new StringBuilder();
 
+		void Line(string line = "")
+		{
+			text.Append(line).Append("\r\n");
+		}
+
 		foreach (var line in Head.Split('\n'))
-			text.Append(line.TrimEnd('\r')).Append("\r\n");
+			Line(line.TrimEnd('\r'));
+
+		Line();
+		Line("## Known writer defects");
+		Line();
+
+		if (expected.Count == 0)
+			Line("None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP PROCEDURE x, y, DROP TRIGGER … ON, a bare RETURN, and `- -1` written as a comment — were fixed on main in c044587.");
+		else
+			foreach (var (statement, status) in expected.OrderBy(static one => one.Key, StringComparer.Ordinal))
+				Line($"- {status}: `{statement}`");
+
+		Line();
+		Line("## The counters");
+		Line();
+		Line("| Counter | Count |");
+		Line("| --- | ---: |");
+
+		foreach (var (key, count) in counters.OrderBy(static one => one.Key, StringComparer.Ordinal))
+			Line($"| {key.Replace("|", "\\|", StringComparison.Ordinal)} | {count} |");
+
+		Line();
+		Line("## The records");
+		Line();
+		Line("Category is the inventory's (`sql-tsql-tree-inventory.md`). Counted is what became of the statements counted");
+		Line("under the record — those whose first gap it is, or whose root it is. Gaps are every gap the record has, a");
+		Line("statement counted once for each record and reason it holds, with the commonest reasons. Occurrences are how");
+		Line("many nodes of the record the statements hold, at any depth. All three are over the corpus and the tests' inputs.");
+		Line();
+		Line("| Old record | Family | Category | Counted | Gaps | Occurrences |");
+		Line("| --- | --- | --- | --- | --- | ---: |");
 
 		foreach (var (record, family) in families
 			.OrderByDescending(one => occurrences.TryGetValue(one.Key, out var many) ? many : 0)
@@ -95,15 +171,13 @@ static class BridgeReport
 			var count    = counts.TryGetValue(record, out var found) ? found : Baselines.None;
 			var seen     = occurrences.TryGetValue(record, out var many) ? many : 0;
 
-			text.Append("| `").Append(record).Append("` | ").Append(family).Append(" | ").Append(category).Append(" | ")
-				.Append(Status(count, reasons.TryGetValue(record, out var why) ? why : null)).Append(" | ")
-				.Append(seen).Append(" |\r\n");
+			Line($"| `{record}` | {family} | {category} | {Status(count)} | {Reasons(gaps.TryGetValue(record, out var why) ? why : null)} | {seen} |");
 		}
 
 		File.WriteAllText(Page(), text.ToString());
 	}
 
-	static string Status(Baselines.Counts count, Dictionary<string, int>? reasons)
+	static string Status(Baselines.Counts count)
 	{
 		var parts = new List<string>();
 
@@ -116,16 +190,23 @@ static class BridgeReport
 		Add(count.Converted, "converted");
 		Add(count.Gap, "gap");
 		Add(count.Refused, "refused");
+		Add(count.Crashed, "crashed");
 		Add(count.Unread, "unread");
 		Add(count.Different, "different");
 		Add(count.Shape, "shape");
 
-		var status = parts.Count > 0 ? string.Join(", ", parts) : "not seen";
+		return parts.Count > 0 ? string.Join(", ", parts) : "—";
+	}
 
-		if (reasons is { Count: > 0 })
-			status += ": " + string.Join("; ", reasons.OrderByDescending(static one => one.Value).ThenBy(static one => one.Key, StringComparer.Ordinal)
-				.Take(2).Select(static one => one.Key.Replace("|", "\\|", StringComparison.Ordinal)));
+	static string Reasons(Dictionary<string, int>? reasons)
+	{
+		if (reasons is not { Count: > 0 })
+			return "—";
 
-		return status;
+		return $"{reasons.Values.Sum()}: " + string.Join("; ", reasons
+			.OrderByDescending(static one => one.Value)
+			.ThenBy(static one => one.Key, StringComparer.Ordinal)
+			.Take(2)
+			.Select(static one => $"{one.Key.Replace("|", "\\|", StringComparison.Ordinal)} ({one.Value})"));
 	}
 }

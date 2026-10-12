@@ -186,7 +186,7 @@ static partial class Bridge
 
 			// `MERGE t AS x` and `MERGE t x` are one old node; the text between the target and USING says which.
 			var alias = old.Alias is { } name
-				? new Ast.Alias(Values.Part(old, name), AsKeyword: WrittenBetween(old.Target, old.Using, "AS") ?? true)
+				? new Ast.Alias(Values.Part(old, name), AsKeyword: Recover("Alias.AsKeyword of MERGE's target", Between(old.Target, old.Using), static text => Words(text).Contains("AS"), true))
 				: null;
 
 			return new Ast.Statement.Merge

@@ -12,147 +12,208 @@ namespace DotGram.Sql.Tests;
 /// <remarks>
 /// <para>
 /// <b>Key words, not names.</b> The old tree keeps some key words as the text they were written in —
-/// <c>distinct</c>, <c>current_user</c>, a cast's <c>varchar (10)</c> — and the new tree keeps the
-/// meaning, which <c>Sql2023Writer</c> prints in capitals. So a statement written in lower case comes back
-/// unequal by record equality and equal in everything it says. <see cref="Difference"/> compares the
-/// members listed in <see cref="KeyWords"/> without case, and a cast's or a call's word without case or
-/// spaces; every other string, and every name, exactly. A statement that passes only so is counted as
-/// converted and reported apart (<c>BridgeOracle.Outcome.ByCase</c>).
+/// <c>distinct</c>, <c>current_user</c>, a cast's <c>varchar (10)</c> — and the new tree keeps the meaning,
+/// which <c>Sql2023Writer</c> prints in capitals. So a statement written in lower case comes back unequal by
+/// record equality and equal in everything it says. The members that hold such text are a closed list,
+/// <see cref="FreeText"/>, and are compared token by token (<see cref="SqlTokens"/>): blanks only between
+/// tokens, a word without case only where both are in the closed list <see cref="KeyWords"/> the writer
+/// capitalises, the <c>N</c> of a national string without case, and every other token — a name in brackets
+/// or quotes, a string, a number, any other word — exactly. Every other member compares exactly. A statement
+/// that passes only so is counted as converted and, per member, apart (<c>BridgeOracle.Outcome.ByCase</c>).
 /// </para>
 /// </remarks>
 static class Trees
 {
 	/// <summary>
-	/// The members of the old tree that hold a key word as written, as <c>Record.Member</c>.
+	/// The members of the old tree that hold text with key words in it, as <c>Record.Member</c>.
 	/// </summary>
-	static readonly HashSet<string> KeyWords = new(StringComparer.Ordinal)
+	public static readonly HashSet<string> FreeText = new(StringComparer.Ordinal)
 	{
 		"Query.Specification.Quantifier",
 		"Expression.Quantified.Quantifier",
 		"Expression.Match.Qualifier",
+		"Expression.RoutineInvocation.Word",
+		"Expression.RoutineInvocation.Name",
+		"Expression.WindowFunction.Within",
+		"Expression.Literal.Text",
 		"Clause.Top.With",
 		"Clause.GroupBy.With",
 		"Clause.SystemTime.Kind",
 		"Clause.TableSample.Unit",
+		"Clause.Option.Name",
 		"Statement.Transaction.Kind",
 		"Statement.Transaction.Word",
 		"Statement.Transaction.Tail",
 		"Statement.Insert.Into",
 		"Statement.CursorAction.Verb",
 		"Statement.Fetch.Orientation",
-		"TableReference.Joined.Hint",
-		"SetExpression.Transactions.IsolationLevel.Level",
-		"Clause.Option.Name",
-	};
-
-	/// <summary>
-	/// The members that hold key words and a few values or names as written, compared without case or spaces:
-	/// a call's one word or a cast's type, the words between a call and its window, and the tails of the
-	/// definitions the bridge reads.
-	/// </summary>
-	static readonly HashSet<string> Squeezed = new(StringComparer.Ordinal)
-	{
-		"Expression.RoutineInvocation.Word",
-		"Expression.WindowFunction.Within",
 		"Statement.SequenceDefinition.Tail",
 		"Statement.SchemaDefinition.Tail",
+		"TableReference.Joined.Hint",
+		"SetExpression.Transactions.IsolationLevel.Level",
 	};
 
 	/// <summary>
-	/// The calls whose name is a key word in the new tree, a node of its own rather than a name.
+	/// The key words <c>Sql2023Writer</c> prints in capitals where the old tree keeps what was written: the
+	/// only words <see cref="FreeText"/> compares without case.
 	/// </summary>
-	static readonly HashSet<string> Keyed = new(StringComparer.OrdinalIgnoreCase)
+	public static readonly HashSet<string> KeyWords = new(StringComparer.OrdinalIgnoreCase)
 	{
-		"CAST", "TRIM", "AT TIME ZONE", "CURRENT_TIMESTAMP", "CURRENT_DATE", "CURRENT_TIME",
+		"ABSOLUTE", "ALL", "AND", "ANY", "AS", "ASC", "AT", "AUTHORIZATION", "BEGIN", "BETWEEN", "BIGINT", "BINARY",
+		"BOTH", "BY", "CACHE", "CAST", "CHAR", "CHARACTER", "CLOSE", "COMMIT", "COMMITTED", "CONTAINED", "CUBE",
+		"CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "CURRENT_USER", "CYCLE", "DATE", "DEALLOCATE", "DEC",
+		"DECIMAL", "DELAYED_DURABILITY", "DESC", "DISTINCT", "DOUBLE", "FETCH", "FIRST", "FLOAT", "FROM", "FULL",
+		"GROUP", "HASH", "IGNORE", "IN", "INCREMENT", "INT", "INTEGER", "INTO", "LAST", "LEADING", "LOOP", "MARK",
+		"MAX", "MAXVALUE", "MERGE", "MINVALUE", "NATIONAL", "NCHAR", "NEXT", "NO", "NULLS", "NUMERIC", "OF", "OFF",
+		"ON", "OPEN", "ORDER", "OVER", "PARTIAL", "PERCENT", "PRECISION", "PRIOR", "READ", "REAL", "RELATIVE",
+		"REMOTE", "REPEATABLE", "RESPECT", "RESTART", "ROLLBACK", "ROLLUP", "ROWS", "SAVE", "SERIALIZABLE",
+		"SESSION_USER", "SIMPLE", "SMALLINT", "SNAPSHOT", "SOME", "START", "SYSTEM_USER", "TIES", "TIME", "TO",
+		"TRAILING", "TRAN", "TRANSACTION", "TRIM", "UNCOMMITTED", "UNIQUE", "USER", "VALUE", "VARBINARY", "VARCHAR",
+		"VARYING", "WITH", "WITHIN", "WORK", "ZONE",
 	};
 
 	/// <summary>
-	/// The first place two trees differ, or null where they do not; for two old trees, the case of a key word
-	/// kept as written aside.
+	/// One step from a node to a member of it, and the item where the member is a list.
 	/// </summary>
-	public static string? Difference(object? left, object? right, bool old = true)
+	public readonly record struct Step(object Node, string Member, int? Index);
+
+	/// <summary>
+	/// One place two trees differ: the steps from the root of the left tree down to it, and what differs.
+	/// </summary>
+	public sealed record Diff(IReadOnlyList<Step> Path, string Text)
 	{
-		return Difference(left, right, "", old);
+		public override string ToString()
+		{
+			return string.Concat(Path.Select(static one => $"/{Bridge.NameOf(one.Node)}.{one.Member}{(one.Index is { } at ? $"[{at}]" : "")}")) + ": " + Text;
+		}
 	}
 
-	static string? Difference(object? left, object? right, string path, bool old)
+	/// <summary>
+	/// Every place two trees differ, or none where they do not. For two old trees the members of
+	/// <see cref="FreeText"/> compare token by token, and each that passed only so is added to
+	/// <paramref name="byCase"/>.
+	/// </summary>
+	public static List<Diff> Differences(object? left, object? right, bool old = true, List<string>? byCase = null)
+	{
+		var found = new List<Diff>();
+
+		Compare(left, right, [], old, byCase, found);
+
+		return found;
+	}
+
+	/// <summary>The first place two trees differ, as text, or null.</summary>
+	public static string? Difference(object? left, object? right, bool old = true, List<string>? byCase = null)
+	{
+		return Differences(left, right, old, byCase).FirstOrDefault()?.ToString();
+	}
+
+	static void Compare(object? left, object? right, List<Step> path, bool old, List<string>? byCase, List<Diff> found)
 	{
 		if (ReferenceEquals(left, right))
-			return null;
+			return;
 
 		if (left is null || right is null)
-			return $"{path}: {Show(left)} against {Show(right)}";
+		{
+			found.Add(new Diff([.. path], $"{Show(left)} against {Show(right)}"));
+
+			return;
+		}
 
 		if (left.GetType() != right.GetType())
-			return $"{path}: {Bridge.NameOf(left)} against {Bridge.NameOf(right)}";
-
-		if (left is string || left.GetType().IsPrimitive || left.GetType().IsEnum)
-			return left.Equals(right) ? null : $"{path}: {Show(left)} against {Show(right)}";
-
-		if (left is IEnumerable list && left.GetType().Name.StartsWith("SqlList", StringComparison.Ordinal))
 		{
-			var a = list.Cast<object?>().ToArray();
-			var b = ((IEnumerable)right).Cast<object?>().ToArray();
+			found.Add(new Diff([.. path], $"{Show(left)} against {Show(right)}"));
 
-			if (a.Length != b.Length)
-				return $"{path}: {a.Length} items against {b.Length}";
+			return;
+		}
 
-			for (var at = 0; at < a.Length; at++)
-				if (Difference(a[at], b[at], $"{path}[{at}]", old) is { } inner)
-					return inner;
+		if (left is string || left.GetType().IsPrimitive || left.GetType().IsEnum || left is not ISqlSpan && left is not IEnumerable)
+		{
+			if (!left.Equals(right))
+				found.Add(new Diff([.. path], $"{Show(left)} against {Show(right)}"));
 
-			return null;
+			return;
 		}
 
 		if (left is not ISqlSpan)
-			return left.Equals(right) ? null : $"{path}: {Show(left)} against {Show(right)}";
+			return;
 
 		var record = Bridge.NameOf(left);
 
 		foreach (var property in Properties(left.GetType()))
 		{
-			var a     = property.GetValue(left);
-			var b     = property.GetValue(right);
-			var where = $"{path}/{record}.{property.Name}";
+			var a      = property.GetValue(left);
+			var b      = property.GetValue(right);
+			var member = record + "." + property.Name;
 
-			if (old && a is string one && b is string two && Same(left, record + "." + property.Name, one, two))
+			if (a is IEnumerable one && b is IEnumerable two && a is not string && a.GetType().Name.StartsWith("SqlList", StringComparison.Ordinal))
+			{
+				var x = one.Cast<object?>().ToArray();
+				var y = two.Cast<object?>().ToArray();
+
+				if (x.Length != y.Length)
+				{
+					found.Add(new Diff([.. path, new Step(left, property.Name, null)], $"{x.Length} items against {y.Length}"));
+
+					continue;
+				}
+
+				for (var at = 0; at < x.Length; at++)
+					Compare(x[at], y[at], [.. path, new Step(left, property.Name, at)], old, byCase, found);
+
 				continue;
+			}
 
-			if (Difference(a, b, where, old) is { } inner)
-				return inner;
+			if (old && a is string first && b is string second && first != second && FreeText.Contains(member) && SameTokens(left, member, first, second))
+			{
+				byCase?.Add(member);
+
+				continue;
+			}
+
+			Compare(a, b, [.. path, new Step(left, property.Name, null)], old, byCase, found);
 		}
-
-		return null;
 	}
 
 	/// <summary>
-	/// Whether two strings of one member say the same, where the member keeps a key word as written.
+	/// Whether two texts of a free-text member say the same: token by token, a word without case only where
+	/// both are key words, a national string's <c>N</c> without case, everything else exactly.
 	/// </summary>
-	static bool Same(object node, string member, string one, string two)
+	public static bool SameTokens(object node, string member, string one, string two)
 	{
-		if (one == two)
-			return true;
+		// A literal's text is free only where it is a key word (`current_user`) or a national string.
+		if (member == "Expression.Literal.Text" && node is Expression.Literal { Kind: not (SqlLiteralKind.Special or SqlLiteralKind.National) })
+			return false;
 
-		if (KeyWords.Contains(member))
-			return one.Equals(two, StringComparison.OrdinalIgnoreCase);
+		var x = SqlTokens.Of(one);
+		var y = SqlTokens.Of(two);
 
-		if (Squeezed.Contains(member))
-			return Bridge.Values.Squeezed(one) == Bridge.Values.Squeezed(two);
+		if (x.Count != y.Count)
+			return false;
 
-		// The calls the new tree keeps as key words rather than names: `trim (…)` is TRIM.
-		if (member == "Expression.RoutineInvocation.Name" && Keyed.Contains(one))
-			return one.Equals(two, StringComparison.OrdinalIgnoreCase);
+		for (var at = 0; at < x.Count; at++)
+		{
+			var a = x[at];
+			var b = y[at];
 
-		// A literal's key words — `current_user` — and the `N` in front of a national string.
-		if (member == "Expression.Literal.Text" && node is Expression.Literal literal)
-			return literal.Kind switch
+			if (a.Kind != b.Kind)
+				return false;
+
+			if (a.Text == b.Text)
+				continue;
+
+			var same = a.Kind switch
 			{
-				SqlLiteralKind.Special  => one.Equals(two, StringComparison.OrdinalIgnoreCase),
-				SqlLiteralKind.National => one.Length == two.Length && char.ToUpperInvariant(one[0]) == char.ToUpperInvariant(two[0]) && one[1..] == two[1..],
-				_                       => false,
+				SqlTokens.Kind.Word   => KeyWords.Contains(a.Text) && a.Text.Equals(b.Text, StringComparison.OrdinalIgnoreCase),
+				SqlTokens.Kind.String => a.Text.Length == b.Text.Length && a.Text[0] is 'N' or 'n' && b.Text[0] is 'N' or 'n' && a.Text[1..] == b.Text[1..],
+				_                     => false,
 			};
 
-		return false;
+			if (!same)
+				return false;
+		}
+
+		return true;
 	}
 
 	static string Show(object? value)

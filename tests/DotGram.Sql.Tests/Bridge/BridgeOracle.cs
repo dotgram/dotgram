@@ -20,24 +20,39 @@ namespace DotGram.Sql.Tests;
 /// </summary>
 static class BridgeOracle
 {
-	public enum Status { Converted, Gap, Refused, Unread, Different }
+	/// <summary>
+	/// What became of a statement. <see cref="Refused"/> is the writer saying no — <c>NotSupportedException</c>,
+	/// an argument or an operation it rejects; <see cref="Crashed"/> is anything else it threw.
+	/// </summary>
+	public enum Status { Converted, Gap, Refused, Crashed, Unread, Different }
 
 	/// <summary>
 	/// What became of one statement.
 	/// </summary>
 	/// <param name="Root">The old statement's record, as <c>Statement.Select</c>.</param>
 	/// <param name="Counted">The record the status is counted under: the gap's, or else the root's.</param>
-	/// <param name="ByCase">Converted, and equal to the original only with the case of its key words aside.</param>
+	/// <param name="ByCase">
+	/// Converted, and equal to the original only with the case of key words aside: the members that needed it,
+	/// one entry each time (<see cref="Trees.FreeText"/>).
+	/// </param>
+	/// <param name="Recovered">The members the bridge read from the text (<see cref="Bridge.Recoverable"/>).</param>
+	/// <param name="Gaps">Every gap of the statement's own nodes, by record and reason, the first among them.</param>
 	/// <param name="Standard">Whether <c>SqlStandardParser</c> read the statement's text, so that the shape was asked.</param>
 	/// <param name="Shape">Read by the standard's parser too, and the bridge built another tree than it.</param>
-	/// <param name="Dialect">
-	/// Read by the standard's parser too, as another tree because the two dialects give the text different
-	/// meanings (<see cref="Meaning"/>): not a shape mismatch, and listed apart.
+	/// <param name="Dialects">
+	/// Read by the standard's parser too, as another tree only where the two dialects give the text different
+	/// meanings (<see cref="Meaning"/>), one entry for each exempted subtree: not a shape mismatch, and listed
+	/// apart.
 	/// </param>
 	public sealed record Outcome(
 		string Root, string Counted, Status Status, string Text,
 		string? Reason = null, string? Written = null, string? Detail = null,
-		bool ByCase = false, bool Standard = false, bool Shape = false, string? Dialect = null);
+		IReadOnlyList<string>? ByCase = null, IReadOnlyList<string>? Recovered = null,
+		IReadOnlyList<(string Record, string Reason)>? Gaps = null,
+		bool Standard = false, bool Shape = false, IReadOnlyList<string>? Dialects = null)
+	{
+		public bool Dialect => Dialects is { Count: > 0 };
+	}
 
 	/// <summary>
 	/// One statement put to the bridge, the writer and both parsers.
@@ -46,6 +61,7 @@ static class BridgeOracle
 	{
 		var root = Bridge.NameOf(old);
 		var text = Text(old, source);
+		var gaps = Census(old, source);
 
 		Ast.Statement made;
 
@@ -55,17 +71,24 @@ static class BridgeOracle
 		}
 		catch (BridgeGap gap)
 		{
-			return new Outcome(root, gap.OldType, Status.Gap, text, gap.Reason);
+			return new Outcome(root, gap.OldType, Status.Gap, text, gap.Reason, Gaps: gaps);
 		}
 
-		var standard = SqlStandardParser.TryParseStatement(text);
-		var read     = standard.IsSuccess;
-		var shape    = read && !made.Equals(standard.Value);
-		var detail   = shape ? "shape: " + Trees.Difference(made, standard.Value, old: false) : null;
-		var dialect  = shape ? Meaning(detail!, text) : null;
+		var recovered = Bridge.Recovered.ToArray();
+		var standard  = SqlStandardParser.TryParseStatement(text);
+		var read      = standard.IsSuccess;
+		var shape     = false;
+		string? detail = null;
+		List<string>? dialects = null;
 
-		if (dialect is not null)
-			shape = false;
+		if (read && !made.Equals(standard.Value))
+		{
+			var differences = Trees.Differences(made, standard.Value, old: false);
+
+			dialects = Meaning(differences, out var unexplained);
+			shape    = unexplained.Count > 0;
+			detail   = "shape: " + (shape ? unexplained[0] : differences[0]);
+		}
 
 		string written;
 
@@ -73,52 +96,126 @@ static class BridgeOracle
 		{
 			written = Ast.Sql2023Writer.Write(made);
 		}
-		catch (Exception refused)
+		catch (Exception thrown)
 		{
-			return new Outcome(root, root, Status.Refused, text, Detail: $"{refused.GetType().Name}: {refused.Message}", Standard: read, Shape: shape, Dialect: dialect);
+			var status = thrown is NotSupportedException or ArgumentException or InvalidOperationException ? Status.Refused : Status.Crashed;
+
+			return new Outcome(root, root, status, text, Detail: $"{thrown.GetType().Name}: {thrown.Message}",
+				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
 		}
 
 		var back = TransactSqlParser.TryParseSql(written);
 
 		if (!back.IsSuccess || back.Value!.Length != 1)
-			return new Outcome(root, root, Status.Unread, text, Written: written, Detail: detail, Standard: read, Shape: shape, Dialect: dialect);
+			return new Outcome(root, root, Status.Unread, text, Written: written, Detail: detail,
+				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
 
-		if (back.Value[0].Equals(old))
-			return new Outcome(root, root, Status.Converted, text, Written: written, Detail: detail, Standard: read, Shape: shape, Dialect: dialect);
+		var byCase = new List<string>();
 
-		if (Trees.Difference(old, back.Value[0]) is { } difference)
-			return new Outcome(root, root, Status.Different, text, Written: written, Detail: difference, Standard: read, Shape: shape, Dialect: dialect);
+		if (!back.Value[0].Equals(old) && Trees.Difference(old, back.Value[0], byCase: byCase) is { } difference)
+			return new Outcome(root, root, Status.Different, text, Written: written, Detail: difference,
+				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
 
-		return new Outcome(root, root, Status.Converted, text, Written: written, Detail: detail, ByCase: true, Standard: read, Shape: shape, Dialect: dialect);
+		return new Outcome(root, root, Status.Converted, text, Written: written, Detail: detail,
+			ByCase: byCase, Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
 	}
 
 	/// <summary>
-	/// Where a statement reads in both dialects as two trees because the two give its text different meanings,
-	/// which: the bridge builds T-SQL's and the standard's parser the standard's, and neither is wrong.
+	/// Every gap a statement holds, not only the first: each node of it that is a statement, a query, a value or
+	/// a table source is carried on its own, and every gap any of them throws is kept — once per statement for
+	/// each record and reason, however many nodes throw it.
 	/// </summary>
-	/// <remarks>
-	/// Each is recognized by where the trees first differ, and is a reading of the text, not of the bridge:
-	/// <list type="bullet">
-	/// <item>T-SQL's <c>TOP (n) a</c> is a row count, and the standard reads a call to <c>TOP</c> with the alias <c>a</c>.</item>
-	/// <item>T-SQL's <c>SET t.c = …</c> is a column qualified by its table, and the standard's is a mutated set clause on <c>t</c>.</item>
-	/// <item>T-SQL's <c>OPEN GLOBAL c</c> names a cursor of the connection, and the standard's <c>GLOBAL c</c> is an extended name.</item>
-	/// <item>T-SQL's <c>FREETEXT ((c), …)</c> and <c>CONTAINS ((c), …)</c> take a column list, and the standard reads a value in brackets.</item>
-	/// </list>
-	/// </remarks>
-	public static string? Meaning(string difference, string text)
+	static List<(string Record, string Reason)> Census(Statement old, string source)
 	{
-		if (difference.EndsWith("/Query.Select.Top: TopClause against null", StringComparison.Ordinal))
-			return "TOP (n) is a row count in T-SQL and a call in the standard";
+		var gaps = new List<(string, string)>();
 
-		if (difference.Contains("/AssignmentTarget.Name/QualifiedName.Parts:", StringComparison.Ordinal) && difference.EndsWith(" against 1", StringComparison.Ordinal))
-			return "SET t.c is a qualified column in T-SQL and a mutated set clause in the standard";
+		foreach (var node in Trees.Nodes(old))
+		{
+			if (node is not (Statement or Query or Expression or TableReference))
+				continue;
 
-		if (difference.EndsWith("/CursorReference.Name: QualifiedName against null", StringComparison.Ordinal))
-			return "GLOBAL c names a cursor in T-SQL and an extended name in the standard";
+			try
+			{
+				_ = node switch
+				{
+					Statement statement => (object)Bridge.ToAst(statement, source),
+					Query query         => Bridge.ToAst(query, source),
+					Expression value    => Bridge.ToAst(value, source),
+					_                   => Bridge.ToAst((TableReference)node, source),
+				};
+			}
+			catch (BridgeGap gap)
+			{
+				if (!gaps.Contains((gap.OldType, gap.Reason)))
+					gaps.Add((gap.OldType, gap.Reason));
+			}
+		}
 
-		if (difference.EndsWith("Argument.Value: Expression.Row against Expression.Parenthesized", StringComparison.Ordinal)
-			&& (text.Contains("FREETEXT", StringComparison.OrdinalIgnoreCase) || text.Contains("CONTAINS", StringComparison.OrdinalIgnoreCase)))
-			return "a full-text predicate's (c) is a column list in T-SQL and a value in brackets in the standard";
+		return gaps;
+	}
+
+	/// <summary>
+	/// The four constructs the two dialects read with different meanings. Each exempts one subtree of the
+	/// bridge's tree, found by its construct and never by the statement's text:
+	/// <list type="bullet">
+	/// <item><c>TOP (n) a</c> is a row count in T-SQL, and the standard reads a call to <c>TOP</c> aliased <c>a</c>:
+	/// a <c>Query.Select</c>'s <c>Top</c> and its first column.</item>
+	/// <item><c>SET t.c = …</c> is a qualified column in T-SQL, and a mutated set clause on <c>t</c> in the
+	/// standard: an <c>AssignmentTarget</c> whose name has more than one part.</item>
+	/// <item><c>GLOBAL c</c> names a cursor of the connection in T-SQL, and is an extended name in the standard: a
+	/// <c>CursorReference</c> that is <c>Global</c>.</item>
+	/// <item><c>FREETEXT ((c), …)</c> and <c>CONTAINS ((c), …)</c> take a column list in T-SQL, and a value in
+	/// brackets in the standard: the first argument of an invocation of either.</item>
+	/// </list>
+	/// A difference outside every exempted subtree is unexplained, and makes the statement a shape mismatch.
+	/// </summary>
+	public static List<string> Meaning(List<Trees.Diff> differences, out List<Trees.Diff> unexplained)
+	{
+		var exempted = new List<string>();
+
+		unexplained = [];
+
+		foreach (var difference in differences)
+		{
+			if (Exempting(difference) is { } pattern)
+				exempted.Add(pattern);
+			else
+				unexplained.Add(difference);
+		}
+
+		return exempted;
+	}
+
+	public const string Top      = "TOP (n) a: a row count in T-SQL, a call to TOP in the standard";
+	public const string SetTc    = "SET t.c: a qualified column in T-SQL, a mutated set clause in the standard";
+	public const string Global   = "GLOBAL c: a cursor of the connection in T-SQL, an extended name in the standard";
+	public const string FullText = "FREETEXT ((c), ...): a column list in T-SQL, a value in brackets in the standard";
+
+	public static readonly string[] Patterns = [Top, SetTc, Global, FullText];
+
+	/// <summary>
+	/// The pattern whose subtree a difference lies in, or null.
+	/// </summary>
+	static string? Exempting(Trees.Diff difference)
+	{
+		foreach (var step in difference.Path)
+		{
+			switch (step.Node)
+			{
+				case Ast.Query.Select { Top: not null } when step.Member == "Top" || step.Member == "Columns" && step.Index is 0 or null:
+					return Top;
+
+				case Ast.AssignmentTarget { Name.Parts.Count: > 1 }:
+					return SetTc;
+
+				case Ast.CursorReference { Global: true }:
+					return Global;
+
+				case Ast.Expression.Invocation { Name.Parts: [var name] } when step.Member == "Arguments" && step.Index == 0
+					&& (name.Text.Equals("FREETEXT", StringComparison.OrdinalIgnoreCase) || name.Text.Equals("CONTAINS", StringComparison.OrdinalIgnoreCase)):
+					return FullText;
+			}
+		}
 
 		return null;
 	}

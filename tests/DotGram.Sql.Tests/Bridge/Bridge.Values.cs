@@ -420,7 +420,8 @@ static partial class Bridge
 			return old.Arguments switch
 			{
 				[var characters, var value] => new Ast.Expression.Trim(specification, Of(characters), true, Of(value)),
-				[var value]                 => new Ast.Expression.Trim(specification, null, specification is not null && Spelled(old) is { } text && Words(text).Contains("FROM"), Of(value)),
+				[var value]                 => new Ast.Expression.Trim(specification, null,
+					specification is not null && Recover("Expression.Trim.FromKeyword", Spelled(old), static text => Words(text).Contains("FROM"), false), Of(value)),
 				_                           => throw BridgeGap.Open(old, "inventory Expression.RoutineInvocation (TRIM with no string)"),
 			};
 		}
@@ -431,7 +432,7 @@ static partial class Bridge
 		/// </summary>
 		static bool Bracketless(Expression.RoutineInvocation old)
 		{
-			return Spelled(old) is { } text && !text.TrimEnd().EndsWith(')');
+			return Recover("Expression.Invocation without brackets", Spelled(old), static text => !text.TrimEnd().EndsWith(')'), false);
 		}
 
 		static Ast.Expression Windowed(Expression.WindowFunction old)
@@ -463,7 +464,7 @@ static partial class Bridge
 
 			// `OVER w` and `OVER (w)` are one old node; the text says which, and without it the name alone is taken.
 			if (window is { Name: { } named, PartitionBy.Length: 0, By: null, Frame: null }
-				&& Spelled(window)?.TrimStart().StartsWith('(') != true)
+				&& !Recover("WindowReference.NameRef against (name)", Spelled(window), static text => text.TrimStart().StartsWith('('), false))
 				return new Ast.WindowReference.NameRef(Part(over, named));
 
 			return new Ast.WindowReference.Specification(Specification(window));
