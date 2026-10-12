@@ -182,8 +182,11 @@ static partial class Bridge
 				case "PREDICT":
 					return Predict(old, alias);
 
-				case "CHANGETABLE" or "CONTAINSTABLE" or "FREETEXTTABLE":
-					throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name}, which has no page in the specification)");
+				case "CHANGETABLE" when old.Schema.Length == 0:
+					return ChangeTable(old, alias);
+
+				case "CONTAINSTABLE" or "FREETEXTTABLE" when old.Schema.Length == 0:
+					return FullTextTable(old, name, alias);
 
 				default:
 					throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name} with these arguments)");
@@ -362,6 +365,73 @@ static partial class Bridge
 				("ALL", 0)     => new Ast.SystemTimeSpecification.All(),
 				_              => throw BridgeGap.Missing(old, $"SystemTimeSpecification has no `{kind}` (inventory Clause.SystemTime)"),
 			};
+		}
+
+		/// <summary>
+		/// <c>CHANGETABLE (CHANGES t, v [, FORCESEEK])</c> or <c>CHANGETABLE (VERSION t, (cols), (vals) [, FORCESEEK])</c>,
+		/// which the old tree keeps as a call whose first argument carries the word.
+		/// </summary>
+		static Ast.TableSource ChangeTable(TableReference.FunctionCall old, Ast.Alias? alias)
+		{
+			var arguments = old.Function.Arguments;
+			var seek      = arguments is [.., Expression.ColumnReference(var last)] && last.Equals("FORCESEEK", StringComparison.OrdinalIgnoreCase);
+			var count     = arguments.Length - (seek ? 1 : 0);
+
+			switch (arguments[0])
+			{
+				case Expression.Prefixed(var word, Expression.ColumnReference(var table)) when word.Equals("CHANGES", StringComparison.OrdinalIgnoreCase) && count == 2:
+					return new Ast.TableSource.ChangeTableChanges(Values.Name(old, table), Values.Of(arguments[1]), seek, alias);
+
+				case Expression.Prefixed(var word, Expression.ColumnReference(var table)) when word.Equals("VERSION", StringComparison.OrdinalIgnoreCase) && count == 3
+					&& arguments[1] is Expression.RowValueConstructor(var columns) && arguments[2] is Expression.RowValueConstructor(var values):
+					return new Ast.TableSource.ChangeTableVersion(
+						Values.Name(old, table),
+						Each(columns, one => one is Expression.ColumnReference(var column) && !column.Contains('.') ? Values.Part(old, column) : throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a CHANGETABLE key column that is not one name)")),
+						Each(values, Values.Of),
+						seek,
+						alias);
+
+				default:
+					throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (CHANGETABLE with these arguments)");
+			}
+		}
+
+		/// <summary>
+		/// <c>CONTAINSTABLE</c> or <c>FREETEXTTABLE</c>: a table, the columns searched, what for, perhaps a language,
+		/// perhaps a count, which the old tree keeps as a call's arguments in that order.
+		/// </summary>
+		static Ast.TableSource FullTextTable(TableReference.FunctionCall old, string name, Ast.Alias? alias)
+		{
+			if (old.Function.Arguments is not [Expression.ColumnReference(var table), var searched, var search, .. var rest] || rest.Length > 2)
+				throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name} with these arguments)");
+
+			Ast.Expression? language = null;
+			Ast.Expression? top      = null;
+
+			foreach (var one in rest)
+			{
+				if (one is Expression.Prefixed(var word, var value) && word.Equals("LANGUAGE", StringComparison.OrdinalIgnoreCase) && language is null && top is null)
+					language = Values.Of(value);
+				else if (one is not Expression.Prefixed && top is null)
+					top = Values.Of(one);
+				else
+					throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name} with these arguments)");
+			}
+
+			var bracketed = searched is Expression.RowValueConstructor;
+			SqlList<Expression> items = searched is Expression.RowValueConstructor(var list) ? list : [searched];
+
+			var columns = Each(items, one => one switch
+			{
+				Expression.ColumnReference("*") => new Ast.Expression.Asterisk(),
+				Expression.ColumnReference(var column) when !column.Contains('.') => new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, column)])),
+				Expression.RoutineInvocation when !bracketed => Values.Of(one),
+				_ => throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name} searching a column that is not one name, *, or a property)"),
+			});
+
+			return name == "CONTAINSTABLE"
+				? new Ast.TableSource.ContainsTable(Values.Name(old, table), columns, Values.Of(search), language, top, alias) { ColumnsBracketed = bracketed }
+				: new Ast.TableSource.FreetextTable(Values.Name(old, table), columns, Values.Of(search), language, top, alias) { ColumnsBracketed = bracketed };
 		}
 
 		/// <summary>

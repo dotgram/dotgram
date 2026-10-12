@@ -142,9 +142,9 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Expression.Match.Qualifier | 0 |
 | ByCase Expression.NamedArgument.Name | 0 |
 | ByCase Expression.OdbcEscape.Kind | 1 |
-| ByCase Expression.Prefixed.Word | 22 |
+| ByCase Expression.Prefixed.Word | 23 |
 | ByCase Expression.Quantified.Quantifier | 0 |
-| ByCase Expression.RoutineInvocation.Name | 116 |
+| ByCase Expression.RoutineInvocation.Name | 117 |
 | ByCase Expression.RoutineInvocation.Word | 110 |
 | ByCase Expression.WindowFunction.Within | 14 |
 | ByCase Query.Specification.Quantifier | 5 |
@@ -168,7 +168,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard | 15 |
 | Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard | 2 |
 | Recovered Alias.AsKeyword of MERGE's target | 7 |
-| Recovered Alias.AsKeyword of a table source | 802 |
+| Recovered Alias.AsKeyword of a table source | 832 |
 | Recovered Clause.DerivedColumn alias = expression | 277 |
 | Recovered Expression.Invocation without brackets | 31 |
 | Recovered Expression.Trim.FromKeyword | 0 |
@@ -195,7 +195,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.ColumnDefinition` | Tables | B | — | — | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |
 | `Clause.ColumnOption` | Tables | B | — | — | 2995 |
-| `Statement.Select` | Queries | B | converted 2189 | — | 2976 |
+| `Statement.Select` | Queries | B | converted 2221 | — | 2976 |
 | `Clause.DerivedColumn` | Queries | A | gap 24 | 24: needs decision: inventory Clause.DerivedColumn (a string alias) (19); needs decision: inventory Clause.DerivedColumn (alias = expression) (5) | 2967 |
 | `TableReference.Named` | Tables | A | gap 5 | 5: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
 | `Expression.RoutineInvocation` | Values | B | gap 159 | 191: needs decision: inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes) (122); needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12) | 2310 |
@@ -208,7 +208,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.EventPiece` | Server | C | — | — | 514 |
 | `Expression.NamedArgument` | Values | A | gap 39 | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
 | `Statement.CreateIndex` | Tables | C | gap 495 | 495: no target record: Statement.CreateIndex (495) | 495 |
-| `TableReference.FunctionCall` | Tables | A | gap 38 | 50: needs decision: inventory TableReference.FunctionCall (CHANGETABLE, which has no page in the specification) (34); needs decision: inventory TableReference.FunctionCall (CONTAINSTABLE, which has no page in the specification) (8) | 487 |
+| `TableReference.FunctionCall` | Tables | A | gap 6 | 6: needs decision: inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema) (6) | 487 |
 | `Expression.Parenthesized` | Values | A | — | — | 438 |
 | `TableReference.Joined` | Tables | A | — | — | 382 |
 | `Clause.VariableDeclaration` | Procedural | C | — | — | 357 |

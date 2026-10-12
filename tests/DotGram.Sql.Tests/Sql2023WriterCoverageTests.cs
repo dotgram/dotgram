@@ -85,6 +85,12 @@ public sealed class Sql2023WriterCoverageTests
 		return new GraphPattern.ShortestPath(Node("a"), [new GraphStep(new GraphEdge(new Identifier("e"), GraphDirection.Right), step ?? Node("b"))], quantifier, anchorLast);
 	}
 
+	/// <summary><c>c</c>, a full-text rowset's column.</summary>
+	static Expression.Reference Searched(string name = "c")
+	{
+		return new Expression.Reference(new QualifiedName([new Identifier(name)]));
+	}
+
 	/// <summary><c>SELECT a</c>, the smallest query there is, for a clause to be put on.</summary>
 	static readonly Query.Select Selected = new() { Columns = [new SelectColumn.ExpressionItem(A)] };
 
@@ -410,6 +416,13 @@ public sealed class Sql2023WriterCoverageTests
 			["SampleClause.MethodOmitted"] = (
 				Sampled(false),
 				Sampled(true)),
+			// T-SQL's full-text rowsets read one column in brackets or without them.
+			["ContainsTable.ColumnsBracketed"] = (
+				Joined(new TableSource.ContainsTable(T, [Searched()], A, null, null)),
+				Joined(new TableSource.ContainsTable(T, [Searched()], A, null, null) { ColumnsBracketed = true })),
+			["FreetextTable.ColumnsBracketed"] = (
+				Joined(new TableSource.FreetextTable(T, [new Expression.Asterisk()], A, null, null)),
+				Joined(new TableSource.FreetextTable(T, [new Expression.Asterisk()], A, null, null) { ColumnsBracketed = true })),
 			// T-SQL's + after SHORTEST_PATH's steps is {1,} written short.
 			["GraphQuantifier.Plus"] = (
 				Matched(Shortest(new GraphQuantifier(1, null, false))),
@@ -490,6 +503,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("Try on a cast")]
 	[InlineData("Try on a convert")]
 	[InlineData("Try on a parse")]
+	[InlineData("ForceSeek on CHANGETABLE CHANGES")]
+	[InlineData("ForceSeek on CHANGETABLE VERSION")]
 	[InlineData("ForPath on a table")]
 	[InlineData("ForPath on a subquery")]
 	[InlineData("AnchorLast on a shortest path")]
@@ -512,6 +527,12 @@ public sealed class Sql2023WriterCoverageTests
 			"Try on a parse" => (
 				Sql2023Writer.Write(new Expression.Parse(A, type)),
 				Sql2023Writer.Write(new Expression.Parse(A, type, Try: true))),
+			"ForceSeek on CHANGETABLE CHANGES" => (
+				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, false))),
+				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, true)))),
+			"ForceSeek on CHANGETABLE VERSION" => (
+				Sql2023Writer.Write(Joined(new TableSource.ChangeTableVersion(T, [new Identifier("k")], [A], false))),
+				Sql2023Writer.Write(Joined(new TableSource.ChangeTableVersion(T, [new Identifier("k")], [A], true)))),
 			"ForPath on a table" => (
 				Sql2023Writer.Write(Joined(new TableSource.Named(T))),
 				Sql2023Writer.Write(Joined(new TableSource.Named(T) { ForPath = true }))),
@@ -779,6 +800,14 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a schema column without a type")]
 	[InlineData("a schema column with a path and an ordinal")]
 	[InlineData("a schema column whose path is not one string")]
+	[InlineData("CHANGETABLE VERSION with no key column")]
+	[InlineData("CHANGETABLE VERSION with no key value")]
+	[InlineData("CONTAINSTABLE with no column")]
+	[InlineData("CONTAINSTABLE with two columns unbracketed")]
+	[InlineData("CONTAINSTABLE with * among other columns")]
+	[InlineData("CONTAINSTABLE with PROPERTY in brackets")]
+	[InlineData("FREETEXTTABLE with a qualified column")]
+	[InlineData("FREETEXTTABLE with a value for a column")]
 	[InlineData("a MATCH with no pattern")]
 	[InlineData("a graph chain with no step")]
 	[InlineData("a shortest path with no step")]
@@ -833,6 +862,14 @@ public sealed class Sql2023WriterCoverageTests
 			"OPENXML with a schema and a schema table"           => Joined(new TableSource.OpenXml(A, B, null, [Column()], T)),
 			"T-SQL's sample flags on a source not a table's name" => Joined(new TableSource.Function(new Expression.Invocation(T, [])) { Sample = new SampleClause(SampleMethod.System, A) { Unit = SampleUnit.Rows } }),
 			"SYSTEM left out of a BERNOULLI sample"              => Joined(named with { Sample = new SampleClause(SampleMethod.Bernoulli, A) { MethodOmitted = true } }),
+			"CHANGETABLE VERSION with no key column"             => Joined(new TableSource.ChangeTableVersion(T, [], [A], false)),
+			"CHANGETABLE VERSION with no key value"              => Joined(new TableSource.ChangeTableVersion(T, [new Identifier("k")], [], false)),
+			"CONTAINSTABLE with no column"                       => Joined(new TableSource.ContainsTable(T, [], A, null, null) { ColumnsBracketed = true }),
+			"CONTAINSTABLE with two columns unbracketed"         => Joined(new TableSource.ContainsTable(T, [Searched("a"), Searched("b")], A, null, null)),
+			"CONTAINSTABLE with * among other columns"           => Joined(new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, null, null) { ColumnsBracketed = true }),
+			"CONTAINSTABLE with PROPERTY in brackets"            => Joined(new TableSource.ContainsTable(T, [new Expression.Invocation(new QualifiedName([new Identifier("PROPERTY")]), [new Argument(Searched()), new Argument(A)])], A, null, null) { ColumnsBracketed = true }),
+			"FREETEXTTABLE with a qualified column"              => Joined(new TableSource.FreetextTable(T, [new Expression.Reference(new QualifiedName([new Identifier("t"), new Identifier("c")]))], A, null, null)),
+			"FREETEXTTABLE with a value for a column"            => Joined(new TableSource.FreetextTable(T, [new Expression.Variable(new Identifier("@v"))], A, null, null)),
 			"a MATCH with no pattern"                            => Matched(),
 			"a graph chain with no step"                         => Matched(new GraphPattern.Chain(Node("a"), [])),
 			"a shortest path with no step"                       => Matched(new GraphPattern.ShortestPath(Node("a"), [], new GraphQuantifier(1, null, true), false)),

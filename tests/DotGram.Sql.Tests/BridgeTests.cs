@@ -338,6 +338,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT 1 FROM a, b FOR PATH AS e, c FOR PATH AS f WHERE MATCH(SHORTEST_PATH((f<-(e)-){1,3}a) AND LAST_NODE(f) = LAST_NODE(a))", "GraphPattern.ShortestPath")]
 	[InlineData("SELECT 1 FROM a, b FOR PATH AS e WHERE MATCH(SHORTEST_PATH(a(-(e)->a)+) AND LAST_NODE(a)-(e)->a)", "GraphPattern.Chain")]
 	[InlineData("SELECT 1 FROM (SELECT 1 AS x) FOR PATH AS e",              "TableSource.Subquery.ForPath")]
+	[InlineData("SELECT * FROM CHANGETABLE (CHANGES dbo.t, @v, FORCESEEK) AS c (k)", "TableSource.ChangeTableChanges")]
+	[InlineData("SELECT * FROM CHANGETABLE (VERSION t, (a, b), (1, 2)) AS c", "TableSource.ChangeTableVersion")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, PROPERTY (c, 'Title'), 'x', LANGUAGE 1033, 10) AS k", "TableSource.ContainsTable")]
+	[InlineData("SELECT * FROM FREETEXTTABLE (t, (*), @s, 5) AS k",       "TableSource.FreetextTable")]
 	public void The_bridge_builds_the_query_record_the_text_means(string text, string expected)
 	{
 		var made   = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -371,6 +375,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 					Ast.GraphPattern.Chain { Start: { Alias.Text: "a", LastNode: true }, Steps: [{ Edge.Direction: Ast.GraphDirection.Right, Node.LastNode: false }] },
 				],
 			},
+			"TableSource.ChangeTableChanges"        => source is Ast.TableSource.ChangeTableChanges { ForceSeek: true, Table.Parts.Count: 2, LastSyncVersion: Ast.Expression.Variable, Alias.Columns.Count: 1 },
+			"TableSource.ChangeTableVersion"        => source is Ast.TableSource.ChangeTableVersion { ForceSeek: false, Columns: [{ Text: "a" }, { Text: "b" }], Values.Count: 2 },
+			"TableSource.ContainsTable"             => source is Ast.TableSource.ContainsTable { ColumnsBracketed: false, Columns: [Ast.Expression.Invocation], Language: not null, Top: not null },
+			"TableSource.FreetextTable"             => source is Ast.TableSource.FreetextTable { ColumnsBracketed: true, Columns: [Ast.Expression.Asterisk], Language: null, Top: not null },
 			"TableSource.Subquery.ForPath"          => source is Ast.TableSource.Subquery { ForPath: true, Alias.Name.Text: "e" },
 			"SampleClause.MethodOmitted"            => source is Ast.TableSource.Named { Sample: { MethodOmitted: true, Unit: null } },
 			"TableSource.OpenRowset.ProviderString" => source is Ast.TableSource.OpenRowset { ProviderString: not null, Login: null },
