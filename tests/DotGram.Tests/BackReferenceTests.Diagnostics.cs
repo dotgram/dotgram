@@ -321,6 +321,25 @@ public sealed partial class BackReferenceTests
 		Assert.Equal(grammar.IndexOf("parse R stream", StringComparison.Ordinal), refused.Position);
 	}
 
+	[Theory]
+	[InlineData("trivia = { $q: (' '*) & $q }\nR = 'a'\nparse R")]
+	[InlineData("trivia = { $q: (' '*) & $q }\nR = 'a' & 'b'\nparse R")]
+	[InlineData("trivia = { $q: (' '*) & $q }\nR = 'a' & 'b' & 'c'\nparse R")]
+	[InlineData("trivia = { $q: (' '*) & $q }\nR = S\nS = 'a'\nparse R")]
+	[InlineData("trivia = { T }\nT = $q: (' '*) & $q\nR = 'a'\nparse R")]
+	public void A_reader_form_over_trivia_that_binds_is_not_supported_yet(string grammar)
+	{
+		// The binding is in the trivia rather than in a rule the publication calls: woven between
+		// operands and read at the two ends of a parse, it is as much a part of the reading.
+		var told = GramCompiler.Compile(
+			grammar, new GramCompilerOptions { ClassName = "Grammar", BufferedInput = true }).Diagnostics;
+
+		var refused = Assert.Single(told, static one => one.Id == GrammarNormalizer.BindingNotSupported);
+
+		Assert.Equal(grammar.IndexOf("parse R", StringComparison.Ordinal), refused.Position);
+		Assert.DoesNotContain(told, static one => one.Severity == GramSeverity.Error && one.Id != GrammarNormalizer.BindingNotSupported);
+	}
+
 	[Fact]
 	public void A_count_by_a_length_over_what_can_be_empty_is_refused()
 	{

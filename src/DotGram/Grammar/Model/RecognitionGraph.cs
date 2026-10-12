@@ -765,38 +765,32 @@ public sealed class RecognitionGraph(
 	/// <remarks>
 	/// What the forms that read the input a window at a time ask before they offer themselves: a
 	/// reference compares text bound earlier, and a window may have let it go. Answered from the
-	/// set of rules that hold one, worked out once, so a grammar with none pays one walk.
+	/// set of rules that hold one, worked out once, so a grammar with none pays one walk. A rule
+	/// holds one in its body or in the trivia it is given at the two ends of a parse, and what is
+	/// reached is what <see cref="Reaches"/> says a publication reads — trivia and what a recovery
+	/// skips to included.
 	/// </remarks>
 	public bool ReachesBoundText(RuleSymbol rule)
 	{
 		if (rule is null)
 			throw new ArgumentNullException(nameof(rule));
 
-		_boundText ??= [.. Rules.Where(one => Bodies.TryGetValue(one, out var body) && GrammarNormalizer.HoldsBoundText(body))];
+		_boundText ??= [.. Rules.Where(HoldsBoundText)];
 
 		if (_boundText.Count == 0)
 			return false;
 
-		var reached = new HashSet<RuleSymbol>();
-		var pending = new Stack<RuleSymbol>([rule]);
-
-		while (pending.Count > 0)
-		{
-			var current = pending.Pop();
-
-			if (!reached.Add(current))
-				continue;
-
-			if (_boundText.Contains(current))
+		foreach (var reached in Reaches(rule))
+			if (_boundText.Contains(reached))
 				return true;
 
-			if (Bodies.TryGetValue(current, out var body))
-				foreach (var node in NodeWalk.Descendants(body))
-					if (node is Node.Call(var called, _))
-						pending.Push(called);
-		}
-
 		return false;
+
+		bool HoldsBoundText(RuleSymbol one)
+		{
+			return (Bodies.TryGetValue(one, out var body) && GrammarNormalizer.HoldsBoundText(body)) ||
+				(Trivia.TryGetValue(one, out var trivia) && GrammarNormalizer.HoldsBoundText(trivia));
+		}
 	}
 
 	HashSet<RuleSymbol>? _boundText;
