@@ -70,7 +70,7 @@ public abstract partial record Statement : ISqlNode
 	/// common table expression and an INSERT's source hold as well; a statement adds only what no
 	/// subquery may write.
 	/// </remarks>
-	public record Select : Statement
+	public partial record Select : Statement
 	{
 		public required Query Query { get; init; }
 
@@ -79,7 +79,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <insert statement>
-	public record Insert : Statement
+	public partial record Insert : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>INSERT TOP (n) INTO t …</c>.</summary>
 		public TopClause? Top { get; init; }
@@ -90,7 +90,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <update statement: searched>, <update statement: positioned>, dynamic/preparable positioned update
-	public record Update : Statement
+	public partial record Update : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>UPDATE TOP (n) t SET …</c>.</summary>
 		public TopClause? Top { get; init; }
@@ -104,7 +104,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <delete statement: searched>, <delete statement: positioned>, dynamic/preparable positioned delete
-	public record Delete : Statement
+	public partial record Delete : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>DELETE TOP (n) FROM t …</c>.</summary>
 		public TopClause? Top { get; init; }
@@ -117,7 +117,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <merge statement>
-	public record Merge : Statement
+	public partial record Merge : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>MERGE TOP (n) INTO t …</c>.</summary>
 		public TopClause? Top { get; init; }
@@ -148,7 +148,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <table definition>
-	public record CreateTable : Statement
+	public partial record CreateTable : Statement
 	{
 		public TableScope? Scope { get; init; }
 		public required QualifiedName Name { get; init; }
@@ -158,7 +158,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <alter table statement>
-	public record AlterTable : Statement
+	public partial record AlterTable : Statement
 	{
 		public required QualifiedName Name { get; init; }
 		// T-SQL: several actions in one statement; the standard's is a list of one (design/sql-tsql-tree.md, 17).
@@ -355,7 +355,7 @@ public abstract partial record Statement : ISqlNode
 /// one — only a second pair, <c>x IN ((SELECT 1))</c>, is.
 /// </para>
 /// </remarks>
-public abstract record Query : ISqlNode
+public abstract partial record Query : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -420,7 +420,7 @@ public abstract record Query : ISqlNode
 	/// Its members are the first operand's where the query has set operations; the clauses on
 	/// <see cref="Query"/> are the whole result's.
 	/// </remarks>
-	public record Select : Query
+	public partial record Select : Query
 	{
 		/// <summary>T-SQL: TOP. Of this operand alone, not of the whole result.</summary>
 		public TopClause? Top { get; init; }
@@ -563,7 +563,7 @@ public sealed record SetOperation(SetOperator Operator, Query Query) : ISqlNode
 	public CorrespondingClause? Corresponding { get; init; }
 }
 
-public sealed record WithClause(bool Recursive, SqlList<CommonTableExpression> Items) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record WithClause(bool Recursive, SqlList<CommonTableExpression> Items) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -604,7 +604,7 @@ public sealed record IntoClause(SqlList<Expression> Targets) : ISqlNode { SqlLoc
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record GroupByClause(SetQuantifier? Quantifier, SqlList<GroupingElement> Items) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record GroupByClause(SetQuantifier? Quantifier, SqlList<GroupingElement> Items) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -703,7 +703,7 @@ public abstract partial record TableSource : ISqlNode
 
 	// BNF: <table factor>'s <sample clause>, which may follow any <table primary>.
 	public SampleClause? Sample { get; init; }
-	public record Named(QualifiedName Name) : TableSource
+	public partial record Named(QualifiedName Name) : TableSource
 	{
 		public SystemTimeSpecification? SystemTime { get; init; }
 		public Alias? Alias { get; init; }
@@ -716,7 +716,7 @@ public abstract partial record TableSource : ISqlNode
 		public Alias? Alias { get; init; }
 	}
 
-	public record Join : TableSource
+	public partial record Join : TableSource
 	{
 		public required TableSource Left { get; init; }
 		public required TableSource Right { get; init; }
@@ -1149,7 +1149,7 @@ public abstract record PeriodRight : ISqlNode { SqlLocation _location; public Sq
 public enum PeriodOperator { Overlaps, Equals, Contains, Precedes, Succeeds, ImmediatelyPrecedes, ImmediatelySucceeds }
 
 /// <summary>BNF: <c>&lt;data type&gt;</c> and all predefined/row/reference/collection/user-defined type rules.</summary>
-public abstract record DataType : ISqlNode
+public abstract partial record DataType : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;

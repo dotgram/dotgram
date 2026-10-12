@@ -967,6 +967,9 @@ public static partial class Sql2023Writer
 					break;
 
 				default:
+					if (TryPutTransactSql(source))
+						break;
+
 					throw Unwritten(source);
 			}
 
