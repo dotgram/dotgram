@@ -79,7 +79,7 @@ public static partial class Sql2023Writer
 				PutLimit(limit);
 
 			if (query.For is { } forClause)
-				throw Unwritten(forClause);
+				PutFor(forClause);
 
 			foreach (var locking in query.Locking)
 			{
@@ -250,7 +250,7 @@ public static partial class Sql2023Writer
 			if (query.Values.Count > 0)
 			{
 				if (query.Top is not null || query.Quantifier is not null || query.Columns.Count > 0 || query.Table
-					|| query.Into is not null || query.From is not null || query.Where is not null
+					|| query.Into is not null || query.IntoTable is not null || query.From is not null || query.Where is not null
 					|| query.GroupBy is not null || query.Having is not null || query.Window is not null)
 					throw Both(query, "Values", "a select list or its clauses");
 
@@ -278,8 +278,24 @@ public static partial class Sql2023Writer
 
 			if (query.Into is { } into)
 			{
+				if (query.IntoTable is not null)
+					throw Both(query, "Into", "IntoTable");
+
 				Word("INTO");
 				Each(into.Targets, PutExpression);
+			}
+
+			// T-SQL: INTO Clause (Transact-SQL).
+			if (query.IntoTable is { } made)
+			{
+				Word("INTO");
+				PutName(made.Table);
+
+				if (made.FileGroup is { } fileGroup)
+				{
+					Word("ON");
+					PutIdentifier(fileGroup);
+				}
 			}
 
 			if (query.From is { } from)
@@ -297,8 +313,26 @@ public static partial class Sql2023Writer
 			if (query.GroupBy is { } group)
 			{
 				Word("GROUP BY");
+
+				// T-SQL: GROUP BY (Transact-SQL). `ALL` and `WITH CUBE` or `WITH ROLLUP`.
+				if (group.AllKeyword)
+				{
+					if (group.Quantifier is not null)
+						throw Both(group, "AllKeyword", "Quantifier");
+
+					Word("ALL");
+				}
+
 				PutQuantifier(group.Quantifier);
 				Each(group.Items, PutGrouping);
+
+				if (group.With is { } with)
+					Word(with switch
+					{
+						GroupByWith.Cube   => "WITH CUBE",
+						GroupByWith.Rollup => "WITH ROLLUP",
+						_                  => throw NoText(with),
+					});
 			}
 
 			if (query.Having is { } having)
@@ -323,7 +357,7 @@ public static partial class Sql2023Writer
 		// been changed into anything more, which is then written in full rather than lost.
 		static QualifiedName? Explicit(Query.Select query)
 		{
-			if (query is not { Columns: [SelectColumn.All], From.Sources: [TableSource.Named named], Top: null, Quantifier: null, Into: null, Where: null, GroupBy: null, Having: null, Window: null })
+			if (query is not { Columns: [SelectColumn.All], From.Sources: [TableSource.Named { Hints.Count: 0 } named], Top: null, Quantifier: null, Into: null, IntoTable: null, Where: null, GroupBy: null, Having: null, Window: null })
 				return null;
 
 			// A property pattern rather than record equality: equality probes the stack, and this runs at
@@ -394,6 +428,16 @@ public static partial class Sql2023Writer
 		void PutWith(WithClause with)
 		{
 			Word(with.Recursive ? "WITH RECURSIVE" : "WITH");
+
+			// T-SQL: WITH XMLNAMESPACES (Transact-SQL). Before the common table expressions, and one of the list.
+			if (with.XmlNamespaces.Count > 0)
+			{
+				PutXmlNamespaces(with.XmlNamespaces);
+
+				if (with.Items.Count > 0)
+					Tight(",");
+			}
+
 			Each(with.Items, common =>
 			{
 				PutIdentifier(common.Name);
@@ -869,6 +913,15 @@ public static partial class Sql2023Writer
 
 					if (join.Kind == JoinKind.Cross)
 						Word("CROSS JOIN");
+					// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). APPLY takes the place of the JOIN and
+					// of what a join says beside its kind.
+					else if (join.Kind is JoinKind.CrossApply or JoinKind.OuterApply)
+					{
+						if (join.Natural || join.OuterKeyword || join.Hint is not null || join.Specification is not null)
+							throw Misplaced(join, "Natural, OuterKeyword, Hint or Specification", "on an APPLY");
+
+						Word(join.Kind == JoinKind.CrossApply ? "CROSS APPLY" : "OUTER APPLY");
+					}
 					else
 					{
 						if (join.Natural)
@@ -889,6 +942,17 @@ public static partial class Sql2023Writer
 
 						if (join.OuterKeyword)
 							Word("OUTER");
+
+						// T-SQL: Join hints (Transact-SQL).
+						if (join.Hint is { } hint)
+							Word(hint switch
+							{
+								JoinHint.Loop   => "LOOP",
+								JoinHint.Hash   => "HASH",
+								JoinHint.Merge  => "MERGE",
+								JoinHint.Remote => "REMOTE",
+								_               => throw NoText(hint),
+							});
 
 						Word("JOIN");
 					}
@@ -932,6 +996,11 @@ public static partial class Sql2023Writer
 					PutAlias(unnest.Alias);
 					break;
 
+				case TableSource.Function function:
+					PutExpression(function.Invocation);
+					PutAlias(function.Alias);
+					break;
+
 				case TableSource.TableFunction function:
 					Word("TABLE");
 					Open();
@@ -973,12 +1042,36 @@ public static partial class Sql2023Writer
 					throw Unwritten(source);
 			}
 
+			// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). What a named table adds to its sample.
+			var table = source as TableSource.Named;
+
+			if (source.Sample is null && (table is { SampleMethodOmitted: true } || table?.SampleUnit is not null))
+				throw Misplaced(source, "SampleMethodOmitted or SampleUnit", "without a Sample");
+
 			// A sample clause follows a table primary and all it was given.
 			if (source.Sample is { } sample)
 			{
-				Word(sample.Method == SampleMethod.Bernoulli ? "TABLESAMPLE BERNOULLI" : "TABLESAMPLE SYSTEM");
+				if (table is { SampleMethodOmitted: true })
+				{
+					if (sample.Method != SampleMethod.System)
+						throw Misplaced(source, "SampleMethodOmitted", "on a sample whose method is not SYSTEM");
+
+					Word("TABLESAMPLE");
+				}
+				else
+					Word(sample.Method == SampleMethod.Bernoulli ? "TABLESAMPLE BERNOULLI" : "TABLESAMPLE SYSTEM");
+
 				Open();
 				PutExpression(sample.Percentage);
+
+				if (table?.SampleUnit is { } unit)
+					Word(unit switch
+					{
+						SampleUnit.Percent => "PERCENT",
+						SampleUnit.Rows    => "ROWS",
+						_                  => throw NoText(unit),
+					});
+
 				Close();
 
 				if (sample.Repeat is { } repeat)
@@ -989,6 +1082,10 @@ public static partial class Sql2023Writer
 					Close();
 				}
 			}
+
+			// T-SQL: Table Hints (Transact-SQL). After the alias and the sample, last of what a table says.
+			if (table is not null)
+				PutTableHints(table.Hints);
 		}
 
 		void PutPartition(SqlList<Expression>? partition)
@@ -1249,9 +1346,7 @@ public static partial class Sql2023Writer
 			{
 				case Statement.Select select:
 					PutQuery(select.Query);
-
-					if (select.Hints.Count > 0)
-						throw Unwritten(select.Hints[0]);
+					PutQueryHints(select.Hints);
 
 					break;
 

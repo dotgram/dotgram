@@ -58,11 +58,14 @@ static partial class Bridge
 
 					return new Ast.TableSource.Subquery(QueryOf(query)) { Alias = Alias(old, query, name, columns) };
 
-				case TableReference.FunctionCall(var call, _, _, var schema):
+				case TableReference.FunctionCall(var call, var name, var columns, var schema):
 					if (schema.Length > 0 || Rowsets.Contains(call.Name))
 						throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)");
 
-					throw BridgeGap.Unwritten(old, "TableSource.Function");
+					if (Values.Function(call) is not Ast.Expression.Invocation invocation)
+						throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a call that is not a plain invocation)");
+
+					return new Ast.TableSource.Function(invocation, Alias(old, call, name, columns));
 
 				case TableReference.Joined joined:
 					return Joined(joined);
@@ -70,12 +73,17 @@ static partial class Bridge
 				case TableReference.Parenthesized(var inner):
 					return new Ast.TableSource.Parenthesized(Source(inner));
 
-				case TableReference.Pivot:
-				case TableReference.Unpivot:
-					throw BridgeGap.Missing(old, "TableSource.Pivot and TableSource.Unpivot (proposal 6)");
+				case TableReference.Pivot(var of, var aggregate, var column, var values, var name):
+					if (Values.Of(aggregate) is not Ast.Expression.Invocation summed)
+						throw BridgeGap.Open(old, "inventory TableReference.Pivot (an aggregate that is not a call)");
 
-				case TableReference.OdbcJoin:
-					throw BridgeGap.Missing(old, "TableSource.OdbcJoin (proposal 15)");
+					return new Ast.TableSource.Pivot(Source(of), summed, Values.Part(old, column), Values.Parts(old, values), Closing(old, name));
+
+				case TableReference.Unpivot(var of, var value, var column, var values, var name):
+					return new Ast.TableSource.Unpivot(Source(of), Values.Part(old, value), Values.Part(old, column), Values.Parts(old, values), Closing(old, name));
+
+				case TableReference.OdbcJoin(var inner):
+					return new Ast.TableSource.OdbcJoin(Source(inner));
 
 				case TableReference.Changed:
 					throw BridgeGap.Open(old, "inventory TableReference.Changed");
@@ -90,9 +98,6 @@ static partial class Bridge
 			if (old.Server is not null)
 				throw BridgeGap.Missing(old, "TableSource.Named has no OPENDATASOURCE server (inventory TableReference.Named)");
 
-			if (old.Hints.Length > 0)
-				throw BridgeGap.Missing(old, "TableSource.Named has no table hints (proposal 9)");
-
 			if (old.ForPath)
 				throw BridgeGap.Missing(old, "TableSource.Named has no FOR PATH (inventory TableReference.Named)");
 
@@ -100,9 +105,30 @@ static partial class Bridge
 			{
 				SystemTime = old.SystemTime is null ? null : SystemTime(old.SystemTime),
 				Alias      = Alias(old, null, old.Name, old.Columns),
+				Hints      = Each(old.Hints, static one =>
+				{
+					var (name, arguments) = Queries.Hint(one);
+
+					return (Ast.TableHint)new Ast.TableHint.Named(name, arguments);
+				}),
 			};
 
-			return old.Sample is null ? made : made with { Sample = Sample(old.Sample) };
+			return old.Sample is null ? made : Sample(made, old.Sample);
+		}
+
+		/// <summary>
+		/// The alias after a PIVOT's or an UNPIVOT's brackets, and whether AS was written before it: the text
+		/// after the last bracket of the source.
+		/// </summary>
+		static Ast.Alias? Closing(TableReference old, string? name)
+		{
+			if (name is null)
+				return null;
+
+			var said = Recover("Alias.AsKeyword of a table source", Spelled(old) is { } text ? text[(text.LastIndexOf(')') + 1)..] : null,
+				static text => Words(text) is ["AS", ..], false);
+
+			return new Ast.Alias(Values.Part(old, name), null, said);
 		}
 
 		/// <summary>
@@ -157,24 +183,42 @@ static partial class Bridge
 			};
 		}
 
-		static Ast.SampleClause Sample(Clause old)
+		/// <summary>
+		/// A named table with its <c>TABLESAMPLE [SYSTEM] (n [PERCENT | ROWS]) [REPEATABLE (s)]</c>: the standard's
+		/// sample, and what T-SQL adds to it on the table.
+		/// </summary>
+		static Ast.TableSource.Named Sample(Ast.TableSource.Named made, Clause old)
 		{
 			if (old is not Clause.TableSample(var system, var value, var unit, var repeatable))
 				throw BridgeGap.Open(old, "inventory Clause.TableSample");
 
-			if (!system)
-				throw BridgeGap.Missing(old, "SampleClause.Method is required and T-SQL's SYSTEM may be left out (inventory Clause.TableSample)");
+			Ast.SampleUnit? counted = unit?.ToUpperInvariant() switch
+			{
+				null      => null,
+				"PERCENT" => Ast.SampleUnit.Percent,
+				"ROWS"    => Ast.SampleUnit.Rows,
+				_         => throw BridgeGap.Open(old, $"inventory Clause.TableSample (unit {unit})"),
+			};
 
-			if (unit is not null)
-				throw BridgeGap.Missing(old, "SampleClause has no unit, PERCENT or ROWS (inventory Clause.TableSample)");
-
-			return new Ast.SampleClause(Ast.SampleMethod.System, Values.Of(value), repeatable is null ? null : Values.Of(repeatable));
+			return made with
+			{
+				Sample              = new Ast.SampleClause(Ast.SampleMethod.System, Values.Of(value), repeatable is null ? null : Values.Of(repeatable)),
+				SampleMethodOmitted = !system,
+				SampleUnit          = counted,
+			};
 		}
 
 		static Ast.TableSource Joined(TableReference.Joined old)
 		{
-			if (old.Hint is not null)
-				throw BridgeGap.Unwritten(old, "TableSource.Join.Hint (JoinHint)");
+			Ast.JoinHint? hint = old.Hint?.ToUpperInvariant() switch
+			{
+				null     => null,
+				"LOOP"   => Ast.JoinHint.Loop,
+				"HASH"   => Ast.JoinHint.Hash,
+				"MERGE"  => Ast.JoinHint.Merge,
+				"REMOTE" => Ast.JoinHint.Remote,
+				_        => throw BridgeGap.Open(old, $"inventory TableReference.Joined (join hint {old.Hint})"),
+			};
 
 			Ast.JoinKind? kind = old.Kind switch
 			{
@@ -184,7 +228,8 @@ static partial class Bridge
 				SqlJoin.Left        => Ast.JoinKind.Left,
 				SqlJoin.Right       => Ast.JoinKind.Right,
 				SqlJoin.Full        => Ast.JoinKind.Full,
-				SqlJoin.CrossApply or SqlJoin.OuterApply => throw BridgeGap.Unwritten(old, "JoinKind.CrossApply and JoinKind.OuterApply"),
+				SqlJoin.CrossApply  => Ast.JoinKind.CrossApply,
+				SqlJoin.OuterApply  => Ast.JoinKind.OuterApply,
 				_                   => throw BridgeGap.Missing(old, $"JoinKind has no {old.Kind}"),
 			};
 
@@ -206,6 +251,7 @@ static partial class Bridge
 				Natural       = old.Natural,
 				OuterKeyword  = old.Outer,
 				Specification = specification,
+				Hint          = hint,
 			};
 		}
 	}

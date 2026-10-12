@@ -38,6 +38,9 @@ static class Trees
 		"Expression.WindowFunction.Within",
 		"Expression.Literal.Text",
 		"Clause.Top.With",
+		"Clause.For.Kind",
+		"Clause.For.Options",
+		"Clause.Hint.Text",
 		"Clause.GroupBy.With",
 		"Clause.SystemTime.Kind",
 		"Clause.TableSample.Unit",
@@ -64,9 +67,9 @@ static class Trees
 		"ABSOLUTE", "ALL", "AND", "ANY", "AS", "ASC", "AT", "AUTHORIZATION", "BEGIN", "BETWEEN", "BIGINT", "BINARY",
 		"BOTH", "BY", "CACHE", "CAST", "CHAR", "CHARACTER", "CLOSE", "COMMIT", "COMMITTED", "CONTAINED", "CONTENT",
 		"CONVERT", "CUBE", "CURRENT", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "CURRENT_USER", "CYCLE",
-		"D", "DATE", "DAY", "DAYOFYEAR", "DD", "DEALLOCATE", "DEC", "DECIMAL", "DELAYED_DURABILITY", "DESC",
-		"DISTINCT", "DOCUMENT", "DOUBLE", "DW", "DY", "ESCAPE", "FETCH", "FIRST", "FLOAT", "FOLLOWING", "FOR",
-		"FROM", "FULL", "GROUP", "HASH", "HH", "HOUR", "IGNORE", "IN", "INCREMENT", "INT", "INTEGER", "INTO",
+		"D", "DATE", "DAY", "DAYOFYEAR", "DD", "DEALLOCATE", "DEC", "DECIMAL", "DEFAULT", "DELAYED_DURABILITY",
+		"DESC", "DISTINCT", "DOCUMENT", "DOUBLE", "DW", "DY", "ESCAPE", "FETCH", "FIRST", "FLOAT", "FOLLOWING",
+		"FOR", "FROM", "FULL", "GROUP", "HASH", "HH", "HOUR", "IGNORE", "IN", "INCREMENT", "INT", "INTEGER", "INTO",
 		"ISOWK", "ISOWW", "ISO_WEEK", "JSON", "LAST", "LEADING", "LOOP", "M", "MARK", "MAX", "MAXVALUE", "MCS",
 		"MERGE", "MI", "MICROSECOND", "MILLISECOND", "MINUTE", "MINVALUE", "MM", "MONTH", "MS", "N", "NANOSECOND",
 		"NATIONAL", "NCHAR", "NEXT", "NO", "NS", "NULLS", "NUMERIC", "NVARCHAR", "OF", "OFF", "ON", "OPEN", "ORDER",
@@ -75,8 +78,8 @@ static class Trees
 		"ROWS", "S", "SAVE", "SECOND", "SERIALIZABLE", "SESSION_USER", "SIMPLE", "SMALLINT", "SNAPSHOT", "SOME",
 		"SS", "START", "SYSTEM_USER", "TIES", "TIME", "TO", "TRAILING", "TRAN", "TRANSACTION", "TRIM", "TRY_CAST",
 		"TRY_CONVERT", "TRY_PARSE", "TZ", "TZOFFSET", "UNBOUNDED", "UNCOMMITTED", "UNIQUE", "USER", "VALUE",
-		"VARBINARY", "VARCHAR", "VARYING", "W", "WEEK", "WEEKDAY", "WITH", "WITHIN", "WK", "WORK", "WW", "XML", "Y",
-		"YEAR", "YY", "YYYY", "ZONE",
+		"VARBINARY", "VARCHAR", "VARYING", "W", "WEEK", "WEEKDAY", "WITH", "WITHIN", "WK", "WORK", "WW", "XML",
+		"XMLNAMESPACES", "Y", "YEAR", "YY", "YYYY", "ZONE",
 	};
 
 	/// <summary>
@@ -166,7 +169,17 @@ static class Trees
 				}
 
 				for (var at = 0; at < x.Length; at++)
+				{
+					// A list of texts in the closed list compares item by item as one text does.
+					if (old && x[at] is string text && y[at] is string other && text != other && FreeText.Contains(member) && SameTokens(left, member, text, other))
+					{
+						byCase?.Add(member);
+
+						continue;
+					}
+
 					Compare(x[at], y[at], [.. path, new Step(left, property.Name, at)], old, byCase, found);
+				}
 
 				continue;
 			}
