@@ -570,6 +570,27 @@ public sealed class SemanticTests
 		new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 	}
 
+	/// <summary>
+	/// The same, with C# types answered by Roslyn rather than taken on trust: what a type check
+	/// between two rules' results needs to be asked for real.
+	/// </summary>
+	static GramCompilation CompileResolved(string grammar)
+	{
+		var host = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create(
+			"Host",
+			[Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText("public partial class Grammar { }")],
+			EmittedCode.References);
+
+		return GramCompiler.Compile(
+		grammar,
+		new GramCompilerOptions
+		{
+			ClassName      = "Grammar",
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
+		});
+	}
+
 	/// <summary>The graph itself, where what a test asks about is not a diagnostic.</summary>
 	static RecognitionGraph Graph(string grammar)
 	{
@@ -4301,6 +4322,328 @@ public sealed class SemanticTests
 
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryNamespaceA", "d").IsSuccess);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryNamespaceA", "b").IsSuccess);
+	}
+
+	/// <summary>
+	/// A call into a rebinding namespace from outside it reads the namespace's specialization, not
+	/// the rule as written: <c>Ns.E</c> resolves <c>A</c> through <c>D</c> wherever it is called from.
+	/// </summary>
+	/// <remarks>
+	/// Only a publication used to be pointed at the specialization. A call in a rule body kept the
+	/// original target, so <c>R = Ns.E</c> read <c>E</c> as though the header had not been written.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(CallsIntoARebindingNamespace))]
+	public void A_call_from_outside_a_rebinding_namespace_reads_its_specialization(
+		string inside, string outside, string accepted, string refused, CarrierKind carrier, bool direct)
+	{
+		var result = GramCompiler.Compile(
+			$$"""
+			B = 'b'
+			D = 'd'
+			A = B+ & ':' & B+
+
+			namespace Ns with (B = D)
+			{
+				{{inside}}
+			}
+
+			R = {{outside}}
+			parse R as ParseStart
+			""",
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				Carrier       = carrier,
+				Direct        = direct,
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(
+			result.Sources[0].Text, sourceParts: result.Sources.Skip(1).Select(static source => source.Text));
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", accepted).IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", refused).IsSuccess);
+	}
+
+	public static TheoryData<string, string, string, string, CarrierKind, bool> CallsIntoARebindingNamespace()
+	{
+		var data = new TheoryData<string, string, string, string, CarrierKind, bool>();
+
+		(string Inside, string Outside, string Accepted, string Refused)[] shapes =
+		[
+			("E = A",              "Ns.E & \" f\"", "dd:d f", "bb:b f"),
+			("E = A",              "Ns.E",          "dd:d",   "bb:b"),
+			("E = A",              "'<' & Ns.E",    "<dd:d",  "<bb:b"),
+			("E = A & '!'",        "Ns.E & \" f\"", "d:d! f", "b:b! f"),
+			("E = A\nG = E & '!'", "Ns.G",          "d:dd!",  "b:bb!"),
+		];
+
+		foreach (var (inside, outside, accepted, refused) in shapes)
+			foreach (var (carrier, direct) in new[] { (CarrierKind.Auto, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, true) })
+				data.Add(inside, outside, accepted, refused, carrier, direct);
+
+		return data;
+	}
+
+	[Fact]
+	public void A_rule_typed_by_a_rule_of_a_rebinding_namespace_takes_the_specializations_type()
+	{
+		// §4.1 case 3 over §5.1: `R : Ns.E` takes the value of the `Ns.E` it calls, which is the
+		// specialization's — `D`'s decimal, not `B`'s int.
+		var result = CompileResolved("""
+			B : @int     = 'b' => @(1)
+			D : @decimal = 'd' => @(2m)
+
+			namespace Ns with (B = D)
+			{
+				E : B = B
+			}
+
+			R : Ns.E = Ns.E
+			parse R as ParseStart
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(2m, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "d").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "b").IsSuccess);
+	}
+
+	[Fact]
+	public void A_publications_rebinding_of_a_rule_of_a_rebinding_namespace_replaces_what_is_called()
+	{
+		// `R` calls the specialization of `Ns.E`, so that is what the directive's own `with`
+		// replaces; replacing only the original would find no call to replace.
+		var result = Compile("""
+			using Ns;
+
+			B = 'b'
+			D = 'd'
+			F = 'f'
+
+			namespace Ns with (B = D)
+			{
+				E = B
+			}
+
+			R = Ns.E
+			parse R as Plain
+			parse R with (E = F) as Replaced
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryPlain", "d").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryPlain", "b").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryReplaced", "f").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryReplaced", "d").IsSuccess);
+	}
+
+	[Fact]
+	public void A_rule_typed_by_a_rule_of_a_rebinding_namespace_follows_a_publications_replacement()
+	{
+		// `R : Ns.E` takes the specialization's type, and a directive that replaces `E` again
+		// replaces that type with it: the replaced reading builds `F`'s double.
+		var result = CompileResolved("""
+			using Ns;
+
+			B : @int     = 'b' => @(1)
+			D : @decimal = 'd' => @(2m)
+			F : @double  = 'f' => @(3.0)
+
+			namespace Ns with (B = D)
+			{
+				E : B = B
+			}
+
+			R : Ns.E = Ns.E
+			parse R as Plain
+			parse R with (E = F) as Replaced
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(2m, EmittedCode.Match(assembly, "Grammar", "TryPlain", "d").Value);
+		Assert.Equal(3.0, EmittedCode.Match(assembly, "Grammar", "TryReplaced", "f").Value);
+	}
+
+	[Fact]
+	public void A_publications_rebinding_of_a_parameterized_rule_of_a_rebinding_namespace_replaces_its_instance()
+	{
+		// `R` calls the specialization of the instance `E('!')`; replacing `E` replaces that
+		// instance with `F('!')`.
+		var result = Compile("""
+			using Ns;
+
+			B = 'b'
+			D = 'd'
+			F(x) = 'f' & x
+
+			namespace Ns with (B = D)
+			{
+				E(x) = B & x
+				G = E('!')
+			}
+
+			R = Ns.E('!')
+			parse Ns.G as ParseG
+			parse R as Plain
+			parse R with (E = F) as Replaced
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryPlain", "d!").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryPlain", "b!").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryReplaced", "f!").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryReplaced", "d!").IsSuccess);
+	}
+
+	[Fact]
+	public void A_publications_rebinding_of_an_argument_from_a_rebinding_namespace_survives_rebuilding_the_instance()
+	{
+		// `L(Ns.E)` replaced by `F` is `F` of the same argument, the specialization of `Ns.E`, and
+		// the same directive's `E = Z` replaces that argument too.
+		var result = Compile("""
+			using Ns;
+
+			B = 'b'
+			D = 'd'
+			Z = 'z'
+			L(x) = x & '!'
+			F(x) = x & '?'
+
+			namespace Ns with (B = D)
+			{
+				E = B
+			}
+
+			R = L(Ns.E)
+			parse R as Plain
+			parse R with (L = F) as Swapped
+			parse R with (L = F, E = Z) as Replaced
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryPlain", "d!").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "d?").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TrySwapped", "b?").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryReplaced", "z?").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryReplaced", "d?").IsSuccess);
+	}
+
+	[Fact]
+	public void A_replacement_from_a_rebinding_namespace_is_checked_with_the_specializations_type()
+	{
+		// `Ns.E` in `B`'s place is the specialization, whose value is `D`'s decimal: it does not
+		// fit where `R` takes `B`'s int, whatever the unspecialized `E` would have built.
+		var result = CompileResolved("""
+			B : @int     = 'b' => @(1)
+			C : @int     = 'c' => @(2)
+			D : @decimal = 'd' => @(3m)
+
+			namespace Ns with (C = D)
+			{
+				E : C = C
+			}
+
+			R : @int = x: B => @(x + 1)
+			parse R as Plain
+			parse R with (B = Ns.E) as Replaced
+			""");
+
+		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.IncompatibleRebinding);
+	}
+
+	[Fact]
+	public void A_replacement_another_header_specializes_again_is_checked_as_that_header_reads_it()
+	{
+		// `Other` puts its own specialization of `Ns.E` in `B`'s place, which reads `Z`'s int:
+		// nothing about `Ns`'s decimal reaches it, and the grammar is accepted.
+		var result = CompileResolved("""
+			B : @int     = 'b' => @(1)
+			C : @int     = 'c' => @(2)
+			Z : @int     = 'z' => @(4)
+			D : @decimal = 'd' => @(3m)
+
+			namespace Ns with (C = D)
+			{
+				E : C = C
+				parse E as ParseE
+			}
+
+			namespace Other with (B = Ns.E, C = Z)
+			{
+				R : @int = x: B => @(x + 1)
+				parse R as ParseR
+			}
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(5, EmittedCode.Match(assembly, "Grammar", "TryParseR", "z").Value);
+	}
+
+	[Fact]
+	public void An_expressions_replacement_from_a_rebinding_namespace_is_checked_with_the_specializations_type()
+	{
+		// The same as a publication's: `Ns.E` in `B`'s place is the specialization, a decimal.
+		var result = CompileResolved("""
+			B : @int     = 'b' => @(1)
+			C : @int     = 'c' => @(2)
+			D : @decimal = 'd' => @(3m)
+
+			namespace Ns with (C = D)
+			{
+				E : C = C
+			}
+
+			R : @int = x: (B with (B = Ns.E)) => @(x + 1)
+			parse R as ParseR
+			""");
+
+		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.IncompatibleRebinding);
+	}
+
+	[Fact]
+	public void An_expressions_replacement_is_checked_apart_from_what_another_expression_cloned()
+	{
+		// `X` clones `Ns.E` for its own `with`; that says nothing about what `R`'s `with` puts in
+		// `B`'s place, which is still the decimal specialization.
+		var result = CompileResolved("""
+			B : @int     = 'b' => @(1)
+			C : @int     = 'c' => @(2)
+			Z : @int     = 'z' => @(4)
+			D : @decimal = 'd' => @(3m)
+
+			namespace Ns with (C = D)
+			{
+				E : C = C
+			}
+
+			X = Ns.E with (C = Z)
+			R : @int = x: (B with (B = Ns.E)) => @(x + 1)
+			parse X as ParseX
+			parse R as ParseR
+			""");
+
+		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.IncompatibleRebinding);
 	}
 
 	[Fact]

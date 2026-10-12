@@ -323,6 +323,39 @@ public sealed class GrammarNormalizerTests
 	}
 
 	[Fact]
+	public void A_call_from_outside_a_namespace_names_the_specialization_it_declares()
+	{
+		// §5.1: `Ctx.E` resolves `A` through `D` wherever it is called from. `G`, outside,
+		// calls the clone; `F`, which calls `A` itself, still reads the ordinary `B`.
+		Assert.Equal(
+			"""
+			C = 'c'
+			B = C
+			A = B
+			F = A
+			G = E_Ctx
+			D = 'd'
+			E = A
+			A_Ctx = D
+			E_Ctx = A_Ctx
+			""",
+			Normalize("""
+				C = 'c'
+				B = C
+				A = B
+				F = A
+
+				namespace Ctx with (B = D)
+				{
+					E = A
+				}
+
+				G = Ctx.E
+				D = 'd'
+				""").ToString());
+	}
+
+	[Fact]
 	public void A_binding_propagates_transitively_with_no_rule_forwarding_anything()
 	{
 		// §9, §22 test 3: `E` reaches `Y` through `A` and `B`, neither of which mentions
