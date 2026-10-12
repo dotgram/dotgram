@@ -44,6 +44,16 @@ public static partial class Sql2023Writer
 					PutAlias(unpivot.Alias);
 					return true;
 
+				// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). In a FROM the engine takes neither hints nor a
+				// sample on a table variable (Msg 319, Msg 156).
+				case TableSource.Variable variable:
+					if (variable.Hints.Count > 0 || variable.Sample is not null)
+						throw Misplaced(variable, "Hints or Sample", "on a table variable in a FROM");
+
+					PutIdentifier(variable.Name);
+					PutAlias(variable.Alias);
+					return true;
+
 				// T-SQL: OPENJSON (Transact-SQL).
 				case TableSource.OpenJson json:
 					Word("OPENJSON");

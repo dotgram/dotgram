@@ -145,3 +145,49 @@ public abstract partial record TableSource
 	/// </summary>
 	public sealed record Predict(Expression Model, TableSource Data, Identifier? Runtime, SqlList<RowsetColumn> Schema, Alias? Alias = null) : TableSource;
 }
+
+// Variables where a query names a table or assigns a value (docs/design/sql-tsql-tree.md, Decided: a variable
+// is never a QualifiedName, and a family gains a T-SQL member Variable for it), and the graph path an aggregate
+// is taken over.
+public abstract partial record TableSource
+{
+	/// <summary>
+	/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). A table variable as a source, <c>FROM @t AS x</c>; the
+	/// identifier keeps its <c>@</c>. In a FROM the engine takes neither hints nor a sample on it, and the writer
+	/// refuses both there; a data change statement's target may have hints.
+	/// </summary>
+	public sealed record Variable(Identifier Name) : TableSource
+	{
+		public Alias? Alias { get; init; }
+
+		/// <summary>T-SQL: Table Hints (Transact-SQL).</summary>
+		public SqlList<TableHint> Hints { get; init; } = [];
+	}
+}
+
+public abstract partial record SelectColumn
+{
+	/// <summary>
+	/// T-SQL: SELECT @local_variable (Transact-SQL). <c>SELECT @v = e</c>, <c>SELECT @v += e</c>: a value taken into a
+	/// variable rather than returned; the identifier keeps its <c>@</c>.
+	/// </summary>
+	public sealed record VariableAssignment(Identifier Variable, AssignmentOperator Operator, Expression Value) : SelectColumn;
+}
+
+/// <summary>
+/// T-SQL: SELECT @local_variable (Transact-SQL). An assignment's operator: <c>=</c>, <c>+=</c>, <c>-=</c>, <c>*=</c>,
+/// <c>/=</c>, <c>%=</c>, <c>&amp;=</c>, <c>|=</c>, <c>^=</c>.
+/// </summary>
+public enum AssignmentOperator { Assign, Add, Subtract, Multiply, Divide, Modulo, BitwiseAnd, BitwiseOr, BitwiseXor }
+
+public abstract partial record Expression
+{
+	public partial record Invocation
+	{
+		/// <summary>
+		/// T-SQL: SHORTEST_PATH (Transact-SQL). <c>WITHIN GROUP (GRAPH PATH)</c>: the aggregate is taken over the
+		/// nodes of an arbitrary-length MATCH pattern, in path order.
+		/// </summary>
+		public bool GraphPath { get; init; }
+	}
+}

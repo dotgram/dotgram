@@ -407,6 +407,25 @@ public static partial class Sql2023Writer
 
 					break;
 
+				// T-SQL: SELECT @local_variable (Transact-SQL).
+				case SelectColumn.VariableAssignment assignment:
+					PutIdentifier(assignment.Variable);
+					Word(assignment.Operator switch
+					{
+						AssignmentOperator.Assign     => "=",
+						AssignmentOperator.Add        => "+=",
+						AssignmentOperator.Subtract   => "-=",
+						AssignmentOperator.Multiply   => "*=",
+						AssignmentOperator.Divide     => "/=",
+						AssignmentOperator.Modulo     => "%=",
+						AssignmentOperator.BitwiseAnd => "&=",
+						AssignmentOperator.BitwiseOr  => "|=",
+						AssignmentOperator.BitwiseXor => "^=",
+						_                             => throw NoText(assignment.Operator),
+					});
+					PutExpression(assignment.Value);
+					break;
+
 				default:
 					var all = (SelectColumn.QualifiedAll)column;
 

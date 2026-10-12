@@ -33,7 +33,7 @@ writer itself.
 
 ## The shape check, and the dialects' different meanings
 
-Every place the two trees differ is collected. A difference inside one of six subtrees, found by its
+Every place the two trees differ is collected. A difference inside one of nine subtrees, found by its
 construct and never by the statement's text, is the two dialects reading the text with different meanings,
 and is exempted (`BridgeOracle.Meaning`); any other difference makes the statement a **shape** mismatch.
 
@@ -47,10 +47,16 @@ and is exempted (`BridgeOracle.Meaning`); any other difference makes the stateme
   first argument of an invocation of either.
 - `DATEADD (day, …)`: a date part in T-SQL, a column in the standard. The first argument of a date part
   function, a `DatePart`, where the standard has a column of one part whose text is that part's word.
-- `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A system
-  type with no arguments — a `DataType.Named` of one part, or `sys` and a name, on the list of system types, a
-  standard record written as a name (`WrittenName`), or an `nvarchar` with no length — where the standard has
-  a user-defined type of the same name, or, for `timestamp`, its own TIMESTAMP.
+- `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A
+  `DataType.Named` of one part on the list of system types, or an `nvarchar` with no length, with no
+  arguments, where the standard has a user-defined type of one part and the same text, or, for `timestamp`,
+  its own TIMESTAMP.
+- `GROUP BY ALL a`: the empty groups kept in T-SQL, the quantifier that changes nothing in the standard. A
+  `GroupByClause` that is `AllKeyword`.
+- `SELECT a INTO t`: a new table in T-SQL, a target in the standard. A `Query.Select`'s `Into` and
+  `IntoTable` where the latter is set.
+- `FROM t OPTION (h)`: a hint in T-SQL, an alias with columns in the standard. A statement's `Hints`, and
+  the `Alias` of a source in a statement that has them.
 
 ## Words read from the text
 
@@ -120,21 +126,27 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 
 | Counter | Count |
 | --- | ---: |
-| ByCase Clause.GroupBy.With | 0 |
-| ByCase Clause.Option.Name | 0 |
+| ByCase Clause.For.Kind | 18 |
+| ByCase Clause.For.Options | 6 |
+| ByCase Clause.GroupBy.With | 2 |
+| ByCase Clause.Hint.Text | 2 |
+| ByCase Clause.JsonColumn.Type | 18 |
+| ByCase Clause.Option.Name | 4 |
 | ByCase Clause.SystemTime.Kind | 0 |
-| ByCase Clause.TableSample.Unit | 0 |
+| ByCase Clause.TableSample.Unit | 5 |
 | ByCase Clause.Top.With | 0 |
 | ByCase Clause.Window.Frame | 7 |
 | ByCase Expression.ColumnReference.Text of a date part | 108 |
-| ByCase Expression.Literal.Text | 0 |
+| ByCase Expression.Literal.Text | 24 |
 | ByCase Expression.Match.Qualifier | 0 |
+| ByCase Expression.NamedArgument.Name | 0 |
 | ByCase Expression.OdbcEscape.Kind | 1 |
+| ByCase Expression.Prefixed.Word | 18 |
 | ByCase Expression.Quantified.Quantifier | 0 |
-| ByCase Expression.RoutineInvocation.Name | 94 |
-| ByCase Expression.RoutineInvocation.Word | 108 |
+| ByCase Expression.RoutineInvocation.Name | 112 |
+| ByCase Expression.RoutineInvocation.Word | 110 |
 | ByCase Expression.WindowFunction.Within | 0 |
-| ByCase Query.Specification.Quantifier | 3 |
+| ByCase Query.Specification.Quantifier | 5 |
 | ByCase SetExpression.Transactions.IsolationLevel.Level | 0 |
 | ByCase Statement.CursorAction.Verb | 0 |
 | ByCase Statement.Fetch.Orientation | 0 |
@@ -148,18 +160,21 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Meaning CAST (a AS money): a type of T-SQL's own in T-SQL, a user-defined type in the standard | 2 |
 | Meaning DATEADD (day, ...): a date part in T-SQL, a column in the standard | 6 |
 | Meaning FREETEXT ((c), ...): a column list in T-SQL, a value in brackets in the standard | 7 |
+| Meaning FROM t OPTION (h): a hint in T-SQL, an alias in the standard | 5 |
 | Meaning GLOBAL c: a cursor of the connection in T-SQL, an extended name in the standard | 6 |
+| Meaning GROUP BY ALL a: the empty groups kept in T-SQL, a quantifier in the standard | 7 |
+| Meaning SELECT a INTO t: a new table in T-SQL, a target in the standard | 3 |
 | Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard | 15 |
 | Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard | 2 |
-| Recovered Alias.AsKeyword of MERGE's target | 5 |
-| Recovered Alias.AsKeyword of a table source | 95 |
-| Recovered Clause.DerivedColumn alias = expression | 248 |
-| Recovered Expression.Invocation without brackets | 29 |
+| Recovered Alias.AsKeyword of MERGE's target | 7 |
+| Recovered Alias.AsKeyword of a table source | 407 |
+| Recovered Clause.DerivedColumn alias = expression | 277 |
+| Recovered Expression.Invocation without brackets | 31 |
 | Recovered Expression.Trim.FromKeyword | 0 |
-| Recovered Limit.FetchRowWord | 20 |
-| Recovered Limit.OffsetRowWord | 22 |
-| Recovered Limit.Position | 20 |
-| Recovered SelectColumn.ExpressionItem.AsKeyword | 248 |
+| Recovered Limit.FetchRowWord | 23 |
+| Recovered Limit.OffsetRowWord | 26 |
+| Recovered Limit.Position | 23 |
+| Recovered SelectColumn.ExpressionItem.AsKeyword | 277 |
 | Recovered Statement.DropRoutine.Proc | 24 |
 | Recovered Statement.SetTransaction.Tran | 23 |
 | Recovered WindowReference.NameRef against (name) | 14 |
@@ -174,15 +189,15 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | Old record | Family | Category | Counted | Gaps | Occurrences |
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9322 |
-| `Expression.ColumnReference` | Values | B | gap 4 | 152: needs decision: inventory Expression.ColumnReference (`t.*` standing where a value does) (13); needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7) | 9235 |
-| `Clause.Option` | Tables | C | gap 9 | 14: no target record: WithClause has no list for WITH XMLNAMESPACES (proposal 1) (14) | 6517 |
+| `Expression.ColumnReference` | Values | B | gap 8 | 152: needs decision: inventory Expression.ColumnReference (`t.*` standing where a value does) (13); needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7) | 9235 |
+| `Clause.Option` | Tables | C | — | — | 6517 |
 | `Clause.ColumnDefinition` | Tables | B | — | — | 3528 |
-| `Query.Specification` | Queries | B | gap 41 | 41: no target record: Query.Select has no member for SelectIntoTable (proposal 1) (41) | 3358 |
+| `Query.Specification` | Queries | B | — | — | 3358 |
 | `Clause.ColumnOption` | Tables | B | — | — | 2995 |
-| `Statement.Select` | Queries | B | converted 1304 | — | 2976 |
-| `Clause.DerivedColumn` | Queries | A | gap 20 | 22: needs decision: inventory Clause.DerivedColumn (a string alias) (18); needs decision: inventory Clause.DerivedColumn (alias = expression) (4) | 2967 |
-| `TableReference.Named` | Tables | A | gap 122 | 194: no target record: TableSource.Named has no table hints (proposal 9) (72); needs decision: Expression.Variable where a name stands: an assignment, a table source, EXEC (left open by task 2) (63) | 2944 |
-| `Expression.RoutineInvocation` | Values | B | gap 145 | 191: needs decision: inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes) (122); needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12) | 2310 |
+| `Statement.Select` | Queries | B | converted 1933 | — | 2976 |
+| `Clause.DerivedColumn` | Queries | A | gap 24 | 24: needs decision: inventory Clause.DerivedColumn (a string alias) (19); needs decision: inventory Clause.DerivedColumn (alias = expression) (5) | 2967 |
+| `TableReference.Named` | Tables | A | gap 33 | 33: no target record: TableSource.Named has no FOR PATH (inventory TableReference.Named) (32); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
+| `Expression.RoutineInvocation` | Values | B | gap 159 | 191: needs decision: inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes) (122); needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12) | 2310 |
 | `Statement.TableDefinition` | Tables | B | gap 1829 | 1878: needs decision: inventory Statement.TableDefinition (1878) | 1906 |
 | `Clause.ConstraintDefinition` | Tables | B | — | — | 1841 |
 | `Clause.SortSpecification` | Queries | A | — | — | 1303 |
@@ -190,28 +205,28 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Comparison` | Values | A | — | — | 841 |
 | `Statement.AlterTable` | Tables | B | gap 644 | 644: needs decision: inventory Statement.AlterTable (644) | 644 |
 | `Clause.EventPiece` | Server | C | — | — | 514 |
-| `Expression.NamedArgument` | Values | A | — | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
+| `Expression.NamedArgument` | Values | A | gap 39 | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
 | `Statement.CreateIndex` | Tables | C | gap 495 | 495: no target record: Statement.CreateIndex (495) | 495 |
-| `TableReference.FunctionCall` | Tables | A | gap 380 | 463: target exists, no writer arm: TableSource.Function (232); no target record: a typed T-SQL rowset table source (proposal 7) (231) | 487 |
+| `TableReference.FunctionCall` | Tables | A | gap 50 | 62: needs decision: inventory TableReference.FunctionCall (CHANGETABLE, which has no page in the specification) (34); no target record: OpenRowsetBulk has no ORDER (…) UNIQUE among its options (proposal 7) (12) | 487 |
 | `Expression.Parenthesized` | Values | A | — | — | 438 |
-| `TableReference.Joined` | Tables | A | gap 93 | 122: target exists, no writer arm: JoinKind.CrossApply and JoinKind.OuterApply (71); target exists, no writer arm: TableSource.Join.Hint (JoinHint) (51) | 382 |
+| `TableReference.Joined` | Tables | A | — | — | 382 |
 | `Clause.VariableDeclaration` | Procedural | C | — | — | 357 |
 | `Statement.Declare` | Procedural | C | gap 300 | 335: no target record: Statement.DeclareVariables (335) | 347 |
 | `Statement.Compound` | Procedural | C | gap 17 | 328: no target record: Statement.Compound (328) | 337 |
 | `Statement.EventSessionDefinition` | Server | C | gap 323 | 323: no target record: Statement.CreateEventSession (323) | 323 |
-| `Clause.Hint` | Queries | C | gap 72 | 73: target exists, no writer arm: Statement.Select.Hints (QueryHint.Named) (73) | 294 |
+| `Clause.Hint` | Queries | C | gap 78 | 79: needs decision: inventory Clause.Hint (a hint that is not a name and the values in its brackets) (79) | 294 |
 | `Clause.ParameterDeclaration` | Routines | B | — | — | 290 |
 | `Statement.CreateProcedure` | Routines | B | gap 279 | 279: needs decision: inventory Statement.CreateProcedure (279) | 279 |
 | `Clause.Connection` | Tables | C | — | — | 270 |
 | `Statement.EndpointDefinition` | Server | C | gap 249 | 249: no target record: Statement.CreateEndpoint (249) | 249 |
-| `Statement.Insert` | Dml | A | converted 15, gap 49 | 71: no target record: Statement.Insert has no member for whether INTO was written (proposal 2) (28); needs decision: inventory Statement.Insert (no target) (16) | 242 |
+| `Statement.Insert` | Dml | A | converted 28, gap 49 | 71: no target record: Statement.Insert has no member for whether INTO was written (proposal 2) (28); needs decision: inventory Statement.Insert (no target) (16) | 242 |
 | `Expression.Measured` | Values | C | — | 190: target exists, no writer arm: Expression.Measured (190) | 234 |
 | `Statement.AlterDatabaseSet` | Database | C | gap 218 | 218: no target record: Statement.AlterDatabase (218) | 218 |
 | `Expression.Add` | Values | A | — | — | 198 |
 | `Expression.RowValueConstructor` | Values | A | — | — | 186 |
-| `Expression.WindowFunction` | Values | B | gap 18 | 18: needs decision: inventory Expression.WindowFunction (the words `WITHIN GROUP ( GRAPH PATH)` before its window) (7); needs decision: inventory Expression.WindowFunction (the words `WITHIN GROUP (GRAPH PATH)` before its window) (4) | 184 |
+| `Expression.WindowFunction` | Values | B | — | — | 184 |
 | `Clause.Window` | Values | A | — | — | 181 |
-| `Expression.Prefixed` | Values | C | gap 26 | 181: no target record: a typed T-SQL rowset table source (proposal 7) (181) | 181 |
+| `Expression.Prefixed` | Values | C | gap 51 | 181: no target record: a typed T-SQL rowset table source (proposal 7) (181) | 181 |
 | `Statement.CreateFunction` | Routines | B | gap 181 | 181: needs decision: inventory Statement.CreateFunction (181) | 181 |
 | `Clause.OrderBy` | Queries | B | — | — | 177 |
 | `Clause.Placement` | Tables | C | — | — | 177 |
@@ -219,22 +234,22 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Negate` | Values | A | — | — | 173 |
 | `Statement.SetStatement` | Procedural | C | converted 23, gap 131 | 142: no target record: Statement.SetOptions (142) | 165 |
 | `TableReference.Parenthesized` | Tables | A | — | — | 162 |
-| `Clause.GroupBy` | Queries | B | gap 20 | 20: no target record: GroupByClause has no WITH CUBE or WITH ROLLUP (proposal 5) (11); no target record: GroupByClause has no T-SQL ALL flag (proposal 5) (9) | 158 |
-| `Clause.JsonColumn` | Tables | C | — | — | 155 |
+| `Clause.GroupBy` | Queries | B | — | — | 158 |
+| `Clause.JsonColumn` | Tables | C | gap 30 | 30: needs decision: inventory DataType (a type `NVARCHAR (MAX) COLLATE Latin1_General_Bin2` whose brackets do not close it) (8); needs decision: inventory DataType (a type `nvarchar(max) COLLATE Latin1_General_Bin2` whose brackets do not close it) (5) | 155 |
 | `Statement.WorkloadGroupDefinition` | Server | C | gap 155 | 155: no target record: Statement.CreateWorkloadGroup (155) | 155 |
 | `Statement.CreateDatabase` | Database | C | gap 154 | 154: no target record: Statement.CreateDatabase (154) | 154 |
-| `Clause.Set` | Dml | B | gap 45 | 45: no target record: Assignment has no compound operator (proposal 4) (27); no target record: Assignment has no Through for `@v = column = value` (proposal 4) (11) | 151 |
+| `Clause.Set` | Dml | B | gap 47 | 47: no target record: Assignment has no compound operator (proposal 4) (27); no target record: Assignment has no Through for `@v = column = value` (proposal 4) (13) | 151 |
 | `Statement.AlterIndex` | Tables | C | gap 148 | 148: no target record: Statement.AlterIndex (148) | 148 |
 | `Statement.Execute` | Routines | B | gap 135 | 147: needs decision: inventory Statement.Execute (147) | 147 |
 | `Clause.References` | Tables | A | — | — | 145 |
 | `Statement.Return` | Procedural | A | converted 3 | — | 145 |
-| `Statement.Update` | Dml | A | converted 32, gap 29 | 53: needs decision: inventory Statement.Update (no target) (20); no target record: Statement.Update has no OutputClause in the new tree (proposal 2) (13) | 140 |
-| `Expression.GraphMatch` | Values | C | gap 80 | 119: no target record: Expression.GraphMatch, a graph pattern family (proposal 15) (119) | 131 |
+| `Statement.Update` | Dml | A | converted 40, gap 29 | 53: needs decision: inventory Statement.Update (no target) (20); no target record: Statement.Update has no OutputClause in the new tree (proposal 2) (13) | 140 |
+| `Expression.GraphMatch` | Values | C | gap 84 | 119: no target record: Expression.GraphMatch, a graph pattern family (proposal 15) (119) | 131 |
 | `Expression.Hinted` | Values | C | gap 23 | 127: needs decision: inventory Expression.Hinted (127) | 127 |
 | `Expression.And` | Values | A | — | — | 122 |
 | `Statement.Transaction` | Procedural | B | converted 49, gap 60 | 63: target exists, no writer arm: Statement.BeginTransaction (33); target exists, no writer arm: Statement.SaveTransaction (21) | 119 |
 | `Statement.ServerAuditDefinition` | Server | C | gap 118 | 118: no target record: Statement.CreateServerAudit (118) | 118 |
-| `Statement.Delete` | Dml | A | converted 12, gap 45 | 89: no target record: Statement.Delete has no OutputClause in the new tree (proposal 2) (48); needs decision: inventory Statement.Delete (no target) (25) | 114 |
+| `Statement.Delete` | Dml | A | converted 23, gap 45 | 89: no target record: Statement.Delete has no OutputClause in the new tree (proposal 2) (48); needs decision: inventory Statement.Delete (no target) (25) | 114 |
 | `Expression.Subquery` | Values | A | — | — | 113 |
 | `Statement.Grant` | Security | B | gap 108 | 108: needs decision: inventory Statement.Grant (108) | 108 |
 | `Statement.ExternalFileFormatDefinition` | Server | C | gap 101 | 101: no target record: Statement.CreateExternalFileFormat (101) | 101 |
@@ -242,7 +257,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Member` | Values | A | — | — | 98 |
 | `Clause.Output` | Dml | C | — | — | 97 |
 | `TableReference.Derived` | Tables | A | gap 8 | 8: no target record: TableSource.Subquery has no FOR PATH (inventory TableReference.Derived) (8) | 97 |
-| `TableReference.Pivot` | Tables | C | gap 76 | 81: no target record: TableSource.Pivot and TableSource.Unpivot (proposal 6) (81) | 93 |
+| `TableReference.Pivot` | Tables | C | — | — | 93 |
 | `Statement.AlterFullTextIndex` | Tables | C | gap 92 | 92: no target record: Statement.AlterFullTextIndex (92) | 92 |
 | `Statement.ExternalDataSourceDefinition` | Server | C | gap 92 | 92: no target record: Statement.CreateExternalDataSource (92) | 92 |
 | `Statement.SetVariable` | Procedural | C | gap 78 | 89: no target record: Statement.SetVariable (89) | 89 |
@@ -253,15 +268,15 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.ViewDefinition` | Tables | B | gap 84 | 84: needs decision: inventory Statement.ViewDefinition (84) | 84 |
 | `Query.FromFile` | Dml | C | gap 83 | 83: no target record: Statement.BulkInsert (inventory Query.FromFile) (83) | 83 |
 | `Clause.Dropped` | Tables | B | — | — | 82 |
-| `Clause.For` | Queries | C | gap 74 | 78: target exists, no writer arm: Query.For (ForClause) (78) | 82 |
+| `Clause.For` | Queries | C | gap 6 | 6: no target record: ForClause has no element name for RAW or PATH ('…') (proposal 1) (6) | 82 |
 | `Statement.ExternalResourcePoolDefinition` | Server | C | gap 79 | 79: no target record: Statement.CreateExternalResourcePool (79) | 79 |
 | `Statement.Print` | Procedural | C | gap 38 | 70: no target record: Statement.Print (70) | 75 |
 | `Statement.Dbcc` | Server | C | gap 73 | 73: no target record: Statement.Dbcc (73) | 73 |
 | `Expression.Not` | Values | A | — | — | 71 |
 | `Statement.CreateTableAsSelect` | Tables | B | gap 64 | 70: needs decision: inventory Statement.CreateTableAsSelect (70) | 70 |
 | `Statement.AlterServerConfiguration` | Server | C | gap 68 | 68: no target record: Statement.AlterServerConfiguration (68) | 68 |
-| `Clause.SystemTime` | Tables | A | gap 14 | 20: no target record: SystemTimeSpecification has no `CONTAINED IN` (inventory Clause.SystemTime) (11); no target record: SystemTimeSpecification has no `ALL` (inventory Clause.SystemTime) (9) | 67 |
-| `Clause.MergeWhen` | Dml | B | gap 8 | 8: no target record: MergeClause.NotMatchedBySource and the BY TARGET flag (proposal 3) (8) | 65 |
+| `Clause.SystemTime` | Tables | A | gap 18 | 20: no target record: SystemTimeSpecification has no `CONTAINED IN` (inventory Clause.SystemTime) (11); no target record: SystemTimeSpecification has no `ALL` (inventory Clause.SystemTime) (9) | 67 |
+| `Clause.MergeWhen` | Dml | B | gap 9 | 9: no target record: MergeClause.NotMatchedBySource and the BY TARGET flag (proposal 3) (9) | 65 |
 | `Query.Parenthesized` | Queries | B | — | — | 64 |
 | `Statement.CreateTrigger` | Routines | B | gap 62 | 62: needs decision: inventory Statement.CreateTrigger (62) | 62 |
 | `Statement.ExternalLibraryDefinition` | Server | C | gap 59 | 59: no target record: Statement.CreateExternalLibrary (59) | 59 |
@@ -272,7 +287,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DatabaseAuditSpecificationDefinition` | Database | C | gap 56 | 56: no target record: Statement.CreateDatabaseAuditSpecification (56) | 56 |
 | `Expression.Collated` | Values | A | — | — | 55 |
 | `Statement.DropIndex` | Drop | C | gap 47 | 49: target exists, no writer arm: Statement.DropIndex (49) | 53 |
-| `Statement.Merge` | Dml | A | converted 9, gap 29 | 33: no target record: Statement.Merge has no member for whether INTO was written (proposal 2) (17); no target record: Statement.Merge has no OutputClause in the new tree (proposal 2) (12) | 53 |
+| `Statement.Merge` | Dml | A | converted 11, gap 29 | 33: no target record: Statement.Merge has no member for whether INTO was written (proposal 2) (17); no target record: Statement.Merge has no OutputClause in the new tree (proposal 2) (12) | 53 |
 | `Expression.IsNull` | Values | A | — | — | 52 |
 | `Statement.AvailabilityGroupDefinition` | Server | C | gap 51 | 51: no target record: Statement.CreateAvailabilityGroup (51) | 51 |
 | `Statement.TriggerSwitch` | Routines | C | gap 44 | 47: no target record: Statement.EnableTrigger (47) | 51 |
@@ -307,7 +322,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.ExternalModelDefinition` | Server | C | gap 34 | 34: no target record: Statement.CreateExternalModel (34) | 34 |
 | `Statement.Fetch` | Procedural | A | converted 34 | — | 34 |
 | `Clause.CursorDefinition` | Procedural | B | — | — | 32 |
-| `Clause.TableSample` | Tables | A | gap 13 | 15: no target record: SampleClause.Method is required and T-SQL's SYSTEM may be left out (inventory Clause.TableSample) (12); no target record: SampleClause has no unit, PERCENT or ROWS (inventory Clause.TableSample) (3) | 31 |
+| `Clause.TableSample` | Tables | A | — | — | 31 |
 | `Clause.When` | Values | A | — | — | 30 |
 | `Expression.Case` | Values | A | — | — | 30 |
 | `Expression.ShiftLeft` | Values | C | — | — | 30 |
@@ -324,7 +339,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `SetExpression.QueryExecution.Switch` | Procedural | C | — | — | 27 |
 | `Statement.SchemaDefinition` | Security | A | converted 12, gap 15 | 15: needs decision: inventory Statement.SchemaDefinition (elements kept as text) (15) | 27 |
 | `Statement.SymmetricKeyDefinition` | Security | C | gap 27 | 27: no target record: Statement.CreateSymmetricKey (27) | 27 |
-| `Clause.VariableAssignment` | Queries | C | gap 23 | 25: no target record: SelectColumn.VariableAssignment (inventory Clause.VariableAssignment) (25) | 26 |
+| `Clause.VariableAssignment` | Queries | C | gap 5 | 5: needs decision: inventory Clause.VariableAssignment (operator `\|\|=`) (5) | 26 |
 | `Statement.DeclareCursor` | Procedural | B | gap 26 | 26: needs decision: inventory Statement.DeclareCursor (26) | 26 |
 | `Expression.Like` | Values | A | — | — | 25 |
 | `SetExpression.IsoSettings.Switch` | Procedural | C | — | — | 25 |
@@ -342,7 +357,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.OpenSymmetricKey` | Security | C | gap 22 | 22: no target record: Statement.OpenSymmetricKey (22) | 22 |
 | `Statement.AlterAsymmetricKey` | Security | C | gap 21 | 21: no target record: Statement.AlterAsymmetricKey (21) | 21 |
 | `Statement.PartitionFunctionDefinition` | Database | C | gap 21 | 21: no target record: Statement.CreatePartitionFunction (21) | 21 |
-| `TableReference.Unpivot` | Tables | C | gap 14 | 21: no target record: TableSource.Pivot and TableSource.Unpivot (proposal 6) (21) | 21 |
+| `TableReference.Unpivot` | Tables | C | — | — | 21 |
 | `Statement.CredentialDefinition` | Security | C | gap 20 | 20: no target record: Statement.CreateCredential (20) | 20 |
 | `Statement.ExecuteAs` | Procedural | C | gap 20 | 20: no target record: Statement.ExecuteAs (20) | 20 |
 | `Statement.FullTextCatalogDefinition` | Database | C | gap 20 | 20: no target record: Statement.CreateFullTextCatalog (20) | 20 |
@@ -421,7 +436,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropXmlSchemaCollection` | Drop | C | gap 9 | 9: no target record: Statement.DropXmlSchemaCollection (one record per kind, not declared yet) (9) | 9 |
 | `Statement.MasterKeyDefinition` | Security | C | gap 9 | 9: no target record: Statement.CreateMasterKey (9) | 9 |
 | `Statement.Reconfigure` | Server | C | gap 9 | 9: no target record: Statement.Reconfigure (9) | 9 |
-| `TableReference.OdbcJoin` | Tables | C | gap 7 | 8: no target record: TableSource.OdbcJoin (proposal 15) (8) | 9 |
+| `TableReference.OdbcJoin` | Tables | C | — | — | 9 |
 | `SetExpression.DateAndTime.DateFirst` | Procedural | C | — | — | 8 |
 | `SetExpression.QueryExecution.TextSize` | Procedural | C | — | — | 8 |
 | `SetExpression.Statistics.Switch` | Procedural | C | — | — | 8 |

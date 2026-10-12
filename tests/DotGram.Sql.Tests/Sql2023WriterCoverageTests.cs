@@ -171,6 +171,7 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(JoinHint)]           = v => Joined(new TableSource.Join { Left = new TableSource.Named(T), Right = new TableSource.Named(U), Kind = JoinKind.Inner, Hint = (JoinHint)v }),
 		[typeof(GroupByWith)]        = v => Selected with { GroupBy = new GroupByClause(null, [new GroupingElement.Ordinary([A])]) { With = (GroupByWith)v } },
 		[typeof(SampleUnit)]         = v => Sampled(false, (SampleUnit)v),
+		[typeof(AssignmentOperator)] = v => new Query.Select { Columns = [new SelectColumn.VariableAssignment(new Identifier("@v"), (AssignmentOperator)v, A)] },
 	};
 
 	/// <summary>
@@ -456,6 +457,7 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("Try on a convert")]
 	[InlineData("Try on a parse")]
 	[InlineData("Over on a next value")]
+	[InlineData("GraphPath on a call")]
 	public void A_flag_changes_what_is_written(string which)
 	{
 		var type = new DataType.Numeric(NumericTypeKind.Int);
@@ -472,6 +474,9 @@ public sealed class Sql2023WriterCoverageTests
 			"Try on a parse" => (
 				Sql2023Writer.Write(new Expression.Parse(A, type)),
 				Sql2023Writer.Write(new Expression.Parse(A, type, Try: true))),
+			"GraphPath on a call" => (
+				Sql2023Writer.Write(new Expression.Invocation(s, [new Argument(A)])),
+				Sql2023Writer.Write(new Expression.Invocation(s, [new Argument(A)]) { GraphPath = true })),
 			"Over on a next value" => (
 				Sql2023Writer.Write(new Expression.NextValue(s)),
 				Sql2023Writer.Write(new Expression.NextValue(s) { Over = new WindowSpecification(null, [], new OrderByClause([new SortItem(A)]), null) })),
@@ -635,6 +640,9 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a written name qualified by other than sys")]
 	[InlineData("a written name on a type of several words")]
 	[InlineData("a written name on a named type")]
+	[InlineData("GraphPath with a WITHIN GROUP order")]
+	[InlineData("a table variable with hints in a FROM")]
+	[InlineData("a table variable with a sample in a FROM")]
 	public void A_value_with_no_text_is_refused(string which)
 	{
 		var type = new DataType.Numeric(NumericTypeKind.Int);
@@ -654,6 +662,9 @@ public sealed class Sql2023WriterCoverageTests
 			"a written name qualified by other than sys" => new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("int")]) },
 			"a written name on a type of several words" => new DataType.Numeric(NumericTypeKind.DoublePrecision) { WrittenName = new QualifiedName([new Identifier("[double precision]", IdentifierStyle.Bracketed)]) },
 			"a written name on a named type"        => new DataType.Named(T, []) { WrittenName = T },
+			"GraphPath with a WITHIN GROUP order"   => new Expression.Invocation(T, [new Argument(A)]) { GraphPath = true, WithinGroup = new WithinGroupClause(new OrderByClause([new SortItem(A)])) },
+			"a table variable with hints in a FROM" => Joined(new TableSource.Variable(new Identifier("@t")) { Hints = [new TableHint.Named(new Identifier("NOLOCK"), [])] }),
+			"a table variable with a sample in a FROM" => Joined(new TableSource.Variable(new Identifier("@t")) { Sample = new SampleClause(SampleMethod.System, A) }),
 			_                                       => new Expression.Literal(new LiteralValue.Binary("0A")),
 		};
 

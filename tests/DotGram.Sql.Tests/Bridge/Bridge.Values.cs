@@ -564,6 +564,7 @@ static partial class Bridge
 			// and WITHIN GROUP an order, which is read again as the old tree reads one.
 			Ast.NullTreatment? nulls = null;
 			Ast.WithinGroupClause? within = null;
+			var path = false;
 
 			if (old.Within is { } text)
 			{
@@ -575,6 +576,11 @@ static partial class Bridge
 
 					case ["RESPECT", "NULLS"]:
 						nulls = Ast.NullTreatment.RespectNulls;
+						break;
+
+					// SHORTEST_PATH's aggregates, over a graph path's nodes.
+					case ["WITHIN", "GROUP", "(", "GRAPH", "PATH", ")"]:
+						path = true;
 						break;
 
 					case ["WITHIN", "GROUP", "(", "ORDER", "BY", .., ")"]:
@@ -589,7 +595,7 @@ static partial class Bridge
 			if (old.Function is not Expression.RoutineInvocation call || Function(call) is not Ast.Expression.Invocation invocation)
 				throw BridgeGap.Open(old, "inventory Expression.WindowFunction (a window over something that is not a call)");
 
-			invocation = invocation with { Nulls = nulls, WithinGroup = within };
+			invocation = invocation with { Nulls = nulls, WithinGroup = within, GraphPath = path };
 
 			return old.Over is null ? invocation : invocation with { Over = Window(old.Over) };
 		}
