@@ -172,6 +172,10 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(GroupByWith)]        = v => Selected with { GroupBy = new GroupByClause(null, [new GroupingElement.Ordinary([A])]) { With = (GroupByWith)v } },
 		[typeof(SampleUnit)]         = v => Sampled(false, (SampleUnit)v),
 		[typeof(AssignmentOperator)] = v => new Query.Select { Columns = [new SelectColumn.VariableAssignment(new Identifier("@v"), (AssignmentOperator)v, A)] },
+		[typeof(HintArgumentForm)]   = v => Joined(new TableSource.Named(T) { Hints = [new TableHint.Named(new Identifier("INDEX"), [A]) { Form = (HintArgumentForm)v }] }),
+		[typeof(QueryHintPhrase)]    = v => new Statement.Select { Query = Selected, Hints = [new QueryHint.Phrase((QueryHintPhrase)v)] },
+		[typeof(XmlMode)]            = v => Selected with { For = new ForClause.Xml((XmlMode)v, []) },
+		[typeof(JsonMode)]           = v => Selected with { For = new ForClause.Json((JsonMode)v, []) },
 	};
 
 	/// <summary>
@@ -669,6 +673,142 @@ public sealed class Sql2023WriterCoverageTests
 		};
 
 		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+	}
+
+	/// <summary>A pivot of t, for a refusal to be asked of.</summary>
+	static TableSource.Pivot Pivoted(TableSource source, SqlList<Identifier>? names = null, Alias? alias = null)
+	{
+		return new TableSource.Pivot(source, new Expression.Invocation(T, [new Argument(A)]), new Identifier("b"), names ?? [new Identifier("[1]")], alias ?? new Alias(new Identifier("p")));
+	}
+
+	static readonly OpenDataSource Server = new(new Expression.Literal(new LiteralValue.String("'p'", StringLiteralKind.Character)), new Expression.Literal(new LiteralValue.String("'i'", StringLiteralKind.Character)));
+
+	static RowsetColumn Column(string? path = null, int? ordinal = null, bool typed = true)
+	{
+		return new RowsetColumn(new Identifier("c"), typed ? new DataType.Numeric(NumericTypeKind.Int) : null, path, false, ordinal);
+	}
+
+	/// <summary>That a T-SQL part of a query the writer has no text for is refused, rather than written as another.</summary>
+	[Theory]
+	[InlineData("a table variable whose name is not a variable")]
+	[InlineData("a variable assignment whose name is not a variable")]
+	[InlineData("a named table of one part starting with @")]
+	[InlineData("a join hint on a CROSS JOIN")]
+	[InlineData("a join hint without a join type")]
+	[InlineData("a PIVOT whose alias has columns")]
+	[InlineData("a PIVOT with no names")]
+	[InlineData("an ODBC join directly over a PIVOT")]
+	[InlineData("a table variable whose alias has columns")]
+	[InlineData("a data source with hints")]
+	[InlineData("a data source with a sample")]
+	[InlineData("a data source with a system time")]
+	[InlineData("a data source with alias columns")]
+	[InlineData("a data source with ONLY")]
+	[InlineData("GROUP BY ALL with WITH CUBE")]
+	[InlineData("GROUP BY ALL with a quantifier")]
+	[InlineData("XMLNAMESPACES with RECURSIVE")]
+	[InlineData("a query hint with arguments in brackets")]
+	[InlineData("a hint written bare with two arguments")]
+	[InlineData("a hint written with = and no argument")]
+	[InlineData("an OPTIMIZE FOR variable with a value and UNKNOWN")]
+	[InlineData("a FOR XML mode that is none")]
+	[InlineData("an element name with FOR XML AUTO")]
+	[InlineData("a FOR option with a value and options")]
+	[InlineData("a FOR option's word with a value")]
+	[InlineData("INTO variables and INTO a table")]
+	[InlineData("an APPLY with NATURAL")]
+	[InlineData("an APPLY with OUTER")]
+	[InlineData("an APPLY with a hint")]
+	[InlineData("an APPLY with ON")]
+	[InlineData("OPENROWSET with two connection parts")]
+	[InlineData("a BULK option with options")]
+	[InlineData("a BULK ORDER option with a value")]
+	[InlineData("OPENXML with a schema and a schema table")]
+	[InlineData("the sample's flags without a sample")]
+	[InlineData("SYSTEM left out of a BERNOULLI sample")]
+	[InlineData("an empty schema")]
+	[InlineData("a schema column without a type")]
+	[InlineData("a schema column with a path and an ordinal")]
+	[InlineData("a schema column whose path is not one string")]
+	public void A_query_part_with_no_text_is_refused(string which)
+	{
+		var named = new TableSource.Named(T);
+		var json  = (SqlList<RowsetColumn>? schema) => Joined(new TableSource.OpenJson(A, null, schema));
+
+		ISqlNode node = which switch
+		{
+			"a table variable whose name is not a variable"      => Joined(new TableSource.Variable(new Identifier("t"))),
+			"a variable assignment whose name is not a variable" => new Query.Select { Columns = [new SelectColumn.VariableAssignment(new Identifier("x"), AssignmentOperator.Assign, A)] },
+			"a named table of one part starting with @"          => Joined(new TableSource.Named(new QualifiedName([new Identifier("@t")]))),
+			"a join hint on a CROSS JOIN"                        => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.Cross, Hint = JoinHint.Hash }),
+			"a join hint without a join type"                    => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Hint = JoinHint.Loop, Specification = new JoinSpecification.On(A) }),
+			"a PIVOT whose alias has columns"                    => Joined(Pivoted(named, alias: new Alias(new Identifier("p"), [new Identifier("x")]))),
+			"a PIVOT with no names"                              => Joined(Pivoted(named, [])),
+			"an ODBC join directly over a PIVOT"                 => Joined(new TableSource.OdbcJoin(Pivoted(named))),
+			"a table variable whose alias has columns"           => Joined(new TableSource.Variable(new Identifier("@t")) { Alias = new Alias(new Identifier("x"), [new Identifier("c")]) }),
+			"a data source with hints"                           => Joined(named with { DataSource = Server, Hints = [new TableHint.Named(new Identifier("NOLOCK"), [])] }),
+			"a data source with a sample"                        => Joined(named with { DataSource = Server, Sample = new SampleClause(SampleMethod.System, A) }),
+			"a data source with a system time"                   => Joined(named with { DataSource = Server, SystemTime = new SystemTimeSpecification.All() }),
+			"a data source with alias columns"                   => Joined(named with { DataSource = Server, Alias = new Alias(new Identifier("x"), [new Identifier("c")]) }),
+			"a data source with ONLY"                            => Joined(named with { DataSource = Server, Only = true }),
+			"GROUP BY ALL with WITH CUBE"                        => Selected with { GroupBy = new GroupByClause(null, [new GroupingElement.Ordinary([A])]) { AllKeyword = true, With = GroupByWith.Cube } },
+			"GROUP BY ALL with a quantifier"                     => Selected with { GroupBy = new GroupByClause(SetQuantifier.All, [new GroupingElement.Ordinary([A])]) { AllKeyword = true } },
+			"XMLNAMESPACES with RECURSIVE"                       => Selected with { With = new WithClause(true, []) { XmlNamespaces = [new XmlNamespace(new Expression.Literal(new LiteralValue.String("'u'", StringLiteralKind.Character)), null)] } },
+			"a query hint with arguments in brackets"            => new Statement.Select { Query = Selected, Hints = [new QueryHint.Named(new Identifier("MAXDOP"), [A])] },
+			"a hint written bare with two arguments"             => new Statement.Select { Query = Selected, Hints = [new QueryHint.Named(new Identifier("MAXDOP"), [A, B]) { Form = HintArgumentForm.Bare }] },
+			"a hint written with = and no argument"              => Joined(named with { Hints = [new TableHint.Named(new Identifier("INDEX"), []) { Form = HintArgumentForm.Assigned }] }),
+			"an OPTIMIZE FOR variable with a value and UNKNOWN"  => new Statement.Select { Query = Selected, Hints = [new QueryHint.OptimizeFor([new OptimizeForVariable(new Identifier("@a"), A, true)])] },
+			"a FOR XML mode that is none"                        => Selected with { For = new ForClause.Xml((XmlMode)99, []) },
+			"an element name with FOR XML AUTO"                  => Selected with { For = new ForClause.Xml(XmlMode.Auto, []) { ElementName = A } },
+			"a FOR option with a value and options"              => Selected with { For = new ForClause.Xml(XmlMode.Raw, [new Option(new Identifier("ROOT"), A, [new Option(new Identifier("X"), null, [])])]) },
+			"a FOR option's word with a value"                   => Selected with { For = new ForClause.Xml(XmlMode.Raw, [new Option(new Identifier("ELEMENTS"), null, [new Option(new Identifier("XSINIL"), A, [])])]) },
+			"INTO variables and INTO a table"                    => Selected with { Into = new IntoClause([A]), IntoTable = new SelectIntoTable(T, null) },
+			"an APPLY with NATURAL"                              => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.CrossApply, Natural = true }),
+			"an APPLY with OUTER"                                => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.OuterApply, OuterKeyword = true }),
+			"an APPLY with a hint"                               => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.CrossApply, Hint = JoinHint.Hash }),
+			"an APPLY with ON"                                   => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.CrossApply, Specification = new JoinSpecification.On(A) }),
+			"OPENROWSET with two connection parts"               => Joined(new TableSource.OpenRowset(A, [A, B], A)),
+			"a BULK option with options"                         => Joined(new TableSource.OpenRowsetBulk(A, [new Option(new Identifier("FORMAT"), A, [new Option(new Identifier("X"), null, [])])], null)),
+			"a BULK ORDER option with a value"                   => Joined(new TableSource.OpenRowsetBulk(A, [new Option(new Identifier("ORDER"), A, []) { Order = new RowOrder([new SortItem(A)], false) }], null)),
+			"OPENXML with a schema and a schema table"           => Joined(new TableSource.OpenXml(A, B, null, [Column()], T)),
+			"the sample's flags without a sample"                => Joined(named with { SampleUnit = SampleUnit.Rows }),
+			"SYSTEM left out of a BERNOULLI sample"              => Joined(named with { Sample = new SampleClause(SampleMethod.Bernoulli, A), SampleMethodOmitted = true }),
+			"an empty schema"                                    => json([]),
+			"a schema column without a type"                     => json([Column(typed: false)]),
+			"a schema column with a path and an ordinal"         => json([Column("'$.a'", 1)]),
+			_                                                    => json([Column("'$.a') AS j; DROP TABLE t; --")]),
+		};
+
+		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+	}
+
+	/// <summary>
+	/// That the writer brackets what the grammar would otherwise read another way, and writes the T-SQL parts of a
+	/// named table even where TABLE t would otherwise stand for it.
+	/// </summary>
+	[Theory]
+	[InlineData("a PIVOT of a join",            "(t CROSS JOIN u) PIVOT (t(a) FOR b IN ([1])) p")]
+	[InlineData("an APPLY of a join",           "t OUTER APPLY (u LEFT JOIN v ON a)")]
+	[InlineData("TABLE t with a data source",   "OPENDATASOURCE('p', 'i').t")]
+	public void The_writer_brackets_and_keeps_what_the_grammar_needs(string which, string written)
+	{
+		var t = new TableSource.Named(T);
+		var u = new TableSource.Named(U);
+		var v = new TableSource.Named(new QualifiedName([new Identifier("v")]));
+
+		ISqlNode node = which switch
+		{
+			"a PIVOT of a join"  => Joined(Pivoted(new TableSource.Join { Left = t, Right = u, Kind = JoinKind.Cross })),
+			"an APPLY of a join" => Joined(new TableSource.Join
+			{
+				Left  = t,
+				Right = new TableSource.Join { Left = u, Right = v, Kind = JoinKind.Left, Specification = new JoinSpecification.On(A) },
+				Kind  = JoinKind.OuterApply,
+			}),
+			_                    => new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([t with { DataSource = Server }]), Table = true },
+		};
+
+		Assert.Contains(written, Sql2023Writer.Write(node), StringComparison.Ordinal);
 	}
 
 	/// <summary>That a name which is neither a name nor a variable is refused rather than skipped.</summary>

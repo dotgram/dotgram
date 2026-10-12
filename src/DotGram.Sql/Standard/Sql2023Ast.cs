@@ -710,7 +710,7 @@ public abstract partial record TableSource : ISqlNode
 		public bool Only { get; init; }
 	}
 
-	public record Subquery(Query Query) : TableSource
+	public partial record Subquery(Query Query) : TableSource
 	{
 		public bool Lateral { get; init; }
 		public Alias? Alias { get; init; }
@@ -1733,7 +1733,7 @@ public sealed record PathSpecification(SqlList<QualifiedName> Schemas) : ISqlNod
 }
 
 // --- Temporal/table source --------------------------------------------------
-public abstract record SystemTimeSpecification : ISqlNode
+public abstract partial record SystemTimeSpecification : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;

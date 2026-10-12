@@ -51,12 +51,12 @@ and is exempted (`BridgeOracle.Meaning`); any other difference makes the stateme
   type with no arguments — a `DataType.Named` of one part, or `sys` and a name, on the list of system types, a
   standard record written as a name (`WrittenName`), or an `nvarchar` with no length — where the standard has
   a user-defined type of the same name, or, for `timestamp`, its own TIMESTAMP.
-- `GROUP BY ALL a`: the empty groups kept in T-SQL, the quantifier that changes nothing in the standard. A
-  `GroupByClause` that is `AllKeyword`.
-- `SELECT a INTO t`: a new table in T-SQL, a target in the standard. A `Query.Select`'s `Into` and
-  `IntoTable` where the latter is set.
-- `FROM t OPTION (h)`: a hint in T-SQL, an alias with columns in the standard. A statement's `Hints`, and
-  the `Alias` of a source in a statement that has them.
+- `GROUP BY ALL a`: the empty groups kept in T-SQL, the quantifier that changes nothing in the standard. The
+  `Quantifier` and `AllKeyword` of a `GroupByClause` that is `AllKeyword`.
+- `SELECT a INTO t`: a new table in T-SQL, a target in the standard. A `Query.Select`'s `IntoTable` with no
+  filegroup, and its `Into` where the standard's one target names the same table.
+- `FROM t OPTION (h)`: a hint in T-SQL, an alias with columns in the standard. A statement's `Hints`, and an
+  `Alias` the standard reads the word OPTION as.
 
 ## Words read from the text
 
@@ -126,14 +126,14 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 
 | Counter | Count |
 | --- | ---: |
-| ByCase Clause.For.Kind | 18 |
-| ByCase Clause.For.Options | 6 |
+| ByCase Clause.For.Kind | 20 |
+| ByCase Clause.For.Options | 26 |
 | ByCase Clause.GroupBy.With | 2 |
-| ByCase Clause.Hint.Text | 2 |
-| ByCase Clause.JsonColumn.Type | 18 |
+| ByCase Clause.Hint.Text | 28 |
+| ByCase Clause.JsonColumn.Type | 54 |
 | ByCase Clause.Option.Name | 4 |
 | ByCase Clause.SystemTime.Kind | 0 |
-| ByCase Clause.TableSample.Unit | 5 |
+| ByCase Clause.TableSample.Unit | 4 |
 | ByCase Clause.Top.With | 0 |
 | ByCase Clause.Window.Frame | 7 |
 | ByCase Expression.ColumnReference.Text of a date part | 108 |
@@ -141,9 +141,9 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Expression.Match.Qualifier | 0 |
 | ByCase Expression.NamedArgument.Name | 0 |
 | ByCase Expression.OdbcEscape.Kind | 1 |
-| ByCase Expression.Prefixed.Word | 18 |
+| ByCase Expression.Prefixed.Word | 22 |
 | ByCase Expression.Quantified.Quantifier | 0 |
-| ByCase Expression.RoutineInvocation.Name | 112 |
+| ByCase Expression.RoutineInvocation.Name | 116 |
 | ByCase Expression.RoutineInvocation.Word | 110 |
 | ByCase Expression.WindowFunction.Within | 0 |
 | ByCase Query.Specification.Quantifier | 5 |
@@ -160,14 +160,14 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Meaning CAST (a AS money): a type of T-SQL's own in T-SQL, a user-defined type in the standard | 2 |
 | Meaning DATEADD (day, ...): a date part in T-SQL, a column in the standard | 6 |
 | Meaning FREETEXT ((c), ...): a column list in T-SQL, a value in brackets in the standard | 7 |
-| Meaning FROM t OPTION (h): a hint in T-SQL, an alias in the standard | 5 |
+| Meaning FROM t OPTION (h): a hint in T-SQL, an alias in the standard | 10 |
 | Meaning GLOBAL c: a cursor of the connection in T-SQL, an extended name in the standard | 6 |
 | Meaning GROUP BY ALL a: the empty groups kept in T-SQL, a quantifier in the standard | 7 |
 | Meaning SELECT a INTO t: a new table in T-SQL, a target in the standard | 3 |
 | Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard | 15 |
 | Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard | 2 |
 | Recovered Alias.AsKeyword of MERGE's target | 7 |
-| Recovered Alias.AsKeyword of a table source | 407 |
+| Recovered Alias.AsKeyword of a table source | 435 |
 | Recovered Clause.DerivedColumn alias = expression | 277 |
 | Recovered Expression.Invocation without brackets | 31 |
 | Recovered Expression.Trim.FromKeyword | 0 |
@@ -194,9 +194,9 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.ColumnDefinition` | Tables | B | — | — | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |
 | `Clause.ColumnOption` | Tables | B | — | — | 2995 |
-| `Statement.Select` | Queries | B | converted 1938 | — | 2976 |
+| `Statement.Select` | Queries | B | converted 2065 | — | 2976 |
 | `Clause.DerivedColumn` | Queries | A | gap 24 | 24: needs decision: inventory Clause.DerivedColumn (a string alias) (19); needs decision: inventory Clause.DerivedColumn (alias = expression) (5) | 2967 |
-| `TableReference.Named` | Tables | A | gap 33 | 33: no target record: TableSource.Named has no FOR PATH (inventory TableReference.Named) (32); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
+| `TableReference.Named` | Tables | A | gap 37 | 37: no target record: TableSource.Named has no FOR PATH (inventory TableReference.Named) (32); needs decision: inventory Clause.Hint (a hint written against the sample) (4) | 2944 |
 | `Expression.RoutineInvocation` | Values | B | gap 159 | 191: needs decision: inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes) (122); needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12) | 2310 |
 | `Statement.TableDefinition` | Tables | B | gap 1829 | 1878: needs decision: inventory Statement.TableDefinition (1878) | 1906 |
 | `Clause.ConstraintDefinition` | Tables | B | — | — | 1841 |
@@ -207,14 +207,14 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.EventPiece` | Server | C | — | — | 514 |
 | `Expression.NamedArgument` | Values | A | gap 39 | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
 | `Statement.CreateIndex` | Tables | C | gap 495 | 495: no target record: Statement.CreateIndex (495) | 495 |
-| `TableReference.FunctionCall` | Tables | A | gap 50 | 62: needs decision: inventory TableReference.FunctionCall (CHANGETABLE, which has no page in the specification) (34); no target record: OpenRowsetBulk has no ORDER (…) UNIQUE among its options (proposal 7) (12) | 487 |
+| `TableReference.FunctionCall` | Tables | A | gap 38 | 50: needs decision: inventory TableReference.FunctionCall (CHANGETABLE, which has no page in the specification) (34); needs decision: inventory TableReference.FunctionCall (CONTAINSTABLE, which has no page in the specification) (8) | 487 |
 | `Expression.Parenthesized` | Values | A | — | — | 438 |
 | `TableReference.Joined` | Tables | A | — | — | 382 |
 | `Clause.VariableDeclaration` | Procedural | C | — | — | 357 |
 | `Statement.Declare` | Procedural | C | gap 300 | 335: no target record: Statement.DeclareVariables (335) | 347 |
 | `Statement.Compound` | Procedural | C | gap 17 | 328: no target record: Statement.Compound (328) | 337 |
 | `Statement.EventSessionDefinition` | Server | C | gap 323 | 323: no target record: Statement.CreateEventSession (323) | 323 |
-| `Clause.Hint` | Queries | C | gap 78 | 79: needs decision: inventory Clause.Hint (a hint that is not a name and the values in its brackets) (79) | 294 |
+| `Clause.Hint` | Queries | C | gap 5 | 5: needs decision: inventory Clause.Hint (the old WITH (n)) (4); needs decision: inventory Clause.Hint (a hint of a shape the family does not hold) (1) | 294 |
 | `Clause.ParameterDeclaration` | Routines | B | — | — | 290 |
 | `Statement.CreateProcedure` | Routines | B | gap 279 | 279: needs decision: inventory Statement.CreateProcedure (279) | 279 |
 | `Clause.Connection` | Tables | C | — | — | 270 |
@@ -235,7 +235,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.SetStatement` | Procedural | C | converted 23, gap 131 | 142: no target record: Statement.SetOptions (142) | 165 |
 | `TableReference.Parenthesized` | Tables | A | — | — | 162 |
 | `Clause.GroupBy` | Queries | B | — | — | 158 |
-| `Clause.JsonColumn` | Tables | C | gap 30 | 30: needs decision: inventory DataType (a type `NVARCHAR (MAX) COLLATE Latin1_General_Bin2` whose brackets do not close it) (8); needs decision: inventory DataType (a type `nvarchar(max) COLLATE Latin1_General_Bin2` whose brackets do not close it) (5) | 155 |
+| `Clause.JsonColumn` | Tables | C | gap 4 | 4: needs decision: inventory Clause.ColumnOption (an explicit NULL, decided with CREATE TABLE's column options) (3); no target record: RowsetColumn.Ordinal is a number, and keeps no spelling of it such as `00` (1) | 155 |
 | `Statement.WorkloadGroupDefinition` | Server | C | gap 155 | 155: no target record: Statement.CreateWorkloadGroup (155) | 155 |
 | `Statement.CreateDatabase` | Database | C | gap 154 | 154: no target record: Statement.CreateDatabase (154) | 154 |
 | `Clause.Set` | Dml | B | gap 47 | 47: no target record: Assignment has no compound operator (proposal 4) (27); no target record: Assignment has no Through for `@v = column = value` (proposal 4) (13) | 151 |
@@ -257,7 +257,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Member` | Values | A | — | — | 98 |
 | `Clause.Output` | Dml | C | — | — | 97 |
 | `TableReference.Derived` | Tables | A | gap 8 | 8: no target record: TableSource.Subquery has no FOR PATH (inventory TableReference.Derived) (8) | 97 |
-| `TableReference.Pivot` | Tables | C | — | — | 93 |
+| `TableReference.Pivot` | Tables | C | gap 2 | 2: needs decision: inventory cross-cutting gaps, identifier styles (a qualified pivot or unpivot column `st.DaysToManufacture`) (2) | 93 |
 | `Statement.AlterFullTextIndex` | Tables | C | gap 92 | 92: no target record: Statement.AlterFullTextIndex (92) | 92 |
 | `Statement.ExternalDataSourceDefinition` | Server | C | gap 92 | 92: no target record: Statement.CreateExternalDataSource (92) | 92 |
 | `Statement.SetVariable` | Procedural | C | gap 78 | 89: no target record: Statement.SetVariable (89) | 89 |
@@ -268,14 +268,14 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.ViewDefinition` | Tables | B | gap 84 | 84: needs decision: inventory Statement.ViewDefinition (84) | 84 |
 | `Query.FromFile` | Dml | C | gap 83 | 83: no target record: Statement.BulkInsert (inventory Query.FromFile) (83) | 83 |
 | `Clause.Dropped` | Tables | B | — | — | 82 |
-| `Clause.For` | Queries | C | gap 6 | 6: no target record: ForClause has no element name for RAW or PATH ('…') (proposal 1) (6) | 82 |
+| `Clause.For` | Queries | C | — | — | 82 |
 | `Statement.ExternalResourcePoolDefinition` | Server | C | gap 79 | 79: no target record: Statement.CreateExternalResourcePool (79) | 79 |
 | `Statement.Print` | Procedural | C | gap 38 | 70: no target record: Statement.Print (70) | 75 |
 | `Statement.Dbcc` | Server | C | gap 73 | 73: no target record: Statement.Dbcc (73) | 73 |
 | `Expression.Not` | Values | A | — | — | 71 |
 | `Statement.CreateTableAsSelect` | Tables | B | gap 64 | 70: needs decision: inventory Statement.CreateTableAsSelect (70) | 70 |
 | `Statement.AlterServerConfiguration` | Server | C | gap 68 | 68: no target record: Statement.AlterServerConfiguration (68) | 68 |
-| `Clause.SystemTime` | Tables | A | gap 18 | 20: no target record: SystemTimeSpecification has no `CONTAINED IN` (inventory Clause.SystemTime) (11); no target record: SystemTimeSpecification has no `ALL` (inventory Clause.SystemTime) (9) | 67 |
+| `Clause.SystemTime` | Tables | A | — | — | 67 |
 | `Clause.MergeWhen` | Dml | B | gap 9 | 9: no target record: MergeClause.NotMatchedBySource and the BY TARGET flag (proposal 3) (9) | 65 |
 | `Query.Parenthesized` | Queries | B | — | — | 64 |
 | `Statement.CreateTrigger` | Routines | B | gap 62 | 62: needs decision: inventory Statement.CreateTrigger (62) | 62 |
@@ -357,7 +357,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.OpenSymmetricKey` | Security | C | gap 22 | 22: no target record: Statement.OpenSymmetricKey (22) | 22 |
 | `Statement.AlterAsymmetricKey` | Security | C | gap 21 | 21: no target record: Statement.AlterAsymmetricKey (21) | 21 |
 | `Statement.PartitionFunctionDefinition` | Database | C | gap 21 | 21: no target record: Statement.CreatePartitionFunction (21) | 21 |
-| `TableReference.Unpivot` | Tables | C | — | — | 21 |
+| `TableReference.Unpivot` | Tables | C | gap 2 | 2: needs decision: inventory cross-cutting gaps, identifier styles (a qualified pivot or unpivot column `t1.c0`) (2) | 21 |
 | `Statement.CredentialDefinition` | Security | C | gap 20 | 20: no target record: Statement.CreateCredential (20) | 20 |
 | `Statement.ExecuteAs` | Procedural | C | gap 20 | 20: no target record: Statement.ExecuteAs (20) | 20 |
 | `Statement.FullTextCatalogDefinition` | Database | C | gap 20 | 20: no target record: Statement.CreateFullTextCatalog (20) | 20 |

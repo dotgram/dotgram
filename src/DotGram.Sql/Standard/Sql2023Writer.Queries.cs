@@ -314,11 +314,14 @@ public static partial class Sql2023Writer
 			{
 				Word("GROUP BY");
 
-				// T-SQL: GROUP BY (Transact-SQL). `ALL` and `WITH CUBE` or `WITH ROLLUP`.
+				// T-SQL: GROUP BY (Transact-SQL). `ALL` and `WITH CUBE` or `WITH ROLLUP`, which do not go together.
 				if (group.AllKeyword)
 				{
 					if (group.Quantifier is not null)
 						throw Both(group, "AllKeyword", "Quantifier");
+
+					if (group.With is not null)
+						throw Both(group, "AllKeyword", "With");
 
 					Word("ALL");
 				}
@@ -363,7 +366,10 @@ public static partial class Sql2023Writer
 			// A property pattern rather than record equality: equality probes the stack, and this runs at
 			// the depth the caller last checked, so on a deep tree it could throw where the writer would
 			// otherwise hand the walk to a fresh stack.
-			return named.GetType() == typeof(TableSource.Named) && named is { Sample: null, SystemTime: null, Alias: null, Only: false } ? named.Name : null;
+			return named.GetType() == typeof(TableSource.Named)
+				&& named is { Sample: null, SystemTime: null, Alias: null, Only: false, DataSource: null, SampleMethodOmitted: false, SampleUnit: null }
+				? named.Name
+				: null;
 		}
 
 		// A row of values: its values in brackets, or a value alone, which may have brackets of its own.
@@ -409,7 +415,7 @@ public static partial class Sql2023Writer
 
 				// T-SQL: SELECT @local_variable (Transact-SQL).
 				case SelectColumn.VariableAssignment assignment:
-					PutIdentifier(assignment.Variable);
+					PutVariableName(assignment, assignment.Variable);
 					Word(assignment.Operator switch
 					{
 						AssignmentOperator.Assign      => "=",
@@ -452,6 +458,9 @@ public static partial class Sql2023Writer
 			// T-SQL: WITH XMLNAMESPACES (Transact-SQL). Before the common table expressions, and one of the list.
 			if (with.XmlNamespaces.Count > 0)
 			{
+				if (with.Recursive)
+					throw Both(with, "XmlNamespaces", "Recursive");
+
 				PutXmlNamespaces(with.XmlNamespaces);
 
 				if (with.Items.Count > 0)
@@ -873,13 +882,26 @@ public static partial class Sql2023Writer
 			switch (source)
 			{
 				case TableSource.Named named:
-					// T-SQL: OPENDATASOURCE (Transact-SQL). The server the name is looked up on, before it.
+					// T-SQL: a name of one part starting with @ is a table variable, which is a record of its own.
+					if (named.Name.Parts is [{ Style: IdentifierStyle.Regular } only] && only.Text.StartsWith("@", StringComparison.Ordinal))
+						throw Misplaced(named, "Name", "of one part starting with @, which is a TableSource.Variable");
+
+					// T-SQL: OPENDATASOURCE (Transact-SQL). The server the name is looked up on, before it; it takes a
+					// correlation name and nothing else.
 					if (named.DataSource is { } server)
 					{
 						if (named.Only)
 							throw Both(named, "DataSource", "Only");
 
-						PutExpression(server);
+						if (named.Hints.Count > 0 || named.Sample is not null || named.SystemTime is not null || named.Alias?.Columns is not null)
+							throw Misplaced(named, "Hints, Sample, SystemTime or alias columns", "on a name after OPENDATASOURCE");
+
+						Word("OPENDATASOURCE");
+						Call();
+						PutExpression(server.Provider);
+						Tight(",");
+						PutExpression(server.InitString);
+						Close();
 						Tight(".");
 						Hold();
 					}
@@ -916,6 +938,20 @@ public static partial class Sql2023Writer
 								PutExpression(between.To);
 								break;
 
+							// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL).
+							case SystemTimeSpecification.ContainedIn contained:
+								Word("CONTAINED IN");
+								Open();
+								PutExpression(contained.From);
+								Tight(",");
+								PutExpression(contained.To);
+								Close();
+								break;
+
+							case SystemTimeSpecification.All:
+								Word("ALL");
+								break;
+
 							default:
 								var range = (SystemTimeSpecification.FromTo)time;
 
@@ -943,7 +979,12 @@ public static partial class Sql2023Writer
 					PutPartition(join.LeftPartition);
 
 					if (join.Kind == JoinKind.Cross)
+					{
+						if (join.Hint is not null)
+							throw Misplaced(join, "Hint", "on a CROSS JOIN, which takes none");
+
 						Word("CROSS JOIN");
+					}
 					// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). APPLY takes the place of the JOIN and
 					// of what a join says beside its kind.
 					else if (join.Kind is JoinKind.CrossApply or JoinKind.OuterApply)
@@ -955,6 +996,11 @@ public static partial class Sql2023Writer
 					}
 					else
 					{
+						// T-SQL: Join hints (Transact-SQL). A hint stands inside a join type, and without one would be
+						// read as the left side's alias.
+						if (join.Hint is not null && join.Kind is null)
+							throw Misplaced(join, "Hint", "without a join type");
+
 						if (join.Natural)
 							Word("NATURAL");
 
@@ -988,7 +1034,17 @@ public static partial class Sql2023Writer
 						Word("JOIN");
 					}
 
-					PutSource(join.Right);
+					// An APPLY's right side that is a join is bracketed: written bare, the join would take the APPLY as
+					// its left side.
+					if (join.Kind is JoinKind.CrossApply or JoinKind.OuterApply && join.Right is TableSource.Join)
+					{
+						Open();
+						PutSource(join.Right);
+						Close();
+					}
+					else
+						PutSource(join.Right);
+
 					PutPartition(join.RightPartition);
 
 					switch (join.Specification)

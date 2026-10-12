@@ -6,9 +6,9 @@
 
 Clause.CommonTableExpression = 0/0/0/0/0/0/0
 Clause.DerivedColumn = 0/24/0/0/0/0/0
-Clause.For = 0/6/0/0/0/0/0
+Clause.For = 0/0/0/0/0/0/0
 Clause.GroupBy = 0/0/0/0/0/0/0
-Clause.Hint = 0/78/0/0/0/0/0
+Clause.Hint = 0/5/0/0/0/0/0
 Clause.Into = 0/0/0/0/0/0/0
 Clause.OrderBy = 0/0/0/0/0/0/0
 Clause.QualifiedAsterisk = 0/0/0/0/0/0/0
@@ -23,4 +23,4 @@ Query.Parenthesized = 0/0/0/0/0/0/0
 Query.Specification = 0/0/0/0/0/0/0
 Query.TableValueConstructor = 0/0/0/0/0/0/0
 Query.Union = 0/0/0/0/0/0/0
-Statement.Select = 1938/0/0/0/0/0/0
+Statement.Select = 2065/0/0/0/0/0/0

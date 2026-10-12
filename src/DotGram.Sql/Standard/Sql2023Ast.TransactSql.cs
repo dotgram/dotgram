@@ -38,6 +38,9 @@ public sealed record RowsetColumn(Identifier Name, DataType? Type, string? Path,
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
+
+	/// <summary>T-SQL: OPENJSON (Transact-SQL), OPENXML (Transact-SQL). The column's <c>COLLATE</c>, after its type.</summary>
+	public CollationName? Collation { get; init; }
 }
 
 /// <summary>T-SQL: FOR Clause (Transact-SQL). What a query returns instead of rows.</summary>
@@ -52,19 +55,32 @@ public abstract record ForClause : ISqlNode
 	}
 
 	/// <summary><c>FOR XML RAW</c>, <c>AUTO</c>, <c>EXPLICIT</c> or <c>PATH</c>, and its options.</summary>
-	public sealed record Xml(Identifier Mode, SqlList<Option> Options) : ForClause;
+	public sealed record Xml(XmlMode Mode, SqlList<Option> Options) : ForClause
+	{
+		/// <summary><c>RAW ('row')</c>, <c>PATH ('x')</c>: the element each row is written as; only with those two modes.</summary>
+		public Expression? ElementName { get; init; }
+	}
+
 	/// <summary><c>FOR JSON AUTO</c> or <c>PATH</c>, and its options.</summary>
-	public sealed record Json(Identifier Mode, SqlList<Option> Options) : ForClause;
+	public sealed record Json(JsonMode Mode, SqlList<Option> Options) : ForClause;
 	/// <summary><c>FOR BROWSE</c>, which takes nothing.</summary>
 	public sealed record Browse : ForClause;
 }
+
+/// <summary>T-SQL: FOR Clause (Transact-SQL). How <c>FOR XML</c> shapes the rows.</summary>
+public enum XmlMode { Raw, Auto, Explicit, Path }
+
+/// <summary>T-SQL: FOR Clause (Transact-SQL). How <c>FOR JSON</c> shapes the rows.</summary>
+public enum JsonMode { Auto, Path }
 
 /// <summary>
 /// T-SQL: Table Hints (Transact-SQL). A hint on a table source, <c>WITH (NOLOCK)</c> and the rest.
 /// </summary>
 /// <remarks>
-/// A family with a named member for the long tail rather than text (proposal 9): a hint the grammar
-/// reads as a shape of its own gains a member here, and the rest is <see cref="Named"/>.
+/// A family with a named member for the long tail rather than text (proposal 9): a hint of one word, with or
+/// without a value, is <see cref="Named"/>; a hint with a structure has a member of its own. Whether the commas
+/// between a source's hints were written is not kept — the grammar lets them be left out — and the writer always
+/// writes them.
 /// </remarks>
 public abstract record TableHint : ISqlNode
 {
@@ -76,9 +92,19 @@ public abstract record TableHint : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	/// <summary>A hint the grammar reads by name, with whatever it was given in brackets.</summary>
-	public sealed record Named(Identifier Name, SqlList<Expression> Arguments) : TableHint;
+	/// <summary>A hint the grammar reads by name, with its values: <c>NOLOCK</c>, <c>INDEX (ix, 2)</c>, <c>INDEX = ix</c>.</summary>
+	public sealed record Named(Identifier Name, SqlList<Expression> Arguments) : TableHint
+	{
+		/// <summary>How the values were written; the form never changes what the hint means.</summary>
+		[Spelling] public HintArgumentForm Form { get; init; } = HintArgumentForm.Brackets;
+	}
+
+	/// <summary><c>FORCESEEK (ix (a, b))</c>: the index and the columns it is sought on. A bare <c>FORCESEEK</c> is <see cref="Named"/>.</summary>
+	public sealed record ForceSeek(Expression Index, SqlList<Identifier> Columns) : TableHint;
 }
+
+/// <summary>T-SQL: Table Hints (Transact-SQL), Query Hints (Transact-SQL). <c>NAME (a, b)</c>, <c>NAME a</c>, <c>NAME = a</c>.</summary>
+public enum HintArgumentForm { Brackets, Bare, Assigned }
 
 /// <summary>T-SQL: Query Hints (Transact-SQL). A hint in a statement's <c>OPTION (…)</c>.</summary>
 public abstract record QueryHint : ISqlNode
@@ -91,8 +117,51 @@ public abstract record QueryHint : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	/// <summary>A hint the grammar reads by name, with whatever it was given in brackets.</summary>
-	public sealed record Named(Identifier Name, SqlList<Expression> Arguments) : QueryHint;
+	/// <summary>
+	/// A hint of one word, with or without a value: <c>RECOMPILE</c>, <c>MAXDOP 2</c>, <c>MAX_GRANT_PERCENT = 50</c>,
+	/// <c>LABEL = 'x'</c>.
+	/// </summary>
+	public sealed record Named(Identifier Name, SqlList<Expression> Arguments) : QueryHint
+	{
+		/// <summary>How the value was written; the form never changes what the hint means.</summary>
+		[Spelling] public HintArgumentForm Form { get; init; } = HintArgumentForm.Brackets;
+	}
+
+	/// <summary>A hint of several fixed words: <c>HASH GROUP</c>, <c>FORCE ORDER</c>, <c>KEEP PLAN</c>.</summary>
+	public sealed record Phrase(QueryHintPhrase Words) : QueryHint;
+
+	/// <summary><c>USE HINT ('a', N'b')</c>.</summary>
+	public sealed record UseHint(SqlList<Expression> Hints) : QueryHint;
+
+	/// <summary><c>USE PLAN N'…'</c>.</summary>
+	public sealed record UsePlan(Expression Plan) : QueryHint;
+
+	/// <summary><c>OPTIMIZE FOR (@a = 1, @b UNKNOWN, @c)</c>.</summary>
+	public sealed record OptimizeFor(SqlList<OptimizeForVariable> Variables) : QueryHint;
+
+	/// <summary><c>OPTIMIZE FOR UNKNOWN</c>.</summary>
+	public sealed record OptimizeForUnknown : QueryHint;
+
+	/// <summary><c>TABLE HINT (t, NOLOCK, INDEX (i))</c>: the table and the hints it is given.</summary>
+	public sealed record ForTable(QualifiedName Table, SqlList<TableHint> Hints) : QueryHint;
+}
+
+/// <summary>T-SQL: Query Hints (Transact-SQL). The query hints of several fixed words.</summary>
+public enum QueryHintPhrase
+{
+	HashGroup, OrderGroup, ConcatUnion, HashUnion, MergeUnion, KeepUnion, LoopJoin, MergeJoin, HashJoin, ExpandViews,
+	ForceOrder, ForceScaleOutExecution, DisableScaleOutExecution, KeepPlan, KeepFixedPlan, RobustPlan,
+}
+
+/// <summary>
+/// T-SQL: Query Hints (Transact-SQL). One variable of <c>OPTIMIZE FOR (…)</c>: the variable, keeping its <c>@</c>,
+/// and the value it is optimised for, or <c>UNKNOWN</c>, or neither.
+/// </summary>
+public sealed record OptimizeForVariable(Identifier Variable, Expression? Value, bool Unknown) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
 }
 
 /// <summary>T-SQL: Join hints (Transact-SQL). How a join is to be performed.</summary>
@@ -106,6 +175,20 @@ public enum JoinHint { Loop, Hash, Merge, Remote }
 /// it is a name and a value, not a tail of text, so a round trip has something typed to print.
 /// </remarks>
 public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>T-SQL: OPENROWSET BULK (Transact-SQL). An <c>ORDER (…) [UNIQUE]</c> option, whose name is <c>ORDER</c>.</summary>
+	public RowOrder? Order { get; init; }
+}
+
+/// <summary>
+/// T-SQL: BULK INSERT (Transact-SQL), OPENROWSET BULK (Transact-SQL). <c>ORDER (c1 ASC, …) [UNIQUE]</c>: the data is
+/// already sorted so.
+/// </summary>
+public sealed record RowOrder(SqlList<SortItem> Columns, bool Unique) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));

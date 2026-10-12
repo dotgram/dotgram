@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace DotGram.Sql.Ast;
 
@@ -15,7 +16,7 @@ public static partial class Sql2023Writer
 			{
 				// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL).
 				case TableSource.Pivot pivot:
-					PutSource(pivot.Source);
+					PutRotated(pivot, pivot.Source, pivot.In, pivot.Alias);
 					Word("PIVOT");
 					Open();
 					PutExpression(pivot.Aggregate);
@@ -30,7 +31,7 @@ public static partial class Sql2023Writer
 					return true;
 
 				case TableSource.Unpivot unpivot:
-					PutSource(unpivot.Source);
+					PutRotated(unpivot, unpivot.Source, unpivot.In, unpivot.Alias);
 					Word("UNPIVOT");
 					Open();
 					PutIdentifier(unpivot.Value);
@@ -50,7 +51,10 @@ public static partial class Sql2023Writer
 					if (variable.Hints.Count > 0 || variable.Sample is not null)
 						throw Misplaced(variable, "Hints or Sample", "on a table variable in a FROM");
 
-					PutIdentifier(variable.Name);
+					if (variable.Alias?.Columns is not null)
+						throw Misplaced(variable, "Alias.Columns", "on a table variable");
+
+					PutVariableName(variable, variable.Name);
 					PutAlias(variable.Alias);
 					return true;
 
@@ -151,7 +155,20 @@ public static partial class Sql2023Writer
 						Tight(",");
 						PutIdentifier(option.Name);
 
-						if (option.Value is { } value)
+						// T-SQL: OPENROWSET BULK (Transact-SQL). `ORDER (…) [UNIQUE]`, under the option's name.
+						if (option.Order is { } order)
+						{
+							if (option.Value is not null)
+								throw Both(option, "Order", "Value");
+
+							Open();
+							PutSorts(new OrderByClause(order.Columns));
+							Close();
+
+							if (order.Unique)
+								Word("UNIQUE");
+						}
+						else if (option.Value is { } value)
 						{
 							Word("=");
 							PutExpression(value);
@@ -181,12 +198,15 @@ public static partial class Sql2023Writer
 					}
 
 					Close();
-					PutSchema(predict.Schema);
+					PutPredictSchema(predict.Schema);
 					PutAlias(predict.Alias);
 					return true;
 
 				// T-SQL: ODBC Scalar Functions (Transact-SQL).
 				case TableSource.OdbcJoin odbc:
+					if (odbc.Source is TableSource.Pivot or TableSource.Unpivot)
+						throw Misplaced(odbc, "Source", "that is a PIVOT or an UNPIVOT, which an ODBC escape does not hold");
+
 					Word("{");
 					Hold();
 					Word("OJ");
@@ -200,6 +220,29 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
+		/// The source a PIVOT or an UNPIVOT turns, bracketed where it is a join, which would otherwise give the
+		/// rotation its right side alone; and the refusals the grammar's requirements make: an alias, without
+		/// columns, and at least one name in the list.
+		/// </summary>
+		void PutRotated(TableSource rotation, TableSource source, SqlList<Identifier> names, Alias alias)
+		{
+			if (names.Count == 0)
+				throw Empty(rotation, "In");
+
+			if (alias is null || alias.Columns is not null)
+				throw Misplaced(rotation, "Alias", "missing or with columns, where the grammar takes a name alone");
+
+			if (source is TableSource.Join { Specification: null })
+			{
+				Open();
+				PutSource(source);
+				Close();
+			}
+			else
+				PutSource(source);
+		}
+
+		/// <summary>
 		/// T-SQL: FOR Clause (Transact-SQL). The mode, then each option: a name alone (<c>TYPE</c>), a name
 		/// and its value in brackets (<c>ROOT ('r')</c>), or a name and the one word it takes
 		/// (<c>ELEMENTS XSINIL</c>, <c>BINARY BASE64</c>), which is an option of its own inside it.
@@ -210,13 +253,37 @@ public static partial class Sql2023Writer
 			{
 				case ForClause.Xml xml:
 					Word("FOR XML");
-					PutIdentifier(xml.Mode);
+					Word(xml.Mode switch
+					{
+						XmlMode.Raw      => "RAW",
+						XmlMode.Auto     => "AUTO",
+						XmlMode.Explicit => "EXPLICIT",
+						XmlMode.Path     => "PATH",
+						_                => throw NoText(xml.Mode),
+					});
+
+					// The element a row is written as, RAW's and PATH's only.
+					if (xml.ElementName is { } element)
+					{
+						if (xml.Mode is not (XmlMode.Raw or XmlMode.Path))
+							throw Misplaced(xml, "ElementName", "with a mode other than RAW or PATH");
+
+						Open();
+						PutExpression(element);
+						Close();
+					}
+
 					PutForOptions(xml.Options);
 					break;
 
 				case ForClause.Json json:
 					Word("FOR JSON");
-					PutIdentifier(json.Mode);
+					Word(json.Mode switch
+					{
+						JsonMode.Auto => "AUTO",
+						JsonMode.Path => "PATH",
+						_             => throw NoText(json.Mode),
+					});
 					PutForOptions(json.Options);
 					break;
 
@@ -233,6 +300,9 @@ public static partial class Sql2023Writer
 		{
 			foreach (var option in options)
 			{
+				if (option.Order is not null)
+					throw Misplaced(option, "Order", "on an option of a FOR clause");
+
 				Tight(",");
 				PutIdentifier(option.Name);
 
@@ -281,8 +351,20 @@ public static partial class Sql2023Writer
 				PutIdentifier(column.Name);
 				PutType(column.Type);
 
+				if (column.Collation is { } collation)
+				{
+					Word("COLLATE");
+					PutCollation(collation);
+				}
+
+				// A path is one string literal and nothing else: it is written as it is.
 				if (column.Path is { } path)
+				{
+					if (!OneString(path))
+						throw Misplaced(column, "Path", "that is not one string literal");
+
 					Word(path);
+				}
 
 				if (column.Ordinal is { } ordinal)
 					Number(ordinal);
@@ -293,7 +375,66 @@ public static partial class Sql2023Writer
 			Close();
 		}
 
-		/// <summary>T-SQL: OPTION clause (Transact-SQL). <c>OPTION (RECOMPILE, MAXDOP (2))</c>.</summary>
+		/// <summary>
+		/// Whether a text is one string literal and nothing more: <c>'$.a'</c>, <c>N'x'</c>, a quote inside it doubled.
+		/// </summary>
+		static bool OneString(string text)
+		{
+			var at = text.Length > 0 && text[0] is 'N' or 'n' ? 1 : 0;
+
+			if (text.Length < at + 2 || text[at] != '\'' || text[text.Length - 1] != '\'')
+				return false;
+
+			// A quote inside is one of a doubled pair, and the pair stops short of the closing quote.
+			for (var i = at + 1; i < text.Length - 1; i++)
+			{
+				if (text[i] != '\'')
+					continue;
+
+				if (i + 1 >= text.Length - 1 || text[i + 1] != '\'')
+					return false;
+
+				i++;
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// T-SQL: PREDICT (Transact-SQL). Its <c>WITH (…)</c>: each column's name and type, its collation and its
+		/// <c>NOT NULL</c>, and nothing else a column definition may hold.
+		/// </summary>
+		void PutPredictSchema(SqlList<ColumnDefinition> columns)
+		{
+			if (columns.Count == 0)
+				throw Empty(columns, "Schema");
+
+			Word("WITH");
+			Open();
+			Each(columns, column =>
+			{
+				if (column.Type is null)
+					throw Empty(column, "Type");
+
+				if (column.Generation is not null || column.Constraints.Any(static one => one is not Constraint.NotNull { Name: null, Characteristics: null }) || column.Constraints.Count > 1)
+					throw Misplaced(column, "Generation or Constraints", "on a column of PREDICT, which takes NOT NULL alone");
+
+				PutIdentifier(column.Name);
+				PutType(column.Type);
+
+				if (column.Collation is { } collation)
+				{
+					Word("COLLATE");
+					PutCollation(collation);
+				}
+
+				if (column.Constraints.Count > 0)
+					Word("NOT NULL");
+			});
+			Close();
+		}
+
+		/// <summary>T-SQL: OPTION clause (Transact-SQL). <c>OPTION (RECOMPILE, MAXDOP 2)</c>.</summary>
 		void PutQueryHints(SqlList<QueryHint> hints)
 		{
 			if (hints.Count == 0)
@@ -301,14 +442,106 @@ public static partial class Sql2023Writer
 
 			Word("OPTION");
 			Open();
-			Each(hints, hint =>
-			{
-				if (hint is not QueryHint.Named named)
-					throw Unwritten(hint);
-
-				PutHint(named.Name, named.Arguments);
-			});
+			Each(hints, PutQueryHint);
 			Close();
+		}
+
+		/// <summary>T-SQL: Query Hints (Transact-SQL).</summary>
+		void PutQueryHint(QueryHint hint)
+		{
+			switch (hint)
+			{
+				// A query hint's value is written bare or after `=`; T-SQL reads none in brackets.
+				case QueryHint.Named named:
+					if (named.Arguments.Count > 0 && named.Form == HintArgumentForm.Brackets)
+						throw Misplaced(named, "Form", "Brackets with arguments on a query hint, which T-SQL does not read");
+
+					PutHint(named, named.Name, named.Arguments, named.Form);
+					break;
+
+				case QueryHint.Phrase phrase:
+					Word(phrase.Words switch
+					{
+						QueryHintPhrase.HashGroup                => "HASH GROUP",
+						QueryHintPhrase.OrderGroup               => "ORDER GROUP",
+						QueryHintPhrase.ConcatUnion              => "CONCAT UNION",
+						QueryHintPhrase.HashUnion                => "HASH UNION",
+						QueryHintPhrase.MergeUnion               => "MERGE UNION",
+						QueryHintPhrase.KeepUnion                => "KEEP UNION",
+						QueryHintPhrase.LoopJoin                 => "LOOP JOIN",
+						QueryHintPhrase.MergeJoin                => "MERGE JOIN",
+						QueryHintPhrase.HashJoin                 => "HASH JOIN",
+						QueryHintPhrase.ExpandViews              => "EXPAND VIEWS",
+						QueryHintPhrase.ForceOrder               => "FORCE ORDER",
+						QueryHintPhrase.ForceScaleOutExecution   => "FORCE SCALEOUTEXECUTION",
+						QueryHintPhrase.DisableScaleOutExecution => "DISABLE SCALEOUTEXECUTION",
+						QueryHintPhrase.KeepPlan                 => "KEEP PLAN",
+						QueryHintPhrase.KeepFixedPlan            => "KEEPFIXED PLAN",
+						QueryHintPhrase.RobustPlan               => "ROBUST PLAN",
+						_                                        => throw NoText(phrase.Words),
+					});
+					break;
+
+				case QueryHint.UseHint use:
+					if (use.Hints.Count == 0)
+						throw Empty(use, "Hints");
+
+					Word("USE HINT");
+					Open();
+					Each(use.Hints, PutExpression);
+					Close();
+					break;
+
+				case QueryHint.UsePlan plan:
+					Word("USE PLAN");
+					PutExpression(plan.Plan);
+					break;
+
+				case QueryHint.OptimizeFor optimize:
+					if (optimize.Variables.Count == 0)
+						throw Empty(optimize, "Variables");
+
+					Word("OPTIMIZE FOR");
+					Open();
+					Each(optimize.Variables, variable =>
+					{
+						if (variable.Value is not null && variable.Unknown)
+							throw Both(variable, "Value", "Unknown");
+
+						PutVariableName(variable, variable.Variable);
+
+						if (variable.Value is { } value)
+						{
+							Word("=");
+							PutExpression(value);
+						}
+						else if (variable.Unknown)
+							Word("UNKNOWN");
+					});
+					Close();
+					break;
+
+				case QueryHint.OptimizeForUnknown:
+					Word("OPTIMIZE FOR UNKNOWN");
+					break;
+
+				case QueryHint.ForTable table:
+					Word("TABLE HINT");
+					Open();
+					PutName(table.Table);
+
+					foreach (var one in table.Hints)
+					{
+						Tight(",");
+						PutTableHint(one);
+					}
+
+					Close();
+					break;
+
+				default:
+					throw Unwritten(hint);
+			}
 		}
 
 		/// <summary>T-SQL: Table Hints (Transact-SQL). <c>WITH (NOLOCK, INDEX (ix))</c>.</summary>
@@ -319,26 +552,79 @@ public static partial class Sql2023Writer
 
 			Word("WITH");
 			Open();
-			Each(hints, hint =>
-			{
-				if (hint is not TableHint.Named named)
-					throw Unwritten(hint);
-
-				PutHint(named.Name, named.Arguments);
-			});
+			Each(hints, PutTableHint);
 			Close();
 		}
 
-		void PutHint(Identifier name, SqlList<Expression> arguments)
+		void PutTableHint(TableHint hint)
 		{
+			switch (hint)
+			{
+				case TableHint.Named named:
+					PutHint(named, named.Name, named.Arguments, named.Form);
+					break;
+
+				case TableHint.ForceSeek seek:
+					if (seek.Columns.Count == 0)
+						throw Empty(seek, "Columns");
+
+					Word("FORCESEEK");
+					Open();
+					PutExpression(seek.Index);
+					Open();
+					Each(seek.Columns, PutIdentifier);
+					Close();
+					Close();
+					break;
+
+				default:
+					throw Unwritten(hint);
+			}
+		}
+
+		/// <summary>
+		/// A hint's name and its values: in brackets, after it, or after <c>=</c>. The last two take one value
+		/// exactly; a hint with none is its name alone.
+		/// </summary>
+		void PutHint(ISqlNode hint, Identifier name, SqlList<Expression> arguments, HintArgumentForm form)
+		{
+			if (form != HintArgumentForm.Brackets && arguments.Count != 1)
+				throw Misplaced(hint, "Form", $"{form} with other than one argument");
+
 			PutIdentifier(name);
 
-			if (arguments.Count > 0)
+			if (arguments.Count == 0)
+				return;
+
+			switch (form)
 			{
-				Open();
-				Each(arguments, PutExpression);
-				Close();
+				case HintArgumentForm.Brackets:
+					Open();
+					Each(arguments, PutExpression);
+					Close();
+					break;
+
+				case HintArgumentForm.Bare:
+					PutExpression(arguments[0]);
+					break;
+
+				case HintArgumentForm.Assigned:
+					Word("=");
+					PutExpression(arguments[0]);
+					break;
+
+				default:
+					throw NoText(form);
 			}
+		}
+
+		/// <summary>A variable's name, which is a regular identifier starting with <c>@</c>, or is refused.</summary>
+		void PutVariableName(ISqlNode node, Identifier name)
+		{
+			if (name.Style != IdentifierStyle.Regular || !name.Text.StartsWith("@", StringComparison.Ordinal))
+				throw Misplaced(node, "Name", "that is not a regular name starting with @");
+
+			PutIdentifier(name);
 		}
 
 		/// <summary>T-SQL: WITH XMLNAMESPACES (Transact-SQL).</summary>

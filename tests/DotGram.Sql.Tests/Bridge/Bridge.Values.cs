@@ -777,6 +777,18 @@ static partial class Bridge
 		}
 
 		/// <summary>
+		/// One name of a PIVOT or an UNPIVOT, which the old tree keeps as text and may have kept qualified,
+		/// `PIVOT (… FOR t.b …)`: not one identifier, and so a gap.
+		/// </summary>
+		public static Ast.Identifier RotatedPart(object owner, string text)
+		{
+			if (text.Contains('.') && text.Length > 0 && text[0] is not '[' and not '"')
+				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a qualified pivot or unpivot column `{text}`)");
+
+			return Part(owner, text);
+		}
+
+		/// <summary>
 		/// One part of a name, with the style its first character says.
 		/// </summary>
 		public static Ast.Identifier Part(object owner, string text)

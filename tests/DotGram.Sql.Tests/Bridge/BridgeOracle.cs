@@ -204,11 +204,12 @@ static class BridgeOracle
 	/// <c>nvarchar</c> with no length — against a user-defined type of the same name, or for <c>timestamp</c> the
 	/// standard's own.</item>
 	/// <item><c>GROUP BY ALL a</c> keeps the empty groups in T-SQL, and is the quantifier that changes nothing in
-	/// the standard: a <c>GroupByClause</c> that is <c>AllKeyword</c>.</item>
+	/// the standard: the <c>Quantifier</c> and <c>AllKeyword</c> of a <c>GroupByClause</c> that is <c>AllKeyword</c>.</item>
 	/// <item><c>SELECT a INTO t</c> makes a table in T-SQL, and assigns to a target in the standard: a
-	/// <c>Query.Select</c>'s <c>Into</c> and <c>IntoTable</c> where the latter is set.</item>
+	/// <c>Query.Select</c>'s <c>IntoTable</c> with no filegroup, and its <c>Into</c> where the standard's one
+	/// target names the same table.</item>
 	/// <item><c>FROM t OPTION (h)</c> is a hint in T-SQL, and an alias with its columns in the standard: a
-	/// statement's <c>Hints</c>, and the <c>Alias</c> of a source in a statement that has them.</item>
+	/// statement's <c>Hints</c>, and an <c>Alias</c> the standard reads the word OPTION as.</item>
 	/// </list>
 	/// A difference outside every exempted subtree is unexplained, and makes the statement a shape mismatch.
 	/// </summary>
@@ -256,8 +257,22 @@ static class BridgeOracle
 		if (TypeNamed(difference) || DateParted(difference))
 			return (TypeNamed(difference) ? TypeName : DatePart, difference.Left!);
 
-		if (difference.Path is [{ Node: Ast.Statement.Select { Hints.Count: > 0 } statement }, ..] && difference.Path.Any(static step => step.Member is "Hints" or "Alias"))
+		// OPTION: the statement's own hints, and the alias the standard reads the word OPTION as.
+		if (difference.Path is [{ Node: Ast.Statement.Select { Hints.Count: > 0 } statement, Member: "Hints" }, ..])
 			return (Option, statement);
+
+		if (difference.Path is [{ Node: Ast.Statement.Select { Hints.Count: > 0 } }, .., { Member: "Alias" } last]
+			&& difference.Right is Ast.Alias { Name.Text: var word } && word.Equals("OPTION", StringComparison.OrdinalIgnoreCase))
+			return (Option, last.Node);
+
+		// GROUP BY ALL: the quantifier the standard reads ALL as, and the flag that holds it.
+		if (difference.Path is [.., { Node: Ast.GroupByClause { AllKeyword: true } group, Member: "Quantifier" or "AllKeyword" }])
+			return (GroupAll, group);
+
+		// SELECT … INTO t: the new table, and the standard's single target where it names the same table.
+		if (difference.Path is [.., { Node: Ast.Query.Select { IntoTable: { FileGroup: null } table } select, Member: var member }]
+			&& (member == "IntoTable" || member == "Into" && difference.Right is Ast.IntoClause { Targets: [Ast.Expression.Reference { Name: var target }] } && target.Equals(table.Table)))
+			return (Into, select);
 
 		foreach (var step in difference.Path)
 		{
@@ -276,11 +291,6 @@ static class BridgeOracle
 					&& (name.Text.Equals("FREETEXT", StringComparison.OrdinalIgnoreCase) || name.Text.Equals("CONTAINS", StringComparison.OrdinalIgnoreCase)):
 					return (FullText, step.Node);
 
-				case Ast.GroupByClause { AllKeyword: true }:
-					return (GroupAll, step.Node);
-
-				case Ast.Query.Select { IntoTable: not null } when step.Member is "Into" or "IntoTable":
-					return (Into, step.Node);
 			}
 		}
 
