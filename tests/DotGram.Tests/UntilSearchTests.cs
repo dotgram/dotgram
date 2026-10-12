@@ -139,6 +139,23 @@ public sealed class UntilSearchTests
 			"/*1 ()", null,
 			["1", "/* a */ 12", "( /* x */ 3 )", "/* 1", "1 /* */", "/**/1/**/"]),
 
+		new("lengths",
+			"""
+			Body  = (?!("abcd" | "b") & any)*
+			Start : @int = b: Body & ("abcd" | "b") & 'q' => @(b.Length)
+			      | '(' & inner: Start & ')' => @(inner)
+			""",
+			"abcdxq()", true,
+			["xbq", "xxabcdq", "xxabc", "xxab", "xxa", "xabcq", "xaq", "x"]),
+
+		new("look before",
+			"""
+			Start : @int = (?!(?!('a' & 'c'* & "zzzzzzzz") & "bb") & any)* & 'q' => @(0)
+			      | '(' & inner: Start & ')' => @(inner)
+			""",
+			"acbzxq()", false,
+			["acbbx", "acbbq", "q", "accccbb", "bbq"]),
+
 		new("surrogate",
 			"""
 			Body  = (?!"😀!" & any)*
@@ -188,16 +205,16 @@ public sealed class UntilSearchTests
 
 			foreach (var input in inputs)
 			{
-				var expected = EmittedCode.Match(slow, "Grammar", "TryParseStart", input);
-				var actual   = EmittedCode.Match(fast, "Grammar", "TryParseStart", input);
+				var expected = (EmittedCode.Match(slow, "Grammar", "TryParseStart", input), EmittedCode.Outcome(slow, "Grammar", "TryParseStart", input));
+				var actual   = (EmittedCode.Match(fast, "Grammar", "TryParseStart", input), EmittedCode.Outcome(fast, "Grammar", "TryParseStart", input));
 
 				Assert.True(
 					expected.Equals(actual),
 					$"{row.Name}, {carrier}, direct {direct}, \"{Escaped(input)}\": the loop says {expected}, the search {actual}");
 
 				Assert.True(
-					actual.IsSuccess == ReferenceInterpreter.Parses(graph, start, input),
-					$"{row.Name}, {carrier}, direct {direct}, \"{Escaped(input)}\": the search says {actual.IsSuccess}");
+					actual.Item1.IsSuccess == ReferenceInterpreter.Parses(graph, start, input),
+					$"{row.Name}, {carrier}, direct {direct}, \"{Escaped(input)}\": the search says {actual.Item1.IsSuccess}");
 			}
 		}
 
@@ -220,17 +237,24 @@ public sealed class UntilSearchTests
 	}
 
 	/// <summary>
-	/// A delimiter that runs code of the host in a look past its first character is left to the
-	/// loop: the loop tries it at every character, and so runs the code at every character, which
-	/// a search for <c>b</c> would not.
+	/// A delimiter that runs code of the host in a look past its first character — a guard, or a
+	/// predicate in a class — is left to the loop: the loop tries it at every character, and so
+	/// runs the code at every character, which a search for <c>b</c> would not.
 	/// </summary>
 	[Theory]
 	[InlineData(true)]
 	[InlineData(false)]
 	public void A_delimiter_that_runs_host_code_is_left_to_the_loop(bool direct)
 	{
-		const string grammar = """
+		const string guarded = """
 			Stop  = ?!('a' & when @Touch()) & "bb"
+			Body  = (?!Stop & any)*
+			Start : @int = Body => @(Calls)
+			      | '(' & inner: Start & ')' => @(inner)
+			parse Start
+			""";
+		const string predicated = """
+			Stop  = ?!('a' & [@Touched]) & "bb"
 			Body  = (?!Stop & any)*
 			Start : @int = Body => @(Calls)
 			      | '(' & inner: Start & ')' => @(inner)
@@ -239,17 +263,21 @@ public sealed class UntilSearchTests
 		const string members = """
 			static int Calls;
 			static bool Touch() { Calls++; return true; }
+			static bool Touched(char c) { Calls++; return true; }
 			""";
 
-		var fast = Build(grammar, CarrierKind.Auto, direct, false, members);
-		var slow = Build(Slow(grammar), CarrierKind.Auto, direct, false, members);
-
-		foreach (var input in new[] { "", "a", "aa", "xa", "abb", "aabba", "(a)", "aaaa" })
+		foreach (var grammar in new[] { guarded, predicated })
 		{
-			var expected = Counted(slow, input);
-			var actual   = Counted(fast, input);
+			var fast = Build(grammar, CarrierKind.Auto, direct, false, members);
+			var slow = Build(Slow(grammar), CarrierKind.Auto, direct, false, members);
 
-			Assert.True(expected.Equals(actual), $"\"{input}\": the loop says {expected}, the search {actual}");
+			foreach (var input in new[] { "", "a", "aa", "xa", "axbb", "abb", "aabba", "(a)", "aaaa" })
+			{
+				var expected = Counted(slow, input);
+				var actual   = Counted(fast, input);
+
+				Assert.True(expected.Equals(actual), $"\"{input}\": the loop says {expected}, the search {actual}\n{grammar}");
+			}
 		}
 
 		static ((bool, object?, string?, long), int) Counted(Assembly assembly, string input)

@@ -119,7 +119,9 @@ sealed partial class Machine
 	/// sync. One to five stops; more is a class, and a class is read. What it answers is a
 	/// position, never a span (the span contract at <see cref="Cut"/>).
 	/// </remarks>
-	void EmitSearch(Writer writer, string into, string from, IReadOnlyList<char> stops)
+	/// <param name="length">How much of the input from <paramref name="from"/> to search, or null for
+	/// the rest of it; over a span only.</param>
+	void EmitSearch(Writer writer, string into, string from, IReadOnlyList<char> stops, string? length = null)
 	{
 		// The buffer searches what it holds and reads on a block at a time, so the answer is
 		// already a position.
@@ -135,7 +137,7 @@ sealed partial class Machine
 			return;
 		}
 
-		var span = $"text.Slice({from})";
+		var span = length is null ? $"text.Slice({from})" : $"text.Slice({from}, {length})";
 		var call = stops.Count switch
 		{
 			1     => $"global::System.MemoryExtensions.IndexOf({span}, {CSharpEmitter.Char(stops[0])})",

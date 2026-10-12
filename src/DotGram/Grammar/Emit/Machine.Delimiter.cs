@@ -109,6 +109,13 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// What a search for the end of <c>(?!X &amp; any)*</c> looks for (<see cref="UntilStops"/>): the
+	/// characters <c>X</c> can begin with, and the longest literal it holds, short of which from the
+	/// end of the input trying it says the input ran out.
+	/// </summary>
+	internal sealed record UntilScan(char[] Stops, int Longest);
+
+	/// <summary>
 	/// The characters a turn of <c>(?!X &amp; any)*</c> can stop at, where they are few: the
 	/// characters <c>X</c> can begin with, so that the run between two of them is turns that
 	/// need not be read one at a time. Null where the repetition is not of that shape or the set
@@ -125,30 +132,37 @@ sealed partial class Machine
 	/// says there and what a failure after it may ask back are the loop's own.
 	/// </para>
 	/// <para>
-	/// It holds only where a refused body cannot match nothing (which matches everywhere, so the
-	/// loop never turns), knows what it begins with, and begins with no half of a surrogate pair;
-	/// and where trying it is recognition and nothing else (<see cref="OnlyRecognizes"/>): code of
-	/// the host a skipped turn would not run, or a recovery, which matches characters its first set
-	/// does not hold, and a look inside it may run either past the first character. A delimiter of
-	/// one character is already a run (<see cref="StopCharacters"/>), and is left to it. More than
-	/// five characters is a class, and a class is read.
+	/// It holds only where trying a refused body at such a character does nothing but fail there.
+	/// So the body cannot match nothing (which matches everywhere, so the loop never turns), knows
+	/// what it begins with, and begins with no half of a surrogate pair; it is recognition and
+	/// nothing else (<see cref="OnlyRecognizes"/>), since code of the host a skipped turn would not
+	/// run, and a recovery matches characters its first set does not hold; and nothing in it looks
+	/// ahead before its first item (<see cref="LooksBeforeItsFirstItem"/>), which reads past the
+	/// character and may note there that the input ran out. The one other trace a failing literal
+	/// leaves is that note where it lacks room, which the search keeps by not passing the last
+	/// characters a literal of <see cref="UntilScan.Longest"/> would not fit in
+	/// (<see cref="EmitUntilSkip"/>). Not in a parser that traces, whose sink hears every rule a
+	/// look tries. A delimiter of one character is already a run (<see cref="StopCharacters"/>),
+	/// and is left to it. More than five characters is a class, and a class is read.
 	/// </para>
 	/// </remarks>
-	internal char[]? UntilStops(Node.Repeat repeat)
+	internal UntilScan? UntilStops(Node.Repeat repeat)
 	{
 		// The shape is asked before anything is tested: a test of a class writes its table, and a
 		// table written for a question that came to nothing renumbers the file's tables.
-		if (OverKinds || _starves || repeat.Max != null ||
+		if (OverKinds || _starves || Tracing is not null || repeat.Max != null ||
 			repeat.Body is not Node.Sequence({ Count: >= 2 } parts) ||
 			parts.Take(parts.Count - 1).Any(part => part is not Node.Lookahead(false, _)) || !ReadsAnything(parts[^1]))
 			return null;
 
-		var made = new List<char>();
+		var made    = new List<char>();
+		var longest = 1;
 
 		for (var i = 0; i < parts.Count - 1; i++)
 		{
 			if (parts[i] is not Node.Lookahead(false, var refused) ||
-				FirstSets.Nullable(refused, _graph) || !OnlyRecognizes(refused) ||
+				FirstSets.Nullable(refused, _graph) || !OnlyRecognizes(refused, ref longest) ||
+				LooksBeforeItsFirstItem(refused, []) ||
 				FirstSets.Of(refused, _graph) is not { IsKnown: true } first)
 				return null;
 
@@ -163,7 +177,12 @@ sealed partial class Machine
 				}
 		}
 
-		return made.Count == 0 ? null : [.. made];
+		// Over a buffer the end is not known until it is read, and the search does not stop short
+		// of it.
+		if (made.Count == 0 || BufferedInput && longest > 1)
+			return null;
+
+		return new UntilScan([.. made], longest);
 	}
 
 	/// <summary>
@@ -185,8 +204,8 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Whether reading a node, and every rule it reaches, only recognizes: no guard, condition,
-	/// external recognizer, computed switch, mark, construction or call that hands arguments, no
-	/// rule without a body, and no repetition that recovers.
+	/// external recognizer, predicate of the host in a class, computed switch, mark, construction
+	/// or call that hands arguments, no rule without a body, and no repetition that recovers.
 	/// </summary>
 	/// <remarks>
 	/// Asked of the whole of it and not only of what stands before its first item, which is
@@ -194,7 +213,8 @@ sealed partial class Machine
 	/// character and comes back, and what it runs there runs at a character the node's first set
 	/// does not hold.
 	/// </remarks>
-	bool OnlyRecognizes(Node node)
+	/// <param name="longest">Raised to the length of the longest literal met.</param>
+	bool OnlyRecognizes(Node node, ref int longest)
 	{
 		if (HoldsRecovery(node))
 			return false;
@@ -211,7 +231,13 @@ sealed partial class Machine
 					case Node.Guard or Node.Condition or Node.External or Node.Marked or Node.Construct:
 					case Node.Choice { Selection: not null }:
 					case Node.Call(_, { Count: > 0 }):
+					case Node.Element { References.Count: > 0 }:
+					case Node.Behind { Test.References.Count: > 0 }:
 						return false;
+
+					case Node.Literal(var text):
+						longest = Math.Max(longest, text.Length);
+						break;
 
 					case Node.Call(var rule, _) when seen.Add(rule):
 						if (!_graph.Bodies.TryGetValue(rule, out var body))
@@ -225,9 +251,44 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// Whether a look stands before a node's first item, in it or in a rule it begins with: what
+	/// reads ahead of the character a node is tried at before that character has refused it.
+	/// </summary>
+	bool LooksBeforeItsFirstItem(Node node, HashSet<RuleSymbol> seen)
+	{
+		switch (node)
+		{
+			case Node.Lookahead or Node.Behind:
+				return true;
+
+			case Node.Choice(var alternatives):
+				return alternatives.Any(one => LooksBeforeItsFirstItem(one, seen));
+
+			case Node.Sequence(var parts):
+				foreach (var part in parts)
+				{
+					if (LooksBeforeItsFirstItem(part, seen))
+						return true;
+
+					if (!FirstSets.Nullable(part, _graph))
+						return false;
+				}
+
+				return false;
+
+			case Node.Call(var rule, _):
+				return seen.Add(rule) && _graph.Bodies.TryGetValue(rule, out var body) && LooksBeforeItsFirstItem(body, seen);
+
+			default:
+				return node.Children.Any(one => LooksBeforeItsFirstItem(one, seen));
+		}
+	}
+
+	/// <summary>
 	/// Moves <c>p</c> past the turns of <c>(?!X &amp; any)*</c> that need not be read
-	/// (<see cref="UntilStops"/>): to the next character in <paramref name="stops"/>, or to the
-	/// end of the input.
+	/// (<see cref="UntilStops"/>): to the next character in its stops, or to the end of the input —
+	/// or, where <c>X</c> holds a literal of more than one character, to where that literal would
+	/// no longer fit, from which on the turns are read as they were.
 	/// </summary>
 	/// <remarks>
 	/// Where the repetition can be asked for a shorter reading, the turns passed over are kept as
@@ -238,20 +299,32 @@ sealed partial class Machine
 	/// </remarks>
 	/// <param name="turns">A count of turns to add the passed-over ones to, or null.</param>
 	internal void EmitUntilSkip(
-		Writer writer, IReadOnlyList<char> stops, int? exit = null, string? turns = null, string? gave = null)
+		Writer writer, UntilScan until, int? exit = null, string? turns = null, string? gave = null)
 	{
+		var stops = until.Stops;
+
 		using (writer.Block($"if ({Within("p")})"))
 		{
 			writer.Line($"c = {ReadAt("p")};");
 
 			using (writer.Block($"if (!({string.Join(" || ", stops.Select(stop => $"c == {CSharpEmitter.Char(stop)}"))}))"))
 			{
-				EmitSearch(writer, "until", "p", stops);
+				var end    = until.Longest > 1 ? "untilEnd" : EndOfInput;
+				var before = (IDisposable?)null;
+
+				if (until.Longest > 1)
+				{
+					writer.Line($"var untilEnd = {EndOfInput} - {until.Longest - 1};");
+					writer.Line();
+					before = writer.Block("if (p < untilEnd)");
+				}
+
+				EmitSearch(writer, "until", "p", stops, until.Longest > 1 ? "untilEnd - p" : null);
 
 				if (exit is not null || turns is not null || gave is not null)
 					writer.Line("var untilFrom = p;");
 
-				writer.Line($"p = until < 0 ? {EndOfInput} : until;");
+				writer.Line($"p = until < 0 ? {end} : until;");
 
 				if (turns is not null)
 					writer.Line($"{turns} += p - untilFrom;");
@@ -288,6 +361,8 @@ sealed partial class Machine
 						writer.Line("break;");
 					}
 				}
+
+				before?.Dispose();
 			}
 		}
 	}
