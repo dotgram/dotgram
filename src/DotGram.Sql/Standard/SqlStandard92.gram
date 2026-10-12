@@ -272,13 +272,13 @@ ValueFunction : @Expression
         => @(new Expression.Substring(v, from, length, null))
     | name: "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(Nodes.Call(name, v))
     | name: "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(Nodes.Call(name, v))
-    | name: "CONVERT"i   & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'   => @(new Expression.TranslateUsing(TranslateFunction.Convert, v, by))
-    | name: "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'   => @(new Expression.TranslateUsing(TranslateFunction.Translate, v, by))
-    | name: "TRIM"i      & '(' & { how: TrimSpecification? } & what: ValueExpression?
+    | "CONVERT"i         & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'   => @(new Expression.TranslateUsing(TranslateFunction.Convert, v, by))
+    | "TRANSLATE"i       & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'   => @(new Expression.TranslateUsing(TranslateFunction.Translate, v, by))
+    | "TRIM"i            & '(' & { how: TrimSpecification? } & what: ValueExpression?
                    & "FROM"i & v: ValueExpression & ')'
         => @(new Expression.Trim(how is null ? null : Nodes.TrimSpecificationOf(how), what, true, v))
-    | name: "TRIM"i & '(' & v: ValueExpression & ')'      => @(new Expression.Trim(null, null, false, v))
-    | name: "CURRENT_DATE"i                                      => @(new Expression.Current(CurrentValue.Date))
+    | "TRIM"i & '(' & v: ValueExpression & ')'      => @(new Expression.Trim(null, null, false, v))
+    | "CURRENT_DATE"i                                            => @(new Expression.Current(CurrentValue.Date))
     | name: "CURRENT_TIME"i      & ('(' & digits: Digits & ')')? => @(Nodes.CurrentTime(name, digits))
     | name: "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')? => @(Nodes.CurrentTime(name, digits))
 
