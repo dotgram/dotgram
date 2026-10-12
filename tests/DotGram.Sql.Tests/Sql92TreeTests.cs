@@ -130,6 +130,30 @@ public sealed class Sql92TreeTests
 		return string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 	}
 
+	/// <summary>Every text written above for a construct is one SQL-92 reads, so that none is compared by being refused.</summary>
+	[Fact]
+	public void Every_construct_is_read()
+	{
+		Assert.Equal([], Constructs.Where(static text => Enum.GetValues<Level>().All(level => Read(level, text) is null)));
+	}
+
+	/// <summary>
+	/// What SQL-92 has and SQL:2023 took out has no record in the tree, and is not built as something
+	/// else: reading it says so.
+	/// </summary>
+	[Theory]
+	[InlineData("B'0101' = a")]
+	[InlineData("CAST(a AS BIT VARYING(8)) = b")]
+	[InlineData("CAST(a AS INTERVAL TIMEZONE_HOUR) = b")]
+	[InlineData("CAST(a AS INTERVAL DAY TO HOUR(2)) = b")]
+	[InlineData("CAST(a AS INTERVAL DAY(2, 3)) = b")]
+	[InlineData("CAST(a AS CHAR(2147483648)) = b")]
+	[InlineData("EXISTS (SELECT a FROM t UNION JOIN u)")]
+	public void What_the_tree_has_no_record_for_is_not_built(string text)
+	{
+		Assert.Throws<NotSupportedException>(() => Sql92Parser.TryParseSearchCondition(text));
+	}
+
 	/// <summary>
 	/// A difference listed is one that is there: a text that no longer differs is taken off the list
 	/// rather than left to excuse something else.
@@ -293,6 +317,11 @@ public sealed class Sql92TreeTests
 		"SELECT a FROM t ORDER BY a COLLATE x ASC, 1 DESC", "SELECT a AS \"x y\" FROM t", "SELECT t.a, u.* FROM t, u",
 		"SELECT s.t.* FROM s.t", "SELECT a FROM t WHERE a IN (SELECT b FROM u WHERE b = t.a)",
 		"SELECT (SELECT b FROM u) AS c FROM t", "SELECT CASE WHEN a = 1 THEN b END FROM t",
+
+		// Words read as one capture, with comments between them.
+		"CAST(a AS CHAR --c\rVARYING(10))", "CAST(a AS NATIONAL --c\nCHAR(10))", "CAST(a AS NCHAR /* VARYING */ VARYING)",
+		"INTERVAL - /* ' */ '1' DAY", "SELECT a FROM t /* AS */ x", "SELECT a FROM t AS -- c\n x", "SELECT a /* AS */ b FROM t",
+		":a INDICATOR /* : */ :b",
 	];
 
 	/// <summary>The SQL-92 rows of the stand (benchmarks/DotGram.Benchmarks/Stand.cs) that read.</summary>

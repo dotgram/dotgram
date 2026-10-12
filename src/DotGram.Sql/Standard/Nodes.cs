@@ -1937,8 +1937,8 @@ static class Nodes
 	/// <remarks>
 	/// A type's words are captured as one text rather than one by one: an optional word captured on its
 	/// own, such as `VARYING`, is named among what was expected where a reading after it is refused, and
-	/// the refusals of this grammar are held to what they were. A comment is `--` to the end of the line
-	/// or `/*` to the first `*/`, as the grammar's trivia has them.
+	/// the refusals of this grammar are held to what they were. A comment is `--` to the end of the line —
+	/// a carriage return or a line feed — or `/*` to the first `*/`, as the grammar's trivia has them.
 	/// </remarks>
 	public static string Words(string text)
 	{
@@ -1949,7 +1949,7 @@ static class Nodes
 		{
 			if (text[at] == '-' && at + 1 < text.Length && text[at + 1] == '-')
 			{
-				var end = text.IndexOf('\n', at);
+				var end = text.IndexOfAny(['\r', '\n'], at);
 
 				at = end < 0 ? text.Length : end;
 				words.Append(' ');
@@ -1971,7 +1971,10 @@ static class Nodes
 		return string.Join(" ", words.ToString().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 	}
 
-	/// <summary>The sign a text read as one capture begins with, where it begins with one.</summary>
+	/// <summary>
+	/// The sign a text read as one capture begins with, where it begins with one: captured on its own, an
+	/// optional sign is named among what was expected, as an optional word is (<see cref="Words"/>).
+	/// </summary>
 	public static UnaryOperator? LeadingSign(string text)
 	{
 		return text.Length > 0 ? SignOf(text.Substring(0, 1)) : null;
