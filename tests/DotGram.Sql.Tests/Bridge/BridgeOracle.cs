@@ -116,8 +116,39 @@ static class BridgeOracle
 			return new Outcome(root, root, Status.Different, text, Written: written, Detail: difference,
 				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
 
+		// The words the bridge read from the text are not in the old tree, so the old trees agreeing says nothing of
+		// them: the written text, read and carried again, has to give the same new tree.
+		if (Again(made, written) is { } lost)
+			return new Outcome(root, root, Status.Different, text, Written: written, Detail: "new tree: " + lost,
+				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
+
 		return new Outcome(root, root, Status.Converted, text, Written: written, Detail: detail,
 			ByCase: byCase, Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
+	}
+
+	/// <summary>
+	/// Where the written text, read back located and carried with that text as its source, builds another new tree
+	/// than the one written: the first difference, or null where they are equal, spans aside.
+	/// </summary>
+	public static string? Again(Ast.Statement made, string written)
+	{
+		var back = TransactSqlParser.Located.TryParseSql(written);
+
+		if (!back.IsSuccess || back.Value!.Length != 1)
+			return "the written text does not read located";
+
+		Ast.Statement again;
+
+		try
+		{
+			again = Bridge.ToAst(back.Value[0], written);
+		}
+		catch (BridgeGap gap)
+		{
+			return "the written text is a gap: " + gap.Reason;
+		}
+
+		return again.Equals(made) ? null : Trees.Difference(made, again, old: false) ?? "unequal, with no difference found";
 	}
 
 	/// <summary>
@@ -176,15 +207,20 @@ static class BridgeOracle
 	public static List<string> Meaning(List<Trees.Diff> differences, out List<Trees.Diff> unexplained)
 	{
 		var exempted = new List<string>();
+		var subtrees = new List<object>();
 
 		unexplained = [];
 
 		foreach (var difference in differences)
 		{
-			if (Exempting(difference) is { } pattern)
-				exempted.Add(pattern);
-			else
+			if (Exempting(difference) is not { } found)
 				unexplained.Add(difference);
+			// One entry for each subtree exempted, however many differences lie in it.
+			else if (!subtrees.Any(one => ReferenceEquals(one, found.Subtree)))
+			{
+				subtrees.Add(found.Subtree);
+				exempted.Add(found.Pattern);
+			}
 		}
 
 		return exempted;
@@ -200,37 +236,37 @@ static class BridgeOracle
 	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName];
 
 	/// <summary>
-	/// The pattern whose subtree a difference lies in, or null.
+	/// The pattern whose subtree a difference lies in, and the node at the subtree's root, or null.
 	/// </summary>
-	static string? Exempting(Trees.Diff difference)
+	static (string Pattern, object Subtree)? Exempting(Trees.Diff difference)
 	{
 		foreach (var step in difference.Path)
 		{
 			switch (step.Node)
 			{
-				case Ast.Query.Select { Top: not null } when step.Member == "Top" || step.Member == "Columns" && step.Index is 0 or null:
-					return Top;
+				case Ast.Query.Select { Top: not null } when step.Member == "Top" || step.Member == "Columns" && step.Index == 0:
+					return (Top, step.Node);
 
 				case Ast.AssignmentTarget { Name.Parts.Count: > 1 }:
-					return SetTc;
+					return (SetTc, step.Node);
 
 				case Ast.CursorReference { Global: true }:
-					return Global;
+					return (Global, step.Node);
 
 				case Ast.Expression.Invocation { Name.Parts: [var name] } when step.Member == "Arguments" && step.Index == 0
 					&& (name.Text.Equals("FREETEXT", StringComparison.OrdinalIgnoreCase) || name.Text.Equals("CONTAINS", StringComparison.OrdinalIgnoreCase)):
-					return FullText;
+					return (FullText, step.Node);
 
 				case Ast.Argument { Value: Ast.Expression.DatePart }:
-					return DatePart;
+					return (DatePart, step.Node);
 
 				case Ast.DataType.Named:
-					return TypeName;
+					return (TypeName, step.Node);
 			}
 
 			// The type is the member the difference is in, where it is the node that differs.
 			if (step.Node.GetType().GetProperty(step.Member)?.GetValue(step.Node) is Ast.DataType.Named)
-				return TypeName;
+				return (TypeName, step.Node);
 		}
 
 		return null;

@@ -10,7 +10,7 @@ static partial class Bridge
 {
 	/// <summary>
 	/// The sixty-five <c>DROP</c> statements. The standard's take a list, <c>IF EXISTS</c> and a behavior that
-	/// may be left out (decided 2026-09-15); the rest are to be a record each (task 10).
+	/// may be left out (decided 2026-09-15); the rest are to be a record each, not declared yet.
 	/// </summary>
 	internal static class Drop
 	{
@@ -55,9 +55,9 @@ static partial class Bridge
 				Statement.DropProcedure => Routines(removal, Ast.RoutineKind.Procedure),
 				Statement.DropTrigger  => Trigger(removal),
 
-				// Statement.DropObject, one record for many kinds, is rejected: each kind is to have a record of its own (task 10).
+				// Statement.DropObject, one record for many kinds, is rejected: each kind is to have a record of its own, not declared yet.
 				_ when Array.Exists(Objects, one => name.Equals("Statement.Drop" + one, StringComparison.OrdinalIgnoreCase)) =>
-					throw BridgeGap.Missing(old, $"{name} (one record per kind, task 10)"),
+					throw BridgeGap.Missing(old, $"{name} (one record per kind, not declared yet)"),
 
 				_ when Array.IndexOf(Own, name) >= 0 && Inventory.Declared(name) is { } type =>
 					throw (Inventory.Written(type) ? BridgeGap.Unbridged(old, name) : BridgeGap.Unwritten(old, name)),

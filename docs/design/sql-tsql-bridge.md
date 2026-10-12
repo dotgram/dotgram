@@ -53,7 +53,7 @@ and is exempted (`BridgeOracle.Meaning`); any other difference makes the stateme
 
 The old tree does not keep every word the new tree records. The bridge reads these, and only these, from the
 statement's text through the old nodes' spans (`Bridge.Recoverable`); each reading is counted, the shape check
-still applies to it, and only the phase-A exit gate leaves them out:
+still applies to it, and only the gate for switching the grammar leaves them out:
 
 - `SelectColumn.ExpressionItem.AsKeyword`: `a AS x` against `a x`.
 - `Clause.DerivedColumn alias = expression`: `x = a`, which has no place yet.
@@ -96,9 +96,18 @@ when it is switched:
 `converted/gap/refused/crashed/unread/different/shape`: a statement is counted under the record its first gap
 names, or else under its own root. `Bridge/Baseline.Counters.txt` holds the debts: per member, how many
 statements passed only with key words' case aside (`ByCase`) and how many readings came from the text
-(`Recovered`); per pattern, how many differences its subtrees exempted (`Meaning`). `BridgeTests` fails where `converted`
+(`Recovered`); per pattern, how many subtrees it exempted (`Meaning`). `BridgeTests` fails where `converted`
 falls or anything else rises, where a statement fails the round trip and is not one of its `Expected`, and
 prints a gain without failing. A plain run writes nothing.
+
+The `ByCase` and `Recovered` counters rise as more statements convert, since each statement converted reads
+its words as the others do: a rise there that comes with more conversions is expected, and is recorded
+deliberately with the rest.
+
+A statement converts only where the written text, read back located and carried again with that text as its
+source, gives the same new tree, spans aside: the words read from the text are not in the old tree, so the
+old trees agreeing says nothing of them. Where it does not, the statement is different, its detail starting
+`new tree:`.
 
 ## Known writer defects
 
@@ -134,9 +143,9 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Meaning CAST (a AS money): a type of T-SQL's own in T-SQL, a user-defined type in the standard | 2 |
 | Meaning DATEADD (day, ...): a date part in T-SQL, a column in the standard | 6 |
 | Meaning FREETEXT ((c), ...): a column list in T-SQL, a value in brackets in the standard | 3 |
-| Meaning GLOBAL c: a cursor of the connection in T-SQL, an extended name in the standard | 12 |
-| Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard | 30 |
-| Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard | 6 |
+| Meaning GLOBAL c: a cursor of the connection in T-SQL, an extended name in the standard | 6 |
+| Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard | 15 |
+| Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard | 2 |
 | Recovered Alias.AsKeyword of MERGE's target | 5 |
 | Recovered Alias.AsKeyword of a table source | 95 |
 | Recovered Clause.DerivedColumn alias = expression | 248 |
@@ -145,7 +154,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Recovered Limit.FetchRowWord | 20 |
 | Recovered Limit.OffsetRowWord | 22 |
 | Recovered Limit.Position | 20 |
-| Recovered SelectColumn.ExpressionItem.AsKeyword | 246 |
+| Recovered SelectColumn.ExpressionItem.AsKeyword | 248 |
 | Recovered Statement.DropRoutine.Proc | 24 |
 | Recovered Statement.SetTransaction.Tran | 23 |
 | Recovered WindowReference.NameRef against (name) | 14 |
@@ -336,7 +345,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.WaitFor` | Procedural | C | gap 20 | 20: no target record: Statement.WaitFor (20) | 20 |
 | `Expression.BitwiseNot` | Values | C | — | — | 19 |
 | `Statement.CertificateDefinition` | Security | C | gap 19 | 19: no target record: Statement.CreateCertificate (19) | 19 |
-| `Statement.DropDatabase` | Drop | C | gap 19 | 19: no target record: Statement.DropDatabase (one record per kind, task 10) (19) | 19 |
+| `Statement.DropDatabase` | Drop | C | gap 19 | 19: no target record: Statement.DropDatabase (one record per kind, not declared yet) (19) | 19 |
 | `Statement.FullTextStopListDefinition` | Database | C | gap 19 | 19: no target record: Statement.CreateFullTextStopList (19) | 19 |
 | `Statement.TryCatch` | Procedural | C | gap 16 | 18: no target record: Statement.TryCatch (18) | 19 |
 | `Statement.AggregateDefinition` | Routines | C | gap 18 | 18: no target record: Statement.CreateAggregate (18) | 18 |
@@ -359,7 +368,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropFunction` | Drop | B | converted 16 | — | 16 |
 | `Clause.PartitionRange` | Dml | C | — | — | 15 |
 | `Statement.BackupTransactionLog` | Database | C | gap 15 | 15: no target record: Statement.BackupLog (15) | 15 |
-| `Statement.DropAggregate` | Drop | C | gap 15 | 15: no target record: Statement.DropAggregate (one record per kind, task 10) (15) | 15 |
+| `Statement.DropAggregate` | Drop | C | gap 15 | 15: no target record: Statement.DropAggregate (one record per kind, not declared yet) (15) | 15 |
 | `Statement.DropView` | Drop | B | converted 15 | — | 15 |
 | `Clause.FileGroup` | Database | C | — | — | 14 |
 | `Expression.Concatenate` | Values | A | — | — | 14 |
@@ -375,23 +384,23 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterServiceMasterKey` | Security | C | gap 13 | 13: no target record: Statement.AlterServiceMasterKey (13) | 13 |
 | `Statement.AlterUser` | Security | C | gap 13 | 13: no target record: Statement.AlterUser (13) | 13 |
 | `Statement.CryptographicProviderDefinition` | Security | C | gap 13 | 13: no target record: Statement.CreateCryptographicProvider (13) | 13 |
-| `Statement.DropDefault` | Drop | C | gap 13 | 13: no target record: Statement.DropDefault (one record per kind, task 10) (13) | 13 |
-| `Statement.DropRule` | Drop | C | gap 13 | 13: no target record: Statement.DropRule (one record per kind, task 10) (13) | 13 |
-| `Statement.DropSynonym` | Drop | C | gap 13 | 13: no target record: Statement.DropSynonym (one record per kind, task 10) (13) | 13 |
+| `Statement.DropDefault` | Drop | C | gap 13 | 13: no target record: Statement.DropDefault (one record per kind, not declared yet) (13) | 13 |
+| `Statement.DropRule` | Drop | C | gap 13 | 13: no target record: Statement.DropRule (one record per kind, not declared yet) (13) | 13 |
+| `Statement.DropSynonym` | Drop | C | gap 13 | 13: no target record: Statement.DropSynonym (one record per kind, not declared yet) (13) | 13 |
 | `Statement.SetUser` | Procedural | C | gap 13 | 13: no target record: Statement.SetUser (13) | 13 |
 | `Clause.ExecutionContext` | Routines | C | — | — | 12 |
 | `Expression.Divide` | Values | A | — | — | 12 |
 | `Expression.RowsetOrder` | Values | C | — | 12: no target record: a typed T-SQL rowset table source (proposal 7) (12) | 12 |
 | `Statement.DropSignature` | Drop | C | gap 12 | 12: target exists, no writer arm: Statement.DropSignature (12) | 12 |
-| `Statement.DropStatistics` | Drop | C | gap 12 | 12: no target record: Statement.DropStatistics (one record per kind, task 10) (12) | 12 |
+| `Statement.DropStatistics` | Drop | C | gap 12 | 12: no target record: Statement.DropStatistics (one record per kind, not declared yet) (12) | 12 |
 | `Expression.Exists` | Values | A | — | — | 11 |
 | `Statement.AlterAuthorization` | Security | C | gap 11 | 11: no target record: Statement.AlterAuthorization (11) | 11 |
 | `Statement.AlterDatabaseRebuildLog` | Database | C | gap 11 | 11: target exists, no writer arm: AlterDatabaseAction.RebuildLog (11) | 11 |
 | `Statement.AlterSchema` | Security | C | gap 11 | 11: no target record: Statement.AlterSchema (11) | 11 |
 | `Statement.AlterSearchPropertyList` | Database | C | gap 11 | 11: no target record: Statement.AlterSearchPropertyList (11) | 11 |
 | `Statement.DropEventNotification` | Drop | C | gap 11 | 11: target exists, no writer arm: Statement.DropEventNotification (11) | 11 |
-| `Statement.DropQueue` | Drop | C | gap 11 | 11: no target record: Statement.DropQueue (one record per kind, task 10) (11) | 11 |
-| `Statement.DropSecurityPolicy` | Drop | C | gap 11 | 11: no target record: Statement.DropSecurityPolicy (one record per kind, task 10) (11) | 11 |
+| `Statement.DropQueue` | Drop | C | gap 11 | 11: no target record: Statement.DropQueue (one record per kind, not declared yet) (11) | 11 |
+| `Statement.DropSecurityPolicy` | Drop | C | gap 11 | 11: no target record: Statement.DropSecurityPolicy (one record per kind, not declared yet) (11) | 11 |
 | `Statement.PartitionSchemeDefinition` | Database | C | gap 11 | 11: no target record: Statement.CreatePartitionScheme (11) | 11 |
 | `Statement.Revert` | Procedural | C | gap 11 | 11: no target record: Statement.Revert (11) | 11 |
 | `Statement.XmlSchemaCollectionDefinition` | Routines | C | gap 11 | 11: no target record: Statement.CreateXmlSchemaCollection (11) | 11 |
@@ -404,7 +413,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.CursorFor` | Procedural | A | — | — | 9 |
 | `Expression.Subtract` | Values | A | — | — | 9 |
 | `Statement.AlterDatabaseCollate` | Database | C | gap 9 | 9: target exists, no writer arm: AlterDatabaseAction.Collate (9) | 9 |
-| `Statement.DropXmlSchemaCollection` | Drop | C | gap 9 | 9: no target record: Statement.DropXmlSchemaCollection (one record per kind, task 10) (9) | 9 |
+| `Statement.DropXmlSchemaCollection` | Drop | C | gap 9 | 9: no target record: Statement.DropXmlSchemaCollection (one record per kind, not declared yet) (9) | 9 |
 | `Statement.MasterKeyDefinition` | Security | C | gap 9 | 9: no target record: Statement.CreateMasterKey (9) | 9 |
 | `Statement.Reconfigure` | Server | C | gap 9 | 9: no target record: Statement.Reconfigure (9) | 9 |
 | `TableReference.OdbcJoin` | Tables | C | gap 7 | 8: no target record: TableSource.OdbcJoin (proposal 15) (8) | 9 |
@@ -417,23 +426,23 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterXmlSchemaCollection` | Routines | C | gap 8 | 8: no target record: Statement.AlterXmlSchemaCollection (8) | 8 |
 | `Statement.ColumnMasterKeyDefinition` | Security | C | gap 8 | 8: no target record: Statement.CreateColumnMasterKey (8) | 8 |
 | `Statement.DatabaseEncryptionKeyDefinition` | Security | C | gap 8 | 8: no target record: Statement.CreateDatabaseEncryptionKey (8) | 8 |
-| `Statement.DropExternalLanguage` | Drop | C | gap 8 | 8: no target record: Statement.DropExternalLanguage (one record per kind, task 10) (8) | 8 |
+| `Statement.DropExternalLanguage` | Drop | C | gap 8 | 8: no target record: Statement.DropExternalLanguage (one record per kind, not declared yet) (8) | 8 |
 | `Statement.DropExternalLibrary` | Drop | C | gap 8 | 8: target exists, no writer arm: Statement.DropExternalLibrary (8) | 8 |
 | `Statement.DropRole` | Drop | B | converted 8 | — | 8 |
-| `Statement.DropUser` | Drop | C | gap 6 | 8: no target record: Statement.DropUser (one record per kind, task 10) (8) | 8 |
+| `Statement.DropUser` | Drop | C | gap 6 | 8: no target record: Statement.DropUser (one record per kind, not declared yet) (8) | 8 |
 | `Statement.GoTo` | Procedural | C | gap 3 | 6: no target record: Statement.GoTo (6) | 8 |
 | `SetExpression.Miscellaneous.IdentityInsert` | Procedural | C | — | — | 7 |
 | `Statement.AlterDatabaseAddFile` | Database | C | gap 7 | 7: target exists, no writer arm: AlterDatabaseAction.AddFile (7) | 7 |
 | `Statement.AlterServerRole` | Security | C | gap 7 | 7: no target record: Statement.AlterServerRole (7) | 7 |
 | `Statement.Checkpoint` | Database | C | gap 7 | 7: no target record: Statement.Checkpoint (7) | 7 |
 | `Statement.Continue` | Procedural | C | gap 2 | 7: no target record: Statement.Continue (7) | 7 |
-| `Statement.DropAsymmetricKey` | Drop | C | gap 7 | 7: no target record: Statement.DropAsymmetricKey (one record per kind, task 10) (7) | 7 |
-| `Statement.DropContract` | Drop | C | gap 7 | 7: no target record: Statement.DropContract (one record per kind, task 10) (7) | 7 |
-| `Statement.DropMessageType` | Drop | C | gap 7 | 7: no target record: Statement.DropMessageType (one record per kind, task 10) (7) | 7 |
-| `Statement.DropRemoteServiceBinding` | Drop | C | gap 7 | 7: no target record: Statement.DropRemoteServiceBinding (one record per kind, task 10) (7) | 7 |
-| `Statement.DropRoute` | Drop | C | gap 7 | 7: no target record: Statement.DropRoute (one record per kind, task 10) (7) | 7 |
-| `Statement.DropService` | Drop | C | gap 7 | 7: no target record: Statement.DropService (one record per kind, task 10) (7) | 7 |
-| `Statement.DropSymmetricKey` | Drop | C | gap 7 | 7: no target record: Statement.DropSymmetricKey (one record per kind, task 10) (7) | 7 |
+| `Statement.DropAsymmetricKey` | Drop | C | gap 7 | 7: no target record: Statement.DropAsymmetricKey (one record per kind, not declared yet) (7) | 7 |
+| `Statement.DropContract` | Drop | C | gap 7 | 7: no target record: Statement.DropContract (one record per kind, not declared yet) (7) | 7 |
+| `Statement.DropMessageType` | Drop | C | gap 7 | 7: no target record: Statement.DropMessageType (one record per kind, not declared yet) (7) | 7 |
+| `Statement.DropRemoteServiceBinding` | Drop | C | gap 7 | 7: no target record: Statement.DropRemoteServiceBinding (one record per kind, not declared yet) (7) | 7 |
+| `Statement.DropRoute` | Drop | C | gap 7 | 7: no target record: Statement.DropRoute (one record per kind, not declared yet) (7) | 7 |
+| `Statement.DropService` | Drop | C | gap 7 | 7: no target record: Statement.DropService (one record per kind, not declared yet) (7) | 7 |
+| `Statement.DropSymmetricKey` | Drop | C | gap 7 | 7: no target record: Statement.DropSymmetricKey (one record per kind, not declared yet) (7) | 7 |
 | `Statement.RestoreMasterKey` | Database | C | gap 7 | 7: no target record: Statement.RestoreMasterKey (7) | 7 |
 | `Statement.RouteDefinition` | Server | C | gap 7 | 7: no target record: Statement.CreateRoute (7) | 7 |
 | `Statement.SearchPropertyListDefinition` | Database | C | gap 7 | 7: no target record: Statement.CreateSearchPropertyList (7) | 7 |
@@ -446,12 +455,12 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.ContractDefinition` | Server | C | gap 6 | 6: no target record: Statement.CreateContract (6) | 6 |
 | `Statement.CreateApplicationRole` | Security | C | gap 6 | 6: no target record: Statement.CreateApplicationRole (6) | 6 |
 | `Statement.CreateRole` | Security | A | converted 3, gap 3 | 3: no target record: Statement.CreateRole has no AUTHORIZATION owner (inventory Statement.CreateRole) (3) | 6 |
-| `Statement.DropDatabaseAuditSpecification` | Drop | C | gap 6 | 6: no target record: Statement.DropDatabaseAuditSpecification (one record per kind, task 10) (6) | 6 |
+| `Statement.DropDatabaseAuditSpecification` | Drop | C | gap 6 | 6: no target record: Statement.DropDatabaseAuditSpecification (one record per kind, not declared yet) (6) | 6 |
 | `Statement.DropFulltextIndex` | Drop | C | gap 6 | 6: target exists, no writer arm: Statement.DropFulltextIndex (6) | 6 |
 | `Statement.DropSchema` | Drop | B | converted 6 | — | 6 |
-| `Statement.DropServerAudit` | Drop | C | gap 6 | 6: no target record: Statement.DropServerAudit (one record per kind, task 10) (6) | 6 |
-| `Statement.DropServerAuditSpecification` | Drop | C | gap 6 | 6: no target record: Statement.DropServerAuditSpecification (one record per kind, task 10) (6) | 6 |
-| `Statement.DropWorkloadClassifier` | Drop | C | gap 6 | 6: no target record: Statement.DropWorkloadClassifier (one record per kind, task 10) (6) | 6 |
+| `Statement.DropServerAudit` | Drop | C | gap 6 | 6: no target record: Statement.DropServerAudit (one record per kind, not declared yet) (6) | 6 |
+| `Statement.DropServerAuditSpecification` | Drop | C | gap 6 | 6: no target record: Statement.DropServerAuditSpecification (one record per kind, not declared yet) (6) | 6 |
+| `Statement.DropWorkloadClassifier` | Drop | C | gap 6 | 6: no target record: Statement.DropWorkloadClassifier (one record per kind, not declared yet) (6) | 6 |
 | `Statement.RestoreServiceMasterKey` | Database | C | gap 6 | 6: no target record: Statement.RestoreServiceMasterKey (6) | 6 |
 | `Statement.SetCursor` | Procedural | C | gap 6 | 6: target exists, no writer arm: Statement.SetCursorVariable (6) | 6 |
 | `Statement.Shutdown` | Server | C | gap 6 | 6: no target record: Statement.Shutdown (6) | 6 |
@@ -463,7 +472,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CloseSymmetricKey` | Security | C | gap 5 | 5: no target record: Statement.CloseSymmetricKey (5) | 5 |
 | `Statement.ConversationTimer` | Server | C | gap 5 | 5: no target record: Statement.BeginConversationTimer (5) | 5 |
 | `Statement.CreateServerRole` | Security | C | gap 5 | 5: no target record: Statement.CreateServerRole (5) | 5 |
-| `Statement.DropExternalTable` | Drop | C | gap 5 | 5: no target record: Statement.DropExternalTable (one record per kind, task 10) (5) | 5 |
+| `Statement.DropExternalTable` | Drop | C | gap 5 | 5: no target record: Statement.DropExternalTable (one record per kind, not declared yet) (5) | 5 |
 | `Statement.MoveConversation` | Server | C | gap 5 | 5: no target record: Statement.MoveConversation (5) | 5 |
 | `Expression.Modulo` | Values | C | — | — | 4 |
 | `Query.Intersect` | Queries | B | — | — | 4 |
@@ -473,12 +482,12 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterDatabaseEncryptionKey` | Security | C | gap 4 | 4: no target record: Statement.AlterDatabaseEncryptionKey (4) | 4 |
 | `Statement.AlterDatabaseModifyName` | Database | C | gap 4 | 4: target exists, no writer arm: AlterDatabaseAction.ModifyName (4) | 4 |
 | `Statement.BackupMasterKey` | Database | C | gap 4 | 4: no target record: Statement.BackupMasterKey (4) | 4 |
-| `Statement.DropAvailabilityGroup` | Drop | C | gap 4 | 4: no target record: Statement.DropAvailabilityGroup (one record per kind, task 10) (4) | 4 |
-| `Statement.DropCryptographicProvider` | Drop | C | gap 4 | 4: no target record: Statement.DropCryptographicProvider (one record per kind, task 10) (4) | 4 |
-| `Statement.DropDatabaseScopedCredential` | Drop | C | gap 4 | 4: no target record: Statement.DropDatabaseScopedCredential (one record per kind, task 10) (4) | 4 |
-| `Statement.DropExternalModel` | Drop | C | gap 4 | 4: no target record: Statement.DropExternalModel (one record per kind, task 10) (4) | 4 |
-| `Statement.DropSearchPropertyList` | Drop | C | gap 4 | 4: no target record: Statement.DropSearchPropertyList (one record per kind, task 10) (4) | 4 |
-| `Statement.DropServerRole` | Drop | C | gap 4 | 4: no target record: Statement.DropServerRole (one record per kind, task 10) (4) | 4 |
+| `Statement.DropAvailabilityGroup` | Drop | C | gap 4 | 4: no target record: Statement.DropAvailabilityGroup (one record per kind, not declared yet) (4) | 4 |
+| `Statement.DropCryptographicProvider` | Drop | C | gap 4 | 4: no target record: Statement.DropCryptographicProvider (one record per kind, not declared yet) (4) | 4 |
+| `Statement.DropDatabaseScopedCredential` | Drop | C | gap 4 | 4: no target record: Statement.DropDatabaseScopedCredential (one record per kind, not declared yet) (4) | 4 |
+| `Statement.DropExternalModel` | Drop | C | gap 4 | 4: no target record: Statement.DropExternalModel (one record per kind, not declared yet) (4) | 4 |
+| `Statement.DropSearchPropertyList` | Drop | C | gap 4 | 4: no target record: Statement.DropSearchPropertyList (one record per kind, not declared yet) (4) | 4 |
+| `Statement.DropServerRole` | Drop | C | gap 4 | 4: no target record: Statement.DropServerRole (one record per kind, not declared yet) (4) | 4 |
 | `Statement.OpenMasterKey` | Security | C | gap 4 | 4: no target record: Statement.OpenMasterKey (4) | 4 |
 | `Statement.RestoreRewindOnly` | Database | C | gap 4 | 4: no target record: Statement.RestoreRewindOnly (4) | 4 |
 | `Expression.BitwiseAnd` | Values | C | — | — | 3 |
@@ -490,22 +499,22 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.BackupServiceMasterKey` | Database | C | gap 3 | 3: no target record: Statement.BackupServiceMasterKey (3) | 3 |
 | `Statement.CloseAllSymmetricKeys` | Security | C | gap 3 | 3: no target record: Statement.CloseAllSymmetricKeys (3) | 3 |
 | `Statement.CloseMasterKey` | Security | C | gap 3 | 3: no target record: Statement.CloseMasterKey (3) | 3 |
-| `Statement.DropApplicationRole` | Drop | C | gap 3 | 3: no target record: Statement.DropApplicationRole (one record per kind, task 10) (3) | 3 |
-| `Statement.DropBrokerPriority` | Drop | C | gap 3 | 3: no target record: Statement.DropBrokerPriority (one record per kind, task 10) (3) | 3 |
-| `Statement.DropCertificate` | Drop | C | gap 3 | 3: no target record: Statement.DropCertificate (one record per kind, task 10) (3) | 3 |
-| `Statement.DropColumnEncryptionKey` | Drop | C | gap 3 | 3: no target record: Statement.DropColumnEncryptionKey (one record per kind, task 10) (3) | 3 |
-| `Statement.DropColumnMasterKey` | Drop | C | gap 3 | 3: no target record: Statement.DropColumnMasterKey (one record per kind, task 10) (3) | 3 |
-| `Statement.DropCredential` | Drop | C | gap 3 | 3: no target record: Statement.DropCredential (one record per kind, task 10) (3) | 3 |
+| `Statement.DropApplicationRole` | Drop | C | gap 3 | 3: no target record: Statement.DropApplicationRole (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropBrokerPriority` | Drop | C | gap 3 | 3: no target record: Statement.DropBrokerPriority (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropCertificate` | Drop | C | gap 3 | 3: no target record: Statement.DropCertificate (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropColumnEncryptionKey` | Drop | C | gap 3 | 3: no target record: Statement.DropColumnEncryptionKey (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropColumnMasterKey` | Drop | C | gap 3 | 3: no target record: Statement.DropColumnMasterKey (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropCredential` | Drop | C | gap 3 | 3: no target record: Statement.DropCredential (one record per kind, not declared yet) (3) | 3 |
 | `Statement.DropDatabaseEncryptionKey` | Drop | C | gap 3 | 3: target exists, no writer arm: Statement.DropDatabaseEncryptionKey (3) | 3 |
-| `Statement.DropEndpoint` | Drop | C | gap 3 | 3: no target record: Statement.DropEndpoint (one record per kind, task 10) (3) | 3 |
-| `Statement.DropFulltextCatalog` | Drop | C | gap 3 | 3: no target record: Statement.DropFulltextCatalog (one record per kind, task 10) (3) | 3 |
-| `Statement.DropFulltextStoplist` | Drop | C | gap 3 | 3: no target record: Statement.DropFulltextStoplist (one record per kind, task 10) (3) | 3 |
-| `Statement.DropLogin` | Drop | C | gap 3 | 3: no target record: Statement.DropLogin (one record per kind, task 10) (3) | 3 |
+| `Statement.DropEndpoint` | Drop | C | gap 3 | 3: no target record: Statement.DropEndpoint (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropFulltextCatalog` | Drop | C | gap 3 | 3: no target record: Statement.DropFulltextCatalog (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropFulltextStoplist` | Drop | C | gap 3 | 3: no target record: Statement.DropFulltextStoplist (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropLogin` | Drop | C | gap 3 | 3: no target record: Statement.DropLogin (one record per kind, not declared yet) (3) | 3 |
 | `Statement.DropMasterKey` | Drop | C | gap 3 | 3: target exists, no writer arm: Statement.DropMasterKey (3) | 3 |
-| `Statement.DropPartitionFunction` | Drop | C | gap 3 | 3: no target record: Statement.DropPartitionFunction (one record per kind, task 10) (3) | 3 |
-| `Statement.DropPartitionScheme` | Drop | C | gap 3 | 3: no target record: Statement.DropPartitionScheme (one record per kind, task 10) (3) | 3 |
-| `Statement.DropResourcePool` | Drop | C | gap 3 | 3: no target record: Statement.DropResourcePool (one record per kind, task 10) (3) | 3 |
-| `Statement.DropWorkloadGroup` | Drop | C | gap 3 | 3: no target record: Statement.DropWorkloadGroup (one record per kind, task 10) (3) | 3 |
+| `Statement.DropPartitionFunction` | Drop | C | gap 3 | 3: no target record: Statement.DropPartitionFunction (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropPartitionScheme` | Drop | C | gap 3 | 3: no target record: Statement.DropPartitionScheme (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropResourcePool` | Drop | C | gap 3 | 3: no target record: Statement.DropResourcePool (one record per kind, not declared yet) (3) | 3 |
+| `Statement.DropWorkloadGroup` | Drop | C | gap 3 | 3: no target record: Statement.DropWorkloadGroup (one record per kind, not declared yet) (3) | 3 |
 | `Statement.LineNumber` | Procedural | C | gap 3 | 3: no target record: Statement.LineNumber (3) | 3 |
 | `Statement.RestoreFileListOnly` | Database | C | gap 3 | 3: no target record: Statement.RestoreFileListOnly (3) | 3 |
 | `Statement.RestoreHeaderOnly` | Database | C | gap 3 | 3: no target record: Statement.RestoreHeaderOnly (3) | 3 |
@@ -517,9 +526,9 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterDatabaseModifyBackupStorageRedundancy` | Database | C | gap 2 | 2: target exists, no writer arm: AlterDatabaseAction.ModifyBackupStorageRedundancy (2) | 2 |
 | `Statement.AlterDatabasePerformCutover` | Database | C | gap 2 | 2: target exists, no writer arm: AlterDatabaseAction.PerformCutover (2) | 2 |
 | `Statement.AlterDatabaseRemoveFileGroup` | Database | C | gap 2 | 2: target exists, no writer arm: AlterDatabaseAction.RemoveFileGroup (2) | 2 |
-| `Statement.DropExternalDataSource` | Drop | C | gap 2 | 2: no target record: Statement.DropExternalDataSource (one record per kind, task 10) (2) | 2 |
-| `Statement.DropExternalFileFormat` | Drop | C | gap 2 | 2: no target record: Statement.DropExternalFileFormat (one record per kind, task 10) (2) | 2 |
-| `Statement.DropExternalResourcePool` | Drop | C | gap 2 | 2: no target record: Statement.DropExternalResourcePool (one record per kind, task 10) (2) | 2 |
+| `Statement.DropExternalDataSource` | Drop | C | gap 2 | 2: no target record: Statement.DropExternalDataSource (one record per kind, not declared yet) (2) | 2 |
+| `Statement.DropExternalFileFormat` | Drop | C | gap 2 | 2: no target record: Statement.DropExternalFileFormat (one record per kind, not declared yet) (2) | 2 |
+| `Statement.DropExternalResourcePool` | Drop | C | gap 2 | 2: no target record: Statement.DropExternalResourcePool (one record per kind, not declared yet) (2) | 2 |
 | `Statement.RestoreLabelOnly` | Database | C | gap 2 | 2: no target record: Statement.RestoreLabelOnly (2) | 2 |
 | `Statement.RestoreSymmetricKey` | Database | C | gap 2 | 2: no target record: Statement.RestoreSymmetricKey (2) | 2 |
 | `Expression.Pieced` | Values | C | — | 1: no target record: a typed T-SQL rowset table source (proposal 7) (1) | 1 |

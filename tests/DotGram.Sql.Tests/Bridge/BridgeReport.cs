@@ -76,7 +76,7 @@ static class BridgeReport
 
 		The old tree does not keep every word the new tree records. The bridge reads these, and only these, from the
 		statement's text through the old nodes' spans (`Bridge.Recoverable`); each reading is counted, the shape check
-		still applies to it, and only the phase-A exit gate leaves them out:
+		still applies to it, and only the gate for switching the grammar leaves them out:
 
 		- `SelectColumn.ExpressionItem.AsKeyword`: `a AS x` against `a x`.
 		- `Clause.DerivedColumn alias = expression`: `x = a`, which has no place yet.
@@ -119,9 +119,18 @@ static class BridgeReport
 		`converted/gap/refused/crashed/unread/different/shape`: a statement is counted under the record its first gap
 		names, or else under its own root. `Bridge/Baseline.Counters.txt` holds the debts: per member, how many
 		statements passed only with key words' case aside (`ByCase`) and how many readings came from the text
-		(`Recovered`); per pattern, how many differences its subtrees exempted (`Meaning`). `BridgeTests` fails where `converted`
+		(`Recovered`); per pattern, how many subtrees it exempted (`Meaning`). `BridgeTests` fails where `converted`
 		falls or anything else rises, where a statement fails the round trip and is not one of its `Expected`, and
 		prints a gain without failing. A plain run writes nothing.
+
+		The `ByCase` and `Recovered` counters rise as more statements convert, since each statement converted reads
+		its words as the others do: a rise there that comes with more conversions is expected, and is recorded
+		deliberately with the rest.
+
+		A statement converts only where the written text, read back located and carried again with that text as its
+		source, gives the same new tree, spans aside: the words read from the text are not in the old tree, so the
+		old trees agreeing says nothing of them. Where it does not, the statement is different, its detail starting
+		`new tree:`.
 		""";
 
 	public static void Write(

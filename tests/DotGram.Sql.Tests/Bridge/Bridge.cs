@@ -264,26 +264,17 @@ static partial class Bridge
 	}
 
 	/// <summary>
-	/// The first word written after a located node, or null where the text is not there.
+	/// The first token written after a located node, comments and blanks skipped — a word upper-cased — or null
+	/// where the text is not there or nothing follows.
 	/// </summary>
 	static string? WordAfter(ISqlSpan node)
 	{
 		if (source is null || !node.Span.Known || node.Span.IsStale || node.Span.End > source.Length)
 			return null;
 
-		var from = node.Span.End;
-		var to   = from;
-
-		// One word is enough: skip what stands between, then read up to the next blank or bracket.
-		while (to < source.Length && char.IsWhiteSpace(source[to]))
-			to++;
-
-		while (to < source.Length && !char.IsWhiteSpace(source[to]) && source[to] is not '(' and not ')' and not ',' and not ';')
-			to++;
-
-		var words = Words(source.Substring(from, to - from));
-
-		return words.Length > 0 ? words[0] : null;
+		return SqlTokens.First(source, node.Span.End) is { } token
+			? token.Kind == SqlTokens.Kind.Word ? token.Text.ToUpperInvariant() : token.Text
+			: null;
 	}
 
 	static SqlList<T> Each<TOld, T>(SqlList<TOld> items, Func<TOld, T> convert)
