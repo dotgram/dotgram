@@ -155,11 +155,11 @@ public sealed class NestedBracketTests
 	[Fact]
 	public void The_standard_s_own_parser_reads_the_same_trees()
 	{
-		var condition = Assert.IsType<Expression.Parenthesized>(Sql92Parser.TryParseSearchCondition("((a = 1))").Value);
-		Assert.IsType<Expression.Parenthesized>(condition.Value);
+		var condition = Assert.IsType<Ast.Expression.Parenthesized>(Sql92Parser.TryParseSearchCondition("((a = 1))").Value);
+		Assert.IsType<Ast.Expression.Parenthesized>(condition.Value);
 
-		var equal = Assert.IsType<Expression.Comparison>(Sql92Parser.TryParseSearchCondition("((a)) = 1").Value);
-		Assert.IsType<Expression.Parenthesized>(equal.Left);
+		var equal = Assert.IsType<Ast.Expression.Comparison>(Sql92Parser.TryParseSearchCondition("((a)) = 1").Value);
+		Assert.IsType<Ast.Expression.Parenthesized>(equal.Left);
 	}
 
 	/// <summary>What stands inside that many brackets, each of which must be one.</summary>
