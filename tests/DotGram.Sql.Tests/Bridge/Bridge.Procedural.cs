@@ -119,7 +119,7 @@ static partial class Bridge
 				_                  => throw BridgeGap.Open(old, $"inventory SetExpression.Transactions.IsolationLevel (`{level}`)"),
 			};
 
-			var tran = Spelled(old) is { } text && Words(text) is [_, "TRAN", ..];
+			var tran = Recover("Statement.SetTransaction.Tran", Spelled(old), static text => Words(text) is [_, "TRAN", ..], false);
 
 			return new Ast.Statement.SetTransaction { Modes = [new Ast.TransactionMode.Isolation(isolation)], Tran = tran };
 		}

@@ -189,10 +189,11 @@ static partial class Bridge
 
 					// `x = a` and `a AS x` are one old node; where the value starts after the column, the
 					// alias was written in front of it.
-					if (Spelled(old) is not null && Spelled(value) is not null && value.Span.At > old.Span.At)
+					if (Recover("Clause.DerivedColumn alias = expression", Spelled(old) is not null && Spelled(value) is not null ? "" : null, _ => value.Span.At > old.Span.At, false))
 						throw BridgeGap.Open(old, "inventory Clause.DerivedColumn (alias = expression)");
 
-					return new Ast.SelectColumn.ExpressionItem(Values.Of(value), Values.Part(old, name), WordAfter(value) == "AS");
+					return new Ast.SelectColumn.ExpressionItem(Values.Of(value), Values.Part(old, name),
+						Recover("SelectColumn.ExpressionItem.AsKeyword", WordAfter(value), static word => word == "AS", false));
 
 				case Clause.QualifiedAsterisk(null):
 					return new Ast.SelectColumn.All();
@@ -267,20 +268,20 @@ static partial class Bridge
 
 			if (by.Offset is { } offset)
 			{
-				string[] after = by.Fetch is { } next ? Between(offset, next) is { } text ? Words(text) : [] : WordAfter(offset) is { } word ? [word] : [];
+				var after = by.Fetch is { } next ? Between(offset, next) : WordAfter(offset);
 
 				limit = new Ast.Limit
 				{
 					Offset        = Values.Of(offset),
-					OffsetRowWord = after is ["ROW", ..] ? Ast.RowWord.Row : Ast.RowWord.Rows,
+					OffsetRowWord = Recover("Limit.OffsetRowWord", after, static text => Words(text) is ["ROW", ..] ? Ast.RowWord.Row : Ast.RowWord.Rows, Ast.RowWord.Rows),
 				};
 
 				if (by.Fetch is { } fetch)
 					limit = limit with
 					{
 						Count        = Values.Of(fetch),
-						Position     = after.Contains("FIRST") ? Ast.FetchPosition.First : Ast.FetchPosition.Next,
-						FetchRowWord = WordAfter(fetch) == "ROW" ? Ast.RowWord.Row : Ast.RowWord.Rows,
+						Position     = Recover("Limit.Position", after, static text => Words(text).Contains("FIRST") ? Ast.FetchPosition.First : Ast.FetchPosition.Next, Ast.FetchPosition.Next),
+						FetchRowWord = Recover("Limit.FetchRowWord", WordAfter(fetch), static word => word == "ROW" ? Ast.RowWord.Row : Ast.RowWord.Rows, Ast.RowWord.Rows),
 					};
 			}
 			else if (by.Fetch is not null)

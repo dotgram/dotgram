@@ -114,13 +114,17 @@ static partial class Bridge
 			if (name is null)
 				return null;
 
-			var text  = before is null ? Spelled(old) : WordsAfter(before, old);
-			var words = text is null ? [] : Words(text);
-			var said  = false;
+			var said = Recover("Alias.AsKeyword of a table source", before is null ? Spelled(old) : WordsAfter(before, old), static text =>
+			{
+				// A word AS, not a name `"as"` or `[as]`, and not the AS of FOR SYSTEM_TIME AS OF.
+				var words = Words(text);
 
-			for (var at = 0; at < words.Length; at++)
-				if (words[at] == "AS" && (at + 1 >= words.Length || words[at + 1] != "OF"))
-					said = true;
+				for (var at = 0; at < words.Length; at++)
+					if (words[at] == "AS" && (at + 1 >= words.Length || words[at + 1] != "OF"))
+						return true;
+
+				return false;
+			}, false);
 
 			return new Ast.Alias(Values.Part(old, name), columns is { } list ? Values.Parts(old, list) : null, said);
 		}

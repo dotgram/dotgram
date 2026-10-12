@@ -14,6 +14,7 @@ namespace DotGram.Sql.Tests;
 /// <item><see cref="NeedsDecision"/>: the shape is open, and the inventory row that says so is named.</item>
 /// <item><see cref="NotKept"/>: the old tree does not keep what the new tree records, so no arm could
 /// say which text was written.</item>
+/// <item><see cref="NoBridgeArm"/>: the target exists and the writer writes it; the bridge has no arm for it yet.</item>
 /// </list>
 /// </remarks>
 sealed class BridgeGap : Exception
@@ -22,6 +23,7 @@ sealed class BridgeGap : Exception
 	public const string NoWriterArm   = "target exists, no writer arm";
 	public const string NeedsDecision = "needs decision";
 	public const string NotKept       = "not kept by the old tree";
+	public const string NoBridgeArm   = "bridge arm missing";
 
 	BridgeGap(string oldType, string kind, string detail)
 		: base($"{oldType}: {kind}: {detail}")
@@ -37,7 +39,7 @@ sealed class BridgeGap : Exception
 	public string OldType { get; }
 
 	/// <summary>
-	/// One of the four reasons.
+	/// One of the five reasons.
 	/// </summary>
 	public string Kind { get; }
 
@@ -64,6 +66,11 @@ sealed class BridgeGap : Exception
 	public static BridgeGap Open(object old, string row)
 	{
 		return new(Bridge.NameOf(old), NeedsDecision, row);
+	}
+
+	public static BridgeGap Unbridged(object old, string detail)
+	{
+		return new(Bridge.NameOf(old), NoBridgeArm, detail);
 	}
 
 	public static BridgeGap Lost(object old, string detail)

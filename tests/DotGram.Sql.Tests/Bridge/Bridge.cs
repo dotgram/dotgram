@@ -39,6 +39,11 @@ static partial class Bridge
 	/// </summary>
 	[ThreadStatic] static string? source;
 
+	/// <summary>
+	/// The members the statement being carried had read from its text, by name (<see cref="Recovered"/>).
+	/// </summary>
+	[ThreadStatic] static List<string>? recovered;
+
 	delegate bool Converter(object old, [NotNullWhen(true)] out Ast.ISqlNode? made);
 
 	/// <summary>
@@ -104,7 +109,8 @@ static partial class Bridge
 	{
 		var outer = source;
 
-		source = text;
+		source    = text;
+		recovered = [];
 
 		try
 		{
@@ -114,6 +120,49 @@ static partial class Bridge
 		{
 			source = outer;
 		}
+	}
+
+	/// <summary>
+	/// The members of the new tree the last statement carried on this thread had read from its text rather than
+	/// from the old tree, one entry a reading: the closed list <see cref="Recoverable"/> names them.
+	/// </summary>
+	public static IReadOnlyList<string> Recovered => recovered ?? [];
+
+	/// <summary>
+	/// Every member the bridge may read from the text, because the old tree does not keep it. Closed: a reading
+	/// under any other name fails (<see cref="Recover{T}"/>), and docs/design/sql-tsql-bridge.md lists them.
+	/// </summary>
+	public static readonly string[] Recoverable =
+	[
+		"SelectColumn.ExpressionItem.AsKeyword",
+		"Clause.DerivedColumn alias = expression",
+		"Alias.AsKeyword of a table source",
+		"Alias.AsKeyword of MERGE's target",
+		"Limit.OffsetRowWord",
+		"Limit.Position",
+		"Limit.FetchRowWord",
+		"WindowReference.NameRef against (name)",
+		"Expression.Invocation without brackets",
+		"Expression.Trim.FromKeyword",
+		"Statement.DropRoutine.Proc",
+		"Statement.SetTransaction.Tran",
+	];
+
+	/// <summary>
+	/// A value read from the text, counted under its member's name where the text was there to read; where it
+	/// was not, the default the caller passes stands and nothing is counted.
+	/// </summary>
+	static T Recover<T>(string member, string? text, Func<string, T> read, T otherwise)
+	{
+		if (Array.IndexOf(Recoverable, member) < 0)
+			throw new ArgumentOutOfRangeException(nameof(member), member, "Not one of Bridge.Recoverable.");
+
+		if (text is null)
+			return otherwise;
+
+		recovered?.Add(member);
+
+		return read(text);
 	}
 
 	internal static Ast.Statement StatementOf(Statement old)
@@ -206,61 +255,12 @@ static partial class Bridge
 	}
 
 	/// <summary>
-	/// The words of a stretch of text, comments and brackets apart, upper-cased.
+	/// The tokens of a stretch of text, comments apart: a word upper-cased, and a name in brackets or quotes, a
+	/// string or a number as written — so that `"as"` is never the word AS.
 	/// </summary>
 	static string[] Words(string text)
 	{
-		var words = new List<string>();
-		var at    = 0;
-
-		while (at < text.Length)
-		{
-			var c = text[at];
-
-			if (c == '-' && at + 1 < text.Length && text[at + 1] == '-')
-			{
-				while (at < text.Length && text[at] != '\n')
-					at++;
-
-				continue;
-			}
-
-			if (c == '/' && at + 1 < text.Length && text[at + 1] == '*')
-			{
-				var end = text.IndexOf("*/", at + 2, StringComparison.Ordinal);
-
-				at = end < 0 ? text.Length : end + 2;
-
-				continue;
-			}
-
-			if (char.IsLetterOrDigit(c) || c is '_' or '@' or '#' or '$')
-			{
-				var start = at;
-
-				while (at < text.Length && (char.IsLetterOrDigit(text[at]) || text[at] is '_' or '@' or '#' or '$'))
-					at++;
-
-				words.Add(text.Substring(start, at - start).ToUpperInvariant());
-
-				continue;
-			}
-
-			if (!char.IsWhiteSpace(c))
-				words.Add(c.ToString());
-
-			at++;
-		}
-
-		return [.. words];
-	}
-
-	/// <summary>
-	/// Whether the words between two located nodes include one, or null where the text is not there.
-	/// </summary>
-	static bool? WrittenBetween(ISqlSpan before, ISqlSpan after, string word)
-	{
-		return Between(before, after) is { } text ? Words(text).Contains(word) : null;
+		return [.. SqlTokens.Of(text).Select(static one => one.Kind == SqlTokens.Kind.Word ? one.Text.ToUpperInvariant() : one.Text)];
 	}
 
 	/// <summary>
