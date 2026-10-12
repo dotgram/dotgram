@@ -750,7 +750,8 @@ public abstract partial record TableSource : ISqlNode
 
 // T-SQL: FROM plus JOIN, APPLY, PIVOT, UNPIVOT (Transact-SQL). `CrossApply` and `OuterApply` join a
 // table source to one computed from each of its rows, which no standard join does.
-public enum JoinKind { Cross, Inner, Left, Right, Full, CrossApply, OuterApply }
+// SQL-92: §7.5 <joined table>, `Union`, `t UNION JOIN u`; removed in SQL:2003.
+public enum JoinKind { Cross, Inner, Left, Right, Full, CrossApply, OuterApply, Union }
 public abstract record JoinSpecification : ISqlNode
 {
 	SqlLocation _location;

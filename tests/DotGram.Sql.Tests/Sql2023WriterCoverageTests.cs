@@ -135,6 +135,7 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(DateTimeTypeKind)]   = v => new DataType.DateTime((DateTimeTypeKind)v),
 		[typeof(CharacterTypeKind)]  = v => new DataType.Character((CharacterTypeKind)v),
 		[typeof(BinaryTypeKind)]     = v => new DataType.Binary((BinaryTypeKind)v),
+		[typeof(BitStringTypeKind)]  = v => new DataType.BitString((BitStringTypeKind)v),
 		[typeof(IdentifierStyle)]    = v => new Identifier("x", (IdentifierStyle)v),
 		[typeof(TransactionKeyword)] = v => new Statement.Commit { Keyword = (TransactionKeyword)v },
 		[typeof(SetOperator)]        = v => Combined((SetOperator)v),
@@ -609,6 +610,11 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a written name qualified by other than sys")]
 	[InlineData("a written name on a type of several words")]
 	[InlineData("a written name on a named type")]
+	[InlineData("a bit string literal without quotes")]
+	[InlineData("a union join with a condition")]
+	[InlineData("a natural union join")]
+	[InlineData("an outer union join")]
+	[InlineData("a partitioned union join")]
 	public void A_value_with_no_text_is_refused(string which)
 	{
 		var type = new DataType.Numeric(NumericTypeKind.Int);
@@ -628,11 +634,32 @@ public sealed class Sql2023WriterCoverageTests
 			"a written name qualified by other than sys" => new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("int")]) },
 			"a written name on a type of several words" => new DataType.Numeric(NumericTypeKind.DoublePrecision) { WrittenName = new QualifiedName([new Identifier("[double precision]", IdentifierStyle.Bracketed)]) },
 			"a written name on a named type"        => new DataType.Named(T, []) { WrittenName = T },
+			"a bit string literal without quotes"   => new Expression.Literal(new LiteralValue.BitString("0101")),
+			"a union join with a condition"         => UnionJoin with { Specification = new JoinSpecification.On(A) },
+			"a natural union join"                  => UnionJoin with { Natural = true },
+			"an outer union join"                   => UnionJoin with { OuterKeyword = true },
+			"a partitioned union join"              => UnionJoin with { LeftPartition = [A] },
 			_                                       => new Expression.Literal(new LiteralValue.Binary("0A")),
 		};
 
 		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
 	}
+
+	/// <summary>SQL-92's own nodes, which SQL:2003 removed, written as SQL-92 writes them.</summary>
+	[Fact]
+	public void SQL92s_own_nodes_are_written()
+	{
+		Assert.Equal("SELECT a FROM t UNION JOIN u", Sql2023Writer.Write(Selected with { From = new FromClause([UnionJoin]) }));
+		Assert.Equal("B'0101'", Sql2023Writer.Write(new Expression.Literal(new LiteralValue.BitString("'0101'"))));
+		Assert.Equal("BIT VARYING(8)", Sql2023Writer.Write(new DataType.BitString(BitStringTypeKind.BitVarying, 8)));
+	}
+
+	static readonly TableSource.Join UnionJoin = new()
+	{
+		Left  = new TableSource.Named(T),
+		Right = new TableSource.Named(new QualifiedName([new Identifier("u")])),
+		Kind  = JoinKind.Union,
+	};
 
 	/// <summary>That a name which is neither a name nor a variable is refused rather than skipped.</summary>
 	[Fact]

@@ -17,7 +17,9 @@ public static partial class Sql2023Writer
 		/// </summary>
 		bool TryPutTransactSql(ISqlNode node)
 		{
-			return TryPutValues(node)
+			// SQL-92's own nodes first: they are a dialect's too, and in a file of their own.
+			return TryPutSql92(node)
+				|| TryPutValues(node)
 				|| TryPutQueries(node)
 				|| TryPutDml(node)
 				|| TryPutTables(node)

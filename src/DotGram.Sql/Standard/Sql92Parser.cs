@@ -44,10 +44,10 @@ namespace DotGram.Sql.Standard;
 /// records, members, list order, identifier styles, folds and brackets, so a text both read is one
 /// tree, and <c>Sql2023Writer</c> prints it back. <c>ParseSelect</c> gives a <c>Statement.Select</c>,
 /// <c>ParseQuery</c> a <c>Query</c>, and <c>ParseSearchCondition</c> and <c>ParseValueExpression</c> an
-/// <c>Expression</c>. What SQL-92 has and SQL:2023 took out has no record there: a bit string literal,
-/// <c>BIT</c> and <c>BIT VARYING</c>, a union join, and an interval field the tree has no member for
-/// (<c>TIMEZONE_HOUR</c>, or a precision SQL:2023 does not write there). Reading one throws
-/// <see cref="NotSupportedException"/>, as does a length or precision too large for an <c>int</c>.
+/// <c>Expression</c>. What SQL-92 has and SQL:2003 took out — a bit string literal, <c>BIT</c> and
+/// <c>BIT VARYING</c>, a union join — is SQL-92's own in that tree (<c>Sql2023Ast.Sql92.cs</c>). An interval
+/// qualifier is read as §10.1 writes it, and a length or precision is no larger than the tree's
+/// <c>int</c>: what SQL-92 does not say is refused, and nothing it reads is left without a record.
 /// </para>
 /// <para>
 /// <b>Temporary.</b> The standard's parser is <c>SqlStandardParser</c>, written from SQL:2023 down
@@ -59,10 +59,10 @@ namespace DotGram.Sql.Standard;
 /// nothing is recorded on a tape and replayed once the parse is accepted. Most of its building rules
 /// are read for derivations the parse may give up — an ordered choice tries the longer alternative
 /// first — and that is what the request costs: a construction runs for a reading that is then
-/// abandoned, and an exception thrown there would escape the publication. None is but the refusal of
-/// what the tree has no record for, which no derivation builds unless the text holds the construct:
-/// the records' constructors and the helpers of <c>Nodes</c> it calls build from what they are given
-/// and read no host state, so a derivation given up leaves nothing a later one could read. Held to
+/// abandoned, and an exception thrown there would escape the publication. None is: the records'
+/// constructors and the helpers of <c>Nodes</c> it calls build from what they are given, throw on
+/// nothing the grammar hands them and read no host state, so a derivation given up leaves nothing a
+/// later one could read. Held to
 /// the tape by an agreement run over the ScriptDom corpus, each statement whole and cut, every string
 /// of the tests, every accepted text cut at each word boundary and given a stray token, through all
 /// four entries: the same trees, the same messages, nothing thrown; the benchmarks compile the same

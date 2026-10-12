@@ -869,6 +869,8 @@ public static partial class Sql2023Writer
 
 					if (join.Kind == JoinKind.Cross)
 						Word("CROSS JOIN");
+					else if (join.Kind == JoinKind.Union)
+						PutUnionJoin(join);
 					else
 					{
 						if (join.Natural)
