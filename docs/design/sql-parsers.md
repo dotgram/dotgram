@@ -99,7 +99,8 @@ is open until it is built, and `status.md` is what will say when it has been.
       on `Word(op == UnaryOperator.Minus ? "-" : "+")`, which wrote `~` as `+`. Walk the values
       through `Write` and compare what comes out.
   - `Sql92Parser`, which T-SQL used to include for its expressions (it no longer does), builds the new
-    tree too; removing it is a separate step later.
+    tree too (done: its four entries give `DotGram.Sql.Ast` records, the trees `SqlStandardParser`
+    builds of the same text); removing it is a separate step later.
   - Where the two disagree, decided with Igor the same day: `[x]` is a third `IdentifierStyle`,
     `Bracketed`; `@x` and `@@x` are T-SQL's `Expression.Variable`, not the standard's parameters; `0xFF`
     is read by each grammar as its own dialect has it — a binary string in T-SQL, an integer in the

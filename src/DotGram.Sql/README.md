@@ -14,10 +14,10 @@ so nothing here carries a parser runtime, and neither does anything that referen
 
 ## The dialects
 
-Each dialect is a directory, a namespace and a grammar of its own. SQL-92 and T-SQL meet in the tree
-in `DotGram.Sql` — the records, [`SqlWriter`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWriter.cs), which prints them back, and
-[`SqlWalker`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWalker.cs), which visits them. `SqlStandardParser` builds the standard's own tree,
-and which parser answers with which is under the table.
+Each dialect is a directory, a namespace and a grammar of its own. T-SQL builds the tree in
+`DotGram.Sql` — the records, [`SqlWriter`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWriter.cs), which prints them back, and
+[`SqlWalker`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWalker.cs), which visits them. `SqlStandardParser` and `Sql92Parser` build the
+standard's own tree, and which parser answers with which is under the table.
 
 | Parser | Namespace | What it reads |
 | --- | --- | --- |
@@ -29,11 +29,13 @@ Each grammar stands alone: `TransactSqlParser` includes no other grammar, and th
 shape of the standard's (a search condition, a row value constructor, a case expression) are written
 out in `TransactSql.gram` beside T-SQL's own.
 
-`TransactSqlParser` builds the tree, and `Sql92Parser` builds the same records for the expressions of SQL-92.
-`SqlStandardParser` builds a tree of its own, the standard's, laid out in
+`TransactSqlParser` builds the tree in `DotGram.Sql`. `SqlStandardParser` builds a tree of its own, the standard's, laid out in
 [`SqlAst.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/SqlAst.cs) in `DotGram.Sql.Ast` and printed back by
 [`Sql2023Writer`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/Sql2023Writer.cs). Its records are named for the standard's
 constructs, so `DotGram.Sql.Ast.Statement` and `DotGram.Sql.Statement` are two types.
+`Sql92Parser` builds that tree too, in the shape `SqlStandardParser` gives the same text: its
+`ParseSelect` gives an `Ast.Statement`, `ParseQuery` an `Ast.Query`, and `ParseSearchCondition` and
+`ParseValueExpression` an `Ast.Expression`.
 
 `SqlStandardParser` reads at six levels: `ParseValue` (the standard's literal, a signed number among
 them, or `NULL`), `ParseDataType`, `ParseExpression`, `ParseSearchCondition`, `ParseStatement` (one
