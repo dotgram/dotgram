@@ -1498,17 +1498,13 @@ public static partial class Sql2023Writer
 
 					break;
 
+				// T-SQL: the statement's WITH first, its OUTPUT where the grammar reads it, its hints last.
 				case Statement.Insert insert:
+					PutStatementWith(insert.With);
 					Word("INSERT");
 					PutTop(insert.Top);
-					Word("INTO");
-					PutSource(insert.Target);
-
-					if (insert.SourceValue is InsertSource.DefaultValues)
-					{
-						Word("DEFAULT VALUES");
-						break;
-					}
+					PutIntoKeyword(insert.Into);
+					PutDmlTarget(insert.Target);
 
 					if (insert.Columns.Count > 0)
 					{
@@ -1518,8 +1514,11 @@ public static partial class Sql2023Writer
 					}
 
 					PutOverride(insert.Override);
+					PutOutput(insert.Output);
 
-					if (insert.SourceValue is InsertSource.Values values)
+					if (insert.SourceValue is InsertSource.DefaultValues)
+						Word("DEFAULT VALUES");
+					else if (insert.SourceValue is InsertSource.Values values)
 					{
 						Word("VALUES");
 						Each(values.Rows, PutRow);
@@ -1527,34 +1526,50 @@ public static partial class Sql2023Writer
 					else
 						PutQuery(((InsertSource.Subquery)insert.SourceValue).Query);
 
+					PutQueryHints(insert.Hints);
 					break;
 
 				case Statement.Update update:
+					PutStatementWith(update.With);
 					Word("UPDATE");
 					PutTop(update.Top);
-					PutSource(update.Target!);
+					PutDmlTarget(update.Target!);
 					PutPortion(update.Portion);
 					PutAlias(update.Alias);
 					Word("SET");
 					Each(update.Assignments, PutAssignment);
+					PutOutput(update.Output);
+					PutSecondFrom(update.From);
 					PutWhereOrCurrent(update.Where, update.CurrentOf);
+					PutQueryHints(update.Hints);
 					break;
 
 				case Statement.Delete delete:
+					PutStatementWith(delete.With);
 					Word("DELETE");
 					PutTop(delete.Top);
-					Word("FROM");
-					PutSource(delete.Target!);
+
+					if (!delete.FromOmitted)
+						Word("FROM");
+
+					PutDmlTarget(delete.Target!);
 					PutPortion(delete.Portion);
 					PutAlias(delete.Alias);
+					PutOutput(delete.Output);
+					PutSecondFrom(delete.From);
 					PutWhereOrCurrent(delete.Where, delete.CurrentOf);
+					PutQueryHints(delete.Hints);
 					break;
 
 				case Statement.Merge merge:
+					PutStatementWith(merge.With);
 					Word("MERGE");
 					PutTop(merge.Top);
-					Word("INTO");
-					PutSource(merge.Target);
+
+					if (!merge.IntoOmitted)
+						Word("INTO");
+
+					PutDmlTarget(merge.Target);
 					PutAlias(merge.Alias);
 					Word("USING");
 					PutSource(merge.SourceTable);
@@ -1605,6 +1620,8 @@ public static partial class Sql2023Writer
 						}
 					}
 
+					PutOutput(merge.Output);
+					PutQueryHints(merge.Hints);
 					break;
 
 				case Statement.TruncateTable truncate:

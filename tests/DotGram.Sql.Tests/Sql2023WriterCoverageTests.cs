@@ -85,6 +85,24 @@ public sealed class Sql2023WriterCoverageTests
 		return new GraphPattern.ShortestPath(Node("a"), [new GraphStep(new GraphEdge(new Identifier("e"), GraphDirection.Right), step ?? Node("b"))], quantifier, anchorLast);
 	}
 
+	/// <summary><c>a = 1</c>, an assignment of SET.</summary>
+	static Assignment Assigned()
+	{
+		return new Assignment([new AssignmentTarget(new QualifiedName([new Identifier("a")]))], B);
+	}
+
+	/// <summary><c>MERGE INTO t USING u ON a WHEN MATCHED THEN DELETE</c>.</summary>
+	static Statement.Merge Merged()
+	{
+		return new Statement.Merge
+		{
+			Target      = new TableSource.Named(T),
+			SourceTable = new TableSource.Named(U),
+			On          = A,
+			Clauses     = [new MergeClause.Matched(new MergeMatchedAction.Delete())],
+		};
+	}
+
 	/// <summary><c>c</c>, a full-text rowset's column.</summary>
 	static Expression.Reference Searched(string name = "c")
 	{
@@ -195,6 +213,7 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(SampleUnit)]         = v => Sampled(false, (SampleUnit)v),
 		[typeof(GraphDirection)]     = v => Matched(new GraphPattern.Chain(Node("a"), [new GraphStep(new GraphEdge(new Identifier("e"), (GraphDirection)v), Node("b"))])),
 		[typeof(AssignmentOperator)] = v => new Query.Select { Columns = [new SelectColumn.VariableAssignment(new Identifier("@v"), (AssignmentOperator)v, A)] },
+		[typeof(IntoKeyword)]        = v => new Statement.Insert { Target = new TableSource.Named(T), Into = (IntoKeyword)v },
 		[typeof(HintArgumentForm)]   = v => Joined(new TableSource.Named(T) { Hints = [new TableHint.Named(new Identifier("INDEX"), [A]) { Form = (HintArgumentForm)v }] }),
 		[typeof(QueryHintPhrase)]    = v => new Statement.Select { Query = Selected, Hints = [new QueryHint.Phrase((QueryHintPhrase)v)] },
 		[typeof(XmlMode)]            = v => Selected with { For = new ForClause.Xml((XmlMode)v, null, []) },
@@ -424,6 +443,13 @@ public sealed class Sql2023WriterCoverageTests
 			["FreetextTable.ColumnsBracketed"] = (
 				Joined(new TableSource.FreetextTable(T, [new Expression.Asterisk()], A, null, null)),
 				Joined(new TableSource.FreetextTable(T, [new Expression.Asterisk()], A, null, null) { ColumnsBracketed = true })),
+			// T-SQL's DELETE may leave its FROM out, and MERGE its INTO.
+			["Delete.FromOmitted"] = (
+				new Statement.Delete { Target = new TableSource.Named(T) },
+				new Statement.Delete { Target = new TableSource.Named(T), FromOmitted = true }),
+			["Merge.IntoOmitted"] = (
+				Merged(),
+				Merged() with { IntoOmitted = true }),
 			// T-SQL's + after SHORTEST_PATH's steps is {1,} written short.
 			["GraphQuantifier.Plus"] = (
 				Matched(Shortest(new GraphQuantifier(1, null, false))),
@@ -717,6 +743,15 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a written name on a type of several words")]
 	[InlineData("a written name on a named type")]
 	[InlineData("GraphPath with a WITHIN GROUP order")]
+	[InlineData("an alias on an INSERT's target")]
+	[InlineData("a sample on a DELETE's target")]
+	[InlineData("a subquery as an UPDATE's target")]
+	[InlineData("an alias on a table variable target")]
+	[InlineData("an OUTPUT with no item")]
+	[InlineData("an OUTPUT's columns without INTO")]
+	[InlineData("a second OUTPUT without INTO")]
+	[InlineData("an empty second FROM")]
+	[InlineData("an INSERT word that is none")]
 	[InlineData("a written name on xml qualified by dbo")]
 	[InlineData("a 0x literal that is not hex digits")]
 	[InlineData("a table variable with hints in a FROM")]
@@ -740,6 +775,19 @@ public sealed class Sql2023WriterCoverageTests
 			"a written name qualified by other than sys" => new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("int")]) },
 			"a written name on a type of several words" => new DataType.Numeric(NumericTypeKind.DoublePrecision) { WrittenName = new QualifiedName([new Identifier("[double precision]", IdentifierStyle.Bracketed)]) },
 			"a written name on a named type"        => new DataType.Named(T, []) { WrittenName = T },
+			"an alias on an INSERT's target"        => new Statement.Insert { Target = new TableSource.Named(T) { Alias = new Alias(new Identifier("x")) } },
+			"a sample on a DELETE's target"         => new Statement.Delete { Target = new TableSource.Named(T) { Sample = new SampleClause(SampleMethod.System, A) } },
+			"a subquery as an UPDATE's target"      => new Statement.Update { Target = new TableSource.Subquery(Selected), Assignments = [Assigned()] },
+			"an alias on a table variable target"   => new Statement.Delete { Target = new TableSource.Variable(new Identifier("@t")) { Alias = new Alias(new Identifier("x")) } },
+			"an OUTPUT with no item"                => new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([], null, null, null) },
+			"an OUTPUT's columns without INTO"      => new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, [new Identifier("a")], null) },
+			"a second OUTPUT without INTO"          => new Statement.Delete
+			{
+				Target = new TableSource.Named(T),
+				Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null)),
+			},
+			"an empty second FROM"                  => new Statement.Delete { Target = new TableSource.Named(T), From = new FromClause([]) },
+			"an INSERT word that is none"           => new Statement.Insert { Target = new TableSource.Named(T), Into = (IntoKeyword)9 },
 			"a written name on xml qualified by dbo" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("xml")]) },
 			"a 0x literal that is not hex digits"   => new Expression.Literal(new LiteralValue.Binary("0x0A") { ZeroX = true }),
 			"GraphPath with a WITHIN GROUP order"   => new Expression.Invocation(T, [new Argument(A)]) { GraphPath = true, WithinGroup = new WithinGroupClause(new OrderByClause([new SortItem(A)])) },

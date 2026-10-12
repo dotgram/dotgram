@@ -154,15 +154,27 @@ static class BridgeOracle
 	/// <summary>
 	/// Every gap a statement holds, not only the first: each node of it that is a statement, a query, a value or
 	/// a table source is carried on its own, and every gap any of them throws is kept — once per statement for
-	/// each record and reason, however many nodes throw it.
+	/// each record and reason, however many nodes throw it. A node that is a part of its parent and no record of
+	/// its own is not carried alone: a MERGE arm's UPDATE, DELETE or INSERT, which has no target, and the rows of an
+	/// INSERT that are not a query — <c>DEFAULT VALUES</c>, a file, a stream.
 	/// </summary>
 	static List<(string Record, string Reason)> Census(Statement old, string source)
 	{
-		var gaps = new List<(string, string)>();
+		var gaps  = new List<(string, string)>();
+		var parts = new HashSet<object>(ReferenceEqualityComparer.Instance);
 
 		foreach (var node in Trees.Nodes(old))
 		{
-			if (node is not (Statement or Query or Expression or TableReference))
+			if (node is Clause.MergeWhen when)
+				parts.Add(when.Action);
+
+			if (node is Statement.Insert { Rows: Query.DefaultValues or Query.FromFile or Query.FromStream } insert)
+				parts.Add(insert.Rows);
+		}
+
+		foreach (var node in Trees.Nodes(old))
+		{
+			if (node is not (Statement or Query or Expression or TableReference) || parts.Contains(node))
 				continue;
 
 			try

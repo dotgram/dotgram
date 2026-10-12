@@ -40,19 +40,53 @@ static partial class Bridge
 			return made is not null;
 		}
 
-		/// <summary>
-		/// The T-SQL parts of a data change statement that proposal 2 gives it and the new tree does not have yet.
-		/// </summary>
-		static void Plain(Statement old, SqlList<Clause>? with, Clause? output, SqlList<Clause>? options)
+		/// <summary>The WITH a data change statement is written after, where it has one.</summary>
+		static Ast.WithClause? With(SqlList<Clause>? with)
 		{
-			if (with is { Length: > 0 })
-				throw BridgeGap.Missing(old, $"{NameOf(old)} has no WITH in the new tree (proposal 2)");
+			return with is { Length: > 0 } list ? Queries.With(list) : null;
+		}
 
-			if (output is not null)
-				throw BridgeGap.Missing(old, $"{NameOf(old)} has no OutputClause in the new tree (proposal 2)");
+		static SqlList<Ast.QueryHint> Hints(SqlList<Clause>? options)
+		{
+			return options is { } list ? Each(list, Queries.QueryHint) : [];
+		}
 
-			if (options is { Length: > 0 })
-				throw BridgeGap.Missing(old, $"{NameOf(old)} has no OPTION hints in the new tree (proposal 2)");
+		/// <summary>
+		/// What a data change statement writes to: a table variable keeps its hints here, which in a FROM it may
+		/// not have; a call is a function; the rest is a table source as a FROM reads it.
+		/// </summary>
+		static Ast.TableSource Target(TableReference old)
+		{
+			if (old is TableReference.Named { Table: var table, Hints.Length: > 0 } named && table.StartsWith('@'))
+				return Source(named with { Hints = [] }) is Ast.TableSource.Variable variable
+					? variable with { Hints = Each(named.Hints, Queries.TableHint) }
+					: throw BridgeGap.Open(old, "inventory TableReference.Named (a table variable target)");
+
+			// A call is a function as the grammar reads it there, OPENJSON among them; OPENQUERY alone is a rowset.
+			if (old is TableReference.FunctionCall { Function: var call, Schema.Length: 0 } && !call.Name.Equals("OPENQUERY", StringComparison.OrdinalIgnoreCase))
+				return Values.Function(call) is Ast.Expression.Invocation invocation
+					? new Ast.TableSource.Function(invocation)
+					: throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a target that is not a plain call)");
+
+			return Source(old);
+		}
+
+		/// <summary>
+		/// T-SQL's OUTPUT: the items as a select list's, <c>INTO</c> a target and its columns, and the second OUTPUT.
+		/// </summary>
+		static Ast.OutputClause? Output(Clause? old)
+		{
+			if (old is null)
+				return null;
+
+			if (old is not Clause.Output(var items, var into, var columns, var next))
+				throw BridgeGap.Open(old, "inventory Clause.Output");
+
+			return new Ast.OutputClause(
+				Each(items, static one => Convert<Ast.SelectColumn>(one)),
+				into is null ? null : Target(into),
+				columns is null ? null : Values.Parts(old, columns),
+				Output(next));
 		}
 
 		static Ast.Statement Insert(Statement.Insert old)
@@ -69,13 +103,16 @@ static partial class Bridge
 					throw BridgeGap.Missing(old.Rows, "InsertSource.Execute (inventory Query.FromExecute)");
 			}
 
-			Plain(old, old.With, old.Output, old.Options);
-
-			if (!"INTO".Equals(old.Into, StringComparison.OrdinalIgnoreCase))
-				throw BridgeGap.Missing(old, "Statement.Insert has no member for whether INTO was written (proposal 2)");
-
 			if (old.Target is null)
 				throw BridgeGap.Open(old, "inventory Statement.Insert (no target)");
+
+			Ast.IntoKeyword? into = old.Into?.ToUpperInvariant() switch
+			{
+				null   => null,
+				"INTO" => Ast.IntoKeyword.Into,
+				"OVER" => Ast.IntoKeyword.Over,
+				_      => throw BridgeGap.Open(old, $"inventory Statement.Insert (the word {old.Into} before the target)"),
+			};
 
 			Ast.InsertSource rows = old.Rows switch
 			{
@@ -86,50 +123,67 @@ static partial class Bridge
 
 			return new Ast.Statement.Insert
 			{
+				With        = With(old.With),
 				Top         = Queries.Topped(old.Top),
-				Target      = Source(old.Target),
+				Into        = into,
+				Target      = Target(old.Target),
 				Columns     = Values.Parts(old, old.Columns),
+				Output      = Output(old.Output),
 				SourceValue = rows,
+				Hints       = Hints(old.Options),
 			};
 		}
 
 		static Ast.Statement Update(Statement.Update old)
 		{
-			Plain(old, old.With, old.Output, old.Options);
-
-			if (old.From.Length > 0)
-				throw BridgeGap.Missing(old, "Statement.Update has no second FROM (proposal 2)");
-
 			if (old.Target is null)
 				throw BridgeGap.Open(old, "inventory Statement.Update (no target)");
 
 			return new Ast.Statement.Update
 			{
+				With        = With(old.With),
 				Top         = Queries.Topped(old.Top),
-				Target      = Source(old.Target),
+				Target      = Target(old.Target),
 				Assignments = Each(old.Set, Assignment),
+				Output      = Output(old.Output),
+				From        = old.From.Length > 0 ? new Ast.FromClause(Each(old.From, Source)) : null,
 				Where       = Where(old.Where),
 				CurrentOf   = CurrentOf(old, old.Where),
+				Hints       = Hints(old.Options),
 			};
 		}
 
 		static Ast.Statement Delete(Statement.Delete old)
 		{
-			Plain(old, old.With, old.Output, old.Options);
-
-			if (old.From.Length > 0)
-				throw BridgeGap.Missing(old, "Statement.Delete has no second FROM (proposal 2)");
-
 			if (old.Target is null)
 				throw BridgeGap.Open(old, "inventory Statement.Delete (no target)");
 
 			return new Ast.Statement.Delete
 			{
-				Top    = Queries.Topped(old.Top),
-				Target    = Source(old.Target),
-				Where     = Where(old.Where),
-				CurrentOf = CurrentOf(old, old.Where),
+				With        = With(old.With),
+				Top         = Queries.Topped(old.Top),
+				FromOmitted = Recover("Statement.Delete.FromOmitted", Before(old, old.Target), static text => Words(text) is not [.., "DELETE", "FROM"] and not ["FROM"], false),
+				Target      = Target(old.Target),
+				Output      = Output(old.Output),
+				From        = old.From.Length > 0 ? new Ast.FromClause(Each(old.From, Source)) : null,
+				Where       = Where(old.Where),
+				CurrentOf   = CurrentOf(old, old.Where),
+				Hints       = Hints(old.Options),
 			};
+		}
+
+		/// <summary>
+		/// The text a statement's target is written after: from the end of its TOP, or else from its start, which
+		/// may hold a WITH.
+		/// </summary>
+		static string? Before(Statement.Delete old, TableReference target)
+		{
+			if (source is null || !old.Span.Known || !target.Span.Known || old.Span.IsStale || target.Span.IsStale)
+				return null;
+
+			var from = old.Top is { Span: { Known: true, IsStale: false } top } ? top.End : old.Span.At;
+
+			return from <= target.Span.At && target.Span.At <= source.Length ? source[from..target.Span.At] : null;
 		}
 
 		/// <summary>
@@ -176,11 +230,6 @@ static partial class Bridge
 
 		static Ast.Statement Merge(Statement.Merge old)
 		{
-			Plain(old, old.With, old.Output, old.Options);
-
-			if (!old.Into)
-				throw BridgeGap.Missing(old, "Statement.Merge has no member for whether INTO was written (proposal 2)");
-
 			if (old.Target is null)
 				throw BridgeGap.Open(old, "inventory Statement.Merge (no target)");
 
@@ -191,12 +240,16 @@ static partial class Bridge
 
 			return new Ast.Statement.Merge
 			{
+				With        = With(old.With),
 				Top         = Queries.Topped(old.Top),
-				Target      = Source(old.Target),
+				IntoOmitted = !old.Into,
+				Target      = Target(old.Target),
 				Alias       = alias,
 				SourceTable = Source(old.Using),
 				On          = Values.Of(old.On),
 				Clauses     = Each(old.Whens, When),
+				Output      = Output(old.Output),
+				Hints       = Hints(old.Options),
 			};
 		}
 
