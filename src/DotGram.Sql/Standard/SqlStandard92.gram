@@ -353,7 +353,7 @@ UnsignedLiteral : @LiteralValue
 
 // §5.3. The sign belongs to the literal here and not to <factor>, which is what lets
 // `INTERVAL -'1' DAY` read.
-IntervalLiteral : @LiteralValue = "INTERVAL"i & t: (['+' | '-']? & QuotedString) & q: IntervalQualifier => @(new LiteralValue.Interval(Nodes.Quoted(t), q, Nodes.LeadingSign(t)))
+IntervalLiteral : @LiteralValue = "INTERVAL"i & w: (['+' | '-']? & t: QuotedString) & q: IntervalQualifier => @(new LiteralValue.Interval(t, q, Nodes.LeadingSign(w)))
 
 // §6.3 <general value specification>: the parameters and the niladic functions that
 // stand where a value does.
