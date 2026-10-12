@@ -232,10 +232,28 @@ public sealed class GrammarBinder
 				case Decl.Rule rule:
 
 					if (!ns.TryDeclare(new RuleSymbol(rule.Name, ns, rule)))
-						Report(
-							DuplicateRule,
-							$"'{rule.Name}' is already defined in this namespace; put one of them in a nested namespace to shadow the other.",
-							node.At);
+					{
+						// A rule made for an expression on the right of a rebinding has a name the
+						// author never wrote: the message is about the expression, said where it is.
+						var made = rule.Replaces is not null
+							? rule
+							: ns.Rules.TryGetValue(rule.Name, out var first) && first.Declaration?.Replaces is not null
+								? first.Declaration
+								: null;
+
+						if (made is not null)
+							Report(
+								DuplicateRule,
+								$"The expression that replaces '{made.Replaces}' here is made a rule named " +
+								$"'{made.Name}', and a rule of that name is already declared in this namespace. " +
+								$"Rename that rule.",
+								made.At);
+						else
+							Report(
+								DuplicateRule,
+								$"'{rule.Name}' is already defined in this namespace; put one of them in a nested namespace to shadow the other.",
+								node.At);
+					}
 
 					// A nested namespace is one `with (...)` away from a header that would have
 					// meant this as a replacement rather than a new declaration (§5.1) — a
