@@ -273,9 +273,12 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// The source a PIVOT or an UNPIVOT turns, bracketed where it is a join, which would otherwise give the
-		/// rotation its right side alone; and the refusals the grammar's requirements make: an alias, without
-		/// columns, and at least one name in the list.
+		/// The source a PIVOT or an UNPIVOT turns, bracketed where it is a join with no ON — a CROSS JOIN, an
+		/// APPLY — which would otherwise give the rotation its right side alone (after an ON the rotation turns the
+		/// whole join, as the grammar reads it); and the refusals the grammar's requirements make: an alias, without
+		/// columns, and at least one name in the list. As for expressions and set operations, the writer adds the
+		/// brackets the meaning needs where the tree has no Parenthesized; the text reads back as Parenthesized,
+		/// which a parser-built tree already carries there, so nothing is refused.
 		/// </summary>
 		void PutRotated(TableSource rotation, TableSource source, SqlList<QualifiedName> names, string member, Alias alias)
 		{
