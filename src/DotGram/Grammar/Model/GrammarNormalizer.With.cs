@@ -99,9 +99,11 @@ public sealed partial class GrammarNormalizer
 				var reachable = ReachableFromSeed(DirectCalls(atRoot.Key), forward, merged);
 				var affected  = AffectedSet(BoundCalls(merged), calledBy, reachable);
 
-				rewrites[atRoot.Key] = (merged,
-					affected.Count == 0 ? [] : CloneAffected(affected, merged, name),
-					name);
+				var cloneMap = affected.Count == 0 ? [] : CloneAffected(affected, merged, name);
+
+				_withCloned.UnionWith(cloneMap.Keys);
+
+				rewrites[atRoot.Key] = (merged, cloneMap, name);
 			}
 
 			_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);

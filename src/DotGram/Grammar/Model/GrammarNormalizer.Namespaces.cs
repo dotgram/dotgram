@@ -43,7 +43,156 @@ public sealed partial class GrammarNormalizer
 		foreach (var site in sites)
 			remap[site] = SpecializeSite(site, forward, calledBy);
 
-		RemapPublications(remap);
+		var declared = DeclaredClones(remap);
+
+		_declaredClones = declared;
+		_siteClones     = remap;
+
+		RetargetCallsIntoSites(declared);
+		RemapPublications(remap, declared);
+	}
+
+	/// <summary>
+	/// Each site's clone of every rule the site itself declares, keyed by the original: what a
+	/// call naming that rule means from anywhere.
+	/// </summary>
+	static Dictionary<RuleSymbol, RuleSymbol> DeclaredClones(
+		Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap)
+	{
+		var declared = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		foreach (var pair in remap)
+			foreach (var clone in pair.Value)
+				if (NearestSite(clone.Key.Namespace) == pair.Key)
+					declared[clone.Key] = clone.Value;
+
+		return declared;
+	}
+
+	/// <summary>
+	/// Points every call made from outside a site, to a rule that site declares, at the site's
+	/// clone of it — the body-level counterpart of <see cref="RemapPublications"/>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A site's clones are what its own rules mean: <c>Ns.E</c> resolves the bindings of
+	/// <c>Ns</c>'s header wherever it is named from (§5.1). A publication was pointed at the clone,
+	/// but a call in a rule body kept the original, so <c>R = Ns.E</c> read <c>E</c> as though
+	/// the header had not been written, on every back end and with no diagnostic.
+	/// </para>
+	/// <para>
+	/// A rule within the same site is left alone: whatever it calls that the site cloned, it
+	/// reaches through its own clone, and the original is what nothing reaches once every
+	/// call from outside has been moved. A body is rebuilt only where it has a call to move,
+	/// so a grammar with no such call keeps every node it had.
+	/// </para>
+	/// </remarks>
+	void RetargetCallsIntoSites(Dictionary<RuleSymbol, RuleSymbol> declared)
+	{
+		if (declared.Count == 0)
+			return;
+
+		// An instance's arguments are where a later `with` rebuilds it from: `R = L(Ns.E)`
+		// published `with (L = F)` is `F` of what `L`'s instance now calls, `Ns`'s clone.
+		foreach (var pair in _origins.ToList())
+		{
+			var site   = NearestSite(pair.Key.Namespace);
+			var passed = pair.Value.Passed;
+
+			if (passed.Any(one => one is not null && CallsInto(one, declared, site)))
+				_origins[pair.Key] = (
+					pair.Value.Origin,
+					[.. passed.Select(one => one is not null && CallsInto(one, declared, site) ? Retargeted(one, declared, site) : one)],
+					pair.Value.Counts,
+					pair.Value.Values);
+		}
+
+		// A clone of a parameterized rule's instance is still that instance, and a later `with`
+		// that replaces the rule has to recognize it as one: `parse R with (E = F)`, where `R`
+		// now calls `Ns`'s clone of `E('!')`, replaces it with `F('!')`.
+		foreach (var pair in declared)
+			if (_origins.TryGetValue(pair.Key, out var origin) && !_origins.ContainsKey(pair.Value))
+				_origins[pair.Value] = origin;
+
+		foreach (var rule in _rules.ToList())
+		{
+			var site = NearestSite(rule.Namespace);
+
+			if (_bodies.TryGetValue(rule, out var body) && CallsInto(body, declared, site))
+				_bodies[rule] = Retargeted(body, declared, site);
+
+			if (_trivia.TryGetValue(rule, out var trivia) && CallsInto(trivia, declared, site))
+				_trivia[rule] = Retargeted(trivia, declared, site);
+
+			if (TypeFrom(rule) is ({ } produced, var isSequence) &&
+				declared.TryGetValue(produced, out var clone) &&
+				NearestSite(produced.Namespace) != site)
+			{
+				_produces[rule] = (clone, isSequence);
+				_retyped.Add(rule);
+			}
+		}
+	}
+
+	/// <summary>What <see cref="DeclaredClones"/> answered: the clone every call to a site's rule now names.</summary>
+	IReadOnlyDictionary<RuleSymbol, RuleSymbol> _declaredClones = EmptyClones;
+
+	/// <summary>Every rule a <c>with</c> expression cloned, for the type check of its bindings.</summary>
+	readonly HashSet<RuleSymbol> _withCloned = [];
+
+	/// <summary>What each site cloned, for the type check of its header's bindings.</summary>
+	Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _siteClones = [];
+
+	/// <summary>The rules whose type <see cref="RetargetCallsIntoSites"/> moved onto a clone.</summary>
+	readonly HashSet<RuleSymbol> _retyped = [];
+
+	/// <summary>
+	/// The rule whose value <paramref name="rule"/> takes (§4.1 case 3), as far as it is known
+	/// before <see cref="ComputeTypes"/> has run: what an earlier pass recorded, or what the
+	/// declared type names.
+	/// </summary>
+	/// <remarks>
+	/// A rule that calls the clone takes its type from the clone too: <c>R : Ns.E = Ns.E</c>
+	/// whose type stayed the original's built the replacement's value and declared the old
+	/// one, and the consumer's build failed on C# nobody wrote.
+	/// </remarks>
+	(RuleSymbol? Produces, bool IsSequence) TypeFrom(RuleSymbol rule)
+	{
+		if (_produces.TryGetValue(rule, out var known))
+			return known;
+
+		if (rule.Declaration?.Type is { IsCSharp: false } declared &&
+			!IsCSharpKeyword(declared.Name) &&
+			!rule.Declaration.Params.Any(one => one.Name == declared.Name) &&
+			rule.Namespace.LookupQualified(declared.Name) is { } produced)
+			return (produced, declared.IsSequence);
+
+		return (null, false);
+	}
+
+	/// <summary>Whether a node calls a rule another site than the caller's own cloned.</summary>
+	bool CallsInto(Node node, Dictionary<RuleSymbol, RuleSymbol> declared, GrammarNamespace? site)
+	{
+		foreach (var called in DirectCalls(node))
+			if (declared.ContainsKey(called) && NearestSite(called.Namespace) != site)
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
+	/// <paramref name="node"/> rebuilt with every call into another site moved to that site's
+	/// clone; the caller's own site, where it has one, is left out of the map.
+	/// </summary>
+	Node Retargeted(Node node, Dictionary<RuleSymbol, RuleSymbol> declared, GrammarNamespace? site)
+	{
+		var moved = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		foreach (var pair in declared)
+			if (NearestSite(pair.Key.Namespace) != site)
+				moved[pair.Key] = pair.Value;
+
+		return CloneAndRewrite(node, NoTargets, moved, "");
 	}
 
 	static void CollectSites(GrammarNamespace ns, List<GrammarNamespace> sites)
@@ -322,6 +471,17 @@ public sealed partial class GrammarNormalizer
 			// either dictionary can hold at this point.
 			if (_produces.TryGetValue(rule, out var produces))
 				_produces[clone] = produces;
+
+			// A type `RetargetCallsIntoSites` moved onto a site's clone is §4.1 case 3 resolved
+			// early, and follows a later replacement the way the resolution below does: `R : Ns.E`
+			// published `with (E = F)` calls `F`, and has to say it builds what `F` builds.
+			if (_retyped.Contains(rule))
+			{
+				var replaced = targets.TryGetValue(produces.Produces, out var target) ? target : produces.Produces;
+
+				_produces[clone] = (cloneMap.TryGetValue(replaced, out var cloned) ? cloned : replaced, produces.IsSequence);
+				_retyped.Add(clone);
+			}
 
 			if (_types.TryGetValue(rule, out var type))
 				_types[clone] = type;
@@ -622,8 +782,16 @@ public sealed partial class GrammarNormalizer
 	/// same rebindings on the directive itself working perfectly. A dialect is exactly
 	/// this shape — one header, and the entry points published beside it.
 	/// </para>
+	/// <para>
+	/// A directive's own <c>with</c> names rules the same way, and is moved with them: once a
+	/// call to <c>Ns.E</c> reads <c>Ns</c>'s clone, <c>parse R with (Ns.E = F)</c> has to
+	/// replace the clone, or the binding finds no call left to replace and is dropped without a
+	/// word.
+	/// </para>
 	/// </remarks>
-	void RemapPublications(Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap)
+	void RemapPublications(
+		Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap,
+		Dictionary<RuleSymbol, RuleSymbol>                                        declared)
 	{
 		var remapped = new List<Publication>(_model.Publications.Count);
 
@@ -633,10 +801,36 @@ public sealed partial class GrammarNormalizer
 				CloneAt(NearestSite(publication.DeclaredIn), publication.Rule, remap) ??
 				CloneAt(NearestSite(publication.Rule.Namespace), publication.Rule, remap);
 
-			remapped.Add(clone is null ? publication : publication with { Rule = clone });
+			var moved = publication with
+			{
+				Rule       = clone ?? publication.Rule,
+				Rebindings = Retargeted(publication.Rebindings, declared),
+			};
+
+			remapped.Add(clone is null && ReferenceEquals(moved.Rebindings, publication.Rebindings) ? publication : moved);
 		}
 
 		_publications = remapped;
+	}
+
+	/// <summary>
+	/// A directive's rebindings with every rule a site declares, on either side, replaced by
+	/// the site's clone of it; the same instance where none is.
+	/// </summary>
+	static IReadOnlyDictionary<RuleSymbol, RuleSymbol> Retargeted(
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> rebindings,
+		Dictionary<RuleSymbol, RuleSymbol>          declared)
+	{
+		if (!rebindings.Any(pair => declared.ContainsKey(pair.Key) || declared.ContainsKey(pair.Value)))
+			return rebindings;
+
+		var moved = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		foreach (var pair in rebindings)
+			moved[declared.TryGetValue(pair.Key, out var key) ? key : pair.Key] =
+				declared.TryGetValue(pair.Value, out var value) ? value : pair.Value;
+
+		return moved;
 	}
 
 	/// <summary>What one site made of a rule, or null where it made nothing of it.</summary>
@@ -674,41 +868,63 @@ public sealed partial class GrammarNormalizer
 	{
 		CheckRebindingReplacements(_model.Root);
 
+		// A replacement a `with` expression cloned is checked as it was before calls were moved;
+		// one it did not is called as the namespace's clone now (`RetargetCallsIntoSites`).
 		foreach (var rebindings in _model.WithOwnRebindings.Values)
 			foreach (var binding in rebindings)
-				CheckReplacement(binding);
+				CheckReplacement(
+					binding,
+					binding.Left,
+					_withCloned.Contains(binding.Right) ? binding.Right : Declared(binding.Right));
 
+		// A publication's rebindings were moved onto the clones a call names
+		// (`RemapPublications`), so it is the clones' types that have to fit.
 		foreach (var publication in _model.Publications)
 			foreach (var binding in publication.OwnRebindings)
-				CheckReplacement(binding);
+				CheckReplacement(binding, Declared(binding.Left), Declared(binding.Right));
 	}
 
 	void CheckRebindingReplacements(GrammarNamespace ns)
 	{
+		// A replacement this site cloned is checked as it was before calls were moved; one it did
+		// not is what a call from here to `Ns.E` now reads, `Ns`'s clone.
+		_siteClones.TryGetValue(ns, out var cloned);
+
 		foreach (var binding in ns.OwnRebindings)
-			CheckReplacement(binding);
+			CheckReplacement(
+				binding,
+				binding.Left,
+				cloned is not null && cloned.ContainsKey(binding.Right) ? binding.Right : Declared(binding.Right));
 
 		foreach (var nested in ns.Nested)
 			CheckRebindingReplacements(nested);
 	}
 
-	void CheckReplacement(ResolvedRebinding binding)
+	/// <summary>The clone a call to <paramref name="rule"/> names, or the rule where no site cloned it.</summary>
+	RuleSymbol Declared(RuleSymbol rule)
+	{
+		return _declaredClones.TryGetValue(rule, out var clone) ? clone : rule;
+	}
+
+	/// <summary>
+	/// Checks one binding, with the types of <paramref name="left"/> and <paramref name="right"/>:
+	/// the rules the binding actually puts in and takes out of the parse, which a site's clone
+	/// can stand for.
+	/// </summary>
+	void CheckReplacement(ResolvedRebinding binding, RuleSymbol left, RuleSymbol right)
 	{
 		// A parameterized rule has no lowered body of its own, so `_types` never carries
 		// the base symbol — its declared type stands in where that type is a concrete C#
 		// one. A parameter-dependent type (`: item`) needs no check at all: both sides
 		// receive the same argument, so they produce the same rule's value by
 		// construction.
-		var expected = _types.TryGetValue(binding.Left, out var known)
-			? known
-			: DeclaredConcrete(binding.Left);
+		var expected = TypeOf(left, binding.Left) ?? DeclaredConcrete(binding.Left);
 
 		if (expected is null)
 			return;
 
-		var actual = _types.TryGetValue(binding.Right, out var declared)
-			? declared
-			: DeclaredConcrete(binding.Right)
+		var actual = TypeOf(right, binding.Right)
+			?? DeclaredConcrete(binding.Right)
 				?? (binding.Right.Declaration is { Params.Count: > 0 } ? null : "string");
 
 		if (actual is null)
@@ -730,6 +946,23 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// The type of the rule a binding actually uses, or of the rule as written where the one
+	/// used has none of its own on record.
+	/// </summary>
+	/// <remarks>
+	/// <c>with (B = Ns.E)</c> puts <c>Ns</c>'s clone of <c>E</c> in <c>B</c>'s place, and the
+	/// clone's type is what has to fit: the original's can differ, when the header replaces what
+	/// <c>E</c>'s type follows.
+	/// </remarks>
+	string? TypeOf(RuleSymbol used, RuleSymbol written)
+	{
+		if (_types.TryGetValue(used, out var type))
+			return type;
+
+		return _types.TryGetValue(written, out var declared) ? declared : null;
+	}
+
+	/// <summary>
 	/// Whether everything that reads a rule's value takes its own type from that rule.
 	/// </summary>
 	/// <remarks>
@@ -744,6 +977,11 @@ public sealed partial class GrammarNormalizer
 	{
 		var read = false;
 
+		// A call from outside a site names the site's clone of its rule, and so does the type of
+		// a rule that follows it (`RetargetCallsIntoSites`): a replacement of the rule is read
+		// wherever the clone is.
+		_declaredClones.TryGetValue(replaced, out var clone);
+
 		foreach (var rule in _rules)
 		{
 			if (!_bodies.TryGetValue(rule, out var body))
@@ -752,11 +990,11 @@ public sealed partial class GrammarNormalizer
 			foreach (var node in NodeWalk.Descendants(body))
 			{
 				if (node is not Node.Capture(_, Node.Call(var called, _)) ||
-					!ReferenceEquals(called, replaced))
+					!ReferenceEquals(called, replaced) && (clone is null || !ReferenceEquals(called, clone)))
 					continue;
 
 				if (!_produces.TryGetValue(rule, out var produces) ||
-					!ReferenceEquals(produces.Produces, replaced))
+					!ReferenceEquals(produces.Produces, called))
 					return false;
 
 				read = true;
