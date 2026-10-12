@@ -167,6 +167,12 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF GLOBAL c", "UPDATE t SET a = 2 WHERE CURRENT OF GLOBAL c", BridgeOracle.Global, true)]
 	[InlineData("SELECT a FROM t WHERE FREETEXT ((b), 'x')", "SELECT a FROM t WHERE FREETEXT ((b), 'x')", BridgeOracle.FullText, false)]
 	[InlineData("SELECT a FROM t WHERE FREETEXT ((b), 'x')", "SELECT a FROM t WHERE FREETEXT ((b), 'y')", BridgeOracle.FullText, true)]
+	[InlineData("SELECT CAST (a AS money) FROM t",     "SELECT CAST (a AS money) FROM t",     BridgeOracle.TypeName, false)]
+	[InlineData("SELECT CAST (a AS timestamp) FROM t", "SELECT CAST (a AS timestamp) FROM t", BridgeOracle.TypeName, false)]
+	[InlineData("SELECT CAST (a AS nvarchar) FROM t",  "SELECT CAST (a AS nvarchar) FROM t",  BridgeOracle.TypeName, false)]
+	[InlineData("SELECT CAST (a AS money) FROM t WHERE b = 1", "SELECT CAST (a AS money) FROM t WHERE b = 2", BridgeOracle.TypeName, true)]
+	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 1, a) FROM t",    BridgeOracle.DatePart, false)]
+	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 2, a) FROM t",    BridgeOracle.DatePart, true)]
 	public void A_dialect_pattern_exempts_its_subtree_and_no_more(string bridged, string standard, string pattern, bool shape)
 	{
 		var made        = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(bridged), bridged);
@@ -175,6 +181,120 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		Assert.Contains(pattern, exempted);
 		Assert.Equal(shape, unexplained.Count > 0);
+	}
+
+	/// <summary>
+	/// A user-defined type is the standard's, and a bridge that built another record for it, or for a type the
+	/// standard spells, would be a shape mismatch the type-name pattern does not exempt.
+	/// </summary>
+	[Fact]
+	public void The_type_name_pattern_exempts_only_a_system_type()
+	{
+		const string text = "SELECT CAST (a AS MyType) FROM t";
+
+		Assert.Equal(SqlStandardParser.ParseStatement(text), Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+
+		var mine = new Ast.QualifiedName([new Ast.Identifier("MyType")]);
+		var made = new Ast.QualifiedName([new Ast.Identifier("INT")]);
+
+		foreach (var (bridged, standard) in new (Ast.DataType, Ast.DataType)[]
+		{
+			(new Ast.DataType.Named(mine, []), new Ast.DataType.UserDefined(mine)),
+			(new Ast.DataType.Named(made, []), new Ast.DataType.Numeric(Ast.NumericTypeKind.Int)),
+		})
+		{
+			BridgeOracle.Meaning(Trees.Differences(bridged, standard, old: false), out var unexplained);
+
+			Assert.NotEmpty(unexplained);
+		}
+	}
+
+	/// <summary>Every one of T-SQL's system types, however quoted, is <c>DataType.Named</c>; <c>xml</c> is its own.</summary>
+	[Theory]
+	[InlineData("bigint")] [InlineData("binary")] [InlineData("bit")] [InlineData("char")] [InlineData("cursor")]
+	[InlineData("date")] [InlineData("datetime")] [InlineData("datetime2")] [InlineData("datetimeoffset")]
+	[InlineData("decimal")] [InlineData("float")] [InlineData("geography")] [InlineData("geometry")]
+	[InlineData("hierarchyid")] [InlineData("image")] [InlineData("int")] [InlineData("json")] [InlineData("money")]
+	[InlineData("nchar")] [InlineData("ntext")] [InlineData("numeric")] [InlineData("nvarchar")] [InlineData("real")]
+	[InlineData("rowversion")] [InlineData("smalldatetime")] [InlineData("smallint")] [InlineData("smallmoney")]
+	[InlineData("sql_variant")] [InlineData("sysname")] [InlineData("table")] [InlineData("text")] [InlineData("time")]
+	[InlineData("timestamp")] [InlineData("tinyint")] [InlineData("uniqueidentifier")] [InlineData("varbinary")]
+	[InlineData("varchar")] [InlineData("vector")] [InlineData("xml")] [InlineData("dec")] [InlineData("integer")]
+	[InlineData("character")]
+	public void A_system_type_is_named_however_quoted(string name)
+	{
+		Assert.Contains(name, Bridge.Values.SystemTypes);
+
+		var type = Bridge.Values.Type(new object(), "[" + name + "]");
+
+		if (name == "xml")
+			Assert.IsType<Ast.DataType.Xml>(type);
+		else
+			Assert.Equal(new Ast.DataType.Named(new Ast.QualifiedName([new Ast.Identifier("[" + name + "]", Ast.IdentifierStyle.Bracketed)]), []), type);
+	}
+
+	/// <summary>
+	/// Which record the bridge builds where the written text would be the same for another: what the round trip
+	/// cannot see.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT DATEADD (dd, 1, a)",                          "Expression.DatePart { Kind = Day, Spelling = Abbreviation }")]
+	[InlineData("SELECT CONVERT (int, a, 112)",                       "Expression.Convert { Style = 112 }")]
+	[InlineData("SELECT TRY_PARSE (a AS date USING 'en-US')",         "Expression.Parse { Try, Culture = 'en-US' }")]
+	[InlineData("SELECT TRY_CAST (a AS int)",                         "Expression.Cast { Try }")]
+	[InlineData("SELECT CAST (a AS int)",                             "DataType.Numeric { Int }")]
+	[InlineData("SELECT CAST (a AS nvarchar(max))",                   "DataType.Character { Nvarchar, Max }")]
+	[InlineData("SELECT CAST (a AS [int])",                           "DataType.Named [int]")]
+	[InlineData("SELECT CAST (a AS dbo.T)",                           "DataType.UserDefined dbo.T")]
+	[InlineData("SELECT CAST (a AS xml(CONTENT s))",                  "DataType.Xml { Content, s }")]
+	[InlineData("SELECT 0x0A",                                        "LiteralValue.Binary { 0A, ZeroX }")]
+	[InlineData("SELECT NEXT VALUE FOR s OVER (ORDER BY a)",          "Expression.NextValue { Over }")]
+	[InlineData("SELECT SUM (a) OVER (ORDER BY a ROWS 2 PRECEDING)",  "WindowFrame { Rows, 2 Preceding }")]
+	[InlineData("SELECT STRING_AGG (a, ',') WITHIN GROUP (ORDER BY a)", "Expression.Invocation { WithinGroup }")]
+	[InlineData("SELECT {fn LCASE (a)}",                              "Expression.OdbcEscape { fn, Invocation }")]
+	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
+	{
+		var made  = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var value = ((Ast.SelectColumn.ExpressionItem)((Ast.Query.Select)made.Query).Columns[0]).Expression;
+
+		static Ast.DataType Target(Ast.Expression value)
+		{
+			return ((Ast.Expression.Cast)value).Target;
+		}
+
+		var holds = expected switch
+		{
+			"Expression.DatePart { Kind = Day, Spelling = Abbreviation }" =>
+				value is Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.DatePart { Kind: Ast.DatePartKind.Day, Spelling: Ast.DatePartSpelling.Abbreviation } }, ..] },
+			"Expression.Convert { Style = 112 }" =>
+				value is Ast.Expression.Convert { Style: Ast.Expression.Literal { Value: Ast.LiteralValue.Numeric { Text: "112" } }, Try: false },
+			"Expression.Parse { Try, Culture = 'en-US' }" =>
+				value is Ast.Expression.Parse { Try: true, Culture: Ast.Expression.Literal { Value: Ast.LiteralValue.String { Text: "'en-US'" } } },
+			"Expression.Cast { Try }" =>
+				value is Ast.Expression.Cast { Try: true },
+			"DataType.Numeric { Int }" =>
+				Target(value) is Ast.DataType.Numeric { Kind: Ast.NumericTypeKind.Int },
+			"DataType.Character { Nvarchar, Max }" =>
+				Target(value) is Ast.DataType.Character { Kind: Ast.CharacterTypeKind.Nvarchar, Max: true },
+			"DataType.Named [int]" =>
+				Target(value) is Ast.DataType.Named { Name.Parts: [{ Text: "[int]" }], Arguments.Count: 0 },
+			"DataType.UserDefined dbo.T" =>
+				Target(value) is Ast.DataType.UserDefined { Name.Parts: [{ Text: "dbo" }, { Text: "T" }] },
+			"DataType.Xml { Content, s }" =>
+				Target(value) is Ast.DataType.Xml { Modifier: Ast.XmlTypeModifier.Content, Schema.Parts: [{ Text: "s" }] },
+			"LiteralValue.Binary { 0A, ZeroX }" =>
+				value is Ast.Expression.Literal { Value: Ast.LiteralValue.Binary { Text: "0A", ZeroX: true } },
+			"Expression.NextValue { Over }" =>
+				value is Ast.Expression.NextValue { Over.OrderBy.Items.Count: 1 },
+			"WindowFrame { Rows, 2 Preceding }" =>
+				value is Ast.Expression.Invocation { Over: Ast.WindowReference.Specification { Value.Frame: { Unit: Ast.WindowFrameUnit.Rows, Extent: Ast.WindowFrameExtent.Single { Bound: { Kind: Ast.WindowBoundKind.Preceding, Offset: not null } } } } },
+			"Expression.Invocation { WithinGroup }" =>
+				value is Ast.Expression.Invocation { WithinGroup.OrderBy.Items.Count: 1 },
+			_ =>
+				value is Ast.Expression.OdbcEscape { Kind.Text: "fn", Value: Ast.Expression.Invocation { Name.Parts: [{ Text: "LCASE" }] } },
+		};
+
+		Assert.True(holds, $"{text} built {value}");
 	}
 
 	/// <summary>
@@ -378,6 +498,8 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		foreach (var member in Trees.FreeText)
 			counters["ByCase " + member] = 0;
+
+		counters["ByCase " + Trees.DatePartWord] = 0;
 
 		foreach (var member in Bridge.Recoverable)
 			counters["Recovered " + member] = 0;

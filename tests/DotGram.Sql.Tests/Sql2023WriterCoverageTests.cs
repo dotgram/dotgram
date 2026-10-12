@@ -145,7 +145,10 @@ public sealed class Sql2023WriterCoverageTests
 		// this is what says each one has words of its own, where PermissionCatalogueTests says which.
 		[typeof(PrivilegeKind)]      = v => Granted(null, new Privilege((PrivilegeKind)v, [], [])),
 		[typeof(SecurableClass)]     = v => Granted(Securable((SecurableClass)v), new Privilege(PrivilegeKind.Control, [], [])),
-		[typeof(XmlContent)]         = v => new DataType.Xml((XmlContent)v, T),
+		[typeof(XmlTypeModifier)]    = v => new DataType.Xml((XmlTypeModifier)v, T),
+		[typeof(DatePartKind)]       = v => new Expression.DatePart((DatePartKind)v),
+		// Year is the kind with all three words, so it is the one every spelling is asked of.
+		[typeof(DatePartSpelling)]   = v => new Expression.DatePart(DatePartKind.Year, (DatePartSpelling)v),
 	};
 
 	/// <summary>
@@ -342,10 +345,14 @@ public sealed class Sql2023WriterCoverageTests
 			["SetOperation.Distinct"] = (
 				Combined(SetOperator.Union),
 				Combined(SetOperator.Union, distinct: true)),
-			// T-SQL's `0x0A` is its own text; the standard's is X and the quoted digits.
+			// T-SQL's `0x0A` is the digits after its introducer; the standard's is X and the quoted digits.
 			["Binary.ZeroX"] = (
 				new Expression.Literal(new LiteralValue.Binary("'0A'")),
-				new Expression.Literal(new LiteralValue.Binary("'0A'") { ZeroX = true })),
+				new Expression.Literal(new LiteralValue.Binary("0A") { ZeroX = true })),
+			// T-SQL's escape in ODBC's braces.
+			["Like.BracedEscape"] = (
+				new Expression.Like(A, false, LikeKind.Like, B, A),
+				new Expression.Like(A, false, LikeKind.Like, B, A) { BracedEscape = true }),
 			["UpdatabilityClause.Underscored"] = (
 				Declared(new CursorProperties(null, null, null, null), false, false),
 				Declared(new CursorProperties(null, null, null, null), false, true)),
@@ -409,10 +416,29 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("Max on a character type")]
 	[InlineData("Max on a binary type")]
 	[InlineData("Exclamation on a comparison")]
+	[InlineData("Try on a cast")]
+	[InlineData("Try on a convert")]
+	[InlineData("Try on a parse")]
+	[InlineData("Over on a next value")]
 	public void A_flag_changes_what_is_written(string which)
 	{
+		var type = new DataType.Numeric(NumericTypeKind.Int);
+		var s    = new QualifiedName([new Identifier("s")]);
+
 		var (without, with) = which switch
 		{
+			"Try on a cast" => (
+				Sql2023Writer.Write(new Expression.Cast(A, type)),
+				Sql2023Writer.Write(new Expression.Cast(A, type) { Try = true })),
+			"Try on a convert" => (
+				Sql2023Writer.Write(new Expression.Convert(type, A)),
+				Sql2023Writer.Write(new Expression.Convert(type, A, Try: true))),
+			"Try on a parse" => (
+				Sql2023Writer.Write(new Expression.Parse(A, type)),
+				Sql2023Writer.Write(new Expression.Parse(A, type, Try: true))),
+			"Over on a next value" => (
+				Sql2023Writer.Write(new Expression.NextValue(s)),
+				Sql2023Writer.Write(new Expression.NextValue(s) { Over = new WindowSpecification(null, [], new OrderByClause([new SortItem(A)]), null) })),
 			"Max on a character type" => (
 				Sql2023Writer.Write(new DataType.Character(CharacterTypeKind.Varchar)),
 				Sql2023Writer.Write(new DataType.Character(CharacterTypeKind.Varchar, Max: true))),
@@ -546,6 +572,48 @@ public sealed class Sql2023WriterCoverageTests
 			"ON SCHEMA::s (c)",
 			Sql2023Writer.Write(Granted(new PrivilegeObject.Classed(SecurableClass.Schema, new QualifiedName([new Identifier("s")]), [new Identifier("c")]), select)),
 			StringComparison.Ordinal);
+	}
+
+	/// <summary>The two binary literals each write their own introducer and digits.</summary>
+	[Fact]
+	public void A_binary_literal_writes_its_own_introducer()
+	{
+		Assert.Equal("X'0A'", Sql2023Writer.Write(new Expression.Literal(new LiteralValue.Binary("'0A'"))));
+		Assert.Equal("0x0A", Sql2023Writer.Write(new Expression.Literal(new LiteralValue.Binary("0A") { ZeroX = true })));
+	}
+
+	/// <summary>
+	/// That a T-SQL value the writer has no text for is refused rather than written as something else.
+	/// </summary>
+	[Theory]
+	[InlineData("Modifier on xml without a schema")]
+	[InlineData("BracedEscape without an escape")]
+	[InlineData("BracedEscape on SIMILAR TO")]
+	[InlineData("a spelling a date part has no word for")]
+	[InlineData("a variable that is not one")]
+	[InlineData("TRY_CAST with a format")]
+	[InlineData("an ODBC call without brackets that holds more than its name")]
+	[InlineData("a 0x literal in quotes")]
+	[InlineData("an X literal without quotes")]
+	public void A_value_with_no_text_is_refused(string which)
+	{
+		var type = new DataType.Numeric(NumericTypeKind.Int);
+
+		ISqlNode node = which switch
+		{
+			"Modifier on xml without a schema"      => new DataType.Xml(XmlTypeModifier.Content),
+			"BracedEscape without an escape"        => new Expression.Like(A, false, LikeKind.Like, B) { BracedEscape = true },
+			"BracedEscape on SIMILAR TO"            => new Expression.Like(A, false, LikeKind.Similar, B, A) { BracedEscape = true },
+			"a spelling a date part has no word for" => new Expression.DatePart(DatePartKind.Millisecond, DatePartSpelling.SecondAbbreviation),
+			"a variable that is not one"            => new Expression.Variable(new Identifier("x")),
+			"TRY_CAST with a format"                => new Expression.Cast(A, type, "'YYYY'") { Try = true },
+			"an ODBC call without brackets that holds more than its name" =>
+				new Expression.OdbcEscape(new Identifier("fn"), new Expression.Invocation(T, []) { Quantifier = SetQuantifier.Distinct }, false),
+			"a 0x literal in quotes"                => new Expression.Literal(new LiteralValue.Binary("'0A'") { ZeroX = true }),
+			_                                       => new Expression.Literal(new LiteralValue.Binary("0A")),
+		};
+
+		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
 	}
 
 	/// <summary>That a name which is neither a name nor a variable is refused rather than skipped.</summary>

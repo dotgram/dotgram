@@ -197,10 +197,11 @@ static class BridgeOracle
 	/// <c>CursorReference</c> that is <c>Global</c>.</item>
 	/// <item><c>FREETEXT ((c), …)</c> and <c>CONTAINS ((c), …)</c> take a column list in T-SQL, and a value in
 	/// brackets in the standard: the first argument of an invocation of either.</item>
-	/// <item><c>DATEADD (day, …)</c> takes a date part in T-SQL, and a column in the standard: an argument that is a
-	/// <c>DatePart</c>.</item>
-	/// <item><c>CAST (a AS money)</c> names one of T-SQL's own types, and a user-defined type in the standard: a
-	/// <c>DataType.Named</c>.</item>
+	/// <item><c>DATEADD (day, …)</c> takes a date part in T-SQL, and a column in the standard: the first argument of
+	/// a date part function, against a column of one part whose text is the part's word.</item>
+	/// <item><c>CAST (a AS money)</c> names one of T-SQL's system types, and a user-defined type in the standard: a
+	/// system type with no arguments, against a user-defined type of one part and the same text, or for
+	/// <c>timestamp</c> the standard's own.</item>
 	/// </list>
 	/// A difference outside every exempted subtree is unexplained, and makes the statement a shape mismatch.
 	/// </summary>
@@ -240,6 +241,10 @@ static class BridgeOracle
 	/// </summary>
 	static (string Pattern, object Subtree)? Exempting(Trees.Diff difference)
 	{
+		// Two patterns are of one node each, which differs from the standard's in a known way and in no other.
+		if (TypeNamed(difference) || DateParted(difference))
+			return (TypeNamed(difference) ? TypeName : DatePart, difference.Left!);
+
 		foreach (var step in difference.Path)
 		{
 			switch (step.Node)
@@ -257,19 +262,43 @@ static class BridgeOracle
 					&& (name.Text.Equals("FREETEXT", StringComparison.OrdinalIgnoreCase) || name.Text.Equals("CONTAINS", StringComparison.OrdinalIgnoreCase)):
 					return (FullText, step.Node);
 
-				case Ast.Argument { Value: Ast.Expression.DatePart }:
-					return (DatePart, step.Node);
-
-				case Ast.DataType.Named:
-					return (TypeName, step.Node);
 			}
-
-			// The type is the member the difference is in, where it is the node that differs.
-			if (step.Node.GetType().GetProperty(step.Member)?.GetValue(step.Node) is Ast.DataType.Named)
-				return (TypeName, step.Node);
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// A T-SQL system type with no arguments where the standard reads a user-defined type of one part and the same
+	/// text, or, for <c>timestamp</c>, its own TIMESTAMP.
+	/// </summary>
+	static bool TypeNamed(Trees.Diff difference)
+	{
+		var name = difference.Left switch
+		{
+			Ast.DataType.Named { Name.Parts: [var part], Arguments.Count: 0 } when Bridge.Values.SystemTypes.Contains(Bridge.Values.Unquoted(part.Text)) => part.Text,
+			Ast.DataType.Character { Kind: Ast.CharacterTypeKind.Nvarchar, Length: null, Max: false }                                                => "nvarchar",
+			_                                                                                                                                         => null,
+		};
+
+		return name is not null && difference.Right switch
+		{
+			Ast.DataType.UserDefined { Name.Parts: [var part] } => part.Text.Equals(name, StringComparison.OrdinalIgnoreCase),
+			Ast.DataType.DateTime { Kind: Ast.DateTimeTypeKind.Timestamp } => name.Equals("timestamp", StringComparison.OrdinalIgnoreCase),
+			_                                                               => false,
+		};
+	}
+
+	/// <summary>
+	/// The date part that is the first argument of a date part function, where the standard reads a column of one
+	/// part whose text is the part's word in the reference's table.
+	/// </summary>
+	static bool DateParted(Trees.Diff difference)
+	{
+		return difference is { Left: Ast.Expression.DatePart part, Right: Ast.Expression.Reference { Name.Parts: [var word] } }
+			&& difference.Path is [.., { Node: Ast.Expression.Invocation { Name.Parts: [var function] }, Member: "Arguments", Index: 0 }, { Node: Ast.Argument, Member: "Value" }]
+			&& Syntax.IsDatePartFunction(function.Text.ToUpperInvariant())
+			&& Bridge.Values.DateParts.TryGetValue(word.Text, out var read) && read == (part.Kind, part.Spelling);
 	}
 
 	/// <summary>

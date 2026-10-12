@@ -874,6 +874,7 @@ public abstract partial record Expression : ISqlNode
 	public record Element(Expression Collection, Expression Index, Expression? To = null, bool Trigraphs = false) : Expression;
 
 	// BNF: a JSON simplified accessor's `.*` and `[*]`.
+	// T-SQL: `t.*` as an argument (CHECKSUM, BINARY_CHECKSUM, CONTAINS, FREETEXT): all columns of `t`; the target is the table's reference, as in `SelectColumn.QualifiedAll`.
 	public record Wildcard(Expression Target, WildcardKind Kind) : Expression;
 
 	// BNF: a JSON simplified accessor's <JSON array accessor>, whose subscripts are in the path language: `a[$ to last]`.
@@ -929,7 +930,7 @@ public abstract partial record Expression : ISqlNode
 	public record In(Expression Value, bool Not, InSource SourceValue) : Expression;
 
 	// BNF: <like predicate>, <similar predicate>, <regex like predicate> — whose FLAG is Flag.
-	public record Like(Expression Value, bool Not, LikeKind Kind, Expression Pattern, Expression? Escape = null, Expression? Flag = null) : Expression;
+	public partial record Like(Expression Value, bool Not, LikeKind Kind, Expression Pattern, Expression? Escape = null, Expression? Flag = null) : Expression;
 
 	public record IsNull(Expression Value, bool Not) : Expression;
 
@@ -1180,7 +1181,13 @@ public abstract partial record DataType : ISqlNode
 	public record Extension(string Dialect, string Name, SqlList<ISqlNode> Arguments) : DataType;
 }
 
-public enum CharacterTypeKind { Character, Char, CharacterVarying, CharVarying, Varchar, CharacterLargeObject, CharLargeObject, Clob, NationalCharacter, NationalChar, Nchar, NationalCharacterVarying, NationalCharVarying, NcharVarying, NationalCharacterLargeObject, NcharLargeObject, Nclob }
+public enum CharacterTypeKind
+{
+	Character, Char, CharacterVarying, CharVarying, Varchar, CharacterLargeObject, CharLargeObject, Clob, NationalCharacter, NationalChar, Nchar, NationalCharacterVarying, NationalCharVarying, NcharVarying, NationalCharacterLargeObject, NcharLargeObject, Nclob,
+
+	/// <summary>T-SQL: nchar and nvarchar (Transact-SQL), a page syntax.md does not transcribe.</summary>
+	Nvarchar,
+}
 public enum BinaryTypeKind { Binary, BinaryVarying, Varbinary, BinaryLargeObject, Blob }
 public enum NumericTypeKind { Numeric, Decimal, Dec, SmallInt, Integer, Int, BigInt, Float, Real, DoublePrecision, DecFloat }
 public enum DateTimeTypeKind { Date, Time, Timestamp }

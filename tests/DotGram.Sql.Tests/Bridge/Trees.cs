@@ -33,6 +33,7 @@ static class Trees
 		"Expression.Quantified.Quantifier",
 		"Expression.Match.Qualifier",
 		"Expression.RoutineInvocation.Word",
+		"Expression.OdbcEscape.Kind",
 		"Expression.RoutineInvocation.Name",
 		"Expression.WindowFunction.Within",
 		"Expression.Literal.Text",
@@ -63,16 +64,19 @@ static class Trees
 		"ABSOLUTE", "ALL", "AND", "ANY", "AS", "ASC", "AT", "AUTHORIZATION", "BEGIN", "BETWEEN", "BIGINT", "BINARY",
 		"BOTH", "BY", "CACHE", "CAST", "CHAR", "CHARACTER", "CLOSE", "COMMIT", "COMMITTED", "CONTAINED", "CONTENT",
 		"CONVERT", "CUBE", "CURRENT", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "CURRENT_USER", "CYCLE",
-		"DATE", "DEALLOCATE", "DEC", "DECIMAL", "DELAYED_DURABILITY", "DESC", "DISTINCT", "DOCUMENT", "DOUBLE",
-		"FETCH", "FIRST", "FLOAT", "FOLLOWING", "FOR", "FROM", "FULL", "GROUP", "HASH", "IGNORE", "IN", "INCREMENT",
-		"INT", "INTEGER", "INTO", "JSON", "LAST", "LEADING", "LOOP", "MARK", "MAX", "MAXVALUE", "MERGE", "MINVALUE",
-		"NATIONAL", "NCHAR", "NEXT", "NO", "NULLS", "NUMERIC", "OF", "OFF", "ON", "OPEN", "ORDER", "OVER", "PARSE",
-		"PARTIAL", "PERCENT", "PRECEDING", "PRECISION", "PRIOR", "RANGE", "READ", "REAL", "RELATIVE", "REMOTE",
-		"REPEATABLE", "RESPECT", "RESTART", "ROLLBACK", "ROLLUP", "ROW", "ROWS", "SAVE", "SERIALIZABLE",
-		"SESSION_USER", "SIMPLE", "SMALLINT", "SNAPSHOT", "SOME", "START", "SYSTEM_USER", "TIES", "TIME", "TO",
-		"TRAILING", "TRAN", "TRANSACTION", "TRIM", "TRY_CAST", "TRY_CONVERT", "TRY_PARSE", "UNBOUNDED",
-		"UNCOMMITTED", "UNIQUE", "USER", "VALUE", "VARBINARY", "VARCHAR", "VARYING", "WITH", "WITHIN",
-		"WORK", "XML", "ZONE",
+		"D", "DATE", "DAY", "DAYOFYEAR", "DD", "DEALLOCATE", "DEC", "DECIMAL", "DELAYED_DURABILITY", "DESC",
+		"DISTINCT", "DOCUMENT", "DOUBLE", "DW", "DY", "ESCAPE", "FETCH", "FIRST", "FLOAT", "FOLLOWING", "FOR",
+		"FROM", "FULL", "GROUP", "HASH", "HH", "HOUR", "IGNORE", "IN", "INCREMENT", "INT", "INTEGER", "INTO",
+		"ISOWK", "ISOWW", "ISO_WEEK", "JSON", "LAST", "LEADING", "LOOP", "M", "MARK", "MAX", "MAXVALUE", "MCS",
+		"MERGE", "MI", "MICROSECOND", "MILLISECOND", "MINUTE", "MINVALUE", "MM", "MONTH", "MS", "N", "NANOSECOND",
+		"NATIONAL", "NCHAR", "NEXT", "NO", "NS", "NULLS", "NUMERIC", "NVARCHAR", "OF", "OFF", "ON", "OPEN", "ORDER",
+		"OVER", "PARSE", "PARTIAL", "PERCENT", "PRECEDING", "PRECISION", "PRIOR", "Q", "QQ", "QUARTER", "RANGE",
+		"READ", "REAL", "RELATIVE", "REMOTE", "REPEATABLE", "RESPECT", "RESTART", "ROLLBACK", "ROLLUP", "ROW",
+		"ROWS", "S", "SAVE", "SECOND", "SERIALIZABLE", "SESSION_USER", "SIMPLE", "SMALLINT", "SNAPSHOT", "SOME",
+		"SS", "START", "SYSTEM_USER", "TIES", "TIME", "TO", "TRAILING", "TRAN", "TRANSACTION", "TRIM", "TRY_CAST",
+		"TRY_CONVERT", "TRY_PARSE", "TZ", "TZOFFSET", "UNBOUNDED", "UNCOMMITTED", "UNIQUE", "USER", "VALUE",
+		"VARBINARY", "VARCHAR", "VARYING", "W", "WEEK", "WEEKDAY", "WITH", "WITHIN", "WK", "WORK", "WW", "XML", "Y",
+		"YEAR", "YY", "YYYY", "ZONE",
 	};
 
 	/// <summary>
@@ -83,7 +87,7 @@ static class Trees
 	/// <summary>
 	/// One place two trees differ: the steps from the root of the left tree down to it, and what differs.
 	/// </summary>
-	public sealed record Diff(IReadOnlyList<Step> Path, string Text)
+	public sealed record Diff(IReadOnlyList<Step> Path, string Text, object? Left = null, object? Right = null)
 	{
 		public override string ToString()
 		{
@@ -118,14 +122,14 @@ static class Trees
 
 		if (left is null || right is null)
 		{
-			found.Add(new Diff([.. path], $"{Show(left)} against {Show(right)}"));
+			found.Add(new Diff([.. path], $"{Show(left)} against {Show(right)}", left, right));
 
 			return;
 		}
 
 		if (left.GetType() != right.GetType())
 		{
-			found.Add(new Diff([.. path], $"{Show(left)} against {Show(right)}"));
+			found.Add(new Diff([.. path], $"{Show(left)} against {Show(right)}", left, right));
 
 			return;
 		}
@@ -133,7 +137,7 @@ static class Trees
 		if (left is string || left.GetType().IsPrimitive || left.GetType().IsEnum || left is not ISqlSpan && left is not IEnumerable)
 		{
 			if (!left.Equals(right))
-				found.Add(new Diff([.. path], $"{Show(left)} against {Show(right)}"));
+				found.Add(new Diff([.. path], $"{Show(left)} against {Show(right)}", left, right));
 
 			return;
 		}
@@ -167,9 +171,10 @@ static class Trees
 				continue;
 			}
 
-			if (old && a is string first && b is string second && first != second && FreeText.Contains(member) && SameTokens(left, member, first, second))
+			if (old && a is string first && b is string second && first != second
+				&& (FreeText.Contains(member) || DatePart(left, path)) && SameTokens(left, member, first, second))
 			{
-				byCase?.Add(member);
+				byCase?.Add(FreeText.Contains(member) ? member : DatePartWord);
 
 				continue;
 			}
@@ -220,6 +225,22 @@ static class Trees
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// What a date part's word counts as among the members compared without the case of key words.
+	/// </summary>
+	public const string DatePartWord = "Expression.ColumnReference.Text of a date part";
+
+	/// <summary>
+	/// Whether an old node is the column a date part function's first argument is read as, <c>DATEADD (dd, …)</c>,
+	/// whose word the new tree keeps without its case.
+	/// </summary>
+	static bool DatePart(object node, List<Step> path)
+	{
+		return node is Expression.ColumnReference
+			&& path is [.., { Node: Expression.RoutineInvocation call, Member: "Arguments", Index: 0 }]
+			&& Syntax.IsDatePartFunction(call.Name.ToUpperInvariant());
 	}
 
 	/// <summary>
