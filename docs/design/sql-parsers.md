@@ -26,9 +26,10 @@ is open until it is built, and `status.md` is what will say when it has been.
 - **The standard is written from the newest edition down** (Igor, 2026-09-13). SQL:2023 first,
   then each earlier edition as a reading of the same grammar. The goal is the standard as a
   whole, every edition; SQL-92 is kept only while something still leans on it, and is no fixed
-  point to preserve: `SqlStandard92.gram` moves to a temporary `Sql92Parser`, which T-SQL
-  includes and the benchmarks hold against a hand-written parser, and goes when T-SQL restates
-  what it takes from it and 1992 is an edition of the new grammar.
+  point to preserve: `SqlStandard92.gram` moves to a temporary `Sql92Parser`, which the
+  benchmarks hold against a hand-written parser, and goes when 1992 is an edition of the new
+  grammar. T-SQL used to include it; it has restated what it took from it and includes nothing
+  now (done).
 - **The standard's parser has a yardstick written by hand** (Igor, 2026-09-17).
   `examples/DotGram.Handwritten/Sql/HandSqlStandard.cs` reads ISO/IEC 9075-2:2023 the way a
   person would write it, builds the same `DotGram.Sql.Ast` tree, and is held to the generated
@@ -51,8 +52,8 @@ is open until it is built, and `status.md` is what will say when it has been.
   names, finished by hand, and a test that says which productions are not written yet.
 - **One project, a directory and a namespace per dialect** (2026-09-13). The parsers are
   named for what they are, `SqlStandardParser` and `TransactSqlParser`, so that no namespace
-  shares a name with a type in it. For now T-SQL still includes the standard's grammar; it
-  stops when the SQL:2023 grammar replaces `SqlStandard92.gram`.
+  shares a name with a type in it. T-SQL no longer includes the standard's
+  grammar (done): it restates the rules it took from `SqlStandard92.gram`, unchanged.
 - **SQL:2023 is published by level, not by production** (Igor, 2026-10-05). `SqlStandardParser`
   publishes six entries — `ParseValue` (a literal, signed numbers and `NULL` among them),
   `ParseDataType`, `ParseExpression`, `ParseSearchCondition`, `ParseStatement` (one statement of any
@@ -97,8 +98,8 @@ is open until it is built, and `status.md` is what will say when it has been.
     - **The gate is the output, not the source.** A check that reads the writer for catch-alls passes
       on `Word(op == UnaryOperator.Minus ? "-" : "+")`, which wrote `~` as `+`. Walk the values
       through `Write` and compare what comes out.
-  - `Sql92Parser`, which T-SQL includes for its expressions, builds the new tree too; removing it is
-    a separate step later.
+  - `Sql92Parser`, which T-SQL used to include for its expressions (it no longer does), builds the new
+    tree too; removing it is a separate step later.
   - Where the two disagree, decided with Igor the same day: `[x]` is a third `IdentifierStyle`,
     `Bracketed`; `@x` and `@@x` are T-SQL's `Expression.Variable`, not the standard's parameters; `0xFF`
     is read by each grammar as its own dialect has it — a binary string in T-SQL, an integer in the
