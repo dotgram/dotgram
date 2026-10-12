@@ -176,9 +176,9 @@ public abstract partial record SelectColumn
 
 /// <summary>
 /// T-SQL: SELECT @local_variable (Transact-SQL). An assignment's operator: <c>=</c>, <c>+=</c>, <c>-=</c>, <c>*=</c>,
-/// <c>/=</c>, <c>%=</c>, <c>&amp;=</c>, <c>|=</c>, <c>^=</c>.
+/// <c>/=</c>, <c>%=</c>, <c>&amp;=</c>, <c>|=</c>, <c>^=</c>, and SQL Server 2025's <c>||=</c>.
 /// </summary>
-public enum AssignmentOperator { Assign, Add, Subtract, Multiply, Divide, Modulo, BitwiseAnd, BitwiseOr, BitwiseXor }
+public enum AssignmentOperator { Assign, Add, Subtract, Multiply, Divide, Modulo, BitwiseAnd, BitwiseOr, BitwiseXor, Concatenate }
 
 public abstract partial record Expression
 {

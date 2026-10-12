@@ -412,16 +412,17 @@ public static partial class Sql2023Writer
 					PutIdentifier(assignment.Variable);
 					Word(assignment.Operator switch
 					{
-						AssignmentOperator.Assign     => "=",
-						AssignmentOperator.Add        => "+=",
-						AssignmentOperator.Subtract   => "-=",
-						AssignmentOperator.Multiply   => "*=",
-						AssignmentOperator.Divide     => "/=",
-						AssignmentOperator.Modulo     => "%=",
-						AssignmentOperator.BitwiseAnd => "&=",
-						AssignmentOperator.BitwiseOr  => "|=",
-						AssignmentOperator.BitwiseXor => "^=",
-						_                             => throw NoText(assignment.Operator),
+						AssignmentOperator.Assign      => "=",
+						AssignmentOperator.Add         => "+=",
+						AssignmentOperator.Subtract    => "-=",
+						AssignmentOperator.Multiply    => "*=",
+						AssignmentOperator.Divide      => "/=",
+						AssignmentOperator.Modulo      => "%=",
+						AssignmentOperator.BitwiseAnd  => "&=",
+						AssignmentOperator.BitwiseOr   => "|=",
+						AssignmentOperator.BitwiseXor  => "^=",
+						AssignmentOperator.Concatenate => "||=",
+						_                              => throw NoText(assignment.Operator),
 					});
 					PutExpression(assignment.Value);
 					break;
