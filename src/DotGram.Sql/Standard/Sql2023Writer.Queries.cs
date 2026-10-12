@@ -1159,13 +1159,31 @@ public static partial class Sql2023Writer
 					break;
 
 				// T-SQL: INSERT (Transact-SQL). The statement in brackets, its OUTPUT the rows, and the name they go by.
+				// The grammar's ChangedStatement: an OUTPUT with no INTO and no second OUTPUT, and no OPTION or WITH.
 				case TableSource.DataChange { Option: null } returned:
-					if (returned.Change is not (Statement.Insert { Output: not null } or Statement.Update { Output: not null }
-						or Statement.Delete { Output: not null } or Statement.Merge { Output: not null }))
+					var (output, hints, with) = returned.Change switch
+					{
+						Statement.Insert insert => (insert.Output, insert.Hints, insert.With),
+						Statement.Update update => (update.Output, update.Hints, update.With),
+						Statement.Delete delete => (delete.Output, delete.Hints, delete.With),
+						Statement.Merge merge   => (merge.Output, merge.Hints, merge.With),
+						_                       => (null, [], null),
+					};
+
+					if (output is null)
 						throw Misplaced(returned, "Option", "left out on a statement with no OUTPUT");
+
+					if (output.Into is not null || output.Next is not null)
+						throw Misplaced(returned, "Change", "whose OUTPUT has INTO or a second OUTPUT, which T-SQL's form does not return");
+
+					if (hints.Count > 0 || with is not null)
+						throw Misplaced(returned, "Change", "with OPTION or WITH, which T-SQL's form does not read");
 
 					if (returned.Alias is null)
 						throw Misplaced(returned, "Alias", "missing, which T-SQL's form requires");
+
+					if (!ReferenceEquals(returned, returnedRows))
+						throw Misplaced(returned, "Option", "left out other than as the one table of an INSERT's SELECT, the one place T-SQL's form stands");
 
 					Open();
 					PutStatement(returned.Change);
@@ -1510,6 +1528,16 @@ public static partial class Sql2023Writer
 					Word("INSERT");
 					PutTop(insert.Top);
 					PutIntoKeyword(insert.Into);
+
+					// T-SQL: INSERT (Transact-SQL). `INSERT t2(a) VALUES (1)` reads as the table t2 and its column a.
+					if (insert.Columns.Count == 0 && insert.Target is TableSource.Function { Invocation.Arguments: { Count: > 0 } arguments }
+						&& arguments.All(static one => one is { Name: null, Value: Expression.Reference { Name.Parts.Count: 1 } }))
+						throw Misplaced(insert, "Target", "that is a function whose arguments read as a column list, with no columns after it");
+
+					// BNF: <insertion target> is a <table name>, with no ONLY; T-SQL reads `INSERT ONLY (t)` as a call.
+					if (insert.Target is TableSource.Named { Only: true })
+						throw Misplaced(insert, "Target", "with ONLY, which no INSERT reads");
+
 					PutDmlTarget(insert.Target);
 
 					if (insert.Columns.Count > 0)
@@ -1530,7 +1558,7 @@ public static partial class Sql2023Writer
 						Each(values.Rows, PutRow);
 					}
 					else
-						PutQuery(((InsertSource.Subquery)insert.SourceValue).Query);
+						PutInsertQuery(((InsertSource.Subquery)insert.SourceValue).Query);
 
 					PutQueryHints(insert.Hints);
 					break;
@@ -1658,6 +1686,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.TruncateTable truncate:
+					if (truncate.Identity is not null && truncate.Partitions.Count > 0)
+						throw Both(truncate, "Identity", "Partitions");
+
 					Word("TRUNCATE TABLE");
 					PutSource(truncate.Target);
 

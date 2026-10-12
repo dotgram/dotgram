@@ -260,8 +260,9 @@ static class BridgeOracle
 	public const string Into     = "SELECT a INTO t: a new table in T-SQL, a target in the standard";
 	public const string Option   = "FROM t OPTION (h): a hint in T-SQL, an alias in the standard";
 	public const string Named    = "SELECT x = a: an alias in T-SQL, a comparison in the standard";
+	public const string Only     = "UPDATE ONLY (t): a call to a function ONLY in T-SQL, the table t alone in the standard";
 
-	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName, GroupAll, Into, Option, Named];
+	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName, GroupAll, Into, Option, Named, Only];
 
 	/// <summary>
 	/// The pattern whose subtree a difference lies in, and the node at the subtree's root, or null.
@@ -308,6 +309,14 @@ static class BridgeOracle
 				case Ast.CursorReference { Global: true }:
 					return (Global, step.Node);
 
+				// UPDATE or DELETE ONLY (t): the target, a call in T-SQL and the standard's ONLY. The standard's INSERT
+				// reads no ONLY.
+				case Ast.Statement.Update { Target: { } changed } when step.Member == "Target" && CalledOnly(changed):
+					return (Only, changed);
+
+				case Ast.Statement.Delete { Target: { } changed } when step.Member == "Target" && CalledOnly(changed):
+					return (Only, changed);
+
 				case Ast.Expression.Invocation { Name.Parts: [var name] } when step.Member == "Arguments" && step.Index == 0
 					&& (name.Text.Equals("FREETEXT", StringComparison.OrdinalIgnoreCase) || name.Text.Equals("CONTAINS", StringComparison.OrdinalIgnoreCase)):
 					return (FullText, step.Node);
@@ -316,6 +325,12 @@ static class BridgeOracle
 		}
 
 		return null;
+	}
+
+	/// <summary>A data change statement's target that is a call to a function of one part named ONLY.</summary>
+	static bool CalledOnly(Ast.TableSource target)
+	{
+		return target is Ast.TableSource.Function { Invocation.Name.Parts: [var name] } && name.Text.Equals("ONLY", StringComparison.OrdinalIgnoreCase);
 	}
 
 	/// <summary>

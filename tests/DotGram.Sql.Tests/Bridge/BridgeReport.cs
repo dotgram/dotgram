@@ -82,6 +82,9 @@ static class BridgeReport
 		  `Alias` the standard reads the word OPTION as.
 		- `SELECT x = a`: an alias in T-SQL, a comparison in the standard. A `SelectColumn.ExpressionItem` that is
 		  `AliasFirst`.
+		- `UPDATE ONLY (t)`, `DELETE FROM ONLY (t)`: a call to a function `ONLY` in T-SQL, the table `t` alone in the
+		  standard. The statement's `Target`, a `TableSource.Function` of the one-part name `ONLY`. The standard's
+		  `INSERT` reads no `ONLY`, and the writer refuses it there.
 
 		## Words read from the text
 

@@ -198,6 +198,9 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT a AS x FROM t OPTION (RECOMPILE)", "SELECT a AS y FROM t OPTION (RECOMPILE)", BridgeOracle.Option, true)]
 	[InlineData("SELECT x = b FROM t",                 "SELECT x = b FROM t",                 BridgeOracle.Named, false)]
 	[InlineData("SELECT x = b FROM t WHERE c = 1",     "SELECT x = b FROM t WHERE c = 2",     BridgeOracle.Named, true)]
+	[InlineData("UPDATE ONLY (t) SET a = 1",            "UPDATE ONLY (t) SET a = 1",            BridgeOracle.Only, false)]
+	[InlineData("DELETE FROM ONLY (t) WHERE a = 1",     "DELETE FROM ONLY (t) WHERE a = 1",     BridgeOracle.Only, false)]
+	[InlineData("DELETE FROM ONLY (t) WHERE a = 1",     "DELETE FROM ONLY (t) WHERE a = 2",     BridgeOracle.Only, true)]
 	public void A_dialect_pattern_exempts_its_subtree_and_no_more(string bridged, string standard, string pattern, bool shape)
 	{
 		var made        = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(bridged), bridged);
@@ -303,6 +306,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("UPDATE OPENQUERY (s, 'SELECT a FROM t') SET a = 1",               "Update.Target OpenQuery")]
 	[InlineData("MERGE t USING u ON t.a = u.a WHEN MATCHED THEN DELETE OUTPUT $action;", "Merge.IntoOmitted Output")]
 	[InlineData("UPDATE t SET @v = c += 1",                                        "Assignment variable through column")]
+	[InlineData("UPDATE t SET @v = c = 1",                                         "Assignment variable through column, plainly")]
 	[InlineData("UPDATE t SET @v -= 1",                                            "Assignment variable")]
 	[InlineData("UPDATE t SET c ||= 'x'",                                          "Assignment compound")]
 	[InlineData("UPDATE t SET c.WRITE (@x, 0, NULL)",                              "Assignment call")]
@@ -351,6 +355,18 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			{
 				Assignments: [{ Variable.Name.Text: "@v", Targets: [{ Name.Parts: [{ Text: "c" }] }], Operator: Ast.AssignmentOperator.Add }],
 			},
+			"Assignment variable through column, plainly" => made is Ast.Statement.Update
+			{
+				Assignments:
+				[
+					{
+						Variable.Name.Text: "@v",
+						Targets: [{ Name.Parts: [{ Text: "c" }], Index: null, MutationPath: null }],
+						Operator: Ast.AssignmentOperator.Assign,
+						Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Numeric { Text: "1" } },
+					},
+				],
+			},
 			"Assignment variable"         => made is Ast.Statement.Update { Assignments: [{ Variable.Name.Text: "@v", Targets.Count: 0, Operator: Ast.AssignmentOperator.Subtract }] },
 			"Assignment compound"         => made is Ast.Statement.Update { Assignments: [{ Variable: null, Targets.Count: 1, Operator: Ast.AssignmentOperator.Concatenate }] },
 			"Assignment call"             => made is Ast.Statement.Update
@@ -385,7 +401,11 @@ public sealed class BridgeTests(ITestOutputHelper output)
 				Offset: Ast.Expression.Literal { Value: Ast.LiteralValue.Null }, Log: true, Data: null, Source.Parts.Count: 2, SourcePointer: Ast.Expression.Variable,
 			},
 			"Assignment plain"            => made is Ast.Statement.Update { Assignments: [{ Variable: null, Operator: Ast.AssignmentOperator.Assign, Targets.Count: 1 }] },
-			_                             => made is Ast.Statement.Merge { IntoOmitted: true, Output.Items.Count: 1 },
+			_                             => made is Ast.Statement.Merge
+			{
+				IntoOmitted: true,
+				Output.Items: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Reference { Name.Parts: [{ Text: "$action" }] }, Alias: null }],
+			},
 		};
 
 		Assert.True(holds, $"{text} built {made}");
