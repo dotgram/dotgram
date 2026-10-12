@@ -153,6 +153,47 @@ public abstract partial record TableSource
 	public sealed record Predict(Expression Model, TableSource Data, Identifier? Runtime, SqlList<ColumnDefinition> Schema, Alias? Alias = null) : TableSource;
 }
 
+// The change-tracking and full-text rowset functions, one record each, what they return being what differs.
+public abstract partial record TableSource
+{
+	/// <summary>
+	/// T-SQL: CHANGETABLE (Transact-SQL) (no syntax block in syntax.md). <c>CHANGETABLE (CHANGES t, @v [, FORCESEEK])</c>:
+	/// the rows of the table changed since the version given.
+	/// </summary>
+	public sealed record ChangeTableChanges(QualifiedName Table, Expression LastSyncVersion, bool ForceSeek, Alias? Alias = null) : TableSource;
+
+	/// <summary>
+	/// T-SQL: CHANGETABLE (Transact-SQL) (no syntax block in syntax.md). <c>CHANGETABLE (VERSION t, (a, b), (1, 2)
+	/// [, FORCESEEK])</c>: the latest change to the row whose key columns hold the values given.
+	/// </summary>
+	public sealed record ChangeTableVersion(QualifiedName Table, SqlList<Identifier> Columns, SqlList<Expression> Values, bool ForceSeek, Alias? Alias = null) : TableSource;
+
+	/// <summary>
+	/// T-SQL: CONTAINSTABLE (Transact-SQL) (no syntax block in syntax.md). <c>CONTAINSTABLE (t, (a, b), 'x' [, LANGUAGE
+	/// 1033] [, 10])</c>: the table, the columns searched, what is searched for, the language and how many rows. A
+	/// column is an <see cref="Expression.Reference"/> of one part, <c>*</c> an <see cref="Expression.Asterisk"/>, and
+	/// <c>PROPERTY (c, 'p')</c> an invocation, written alone and never in brackets.
+	/// </summary>
+	public sealed record ContainsTable(QualifiedName Table, SqlList<Expression> Columns, Expression Search, Expression? Language, Expression? Top, Alias? Alias = null) : TableSource
+	{
+		/// <summary>
+		/// T-SQL: CONTAINSTABLE (Transact-SQL) (no syntax block in syntax.md). <c>(c)</c> and <c>(*)</c> against <c>c</c>
+		/// and <c>*</c>; always set for two columns or more, which the writer refuses unbracketed.
+		/// </summary>
+		[Spelling] public bool ColumnsBracketed { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: FREETEXTTABLE (Transact-SQL) (no syntax block in syntax.md). <c>FREETEXTTABLE (t, (a, b), 'x' [, LANGUAGE
+	/// 1033] [, 10])</c>: as <see cref="ContainsTable"/>, its members the same.
+	/// </summary>
+	public sealed record FreetextTable(QualifiedName Table, SqlList<Expression> Columns, Expression Search, Expression? Language, Expression? Top, Alias? Alias = null) : TableSource
+	{
+		/// <summary>T-SQL: FREETEXTTABLE (Transact-SQL) (no syntax block in syntax.md). As <see cref="ContainsTable.ColumnsBracketed"/>.</summary>
+		[Spelling] public bool ColumnsBracketed { get; init; }
+	}
+}
+
 /// <summary>
 /// T-SQL: OPENDATASOURCE (Transact-SQL). <c>OPENDATASOURCE ('provider', 'init')</c>: the provider and the string it
 /// is initialised with.

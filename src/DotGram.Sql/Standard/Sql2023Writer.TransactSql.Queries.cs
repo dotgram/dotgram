@@ -33,6 +33,54 @@ public static partial class Sql2023Writer
 					Close();
 					return true;
 
+				// T-SQL: CHANGETABLE (Transact-SQL) (no syntax block in syntax.md).
+				case TableSource.ChangeTableChanges changes:
+					Word("CHANGETABLE");
+					Call();
+					Word("CHANGES");
+					PutName(changes.Table);
+					Tight(",");
+					PutExpression(changes.LastSyncVersion);
+					PutForceSeek(changes.ForceSeek);
+					Close();
+					PutAlias(changes.Alias);
+					return true;
+
+				case TableSource.ChangeTableVersion version:
+					if (version.Columns.Count == 0)
+						throw Empty(version, "Columns");
+
+					if (version.Values.Count == 0)
+						throw Empty(version, "Values");
+
+					Word("CHANGETABLE");
+					Call();
+					Word("VERSION");
+					PutName(version.Table);
+					Tight(",");
+					Open();
+					Each(version.Columns, PutIdentifier);
+					Close();
+					Tight(",");
+					Open();
+					Each(version.Values, PutExpression);
+					Close();
+					PutForceSeek(version.ForceSeek);
+					Close();
+					PutAlias(version.Alias);
+					return true;
+
+				// T-SQL: CONTAINSTABLE (Transact-SQL), FREETEXTTABLE (Transact-SQL) (no syntax block in syntax.md).
+				case TableSource.ContainsTable contains:
+					PutFullTextTable(contains, "CONTAINSTABLE", contains.Table, contains.Columns, contains.ColumnsBracketed, contains.Search, contains.Language, contains.Top);
+					PutAlias(contains.Alias);
+					return true;
+
+				case TableSource.FreetextTable freetext:
+					PutFullTextTable(freetext, "FREETEXTTABLE", freetext.Table, freetext.Columns, freetext.ColumnsBracketed, freetext.Search, freetext.Language, freetext.Top);
+					PutAlias(freetext.Alias);
+					return true;
+
 				// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL).
 				case TableSource.Pivot pivot:
 					PutRotated(pivot, pivot.Source, pivot.Values, "Values", pivot.Alias);
@@ -262,6 +310,73 @@ public static partial class Sql2023Writer
 			}
 			else
 				PutSource(source);
+		}
+
+		void PutForceSeek(bool forceSeek)
+		{
+			if (forceSeek)
+			{
+				Tight(",");
+				Word("FORCESEEK");
+			}
+		}
+
+		/// <summary>
+		/// A full-text rowset: the table, the columns searched as the grammar reads them — a bare name, a list of
+		/// them, <c>*</c> or a property, alone or in brackets — then the search, the language and the count.
+		/// </summary>
+		void PutFullTextTable(TableSource node, string name, QualifiedName table, SqlList<Expression> columns, bool bracketed, Expression search, Expression? language, Expression? top)
+		{
+			if (columns.Count == 0)
+				throw Empty(node, "Columns");
+
+			if (columns.Count > 1 && !bracketed)
+				throw Misplaced(node, "ColumnsBracketed", "false with more than one column");
+
+			foreach (var column in columns)
+			{
+				var read = column switch
+				{
+					Expression.Reference { Name.Parts.Count: 1 } => true,
+					Expression.Asterisk                          => columns.Count == 1,
+					Expression.Invocation { Name.Parts: [var called] } when called.Text.Equals("PROPERTY", StringComparison.OrdinalIgnoreCase) => !bracketed,
+					_                                            => false,
+				};
+
+				if (!read)
+					throw Misplaced(node, "Columns", "with a column other than a name of one part, * alone, or PROPERTY (…) alone and unbracketed");
+			}
+
+			Word(name);
+			Call();
+			PutName(table);
+			Tight(",");
+
+			if (bracketed)
+				Open();
+
+			Each(columns, PutExpression);
+
+			if (bracketed)
+				Close();
+
+			Tight(",");
+			PutExpression(search);
+
+			if (language is not null)
+			{
+				Tight(",");
+				Word("LANGUAGE");
+				PutExpression(language);
+			}
+
+			if (top is not null)
+			{
+				Tight(",");
+				PutExpression(top);
+			}
+
+			Close();
 		}
 
 		/// <summary>
