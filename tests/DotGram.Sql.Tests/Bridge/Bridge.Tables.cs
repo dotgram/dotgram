@@ -60,10 +60,7 @@ static partial class Bridge
 					return Named(named);
 
 				case TableReference.Derived(var query, var forPath, var name, var columns):
-					if (forPath)
-						throw BridgeGap.Missing(old, "TableSource.Subquery has no FOR PATH (inventory TableReference.Derived)");
-
-					return new Ast.TableSource.Subquery(QueryOf(query)) { Alias = Alias(old, query, name, columns) };
+					return new Ast.TableSource.Subquery(QueryOf(query)) { Alias = Alias(old, query, name, columns), ForPath = forPath };
 
 				case TableReference.FunctionCall(var call, var name, var columns, var schema):
 					if (schema.Length > 0 || Rowsets.Contains(call.Name))
@@ -113,13 +110,11 @@ static partial class Bridge
 			if (old.Sample is not null && old.Hints.Length > 0 && Spelled(old) is { } text && !Words(text).Contains("WITH"))
 				throw BridgeGap.Open(old, "inventory Clause.Hint (a hint written against the sample)");
 
-			if (old.ForPath)
-				throw BridgeGap.Missing(old, "TableSource.Named has no FOR PATH (inventory TableReference.Named)");
-
 			var made = new Ast.TableSource.Named(Values.Name(old, old.Table))
 			{
 				DataSource = server,
 				SystemTime = old.SystemTime is null ? null : SystemTime(old.SystemTime),
+				ForPath    = old.ForPath,
 				Alias      = Alias(old, null, old.Name, old.Columns),
 				Hints      = Each(old.Hints, static one => one is Clause.Hint(var text) && SqlTokens.Of(text) is [{ Kind: SqlTokens.Kind.Number }]
 					? throw BridgeGap.Open(one, "inventory Clause.Hint (the old WITH (n))")
@@ -174,11 +169,15 @@ static partial class Bridge
 						alias);
 
 				case "OPENROWSET" when arguments.Length == 3 && old.Schema.Length == 0:
-					return new Ast.TableSource.OpenRowset(
-						Values.Of(arguments[0]),
-						arguments[1] is Expression.Pieced(var parts) ? Each(parts, Values.Of) : [Values.Of(arguments[1])],
-						Values.Of(arguments[2]),
-						alias);
+					return arguments[1] switch
+					{
+						Expression.Pieced([var source, var user, var password]) =>
+							new Ast.TableSource.OpenRowset(Values.Of(arguments[0]), null, new Ast.RowsetLogin(Values.Of(source), Values.Of(user), Values.Of(password)), Values.Of(arguments[2]), alias),
+						Expression.Pieced =>
+							throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (OPENROWSET's login in other than three parts)"),
+						var provider =>
+							new Ast.TableSource.OpenRowset(Values.Of(arguments[0]), Values.Of(provider), null, Values.Of(arguments[2]), alias),
+					};
 
 				case "PREDICT":
 					return Predict(old, alias);
@@ -384,9 +383,11 @@ static partial class Bridge
 
 			return made with
 			{
-				Sample              = new Ast.SampleClause(Ast.SampleMethod.System, Values.Of(value), repeatable is null ? null : Values.Of(repeatable)),
-				SampleMethodOmitted = !system,
-				SampleUnit          = counted,
+				Sample = new Ast.SampleClause(Ast.SampleMethod.System, Values.Of(value), repeatable is null ? null : Values.Of(repeatable))
+				{
+					MethodOmitted = !system,
+					Unit          = counted,
+				},
 			};
 		}
 

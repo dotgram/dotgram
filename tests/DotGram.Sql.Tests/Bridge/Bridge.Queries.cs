@@ -143,12 +143,210 @@ static partial class Bridge
 			return items;
 		}
 
+		// ── MATCH ─────────────────────────────────────────────────────────────────
+
+		/// <summary>
+		/// <c>MATCH (…)</c>, whose drawing the old tree keeps as text: read again token by token, an arrow being
+		/// two characters with perhaps a blank between them, as the grammar reads it.
+		/// </summary>
+		public static Ast.Expression.GraphMatch GraphMatch(Expression old, string pattern)
+		{
+			var reader   = new GraphReader(old, [.. SqlTokens.Of(pattern)]);
+			var patterns = new List<Ast.GraphPattern> { reader.Pattern() };
+
+			while (reader.Word("AND"))
+				patterns.Add(reader.Pattern());
+
+			if (!reader.Done)
+				throw reader.Gap("text after the last pattern");
+
+			return new Ast.Expression.GraphMatch([.. patterns]);
+		}
+
+		/// <summary>A drawing's tokens, read from the left.</summary>
+		sealed class GraphReader(Expression old, SqlTokens.Token[] tokens)
+		{
+			int _at;
+
+			public bool Done => _at == tokens.Length;
+
+			public Exception Gap(string what)
+			{
+				return BridgeGap.Open(old, $"inventory Expression.GraphMatch ({what})");
+			}
+
+			bool Is(string text, int ahead = 0)
+			{
+				return _at + ahead < tokens.Length && tokens[_at + ahead].Text.Equals(text, StringComparison.OrdinalIgnoreCase);
+			}
+
+			public bool Word(string word)
+			{
+				if (!Is(word) || tokens[_at].Kind != SqlTokens.Kind.Word)
+					return false;
+
+				_at++;
+				return true;
+			}
+
+			void Expect(string text)
+			{
+				if (!Is(text))
+					throw Gap($"`{text}` expected");
+
+				_at++;
+			}
+
+			public Ast.GraphPattern Pattern()
+			{
+				if (Word("SHORTEST_PATH"))
+					return ShortestPath();
+
+				var start = Node();
+
+				// LAST_NODE (a) = LAST_NODE (b): the last nodes compared.
+				if (start.LastNode && Is("="))
+				{
+					_at++;
+					var right = Node();
+
+					return right.LastNode ? new Ast.GraphPattern.LastNodes(start.Alias, right.Alias) : throw Gap("a last node compared with a node");
+				}
+
+				var steps = new List<Ast.GraphStep>();
+
+				do
+					steps.Add(new Ast.GraphStep(Edge(), Node()));
+				while (Is("-") || Is("<"));
+
+				return new Ast.GraphPattern.Chain(start, [.. steps]);
+			}
+
+			Ast.GraphPattern ShortestPath()
+			{
+				Expect("(");
+
+				Ast.GraphPattern.ShortestPath path;
+
+				// The anchor first, each step edge then node; or the steps first, node then edge, and the anchor last.
+				if (Is("("))
+				{
+					_at++;
+					var steps = new List<Ast.GraphStep>();
+
+					do
+					{
+						var node = Alias();
+						steps.Add(new Ast.GraphStep(Edge(), node));
+					}
+					while (!Is(")"));
+
+					_at++;
+					var quantifier = Quantifier();
+					path = new Ast.GraphPattern.ShortestPath(Node(), [.. steps], quantifier, true);
+				}
+				else
+				{
+					var anchor = Node();
+					Expect("(");
+					var steps = new List<Ast.GraphStep>();
+
+					do
+						steps.Add(new Ast.GraphStep(Edge(), Alias()));
+					while (!Is(")"));
+
+					_at++;
+					path = new Ast.GraphPattern.ShortestPath(anchor, [.. steps], Quantifier(), false);
+				}
+
+				Expect(")");
+				return path;
+			}
+
+			Ast.GraphNode Node()
+			{
+				if (Word("LAST_NODE"))
+				{
+					Expect("(");
+					var alias = Name();
+					Expect(")");
+
+					return new Ast.GraphNode(alias, true);
+				}
+
+				return Alias();
+			}
+
+			Ast.GraphNode Alias()
+			{
+				return new Ast.GraphNode(Name(), false);
+			}
+
+			Ast.Identifier Name()
+			{
+				if (_at >= tokens.Length || tokens[_at].Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited))
+					throw Gap("a node or an edge expected");
+
+				return Values.Part(old, tokens[_at++].Text);
+			}
+
+			Ast.GraphEdge Edge()
+			{
+				if (Is("<"))
+				{
+					_at++;
+					Expect("-");
+					Expect("(");
+					var alias = Name();
+					Expect(")");
+					Expect("-");
+
+					return new Ast.GraphEdge(alias, Ast.GraphDirection.Left);
+				}
+
+				Expect("-");
+				Expect("(");
+				var name = Name();
+				Expect(")");
+				Expect("-");
+				Expect(">");
+
+				return new Ast.GraphEdge(name, Ast.GraphDirection.Right);
+			}
+
+			Ast.GraphQuantifier Quantifier()
+			{
+				if (Is("+"))
+				{
+					_at++;
+					return new Ast.GraphQuantifier(1, null, true);
+				}
+
+				Expect("{");
+				var min = Number();
+				Expect(",");
+				int? max = Is("}") ? null : Number();
+				Expect("}");
+
+				return new Ast.GraphQuantifier(min, max, false);
+			}
+
+			int Number()
+			{
+				if (_at >= tokens.Length || tokens[_at].Kind != SqlTokens.Kind.Number || !int.TryParse(tokens[_at].Text, out var number))
+					throw Gap("a bound expected");
+
+				_at++;
+				return number;
+			}
+		}
+
 		// ── FOR, OPTION ───────────────────────────────────────────────────────────
 
 		/// <summary>
 		/// <c>FOR XML</c>, <c>FOR JSON</c> or <c>FOR BROWSE</c>, which the old tree keeps as a kind and an option's
-		/// text each. The first is the mode; the rest are a name (<c>TYPE</c>), a name and its value in brackets
-		/// (<c>ROOT ('r')</c>), or a name and the one word it takes (<c>ELEMENTS XSINIL</c>).
+		/// text each. The first is the mode; the rest are the directives, each its words and perhaps a string in
+		/// brackets (<c>ROOT ('r')</c>).
 		/// </summary>
 		public static Ast.ForClause For(Clause old)
 		{
@@ -171,7 +369,7 @@ static partial class Bridge
 				_ => throw BridgeGap.Open(old, $"inventory Clause.For (a mode `{options[0]}`)"),
 			};
 
-			var rest = Each(options[1..], one => ForOption(old, one));
+			var rest = Each(options[1..], one => Directive(old, one));
 
 			if (upper == "JSON")
 				return element is null && mode switch { "AUTO" => Ast.JsonMode.Auto, "PATH" => Ast.JsonMode.Path, _ => (Ast.JsonMode?)null } is { } json
@@ -187,23 +385,37 @@ static partial class Bridge
 				_          => throw BridgeGap.Open(old, $"inventory Clause.For (FOR XML {options[0]})"),
 			};
 
-			return new Ast.ForClause.Xml(xml, rest) { ElementName = element };
+			return new Ast.ForClause.Xml(xml, element, rest);
 		}
 
-		static Ast.Option ForOption(Clause old, string text)
+		static Ast.ForDirective Directive(Clause old, string text)
 		{
-			return SqlTokens.Of(text) switch
+			SqlTokens.Token[] tokens = [.. SqlTokens.Of(text)];
+
+			// A string in brackets after the words: ROOT's or XMLSCHEMA's name.
+			Ast.Expression? name = null;
+
+			if (tokens is [.. var words, { Text: "(" }, { Kind: SqlTokens.Kind.String } value, { Text: ")" }])
 			{
-				[{ Kind: SqlTokens.Kind.Word } name] =>
-					new Ast.Option(new Ast.Identifier(name.Text), null, []),
+				name   = Values.String(value.Text);
+				tokens = words;
+			}
 
-				[{ Kind: SqlTokens.Kind.Word } name, { Text: "(" }, { Kind: SqlTokens.Kind.String } value, { Text: ")" }] =>
-					new Ast.Option(new Ast.Identifier(name.Text), Values.String(value.Text), []),
+			var said = string.Join(" ", tokens.Select(static one => one.Kind == SqlTokens.Kind.Word ? one.Text.ToUpperInvariant() : "?"));
 
-				[{ Kind: SqlTokens.Kind.Word } name, { Kind: SqlTokens.Kind.Word } word] =>
-					new Ast.Option(new Ast.Identifier(name.Text), null, [new Ast.Option(new Ast.Identifier(word.Text), null, [])]),
-
-				_ => throw BridgeGap.Open(old, "inventory Clause.For (an option that is not a word, a word and a string, or two words)"),
+			return said switch
+			{
+				"BINARY BASE64"         => new Ast.ForDirective(Ast.ForDirectiveKind.BinaryBase64, name),
+				"TYPE"                  => new Ast.ForDirective(Ast.ForDirectiveKind.Type, name),
+				"ROOT"                  => new Ast.ForDirective(Ast.ForDirectiveKind.Root, name),
+				"XMLDATA"               => new Ast.ForDirective(Ast.ForDirectiveKind.XmlData, name),
+				"XMLSCHEMA"             => new Ast.ForDirective(Ast.ForDirectiveKind.XmlSchema, name),
+				"ELEMENTS"              => new Ast.ForDirective(Ast.ForDirectiveKind.Elements, name),
+				"ELEMENTS ABSENT"       => new Ast.ForDirective(Ast.ForDirectiveKind.Elements, name, Absent: true),
+				"ELEMENTS XSINIL"       => new Ast.ForDirective(Ast.ForDirectiveKind.ElementsXsiNil, name),
+				"INCLUDE_NULL_VALUES"   => new Ast.ForDirective(Ast.ForDirectiveKind.IncludeNullValues, name),
+				"WITHOUT_ARRAY_WRAPPER" => new Ast.ForDirective(Ast.ForDirectiveKind.WithoutArrayWrapper, name),
+				_                       => throw BridgeGap.Open(old, $"inventory Clause.For (a directive `{text}`)"),
 			};
 		}
 

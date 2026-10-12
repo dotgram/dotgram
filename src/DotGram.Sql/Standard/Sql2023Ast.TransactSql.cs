@@ -54,15 +54,15 @@ public abstract record ForClause : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	/// <summary><c>FOR XML RAW</c>, <c>AUTO</c>, <c>EXPLICIT</c> or <c>PATH</c>, and its options.</summary>
-	public sealed record Xml(XmlMode Mode, SqlList<Option> Options) : ForClause
-	{
-		/// <summary><c>RAW ('row')</c>, <c>PATH ('x')</c>: the element each row is written as; only with those two modes.</summary>
-		public Expression? ElementName { get; init; }
-	}
+	/// <summary>
+	/// <c>FOR XML RAW</c>, <c>AUTO</c>, <c>EXPLICIT</c> or <c>PATH</c>, the element each row is written as
+	/// (<c>RAW ('row')</c>, <c>PATH ('')</c>), which the grammar reads after every mode, and the directives in the
+	/// order written.
+	/// </summary>
+	public sealed record Xml(XmlMode Mode, Expression? ElementName, SqlList<ForDirective> Directives) : ForClause;
 
-	/// <summary><c>FOR JSON AUTO</c> or <c>PATH</c>, and its options.</summary>
-	public sealed record Json(JsonMode Mode, SqlList<Option> Options) : ForClause;
+	/// <summary><c>FOR JSON AUTO</c> or <c>PATH</c>, and the directives in the order written.</summary>
+	public sealed record Json(JsonMode Mode, SqlList<ForDirective> Directives) : ForClause;
 	/// <summary><c>FOR BROWSE</c>, which takes nothing.</summary>
 	public sealed record Browse : ForClause;
 }
@@ -72,6 +72,25 @@ public enum XmlMode { Raw, Auto, Explicit, Path }
 
 /// <summary>T-SQL: FOR Clause (Transact-SQL). How <c>FOR JSON</c> shapes the rows.</summary>
 public enum JsonMode { Auto, Path }
+
+/// <summary>
+/// T-SQL: FOR Clause (Transact-SQL). One directive after the mode: <see cref="Name"/> is the string of
+/// <c>ROOT ('r')</c> and <c>XMLSCHEMA ('uri')</c>; <see cref="Absent"/> is <c>ELEMENTS ABSENT</c>, which means what
+/// <c>ELEMENTS</c> alone means.
+/// </summary>
+public sealed record ForDirective(ForDirectiveKind Kind, Expression? Name = null, [property: Spelling] bool Absent = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>
+/// T-SQL: FOR Clause (Transact-SQL). What a directive asks for. <c>FOR XML</c> only: <c>BINARY BASE64</c>,
+/// <c>TYPE</c>, <c>XMLDATA</c>, <c>XMLSCHEMA</c>, <c>ELEMENTS</c>, <c>ELEMENTS XSINIL</c>; <c>FOR JSON</c> only:
+/// <c>INCLUDE_NULL_VALUES</c>, <c>WITHOUT_ARRAY_WRAPPER</c>; both: <c>ROOT</c>.
+/// </summary>
+public enum ForDirectiveKind { BinaryBase64, Type, Root, XmlData, XmlSchema, Elements, ElementsXsiNil, IncludeNullValues, WithoutArrayWrapper }
 
 /// <summary>
 /// T-SQL: Table Hints (Transact-SQL). A hint on a table source, <c>WITH (NOLOCK)</c> and the rest.

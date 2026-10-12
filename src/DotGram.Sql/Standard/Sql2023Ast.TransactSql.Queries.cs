@@ -62,35 +62,40 @@ public abstract partial record TableSource
 
 	/// <summary>
 	/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>t PIVOT (SUM (a) FOR b IN ([1], [2])) AS p</c>:
-	/// the source, the aggregate, the column whose values become columns, and those values as names.
+	/// the source, the aggregate, the column after FOR whose values become columns, and those values, written as
+	/// names (the IN list).
 	/// </summary>
-	public sealed record Pivot(TableSource Source, Expression.Invocation Aggregate, Identifier For, SqlList<Identifier> In, Alias Alias) : TableSource;
+	public sealed record Pivot(TableSource Source, Expression.Invocation Aggregate, Identifier Column, SqlList<Identifier> Values, Alias Alias) : TableSource;
 
 	/// <summary>
 	/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>t UNPIVOT (v FOR c IN (a, b)) AS u</c>: the
-	/// source, the column the values go to, the column their names go to, and the columns unpivoted.
+	/// source, the column the values go to, the column after FOR their names go to, and the columns folded into
+	/// <see cref="Value"/> (the IN list).
 	/// </summary>
-	public sealed record Unpivot(TableSource Source, Identifier Value, Identifier For, SqlList<Identifier> In, Alias Alias) : TableSource;
+	public sealed record Unpivot(TableSource Source, Identifier Value, Identifier Column, SqlList<Identifier> Columns, Alias Alias) : TableSource;
+}
+
+public sealed partial record SampleClause
+{
+	/// <summary>
+	/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>TABLESAMPLE (10)</c> with its <c>SYSTEM</c> left out,
+	/// which T-SQL allows and the standard's <see cref="Method"/> does not.
+	/// </summary>
+	[Spelling] public bool MethodOmitted { get; init; }
+
+	/// <summary>
+	/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>PERCENT</c> or <c>ROWS</c> after the sample number;
+	/// null where neither was written, which is a percentage as the standard's is.
+	/// </summary>
+	public SampleUnit? Unit { get; init; }
 }
 
 public abstract partial record TableSource
 {
-	public partial record Named
-	{
-		/// <summary>
-		/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>TABLESAMPLE (10)</c> with its <c>SYSTEM</c>
-		/// left out, which T-SQL allows and the standard's <see cref="SampleClause.Method"/> does not.
-		/// </summary>
-		[Spelling] public bool SampleMethodOmitted { get; init; }
-
-		/// <summary>
-		/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>PERCENT</c> or <c>ROWS</c> after the sample
-		/// number; null where neither was written, which is a percentage as the standard's is.
-		/// </summary>
-		public SampleUnit? SampleUnit { get; init; }
-	}
-
-	/// <summary>T-SQL: ODBC Scalar Functions (Transact-SQL). An ODBC outer join escape, <c>{OJ t LEFT OUTER JOIN u ON …}</c>.</summary>
+	/// <summary>
+	/// T-SQL: the ODBC outer join escape { oj … } (no syntax block in syntax.md).
+	/// <c>{OJ t LEFT OUTER JOIN u ON …}</c>.
+	/// </summary>
 	public sealed record OdbcJoin(TableSource Source) : TableSource;
 }
 
@@ -128,11 +133,11 @@ public abstract partial record TableSource
 
 	/// <summary>
 	/// T-SQL: OPENROWSET (Transact-SQL). <c>OPENROWSET ('provider', 'datasource'; 'user'; 'password', object)</c>,
-	/// or with a provider string in place of the three. <see cref="Connection"/> holds one item, the provider string,
-	/// or three, the data source, the user and the password; the writer refuses any other count. <see cref="Object"/>
-	/// is a name or a query's text.
+	/// or with a provider string in place of the three: exactly one of <see cref="ProviderString"/> and
+	/// <see cref="Login"/> is set, and the writer refuses both or neither. <see cref="Object"/> is a name or a
+	/// query's text.
 	/// </summary>
-	public sealed record OpenRowset(Expression Provider, SqlList<Expression> Connection, Expression Object, Alias? Alias = null) : TableSource;
+	public sealed record OpenRowset(Expression Provider, Expression? ProviderString, RowsetLogin? Login, Expression Object, Alias? Alias = null) : TableSource;
 
 	/// <summary>
 	/// T-SQL: OPENROWSET BULK (Transact-SQL). <c>OPENROWSET (BULK 'file', SINGLE_BLOB, FORMAT = 'CSV') [WITH (…)]</c>:
@@ -153,6 +158,16 @@ public abstract partial record TableSource
 /// is initialised with.
 /// </summary>
 public sealed record OpenDataSource(Expression Provider, Expression InitString) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>
+/// T-SQL: OPENROWSET (Transact-SQL). <c>'datasource'; 'user'; 'password'</c>: where OPENROWSET connects, and as whom.
+/// </summary>
+public sealed record RowsetLogin(Expression DataSource, Expression User, Expression Password) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -211,5 +226,99 @@ public abstract partial record Expression
 		/// nodes of an arbitrary-length MATCH pattern, in path order.
 		/// </summary>
 		public bool GraphPath { get; init; }
+	}
+}
+
+// T-SQL's graph pattern (proposal 15: a graph pattern is a family of its own), the operand of MATCH, which is a
+// drawing rather than an expression; and FOR PATH, which marks a source read as the nodes or edges of a path of
+// any length.
+public abstract partial record Expression
+{
+	/// <summary>
+	/// T-SQL: MATCH (SQL Graph). <c>MATCH (a-(e)->b AND LAST_NODE (p) = LAST_NODE (q))</c>: the patterns
+	/// <c>AND</c> joins, in order.
+	/// </summary>
+	public sealed record GraphMatch(SqlList<GraphPattern> Patterns) : Expression;
+}
+
+public abstract partial record TableSource
+{
+	public partial record Named
+	{
+		/// <summary>
+		/// T-SQL: MATCH (SQL Graph). <c>FOR PATH</c>, after the table's version and before its alias: the table is
+		/// read as the nodes or edges of an arbitrary-length pattern.
+		/// </summary>
+		public bool ForPath { get; init; }
+	}
+
+	public partial record Subquery
+	{
+		/// <summary>T-SQL: MATCH (SQL Graph). <c>FOR PATH</c> after the bracketed query, before its alias.</summary>
+		public bool ForPath { get; init; }
+	}
+}
+
+/// <summary>T-SQL: MATCH (SQL Graph). One pattern of a MATCH.</summary>
+public abstract record GraphPattern : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>a-(e)->b&lt;-(f)-c</c>: a node, then each edge and the node it reaches; either end may be <c>LAST_NODE (x)</c>.</summary>
+	public sealed record Chain(GraphNode Start, SqlList<GraphStep> Steps) : GraphPattern;
+
+	/// <summary><c>LAST_NODE (a) = LAST_NODE (b)</c>: the last nodes of two paths, compared.</summary>
+	public sealed record LastNodes(Identifier Left, Identifier Right) : GraphPattern;
+
+	/// <summary>
+	/// <c>SHORTEST_PATH (n(-(e)->m)+)</c>, the anchor first and each step written edge then node; or, where
+	/// <see cref="AnchorLast"/>, <c>SHORTEST_PATH ((m&lt;-(e)-)+n)</c>, each step written node then edge and the anchor
+	/// after the quantifier. A step's node is never <c>LAST_NODE</c>; the anchor may be.
+	/// </summary>
+	public sealed record ShortestPath(GraphNode Anchor, SqlList<GraphStep> Steps, GraphQuantifier Quantifier, bool AnchorLast) : GraphPattern;
+}
+
+/// <summary>T-SQL: MATCH (SQL Graph). A node: the alias or one-part name of a node table, or <c>LAST_NODE (x)</c>.</summary>
+public sealed record GraphNode(Identifier Alias, bool LastNode) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>T-SQL: MATCH (SQL Graph). An edge and the node it reaches.</summary>
+public sealed record GraphStep(GraphEdge Edge, GraphNode Node) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>T-SQL: MATCH (SQL Graph). An edge, <c>-(e)-></c> or <c>&lt;-(e)-</c>.</summary>
+public sealed record GraphEdge(Identifier Alias, GraphDirection Direction) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>T-SQL: MATCH (SQL Graph). Which way an edge points: <c>-(e)-></c> is <see cref="Right"/>, <c>&lt;-(e)-</c> <see cref="Left"/>.</summary>
+public enum GraphDirection { Right, Left }
+
+/// <summary>
+/// T-SQL: MATCH (SQL Graph). How many times <c>SHORTEST_PATH</c> repeats its steps: <c>{1,3}</c>, <c>{1,}</c> with
+/// no most, or <c>+</c>, which is <c>{1,}</c> written short (<see cref="Plus"/>; the writer refuses it with any other
+/// bounds).
+/// </summary>
+public sealed record GraphQuantifier(int Min, int? Max, [property: Spelling] bool Plus) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }

@@ -367,7 +367,7 @@ public static partial class Sql2023Writer
 			// the depth the caller last checked, so on a deep tree it could throw where the writer would
 			// otherwise hand the walk to a fresh stack.
 			return named.GetType() == typeof(TableSource.Named)
-				&& named is { Sample: null, SystemTime: null, Alias: null, Only: false, DataSource: null, SampleMethodOmitted: false, SampleUnit: null }
+				&& named is { Sample: null, SystemTime: null, Alias: null, Only: false, DataSource: null, ForPath: false }
 				? named.Name
 				: null;
 		}
@@ -963,6 +963,10 @@ public static partial class Sql2023Writer
 						}
 					}
 
+					// T-SQL: MATCH (SQL Graph). After the version, before the alias.
+					if (named.ForPath)
+						Word("FOR PATH");
+
 					PutAlias(named.Alias);
 					break;
 
@@ -971,6 +975,16 @@ public static partial class Sql2023Writer
 						Word("LATERAL");
 
 					PutSubquery(subquery.Query);
+
+					// T-SQL: MATCH (SQL Graph).
+					if (subquery.ForPath)
+					{
+						if (subquery.Lateral)
+							throw Both(subquery, "Lateral", "ForPath");
+
+						Word("FOR PATH");
+					}
+
 					PutAlias(subquery.Alias);
 					break;
 
@@ -1129,19 +1143,20 @@ public static partial class Sql2023Writer
 					throw Unwritten(source);
 			}
 
-			// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). What a named table adds to its sample.
 			var table = source as TableSource.Named;
-
-			if (source.Sample is null && (table is { SampleMethodOmitted: true } || table?.SampleUnit is not null))
-				throw Misplaced(source, "SampleMethodOmitted or SampleUnit", "without a Sample");
 
 			// A sample clause follows a table primary and all it was given.
 			if (source.Sample is { } sample)
 			{
-				if (table is { SampleMethodOmitted: true })
+				// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). What T-SQL adds to a sample, which it reads
+				// after a table's name only.
+				if ((sample.MethodOmitted || sample.Unit is not null) && table is null)
+					throw Misplaced(sample, "MethodOmitted or Unit", "on the sample of a source other than a table's name");
+
+				if (sample.MethodOmitted)
 				{
 					if (sample.Method != SampleMethod.System)
-						throw Misplaced(source, "SampleMethodOmitted", "on a sample whose method is not SYSTEM");
+						throw Misplaced(sample, "MethodOmitted", "on a sample whose method is not SYSTEM");
 
 					Word("TABLESAMPLE");
 				}
@@ -1151,7 +1166,7 @@ public static partial class Sql2023Writer
 				Open();
 				PutExpression(sample.Percentage);
 
-				if (table?.SampleUnit is { } unit)
+				if (sample.Unit is { } unit)
 					Word(unit switch
 					{
 						SampleUnit.Percent => "PERCENT",
