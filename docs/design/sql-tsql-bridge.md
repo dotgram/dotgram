@@ -47,10 +47,10 @@ and is exempted (`BridgeOracle.Meaning`); any other difference makes the stateme
   first argument of an invocation of either.
 - `DATEADD (day, …)`: a date part in T-SQL, a column in the standard. The first argument of a date part
   function, a `DatePart`, where the standard has a column of one part whose text is that part's word.
-- `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A
-  `DataType.Named` of one part on the list of system types, or an `nvarchar` with no length, with no
-  arguments, where the standard has a user-defined type of one part and the same text, or, for `timestamp`,
-  its own TIMESTAMP.
+- `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A system
+  type with no arguments — a `DataType.Named` of one part, or `sys` and a name, on the list of system types, a
+  standard record written as a name (`WrittenName`), or an `nvarchar` with no length — where the standard has
+  a user-defined type of the same name, or, for `timestamp`, its own TIMESTAMP.
 - `GROUP BY ALL a`: the empty groups kept in T-SQL, the quantifier that changes nothing in the standard. A
   `GroupByClause` that is `AllKeyword`.
 - `SELECT a INTO t`: a new table in T-SQL, a target in the standard. A `Query.Select`'s `Into` and
@@ -194,7 +194,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.ColumnDefinition` | Tables | B | — | — | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |
 | `Clause.ColumnOption` | Tables | B | — | — | 2995 |
-| `Statement.Select` | Queries | B | converted 1933 | — | 2976 |
+| `Statement.Select` | Queries | B | converted 1938 | — | 2976 |
 | `Clause.DerivedColumn` | Queries | A | gap 24 | 24: needs decision: inventory Clause.DerivedColumn (a string alias) (19); needs decision: inventory Clause.DerivedColumn (alias = expression) (5) | 2967 |
 | `TableReference.Named` | Tables | A | gap 33 | 33: no target record: TableSource.Named has no FOR PATH (inventory TableReference.Named) (32); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
 | `Expression.RoutineInvocation` | Values | B | gap 159 | 191: needs decision: inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes) (122); needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12) | 2310 |
@@ -339,7 +339,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `SetExpression.QueryExecution.Switch` | Procedural | C | — | — | 27 |
 | `Statement.SchemaDefinition` | Security | A | converted 12, gap 15 | 15: needs decision: inventory Statement.SchemaDefinition (elements kept as text) (15) | 27 |
 | `Statement.SymmetricKeyDefinition` | Security | C | gap 27 | 27: no target record: Statement.CreateSymmetricKey (27) | 27 |
-| `Clause.VariableAssignment` | Queries | C | gap 5 | 5: needs decision: inventory Clause.VariableAssignment (operator `\|\|=`) (5) | 26 |
+| `Clause.VariableAssignment` | Queries | C | — | — | 26 |
 | `Statement.DeclareCursor` | Procedural | B | gap 26 | 26: needs decision: inventory Statement.DeclareCursor (26) | 26 |
 | `Expression.Like` | Values | A | — | — | 25 |
 | `SetExpression.IsoSettings.Switch` | Procedural | C | — | — | 25 |

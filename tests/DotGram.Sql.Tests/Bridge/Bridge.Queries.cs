@@ -390,16 +390,17 @@ static partial class Bridge
 				case Clause.VariableAssignment(var variable, var op, var value):
 					return new Ast.SelectColumn.VariableAssignment(new Ast.Identifier(variable), op switch
 					{
-						"="  => Ast.AssignmentOperator.Assign,
-						"+=" => Ast.AssignmentOperator.Add,
-						"-=" => Ast.AssignmentOperator.Subtract,
-						"*=" => Ast.AssignmentOperator.Multiply,
-						"/=" => Ast.AssignmentOperator.Divide,
-						"%=" => Ast.AssignmentOperator.Modulo,
-						"&=" => Ast.AssignmentOperator.BitwiseAnd,
-						"|=" => Ast.AssignmentOperator.BitwiseOr,
-						"^=" => Ast.AssignmentOperator.BitwiseXor,
-						_    => throw BridgeGap.Open(old, $"inventory Clause.VariableAssignment (operator `{op}`)"),
+						"="   => Ast.AssignmentOperator.Assign,
+						"+="  => Ast.AssignmentOperator.Add,
+						"-="  => Ast.AssignmentOperator.Subtract,
+						"*="  => Ast.AssignmentOperator.Multiply,
+						"/="  => Ast.AssignmentOperator.Divide,
+						"%="  => Ast.AssignmentOperator.Modulo,
+						"&="  => Ast.AssignmentOperator.BitwiseAnd,
+						"|="  => Ast.AssignmentOperator.BitwiseOr,
+						"^="  => Ast.AssignmentOperator.BitwiseXor,
+						"||=" => Ast.AssignmentOperator.Concatenate,
+						_     => throw BridgeGap.Open(old, $"inventory Clause.VariableAssignment (operator `{op}`)"),
 					}, Values.Of(value));
 
 				default:
