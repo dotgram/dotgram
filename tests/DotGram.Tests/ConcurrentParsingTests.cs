@@ -167,7 +167,7 @@ public sealed class ConcurrentParsingTests
 				Compute = () =>
 				{
 					var match = Sql92Parser.TryParseSelect("SELECT DISTINCT a, t.* FROM u AS t WHERE a > 1");
-					return Signature(match.IsSuccess, match.Position, match.Error, () => SqlWriter.Write(match.Value));
+					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.Sql2023Writer.Write(match.Value));
 				},
 			},
 			new Row
@@ -176,7 +176,7 @@ public sealed class ConcurrentParsingTests
 				Compute = () =>
 				{
 					var match = Sql92Parser.TryParseSearchCondition("a AND");
-					return Signature(match.IsSuccess, match.Position, match.Error, () => SqlWriter.Write(match.Value));
+					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.Sql2023Writer.Write(match.Value));
 				},
 			},
 			new Row

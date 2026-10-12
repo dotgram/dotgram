@@ -30,7 +30,11 @@ is what to decide before using one, the contract they share, and what is easy to
   `OrderBy`, `Limit` and locking clauses are then the whole result's; its `Columns`, `From`,
   `Where` are the first operand's. `Query.Operands()` gives every SELECT of a compound. `TransactSqlParser.ParseValueExpression` is an expression and
   `SqlStandardParser.ParseValue` a literal: the names are not the same level yet.
-- **`Sql92Parser`** (`DotGram.Sql.Standard`) — SQL-92, the base T-SQL is written on.
+- **`Sql92Parser`** (`DotGram.Sql.Standard`) — SQL-92, the base T-SQL is written on. Four
+  entries: `ParseSelect` (an `Ast.Statement`, a `Statement.Select`), `ParseQuery` (an `Ast.Query`),
+  `ParseSearchCondition` and `ParseValueExpression` (an `Ast.Expression`). It builds the tree in
+  `DotGram.Sql.Ast`, the one `SqlStandardParser` builds: a text both read is the same tree, and
+  `Sql2023Writer` prints it back.
 
 ## The contract they share
 
@@ -48,7 +52,7 @@ is what to decide before using one, the contract they share, and what is easy to
   convert. A list a record may leave out is a `SqlList<T>?`. Equality and the hash throw
   `InsufficientExecutionStackException` on a tree deeper than the stack. `SqlWriter.Write`
   prints a T-SQL tree back as text; `Sql2023Writer.Write` (in `DotGram.Sql.Ast`) prints the
-  standard's.
+  standard's, which `SqlStandardParser` and `Sql92Parser` build.
 - **`SqlWalker.Walk(root, visit)`** hands every node under `root` to `visit`, parent first,
   until `visit` answers false. It walks either tree; a check is a pattern match in the lambda.
 

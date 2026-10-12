@@ -73,7 +73,7 @@ public sealed class DeepTreeTests
 		{
 			var transact = SqlWriter.Write(TransactSqlParser.ParseStatement(chain));
 			var standard = Ast.Sql2023Writer.Write(SqlStandardParser.ParseStatement(from));
-			var sql92    = SqlWriter.Write(Sql92Parser.ParseSelect(from));
+			var sql92    = Ast.Sql2023Writer.Write(Sql92Parser.ParseSelect(from));
 
 			Assert.Equal(chain, transact);
 			Assert.Equal(from, standard);

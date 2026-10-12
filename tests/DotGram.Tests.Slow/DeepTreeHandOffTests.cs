@@ -38,7 +38,7 @@ public sealed class DeepTreeHandOffTests
 		{
 			var transact = SqlWriter.Write(TransactSqlParser.ParseStatement(chain));
 			var standard = DotGram.Sql.Ast.Sql2023Writer.Write(SqlStandardParser.ParseStatement(from));
-			var sql92    = SqlWriter.Write(Sql92Parser.ParseSelect(from));
+			var sql92    = DotGram.Sql.Ast.Sql2023Writer.Write(Sql92Parser.ParseSelect(from));
 
 			Assert.Equal(chain, transact);
 			Assert.Equal(from, standard);

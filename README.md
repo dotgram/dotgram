@@ -539,7 +539,7 @@ reads, what it hands back, and the suite it is held to.
 ## DotGram.Sql
 
 [`DotGram.Sql`](src/DotGram.Sql) is SQL, a package of its own, with a parser per dialect, each in a
-namespace of its own. SQL-92 and T-SQL build one tree of records in `DotGram.Sql`; SQL:2023 builds
+namespace of its own. T-SQL builds a tree of records in `DotGram.Sql`; SQL:2023 and SQL-92 build
 the standard's own tree in `DotGram.Sql.Ast`. Each tree has a writer that turns it back into SQL.
 
 ```csharp
