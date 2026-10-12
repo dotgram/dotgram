@@ -297,7 +297,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.ExternalLibraryDefinition` | Server | C | gap 59 | 59: no target record: Statement.CreateExternalLibrary (59) | 59 |
 | `Clause.CommonTableExpression` | Queries | A | — | — | 57 |
 | `Statement.CreateLogin` | Security | C | gap 57 | 57: no target record: Statement.CreateLogin (57) | 57 |
-| `Statement.UpdateText` | Dml | C | gap 57 | 57: no target record: Statement.UpdateText (57) | 57 |
+| `Statement.UpdateText` | Dml | C | converted 57 | — | 57 |
 | `Expression.OdbcEscape` | Values | C | — | — | 56 |
 | `Statement.DatabaseAuditSpecificationDefinition` | Database | C | gap 56 | 56: no target record: Statement.CreateDatabaseAuditSpecification (56) | 56 |
 | `Expression.Collated` | Values | A | — | — | 55 |
@@ -331,7 +331,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.Label` | Procedural | C | gap 30 | 36: no target record: Statement.Label (36) | 36 |
 | `Statement.Revoke` | Security | B | gap 36 | 36: needs decision: inventory Statement.Revoke (36) | 36 |
 | `SetExpression.Miscellaneous.Offset` | Procedural | C | — | — | 35 |
-| `Statement.WriteText` | Dml | C | gap 35 | 35: no target record: Statement.WriteText (35) | 35 |
+| `Statement.WriteText` | Dml | C | converted 35 | — | 35 |
 | `Query.Union` | Queries | B | — | — | 34 |
 | `Statement.Deny` | Security | C | gap 34 | 34: bridge arm missing: Statement.Deny (34) | 34 |
 | `Statement.ExternalModelDefinition` | Server | C | gap 34 | 34: no target record: Statement.CreateExternalModel (34) | 34 |
@@ -359,10 +359,10 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Like` | Values | A | — | — | 25 |
 | `SetExpression.IsoSettings.Switch` | Procedural | C | — | — | 25 |
 | `Statement.CursorAction` | Procedural | A | converted 19, gap 6 | 6: target exists, no writer arm: Statement.DeallocateCursor (6) | 25 |
-| `Statement.Truncate` | Dml | A | converted 13, gap 12 | 12: no target record: Statement.TruncateTable has no partitions (PartitionRange is declared, no member holds it) (12) | 25 |
+| `Statement.Truncate` | Dml | A | converted 25 | — | 25 |
 | `SetExpression.Statistics.Report` | Procedural | C | — | — | 24 |
 | `Statement.DropProcedure` | Drop | B | converted 24 | — | 24 |
-| `Statement.ReadText` | Dml | C | gap 24 | 24: no target record: Statement.ReadText (24) | 24 |
+| `Statement.ReadText` | Dml | C | converted 24 | — | 24 |
 | `SetExpression.Transactions.IsolationLevel` | Procedural | A | — | — | 23 |
 | `Statement.BeginDialog` | Server | C | gap 23 | 23: no target record: Statement.BeginDialog (23) | 23 |
 | `Statement.BrokerPriorityDefinition` | Server | C | gap 23 | 23: no target record: Statement.CreateBrokerPriority (23) | 23 |

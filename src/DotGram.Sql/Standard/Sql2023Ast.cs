@@ -131,7 +131,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <truncate table statement>
-	public record TruncateTable : Statement
+	public partial record TruncateTable : Statement
 	{
 		public required TableSource Target { get; init; }
 		public IdentityRestart? Identity { get; init; }

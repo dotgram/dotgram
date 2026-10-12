@@ -538,6 +538,9 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("Try on a convert")]
 	[InlineData("Try on a parse")]
 	[InlineData("DefaultValues on a MERGE insert")]
+	[InlineData("HoldLock on READTEXT")]
+	[InlineData("Bulk on WRITETEXT")]
+	[InlineData("Log on UPDATETEXT")]
 	[InlineData("NotMatchedBySource against Matched")]
 	[InlineData("ForceSeek on CHANGETABLE CHANGES")]
 	[InlineData("ForceSeek on CHANGETABLE VERSION")]
@@ -569,6 +572,15 @@ public sealed class Sql2023WriterCoverageTests
 			"NotMatchedBySource against Matched" => (
 				Sql2023Writer.Write(Merged()),
 				Sql2023Writer.Write(Merged() with { Clauses = [new MergeClause.NotMatchedBySource(new MergeMatchedAction.Delete())] })),
+			"HoldLock on READTEXT" => (
+				Sql2023Writer.Write(new Statement.ReadText(T, A, A, A, false)),
+				Sql2023Writer.Write(new Statement.ReadText(T, A, A, A, true))),
+			"Bulk on WRITETEXT" => (
+				Sql2023Writer.Write(new Statement.WriteText(T, A, null, false, false, null)),
+				Sql2023Writer.Write(new Statement.WriteText(T, A, null, true, false, null))),
+			"Log on UPDATETEXT" => (
+				Sql2023Writer.Write(new Statement.UpdateText(T, A, A, A, null, null, null, false, false, null)),
+				Sql2023Writer.Write(new Statement.UpdateText(T, A, A, A, null, null, null, false, true, null))),
 			"ForceSeek on CHANGETABLE CHANGES" => (
 				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, false))),
 				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, true)))),
@@ -764,6 +776,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("an empty second FROM")]
 	[InlineData("an INSERT word that is none")]
 	[InlineData("DEFAULT VALUES with values in a MERGE")]
+	[InlineData("UPDATETEXT's source without its pointer")]
+	[InlineData("UPDATETEXT's source with data")]
 	[InlineData("T-SQL's data change table on a statement with no OUTPUT")]
 	[InlineData("T-SQL's data change table with no name")]
 	[InlineData("an assignment of nothing that is not a call")]
@@ -806,6 +820,8 @@ public sealed class Sql2023WriterCoverageTests
 				Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null)),
 			},
 			"an empty second FROM"                  => new Statement.Delete { Target = new TableSource.Named(T), From = new FromClause([]) },
+			"UPDATETEXT's source without its pointer" => new Statement.UpdateText(T, A, A, A, null, U, null, false, false, null),
+			"UPDATETEXT's source with data"         => new Statement.UpdateText(T, A, A, A, B, U, B, false, false, null),
 			"T-SQL's data change table on a statement with no OUTPUT" =>
 				Joined(new TableSource.DataChange(null, new Statement.Delete { Target = new TableSource.Named(T) }, new Alias(new Identifier("c")))),
 			"T-SQL's data change table with no name" =>
