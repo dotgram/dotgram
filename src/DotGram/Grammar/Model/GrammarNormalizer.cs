@@ -576,9 +576,12 @@ public sealed partial class GrammarNormalizer
 			var accumulators = new Dictionary<Node, string>(NodeIdentity.Instance);
 
 			// A step is read as a loop of its own, once per operator, so a binding in it is
-			// refused whichever way the rule is rewritten below.
+			// refused whichever way the rule is rewritten below — and so is a binding around the
+			// leading call itself, which the rewrite never reads on its own.
 			foreach (var alternative in alternatives)
-				if (Tail(alternative, rule) is var (step, _))
+				if (BoundHead(alternative, rule) is { } head)
+					RefuseBoundHead(rule, head);
+				else if (Tail(alternative, rule) is var (step, _))
 					RefuseFoldStep(rule, step);
 
 			// A rule that states its own strengths is climbed rather than folded: the same

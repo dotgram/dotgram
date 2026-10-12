@@ -654,6 +654,49 @@ public sealed partial class GrammarNormalizer
 				Marked(binding, at));
 	}
 
+	/// <summary>The rules refused by <see cref="RefuseBoundHead"/>.</summary>
+	readonly HashSet<RuleSymbol> _boundHeads = [];
+
+	/// <summary>
+	/// The outermost binding an alternative's leading call to <paramref name="rule"/> stands in, or
+	/// null where that call is not bound or the alternative does not begin with one.
+	/// </summary>
+	static Node.Bind? BoundHead(Node alternative, RuleSymbol rule)
+	{
+		Node.Bind? found = null;
+		var        node  = alternative;
+
+		while (true)
+			switch (node)
+			{
+				case Node.Construct(var built, _)     : node = built; break;
+				case Node.Capture  (_, var captured)  : node = captured; break;
+				case Node.Sequence (var operands)     : node = operands[0]; break;
+				case Node.Bind     (_, var bound, _) b: found ??= b; node = bound; break;
+				case Node.Call     (var called, _)    : return ReferenceEquals(called, rule) ? found : null;
+				default                               : return null;
+			}
+	}
+
+	/// <summary>Reports a binding around the leading call of a left-recursive rule to itself.</summary>
+	/// <remarks>
+	/// The rewrite reads such a rule as its base followed by a loop of steps (docs/syntax.md §4.3):
+	/// the leading call is what it takes away, and the text it would have matched is never read by
+	/// itself, so there is nothing for the binding to hold.
+	/// </remarks>
+	void RefuseBoundHead(RuleSymbol rule, Node.Bind head)
+	{
+		_boundHeads.Add(rule);
+
+		Report(
+			MisplacedBinding,
+			$"'${head.Binding.Name}' binds the leading call of the left-recursive rule '{rule.Name}' " +
+			"(docs/syntax.md §4.3), which is not supported: the rule is read as its base followed by a loop " +
+			"of steps, so that call is never read on its own. Bind and read the text inside the base, or " +
+			"inside a rule a step calls.",
+			Marked(head.Binding, head.At));
+	}
+
 	/// <summary>Compares syntax nodes and the counts they hold by identity.</summary>
 	sealed class ObjectIdentity : IEqualityComparer<object>
 	{

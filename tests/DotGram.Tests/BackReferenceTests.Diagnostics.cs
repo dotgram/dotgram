@@ -246,6 +246,9 @@ public sealed partial class BackReferenceTests
 	[InlineData("R = $q: 'a' & when $q is 'a' & 'b'",            "$q", 1, "'when … is …'")]
 	[InlineData("R = $q: 'a' & when $q & 'b'",                   "$q", 1, "in a 'when', which is C#")]
 	[InlineData("E = E & '+' & $q: T & $q | T\nT = 'a'",          "$q", 0, "a step of the left-recursive rule 'E'")]
+	[InlineData("R = $q: R & 'x' & $q | 'y'",                     "$q", 0, "the leading call of the left-recursive rule 'R'")]
+	[InlineData("R = $q: R & 'x' | 'y'",                          "$q", 0, "the leading call of the left-recursive rule 'R'")]
+	[InlineData("R = r: ($q: R) & 'x' & $q | 'y'",                "$q", 0, "the leading call of the left-recursive rule 'R'")]
 	[InlineData("R : @string = $q: 'a' & ('b' & $q => @(\"g\")) => @(\"r\")", "$q", 1, "constructing group")]
 	public void A_binding_or_a_reference_where_none_can_stand(string grammar, string at, int occurrence, string says)
 	{
@@ -360,7 +363,7 @@ public sealed partial class BackReferenceTests
 	public void Left_recursion_through_a_binding_is_reported()
 	{
 		Assert.Contains(GrammarNormalizer.LeftRecursion, Errors("R = $q: S & 'x' | 'y'\nS = R & 'z'\nparse R"));
-		Assert.Contains(GrammarNormalizer.LeftRecursion, Errors("R = $q: R & 'x' | 'y'\nparse R"));
+		Assert.DoesNotContain(GrammarNormalizer.LeftRecursion, Errors("R = $q: R & 'x' & $q | 'y'\nparse R"));
 	}
 
 	// ── Helpers ─────────────────────────────────────────────────────────────────

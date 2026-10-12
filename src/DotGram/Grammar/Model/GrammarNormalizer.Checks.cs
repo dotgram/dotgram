@@ -741,8 +741,10 @@ public sealed partial class GrammarNormalizer
 	void CheckLeftRecursion(RuleSymbol start)
 	{
 		// Direct left recursion is rewritten (§4.3), so what is left to refuse is what the
-		// rewrite cannot take: a rule reaching itself through another one.
-		if (Reaches(_bodies[start], start, []))
+		// rewrite cannot take: a rule reaching itself through another one. A rule whose leading
+		// self-call is bound was refused for that already, and is not one that reaches itself
+		// through another rule.
+		if (!_boundHeads.Contains(start) && Reaches(_bodies[start], start, []))
 			Report(
 				LeftRecursion,
 				$"'{start.Name}' reaches itself on the left through another rule, which is not " +
