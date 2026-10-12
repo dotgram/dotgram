@@ -717,6 +717,10 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a written name on a type of several words")]
 	[InlineData("a written name on a named type")]
 	[InlineData("GraphPath with a WITHIN GROUP order")]
+	[InlineData("JSON_VALUE with no path")]
+	[InlineData("JSON_EXISTS with no path")]
+	[InlineData("JSON_TABLE with no path")]
+	[InlineData("JSON_QUERY with no path beside the standard's members")]
 	[InlineData("a written name on xml qualified by dbo")]
 	[InlineData("a 0x literal that is not hex digits")]
 	[InlineData("a table variable with hints in a FROM")]
@@ -740,6 +744,11 @@ public sealed class Sql2023WriterCoverageTests
 			"a written name qualified by other than sys" => new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("int")]) },
 			"a written name on a type of several words" => new DataType.Numeric(NumericTypeKind.DoublePrecision) { WrittenName = new QualifiedName([new Identifier("[double precision]", IdentifierStyle.Bracketed)]) },
 			"a written name on a named type"        => new DataType.Named(T, []) { WrittenName = T },
+			"JSON_VALUE with no path"               => new Expression.JsonValue(new JsonApiCommon(A, null, null, []), null, null, null),
+			"JSON_EXISTS with no path"              => new Expression.JsonExists(new JsonApiCommon(A, null, null, []), null),
+			"JSON_TABLE with no path"               => Joined(new TableSource.JsonTable(new JsonTableDefinition(new JsonApiCommon(A, null, null, []), [new JsonTableColumn.Ordinality(new Identifier("n"))], null, null))),
+			"JSON_QUERY with no path beside the standard's members" =>
+				new Expression.JsonQuery(new JsonApiCommon(A, null, null, []), null, null, null, null, JsonQueryBehavior.Null),
 			"a written name on xml qualified by dbo" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("xml")]) },
 			"a 0x literal that is not hex digits"   => new Expression.Literal(new LiteralValue.Binary("0x0A") { ZeroX = true }),
 			"GraphPath with a WITHIN GROUP order"   => new Expression.Invocation(T, [new Argument(A)]) { GraphPath = true, WithinGroup = new WithinGroupClause(new OrderByClause([new SortItem(A)])) },
@@ -939,6 +948,7 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("TABLE t with a data source",   "OPENDATASOURCE('p', 'i').t")]
 	[InlineData("xml written as a name",        "[xml](CONTENT s)")]
 	[InlineData("xml qualified by sys",         "sys.xml")]
+	[InlineData("JSON_QUERY with no path",      "JSON_QUERY(a)")]
 	[InlineData("a string alias",               "SELECT a 'b c'")]
 	[InlineData("a national string alias first", "SELECT N'h''i' = a")]
 	public void The_writer_brackets_and_keeps_what_the_grammar_needs(string which, string written)
@@ -965,6 +975,7 @@ public sealed class Sql2023WriterCoverageTests
 			{
 				Columns = [new SelectColumn.ExpressionItem(A, new Identifier("h'i", IdentifierStyle.NationalString)) { AliasFirst = true }],
 			},
+			"JSON_QUERY with no path" => new Expression.JsonQuery(new JsonApiCommon(A, null, null, []), null, null, null, null, null),
 			"xml qualified by sys" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("sys"), new Identifier("xml")]) },
 			_                    => new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([t with { DataSource = Server }]), Table = true },
 		};
