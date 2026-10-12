@@ -220,9 +220,13 @@ public static partial class Sql2023Writer
 					});
 					break;
 
-				// T-SQL's `0x0A` keeps its own text; the standard's `X'0A'` keeps the quoted digits.
+				// T-SQL's `0x0A` keeps the digits after its introducer; the standard's `X'0A'` the quoted digits. A text
+				// that is not the flag's is refused, rather than written as another literal.
 				case LiteralValue.Binary binary:
-					Word(binary.ZeroX ? binary.Text : "X" + binary.Text);
+					if (binary.ZeroX == binary.Text.StartsWith('\''))
+						throw Misplaced(binary, "Text", binary.ZeroX ? "in quotes on a 0x literal" : "without quotes on an X literal");
+
+					Word(binary.ZeroX ? "0x" + binary.Text : "X" + binary.Text);
 					break;
 
 				case LiteralValue.Boolean truth:
@@ -358,6 +362,7 @@ public static partial class Sql2023Writer
 						CharacterTypeKind.NationalCharacterLargeObject => "NATIONAL CHARACTER LARGE OBJECT",
 						CharacterTypeKind.NcharLargeObject             => "NCHAR LARGE OBJECT",
 						CharacterTypeKind.Nclob                        => "NCLOB",
+						CharacterTypeKind.Nvarchar                     => "NVARCHAR",
 						_                                              => throw NoText(character.Kind),
 					});
 
@@ -699,6 +704,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Cast cast:
+					// T-SQL: TRY_CAST (Transact-SQL) has no FORMAT.
+					if (cast.Try && cast.Format is not null)
+						throw Both(cast, "Try", "Format");
+
 					Word(cast.Try ? "TRY_CAST" : "CAST");
 					Call();
 					PutExpression(cast.Value);
@@ -1015,7 +1024,19 @@ public static partial class Sql2023Writer
 					Word(like.Kind switch { LikeKind.Like => "LIKE", LikeKind.Similar => "SIMILAR TO", LikeKind.Regex => "LIKE_REGEX", _ => throw NoText(like.Kind) });
 					PutExpression(like.Pattern);
 
-					if (like.Escape is { } escape)
+					// T-SQL: LIKE (Transact-SQL). The escape in ODBC's braces.
+					if (like.BracedEscape)
+					{
+						if (like.Escape is not { } braced || like.Kind != LikeKind.Like)
+							throw Misplaced(like, "BracedEscape", "without an Escape, or on another kind than LIKE");
+
+						Word("{");
+						Hold();
+						Word("ESCAPE");
+						PutExpression(braced);
+						Tight("}");
+					}
+					else if (like.Escape is { } escape)
 					{
 						Word("ESCAPE");
 						PutExpression(escape);

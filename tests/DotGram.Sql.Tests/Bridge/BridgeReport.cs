@@ -68,9 +68,12 @@ static class BridgeReport
 		  that is `Global`.
 		- `FREETEXT ((c), …)`, `CONTAINS ((c), …)`: a column list in T-SQL, a value in brackets in the standard. The
 		  first argument of an invocation of either.
-		- `DATEADD (day, …)`: a date part in T-SQL, a column in the standard. An argument that is a `DatePart`.
-		- `CAST (a AS money)`: one of T-SQL's own types in T-SQL, a user-defined type in the standard. A
-		  `DataType.Named`.
+		- `DATEADD (day, …)`: a date part in T-SQL, a column in the standard. The first argument of a date part
+		  function, a `DatePart`, where the standard has a column of one part whose text is that part's word.
+		- `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A
+		  `DataType.Named` of one part on the list of system types, or an `nvarchar` with no length, with no
+		  arguments, where the standard has a user-defined type of one part and the same text, or, for `timestamp`,
+		  its own TIMESTAMP.
 
 		## Words read from the text
 

@@ -278,10 +278,18 @@ public abstract partial record Expression
 
 	/// <summary>
 	/// T-SQL: DATEADD (Transact-SQL), and DATEDIFF, DATEDIFF_BIG, DATENAME, DATEPART, DATETRUNC, DATE_BUCKET.
-	/// The date part these take as their first argument: a key word or its abbreviation, as written
-	/// (<c>day</c>, <c>dd</c>), which is neither a column nor a value.
+	/// The date part these take as their first argument, which is neither a column nor a value: its kind and
+	/// which of its words was written (<c>day</c>, <c>dd</c>, <c>d</c>).
 	/// </summary>
-	public sealed record DatePart(Identifier Name) : Expression;
+	public sealed record DatePart(DatePartKind Kind, [property: Spelling] DatePartSpelling Spelling = DatePartSpelling.Name) : Expression;
+
+	public partial record Like
+	{
+		/// <summary>
+		/// T-SQL: LIKE (Transact-SQL). The escape clause written in ODBC's braces, <c>{ESCAPE '%'}</c>.
+		/// </summary>
+		[Spelling] public bool BracedEscape { get; init; }
+	}
 
 	/// <summary>
 	/// T-SQL: TRY_CAST (Transact-SQL). <c>Try</c> is <c>TRY_CAST</c>, which gives null where <c>CAST</c> fails.
@@ -305,24 +313,58 @@ public abstract partial record Expression
 public abstract partial record DataType
 {
 	/// <summary>
-	/// T-SQL: CAST and CONVERT (Transact-SQL). A type T-SQL names that the standard does not spell: a name and
-	/// what was written in its brackets — <c>tinyint</c>, <c>money</c>, <c>datetime2 (7)</c>, <c>[int]</c>,
-	/// <c>int (10)</c>, <c>nvarchar (MAX)</c>, <c>vector (3, float32)</c>.
+	/// T-SQL: Data types (Transact-SQL), a page syntax.md does not transcribe. A type T-SQL names that the standard
+	/// does not spell: a name and the numbers written in its brackets — <c>tinyint</c>, <c>money</c>,
+	/// <c>datetime2 (7)</c>, <c>[int]</c>, <c>int (10)</c>.
 	/// </summary>
 	/// <remarks>
-	/// A name of more than one part with nothing in brackets is the standard's <see cref="UserDefined"/>. An
-	/// argument is a number, or a word as written (<c>MAX</c>, <c>float32</c>), which is a reference.
+	/// Quoting and the count of parts never choose the record. In order: a spelling whose meaning is the standard
+	/// type's, unbracketed, is the standard's record (never <c>timestamp</c>, which in T-SQL is rowversion);
+	/// <c>xml</c> is <see cref="Xml"/>; a name with numbers in its brackets is <see cref="Named"/>; a name of one
+	/// part, however quoted, whose text is one of T-SQL's system types is <see cref="Named"/>; and every other
+	/// name is the standard's <see cref="UserDefined"/>.
 	/// </remarks>
 	public sealed record Named(QualifiedName Name, SqlList<Expression> Arguments) : DataType;
 
 	/// <summary>
-	/// T-SQL: xml (Transact-SQL). <c>xml [([CONTENT | DOCUMENT] schema_collection)]</c>.
+	/// T-SQL: xml (Transact-SQL). <c>xml [([CONTENT | DOCUMENT] schema_collection)]</c>. <c>Modifier</c> only with
+	/// <c>Schema</c>; the writer refuses <c>Modifier</c> alone.
 	/// </summary>
-	public sealed record Xml(XmlContent? Content = null, QualifiedName? Schema = null) : DataType;
+	public sealed record Xml(XmlTypeModifier? Modifier = null, QualifiedName? Schema = null) : DataType;
 }
 
-/// <summary>T-SQL: xml (Transact-SQL). What a typed <c>xml</c> holds, where it was said.</summary>
-public enum XmlContent { Content, Document }
+/// <summary>T-SQL: xml (Transact-SQL). The XML type's modifier, <c>DOCUMENT</c> or <c>CONTENT</c>, as SQL/XML names it.</summary>
+public enum XmlTypeModifier { Content, Document }
+
+/// <summary>
+/// T-SQL: DATEADD (Transact-SQL), DATEPART (Transact-SQL). The part of a date a function takes, by the table of
+/// those pages: the name, its abbreviation and its second abbreviation.
+/// </summary>
+/// <remarks>
+/// <list type="table">
+/// <item><term>Year</term><description>year, yy, yyyy</description></item>
+/// <item><term>Quarter</term><description>quarter, qq, q</description></item>
+/// <item><term>Month</term><description>month, mm, m</description></item>
+/// <item><term>DayOfYear</term><description>dayofyear, dy, y</description></item>
+/// <item><term>Day</term><description>day, dd, d</description></item>
+/// <item><term>Week</term><description>week, wk, ww</description></item>
+/// <item><term>Weekday</term><description>weekday, dw, w</description></item>
+/// <item><term>Hour</term><description>hour, hh</description></item>
+/// <item><term>Minute</term><description>minute, mi, n</description></item>
+/// <item><term>Second</term><description>second, ss, s</description></item>
+/// <item><term>Millisecond</term><description>millisecond, ms</description></item>
+/// <item><term>Microsecond</term><description>microsecond, mcs</description></item>
+/// <item><term>Nanosecond</term><description>nanosecond, ns</description></item>
+/// <item><term>TzOffset</term><description>tzoffset, tz</description></item>
+/// <item><term>IsoWeek</term><description>iso_week, isowk, isoww</description></item>
+/// </list>
+/// <c>y</c> is the day of the year and <c>w</c> the weekday. Which function takes which part is the grammar's
+/// business, not the tree's; the word's case is not kept.
+/// </remarks>
+public enum DatePartKind { Year, Quarter, Month, DayOfYear, Day, Week, Weekday, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond, TzOffset, IsoWeek }
+
+/// <summary>T-SQL: DATEADD (Transact-SQL). Which of a date part's words was written (<see cref="DatePartKind"/>).</summary>
+public enum DatePartSpelling { Name, Abbreviation, SecondAbbreviation }
 
 /// <summary>T-SQL's own literals, in the standard's family (proposal 11).</summary>
 public abstract partial record LiteralValue
@@ -334,8 +376,8 @@ public abstract partial record LiteralValue
 	public partial record Binary
 	{
 		/// <summary>
-		/// Written <c>0x…</c>. Then <c>Text</c> is the literal as written, <c>0x</c> and all; without it,
-		/// <c>Text</c> is the quoted digits after the standard's <c>X</c>.
+		/// Written <c>0x…</c>. Then <c>Text</c> is the digits after the <c>0x</c>; without it, <c>Text</c> is the
+		/// quoted digits after the standard's <c>X</c>. The introducer is not in the text, as a string's is not.
 		/// </summary>
 		[Spelling] public bool ZeroX { get; init; }
 	}

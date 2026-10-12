@@ -14,8 +14,11 @@ public static partial class Sql2023Writer
 		{
 			switch (node)
 			{
-				// The name holds its `@` or `@@`.
+				// The name holds its `@` or `@@`; any other name would be a column.
 				case Expression.Variable variable:
+					if (variable.Name.Style != IdentifierStyle.Regular || !variable.Name.Text.StartsWith('@'))
+						throw Misplaced(variable, "Name", "that is not a regular name starting with @");
+
 					PutIdentifier(variable.Name);
 					return true;
 
@@ -51,8 +54,9 @@ public static partial class Sql2023Writer
 					Close();
 					return true;
 
+				// T-SQL: DATEADD (Transact-SQL). The word of the table for the part and the spelling.
 				case Expression.DatePart part:
-					PutIdentifier(part.Name);
+					Word(DatePartWord(part.Kind, part.Spelling) ?? throw Misplaced(part, "Spelling", $"{part.Spelling} on {part.Kind}, which has no such word"));
 					return true;
 
 				// The braces and the escape's own word, and what stands in them: a call written without its
@@ -63,7 +67,13 @@ public static partial class Sql2023Writer
 					PutIdentifier(escape.Kind);
 
 					if (!escape.Called && escape.Value is Expression.Invocation { Arguments.Count: 0 } bare)
+					{
+						// Only a call that is its name and nothing more is written without its brackets.
+						if (!bare.Equals(new Expression.Invocation(bare.Name, [])))
+							throw Misplaced(escape, "Called", "false on a call that holds more than its name");
+
 						PutName(bare.Name);
+					}
 					else
 						PutExpression(escape.Value);
 
@@ -89,25 +99,62 @@ public static partial class Sql2023Writer
 					{
 						Call();
 
-						if (xml.Content is { } content)
-							Word(content switch
+						if (xml.Modifier is { } modifier)
+							Word(modifier switch
 							{
-								XmlContent.Content  => "CONTENT",
-								XmlContent.Document => "DOCUMENT",
-								_                   => throw NoText(content),
+								XmlTypeModifier.Content  => "CONTENT",
+								XmlTypeModifier.Document => "DOCUMENT",
+								_                        => throw NoText(modifier),
 							});
 
 						PutName(schema);
 						Close();
 					}
-					else if (xml.Content is not null)
-						throw Misplaced(xml, "Content", "without a Schema, which alone writes it");
+					else if (xml.Modifier is not null)
+						throw Misplaced(xml, "Modifier", "without a Schema, which alone writes it");
 
 					return true;
 
 				default:
 					return false;
 			}
+		}
+
+		/// <summary>
+		/// T-SQL: DATEADD (Transact-SQL). A date part's word by its kind and spelling, or null where the kind has no
+		/// such word.
+		/// </summary>
+		static string? DatePartWord(DatePartKind kind, DatePartSpelling spelling)
+		{
+			string[] words = kind switch
+			{
+				DatePartKind.Year        => ["YEAR", "YY", "YYYY"],
+				DatePartKind.Quarter     => ["QUARTER", "QQ", "Q"],
+				DatePartKind.Month       => ["MONTH", "MM", "M"],
+				DatePartKind.DayOfYear   => ["DAYOFYEAR", "DY", "Y"],
+				DatePartKind.Day         => ["DAY", "DD", "D"],
+				DatePartKind.Week        => ["WEEK", "WK", "WW"],
+				DatePartKind.Weekday     => ["WEEKDAY", "DW", "W"],
+				DatePartKind.Hour        => ["HOUR", "HH"],
+				DatePartKind.Minute      => ["MINUTE", "MI", "N"],
+				DatePartKind.Second      => ["SECOND", "SS", "S"],
+				DatePartKind.Millisecond => ["MILLISECOND", "MS"],
+				DatePartKind.Microsecond => ["MICROSECOND", "MCS"],
+				DatePartKind.Nanosecond  => ["NANOSECOND", "NS"],
+				DatePartKind.TzOffset    => ["TZOFFSET", "TZ"],
+				DatePartKind.IsoWeek     => ["ISO_WEEK", "ISOWK", "ISOWW"],
+				_                        => throw NoText(kind),
+			};
+
+			var at = spelling switch
+			{
+				DatePartSpelling.Name               => 0,
+				DatePartSpelling.Abbreviation       => 1,
+				DatePartSpelling.SecondAbbreviation => 2,
+				_                                   => throw NoText(spelling),
+			};
+
+			return at < words.Length ? words[at] : null;
 		}
 	}
 }

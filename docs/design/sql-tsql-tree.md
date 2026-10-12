@@ -18,7 +18,9 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
   each grammar as its dialect has it; T-SQL's `EXECUTE` of a module is a node of its own; `DROP … IF EXISTS`
   is a flag, with a list of names and a behavior that may be left out; `OFFSET` and `FETCH` keep the
   standard's shape; the walker follows lists (done); `ISqlSpan` stands apart from the old tree (done).
-  `Expression.Variable(Identifier Name)`: the text holds the `@` or `@@`, style `Regular`; a value only, so far.
+  `Expression.Variable(Identifier Name)`: the text holds the `@` or `@@`, style `Regular`. A variable is never a
+  `QualifiedName` or a part of one: where the position is typed `Expression` it is `Expression.Variable`; where
+  the position is a family, the family gains a T-SQL member `Variable` whose `Identifier` keeps the `@`.
 - Cursors and transactions, decided 2026-09-27 (proposals 21-22; the records are in, the grammars are
   not). `FORWARD_ONLY` is a `[Spelling]` flag beside `CursorScrollability.NoScroll` and not a third
   member: one meaning with two words is what that flag is for, and a semantic enum keeps one member per

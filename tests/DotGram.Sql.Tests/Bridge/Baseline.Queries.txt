@@ -23,4 +23,4 @@ Query.Parenthesized = 0/0/0/0/0/0/0
 Query.Specification = 0/41/0/0/0/0/0
 Query.TableValueConstructor = 0/0/0/0/0/0/0
 Query.Union = 0/0/0/0/0/0/0
-Statement.Select = 1321/0/0/0/0/0/0
+Statement.Select = 1304/0/0/0/0/0/0

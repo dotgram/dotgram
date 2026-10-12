@@ -66,8 +66,11 @@ static partial class Bridge
 
 				Expression.In(var value, var not, var from) => new Ast.Expression.In(Of(value), not, InSource(old, from)),
 
-				Expression.Like(_, _, _, Expression.OdbcEscape) =>
-					throw BridgeGap.Missing(old, "Expression.Like has no flag for ODBC's `{ESCAPE …}` (proposal 15)"),
+				// T-SQL's `{ESCAPE '%'}`: the escape value itself, written in ODBC's braces.
+				Expression.Like(var value, var not, var pattern, Expression.OdbcEscape(var kind, var braced, _)) =>
+					kind.Equals("ESCAPE", StringComparison.OrdinalIgnoreCase)
+						? new Ast.Expression.Like(Of(value), not, Ast.LikeKind.Like, Of(pattern), Of(braced)) { BracedEscape = true }
+						: throw BridgeGap.Open(old, $"inventory Expression.Like (an escape in braces of kind `{kind}`)"),
 
 				Expression.Like(var value, var not, var pattern, var escape) =>
 					new Ast.Expression.Like(Of(value), not, Ast.LikeKind.Like, Of(pattern), escape is null ? null : Of(escape)),
@@ -88,6 +91,10 @@ static partial class Bridge
 					operand is null ? null : Of(operand),
 					Each(whens, When),
 					otherwise is null ? null : Of(otherwise)),
+
+				// `t.*` as an argument: all columns of `t`, its target the table's reference, as the standard's parser builds it.
+				Expression.ColumnReference(var text) when text.Length > 2 && text.EndsWith(".*", StringComparison.Ordinal) =>
+					new Ast.Expression.Wildcard(new Ast.Expression.Reference(Name(old, text[..^2])), Ast.WildcardKind.Member),
 
 				Expression.ColumnReference(var text)        => new Ast.Expression.Reference(Name(old, text)),
 				Expression.Literal literal                  => Literal(literal),
@@ -252,8 +259,9 @@ static partial class Bridge
 				case SqlLiteralKind.Parameter when text == "?":
 					return new Ast.Expression.Parameter(Ast.ParameterKind.Dynamic);
 
+				// The digits after the introducer, as a string's text leaves its introducer out.
 				case SqlLiteralKind.Hex:
-					return Value(new Ast.LiteralValue.Binary(text) { ZeroX = true });
+					return Value(new Ast.LiteralValue.Binary(text[2..]) { ZeroX = true });
 
 				case SqlLiteralKind.Bit:
 					throw BridgeGap.Missing(old, "a bit string literal, which SQL:2023 removed");
@@ -438,9 +446,47 @@ static partial class Bridge
 			if (old.Arguments is not [Expression.ColumnReference(var part), ..] || part.Contains('.'))
 				throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({old.Name} without a date part)");
 
+			if (!DateParts.TryGetValue(part, out var made))
+				throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation (a date part `{part}` the reference's table does not have)");
+
 			return new Ast.Expression.Invocation(
 				Name(old, old.Name),
-				[new Ast.Argument(new Ast.Expression.DatePart(Part(old, part))), .. old.Arguments.Skip(1).Select(Argument)]);
+				[new Ast.Argument(new Ast.Expression.DatePart(made.Kind, made.Spelling)), .. old.Arguments.Skip(1).Select(Argument)]);
+		}
+
+		/// <summary>
+		/// The words of DATEADD's and DATEPART's table of date parts, each with its part and which of its words it
+		/// is, compared without case.
+		/// </summary>
+		public static readonly Dictionary<string, (Ast.DatePartKind Kind, Ast.DatePartSpelling Spelling)> DateParts = Table();
+
+		static Dictionary<string, (Ast.DatePartKind, Ast.DatePartSpelling)> Table()
+		{
+			var table = new Dictionary<string, (Ast.DatePartKind, Ast.DatePartSpelling)>(StringComparer.OrdinalIgnoreCase);
+
+			void Add(Ast.DatePartKind kind, params string[] words)
+			{
+				for (var at = 0; at < words.Length; at++)
+					table.Add(words[at], (kind, (Ast.DatePartSpelling)at));
+			}
+
+			Add(Ast.DatePartKind.Year,        "year", "yy", "yyyy");
+			Add(Ast.DatePartKind.Quarter,     "quarter", "qq", "q");
+			Add(Ast.DatePartKind.Month,       "month", "mm", "m");
+			Add(Ast.DatePartKind.DayOfYear,   "dayofyear", "dy", "y");
+			Add(Ast.DatePartKind.Day,         "day", "dd", "d");
+			Add(Ast.DatePartKind.Week,        "week", "wk", "ww");
+			Add(Ast.DatePartKind.Weekday,     "weekday", "dw", "w");
+			Add(Ast.DatePartKind.Hour,        "hour", "hh");
+			Add(Ast.DatePartKind.Minute,      "minute", "mi", "n");
+			Add(Ast.DatePartKind.Second,      "second", "ss", "s");
+			Add(Ast.DatePartKind.Millisecond, "millisecond", "ms");
+			Add(Ast.DatePartKind.Microsecond, "microsecond", "mcs");
+			Add(Ast.DatePartKind.Nanosecond,  "nanosecond", "ns");
+			Add(Ast.DatePartKind.TzOffset,    "tzoffset", "tz");
+			Add(Ast.DatePartKind.IsoWeek,     "iso_week", "isowk", "isoww");
+
+			return table;
 		}
 
 		/// <summary>
@@ -741,11 +787,26 @@ static partial class Bridge
 		// ── Data types ────────────────────────────────────────────────────────────
 
 		/// <summary>
-		/// A data type the old tree keeps as text. A spelling the standard has is the standard's type; <c>xml</c>
-		/// is <see cref="Ast.DataType.Xml"/>; a name of several parts with nothing in brackets is the standard's
-		/// <see cref="Ast.DataType.UserDefined"/>; and everything else — <c>tinyint</c>, <c>datetime2 (7)</c>,
-		/// <c>nvarchar (MAX)</c>, <c>[int]</c>, <c>int (10)</c>, T-SQL's <c>timestamp</c> — is
-		/// <see cref="Ast.DataType.Named"/>, a name and what was written in its brackets (proposal 14).
+		/// T-SQL's system types, as of SQL Server 2025, and the one-word synonyms: a closed list, compared without
+		/// case and without a name's delimiters.
+		/// </summary>
+		public static readonly HashSet<string> SystemTypes = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"bigint", "binary", "bit", "char", "cursor", "date", "datetime", "datetime2", "datetimeoffset", "decimal",
+			"float", "geography", "geometry", "hierarchyid", "image", "int", "json", "money", "nchar", "ntext",
+			"numeric", "nvarchar", "real", "rowversion", "smalldatetime", "smallint", "smallmoney", "sql_variant",
+			"sysname", "table", "text", "time", "timestamp", "tinyint", "uniqueidentifier", "varbinary", "varchar",
+			"vector", "xml", "dec", "integer", "character",
+		};
+
+		/// <summary>
+		/// A data type the old tree keeps as text. Quoting and the count of parts never choose the record. In order:
+		/// a spelling whose meaning is the standard type's, unbracketed, is the standard's record (never
+		/// <c>timestamp</c>, which is T-SQL's rowversion); <c>xml</c> is <see cref="Ast.DataType.Xml"/>; a name with
+		/// <c>max</c> in its brackets is a gap, that shape not decided; a name with numbers in its brackets is
+		/// <see cref="Ast.DataType.Named"/>, and with a word there a gap; a name of one part whose text is one of
+		/// T-SQL's system types is <see cref="Ast.DataType.Named"/>; and every other name is the standard's
+		/// <see cref="Ast.DataType.UserDefined"/>.
 		/// </summary>
 		public static Ast.DataType Type(object owner, string text)
 		{
@@ -760,10 +821,36 @@ static partial class Bridge
 			var inside    = tail.Length > 0 ? tail[1..^1].Trim() : "";
 			var arguments = tail.Length > 0 ? inside.Split(',').Select(static one => one.Trim()).ToArray() : [];
 
-			if (words == "XML")
+			if (head.Length == 0 || Words(head).Length != 1 && !head.Contains('.') && Standard(words, arguments) is null)
+				throw BridgeGap.Open(owner, $"inventory DataType (a type `{text}` of several words)");
+
+			if (Standard(words, arguments) is { } standard)
+				return standard;
+
+			var name = Name(owner, head);
+
+			if (name.Parts is [var only] && Unquoted(only.Text).Equals("XML", StringComparison.OrdinalIgnoreCase))
 				return Xml(owner, text, inside);
 
-			return Standard(words, arguments) ?? Named(owner, text, head, arguments);
+			if (arguments.Any(static one => one.Equals("MAX", StringComparison.OrdinalIgnoreCase)))
+				throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: MAX in the brackets of a type the standard does not spell)");
+
+			if (arguments.Length > 0)
+				return arguments.All(static one => one.Length > 0 && one.All(char.IsDigit))
+					? new Ast.DataType.Named(name, [.. arguments.Select(static one => Value(new Ast.LiteralValue.Numeric(one, Ast.NumericLiteralKind.DecimalInteger)))])
+					: throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a word in the brackets of a type)");
+
+			return name.Parts is [var single] && SystemTypes.Contains(Unquoted(single.Text))
+				? new Ast.DataType.Named(name, [])
+				: new Ast.DataType.UserDefined(name);
+		}
+
+		/// <summary>A name part's text without its delimiters, a doubled closing one undoubled.</summary>
+		public static string Unquoted(string text)
+		{
+			return text.Length >= 2 && text[0] == '[' && text[^1] == ']' ? text[1..^1].Replace("]]", "]", StringComparison.Ordinal)
+				: text.Length >= 2 && text[0] == '"' && text[^1] == '"' ? text[1..^1].Replace("\"\"", "\"", StringComparison.Ordinal)
+				: text;
 		}
 
 		/// <summary>
@@ -824,6 +911,7 @@ static partial class Bridge
 				"CHAR"                       => Character(Ast.CharacterTypeKind.Char),
 				"CHARACTER VARYING"          => Character(Ast.CharacterTypeKind.CharacterVarying),
 				"CHAR VARYING"               => Character(Ast.CharacterTypeKind.CharVarying),
+				"NVARCHAR"                   => Character(Ast.CharacterTypeKind.Nvarchar),
 				"VARCHAR"                    => Character(Ast.CharacterTypeKind.Varchar),
 				"NATIONAL CHARACTER"         => Character(Ast.CharacterTypeKind.NationalCharacter),
 				"NATIONAL CHAR"              => Character(Ast.CharacterTypeKind.NationalChar),
@@ -851,10 +939,10 @@ static partial class Bridge
 
 			var first = inside.Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries);
 
-			Ast.XmlContent? content = first[0].ToUpperInvariant() switch
+			Ast.XmlTypeModifier? content = first[0].ToUpperInvariant() switch
 			{
-				"CONTENT"  => Ast.XmlContent.Content,
-				"DOCUMENT" => Ast.XmlContent.Document,
+				"CONTENT"  => Ast.XmlTypeModifier.Content,
+				"DOCUMENT" => Ast.XmlTypeModifier.Document,
 				_          => null,
 			};
 
@@ -864,35 +952,6 @@ static partial class Bridge
 				throw BridgeGap.Open(owner, $"inventory DataType (an xml type `{text}`)");
 
 			return new Ast.DataType.Xml(content, Name(owner, schema));
-		}
-
-		/// <summary>
-		/// A type the standard does not spell. A name of several parts with nothing in brackets is the
-		/// standard's user-defined type; any other is <see cref="Ast.DataType.Named"/>, its arguments numbers
-		/// and words as written.
-		/// </summary>
-		static Ast.DataType Named(object owner, string text, string head, string[] arguments)
-		{
-			if (head.Length == 0 || Words(head).Length != 1 && !head.Contains('.'))
-				throw BridgeGap.Open(owner, $"inventory DataType (a type `{text}` of several words)");
-
-			var name = Name(owner, head);
-
-			if (name.Parts.Count > 1 && arguments.Length == 0)
-				return new Ast.DataType.UserDefined(name);
-
-			return new Ast.DataType.Named(name, [.. arguments.Select(one => TypeArgument(owner, text, one))]);
-		}
-
-		static Ast.Expression TypeArgument(object owner, string text, string argument)
-		{
-			if (argument.Length > 0 && argument.All(char.IsDigit))
-				return Value(new Ast.LiteralValue.Numeric(argument, Ast.NumericLiteralKind.DecimalInteger));
-
-			if (Words(argument) is [var word] && (char.IsLetter(word[0]) || word[0] == '_'))
-				return new Ast.Expression.Reference(new Ast.QualifiedName([Part(owner, argument)]));
-
-			throw BridgeGap.Open(owner, $"inventory DataType (an argument `{argument}` of `{text}`)");
 		}
 
 		/// <summary>
