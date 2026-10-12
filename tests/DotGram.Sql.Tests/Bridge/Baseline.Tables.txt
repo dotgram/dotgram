@@ -32,5 +32,5 @@ TableReference.Joined = 0/0/0/0/0/0/0
 TableReference.Named = 0/5/0/0/0/0/0
 TableReference.OdbcJoin = 0/0/0/0/0/0/0
 TableReference.Parenthesized = 0/0/0/0/0/0/0
-TableReference.Pivot = 0/2/0/0/0/0/0
-TableReference.Unpivot = 0/2/0/0/0/0/0
+TableReference.Pivot = 0/0/0/0/0/0/0
+TableReference.Unpivot = 0/0/0/0/0/0/0

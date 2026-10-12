@@ -62,17 +62,19 @@ public abstract partial record TableSource
 
 	/// <summary>
 	/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>t PIVOT (SUM (a) FOR b IN ([1], [2])) AS p</c>:
-	/// the source, the aggregate, the column after FOR whose values become columns, and those values, written as
-	/// names (the IN list).
+	/// the source, the aggregate, the column after FOR whose values become columns, which may be qualified, and
+	/// those values, written as names (the IN list): each a name of one part; the parser reads a prefix, which
+	/// compilation refuses (Msg 254).
 	/// </summary>
-	public sealed record Pivot(TableSource Source, Expression.Invocation Aggregate, Identifier Column, SqlList<Identifier> Values, Alias Alias) : TableSource;
+	public sealed record Pivot(TableSource Source, Expression.Invocation Aggregate, QualifiedName Column, SqlList<QualifiedName> Values, Alias Alias) : TableSource;
 
 	/// <summary>
 	/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>t UNPIVOT (v FOR c IN (a, b)) AS u</c>: the
-	/// source, the column the values go to, the column after FOR their names go to, and the columns folded into
-	/// <see cref="Value"/> (the IN list).
+	/// source, the column the values go to and the column after FOR their names go to — each a name of one part;
+	/// the parser reads a prefix, which compilation refuses (Msg 275) — and the columns folded into
+	/// <see cref="Value"/> (the IN list), which may be qualified.
 	/// </summary>
-	public sealed record Unpivot(TableSource Source, Identifier Value, Identifier Column, SqlList<Identifier> Columns, Alias Alias) : TableSource;
+	public sealed record Unpivot(TableSource Source, QualifiedName Value, QualifiedName Column, SqlList<QualifiedName> Columns, Alias Alias) : TableSource;
 }
 
 public sealed partial record SampleClause

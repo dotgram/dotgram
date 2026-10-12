@@ -257,8 +257,10 @@ static class BridgeOracle
 		if (TypeNamed(difference) || DateParted(difference))
 			return (TypeNamed(difference) ? TypeName : DatePart, difference.Left!);
 
-		// OPTION: the statement's own hints, and the alias the standard reads the word OPTION as.
-		if (difference.Path is [{ Node: Ast.Statement.Select { Hints.Count: > 0 } statement, Member: "Hints" }, ..])
+		// OPTION: the statement's own hints, which the standard's statement has none of, and the alias the standard
+		// reads the word OPTION as.
+		if (difference.Path is [{ Node: Ast.Statement.Select { Hints.Count: > 0 } statement, Member: "Hints" }, ..]
+			&& difference.Right is null or System.Collections.ICollection { Count: 0 })
 			return (Option, statement);
 
 		if (difference.Path is [{ Node: Ast.Statement.Select { Hints.Count: > 0 } }, .., { Member: "Alias" } last]

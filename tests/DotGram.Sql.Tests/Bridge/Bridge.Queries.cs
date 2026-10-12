@@ -521,7 +521,7 @@ static partial class Bridge
 				var columns = Split(tokens.Skip(4).Take(tokens.Length - 6).ToList());
 
 				return new Ast.TableHint.ForceSeek(
-					HintArgument(old, index) ?? throw Unread(old),
+					HintValue(old, [index]),
 					[.. columns.Select(column => column is [{ Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited } one] ? Values.Part(old, one.Text) : throw Unread(old))]);
 			}
 
@@ -570,11 +570,14 @@ static partial class Bridge
 			return BridgeGap.Open(old, "inventory Clause.Hint (a hint of a shape the family does not hold)");
 		}
 
+		/// <summary>
+		/// One token of a hint that is a value by itself. A number is not among them: it takes the parse, where the
+		/// literal is classified as any other is — <c>0xFF</c> binary, <c>1e2</c> approximate.
+		/// </summary>
 		static Ast.Expression? HintArgument(Clause old, SqlTokens.Token token)
 		{
 			return token.Kind switch
 			{
-				SqlTokens.Kind.Number                                => new Ast.Expression.Literal(new Ast.LiteralValue.Numeric(token.Text, token.Text.All(char.IsDigit) ? Ast.NumericLiteralKind.DecimalInteger : Ast.NumericLiteralKind.Decimal)),
 				SqlTokens.Kind.String                                => Values.String(token.Text),
 				SqlTokens.Kind.Word when token.Text.StartsWith('@')  => new Ast.Expression.Variable(new Ast.Identifier(token.Text)),
 				SqlTokens.Kind.Word when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase) => new Ast.Expression.Literal(new Ast.LiteralValue.Null()),

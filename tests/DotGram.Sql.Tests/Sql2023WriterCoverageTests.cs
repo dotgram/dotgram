@@ -747,10 +747,13 @@ public sealed class Sql2023WriterCoverageTests
 	}
 
 	/// <summary>A pivot of t, for a refusal to be asked of.</summary>
-	static TableSource.Pivot Pivoted(TableSource source, SqlList<Identifier>? names = null, Alias? alias = null)
+	static TableSource.Pivot Pivoted(TableSource source, SqlList<QualifiedName>? names = null, Alias? alias = null)
 	{
-		return new TableSource.Pivot(source, new Expression.Invocation(T, [new Argument(A)]), new Identifier("b"), names ?? [new Identifier("[1]")], alias ?? new Alias(new Identifier("p")));
+		return new TableSource.Pivot(source, new Expression.Invocation(T, [new Argument(A)]), new QualifiedName([new Identifier("b")]), names ?? [new QualifiedName([new Identifier("[1]", IdentifierStyle.Bracketed)])], alias ?? new Alias(new Identifier("p")));
 	}
+
+	/// <summary><c>'s'</c>, a string written out.</summary>
+	static readonly Expression.Literal Str = new(new LiteralValue.String("'s'", StringLiteralKind.Character));
 
 	static readonly OpenDataSource Server = new(new Expression.Literal(new LiteralValue.String("'p'", StringLiteralKind.Character)), new Expression.Literal(new LiteralValue.String("'i'", StringLiteralKind.Character)));
 
@@ -795,6 +798,16 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("an APPLY with ON")]
 	[InlineData("OPENROWSET with a provider string and a login")]
 	[InlineData("OPENROWSET with neither a provider string nor a login")]
+	[InlineData("OPENROWSET with a provider that is not a string")]
+	[InlineData("OPENROWSET with a login part that is not a string")]
+	[InlineData("an element name that is not a string")]
+	[InlineData("a FOR directive's name that is not a string")]
+	[InlineData("USE HINT with a hint that is not a string")]
+	[InlineData("a query hint named for a phrase's first word")]
+	[InlineData("a query hint whose name is not a regular identifier")]
+	[InlineData("FORCESEEK with arguments as a named hint")]
+	[InlineData("an ORDER of no column")]
+	[InlineData("OPENDATASOURCE with FOR PATH")]
 	[InlineData("a BULK option with options")]
 	[InlineData("a BULK ORDER option with a value")]
 	[InlineData("OPENXML with a schema and a schema table")]
@@ -859,8 +872,18 @@ public sealed class Sql2023WriterCoverageTests
 			"an APPLY with OUTER"                                => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.OuterApply, OuterKeyword = true }),
 			"an APPLY with a hint"                               => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.CrossApply, Hint = JoinHint.Hash }),
 			"an APPLY with ON"                                   => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.CrossApply, Specification = new JoinSpecification.On(A) }),
-			"OPENROWSET with a provider string and a login"      => Joined(new TableSource.OpenRowset(A, B, new RowsetLogin(A, B, A), A)),
-			"OPENROWSET with neither a provider string nor a login" => Joined(new TableSource.OpenRowset(A, null, null, A)),
+			"OPENROWSET with a provider string and a login"      => Joined(new TableSource.OpenRowset(Str, Str, new RowsetLogin(Str, Str, Str), A)),
+			"OPENROWSET with a provider that is not a string"    => Joined(new TableSource.OpenRowset(A, Str, null, A)),
+			"OPENROWSET with a login part that is not a string"  => Joined(new TableSource.OpenRowset(Str, null, new RowsetLogin(Str, A, Str), A)),
+			"an element name that is not a string"               => Selected with { For = new ForClause.Xml(XmlMode.Path, A, []) },
+			"a FOR directive's name that is not a string"        => Selected with { For = new ForClause.Xml(XmlMode.Raw, null, [new ForDirective(ForDirectiveKind.Root, A)]) },
+			"USE HINT with a hint that is not a string"          => new Statement.Select { Query = Selected, Hints = [new QueryHint.UseHint([A])] },
+			"a query hint named for a phrase's first word"       => new Statement.Select { Query = Selected, Hints = [new QueryHint.Named(new Identifier("HASH"), [])] },
+			"a query hint whose name is not a regular identifier" => new Statement.Select { Query = Selected, Hints = [new QueryHint.Named(new Identifier("[KEEP PLAN]", IdentifierStyle.Bracketed), [])] },
+			"FORCESEEK with arguments as a named hint"           => Joined(named with { Hints = [new TableHint.Named(new Identifier("FORCESEEK"), [A])] }),
+			"an ORDER of no column"                              => Joined(new TableSource.OpenRowsetBulk(A, [new Option(new Identifier("ORDER"), null, []) { Order = new RowOrder([], false) }], null)),
+			"OPENDATASOURCE with FOR PATH"                       => Joined(named with { DataSource = Server, ForPath = true }),
+			"OPENROWSET with neither a provider string nor a login" => Joined(new TableSource.OpenRowset(Str, null, null, A)),
 			"a BULK option with options"                         => Joined(new TableSource.OpenRowsetBulk(A, [new Option(new Identifier("FORMAT"), A, [new Option(new Identifier("X"), null, [])])], null)),
 			"a BULK ORDER option with a value"                   => Joined(new TableSource.OpenRowsetBulk(A, [new Option(new Identifier("ORDER"), A, []) { Order = new RowOrder([new SortItem(A)], false) }], null)),
 			"OPENXML with a schema and a schema table"           => Joined(new TableSource.OpenXml(A, B, null, [Column()], T)),

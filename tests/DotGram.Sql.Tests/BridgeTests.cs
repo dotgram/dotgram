@@ -367,6 +367,12 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT a INTO t FROM u",                                 "Query.Select.IntoTable")]
 	[InlineData("SELECT * FROM OPENJSON (@j)",                            "TableSource.OpenJson")]
 	[InlineData("SELECT @v = a FROM t",                                   "SelectColumn.VariableAssignment")]
+	[InlineData("SELECT @v += a FROM t",                                  "SelectColumn.VariableAssignment +=")]
+	[InlineData("SELECT @v ||= a FROM t",                                 "SelectColumn.VariableAssignment ||=")]
+	[InlineData("SELECT a FROM t OPTION (OPTIMIZE FOR (@v = 0xFF, @w = 1e2, @x = 1.5))", "QueryHint.OptimizeFor literals")]
+	[InlineData("SELECT * FROM t PIVOT (SUM (a) FOR [t].[b] IN ([1])) p",   "Pivot.Column qualified")]
+	[InlineData("SELECT * FROM t PIVOT (SUM (a) FOR \"t\".b IN ([1])) p",  "Pivot.Column qualified")]
+	[InlineData("SELECT * FROM t UNPIVOT (v FOR c IN ([t].a, b)) u",        "Unpivot.Columns qualified")]
 	[InlineData("SELECT * FROM OPENXML (@h, '/r') WITH t2 x",             "TableSource.OpenXml.SchemaTable")]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('p', 'i').db.dbo.t",       "TableSource.Named.DataSource")]
 	[InlineData("SELECT * FROM t PIVOT (SUM (a) FOR b IN ([1], [2])) p", "TableSource.Pivot")]
@@ -396,10 +402,23 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Query.Select.IntoTable"                => select is { Into: null, IntoTable.Table.Parts: [{ Text: "t" }] },
 			"TableSource.OpenJson"                  => source is Ast.TableSource.OpenJson { Schema: null, Path: null },
 			"SelectColumn.VariableAssignment"       => select.Columns is [Ast.SelectColumn.VariableAssignment { Variable.Text: "@v", Operator: Ast.AssignmentOperator.Assign }],
+			"SelectColumn.VariableAssignment +="    => select.Columns is [Ast.SelectColumn.VariableAssignment { Operator: Ast.AssignmentOperator.Add }],
+			"SelectColumn.VariableAssignment ||="   => select.Columns is [Ast.SelectColumn.VariableAssignment { Operator: Ast.AssignmentOperator.Concatenate }],
+			"QueryHint.OptimizeFor literals"        => made.Hints is [Ast.QueryHint.OptimizeFor
+			{
+				Variables:
+				[
+					{ Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Binary { ZeroX: true } } },
+					{ Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Approximate } } },
+					{ Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Decimal } } },
+				],
+			}],
+			"Pivot.Column qualified"                => source is Ast.TableSource.Pivot { Column.Parts.Count: 2, Values: [{ Parts.Count: 1 }] },
+			"Unpivot.Columns qualified"             => source is Ast.TableSource.Unpivot { Columns: [{ Parts.Count: 2 }, { Parts.Count: 1 }] },
 			"TableSource.OpenXml.SchemaTable"       => source is Ast.TableSource.OpenXml { Schema: null, SchemaTable.Parts: [{ Text: "t2" }] },
 			"TableSource.Named.DataSource"          => source is Ast.TableSource.Named { DataSource: not null, Name.Parts.Count: 3 },
-			"TableSource.Pivot"                     => source is Ast.TableSource.Pivot { Column.Text: "b", Values: [{ Text: "[1]" }, { Text: "[2]" }], Alias.Name.Text: "p" },
-			"TableSource.Unpivot"                   => source is Ast.TableSource.Unpivot { Value.Text: "v", Column.Text: "c", Columns: [{ Text: "a" }, { Text: "b" }], Alias.Name.Text: "u" },
+			"TableSource.Pivot"                     => source is Ast.TableSource.Pivot { Column.Parts: [{ Text: "b" }], Values: [{ Parts: [{ Text: "[1]" }] }, { Parts: [{ Text: "[2]" }] }], Alias.Name.Text: "p" },
+			"TableSource.Unpivot"                   => source is Ast.TableSource.Unpivot { Value.Parts: [{ Text: "v" }], Column.Parts: [{ Text: "c" }], Columns: [{ Parts: [{ Text: "a" }] }, { Parts: [{ Text: "b" }] }], Alias.Name.Text: "u" },
 			"GraphPattern.ShortestPath"             => select.Where is Ast.Expression.GraphMatch
 			{
 				Patterns:

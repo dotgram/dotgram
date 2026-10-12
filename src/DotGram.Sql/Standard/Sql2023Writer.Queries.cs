@@ -893,8 +893,8 @@ public static partial class Sql2023Writer
 						if (named.Only)
 							throw Both(named, "DataSource", "Only");
 
-						if (named.Hints.Count > 0 || named.Sample is not null || named.SystemTime is not null || named.Alias?.Columns is not null)
-							throw Misplaced(named, "Hints, Sample, SystemTime or alias columns", "on a name after OPENDATASOURCE");
+						if (named.Hints.Count > 0 || named.Sample is not null || named.SystemTime is not null || named.Alias?.Columns is not null || named.ForPath)
+							throw Misplaced(named, "Hints, Sample, SystemTime, ForPath or alias columns", "on a name after OPENDATASOURCE");
 
 						Word("OPENDATASOURCE");
 						Call();
