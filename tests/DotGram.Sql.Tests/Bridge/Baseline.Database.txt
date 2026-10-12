@@ -1,0 +1,54 @@
+# What became of the statements counted under each old record the Database family owns:
+# `Record = converted/gap/refused/unread/different/shape` (docs/design/sql-tsql-bridge.md). A statement is
+# counted under the record its gap names, or else under its own. BridgeTests fails where `converted`
+# falls or `refused`, `unread`, `different` or `shape` rises, and prints a gain; this file is rewritten
+# deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
+
+Clause.DatabaseFile = 0/0/0/0/0/0
+Clause.FileGroup = 0/0/0/0/0/0
+Statement.AlterDatabaseAddFile = 0/7/0/0/0/0
+Statement.AlterDatabaseAddFileGroup = 0/8/0/0/0/0
+Statement.AlterDatabaseAddLogFile = 0/8/0/0/0/0
+Statement.AlterDatabaseCollate = 0/9/0/0/0/0
+Statement.AlterDatabaseModify = 0/30/0/0/0/0
+Statement.AlterDatabaseModifyBackupStorageRedundancy = 0/2/0/0/0/0
+Statement.AlterDatabaseModifyFile = 0/5/0/0/0/0
+Statement.AlterDatabaseModifyFileGroup = 0/30/0/0/0/0
+Statement.AlterDatabaseModifyName = 0/4/0/0/0/0
+Statement.AlterDatabasePerformCutover = 0/2/0/0/0/0
+Statement.AlterDatabaseRebuildLog = 0/11/0/0/0/0
+Statement.AlterDatabaseRemoveFile = 0/3/0/0/0/0
+Statement.AlterDatabaseRemoveFileGroup = 0/2/0/0/0/0
+Statement.AlterDatabaseScopedConfiguration = 0/13/0/0/0/0
+Statement.AlterDatabaseSet = 0/218/0/0/0/0
+Statement.AlterFullTextCatalog = 0/13/0/0/0/0
+Statement.AlterFullTextStopList = 0/46/0/0/0/0
+Statement.AlterPartitionFunction = 0/17/0/0/0/0
+Statement.AlterPartitionScheme = 0/10/0/0/0/0
+Statement.AlterSearchPropertyList = 0/11/0/0/0/0
+Statement.BackupCertificate = 0/17/0/0/0/0
+Statement.BackupDatabase = 0/37/0/0/0/0
+Statement.BackupGroup = 0/1/0/0/0/0
+Statement.BackupMasterKey = 0/4/0/0/0/0
+Statement.BackupServer = 0/0/0/0/0/0
+Statement.BackupServiceMasterKey = 0/3/0/0/0/0
+Statement.BackupSymmetricKey = 0/1/0/0/0/0
+Statement.BackupTransactionLog = 0/15/0/0/0/0
+Statement.Checkpoint = 0/7/0/0/0/0
+Statement.CreateDatabase = 0/154/0/0/0/0
+Statement.DatabaseAuditSpecificationDefinition = 0/56/0/0/0/0
+Statement.FullTextCatalogDefinition = 0/20/0/0/0/0
+Statement.FullTextStopListDefinition = 0/19/0/0/0/0
+Statement.PartitionFunctionDefinition = 0/21/0/0/0/0
+Statement.PartitionSchemeDefinition = 0/11/0/0/0/0
+Statement.RestoreDatabase = 0/46/0/0/0/0
+Statement.RestoreFileListOnly = 0/3/0/0/0/0
+Statement.RestoreHeaderOnly = 0/3/0/0/0/0
+Statement.RestoreLabelOnly = 0/2/0/0/0/0
+Statement.RestoreLog = 0/14/0/0/0/0
+Statement.RestoreMasterKey = 0/7/0/0/0/0
+Statement.RestoreRewindOnly = 0/4/0/0/0/0
+Statement.RestoreServiceMasterKey = 0/6/0/0/0/0
+Statement.RestoreSymmetricKey = 0/2/0/0/0/0
+Statement.RestoreVerifyOnly = 0/3/0/0/0/0
+Statement.SearchPropertyListDefinition = 0/7/0/0/0/0

@@ -1,0 +1,36 @@
+# What became of the statements counted under each old record the Tables family owns:
+# `Record = converted/gap/refused/unread/different/shape` (docs/design/sql-tsql-bridge.md). A statement is
+# counted under the record its gap names, or else under its own. BridgeTests fails where `converted`
+# falls or `refused`, `unread`, `different` or `shape` rises, and prints a gain; this file is rewritten
+# deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
+
+Clause.ColumnDefinition = 0/0/0/0/0/0
+Clause.ColumnOption = 0/0/0/0/0/0
+Clause.Connection = 0/0/0/0/0/0
+Clause.ConstraintDefinition = 0/0/0/0/0/0
+Clause.Dropped = 0/0/0/0/0/0
+Clause.JsonColumn = 0/0/0/0/0/0
+Clause.Option = 0/9/0/0/0/0
+Clause.Placement = 0/0/0/0/0/0
+Clause.References = 0/0/0/0/0/0
+Clause.SystemTime = 0/10/0/0/0/0
+Clause.TableSample = 0/9/0/0/0/0
+Statement.AlterFullTextIndex = 0/92/0/0/0/0
+Statement.AlterIndex = 0/148/0/0/0/0
+Statement.AlterTable = 0/644/0/0/0/0
+Statement.CreateIndex = 0/495/0/0/0/0
+Statement.CreateTableAsSelect = 0/64/0/0/0/0
+Statement.FullTextIndexDefinition = 0/99/0/0/0/0
+Statement.StatisticsDefinition = 0/43/0/0/0/0
+Statement.TableDefinition = 0/1829/0/0/0/0
+Statement.UpdateStatistics = 0/41/0/0/0/0
+Statement.ViewDefinition = 0/84/0/0/0/0
+TableReference.Changed = 0/25/0/0/0/0
+TableReference.Derived = 0/8/0/0/0/0
+TableReference.FunctionCall = 0/380/0/0/0/0
+TableReference.Joined = 0/89/0/0/0/0
+TableReference.Named = 0/120/0/0/0/0
+TableReference.OdbcJoin = 0/7/0/0/0/0
+TableReference.Parenthesized = 0/0/0/0/0/0
+TableReference.Pivot = 0/76/0/0/0/0
+TableReference.Unpivot = 0/14/0/0/0/0
