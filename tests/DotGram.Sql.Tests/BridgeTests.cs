@@ -171,6 +171,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT CAST (a AS timestamp) FROM t", "SELECT CAST (a AS timestamp) FROM t", BridgeOracle.TypeName, false)]
 	[InlineData("SELECT CAST (a AS nvarchar) FROM t",  "SELECT CAST (a AS nvarchar) FROM t",  BridgeOracle.TypeName, false)]
 	[InlineData("SELECT CAST (a AS sys.sysname) FROM t", "SELECT CAST (a AS sys.sysname) FROM t", BridgeOracle.TypeName, false)]
+	[InlineData("SELECT CAST (a AS \"int\") FROM t",   "SELECT CAST (a AS \"int\") FROM t",   BridgeOracle.TypeName, false)]
+	[InlineData("SELECT CAST (a AS sys.\"int\") FROM t", "SELECT CAST (a AS sys.\"int\") FROM t", BridgeOracle.TypeName, false)]
+	[InlineData("SELECT CAST (a AS \"int\") FROM t WHERE b = 1", "SELECT CAST (a AS \"int\") FROM t WHERE b = 2", BridgeOracle.TypeName, true)]
+	[InlineData("SELECT CAST (a AS xml) FROM t",       "SELECT CAST (a AS xml) FROM t",       BridgeOracle.TypeName, false)]
 	[InlineData("SELECT CAST (a AS money) FROM t WHERE b = 1", "SELECT CAST (a AS money) FROM t WHERE b = 2", BridgeOracle.TypeName, true)]
 	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 1, a) FROM t",    BridgeOracle.DatePart, false)]
 	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 2, a) FROM t",    BridgeOracle.DatePart, true)]
@@ -202,12 +206,16 @@ public sealed class BridgeTests(ITestOutputHelper output)
 		Assert.Equal(SqlStandardParser.ParseStatement(text), Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
 
 		var mine = new Ast.QualifiedName([new Ast.Identifier("MyType")]);
-		var made = new Ast.QualifiedName([new Ast.Identifier("INT")]);
+		var made   = new Ast.QualifiedName([new Ast.Identifier("INT")]);
+		var xml    = new Ast.QualifiedName([new Ast.Identifier("[xml]", Ast.IdentifierStyle.Bracketed)]);
+		var quoted = new Ast.QualifiedName([new Ast.Identifier("\"int\"", Ast.IdentifierStyle.Delimited)]);
 
 		foreach (var (bridged, standard) in new (Ast.DataType, Ast.DataType)[]
 		{
 			(new Ast.DataType.Named(mine, []), new Ast.DataType.UserDefined(mine)),
 			(new Ast.DataType.Named(made, []), new Ast.DataType.Numeric(Ast.NumericTypeKind.Int)),
+			(new Ast.DataType.Named(xml, []), new Ast.DataType.UserDefined(xml)),
+			(new Ast.DataType.Numeric(Ast.NumericTypeKind.Int, 10) { WrittenName = quoted }, new Ast.DataType.UserDefined(quoted)),
 		})
 		{
 			BridgeOracle.Meaning(Trees.Differences(bridged, standard, old: false), out var unexplained);
@@ -245,6 +253,33 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// Statements that must convert: the case of what the tree does not keep is folded, and a system type's name
+	/// however written is the type.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT 0XFF FROM t")]
+	[InlineData("SELECT CAST (a AS [xml]) FROM t")]
+	[InlineData("SELECT CAST (a AS [xml] (CONTENT s)) FROM t")]
+	public void A_statement_converts(string text)
+	{
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	/// <summary>
+	/// <c>xml</c> qualified by <c>sys</c> is <c>DataType.Xml</c> written as that name, as <c>DECLARE @x sys.xml</c> reads it
+	/// (the statement itself waits for DECLARE's record).
+	/// </summary>
+	[Fact]
+	public void Xml_qualified_by_sys_is_xml()
+	{
+		Assert.Equal(
+			new Ast.DataType.Xml() { WrittenName = new Ast.QualifiedName([new Ast.Identifier("sys"), new Ast.Identifier("xml")]) },
+			Bridge.Values.Type(new object(), "sys.xml"));
+	}
+
+	/// <summary>
 	/// Which record the bridge builds where the written text would be the same for another: what the round trip
 	/// cannot see.
 	/// </summary>
@@ -261,6 +296,8 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT CAST (a AS [double precision])",              "DataType.UserDefined [double precision]")]
 	[InlineData("SELECT CAST (a AS dbo.T)",                           "DataType.UserDefined dbo.T")]
 	[InlineData("SELECT CAST (a AS xml(CONTENT s))",                  "DataType.Xml { Content, s }")]
+	[InlineData("SELECT CAST (a AS [xml])",                           "DataType.Xml { [xml] }")]
+	[InlineData("SELECT CAST (a AS [xml] (CONTENT s))",               "DataType.Xml { Content, s, [xml] }")]
 	[InlineData("SELECT 0x0A",                                        "LiteralValue.Binary { 0A, ZeroX }")]
 	[InlineData("SELECT NEXT VALUE FOR s OVER (ORDER BY a)",          "Expression.NextValue { Over }")]
 	[InlineData("SELECT SUM (a) OVER (ORDER BY a ROWS 2 PRECEDING)",  "WindowFrame { Rows, 2 Preceding }")]
@@ -300,6 +337,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 				Target(value) is Ast.DataType.UserDefined { Name.Parts: [{ Text: "[double precision]" }] },
 			"DataType.UserDefined dbo.T" =>
 				Target(value) is Ast.DataType.UserDefined { Name.Parts: [{ Text: "dbo" }, { Text: "T" }] },
+			"DataType.Xml { [xml] }" =>
+				Target(value) is Ast.DataType.Xml { Modifier: null, Schema: null, WrittenName.Parts: [{ Text: "[xml]" }] },
+			"DataType.Xml { Content, s, [xml] }" =>
+				Target(value) is Ast.DataType.Xml { Modifier: Ast.XmlTypeModifier.Content, Schema.Parts: [{ Text: "s" }], WrittenName.Parts: [{ Text: "[xml]" }] },
 			"DataType.Xml { Content, s }" =>
 				Target(value) is Ast.DataType.Xml { Modifier: Ast.XmlTypeModifier.Content, Schema.Parts: [{ Text: "s" }] },
 			"LiteralValue.Binary { 0A, ZeroX }" =>

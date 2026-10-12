@@ -712,6 +712,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a written name on a type of several words")]
 	[InlineData("a written name on a named type")]
 	[InlineData("GraphPath with a WITHIN GROUP order")]
+	[InlineData("a written name on xml qualified by dbo")]
+	[InlineData("a 0x literal that is not hex digits")]
 	[InlineData("a table variable with hints in a FROM")]
 	[InlineData("a table variable with a sample in a FROM")]
 	public void A_value_with_no_text_is_refused(string which)
@@ -733,6 +735,8 @@ public sealed class Sql2023WriterCoverageTests
 			"a written name qualified by other than sys" => new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("int")]) },
 			"a written name on a type of several words" => new DataType.Numeric(NumericTypeKind.DoublePrecision) { WrittenName = new QualifiedName([new Identifier("[double precision]", IdentifierStyle.Bracketed)]) },
 			"a written name on a named type"        => new DataType.Named(T, []) { WrittenName = T },
+			"a written name on xml qualified by dbo" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("xml")]) },
+			"a 0x literal that is not hex digits"   => new Expression.Literal(new LiteralValue.Binary("0x0A") { ZeroX = true }),
 			"GraphPath with a WITHIN GROUP order"   => new Expression.Invocation(T, [new Argument(A)]) { GraphPath = true, WithinGroup = new WithinGroupClause(new OrderByClause([new SortItem(A)])) },
 			"a table variable with hints in a FROM" => Joined(new TableSource.Variable(new Identifier("@t")) { Hints = [new TableHint.Named(new Identifier("NOLOCK"), [])] }),
 			"a table variable with a sample in a FROM" => Joined(new TableSource.Variable(new Identifier("@t")) { Sample = new SampleClause(SampleMethod.System, A) }),
@@ -895,6 +899,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a PIVOT of a join",            "(t CROSS JOIN u) PIVOT (t(a) FOR b IN ([1])) p")]
 	[InlineData("an APPLY of a join",           "t OUTER APPLY (u LEFT JOIN v ON a)")]
 	[InlineData("TABLE t with a data source",   "OPENDATASOURCE('p', 'i').t")]
+	[InlineData("xml written as a name",        "[xml](CONTENT s)")]
+	[InlineData("xml qualified by sys",         "sys.xml")]
 	public void The_writer_brackets_and_keeps_what_the_grammar_needs(string which, string written)
 	{
 		var t = new TableSource.Named(T);
@@ -910,6 +916,11 @@ public sealed class Sql2023WriterCoverageTests
 				Right = new TableSource.Join { Left = u, Right = v, Kind = JoinKind.Left, Specification = new JoinSpecification.On(A) },
 				Kind  = JoinKind.OuterApply,
 			}),
+			"xml written as a name" => new DataType.Xml(XmlTypeModifier.Content, new QualifiedName([new Identifier("s")]))
+			{
+				WrittenName = new QualifiedName([new Identifier("[xml]", IdentifierStyle.Bracketed)]),
+			},
+			"xml qualified by sys" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("sys"), new Identifier("xml")]) },
 			_                    => new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([t with { DataSource = Server }]), Table = true },
 		};
 
