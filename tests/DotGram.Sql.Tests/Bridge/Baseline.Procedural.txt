@@ -1,0 +1,56 @@
+# What became of the statements counted under each old record the Procedural family owns:
+# `Record = converted/gap/refused/unread/different/shape` (docs/design/sql-tsql-bridge.md). A statement is
+# counted under the record its gap names, or else under its own. BridgeTests fails where `converted`
+# falls or `refused`, `unread`, `different` or `shape` rises, and prints a gain; this file is rewritten
+# deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
+
+Clause.CursorDefinition = 0/0/0/0/0/0
+Clause.CursorFor = 0/0/0/0/0/0
+Clause.VariableDeclaration = 0/0/0/0/0/0
+SetExpression.DateAndTime.DateFirst = 0/0/0/0/0/0
+SetExpression.DateAndTime.DateFormat = 0/0/0/0/0/0
+SetExpression.IsoSettings.Switch = 0/0/0/0/0/0
+SetExpression.Locking.DeadlockPriority = 0/0/0/0/0/0
+SetExpression.Locking.LockTimeout = 0/0/0/0/0/0
+SetExpression.Miscellaneous.ContextInfo = 0/0/0/0/0/0
+SetExpression.Miscellaneous.ErrorLevel = 0/0/0/0/0/0
+SetExpression.Miscellaneous.FipsFlagger = 0/0/0/0/0/0
+SetExpression.Miscellaneous.IdentityInsert = 0/0/0/0/0/0
+SetExpression.Miscellaneous.Language = 0/0/0/0/0/0
+SetExpression.Miscellaneous.Offset = 0/0/0/0/0/0
+SetExpression.Miscellaneous.Switch = 0/0/0/0/0/0
+SetExpression.QueryExecution.QueryGovernorCostLimit = 0/0/0/0/0/0
+SetExpression.QueryExecution.RowCount = 0/0/0/0/0/0
+SetExpression.QueryExecution.Switch = 0/0/0/0/0/0
+SetExpression.QueryExecution.TextSize = 0/0/0/0/0/0
+SetExpression.Statistics.Report = 0/0/0/0/0/0
+SetExpression.Statistics.Switch = 0/0/0/0/0/0
+SetExpression.Transactions.IsolationLevel = 0/0/0/0/0/0
+SetExpression.Transactions.Switch = 0/0/0/0/0/0
+Statement.Break = 0/3/0/0/0/0
+Statement.Compound = 0/17/0/0/0/0
+Statement.Continue = 0/2/0/0/0/0
+Statement.CursorAction = 16/6/0/0/0/0
+Statement.Declare = 0/300/0/0/0/0
+Statement.DeclareCursor = 0/26/0/0/0/0
+Statement.ExecuteAs = 0/20/0/0/0/0
+Statement.Fetch = 0/0/24/0/0/0
+Statement.GoTo = 0/3/0/0/0/0
+Statement.If = 0/23/0/0/0/0
+Statement.Label = 0/30/0/0/0/0
+Statement.LineNumber = 0/3/0/0/0/0
+Statement.Print = 0/38/0/0/0/0
+Statement.RaiseError = 0/10/0/0/0/0
+Statement.Return = 1/0/0/0/2/0
+Statement.Revert = 0/11/0/0/0/0
+Statement.SetCursor = 0/6/0/0/0/0
+Statement.SetStatement = 23/131/0/0/0/0
+Statement.SetUser = 0/13/0/0/0/0
+Statement.SetVariable = 0/78/0/0/0/0
+Statement.Throw = 0/5/0/0/0/0
+Statement.Transaction = 49/60/0/0/0/0
+Statement.TryCatch = 0/16/0/0/0/0
+Statement.Use = 0/7/0/0/0/0
+Statement.WaitFor = 0/20/0/0/0/0
+Statement.WaitForStatement = 0/10/0/0/0/0
+Statement.While = 0/6/0/0/0/0

@@ -1,0 +1,26 @@
+# What became of the statements counted under each old record the Queries family owns:
+# `Record = converted/gap/refused/unread/different/shape` (docs/design/sql-tsql-bridge.md). A statement is
+# counted under the record its gap names, or else under its own. BridgeTests fails where `converted`
+# falls or `refused`, `unread`, `different` or `shape` rises, and prints a gain; this file is rewritten
+# deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
+
+Clause.CommonTableExpression = 0/0/0/0/0/0
+Clause.DerivedColumn = 0/20/0/0/0/0
+Clause.For = 0/74/0/0/0/0
+Clause.GroupBy = 0/20/0/0/0/0
+Clause.Hint = 0/72/0/0/0/0
+Clause.Into = 0/0/0/0/0/0
+Clause.OrderBy = 0/0/0/0/0/0
+Clause.QualifiedAsterisk = 0/0/0/0/0/0
+Clause.SortSpecification = 0/0/0/0/0/0
+Clause.Top = 0/7/0/0/0/0
+Clause.VariableAssignment = 0/23/0/0/0/0
+Query.Except = 0/0/0/0/0/0
+Query.ExplicitTable = 0/0/0/0/0/0
+Query.Intersect = 0/0/0/0/0/0
+Query.Ordered = 0/0/0/0/0/0
+Query.Parenthesized = 0/0/0/0/0/0
+Query.Specification = 0/41/0/0/0/0
+Query.TableValueConstructor = 0/0/0/0/0/0
+Query.Union = 0/0/0/0/0/0
+Statement.Select = 941/0/0/3/0/0
