@@ -188,7 +188,9 @@ static partial class Bridge
 				Top         = Queries.Topped(old.Top),
 				Into        = into,
 				Target      = Target(old.Target),
-				Columns     = Values.Parts(old, old.Columns),
+				Columns     = Each(old.Columns ?? [], one => Values.Name(old, one) is { Parts: [var part] } && !one.StartsWith('.')
+					? part
+					: throw BridgeGap.Open(old, $"inventory Statement.Insert (a qualified or prefixed column `{one}`, where the column list holds identifiers)")),
 				Output      = Output(old.Output),
 				SourceValue = rows,
 				Hints       = Hints(old.Options),
