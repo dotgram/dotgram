@@ -96,6 +96,8 @@ static partial class Bridge
 				Expression.ColumnReference(var text) when text.Length > 2 && text.EndsWith(".*", StringComparison.Ordinal) =>
 					new Ast.Expression.Wildcard(new Ast.Expression.Reference(Name(old, text[..^2])), Ast.WildcardKind.Member),
 
+				// A bare `*` where a value stands: CONTAINS, FREETEXT and the semantic-search functions' every column.
+				Expression.ColumnReference("*")             => new Ast.Expression.Asterisk(),
 				Expression.ColumnReference(var text)        => new Ast.Expression.Reference(Name(old, text)),
 				Expression.Literal literal                  => Literal(literal),
 				Expression.RowValueConstructor(var items)   => new Ast.Expression.Row(Each(items, Of)),
@@ -798,9 +800,6 @@ static partial class Bridge
 
 			if (text.StartsWith('@'))
 				throw BridgeGap.Missing(owner, "a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements");
-
-			if (text == "*")
-				throw BridgeGap.Open(owner, "inventory Expression.ColumnReference (`*` alone standing where a value does: CONTAINS, SEMANTICKEYPHRASETABLE)");
 
 			if (text.Any(char.IsWhiteSpace) && text.Length > 0 && text[0] is not '[' and not '"')
 				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a name part `{text}`)");

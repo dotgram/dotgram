@@ -33,7 +33,7 @@ writer itself.
 
 ## The shape check, and the dialects' different meanings
 
-Every place the two trees differ is collected. A difference inside one of nine subtrees, found by its
+Every place the two trees differ is collected. A difference inside one of ten subtrees, found by its
 construct and never by the statement's text, is the two dialects reading the text with different meanings,
 and is exempted (`BridgeOracle.Meaning`); any other difference makes the statement a **shape** mismatch.
 
@@ -57,6 +57,8 @@ and is exempted (`BridgeOracle.Meaning`); any other difference makes the stateme
   filegroup, and its `Into` where the standard's one target names the same table.
 - `FROM t OPTION (h)`: a hint in T-SQL, an alias with columns in the standard. A statement's `Hints`, and an
   `Alias` the standard reads the word OPTION as.
+- `SELECT x = a`: an alias in T-SQL, a comparison in the standard. A `SelectColumn.ExpressionItem` that is
+  `AliasFirst`.
 
 ## Words read from the text
 
@@ -65,7 +67,7 @@ statement's text through the old nodes' spans (`Bridge.Recoverable`); each readi
 still applies to it, and only the gate for switching the grammar leaves them out:
 
 - `SelectColumn.ExpressionItem.AsKeyword`: `a AS x` against `a x`.
-- `Clause.DerivedColumn alias = expression`: `x = a`, which has no place yet.
+- `Clause.DerivedColumn alias = expression`: `x = a`, which is `SelectColumn.ExpressionItem.AliasFirst`.
 - `Alias.AsKeyword of a table source`: `t AS x` against `t x`; a word AS, never a name `"as"` or `[as]`, and
   not the AS of `FOR SYSTEM_TIME AS OF`.
 - `Alias.AsKeyword of MERGE's target`.
@@ -75,6 +77,17 @@ still applies to it, and only the gate for switching the grammar leaves them out
 - `Expression.Trim.FromKeyword`: `TRIM (LEADING FROM s)` against `TRIM (LEADING s)`.
 - `Statement.DropRoutine.Proc`: `PROC` against `PROCEDURE`.
 - `Statement.SetTransaction.Tran`: `TRAN` against `TRANSACTION`.
+
+## Prefixed pivot and unpivot names
+
+`TableSource.Pivot` and `TableSource.Unpivot` hold their names as `QualifiedName`. A PIVOT's FOR column and an
+UNPIVOT's IN list name existing columns, and SQL Server runs them qualified. A PIVOT's IN list and an UNPIVOT's
+value and FOR columns name new columns: the parser reads a prefix there, and compilation refuses it (Msg 254 and
+Msg 275). The corpora hold 4 prefixed statements, all of the first kind:
+
+- `SELECT * FROM st PIVOT (AVG (.st.StandardCost) FOR st.DaysToManufacture IN ([0], [1])) AS PivotTable;`, in two
+  spellings.
+- `SELECT * FROM t1 CROSS APPLY t2 UNPIVOT (q FOR n IN (t1.c0, c1)) AS a;`, in two spellings.
 
 ## Key words kept as written
 
@@ -136,7 +149,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Clause.TableSample.Unit | 4 |
 | ByCase Clause.Top.With | 0 |
 | ByCase Clause.Window.Frame | 7 |
-| ByCase Expression.ColumnReference.Text of a date part | 108 |
+| ByCase Expression.ColumnReference.Text of a date part | 110 |
 | ByCase Expression.GraphMatch.Pattern | 114 |
 | ByCase Expression.Literal.Text | 24 |
 | ByCase Expression.Match.Qualifier | 0 |
@@ -146,7 +159,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Expression.Quantified.Quantifier | 0 |
 | ByCase Expression.RoutineInvocation.Name | 117 |
 | ByCase Expression.RoutineInvocation.Word | 110 |
-| ByCase Expression.WindowFunction.Within | 14 |
+| ByCase Expression.WindowFunction.Within | 16 |
 | ByCase Query.Specification.Quantifier | 5 |
 | ByCase SetExpression.Transactions.IsolationLevel.Level | 0 |
 | ByCase Statement.CursorAction.Verb | 0 |
@@ -165,17 +178,18 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Meaning GLOBAL c: a cursor of the connection in T-SQL, an extended name in the standard | 6 |
 | Meaning GROUP BY ALL a: the empty groups kept in T-SQL, a quantifier in the standard | 7 |
 | Meaning SELECT a INTO t: a new table in T-SQL, a target in the standard | 3 |
+| Meaning SELECT x = a: an alias in T-SQL, a comparison in the standard | 1 |
 | Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard | 15 |
 | Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard | 2 |
 | Recovered Alias.AsKeyword of MERGE's target | 7 |
-| Recovered Alias.AsKeyword of a table source | 836 |
-| Recovered Clause.DerivedColumn alias = expression | 277 |
-| Recovered Expression.Invocation without brackets | 31 |
+| Recovered Alias.AsKeyword of a table source | 852 |
+| Recovered Clause.DerivedColumn alias = expression | 346 |
+| Recovered Expression.Invocation without brackets | 32 |
 | Recovered Expression.Trim.FromKeyword | 0 |
 | Recovered Limit.FetchRowWord | 23 |
 | Recovered Limit.OffsetRowWord | 26 |
 | Recovered Limit.Position | 23 |
-| Recovered SelectColumn.ExpressionItem.AsKeyword | 277 |
+| Recovered SelectColumn.ExpressionItem.AsKeyword | 341 |
 | Recovered Statement.DropRoutine.Proc | 24 |
 | Recovered Statement.SetTransaction.Tran | 23 |
 | Recovered WindowReference.NameRef against (name) | 14 |
@@ -190,15 +204,15 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | Old record | Family | Category | Counted | Gaps | Occurrences |
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9322 |
-| `Expression.ColumnReference` | Values | B | gap 8 | 152: needs decision: inventory Expression.ColumnReference (`*` alone standing where a value does: CONTAINS, SEMANTICKEYPHRASETABLE) (13); needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7) | 9235 |
+| `Expression.ColumnReference` | Values | B | — | 139: needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7); needs decision: inventory cross-cutting gaps, identifier styles (a name part `READ COMMITTED`) (6) | 9235 |
 | `Clause.Option` | Tables | C | — | — | 6517 |
 | `Clause.ColumnDefinition` | Tables | B | — | — | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |
 | `Clause.ColumnOption` | Tables | B | — | — | 2995 |
-| `Statement.Select` | Queries | B | converted 2225 | — | 2976 |
-| `Clause.DerivedColumn` | Queries | A | gap 24 | 24: needs decision: inventory Clause.DerivedColumn (a string alias) (19); needs decision: inventory Clause.DerivedColumn (alias = expression) (5) | 2967 |
+| `Statement.Select` | Queries | B | converted 2262 | — | 2976 |
+| `Clause.DerivedColumn` | Queries | A | — | — | 2967 |
 | `TableReference.Named` | Tables | A | gap 5 | 5: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
-| `Expression.RoutineInvocation` | Values | B | gap 159 | 191: needs decision: inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes) (122); needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12) | 2310 |
+| `Expression.RoutineInvocation` | Values | B | gap 161 | 191: needs decision: inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes) (122); needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12) | 2310 |
 | `Statement.TableDefinition` | Tables | B | gap 1829 | 1878: needs decision: inventory Statement.TableDefinition (1878) | 1906 |
 | `Clause.ConstraintDefinition` | Tables | B | — | — | 1841 |
 | `Clause.SortSpecification` | Queries | A | — | — | 1303 |
@@ -264,7 +278,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.SetVariable` | Procedural | C | gap 78 | 89: no target record: Statement.SetVariable (89) | 89 |
 | `Clause.DatabaseFile` | Database | C | — | — | 88 |
 | `Statement.ResourcePoolDefinition` | Server | C | gap 86 | 86: no target record: Statement.CreateResourcePool (86) | 86 |
-| `Clause.Top` | Queries | C | gap 7 | 7: needs decision: inventory Clause.Top (WITH APPROXIMATE) (7) | 84 |
+| `Clause.Top` | Queries | C | — | — | 84 |
 | `Query.TableValueConstructor` | Queries | A | — | — | 84 |
 | `Statement.ViewDefinition` | Tables | B | gap 84 | 84: needs decision: inventory Statement.ViewDefinition (84) | 84 |
 | `Query.FromFile` | Dml | C | gap 83 | 83: no target record: Statement.BulkInsert (inventory Query.FromFile) (83) | 83 |

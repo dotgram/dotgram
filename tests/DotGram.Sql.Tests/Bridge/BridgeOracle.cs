@@ -186,7 +186,7 @@ static class BridgeOracle
 	}
 
 	/// <summary>
-	/// The nine constructs the two dialects read with different meanings. Each exempts one subtree of the
+	/// The ten constructs the two dialects read with different meanings. Each exempts one subtree of the
 	/// bridge's tree, found by its construct and never by the statement's text:
 	/// <list type="bullet">
 	/// <item><c>TOP (n) a</c> is a row count in T-SQL, and the standard reads a call to <c>TOP</c> aliased <c>a</c>:
@@ -210,6 +210,8 @@ static class BridgeOracle
 	/// target names the same table.</item>
 	/// <item><c>FROM t OPTION (h)</c> is a hint in T-SQL, and an alias with its columns in the standard: a
 	/// statement's <c>Hints</c>, and an <c>Alias</c> the standard reads the word OPTION as.</item>
+	/// <item><c>SELECT x = a</c> names a column in T-SQL, and compares two in the standard: a
+	/// <c>SelectColumn.ExpressionItem</c> that is <c>AliasFirst</c>.</item>
 	/// </list>
 	/// A difference outside every exempted subtree is unexplained, and makes the statement a shape mismatch.
 	/// </summary>
@@ -245,8 +247,9 @@ static class BridgeOracle
 	public const string GroupAll = "GROUP BY ALL a: the empty groups kept in T-SQL, a quantifier in the standard";
 	public const string Into     = "SELECT a INTO t: a new table in T-SQL, a target in the standard";
 	public const string Option   = "FROM t OPTION (h): a hint in T-SQL, an alias in the standard";
+	public const string Named    = "SELECT x = a: an alias in T-SQL, a comparison in the standard";
 
-	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName, GroupAll, Into, Option];
+	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName, GroupAll, Into, Option, Named];
 
 	/// <summary>
 	/// The pattern whose subtree a difference lies in, and the node at the subtree's root, or null.
@@ -266,6 +269,10 @@ static class BridgeOracle
 		if (difference.Path is [{ Node: Ast.Statement.Select { Hints.Count: > 0 } }, .., { Member: "Alias" } last]
 			&& difference.Right is Ast.Alias { Name.Text: var word } && word.Equals("OPTION", StringComparison.OrdinalIgnoreCase))
 			return (Option, last.Node);
+
+		// SELECT x = a: the column the alias comes first in, which the standard reads as a comparison.
+		if (difference.Path is [.., { Node: Ast.SelectColumn.ExpressionItem { AliasFirst: true } item, Member: "Expression" or "Alias" or "AliasFirst" }])
+			return (Named, item);
 
 		// GROUP BY ALL: the quantifier the standard reads ALL as, and the flag that holds it.
 		if (difference.Path is [.., { Node: Ast.GroupByClause { AllKeyword: true } group, Member: "Quantifier" or "AllKeyword" }])

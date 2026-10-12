@@ -241,8 +241,22 @@ public static partial class Sql2023Writer
 			if (top.Percent)
 				Word("PERCENT");
 
-			if (top.WithTies)
-				Word("WITH TIES");
+			switch (top.With)
+			{
+				case null:
+					break;
+
+				case TopWith.Ties:
+					Word("WITH TIES");
+					break;
+
+				case TopWith.Approximate:
+					Word("WITH APPROXIMATE");
+					break;
+
+				default:
+					throw NoText(top.With.Value);
+			}
 		}
 
 		void PutSpecification(Query.Select query)
@@ -392,12 +406,44 @@ public static partial class Sql2023Writer
 			}
 		}
 
+		/// <summary>
+		/// A select column's alias: a name, or T-SQL's string, <c>'x'</c> or <c>N'x'</c>, its quotes doubled again.
+		/// </summary>
+		void PutColumnAlias(Identifier alias)
+		{
+			switch (alias.Style)
+			{
+				case IdentifierStyle.String:
+					Word("'" + alias.Text.Replace("'", "''") + "'");
+					break;
+
+				case IdentifierStyle.NationalString:
+					Word("N'" + alias.Text.Replace("'", "''") + "'");
+					break;
+
+				default:
+					PutIdentifier(alias);
+					break;
+			}
+		}
+
 		void PutColumn(SelectColumn column)
 		{
 			switch (column)
 			{
 				case SelectColumn.All:
 					Word("*");
+					break;
+
+				// T-SQL: SELECT Clause (Transact-SQL). `x = a`, the alias first; a regular alias starting with @ would
+				// be SelectColumn.VariableAssignment.
+				case SelectColumn.ExpressionItem { AliasFirst: true } first:
+					if (first.Alias is not { } named || first.AsKeyword || named.Style == IdentifierStyle.Regular && named.Text.StartsWith("@", StringComparison.Ordinal))
+						throw Misplaced(first, "AliasFirst", "without an alias, with AS, or with an alias that is a variable's name");
+
+					PutColumnAlias(named);
+					Word("=");
+					PutExpression(first.Expression);
 					break;
 
 				case SelectColumn.ExpressionItem expression:
@@ -408,7 +454,7 @@ public static partial class Sql2023Writer
 						if (expression.AsKeyword)
 							Word("AS");
 
-						PutIdentifier(alias);
+						PutColumnAlias(alias);
 					}
 
 					break;

@@ -175,6 +175,7 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(CharacterTypeKind)]  = v => new DataType.Character((CharacterTypeKind)v),
 		[typeof(BinaryTypeKind)]     = v => new DataType.Binary((BinaryTypeKind)v),
 		[typeof(IdentifierStyle)]    = v => new Identifier("x", (IdentifierStyle)v),
+		[typeof(TopWith)]            = v => Selected with { Top = new TopClause(A, true, false, (TopWith)v) },
 		[typeof(TransactionKeyword)] = v => new Statement.Commit { Keyword = (TransactionKeyword)v },
 		[typeof(SetOperator)]        = v => Combined((SetOperator)v),
 		[typeof(LockingMode)]        = v => Selected with { Locking = [new LockingClause((LockingMode)v, [])] },
@@ -427,6 +428,10 @@ public sealed class Sql2023WriterCoverageTests
 			["GraphQuantifier.Plus"] = (
 				Matched(Shortest(new GraphQuantifier(1, null, false))),
 				Matched(Shortest(new GraphQuantifier(1, null, true)))),
+			// T-SQL's `x = a`, the alias first.
+			["ExpressionItem.AliasFirst"] = (
+				Selected with { Columns = [new SelectColumn.ExpressionItem(A, new Identifier("x"))] },
+				Selected with { Columns = [new SelectColumn.ExpressionItem(A, new Identifier("x")) { AliasFirst = true }] }),
 			// T-SQL's ELEMENTS ABSENT, which means what ELEMENTS alone means.
 			["ForDirective.Absent"] = (
 				Selected with { For = new ForClause.Xml(XmlMode.Auto, null, [new ForDirective(ForDirectiveKind.Elements)]) },
@@ -808,6 +813,11 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("FORCESEEK with arguments as a named hint")]
 	[InlineData("an ORDER of no column")]
 	[InlineData("OPENDATASOURCE with FOR PATH")]
+	[InlineData("a string as a table's name")]
+	[InlineData("a string as a column reference")]
+	[InlineData("the alias first with no alias")]
+	[InlineData("the alias first with AS")]
+	[InlineData("the alias first that is a variable's name")]
 	[InlineData("a BULK option with options")]
 	[InlineData("a BULK ORDER option with a value")]
 	[InlineData("OPENXML with a schema and a schema table")]
@@ -882,6 +892,11 @@ public sealed class Sql2023WriterCoverageTests
 			"a query hint whose name is not a regular identifier" => new Statement.Select { Query = Selected, Hints = [new QueryHint.Named(new Identifier("[KEEP PLAN]", IdentifierStyle.Bracketed), [])] },
 			"FORCESEEK with arguments as a named hint"           => Joined(named with { Hints = [new TableHint.Named(new Identifier("FORCESEEK"), [A])] }),
 			"an ORDER of no column"                              => Joined(new TableSource.OpenRowsetBulk(A, [new Option(new Identifier("ORDER"), null, []) { Order = new RowOrder([], false) }], null)),
+			"a string as a table's name"                         => Joined(new TableSource.Named(new QualifiedName([new Identifier("t", IdentifierStyle.String)]))),
+			"a string as a column reference"                     => Selected with { Columns = [new SelectColumn.ExpressionItem(new Expression.Reference(new QualifiedName([new Identifier("a", IdentifierStyle.NationalString)])))] },
+			"the alias first with no alias"                      => Selected with { Columns = [new SelectColumn.ExpressionItem(A) { AliasFirst = true }] },
+			"the alias first with AS"                            => Selected with { Columns = [new SelectColumn.ExpressionItem(A, new Identifier("x"), true) { AliasFirst = true }] },
+			"the alias first that is a variable's name"          => Selected with { Columns = [new SelectColumn.ExpressionItem(A, new Identifier("@x")) { AliasFirst = true }] },
 			"OPENDATASOURCE with FOR PATH"                       => Joined(named with { DataSource = Server, ForPath = true }),
 			"OPENROWSET with neither a provider string nor a login" => Joined(new TableSource.OpenRowset(Str, null, null, A)),
 			"a BULK option with options"                         => Joined(new TableSource.OpenRowsetBulk(A, [new Option(new Identifier("FORMAT"), A, [new Option(new Identifier("X"), null, [])])], null)),
@@ -924,6 +939,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("TABLE t with a data source",   "OPENDATASOURCE('p', 'i').t")]
 	[InlineData("xml written as a name",        "[xml](CONTENT s)")]
 	[InlineData("xml qualified by sys",         "sys.xml")]
+	[InlineData("a string alias",               "SELECT a 'b c'")]
+	[InlineData("a national string alias first", "SELECT N'h''i' = a")]
 	public void The_writer_brackets_and_keeps_what_the_grammar_needs(string which, string written)
 	{
 		var t = new TableSource.Named(T);
@@ -942,6 +959,11 @@ public sealed class Sql2023WriterCoverageTests
 			"xml written as a name" => new DataType.Xml(XmlTypeModifier.Content, new QualifiedName([new Identifier("s")]))
 			{
 				WrittenName = new QualifiedName([new Identifier("[xml]", IdentifierStyle.Bracketed)]),
+			},
+			"a string alias"       => Selected with { Columns = [new SelectColumn.ExpressionItem(A, new Identifier("b c", IdentifierStyle.String))] },
+			"a national string alias first" => Selected with
+			{
+				Columns = [new SelectColumn.ExpressionItem(A, new Identifier("h'i", IdentifierStyle.NationalString)) { AliasFirst = true }],
 			},
 			"xml qualified by sys" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("sys"), new Identifier("xml")]) },
 			_                    => new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([t with { DataSource = Server }]), Table = true },

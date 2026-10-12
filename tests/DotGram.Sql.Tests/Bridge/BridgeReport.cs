@@ -56,7 +56,7 @@ static class BridgeReport
 
 		## The shape check, and the dialects' different meanings
 
-		Every place the two trees differ is collected. A difference inside one of nine subtrees, found by its
+		Every place the two trees differ is collected. A difference inside one of ten subtrees, found by its
 		construct and never by the statement's text, is the two dialects reading the text with different meanings,
 		and is exempted (`BridgeOracle.Meaning`); any other difference makes the statement a **shape** mismatch.
 
@@ -80,6 +80,8 @@ static class BridgeReport
 		  filegroup, and its `Into` where the standard's one target names the same table.
 		- `FROM t OPTION (h)`: a hint in T-SQL, an alias with columns in the standard. A statement's `Hints`, and an
 		  `Alias` the standard reads the word OPTION as.
+		- `SELECT x = a`: an alias in T-SQL, a comparison in the standard. A `SelectColumn.ExpressionItem` that is
+		  `AliasFirst`.
 
 		## Words read from the text
 
@@ -88,7 +90,7 @@ static class BridgeReport
 		still applies to it, and only the gate for switching the grammar leaves them out:
 
 		- `SelectColumn.ExpressionItem.AsKeyword`: `a AS x` against `a x`.
-		- `Clause.DerivedColumn alias = expression`: `x = a`, which has no place yet.
+		- `Clause.DerivedColumn alias = expression`: `x = a`, which is `SelectColumn.ExpressionItem.AliasFirst`.
 		- `Alias.AsKeyword of a table source`: `t AS x` against `t x`; a word AS, never a name `"as"` or `[as]`, and
 		  not the AS of `FOR SYSTEM_TIME AS OF`.
 		- `Alias.AsKeyword of MERGE's target`.
@@ -98,6 +100,17 @@ static class BridgeReport
 		- `Expression.Trim.FromKeyword`: `TRIM (LEADING FROM s)` against `TRIM (LEADING s)`.
 		- `Statement.DropRoutine.Proc`: `PROC` against `PROCEDURE`.
 		- `Statement.SetTransaction.Tran`: `TRAN` against `TRANSACTION`.
+
+		## Prefixed pivot and unpivot names
+
+		`TableSource.Pivot` and `TableSource.Unpivot` hold their names as `QualifiedName`. A PIVOT's FOR column and an
+		UNPIVOT's IN list name existing columns, and SQL Server runs them qualified. A PIVOT's IN list and an UNPIVOT's
+		value and FOR columns name new columns: the parser reads a prefix there, and compilation refuses it (Msg 254 and
+		Msg 275). The corpora hold 4 prefixed statements, all of the first kind:
+
+		- `SELECT * FROM st PIVOT (AVG (.st.StandardCost) FOR st.DaysToManufacture IN ([0], [1])) AS PivotTable;`, in two
+		  spellings.
+		- `SELECT * FROM t1 CROSS APPLY t2 UNPIVOT (q FOR n IN (t1.c0, c1)) AS a;`, in two spellings.
 
 		## Key words kept as written
 

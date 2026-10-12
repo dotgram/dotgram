@@ -5,7 +5,7 @@
 # deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
 
 Clause.CommonTableExpression = 0/0/0/0/0/0/0
-Clause.DerivedColumn = 0/24/0/0/0/0/0
+Clause.DerivedColumn = 0/0/0/0/0/0/0
 Clause.For = 0/0/0/0/0/0/0
 Clause.GroupBy = 0/0/0/0/0/0/0
 Clause.Hint = 0/5/0/0/0/0/0
@@ -13,7 +13,7 @@ Clause.Into = 0/0/0/0/0/0/0
 Clause.OrderBy = 0/0/0/0/0/0/0
 Clause.QualifiedAsterisk = 0/0/0/0/0/0/0
 Clause.SortSpecification = 0/0/0/0/0/0/0
-Clause.Top = 0/7/0/0/0/0/0
+Clause.Top = 0/0/0/0/0/0/0
 Clause.VariableAssignment = 0/0/0/0/0/0/0
 Query.Except = 0/0/0/0/0/0/0
 Query.ExplicitTable = 0/0/0/0/0/0/0
@@ -23,4 +23,4 @@ Query.Parenthesized = 0/0/0/0/0/0/0
 Query.Specification = 0/0/0/0/0/0/0
 Query.TableValueConstructor = 0/0/0/0/0/0/0
 Query.Union = 0/0/0/0/0/0/0
-Statement.Select = 2225/0/0/0/0/0/0
+Statement.Select = 2262/0/0/0/0/0/0

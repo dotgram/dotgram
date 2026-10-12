@@ -184,6 +184,8 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT a INTO t FROM u",              "SELECT a INTO v FROM u",              BridgeOracle.Into, true)]
 	[InlineData("SELECT a AS x FROM t OPTION (RECOMPILE)", "SELECT a AS x FROM t OPTION (RECOMPILE)", BridgeOracle.Option, false)]
 	[InlineData("SELECT a AS x FROM t OPTION (RECOMPILE)", "SELECT a AS y FROM t OPTION (RECOMPILE)", BridgeOracle.Option, true)]
+	[InlineData("SELECT x = b FROM t",                 "SELECT x = b FROM t",                 BridgeOracle.Named, false)]
+	[InlineData("SELECT x = b FROM t WHERE c = 1",     "SELECT x = b FROM t WHERE c = 2",     BridgeOracle.Named, true)]
 	public void A_dialect_pattern_exempts_its_subtree_and_no_more(string bridged, string standard, string pattern, bool shape)
 	{
 		var made        = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(bridged), bridged);
@@ -368,6 +370,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT * FROM OPENJSON (@j)",                            "TableSource.OpenJson")]
 	[InlineData("SELECT @v = a FROM t",                                   "SelectColumn.VariableAssignment")]
 	[InlineData("SELECT @v += a FROM t",                                  "SelectColumn.VariableAssignment +=")]
+	[InlineData("SELECT 1 'a b', 2 AS N'c', 'd' = 3, 'h''i' = 7 FROM t",  "String aliases")]
+	[InlineData("SELECT x = a, [@y] = b FROM t",                          "AliasFirst")]
+	[InlineData("SELECT TOP (1) WITH APPROXIMATE a FROM t",               "TopWith.Approximate")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((*), 'x') AND FREETEXT (*, 'y')", "Asterisk")]
 	[InlineData("SELECT @v ||= a FROM t",                                 "SelectColumn.VariableAssignment ||=")]
 	[InlineData("SELECT a FROM t OPTION (OPTIMIZE FOR (@v = 0xFF, @w = 1e2, @x = 1.5))", "QueryHint.OptimizeFor literals")]
 	[InlineData("SELECT * FROM t PIVOT (SUM (a) FOR [t].[b] IN ([1])) p",   "Pivot.Column qualified")]
@@ -402,6 +408,20 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Query.Select.IntoTable"                => select is { Into: null, IntoTable.Table.Parts: [{ Text: "t" }] },
 			"TableSource.OpenJson"                  => source is Ast.TableSource.OpenJson { Schema: null, Path: null },
 			"SelectColumn.VariableAssignment"       => select.Columns is [Ast.SelectColumn.VariableAssignment { Variable.Text: "@v", Operator: Ast.AssignmentOperator.Assign }],
+			"String aliases"                        => select.Columns is
+			[
+				Ast.SelectColumn.ExpressionItem { Alias: { Text: "a b", Style: Ast.IdentifierStyle.String }, AsKeyword: false, AliasFirst: false },
+				Ast.SelectColumn.ExpressionItem { Alias: { Text: "c", Style: Ast.IdentifierStyle.NationalString }, AsKeyword: true },
+				Ast.SelectColumn.ExpressionItem { Alias: { Text: "d", Style: Ast.IdentifierStyle.String }, AliasFirst: true },
+				Ast.SelectColumn.ExpressionItem { Alias: { Text: "h'i", Style: Ast.IdentifierStyle.String }, AliasFirst: true },
+			],
+			"AliasFirst"                            => select.Columns is
+			[
+				Ast.SelectColumn.ExpressionItem { Alias.Text: "x", AliasFirst: true, AsKeyword: false },
+				Ast.SelectColumn.ExpressionItem { Alias: { Text: "[@y]", Style: Ast.IdentifierStyle.Bracketed }, AliasFirst: true },
+			],
+			"TopWith.Approximate"                   => select.Top is { With: Ast.TopWith.Approximate, Parentheses: true },
+			"Asterisk"                              => select.Where is Ast.Expression.Binary && made.ToString().Split("Asterisk").Length == 3,
 			"SelectColumn.VariableAssignment +="    => select.Columns is [Ast.SelectColumn.VariableAssignment { Operator: Ast.AssignmentOperator.Add }],
 			"SelectColumn.VariableAssignment ||="   => select.Columns is [Ast.SelectColumn.VariableAssignment { Operator: Ast.AssignmentOperator.Concatenate }],
 			"QueryHint.OptimizeFor literals"        => made.Hints is [Ast.QueryHint.OptimizeFor

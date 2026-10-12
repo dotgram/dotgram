@@ -48,7 +48,9 @@ public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierS
 	}
 }
 // T-SQL: Database Identifiers (Transact-SQL). `Bracketed` is T-SQL's `[x]`.
-public enum IdentifierStyle { Regular, Delimited, UnicodeDelimited, Bracketed }
+// T-SQL: SELECT Clause (Transact-SQL). `String` and `NationalString`: a column alias written as a string, 'x' or N'x',
+// whose text is the string's content with its doubled quotes undone.
+public enum IdentifierStyle { Regular, Delimited, UnicodeDelimited, Bracketed, String, NationalString }
 
 /// <summary>BNF: top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families.</summary>
 public abstract partial record Statement : ISqlNode
@@ -530,7 +532,7 @@ public abstract partial record SelectColumn : ISqlNode
 	}
 
 	public record All : SelectColumn;
-	public record ExpressionItem(Expression Expression, Identifier? Alias = null, bool AsKeyword = false) : SelectColumn;
+	public partial record ExpressionItem(Expression Expression, Identifier? Alias = null, bool AsKeyword = false) : SelectColumn;
 	public record QualifiedAll(Expression Qualifier, SqlList<Identifier>? RenamedFields = null) : SelectColumn;
 }
 
