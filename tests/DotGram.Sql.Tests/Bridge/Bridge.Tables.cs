@@ -60,7 +60,7 @@ static partial class Bridge
 
 				case TableReference.FunctionCall(var call, var name, var columns, var schema):
 					if (schema.Length > 0 || Rowsets.Contains(call.Name))
-						throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)");
+						return Rowset((TableReference.FunctionCall)old);
 
 					if (Values.Function(call) is not Ast.Expression.Invocation invocation)
 						throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a call that is not a plain invocation)");
@@ -95,14 +95,15 @@ static partial class Bridge
 
 		static Ast.TableSource Named(TableReference.Named old)
 		{
-			if (old.Server is not null)
-				throw BridgeGap.Missing(old, "TableSource.Named has no OPENDATASOURCE server (inventory TableReference.Named)");
+			var server = old.Server is null ? null : Values.Function(old.Server) as Ast.Expression.Invocation
+				?? throw BridgeGap.Open(old, "inventory TableReference.Named (an OPENDATASOURCE that is not a call)");
 
 			if (old.ForPath)
 				throw BridgeGap.Missing(old, "TableSource.Named has no FOR PATH (inventory TableReference.Named)");
 
 			var made = new Ast.TableSource.Named(Values.Name(old, old.Table))
 			{
+				DataSource = server,
 				SystemTime = old.SystemTime is null ? null : SystemTime(old.SystemTime),
 				Alias      = Alias(old, null, old.Name, old.Columns),
 				Hints      = Each(old.Hints, static one =>
@@ -114,6 +115,127 @@ static partial class Bridge
 			};
 
 			return old.Sample is null ? made : Sample(made, old.Sample);
+		}
+
+		/// <summary>
+		/// A rowset function as the typed table source it is (proposal 7), from the call the old tree keeps:
+		/// its arguments, and its schema where a WITH was written.
+		/// </summary>
+		static Ast.TableSource Rowset(TableReference.FunctionCall old)
+		{
+			var call      = old.Function;
+			var arguments = call.Arguments;
+			var name      = call.Name.ToUpperInvariant();
+
+			// The alias follows the schema where there is one, and the call where there is not.
+			var alias = Alias(old, old.Schema.Length > 0 ? old.Schema[^1] : call, old.Name, old.Columns);
+
+			switch (name)
+			{
+				case "OPENJSON" when arguments.Length is 1 or 2:
+					return new Ast.TableSource.OpenJson(
+						Values.Of(arguments[0]),
+						arguments.Length > 1 ? Values.Of(arguments[1]) : null,
+						old.Schema.Length > 0 ? Schema(old.Schema) : null,
+						alias);
+
+				case "OPENXML" when arguments.Length is 2 or 3:
+					// `WITH table` is a schema of one column with no type, which no column written out is.
+					var table = old.Schema is [Clause.JsonColumn { Type: null } named] ? Values.Name(old, named.Name) : null;
+
+					return new Ast.TableSource.OpenXml(
+						Values.Of(arguments[0]),
+						Values.Of(arguments[1]),
+						arguments.Length > 2 ? Values.Of(arguments[2]) : null,
+						table is null && old.Schema.Length > 0 ? Schema(old.Schema) : null,
+						table,
+						alias);
+
+				case "OPENQUERY" when arguments is [Expression.ColumnReference(var server), var query] && old.Schema.Length == 0:
+					return new Ast.TableSource.OpenQuery(Values.Part(old, server), Values.Of(query), alias);
+
+				case "OPENROWSET" when arguments is [Expression.Prefixed(var bulk, var file), ..] && bulk.Equals("BULK", StringComparison.OrdinalIgnoreCase):
+					return new Ast.TableSource.OpenRowsetBulk(
+						Values.Of(file),
+						Each(arguments[1..], one => BulkOption(old, one)),
+						old.Schema.Length > 0 ? Schema(old.Schema) : null,
+						alias);
+
+				case "OPENROWSET" when arguments.Length == 3 && old.Schema.Length == 0:
+					return new Ast.TableSource.OpenRowset(
+						Values.Of(arguments[0]),
+						arguments[1] is Expression.Pieced(var parts) ? Each(parts, Values.Of) : [Values.Of(arguments[1])],
+						Values.Of(arguments[2]),
+						alias);
+
+				case "PREDICT":
+					return Predict(old, alias);
+
+				case "CHANGETABLE" or "CONTAINSTABLE" or "FREETEXTTABLE":
+					throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name}, which has no page in the specification)");
+
+				default:
+					throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name} with these arguments)");
+			}
+		}
+
+		/// <summary>
+		/// One option of OPENROWSET BULK: a word (<c>SINGLE_BLOB</c>) or a word and its value (<c>FORMAT = 'CSV'</c>).
+		/// </summary>
+		static Ast.Option BulkOption(TableReference old, Expression option)
+		{
+			return option switch
+			{
+				Expression.NamedArgument(var name, var value)                 => new Ast.Option(Values.Part(old, name), Values.Of(value), []),
+				Expression.ColumnReference(var word) when !word.Contains('.') => new Ast.Option(Values.Part(old, word), null, []),
+				Expression.RowsetOrder                                        => throw BridgeGap.Missing(old, "OpenRowsetBulk has no ORDER (…) UNIQUE among its options (proposal 7)"),
+				_                                                             => throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (an OPENROWSET BULK option that is not a word or a value)"),
+			};
+		}
+
+		/// <summary>
+		/// <c>PREDICT (MODEL = m, DATA = t AS d [, RUNTIME = ONNX]) WITH (…)</c>, whose arguments the old tree keeps
+		/// as named ones.
+		/// </summary>
+		static Ast.TableSource Predict(TableReference.FunctionCall old, Ast.Alias? alias)
+		{
+			if (old.Function.Arguments is not [Expression.NamedArgument(var model, var value), Expression.NamedArgument(var data, Expression.Aliased(Expression.ColumnReference(var source), var named, var written)), .. var rest]
+				|| !model.Equals("MODEL", StringComparison.OrdinalIgnoreCase) || !data.Equals("DATA", StringComparison.OrdinalIgnoreCase)
+				|| old.Schema.Length == 0)
+				throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema)");
+
+			Ast.Identifier? runtime = rest switch
+			{
+				[]                                                                                                          => null,
+				[Expression.NamedArgument(var word, Expression.ColumnReference(var engine))] when word.Equals("RUNTIME", StringComparison.OrdinalIgnoreCase) => Values.Part(old, engine),
+				_                                                                                                           => throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a PREDICT argument after DATA that is not RUNTIME)"),
+			};
+
+			var scored = new Ast.TableSource.Named(Values.Name(old, source)) { Alias = new Ast.Alias(Values.Part(old, named), null, written) };
+
+			return new Ast.TableSource.Predict(Values.Of(value), scored, runtime, Schema(old.Schema), alias);
+		}
+
+		/// <summary>
+		/// A rowset function's <c>WITH (…)</c>: each column's name and type, its path or ordinal, and AS JSON.
+		/// </summary>
+		static SqlList<Ast.RowsetColumn> Schema(SqlList<Clause> schema)
+		{
+			return Each(schema, static one =>
+			{
+				if (one is not Clause.JsonColumn(var name, var type, var path, var json, var ordinal) || type is null)
+					throw BridgeGap.Open(one, "inventory Clause.JsonColumn (a column without a type)");
+
+				return new Ast.RowsetColumn(
+					Values.Part(one, name),
+					Values.Type(one, type),
+					path,
+					json,
+					ordinal is null ? null
+						: !int.TryParse(ordinal, out var number) ? throw BridgeGap.Open(one, $"inventory Clause.JsonColumn (ordinal {ordinal})")
+						: number.ToString(System.Globalization.CultureInfo.InvariantCulture) != ordinal ? throw BridgeGap.Missing(one, "RowsetColumn.Ordinal is a number, and keeps no spelling of it such as `00`")
+						: number);
+			});
 		}
 
 		/// <summary>

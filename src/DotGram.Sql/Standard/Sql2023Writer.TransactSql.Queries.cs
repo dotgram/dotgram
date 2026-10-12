@@ -44,6 +44,137 @@ public static partial class Sql2023Writer
 					PutAlias(unpivot.Alias);
 					return true;
 
+				// T-SQL: OPENJSON (Transact-SQL).
+				case TableSource.OpenJson json:
+					Word("OPENJSON");
+					Call();
+					PutExpression(json.Json);
+
+					if (json.Path is { } path)
+					{
+						Tight(",");
+						PutExpression(path);
+					}
+
+					Close();
+					PutSchema(json.Schema);
+					PutAlias(json.Alias);
+					return true;
+
+				// T-SQL: OPENXML (Transact-SQL).
+				case TableSource.OpenXml xml:
+					Word("OPENXML");
+					Call();
+					PutExpression(xml.Document);
+					Tight(",");
+					PutExpression(xml.RowPattern);
+
+					if (xml.Flags is { } flags)
+					{
+						Tight(",");
+						PutExpression(flags);
+					}
+
+					Close();
+
+					if (xml.SchemaTable is { } table)
+					{
+						if (xml.Schema is not null)
+							throw Both(xml, "Schema", "SchemaTable");
+
+						Word("WITH");
+						PutName(table);
+					}
+					else
+						PutSchema(xml.Schema);
+
+					PutAlias(xml.Alias);
+					return true;
+
+				// T-SQL: OPENQUERY (Transact-SQL).
+				case TableSource.OpenQuery query:
+					Word("OPENQUERY");
+					Call();
+					PutIdentifier(query.Server);
+					Tight(",");
+					PutExpression(query.Query);
+					Close();
+					PutAlias(query.Alias);
+					return true;
+
+				// T-SQL: OPENROWSET (Transact-SQL). The three parts of a connection are apart by semicolons.
+				case TableSource.OpenRowset rowset:
+					if (rowset.Connection.Count is not (1 or 3))
+						throw Misplaced(rowset, "Connection", "with other than a provider string or a data source, a user and a password");
+
+					Word("OPENROWSET");
+					Call();
+					PutExpression(rowset.Provider);
+					Tight(",");
+
+					for (var at = 0; at < rowset.Connection.Count; at++)
+					{
+						if (at > 0)
+							Tight(";");
+
+						PutExpression(rowset.Connection[at]);
+					}
+
+					Tight(",");
+					PutExpression(rowset.Object);
+					Close();
+					PutAlias(rowset.Alias);
+					return true;
+
+				// T-SQL: OPENROWSET BULK (Transact-SQL). An option is a word, or a word and its value.
+				case TableSource.OpenRowsetBulk bulk:
+					Word("OPENROWSET");
+					Call();
+					Word("BULK");
+					PutExpression(bulk.File);
+
+					foreach (var option in bulk.Options)
+					{
+						if (option.Options.Count > 0)
+							throw Misplaced(option, "Options", "on an option of OPENROWSET BULK");
+
+						Tight(",");
+						PutIdentifier(option.Name);
+
+						if (option.Value is { } value)
+						{
+							Word("=");
+							PutExpression(value);
+						}
+					}
+
+					Close();
+					PutSchema(bulk.Schema);
+					PutAlias(bulk.Alias);
+					return true;
+
+				// T-SQL: PREDICT (Transact-SQL).
+				case TableSource.Predict predict:
+					Word("PREDICT");
+					Call();
+					Word("MODEL =");
+					PutExpression(predict.Model);
+					Tight(",");
+					Word("DATA =");
+					PutSource(predict.Data);
+
+					if (predict.Runtime is { } runtime)
+					{
+						Tight(",");
+						Word("RUNTIME =");
+						PutIdentifier(runtime);
+					}
+
+					Close();
+					PutSchema(predict.Schema);
+					PutAlias(predict.Alias);
+					return true;
+
 				// T-SQL: ODBC Scalar Functions (Transact-SQL).
 				case TableSource.OdbcJoin odbc:
 					Word("{");
@@ -113,6 +244,43 @@ public static partial class Sql2023Writer
 					PutIdentifier(word.Name);
 				}
 			}
+		}
+
+		/// <summary>
+		/// T-SQL: OPENJSON, OPENXML, OPENROWSET BULK (Transact-SQL). A rowset function's <c>WITH (…)</c>: each
+		/// column's name and type, then its path or its ordinal, then <c>AS JSON</c>.
+		/// </summary>
+		void PutSchema(SqlList<RowsetColumn>? schema)
+		{
+			if (schema is not { } columns)
+				return;
+
+			if (columns.Count == 0)
+				throw Empty(columns, "Schema");
+
+			Word("WITH");
+			Open();
+			Each(columns, column =>
+			{
+				if (column.Type is null)
+					throw Empty(column, "Type");
+
+				if (column.Path is not null && column.Ordinal is not null)
+					throw Both(column, "Path", "Ordinal");
+
+				PutIdentifier(column.Name);
+				PutType(column.Type);
+
+				if (column.Path is { } path)
+					Word(path);
+
+				if (column.Ordinal is { } ordinal)
+					Number(ordinal);
+
+				if (column.AsJson)
+					Word("AS JSON");
+			});
+			Close();
 		}
 
 		/// <summary>T-SQL: OPTION clause (Transact-SQL). <c>OPTION (RECOMPILE, MAXDOP (2))</c>.</summary>

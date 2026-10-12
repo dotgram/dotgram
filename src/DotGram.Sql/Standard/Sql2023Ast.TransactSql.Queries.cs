@@ -96,3 +96,52 @@ public abstract partial record TableSource
 
 /// <summary>T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). What a sample's number counts.</summary>
 public enum SampleUnit { Percent, Rows }
+
+// T-SQL's rowset functions (proposal 7): each a table source of its own, since their arguments are not all
+// values, with a WITH (…) schema as a list of RowsetColumn. A table-valued function whose arguments are
+// values is TableSource.Function.
+public abstract partial record TableSource
+{
+	public partial record Named
+	{
+		/// <summary>
+		/// T-SQL: OPENDATASOURCE (Transact-SQL). <c>OPENDATASOURCE ('provider', 'init').db.s.t</c>: the server
+		/// the name is looked up on, as a call of its two arguments.
+		/// </summary>
+		public Expression.Invocation? DataSource { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: OPENJSON (Transact-SQL). <c>OPENJSON (json [, path]) [WITH (…)]</c>; <see cref="Schema"/> is null
+	/// where no WITH was written.
+	/// </summary>
+	public sealed record OpenJson(Expression Json, Expression? Path, SqlList<RowsetColumn>? Schema, Alias? Alias = null) : TableSource;
+
+	/// <summary>
+	/// T-SQL: OPENXML (Transact-SQL). <c>OPENXML (idoc, rowpattern [, flags]) [WITH (…) | WITH table]</c>: a
+	/// schema of columns, or a table whose columns are the schema, or neither.
+	/// </summary>
+	public sealed record OpenXml(Expression Document, Expression RowPattern, Expression? Flags, SqlList<RowsetColumn>? Schema, QualifiedName? SchemaTable, Alias? Alias = null) : TableSource;
+
+	/// <summary>T-SQL: OPENQUERY (Transact-SQL). <c>OPENQUERY (server, 'query')</c>.</summary>
+	public sealed record OpenQuery(Identifier Server, Expression Query, Alias? Alias = null) : TableSource;
+
+	/// <summary>
+	/// T-SQL: OPENROWSET (Transact-SQL). <c>OPENROWSET ('provider', 'datasource'; 'user'; 'password', object)</c>,
+	/// or with a provider string in place of the three: <see cref="Connection"/> holds the one or the three.
+	/// <see cref="Object"/> is a name or a query's text.
+	/// </summary>
+	public sealed record OpenRowset(Expression Provider, SqlList<Expression> Connection, Expression Object, Alias? Alias = null) : TableSource;
+
+	/// <summary>
+	/// T-SQL: OPENROWSET BULK (Transact-SQL). <c>OPENROWSET (BULK 'file', SINGLE_BLOB, FORMAT = 'CSV') [WITH (…)]</c>:
+	/// the file, the options in the order written, and the schema where one was written.
+	/// </summary>
+	public sealed record OpenRowsetBulk(Expression File, SqlList<Option> Options, SqlList<RowsetColumn>? Schema, Alias? Alias = null) : TableSource;
+
+	/// <summary>
+	/// T-SQL: PREDICT (Transact-SQL). <c>PREDICT (MODEL = m, DATA = t AS d [, RUNTIME = ONNX]) WITH (…)</c>: the
+	/// model, the source scored with its alias, the runtime, and the columns the result adds.
+	/// </summary>
+	public sealed record Predict(Expression Model, TableSource Data, Identifier? Runtime, SqlList<RowsetColumn> Schema, Alias? Alias = null) : TableSource;
+}
