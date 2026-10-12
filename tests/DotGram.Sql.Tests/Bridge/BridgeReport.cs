@@ -106,6 +106,12 @@ static class BridgeReport
 
 		- `((SELECT 1))` as a value is `Subquery(Query.Parenthesized(…))`: a subquery's brackets are its own, and only
 		  the second pair is a node. The old tree has `Parenthesized(Subquery(…))`.
+		- `DATEADD (day, 1, d)` and the other date part functions take a `DatePart` first, where the old tree has a
+		  column.
+		- `{fn CONVERT (a, SQL_INTEGER)}` holds a plain `Invocation`: the call inside an ODBC escape is ODBC's, never
+		  T-SQL's `Convert`.
+		- `CAST (DISTINCT 1)` and `PARSE (ALL a)` are calls with a quantifier, never a `Cast` or a `Parse`: the old
+		  tree keeps the quantifier where the type would stand.
 
 		## The ratchet
 
