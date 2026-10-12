@@ -92,15 +92,79 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// A key word folds only where it is one: a routine's name of several parts, and the owner, mark, transaction
+	/// or savepoint after its word, are names whose case a collation may tell apart.
+	/// </summary>
+	[Theory]
+	[InlineData("Expression.RoutineInvocation.Name", "max",                 "MAX",                 true)]
+	[InlineData("Expression.RoutineInvocation.Name", "dbo.max",             "dbo.MAX",             false)]
+	[InlineData("Statement.SchemaDefinition.Tail",   "AUTHORIZATION cache", "AUTHORIZATION CACHE", false)]
+	[InlineData("Statement.Transaction.Tail",        "WITH MARK cache",     "WITH MARK CACHE",     false)]
+	public void A_key_word_folds_only_where_it_is_one(string member, string one, string two, bool same)
+	{
+		Assert.Equal(same, Trees.SameTokens(new object(), member, one, two));
+	}
+
+	/// <summary>
+	/// A block comment nests, and a word after a comment is the word after the node.
+	/// </summary>
+	[Fact]
+	public void Comments_are_skipped_and_nest()
+	{
+		Assert.Equal(["[realowner]"], SqlTokens.Of("/* outer /* inner */ cache -- */ [realowner]").Select(static one => one.Text));
+
+		const string text = "SELECT TOP (1) a /* c */ AS x FROM t";
+
+		var made   = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var column = (Ast.SelectColumn.ExpressionItem)((Ast.Query.Select)made.Query).Columns[0];
+
+		Assert.True(column.AsKeyword);
+	}
+
+	/// <summary>
+	/// The owner after a nested comment is the owner, or the statement is a gap: never the word inside it.
+	/// </summary>
+	[Fact]
+	public void A_schema_owner_after_a_nested_comment_is_kept()
+	{
+		const string text = "CREATE SCHEMA s AUTHORIZATION /* outer /* inner */ cache -- */ [realowner]";
+
+		var old = TransactSqlParser.Located.ParseStatement(text);
+
+		try
+		{
+			Assert.Equal("[realowner]", ((Ast.Statement.CreateSchema)Bridge.ToAst(old, text)).Authorization!.Name.Text);
+		}
+		catch (BridgeGap)
+		{
+		}
+	}
+
+	/// <summary>
+	/// A word the bridge read from the text and the writer then lost is found by the round trip on the new tree.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT a AS x FROM t", "SELECT a AS x FROM t", true)]
+	[InlineData("SELECT a AS x FROM t", "SELECT a x FROM t",    false)]
+	public void A_word_read_from_the_text_is_held_to_the_written_text(string text, string written, bool same)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.Equal(same, BridgeOracle.Again(made, written) is null);
+	}
+
+	/// <summary>
 	/// A dialect pattern exempts its own subtree and no more: the same construct with a difference elsewhere is
 	/// a shape mismatch.
 	/// </summary>
 	[Theory]
 	[InlineData("SELECT TOP (1) a FROM t WHERE b = 1", "SELECT TOP (1) a FROM t WHERE b = 1", BridgeOracle.Top, false)]
 	[InlineData("SELECT TOP (1) a FROM t WHERE b = 1", "SELECT TOP (1) a FROM t WHERE b = 2", BridgeOracle.Top, true)]
+	[InlineData("SELECT TOP (1) a FROM t WHERE b = 1", "SELECT TOP (1) a, b FROM t WHERE b = 1", BridgeOracle.Top, true)]
 	[InlineData("UPDATE t SET u.c = 1 WHERE b = 1",    "UPDATE t SET u.c = 1 WHERE b = 1",    BridgeOracle.SetTc, false)]
 	[InlineData("UPDATE t SET u.c = 1 WHERE b = 1",    "UPDATE t SET u.c = 1 WHERE b = 2",    BridgeOracle.SetTc, true)]
 	[InlineData("OPEN GLOBAL c",                        "OPEN GLOBAL c",                       BridgeOracle.Global, false)]
+	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF GLOBAL c", "UPDATE t SET a = 2 WHERE CURRENT OF GLOBAL c", BridgeOracle.Global, true)]
 	[InlineData("SELECT a FROM t WHERE FREETEXT ((b), 'x')", "SELECT a FROM t WHERE FREETEXT ((b), 'x')", BridgeOracle.FullText, false)]
 	[InlineData("SELECT a FROM t WHERE FREETEXT ((b), 'x')", "SELECT a FROM t WHERE FREETEXT ((b), 'y')", BridgeOracle.FullText, true)]
 	public void A_dialect_pattern_exempts_its_subtree_and_no_more(string bridged, string standard, string pattern, bool shape)

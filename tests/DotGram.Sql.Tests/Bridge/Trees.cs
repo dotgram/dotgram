@@ -194,6 +194,9 @@ static class Trees
 		if (x.Count != y.Count)
 			return false;
 
+		// A routine's name of several parts is a name, whose case a collation may tell apart: `dbo.max`.
+		var named = member == "Expression.RoutineInvocation.Name" && x.Any(static one => one.Text == ".");
+
 		for (var at = 0; at < x.Count; at++)
 		{
 			var a = x[at];
@@ -207,7 +210,7 @@ static class Trees
 
 			var same = a.Kind switch
 			{
-				SqlTokens.Kind.Word   => KeyWords.Contains(a.Text) && a.Text.Equals(b.Text, StringComparison.OrdinalIgnoreCase),
+				SqlTokens.Kind.Word   => !named && !Named(x, at) && KeyWords.Contains(a.Text) && a.Text.Equals(b.Text, StringComparison.OrdinalIgnoreCase),
 				SqlTokens.Kind.String => a.Text.Length == b.Text.Length && a.Text[0] is 'N' or 'n' && b.Text[0] is 'N' or 'n' && a.Text[1..] == b.Text[1..],
 				_                     => false,
 			};
@@ -217,6 +220,16 @@ static class Trees
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// Whether the token at a position is a name by where it stands: the owner after <c>AUTHORIZATION</c>, the mark
+	/// after <c>MARK</c>, the transaction or savepoint after <c>TRAN</c> or <c>TRANSACTION</c>.
+	/// </summary>
+	static bool Named(List<SqlTokens.Token> tokens, int at)
+	{
+		return at > 0 && tokens[at - 1] is { Kind: SqlTokens.Kind.Word } before
+			&& before.Text.ToUpperInvariant() is "AUTHORIZATION" or "MARK" or "TRAN" or "TRANSACTION";
 	}
 
 	static string Show(object? value)
