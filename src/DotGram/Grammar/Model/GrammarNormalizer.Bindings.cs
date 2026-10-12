@@ -684,21 +684,36 @@ public sealed partial class GrammarNormalizer
 	/// The outermost binding an alternative's leading call to <paramref name="rule"/> stands in, or
 	/// null where that call is not bound or the alternative does not begin with one.
 	/// </summary>
-	static Node.Bind? BoundHead(Node alternative, RuleSymbol rule)
+	/// <remarks>
+	/// Looks through what the left-recursion check looks through on the way to a leading call —
+	/// groups that construct, capture, mark, hold atomically or repeat, and each alternative of a
+	/// choice — so that a rule it would report as reaching itself through another rule is told
+	/// about its binding instead. The first operand of a sequence is the leading one.
+	/// </remarks>
+	static Node.Bind? BoundHead(Node node, RuleSymbol rule, Node.Bind? found = null)
 	{
-		Node.Bind? found = null;
-		var        node  = alternative;
+		switch (node)
+		{
+			case Node.Construct(var built, _)       : return BoundHead(built, rule, found);
+			case Node.Capture  (_, var captured)    : return BoundHead(captured, rule, found);
+			case Node.Marked   (var marked, _)      : return BoundHead(marked, rule, found);
+			case Node.Atomic   (var atomic)         : return BoundHead(atomic, rule, found);
+			case Node.Counted  (var counted, _, _)  : return BoundHead(counted, rule, found);
+			case Node.Repeat   (var repeated, _, _) : return BoundHead(repeated, rule, found);
+			case Node.Bind     (_, var bound, _) b  : return BoundHead(bound, rule, found ?? b);
+			case Node.Sequence (var operands)       : return operands.Count > 0 ? BoundHead(operands[0], rule, found) : null;
+			case Node.Call     (var called, _)      : return ReferenceEquals(called, rule) ? found : null;
 
-		while (true)
-			switch (node)
-			{
-				case Node.Construct(var built, _)     : node = built; break;
-				case Node.Capture  (_, var captured)  : node = captured; break;
-				case Node.Sequence (var operands)     : node = operands[0]; break;
-				case Node.Bind     (_, var bound, _) b: found ??= b; node = bound; break;
-				case Node.Call     (var called, _)    : return ReferenceEquals(called, rule) ? found : null;
-				default                               : return null;
-			}
+			case Node.Choice(var alternatives):
+				foreach (var alternative in alternatives)
+					if (BoundHead(alternative, rule, found) is { } head)
+						return head;
+
+				return null;
+
+			default:
+				return null;
+		}
 	}
 
 	/// <summary>Reports a binding around the leading call of a left-recursive rule to itself.</summary>

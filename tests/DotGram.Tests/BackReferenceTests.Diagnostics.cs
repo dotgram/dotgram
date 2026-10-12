@@ -249,6 +249,8 @@ public sealed partial class BackReferenceTests
 	[InlineData("R = $q: R & 'x' & $q | 'y'",                     "$q", 0, "the leading call of the left-recursive rule 'R'")]
 	[InlineData("R = $q: R & 'x' | 'y'",                          "$q", 0, "the leading call of the left-recursive rule 'R'")]
 	[InlineData("R = r: ($q: R) & 'x' & $q | 'y'",                "$q", 0, "the leading call of the left-recursive rule 'R'")]
+	[InlineData("R = $q: { R } & 'x' | 'y'",                      "$q", 0, "the leading call of the left-recursive rule 'R'")]
+	[InlineData("R = $q: (R | 'z') & 'x' & $q | 'y'",             "$q", 0, "the leading call of the left-recursive rule 'R'")]
 	[InlineData("R : @string = $q: 'a' & ('b' & $q => @(\"g\")) => @(\"r\")", "$q", 1, "constructing group")]
 	public void A_binding_or_a_reference_where_none_can_stand(string grammar, string at, int occurrence, string says)
 	{
@@ -374,6 +376,7 @@ public sealed partial class BackReferenceTests
 	{
 		Assert.Contains(GrammarNormalizer.LeftRecursion, Errors("R = $q: S & 'x' | 'y'\nS = R & 'z'\nparse R"));
 		Assert.DoesNotContain(GrammarNormalizer.LeftRecursion, Errors("R = $q: R & 'x' & $q | 'y'\nparse R"));
+		Assert.DoesNotContain(GrammarNormalizer.LeftRecursion, Errors("R = $q: { R } & 'x' | 'y'\nparse R"));
 	}
 
 	// ── Helpers ─────────────────────────────────────────────────────────────────
