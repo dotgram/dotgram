@@ -47,15 +47,16 @@ Meaning SELECT a INTO t: a new table in T-SQL, a target in the standard = 3
 Meaning SELECT x = a: an alias in T-SQL, a comparison in the standard = 1
 Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard = 15
 Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard = 2
-Recovered Alias.AsKeyword of MERGE's target = 7
-Recovered Alias.AsKeyword of a table source = 852
-Recovered Clause.DerivedColumn alias = expression = 346
-Recovered Expression.Invocation without brackets = 32
+Recovered Alias.AsKeyword of MERGE's target = 19
+Recovered Alias.AsKeyword of a table source = 919
+Recovered Clause.DerivedColumn alias = expression = 372
+Recovered Expression.Invocation without brackets = 33
 Recovered Expression.Trim.FromKeyword = 0
 Recovered Limit.FetchRowWord = 23
 Recovered Limit.OffsetRowWord = 26
 Recovered Limit.Position = 23
-Recovered SelectColumn.ExpressionItem.AsKeyword = 341
+Recovered SelectColumn.ExpressionItem.AsKeyword = 367
+Recovered Statement.Delete.FromOmitted = 82
 Recovered Statement.DropRoutine.Proc = 24
 Recovered Statement.SetTransaction.Tran = 23
 Recovered WindowReference.NameRef against (name) = 14

@@ -1083,6 +1083,7 @@ public sealed class Sql2023WriterCoverageTests
 			"a national string alias first" => Selected with
 			{
 				Columns = [new SelectColumn.ExpressionItem(A, new Identifier("h'i", IdentifierStyle.NationalString)) { AliasFirst = true }],
+			},
 			"a variable through a column" => new Statement.Update
 			{
 				Target      = t,

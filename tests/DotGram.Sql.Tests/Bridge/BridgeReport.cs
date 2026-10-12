@@ -100,6 +100,7 @@ static class BridgeReport
 		- `Expression.Trim.FromKeyword`: `TRIM (LEADING FROM s)` against `TRIM (LEADING s)`.
 		- `Statement.DropRoutine.Proc`: `PROC` against `PROCEDURE`.
 		- `Statement.SetTransaction.Tran`: `TRAN` against `TRANSACTION`.
+		- `Statement.Delete.FromOmitted`: `DELETE t` against `DELETE FROM t`.
 
 		## Prefixed pivot and unpivot names
 

@@ -4,19 +4,20 @@
 # where `converted` falls or any of the last five rises, and prints a gain; this file is rewritten
 # deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
 
-Clause.MergeWhen = 0/9/0/0/0/0/0
+Clause.MergeWhen = 0/0/0/0/0/0/0
 Clause.Output = 0/0/0/0/0/0/0
 Clause.PartitionRange = 0/0/0/0/0/0/0
-Clause.Set = 0/47/0/0/0/0/0
+Clause.Set = 0/0/0/0/0/0/0
 Query.DefaultValues = 0/0/0/0/0/0/0
 Query.FromExecute = 0/5/0/0/0/0/0
-Query.FromFile = 0/83/0/0/0/0/0
-Query.FromStream = 0/14/0/0/0/0/0
-Statement.Delete = 23/45/0/0/0/0/0
-Statement.Insert = 27/50/0/0/0/0/0
-Statement.Merge = 11/29/0/0/0/0/0
-Statement.ReadText = 0/24/0/0/0/0/0
-Statement.Truncate = 13/12/0/0/0/0/0
-Statement.Update = 40/29/0/0/0/0/0
-Statement.UpdateText = 0/57/0/0/0/0/0
-Statement.WriteText = 0/35/0/0/0/0/0
+Query.FromFile = 0/0/0/0/0/0/0
+Query.FromStream = 0/0/0/0/0/0/0
+Statement.Delete = 64/0/0/0/0/0/0
+Statement.Insert = 186/9/0/0/0/0/0
+Statement.Merge = 46/0/0/0/0/0/0
+Statement.ReadText = 24/0/0/0/0/0/0
+Statement.Truncate = 25/0/0/0/0/0/0
+Statement.Update = 114/0/0/0/0/0/0
+Statement.UpdateText = 57/0/0/0/0/0/0
+Statement.WriteText = 35/0/0/0/0/0/0
+TableReference.Changed = 0/0/0/0/0/0/0
