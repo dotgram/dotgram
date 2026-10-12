@@ -1532,6 +1532,9 @@ resolves the same `A` through `D` — even though `A` is declared outside the na
 and never mentions `D`. `A` itself is untouched: nothing about `F`'s behavior depends
 on the namespace existing.
 
+What the namespace declares carries its header wherever it is called from: a rule
+outside written `R = Ns.E` reads `E` through `D` too, exactly as `parse Ns.E` does.
+
 The contrast with an ordinary declaration of the same name is the whole of what this
 section adds:
 
