@@ -51,6 +51,24 @@ public sealed class Sql2023WriterCoverageTests
 	static readonly TransactionName Saved = new(new Identifier("s"));
 
 	static readonly QualifiedName T = new([new Identifier("t")]);
+	static readonly QualifiedName U = new([new Identifier("u")]);
+
+	/// <summary><c>SELECT a FROM</c> the source given.</summary>
+	static Query.Select Joined(TableSource source)
+	{
+		return Selected with { From = new FromClause([source]) };
+	}
+
+	/// <summary><c>SELECT a FROM t TABLESAMPLE …</c>, with SYSTEM written or left out, and the unit given.</summary>
+	static Query.Select Sampled(bool omitted, SampleUnit? unit = null)
+	{
+		return Joined(new TableSource.Named(T)
+		{
+			Sample              = new SampleClause(SampleMethod.System, A),
+			SampleMethodOmitted = omitted,
+			SampleUnit          = unit,
+		});
+	}
 
 	/// <summary><c>SELECT a</c>, the smallest query there is, for a clause to be put on.</summary>
 	static readonly Query.Select Selected = new() { Columns = [new SelectColumn.ExpressionItem(A)] };
@@ -149,6 +167,10 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(DatePartKind)]       = v => new Expression.DatePart((DatePartKind)v),
 		// Year is the kind with all three words, so it is the one every spelling is asked of.
 		[typeof(DatePartSpelling)]   = v => new Expression.DatePart(DatePartKind.Year, (DatePartSpelling)v),
+		[typeof(JoinKind)]           = v => Joined(new TableSource.Join { Left = new TableSource.Named(T), Right = new TableSource.Named(U), Kind = (JoinKind)v }),
+		[typeof(JoinHint)]           = v => Joined(new TableSource.Join { Left = new TableSource.Named(T), Right = new TableSource.Named(U), Kind = JoinKind.Inner, Hint = (JoinHint)v }),
+		[typeof(GroupByWith)]        = v => Selected with { GroupBy = new GroupByClause(null, [new GroupingElement.Ordinary([A])]) { With = (GroupByWith)v } },
+		[typeof(SampleUnit)]         = v => Sampled(false, (SampleUnit)v),
 	};
 
 	/// <summary>
@@ -357,6 +379,10 @@ public sealed class Sql2023WriterCoverageTests
 			["Like.BracedEscape"] = (
 				new Expression.Like(A, false, LikeKind.Like, B, A),
 				new Expression.Like(A, false, LikeKind.Like, B, A) { BracedEscape = true }),
+			// T-SQL's TABLESAMPLE may leave its only method out.
+			["Named.SampleMethodOmitted"] = (
+				Sampled(false),
+				Sampled(true)),
 			["UpdatabilityClause.Underscored"] = (
 				Declared(new CursorProperties(null, null, null, null), false, false),
 				Declared(new CursorProperties(null, null, null, null), false, true)),

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -43,28 +44,205 @@ static partial class Bridge
 
 		static Ast.Statement Select(Statement.Select old)
 		{
-			if (old.Options.Length > 0)
-				throw BridgeGap.Unwritten(old.Options[0], "Statement.Select.Hints (QueryHint.Named)");
-
-			if (old.For.Length > 0)
-				throw BridgeGap.Unwritten(old.For[0], "Query.For (ForClause)");
+			if (old.For.Length > 1)
+				throw BridgeGap.Open(old.For[1], "inventory Clause.For (a second FOR on one statement)");
 
 			var query = Of(old.Of);
 
 			if (old.OrderBy is { } by)
 				query = Ordered(query, by);
 
+			if (old.For is [var shape])
+				query = query with { For = For(shape) };
+
 			if (old.With.Length > 0)
 				query = query with { With = With(old.With) };
 
-			return new Ast.Statement.Select { Query = query };
+			return new Ast.Statement.Select { Query = query, Hints = Each(old.Options, QueryHint) };
 		}
 
+		/// <summary>
+		/// A WITH: its common table expressions, and T-SQL's <c>XMLNAMESPACES (…)</c>, which the old tree keeps as
+		/// an option whose name is the text and which stands first.
+		/// </summary>
 		public static Ast.WithClause With(SqlList<Clause> with)
 		{
-			return new Ast.WithClause(false, Each(with, static one => one is Clause.CommonTableExpression common
+			var namespaces = with is [Clause.Option { Name: var text } first, ..] && Words(text) is ["XMLNAMESPACES", ..]
+				? XmlNamespaces(first, text)
+				: [];
+
+			return new Ast.WithClause(false, Each(namespaces.Count > 0 ? with[1..] : with, static one => one is Clause.CommonTableExpression common
 				? Common(common)
-				: throw BridgeGap.Missing(one, "WithClause has no list for WITH XMLNAMESPACES (proposal 1)")));
+				: throw BridgeGap.Open(one, $"inventory {NameOf(one)} (in a WITH)")))
+			{
+				XmlNamespaces = namespaces,
+			};
+		}
+
+		/// <summary>
+		/// <c>XMLNAMESPACES ('uri' AS ns, DEFAULT 'uri')</c>, read from the old option's text.
+		/// </summary>
+		static SqlList<Ast.XmlNamespace> XmlNamespaces(Clause old, string text)
+		{
+			var tokens = SqlTokens.Of(text);
+
+			if (tokens is not [_, { Text: "(" }, .., { Text: ")" }])
+				throw BridgeGap.Open(old, "inventory Clause.Option (an XMLNAMESPACES that does not read)");
+
+			var made = new List<Ast.XmlNamespace>();
+
+			foreach (var item in Split(tokens[2..^1]))
+			{
+				made.Add(item switch
+				{
+					[{ Kind: SqlTokens.Kind.String } uri, { Kind: SqlTokens.Kind.Word } word, var prefix] when word.Text.Equals("AS", StringComparison.OrdinalIgnoreCase)
+						&& prefix.Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited =>
+						new Ast.XmlNamespace(Values.String(uri.Text), Values.Part(old, prefix.Text)),
+
+					[{ Kind: SqlTokens.Kind.Word } word, { Kind: SqlTokens.Kind.String } uri] when word.Text.Equals("DEFAULT", StringComparison.OrdinalIgnoreCase) =>
+						new Ast.XmlNamespace(Values.String(uri.Text), null),
+
+					_ => throw BridgeGap.Open(old, "inventory Clause.Option (an XMLNAMESPACES item that does not read)"),
+				});
+			}
+
+			return [.. made];
+		}
+
+		/// <summary>
+		/// Tokens cut at the commas that stand outside brackets.
+		/// </summary>
+		public static List<SqlTokens.Token[]> Split(IReadOnlyList<SqlTokens.Token> tokens)
+		{
+			var items = new List<SqlTokens.Token[]>();
+			var item  = new List<SqlTokens.Token>();
+			var depth = 0;
+
+			foreach (var token in tokens)
+			{
+				if (token.Kind == SqlTokens.Kind.Punctuation)
+				{
+					if (token.Text == "(")
+						depth++;
+					else if (token.Text == ")")
+						depth--;
+					else if (token.Text == "," && depth == 0)
+					{
+						items.Add([.. item]);
+						item.Clear();
+
+						continue;
+					}
+				}
+
+				item.Add(token);
+			}
+
+			items.Add([.. item]);
+
+			return items;
+		}
+
+		// ── FOR, OPTION ───────────────────────────────────────────────────────────
+
+		/// <summary>
+		/// <c>FOR XML</c>, <c>FOR JSON</c> or <c>FOR BROWSE</c>, which the old tree keeps as a kind and an option's
+		/// text each. The first is the mode; the rest are a name (<c>TYPE</c>), a name and its value in brackets
+		/// (<c>ROOT ('r')</c>), or a name and the one word it takes (<c>ELEMENTS XSINIL</c>).
+		/// </summary>
+		public static Ast.ForClause For(Clause old)
+		{
+			if (old is not Clause.For(var kind, var options))
+				throw BridgeGap.Open(old, "inventory Clause.For");
+
+			var upper = kind.ToUpperInvariant();
+
+			if (upper == "BROWSE")
+				return options.Length == 0 ? new Ast.ForClause.Browse() : throw BridgeGap.Open(old, "inventory Clause.For (BROWSE with options)");
+
+			if (upper is not ("XML" or "JSON") || options.Length == 0)
+				throw BridgeGap.Open(old, $"inventory Clause.For (FOR {kind})");
+
+			if (SqlTokens.Of(options[0]) is not [{ Kind: SqlTokens.Kind.Word } mode])
+				throw BridgeGap.Missing(old, "ForClause has no element name for RAW or PATH ('…') (proposal 1)");
+
+			var rest = Each(options[1..], one => ForOption(old, one));
+
+			return upper == "XML"
+				? new Ast.ForClause.Xml(new Ast.Identifier(mode.Text), rest)
+				: new Ast.ForClause.Json(new Ast.Identifier(mode.Text), rest);
+		}
+
+		static Ast.Option ForOption(Clause old, string text)
+		{
+			return SqlTokens.Of(text) switch
+			{
+				[{ Kind: SqlTokens.Kind.Word } name] =>
+					new Ast.Option(new Ast.Identifier(name.Text), null, []),
+
+				[{ Kind: SqlTokens.Kind.Word } name, { Text: "(" }, { Kind: SqlTokens.Kind.String } value, { Text: ")" }] =>
+					new Ast.Option(new Ast.Identifier(name.Text), Values.String(value.Text), []),
+
+				[{ Kind: SqlTokens.Kind.Word } name, { Kind: SqlTokens.Kind.Word } word] =>
+					new Ast.Option(new Ast.Identifier(name.Text), null, [new Ast.Option(new Ast.Identifier(word.Text), null, [])]),
+
+				_ => throw BridgeGap.Open(old, "inventory Clause.For (an option that is not a word, a word and a string, or two words)"),
+			};
+		}
+
+		/// <summary>
+		/// One hint of <c>OPTION (…)</c>, which the old tree keeps as text.
+		/// </summary>
+		static Ast.QueryHint QueryHint(Clause old)
+		{
+			var (name, arguments) = Hint(old);
+
+			return new Ast.QueryHint.Named(name, arguments);
+		}
+
+		/// <summary>
+		/// A hint the old tree keeps as text, as a name and the values in its brackets: <c>RECOMPILE</c>,
+		/// <c>INDEX (ix, 2)</c>. Every other shape — <c>MAXDOP 2</c>, <c>HASH JOIN</c>, <c>INDEX = ix</c>,
+		/// <c>OPTIMIZE FOR (@v = 1)</c> — is not decided (proposal 9 names only the long tail's member).
+		/// </summary>
+		public static (Ast.Identifier Name, SqlList<Ast.Expression> Arguments) Hint(Clause old)
+		{
+			if (old is not Clause.Hint(var text))
+				throw BridgeGap.Open(old, "inventory Clause.Hint");
+
+			var tokens = SqlTokens.Of(text);
+
+			if (tokens is [{ Kind: SqlTokens.Kind.Word } bare] && bare.Text[0] is not ('@' or '#' or '$'))
+				return (new Ast.Identifier(bare.Text), []);
+
+			if (tokens is [{ Kind: SqlTokens.Kind.Word } name, { Text: "(" }, .., { Text: ")" }] && name.Text[0] is not ('@' or '#' or '$') && tokens.Count > 3)
+			{
+				var arguments = new List<Ast.Expression>();
+
+				foreach (var item in Split(tokens.Skip(2).Take(tokens.Count - 3).ToList()))
+				{
+					if (item is not [var one] || HintArgument(old, one) is not { } value)
+						throw BridgeGap.Open(old, "inventory Clause.Hint (a hint that is not a name and the values in its brackets)");
+
+					arguments.Add(value);
+				}
+
+				return (new Ast.Identifier(name.Text), [.. arguments]);
+			}
+
+			throw BridgeGap.Open(old, "inventory Clause.Hint (a hint that is not a name and the values in its brackets)");
+		}
+
+		static Ast.Expression? HintArgument(Clause old, SqlTokens.Token token)
+		{
+			return token.Kind switch
+			{
+				SqlTokens.Kind.Number                                => new Ast.Expression.Literal(new Ast.LiteralValue.Numeric(token.Text, token.Text.All(char.IsDigit) ? Ast.NumericLiteralKind.DecimalInteger : Ast.NumericLiteralKind.Decimal)),
+				SqlTokens.Kind.String                                => Values.String(token.Text),
+				SqlTokens.Kind.Word when token.Text.StartsWith('@')  => new Ast.Expression.Variable(new Ast.Identifier(token.Text)),
+				SqlTokens.Kind.Word or SqlTokens.Kind.Delimited      => new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, token.Text)])),
+				_                                                    => null,
+			};
 		}
 
 		static Ast.CommonTableExpression Common(Clause.CommonTableExpression old)
@@ -93,11 +271,13 @@ static partial class Bridge
 				case Query.Parenthesized(var inner):
 					return new Ast.Query.Parenthesized(Of(inner));
 
+				// A bracketed query's own ORDER BY, OFFSET … FETCH and FOR, which are the query's as a statement's are.
 				case Query.Ordered(var inner, var by, var shape):
-					if (shape is not null)
-						throw BridgeGap.Unwritten(shape, "Query.For (ForClause)");
+				{
+					var ordered = by is null ? Of(inner) : Ordered(Of(inner), by);
 
-					return by is null ? Of(inner) : Ordered(Of(inner), by);
+					return shape is null ? ordered : ordered with { For = For(shape) };
+				}
 
 				case Query.Union(var left, var right, var all):
 					return Combined(left, all ? Ast.SetOperator.UnionAll : Ast.SetOperator.Union, right);
@@ -130,12 +310,10 @@ static partial class Bridge
 
 		static Ast.Query Specification(Query.Specification old)
 		{
-			if (old.Into is not null)
-				throw BridgeGap.Missing(old, "Query.Select has no member for SelectIntoTable (proposal 1)");
-
 			return new Ast.Query.Select
 			{
 				Top        = Top(old.Top),
+				IntoTable  = old.Into is null ? null : IntoTable(old.Into),
 				Quantifier = Quantifier(old, old.Quantifier),
 				Columns    = Each(old.Columns, Column),
 				From       = old.From.Length > 0 ? new Ast.FromClause(Each(old.From, Source)) : null,
@@ -144,6 +322,13 @@ static partial class Bridge
 				Having     = old.Having is null ? null : Values.Of(old.Having),
 				Window     = old.Windows is { Length: > 0 } windows ? new Ast.WindowClause(Each(windows, Window)) : null,
 			};
+		}
+
+		static Ast.SelectIntoTable IntoTable(Clause old)
+		{
+			return old is Clause.Into(var table, var on)
+				? new Ast.SelectIntoTable(Values.Name(old, table), on is null ? null : Values.Part(old, on))
+				: throw BridgeGap.Open(old, "inventory Clause.Into");
 		}
 
 		static Ast.SetQuantifier? Quantifier(object owner, string? word)
@@ -297,13 +482,15 @@ static partial class Bridge
 			if (old is not Clause.GroupBy(var all, var by, var with))
 				throw BridgeGap.Open(old, "inventory Clause.GroupBy");
 
-			if (all)
-				throw BridgeGap.Missing(old, "GroupByClause has no T-SQL ALL flag (proposal 5)");
+			Ast.GroupByWith? suffix = with?.ToUpperInvariant() switch
+			{
+				null     => null,
+				"CUBE"   => Ast.GroupByWith.Cube,
+				"ROLLUP" => Ast.GroupByWith.Rollup,
+				_        => throw BridgeGap.Open(old, $"inventory Clause.GroupBy (WITH {with})"),
+			};
 
-			if (with is not null)
-				throw BridgeGap.Missing(old, "GroupByClause has no WITH CUBE or WITH ROLLUP (proposal 5)");
-
-			return new Ast.GroupByClause(null, Each(by, Grouping));
+			return new Ast.GroupByClause(null, Each(by, Grouping)) { AllKeyword = all, With = suffix };
 		}
 
 		static Ast.GroupingElement Grouping(Expression old)

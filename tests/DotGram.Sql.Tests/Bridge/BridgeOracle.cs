@@ -186,7 +186,7 @@ static class BridgeOracle
 	}
 
 	/// <summary>
-	/// The six constructs the two dialects read with different meanings. Each exempts one subtree of the
+	/// The nine constructs the two dialects read with different meanings. Each exempts one subtree of the
 	/// bridge's tree, found by its construct and never by the statement's text:
 	/// <list type="bullet">
 	/// <item><c>TOP (n) a</c> is a row count in T-SQL, and the standard reads a call to <c>TOP</c> aliased <c>a</c>:
@@ -203,6 +203,12 @@ static class BridgeOracle
 	/// system type with no arguments — a <c>Named</c> on the list, a standard record written as a name, an
 	/// <c>nvarchar</c> with no length — against a user-defined type of the same name, or for <c>timestamp</c> the
 	/// standard's own.</item>
+	/// <item><c>GROUP BY ALL a</c> keeps the empty groups in T-SQL, and is the quantifier that changes nothing in
+	/// the standard: a <c>GroupByClause</c> that is <c>AllKeyword</c>.</item>
+	/// <item><c>SELECT a INTO t</c> makes a table in T-SQL, and assigns to a target in the standard: a
+	/// <c>Query.Select</c>'s <c>Into</c> and <c>IntoTable</c> where the latter is set.</item>
+	/// <item><c>FROM t OPTION (h)</c> is a hint in T-SQL, and an alias with its columns in the standard: a
+	/// statement's <c>Hints</c>, and the <c>Alias</c> of a source in a statement that has them.</item>
 	/// </list>
 	/// A difference outside every exempted subtree is unexplained, and makes the statement a shape mismatch.
 	/// </summary>
@@ -235,7 +241,11 @@ static class BridgeOracle
 	public const string DatePart = "DATEADD (day, ...): a date part in T-SQL, a column in the standard";
 	public const string TypeName = "CAST (a AS money): a type of T-SQL's own in T-SQL, a user-defined type in the standard";
 
-	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName];
+	public const string GroupAll = "GROUP BY ALL a: the empty groups kept in T-SQL, a quantifier in the standard";
+	public const string Into     = "SELECT a INTO t: a new table in T-SQL, a target in the standard";
+	public const string Option   = "FROM t OPTION (h): a hint in T-SQL, an alias in the standard";
+
+	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName, GroupAll, Into, Option];
 
 	/// <summary>
 	/// The pattern whose subtree a difference lies in, and the node at the subtree's root, or null.
@@ -245,6 +255,9 @@ static class BridgeOracle
 		// Two patterns are of one node each, which differs from the standard's in a known way and in no other.
 		if (TypeNamed(difference) || DateParted(difference))
 			return (TypeNamed(difference) ? TypeName : DatePart, difference.Left!);
+
+		if (difference.Path is [{ Node: Ast.Statement.Select { Hints.Count: > 0 } statement }, ..] && difference.Path.Any(static step => step.Member is "Hints" or "Alias"))
+			return (Option, statement);
 
 		foreach (var step in difference.Path)
 		{
@@ -263,6 +276,11 @@ static class BridgeOracle
 					&& (name.Text.Equals("FREETEXT", StringComparison.OrdinalIgnoreCase) || name.Text.Equals("CONTAINS", StringComparison.OrdinalIgnoreCase)):
 					return (FullText, step.Node);
 
+				case Ast.GroupByClause { AllKeyword: true }:
+					return (GroupAll, step.Node);
+
+				case Ast.Query.Select { IntoTable: not null } when step.Member is "Into" or "IntoTable":
+					return (Into, step.Node);
 			}
 		}
 

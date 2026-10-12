@@ -277,6 +277,16 @@ static partial class Bridge
 		}
 
 		/// <summary>
+		/// A string literal as one token of text, <c>'a'</c> or <c>N'a'</c>, where the old tree keeps it in a text.
+		/// </summary>
+		public static Ast.Expression String(string token)
+		{
+			return token[0] is 'N' or 'n'
+				? Value(new Ast.LiteralValue.String(token[1..], Ast.StringLiteralKind.National))
+				: Value(new Ast.LiteralValue.String(token, Ast.StringLiteralKind.Character));
+		}
+
+		/// <summary>
 		/// What kind of number a numeric literal's text is: a currency sign in front is money, an exponent
 		/// is an approximate number, a point is a decimal, and anything else an integer.
 		/// </summary>
