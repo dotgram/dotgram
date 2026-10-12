@@ -853,6 +853,17 @@ public static partial class Sql2023Writer
 			switch (source)
 			{
 				case TableSource.Named named:
+					// T-SQL: OPENDATASOURCE (Transact-SQL). The server the name is looked up on, before it.
+					if (named.DataSource is { } server)
+					{
+						if (named.Only)
+							throw Both(named, "DataSource", "Only");
+
+						PutExpression(server);
+						Tight(".");
+						Hold();
+					}
+
 					if (named.Only)
 					{
 						Word("ONLY");
