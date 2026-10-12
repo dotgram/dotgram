@@ -870,6 +870,13 @@ public static partial class CSharpEmitter
 				trace: tracing is not null));
 			file.Line();
 
+			// The thread's list for a reading's ties, where some machine writes ties at all.
+			if (moreField)
+			{
+				file.Write(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null));
+				file.Line();
+			}
+
 			if (tracing is not null)
 			{
 				file.Write(TraceSupport(tracing, quietField, moreField, lexical is not null));
@@ -2478,7 +2485,9 @@ public static partial class CSharpEmitter
 						// count is the length of the kinds, there being one character a token.
 						(overKinds ? $"{halt}, " : "failure.Position, ") +
 						"failure.Expected, " +
-						(flat && !ties ? "null);" : "failure.ExpectedMore);"));
+						// The ties go to the match as an array, and the list back to the thread; a trace build
+						// leaves the list as it is, for the sink that is told the reading's end.
+						(flat && !ties ? "null);" : tracing is null ? "Handed_DotGram(failure.ExpectedMore));" : "Tied_DotGram(failure.ExpectedMore));"));
 				}
 				file.Line();
 				if (overKinds)

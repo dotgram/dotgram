@@ -45,7 +45,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'Feed'.";
 
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
@@ -105,7 +105,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'Feed'.";
 
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 			}
 
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
@@ -171,7 +171,7 @@ namespace DotGram.Snapshots
 					? "Expected more input."
 					: "Input does not match 'Feed'.";
 
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 			}
 
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
@@ -237,7 +237,7 @@ namespace DotGram.Snapshots
 			if (end < 0)
 			{
 				var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match 'Feed'.", failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match 'Feed'.", failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 			}
 			return Match<string>.Success(text.Slice(0, end).ToString(), 0, end);
 		}
@@ -267,7 +267,7 @@ namespace DotGram.Snapshots
 			if (end < 0)
 			{
 				var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);
-				return Match<byte[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match 'Feed'.", failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<byte[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match 'Feed'.", failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 			}
 			return Match<byte[]>.Success(text.Slice(0, end).ToArray(), 0, end);
 		}
@@ -301,7 +301,7 @@ namespace DotGram.Snapshots
 			if (end < 0)
 			{
 				var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);
-				return Match<byte[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match 'Feed'.", failure.Position, failure.Expected, failure.ExpectedMore);
+				return Match<byte[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, starved ? "Expected more input." : "Input does not match 'Feed'.", failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 			}
 			return Match<byte[]>.Success(text.Slice(0, end).ToArray(), 0, end);
 		}
@@ -1043,7 +1043,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
 				}
 				Trace("fail", state, p, entries.Count, text, "");
 
@@ -2310,7 +2310,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
 				}
 				Trace("fail", state, p, entries.Count, text, "");
 
@@ -2575,7 +2575,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
 				}
 				Trace("fail", state, p, entries.Count, text, "");
 
@@ -2764,13 +2764,13 @@ namespace DotGram.Snapshots
 		{
 			private readonly string[]? _expected;
 
-			private readonly global::System.Collections.Generic.List<string[]>? _tied;
+			private readonly string[][]? _tied;
 
 			private readonly string? _otherwise;
 
 			private Match(
 				Outcome outcome, T value, long position, int length,
-				string[]? expected, global::System.Collections.Generic.List<string[]>? tied,
+				string[]? expected, string[][]? tied,
 				string? otherwise)
 			{
 				Outcome    = outcome;
@@ -2911,7 +2911,7 @@ namespace DotGram.Snapshots
 
 			internal static Match<T> Failed(
 				Outcome outcome, string otherwise, long position, string[]? expected,
-				global::System.Collections.Generic.List<string[]>? tied)
+				string[][]? tied)
 			{
 				return new Match<T>(outcome, default!, position, 0, expected, tied, otherwise);
 			}
@@ -2941,6 +2941,34 @@ namespace DotGram.Snapshots
 			public bool Unasked;
 
 			public int Doors;
+		}
+
+		[global::System.ThreadStatic]
+		private static global::System.Collections.Generic.List<string[]>? _spareTies;
+
+		private static global::System.Collections.Generic.List<string[]> Ties_DotGram()
+		{
+			var ties = _spareTies;
+
+			if (ties == null)
+				return new global::System.Collections.Generic.List<string[]>();
+
+			_spareTies = null;
+
+			return ties;
+		}
+
+		private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)
+		{
+			if (ties == null)
+				return null;
+
+			var tied = ties.Count == 0 ? null : ties.ToArray();
+
+			ties.Clear();
+			_spareTies = ties;
+
+			return tied;
 		}
 
 		internal interface IParserInputSource<T>
@@ -3980,7 +4008,7 @@ namespace DotGram.Snapshots
 				var more = failure.ExpectedMore;
 
 				if (more == null)
-					failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+					failure.ExpectedMore = more = Ties_DotGram();
 				else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
 					return;
 

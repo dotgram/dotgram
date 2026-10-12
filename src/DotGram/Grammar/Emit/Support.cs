@@ -561,8 +561,8 @@ public static partial class CSharpEmitter
 			/// <summary>What would have fit at the furthest position, or null.</summary>
 			private readonly string[]? _expected;
 
-			/// <summary>The arrays that tied with it, or null where none did.</summary>
-			private readonly global::System.Collections.Generic.List<string[]>? _tied;
+			/// <summary>The arrays that tied with it, or null where none did: the reading's list copied out, its list going back to the thread (Handed_DotGram).</summary>
+			private readonly string[][]? _tied;
 
 			/// <summary>
 			/// What <c>Error</c> says when nothing named what would have fit. A literal
@@ -572,7 +572,7 @@ public static partial class CSharpEmitter
 
 			private Match(
 				Outcome outcome, T value, long position, int length,
-				string[]? expected, global::System.Collections.Generic.List<string[]>? tied,
+				string[]? expected, string[][]? tied,
 				string? otherwise)
 			{
 				Outcome    = outcome;
@@ -713,7 +713,7 @@ public static partial class CSharpEmitter
 
 			internal static Match<T> Failed(
 				Outcome outcome, string otherwise, long position, string[]? expected,
-				global::System.Collections.Generic.List<string[]>? tied)
+				string[][]? tied)
 			{
 				return new Match<T>(outcome, default!, position, 0, expected, tied, otherwise);
 			}
@@ -1126,6 +1126,63 @@ public static partial class CSharpEmitter
 			/// tends to tie again, and a list per tie was an allocation per operand.
 			/// </summary>
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
+		""";
+
+	/// <summary>
+	/// Where a reading's ties go, and what a refusal hands over of them: the list is the thread's,
+	/// taken by a reading's first tie and given back with the refusal, so that a refusal read twice
+	/// for its message allocates no list of its own — one tie was a list and its array, a hundred
+	/// bytes a refusal, on every ladder's refusal.
+	/// </summary>
+	internal const string TiesSupport = """
+		/// <summary>
+		/// A list for the sets that tie, kept on the thread between readings: taken by the first tie
+		/// of a reading (Ties_DotGram), given back where the refusal is handed over (Handed_DotGram),
+		/// null while a reading holds it. A reading on another thread, or one begun inside a
+		/// construction while this one is held, takes a list of its own.
+		/// </summary>
+		[global::System.ThreadStatic]
+		private static global::System.Collections.Generic.List<string[]>? _spareTies;
+
+		/// <summary>The thread's list for a reading's ties, or a new one where a reading holds it.</summary>
+		private static global::System.Collections.Generic.List<string[]> Ties_DotGram()
+		{
+			var ties = _spareTies;
+
+			if (ties == null)
+				return new global::System.Collections.Generic.List<string[]>();
+
+			_spareTies = null;
+
+			return ties;
+		}
+		// <tied>
+
+		/// <summary>The sets that tied, as the match keeps them: an array, or null where none did. The list stays as it is, for the sink to read.</summary>
+		private static string[][]? Tied_DotGram(global::System.Collections.Generic.List<string[]>? ties)
+		{
+			return ties == null || ties.Count == 0 ? null : ties.ToArray();
+		}
+		// </tied>
+		// <handed>
+
+		/// <summary>
+		/// The sets that tied, as the match keeps them: an array, or null where none did — from a
+		/// reading that is over, whose list is emptied and kept for the next reading on this thread.
+		/// </summary>
+		private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)
+		{
+			if (ties == null)
+				return null;
+
+			var tied = ties.Count == 0 ? null : ties.ToArray();
+
+			ties.Clear();
+			_spareTies = ties;
+
+			return tied;
+		}
+		// </handed>
 		""";
 
 	/// <summary>The reusable state owned by the automaton.</summary>
@@ -3228,7 +3285,7 @@ public static partial class CSharpEmitter
 				var more = failure.ExpectedMore;
 
 				if (more == null)
-					failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+					failure.ExpectedMore = more = Ties_DotGram();
 				else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
 					return;
 
@@ -3248,7 +3305,7 @@ public static partial class CSharpEmitter
 					return;
 
 				if (more == null)
-					failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+					failure.ExpectedMore = more = Ties_DotGram();
 				else if (more.Count > (turn < 0 ? 0 : turn) && ReferenceEquals(more[more.Count - 1], expected))
 					return;
 

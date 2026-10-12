@@ -76,7 +76,7 @@ namespace DotGram.Snapshots
 
 					Recycle_DotGram(tokens);
 
-					return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, at, failure.Expected, failure.ExpectedMore);
+					return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, at, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 				}
 
 				if (tokens.Cut && end == count)
@@ -193,7 +193,7 @@ namespace DotGram.Snapshots
 					var halted = failure.Position < count ? starts[failure.Position] : source.Length;
 
 
-					return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, halted, failure.Expected, failure.ExpectedMore);
+					return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, halted, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 				}
 
 				if (tokens.Cut && end == count)
@@ -318,7 +318,7 @@ namespace DotGram.Snapshots
 
 					Recycle_DotGram(tokens);
 
-					return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, halted, failure.Expected, failure.ExpectedMore);
+					return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, halted, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 				}
 
 				if (tokens.Cut && end == count)
@@ -775,13 +775,13 @@ namespace DotGram.Snapshots
 			{
 				private readonly string[]? _expected;
 
-				private readonly global::System.Collections.Generic.List<string[]>? _tied;
+				private readonly string[][]? _tied;
 
 				private readonly string? _otherwise;
 
 				private Match(
 					Outcome outcome, T value, long position, int length,
-					string[]? expected, global::System.Collections.Generic.List<string[]>? tied,
+					string[]? expected, string[][]? tied,
 					string? otherwise)
 				{
 					Outcome    = outcome;
@@ -922,7 +922,7 @@ namespace DotGram.Snapshots
 
 				internal static Match<T> Failed(
 					Outcome outcome, string otherwise, long position, string[]? expected,
-					global::System.Collections.Generic.List<string[]>? tied)
+					string[][]? tied)
 				{
 					return new Match<T>(outcome, default!, position, 0, expected, tied, otherwise);
 				}
@@ -956,6 +956,34 @@ namespace DotGram.Snapshots
 				public bool Unasked;
 
 				public int Doors;
+			}
+
+			[global::System.ThreadStatic]
+			private static global::System.Collections.Generic.List<string[]>? _spareTies;
+
+			private static global::System.Collections.Generic.List<string[]> Ties_DotGram()
+			{
+				var ties = _spareTies;
+
+				if (ties == null)
+					return new global::System.Collections.Generic.List<string[]>();
+
+				_spareTies = null;
+
+				return ties;
+			}
+
+			private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)
+			{
+				if (ties == null)
+					return null;
+
+				var tied = ties.Count == 0 ? null : ties.ToArray();
+
+				ties.Clear();
+				_spareTies = ties;
+
+				return tied;
 			}
 
 			static readonly byte[] Scan_Runs =
@@ -1793,7 +1821,7 @@ namespace DotGram.Snapshots
 					var more = failure.ExpectedMore;
 
 					if (more == null)
-						failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+						failure.ExpectedMore = more = Ties_DotGram();
 					else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
 						return;
 

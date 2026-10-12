@@ -2011,11 +2011,10 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("failure.Expected = expected;", source);
 		Assert.Contains("failure.ExpectedMore?.Clear();", source);
 
-		// A tie allocates, but only the list of arrays, and only on the tie itself.
-		Assert.Contains(
-			"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
-			".Add(expected);",
-			source);
+		// A tie takes the thread's list of arrays, and only on the tie itself; the list is
+		// allocated once a thread and handed back with the refusal (Support.cs, TiesSupport).
+		Assert.Contains("(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);", source);
+		Assert.Contains("_spareTies", source);
 	}
 
 	// ── Case-insensitive literals ─────────────────────────────────────────────────

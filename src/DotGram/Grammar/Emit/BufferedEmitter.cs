@@ -444,7 +444,7 @@ public static partial class CSharpEmitter
 					// Named, as the string form names it: the two forms of one publication answer
 					// alike or the difference is one we have said out loud (BufferedInputTests).
 					$"starved ? \"Expected more input.\" : \"Input does not match '{name}'.\", " +
-					"failure.Position, failure.Expected, failure.ExpectedMore)";
+					$"failure.Position, failure.Expected, {(tracing is null ? "Handed_DotGram" : "Tied_DotGram")}(failure.ExpectedMore))";
 
 				file.Line(tracing is null ? $"return {failed};" : $"return Rejected_DotGram({failed});");
 			}
