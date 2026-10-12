@@ -145,6 +145,7 @@ public sealed class Sql2023WriterCoverageTests
 		// this is what says each one has words of its own, where PermissionCatalogueTests says which.
 		[typeof(PrivilegeKind)]      = v => Granted(null, new Privilege((PrivilegeKind)v, [], [])),
 		[typeof(SecurableClass)]     = v => Granted(Securable((SecurableClass)v), new Privilege(PrivilegeKind.Control, [], [])),
+		[typeof(XmlContent)]         = v => new DataType.Xml((XmlContent)v, T),
 	};
 
 	/// <summary>
@@ -341,6 +342,10 @@ public sealed class Sql2023WriterCoverageTests
 			["SetOperation.Distinct"] = (
 				Combined(SetOperator.Union),
 				Combined(SetOperator.Union, distinct: true)),
+			// T-SQL's `0x0A` is its own text; the standard's is X and the quoted digits.
+			["Binary.ZeroX"] = (
+				new Expression.Literal(new LiteralValue.Binary("'0A'")),
+				new Expression.Literal(new LiteralValue.Binary("'0A'") { ZeroX = true })),
 			["UpdatabilityClause.Underscored"] = (
 				Declared(new CursorProperties(null, null, null, null), false, false),
 				Declared(new CursorProperties(null, null, null, null), false, true)),

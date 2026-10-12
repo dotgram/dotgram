@@ -220,8 +220,9 @@ public static partial class Sql2023Writer
 					});
 					break;
 
+				// T-SQL's `0x0A` keeps its own text; the standard's `X'0A'` keeps the quoted digits.
 				case LiteralValue.Binary binary:
-					Word("X" + binary.Text);
+					Word(binary.ZeroX ? binary.Text : "X" + binary.Text);
 					break;
 
 				case LiteralValue.Boolean truth:
@@ -698,7 +699,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Cast cast:
-					Word("CAST");
+					Word(cast.Try ? "TRY_CAST" : "CAST");
 					Call();
 					PutExpression(cast.Value);
 					Word("AS");
@@ -798,6 +799,14 @@ public static partial class Sql2023Writer
 				case Expression.NextValue next:
 					Word("NEXT VALUE FOR");
 					PutName(next.Sequence);
+
+					// T-SQL: NEXT VALUE FOR (Transact-SQL). The order the statement's rows take their values in.
+					if (next.Over is { } over)
+					{
+						Word("OVER");
+						PutWindow(over);
+					}
+
 					break;
 
 				case Expression.Collate collate:

@@ -819,7 +819,7 @@ public abstract partial record Expression : ISqlNode
 	// BNF: <case operand> standing where a <when operand> leaves it out. Nothing is written for it.
 	public record CaseOperand : Expression;
 
-	public record Cast(Expression Value, DataType Target, string? Format = null) : Expression;
+	public partial record Cast(Expression Value, DataType Target, string? Format = null) : Expression;
 
 	// BNF: <routine invocation>, <aggregate function>, <window function>, <row pattern navigation operation>,
 	// and the functions whose arguments are a plain comma list.
@@ -879,7 +879,7 @@ public abstract partial record Expression : ISqlNode
 	// BNF: a JSON simplified accessor's <JSON array accessor>, whose subscripts are in the path language: `a[$ to last]`.
 	public record JsonAccessor(Expression Target, JsonPathAccessor Accessor) : Expression;
 
-	public record NextValue(QualifiedName Sequence) : Expression;
+	public partial record NextValue(QualifiedName Sequence) : Expression;
 
 	// BNF: <collate clause> on a character factor.
 	public record Collate(Expression Value, CollationName Collation) : Expression;
@@ -1055,7 +1055,7 @@ public sealed record ListaggOverflow(bool Truncate, Expression? Filler = null, b
 	}
 }
 
-public abstract record LiteralValue : ISqlNode
+public abstract partial record LiteralValue : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -1068,7 +1068,7 @@ public abstract record LiteralValue : ISqlNode
 	// Text is the literal's spelling as written, from its first quote to its last: the segments of `'a' 'b'`
 	// and the separators between them included, the introducer not.
 	public record String(string Text, StringLiteralKind Kind, CharacterSetName? CharacterSet = null, char? UnicodeEscape = null) : LiteralValue;
-	public record Binary(string Text) : LiteralValue;
+	public partial record Binary(string Text) : LiteralValue;
 	public record Boolean(BooleanLiteral Value) : LiteralValue;
 	public record DateTime(DateTimeLiteralKind Kind, string Text) : LiteralValue;
 	// Sign is `INTERVAL -'1' DAY`'s, null where none was written.
