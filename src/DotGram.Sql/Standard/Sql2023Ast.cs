@@ -745,7 +745,8 @@ public abstract partial record TableSource : ISqlNode
 	// BNF: <row pattern recognition clause> after a table primary, `t MATCH_RECOGNIZE (…) AS m`.
 	public record RowPatternRecognition(TableSource Source, RowPatternClause Clause, Alias? Alias = null) : TableSource;
 	public record JsonTable(JsonTableDefinition Definition, Alias? Alias = null) : TableSource;
-	public record DataChange(ResultOption Option, Statement Change, Alias? Alias = null) : TableSource;
+	// T-SQL: INSERT (Transact-SQL). Option null is T-SQL's form, `(MERGE … OUTPUT …) AS c`, where the statement's OUTPUT is the rows.
+	public record DataChange(ResultOption? Option, Statement Change, Alias? Alias = null) : TableSource;
 	public record Parenthesized(TableSource Source) : TableSource;
 	public record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : TableSource;
 }

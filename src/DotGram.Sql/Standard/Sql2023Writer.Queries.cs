@@ -1154,8 +1154,23 @@ public static partial class Sql2023Writer
 					PutAlias(json.Alias);
 					break;
 
+				// T-SQL: INSERT (Transact-SQL). The statement in brackets, its OUTPUT the rows, and the name they go by.
+				case TableSource.DataChange { Option: null } returned:
+					if (returned.Change is not (Statement.Insert { Output: not null } or Statement.Update { Output: not null }
+						or Statement.Delete { Output: not null } or Statement.Merge { Output: not null }))
+						throw Misplaced(returned, "Option", "left out on a statement with no OUTPUT");
+
+					if (returned.Alias is null)
+						throw Misplaced(returned, "Alias", "missing, which T-SQL's form requires");
+
+					Open();
+					PutStatement(returned.Change);
+					Close();
+					PutAlias(returned.Alias);
+					break;
+
 				case TableSource.DataChange change:
-					Word(change.Option switch { ResultOption.Final => "FINAL", ResultOption.New => "NEW", ResultOption.Old => "OLD", _ => throw NoText(change.Option) });
+					Word(change.Option switch { ResultOption.Final => "FINAL", ResultOption.New => "NEW", ResultOption.Old => "OLD", _ => throw NoText(change.Option!.Value) });
 					Word("TABLE");
 					Open();
 					PutStatement(change.Change);

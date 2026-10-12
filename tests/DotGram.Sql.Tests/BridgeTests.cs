@@ -276,6 +276,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("UPDATE t SET c ||= 'x'",                                          "Assignment compound")]
 	[InlineData("UPDATE t SET c.WRITE (@x, 0, NULL)",                              "Assignment call")]
 	[InlineData("UPDATE t SET a = 1",                                              "Assignment plain")]
+	[InlineData("INSERT INTO t SELECT a FROM (DELETE u OUTPUT deleted.a) AS c (a) WHERE a > 1", "Composable")]
 	[InlineData("MERGE INTO t USING u ON t.a = u.a WHEN NOT MATCHED BY SOURCE AND t.b = 1 THEN UPDATE SET b = 2 WHEN NOT MATCHED BY TARGET THEN INSERT DEFAULT VALUES;", "Merge.BySource ByTarget DefaultValues")]
 	public void The_bridge_builds_the_data_change_record_the_text_means(string text, string expected)
 	{
@@ -318,6 +319,16 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Assignment call"             => made is Ast.Statement.Update
 			{
 				Assignments: [{ Variable: null, Targets.Count: 0, Value: Ast.Expression.Member { Kind: Ast.MemberAccessKind.Dot, Name.Text: "WRITE", Arguments.Count: 3, Target: Ast.Expression.Reference } }],
+			},
+			"Composable"                  => made is Ast.Statement.Insert
+			{
+				SourceValue: Ast.InsertSource.Subquery
+				{
+					Query: Ast.Query.Select
+					{
+						From.Sources: [Ast.TableSource.DataChange { Option: null, Change: Ast.Statement.Delete { Output: not null }, Alias: { AsKeyword: true, Columns.Count: 1 } }],
+					},
+				},
 			},
 			"Assignment plain"            => made is Ast.Statement.Update { Assignments: [{ Variable: null, Operator: Ast.AssignmentOperator.Assign, Targets.Count: 1 }] },
 			_                             => made is Ast.Statement.Merge { IntoOmitted: true, Output.Items.Count: 1 },

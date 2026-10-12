@@ -445,7 +445,7 @@ static partial class Bridge
 		/// fixed by the grammar, <c>USE HINT</c>, <c>USE PLAN</c>, <c>OPTIMIZE FOR</c>, <c>TABLE HINT</c>, and the rest
 		/// a name with its value.
 		/// </summary>
-		public static Ast.QueryHint QueryHint(Clause old)
+		internal static Ast.QueryHint QueryHint(Clause old)
 		{
 			if (old is not Clause.Hint(var text))
 				throw BridgeGap.Open(old, "inventory Clause.Hint");

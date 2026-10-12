@@ -764,6 +764,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("an empty second FROM")]
 	[InlineData("an INSERT word that is none")]
 	[InlineData("DEFAULT VALUES with values in a MERGE")]
+	[InlineData("T-SQL's data change table on a statement with no OUTPUT")]
+	[InlineData("T-SQL's data change table with no name")]
 	[InlineData("an assignment of nothing that is not a call")]
 	[InlineData("a variable with two targets")]
 	[InlineData("a compound operator on bracketed targets")]
@@ -804,6 +806,10 @@ public sealed class Sql2023WriterCoverageTests
 				Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null)),
 			},
 			"an empty second FROM"                  => new Statement.Delete { Target = new TableSource.Named(T), From = new FromClause([]) },
+			"T-SQL's data change table on a statement with no OUTPUT" =>
+				Joined(new TableSource.DataChange(null, new Statement.Delete { Target = new TableSource.Named(T) }, new Alias(new Identifier("c")))),
+			"T-SQL's data change table with no name" =>
+				Joined(new TableSource.DataChange(null, new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null) })),
 			"an assignment of nothing that is not a call" => new Statement.Update { Target = new TableSource.Named(T), Assignments = [new Assignment([], B)] },
 			"a variable with two targets"           => new Statement.Update
 			{
