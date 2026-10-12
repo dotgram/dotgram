@@ -258,6 +258,13 @@ public sealed partial class GrammarNormalizer
 			foreach (var rule in ns.Rules.Values)
 				seed.Add(rule);
 
+		// An instance of a parameterized rule declared here is a rule of this site too, wherever
+		// the call that made it is written: `Ns.E('!')` from outside reads `Ns`'s specialization
+		// of `E('!')`, and only an instance this site cloned can be called as one.
+		foreach (var instance in _specialized.Values)
+			if (span.Contains(instance.Namespace))
+				seed.Add(instance);
+
 		foreach (var publication in _model.Publications)
 			if (span.Contains(publication.DeclaredIn))
 				seed.Add(publication.Rule);
@@ -798,16 +805,29 @@ public sealed partial class GrammarNormalizer
 	{
 		var remapped = new List<Publication>(_model.Publications.Count);
 
+		_publicationClones.Clear();
+
 		foreach (var publication in _model.Publications)
 		{
-			var clone =
-				CloneAt(NearestSite(publication.DeclaredIn), publication.Rule, remap) ??
-				CloneAt(NearestSite(publication.Rule.Namespace), publication.Rule, remap);
+			var site  = NearestSite(publication.DeclaredIn);
+			var clone = CloneAt(site, publication.Rule, remap);
+
+			if (clone is null)
+			{
+				site  = NearestSite(publication.Rule.Namespace);
+				clone = CloneAt(site, publication.Rule, remap);
+			}
+
+			// What the clone it now reads calls in place of each rule: the clones its own site
+			// made, where it reads one, and the clones every call from outside names.
+			var clones = clone is not null && site is not null ? remap[site] : null;
+
+			_publicationClones.Add(clones);
 
 			var moved = publication with
 			{
 				Rule       = clone ?? publication.Rule,
-				Rebindings = Retargeted(publication.Rebindings, declared),
+				Rebindings = Retargeted(publication.Rebindings, clones, declared),
 			};
 
 			remapped.Add(clone is null && ReferenceEquals(moved.Rebindings, publication.Rebindings) ? publication : moved);
@@ -817,21 +837,46 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// For each publication as written, the clones of the site whose clone it was moved onto;
+	/// null where it reads no site's clone.
+	/// </summary>
+	readonly List<IReadOnlyDictionary<RuleSymbol, RuleSymbol>?> _publicationClones = [];
+
+	/// <summary>
+	/// What a rebinding of a publication names once the publication reads a site's clone: the
+	/// site's own clone of the rule, else the clone a call from outside names, else the rule.
+	/// </summary>
+	/// <remarks>
+	/// <c>parse Ns.G with (A = Y)</c>, where <c>A</c> is declared outside <c>Ns</c> and reached
+	/// from <c>G</c>, has to replace <c>Ns</c>'s clone of <c>A</c>: that is what <c>G</c>'s clone
+	/// calls, and a binding of the original found no call to replace.
+	/// </remarks>
+	RuleSymbol Moved(RuleSymbol rule, IReadOnlyDictionary<RuleSymbol, RuleSymbol>? clones)
+	{
+		return clones is not null && clones.TryGetValue(rule, out var clone) ? clone : Declared(rule);
+	}
+
+	/// <summary>
 	/// A directive's rebindings with every rule a site declares, on either side, replaced by
 	/// the site's clone of it; the same instance where none is.
 	/// </summary>
-	static IReadOnlyDictionary<RuleSymbol, RuleSymbol> Retargeted(
-		IReadOnlyDictionary<RuleSymbol, RuleSymbol> rebindings,
-		Dictionary<RuleSymbol, RuleSymbol>          declared)
+	IReadOnlyDictionary<RuleSymbol, RuleSymbol> Retargeted(
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol>  rebindings,
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol>? clones,
+		Dictionary<RuleSymbol, RuleSymbol>           declared)
 	{
-		if (!rebindings.Any(pair => declared.ContainsKey(pair.Key) || declared.ContainsKey(pair.Value)))
+		bool Touched(RuleSymbol rule)
+		{
+			return declared.ContainsKey(rule) || clones is not null && clones.ContainsKey(rule);
+		}
+
+		if (!rebindings.Any(pair => Touched(pair.Key) || Touched(pair.Value)))
 			return rebindings;
 
 		var moved = new Dictionary<RuleSymbol, RuleSymbol>();
 
 		foreach (var pair in rebindings)
-			moved[declared.TryGetValue(pair.Key, out var key) ? key : pair.Key] =
-				declared.TryGetValue(pair.Value, out var value) ? value : pair.Value;
+			moved[Moved(pair.Key, clones)] = Moved(pair.Value, clones);
 
 		return moved;
 	}
@@ -887,9 +932,13 @@ public sealed partial class GrammarNormalizer
 
 		// A publication's rebindings were moved onto the clones a call names
 		// (`RemapPublications`), so it is the clones' types that have to fit.
-		foreach (var publication in _model.Publications)
-			foreach (var binding in publication.OwnRebindings)
-				CheckReplacement(binding, Declared(binding.Left), Declared(binding.Right));
+		for (var i = 0; i < _model.Publications.Count; i++)
+		{
+			var clones = i < _publicationClones.Count ? _publicationClones[i] : null;
+
+			foreach (var binding in _model.Publications[i].OwnRebindings)
+				CheckReplacement(binding, Moved(binding.Left, clones), Moved(binding.Right, clones));
+		}
 	}
 
 	void CheckRebindingReplacements(GrammarNamespace ns)

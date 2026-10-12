@@ -398,6 +398,13 @@ public sealed class GramParser
 
 		var rebindings   = At(TokenKind.OpenParen) ? ParseRebindings() : [];
 		var usings       = new List<Using>();
+
+		// A rule the header's own expressions were lifted into is declared where the header is
+		// written, beside this namespace: the header resolves against the enclosing scope, and
+		// one put inside the block it introduces is a rule the header cannot see.
+		var header = new List<Decl>(_lifted);
+
+		_lifted.Clear();
 		var declarations = new List<Decl>();
 
 		Expect(TokenKind.OpenBrace);
@@ -423,6 +430,8 @@ public sealed class GramParser
 		}
 
 		Expect(TokenKind.CloseBrace);
+
+		_lifted.AddRange(header);
 
 		return new Decl.Namespace(name, rebindings, usings, declarations) { At = From(start) };
 	}

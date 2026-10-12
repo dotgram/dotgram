@@ -4425,6 +4425,7 @@ public sealed class SemanticTests
 			("E = A",              "'<' & Ns.E",    "<dd:d",  "<bb:b"),
 			("E = A & '!'",        "Ns.E & \" f\"", "d:d! f", "b:b! f"),
 			("E = A\nG = E & '!'", "Ns.G",          "d:dd!",  "b:bb!"),
+			("E(x) = A & x",       "Ns.E('!')",     "dd:d!",  "bb:b!"),
 		];
 
 		foreach (var (inside, outside, accepted, refused) in shapes)
@@ -4690,6 +4691,60 @@ public sealed class SemanticTests
 			""");
 
 		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.IncompatibleRebinding);
+	}
+
+	[Fact]
+	public void A_publications_rebinding_of_a_rule_a_namespace_cloned_replaces_the_clone()
+	{
+		// `A` is declared outside `Ns`, and `G`'s specialization calls `Ns`'s clone of it: that
+		// clone is what the directive's `with` replaces.
+		var result = Compile("""
+			B = 'b'
+			D = 'd'
+			Y = 'y'
+			A = B & '!'
+
+			namespace Ns with (B = D)
+			{
+				G = A
+			}
+
+			parse Ns.G as Plain
+			parse Ns.G with (A = Y) as Replaced
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryPlain", "d!").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryPlain", "b!").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryReplaced", "y").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryReplaced", "d!").IsSuccess);
+	}
+
+	[Fact]
+	public void A_namespace_header_may_replace_a_rule_with_an_expression()
+	{
+		// §5.1: what replaces a rule may be any operand. The expression is a rule declared where
+		// the header is written, beside the namespace rather than inside the block it introduces.
+		var result = Compile("""
+			Sp = ' '
+			L  = 'a' & Sp & 'b'
+
+			namespace N with (Sp = '_')
+			{
+				M = L
+				parse M as ParseStart
+			}
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a_b").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a b").IsSuccess);
 	}
 
 	[Fact]
