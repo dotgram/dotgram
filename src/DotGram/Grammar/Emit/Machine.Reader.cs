@@ -4285,6 +4285,14 @@ sealed partial class Machine
 					code.Line();
 				}
 
+				// `(?!X & any)*` goes straight to where X may begin (Machine.UntilStops).
+				if (machine.UntilStops(repeat) is { } until)
+				{
+					_character = true;
+					machine.EmitUntilSkip(code, until, turns: turns);
+					code.Line();
+				}
+
 				// The turn is not tried where the token in hand cannot begin it. What ends
 				// a repetition is not a failure, and trying the turn made it one: a
 				// refusal recorded at the token, and — nine levels of a ladder each asking
@@ -5187,6 +5195,16 @@ sealed partial class Machine
 				{
 					code.Line($"if ({turn} >= {limit})");
 					code.Then("break;");
+					code.Line();
+				}
+
+				// `(?!X & any)*` goes straight to where X may begin (Machine.UntilStops). Where a
+				// turn may be asked back, the turns passed over are one way, as a run's are
+				// (EmitRun); not where the fewest turns would have to be counted against it.
+				if (repeat is not null && (settled || min is null) && machine.UntilStops(repeat) is { } until)
+				{
+					_character = true;
+					machine.EmitUntilSkip(code, until, turns: turn, gave: settled ? null : $"d{_ways++}");
 					code.Line();
 				}
 

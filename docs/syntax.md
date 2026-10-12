@@ -513,10 +513,15 @@ Title   = [^ '\r' | '\n']+
 The cost of the "until" idiom depends on its shape. Where the closing is a delimiter
 that begins with a delimiter character of its own, as in the Lua, PostgreSQL and heredoc
 examples, a position that does not begin a closing fails at its first item and the scan is
-linear in the text. For `(?!$q & any)*`, as in the raw string, every
-position compares the binding with the text there, so the worst case is the length of the
+linear in the text. For `(?!$q & any)*`, as in the raw string, every position that holds
+a quote compares the binding with the text there, so the worst case is the length of the
 text multiplied by the length of the binding: a crafted input can make it as slow as the
 opening it was given is long.
+
+Either way the closing is not tried where it cannot begin. Where what the look refuses can
+begin with only a few characters, the generated parser searches for the next of them rather
+than reading a character at a time, so the text between two of them costs one vectorized
+search; the answer, and what a refusal says, are those of the loop as written.
 
 ### 3.6 Guard
 

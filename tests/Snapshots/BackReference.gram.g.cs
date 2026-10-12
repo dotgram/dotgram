@@ -1832,6 +1832,18 @@ namespace DotGram.Snapshots
 
 				S14:
 				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!(c == '"'))
+						{
+							var untilFound = global::System.MemoryExtensions.IndexOf(text.Slice(p), '"');
+							var until = untilFound < 0 ? -1 : p + untilFound;
+							var untilFrom = p;
+							p = until < 0 ? text.Length : until;
+							entries.Add(new ParserEntry(ParserEntry.Run, 19, untilFrom, call, atomic, repeat, lookahead, p));
+						}
+					}
 					entries.Add(new ParserEntry(ParserEntry.Choice, 19, p, call, atomic, repeat, lookahead, 0));
 				}
 
@@ -2142,6 +2154,17 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				while (true)
 				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!(c == ']'))
+						{
+							var untilFound = global::System.MemoryExtensions.IndexOf(text.Slice(p), ']');
+							var until = untilFound < 0 ? -1 : p + untilFound;
+							p = until < 0 ? text.Length : until;
+						}
+					}
+
 					var o1 = (uint)p < (uint)text.Length;
 
 					if (o1)
@@ -2383,6 +2406,17 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				while (true)
 				{
+					if ((uint)p < (uint)text.Length)
+					{
+						c = text[p];
+						if (!(c == '$'))
+						{
+							var untilFound = global::System.MemoryExtensions.IndexOf(text.Slice(p), '$');
+							var until = untilFound < 0 ? -1 : p + untilFound;
+							p = until < 0 ? text.Length : until;
+						}
+					}
+
 					var o1 = (uint)p < (uint)text.Length;
 
 					if (o1)
