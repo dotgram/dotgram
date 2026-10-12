@@ -710,16 +710,22 @@ static partial class Bridge
 					return new Ast.SelectColumn.ExpressionItem(Values.Of(value));
 
 				case Clause.DerivedColumn(var value, var name):
-					if (name![0] is '\'' or 'N' or 'n' && name.EndsWith('\''))
-						throw BridgeGap.Open(old, "inventory Clause.DerivedColumn (a string alias)");
+				{
+					// A string alias, 'x' or N'x': its content, the doubled quotes undone.
+					var alias = name![0] is '\'' or 'N' or 'n' && name.Length > 1 && name.EndsWith('\'') && name.IndexOf('\'') is 0 or 1
+						? new Ast.Identifier(name[(name.IndexOf('\'') + 1)..^1].Replace("''", "'"), name[0] == '\'' ? Ast.IdentifierStyle.String : Ast.IdentifierStyle.NationalString)
+						: Values.Part(old, name);
 
 					// `x = a` and `a AS x` are one old node; where the value starts after the column, the
 					// alias was written in front of it.
-					if (Recover("Clause.DerivedColumn alias = expression", Spelled(old) is not null && Spelled(value) is not null ? "" : null, _ => value.Span.At > old.Span.At, false))
-						throw BridgeGap.Open(old, "inventory Clause.DerivedColumn (alias = expression)");
+					var first = Recover("Clause.DerivedColumn alias = expression", Spelled(old) is not null && Spelled(value) is not null ? "" : null, _ => value.Span.At > old.Span.At, false);
 
-					return new Ast.SelectColumn.ExpressionItem(Values.Of(value), Values.Part(old, name),
-						Recover("SelectColumn.ExpressionItem.AsKeyword", WordAfter(value), static word => word == "AS", false));
+					return new Ast.SelectColumn.ExpressionItem(Values.Of(value), alias,
+						!first && Recover("SelectColumn.ExpressionItem.AsKeyword", WordAfter(value), static word => word == "AS", false))
+					{
+						AliasFirst = first,
+					};
+				}
 
 				case Clause.QualifiedAsterisk(null):
 					return new Ast.SelectColumn.All();
@@ -757,12 +763,17 @@ static partial class Bridge
 			if (old is not Clause.Top(var value, var percent, var with))
 				throw BridgeGap.Open(old, "inventory Clause.Top");
 
-			if (with is not null && !with.Equals("TIES", StringComparison.OrdinalIgnoreCase))
-				throw BridgeGap.Open(old, $"inventory Clause.Top (WITH {with})");
+			Ast.TopWith? said = with?.ToUpperInvariant() switch
+			{
+				null          => null,
+				"TIES"        => Ast.TopWith.Ties,
+				"APPROXIMATE" => Ast.TopWith.Approximate,
+				_             => throw BridgeGap.Open(old, $"inventory Clause.Top (WITH {with})"),
+			};
 
 			return value is Expression.Parenthesized(var inner)
-				? new Ast.TopClause(Values.Of(inner), true, percent, with is not null)
-				: new Ast.TopClause(Values.Of(value), false, percent, with is not null);
+				? new Ast.TopClause(Values.Of(inner), true, percent, said)
+				: new Ast.TopClause(Values.Of(value), false, percent, said);
 		}
 
 		public static Ast.TopClause? Topped(Clause? old)

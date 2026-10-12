@@ -156,6 +156,10 @@ public static partial class Sql2023Writer
 
 		void PutIdentifier(Identifier identifier)
 		{
+			// T-SQL: SELECT Clause (Transact-SQL). A string is a column's alias and nothing else's name.
+			if (identifier.Style is IdentifierStyle.String or IdentifierStyle.NationalString)
+				throw Misplaced(identifier, "Style", "a string, which only a select column's alias is written as");
+
 			Word(identifier.Text);
 
 			if (identifier.UnicodeEscape is { } escape)

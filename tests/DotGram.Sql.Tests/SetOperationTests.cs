@@ -417,7 +417,7 @@ public sealed class SetOperationTests
 	[Fact]
 	public void TOP_is_written_on_a_query_and_on_the_data_change_statements()
 	{
-		var top = new TopClause(new Expression.Literal(new LiteralValue.Numeric("10", NumericLiteralKind.DecimalInteger)), Parentheses: true, Percent: true, WithTies: false);
+		var top = new TopClause(new Expression.Literal(new LiteralValue.Numeric("10", NumericLiteralKind.DecimalInteger)), Parentheses: true, Percent: true, With: null);
 		var t   = new TableSource.Named(Name("t"));
 
 		Assert.Equal(

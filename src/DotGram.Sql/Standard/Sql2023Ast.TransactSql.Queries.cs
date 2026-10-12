@@ -247,6 +247,15 @@ public abstract partial record TableSource
 
 public abstract partial record SelectColumn
 {
+	public partial record ExpressionItem
+	{
+		/// <summary>
+		/// T-SQL: SELECT Clause (Transact-SQL). <c>x = a</c> against <c>a AS x</c>: the alias written before the value,
+		/// the same column.
+		/// </summary>
+		[Spelling] public bool AliasFirst { get; init; }
+	}
+
 	/// <summary>
 	/// T-SQL: SELECT @local_variable (Transact-SQL). <c>SELECT @v = e</c>, <c>SELECT @v += e</c>: a value taken into a
 	/// variable rather than returned; the identifier keeps its <c>@</c>.

@@ -13,13 +13,22 @@ namespace DotGram.Sql.Ast;
 // commits; a record whose members the inventory left open is declared with the statement that
 // decides them, not before it.
 
-/// <summary>T-SQL: TOP (Transact-SQL). A <c>TOP</c> before a select list or a data change statement's target.</summary>
-public sealed record TopClause(Expression Value, bool Parentheses, bool Percent, bool WithTies) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// T-SQL: TOP (Transact-SQL). A <c>TOP</c> before a select list or a data change statement's target; <see cref="With"/>
+/// is what its WITH says, null where none was written.
+/// </summary>
+public sealed record TopClause(Expression Value, bool Parentheses, bool Percent, TopWith? With) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
+
+/// <summary>
+/// T-SQL: TOP (Transact-SQL), VECTOR_SEARCH (Transact-SQL). What a TOP's WITH says: <c>WITH TIES</c>, the rows tied with
+/// the last; <c>WITH APPROXIMATE</c>, an approximate search's rows. The two exclude each other.
+/// </summary>
+public enum TopWith { Ties, Approximate }
 
 /// <summary>
 /// T-SQL: INTO Clause (Transact-SQL). <c>SELECT … INTO t</c>, which makes a table. Not the
