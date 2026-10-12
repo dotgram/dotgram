@@ -220,6 +220,78 @@ public sealed class UntilSearchTests
 	}
 
 	/// <summary>
+	/// A delimiter that runs code of the host in a look past its first character is left to the
+	/// loop: the loop tries it at every character, and so runs the code at every character, which
+	/// a search for <c>b</c> would not.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_delimiter_that_runs_host_code_is_left_to_the_loop(bool direct)
+	{
+		const string grammar = """
+			Stop  = ?!('a' & when @Touch()) & "bb"
+			Body  = (?!Stop & any)*
+			Start : @int = Body => @(Calls)
+			      | '(' & inner: Start & ')' => @(inner)
+			parse Start
+			""";
+		const string members = """
+			static int Calls;
+			static bool Touch() { Calls++; return true; }
+			""";
+
+		var fast = Build(grammar, CarrierKind.Auto, direct, false, members);
+		var slow = Build(Slow(grammar), CarrierKind.Auto, direct, false, members);
+
+		foreach (var input in new[] { "", "a", "aa", "xa", "abb", "aabba", "(a)", "aaaa" })
+		{
+			var expected = Counted(slow, input);
+			var actual   = Counted(fast, input);
+
+			Assert.True(expected.Equals(actual), $"\"{input}\": the loop says {expected}, the search {actual}");
+		}
+
+		static ((bool, object?, string?, long), int) Counted(Assembly assembly, string input)
+		{
+			var calls = assembly.GetType("Grammar")!.GetField("Calls", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+			calls.SetValue(null, 0);
+
+			var match = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+
+			return (match, (int)calls.GetValue(null)!);
+		}
+	}
+
+	/// <summary>
+	/// A delimiter that recovers is left to the loop: a recovery matches from characters its first
+	/// set does not hold, so the characters a search would pass over are ones it could match at.
+	/// </summary>
+	[Fact]
+	public void A_delimiter_that_recovers_is_left_to_the_loop()
+	{
+		const string grammar = """
+			Stop  = 'a'+ recover ';'
+			Body  = (?!Stop & any)*
+			Start : @int = b: Body & 'a' => @(b.Length)
+			      | '(' & inner: Start & ')' => @(inner)
+			parse Start
+			""";
+
+		foreach (var direct in new[] { false, true })
+		{
+			var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+			{
+				ClassName = "Grammar", Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+			Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);
+			Assert.DoesNotContain("var untilFound", Assert.Single(result.Sources).Text, StringComparison.Ordinal);
+		}
+	}
+
+	/// <summary>
 	/// A delimiter far into a long body is found by one search, and the body before it may hold
 	/// near misses at any distance: the answer is the loop's.
 	/// </summary>
@@ -256,7 +328,7 @@ public sealed class UntilSearchTests
 	}
 
 	/// <param name="searches">Whether the parser must search, must not, or null where either may be right.</param>
-	static Assembly Build(string grammar, CarrierKind carrier, bool direct, bool? searches)
+	static Assembly Build(string grammar, CarrierKind carrier, bool direct, bool? searches, string? members = null)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
@@ -269,7 +341,7 @@ public sealed class UntilSearchTests
 			searches is null || searches == source.Contains("var untilFound", StringComparison.Ordinal),
 			$"{(searches == true ? "No" : "A")} search for an until scan in:\n{grammar}");
 
-		return EmittedCode.Compile(source);
+		return EmittedCode.Compile(source, declarationMembers: members);
 	}
 
 	/// <summary>The row's own inputs, and short random ones over its alphabet.</summary>

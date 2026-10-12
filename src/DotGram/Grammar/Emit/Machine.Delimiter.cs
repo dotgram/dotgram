@@ -126,16 +126,21 @@ sealed partial class Machine
 	/// </para>
 	/// <para>
 	/// It holds only where a refused body cannot match nothing (which matches everywhere, so the
-	/// loop never turns), knows what it begins with, runs no code of the host before its first
-	/// item (code a skipped turn would not run), and begins with no half of a surrogate pair. A
-	/// delimiter of one character is already a run (<see cref="StopCharacters"/>), and is left
-	/// to it. More than five characters is a class, and a class is read.
+	/// loop never turns), knows what it begins with, and begins with no half of a surrogate pair;
+	/// and where trying it is recognition and nothing else (<see cref="OnlyRecognizes"/>): code of
+	/// the host a skipped turn would not run, or a recovery, which matches characters its first set
+	/// does not hold, and a look inside it may run either past the first character. A delimiter of
+	/// one character is already a run (<see cref="StopCharacters"/>), and is left to it. More than
+	/// five characters is a class, and a class is read.
 	/// </para>
 	/// </remarks>
 	internal char[]? UntilStops(Node.Repeat repeat)
 	{
+		// The shape is asked before anything is tested: a test of a class writes its table, and a
+		// table written for a question that came to nothing renumbers the file's tables.
 		if (OverKinds || _starves || repeat.Max != null ||
-			repeat.Body is not Node.Sequence({ Count: >= 2 } parts) || RunTest(parts[^1]) != "true")
+			repeat.Body is not Node.Sequence({ Count: >= 2 } parts) ||
+			parts.Take(parts.Count - 1).Any(part => part is not Node.Lookahead(false, _)) || !ReadsAnything(parts[^1]))
 			return null;
 
 		var made = new List<char>();
@@ -143,7 +148,7 @@ sealed partial class Machine
 		for (var i = 0; i < parts.Count - 1; i++)
 		{
 			if (parts[i] is not Node.Lookahead(false, var refused) ||
-				FirstSets.Nullable(refused, _graph) || RunsCodeBeforeItsFirstItem(refused) ||
+				FirstSets.Nullable(refused, _graph) || !OnlyRecognizes(refused) ||
 				FirstSets.Of(refused, _graph) is not { IsKnown: true } first)
 				return null;
 
@@ -159,6 +164,64 @@ sealed partial class Machine
 		}
 
 		return made.Count == 0 ? null : [.. made];
+	}
+
+	/// <summary>
+	/// Whether a node is <c>any</c>: one character, whichever it is. Asked of the node and of the
+	/// rule it names where that rule is inlined, as a run's test is (<see cref="RunTest"/>), but
+	/// without writing a test.
+	/// </summary>
+	bool ReadsAnything(Node node)
+	{
+		return node switch
+		{
+			Node.Element element =>
+				FirstSets.OfElement(element) is { IsKnown: true, Ranges: [{ From: '\0', To: '\uFFFF' }] },
+			Node.Call(var rule, _) when CanInline(rule) => ReadsAnything(_graph.Bodies[rule]),
+			Node.Sequence([var only]) => ReadsAnything(only),
+			_ => false,
+		};
+	}
+
+	/// <summary>
+	/// Whether reading a node, and every rule it reaches, only recognizes: no guard, condition,
+	/// external recognizer, computed switch, mark, construction or call that hands arguments, no
+	/// rule without a body, and no repetition that recovers.
+	/// </summary>
+	/// <remarks>
+	/// Asked of the whole of it and not only of what stands before its first item, which is
+	/// <see cref="RunsCodeBeforeItsFirstItem"/>'s question: a look inside it reads past the first
+	/// character and comes back, and what it runs there runs at a character the node's first set
+	/// does not hold.
+	/// </remarks>
+	bool OnlyRecognizes(Node node)
+	{
+		if (HoldsRecovery(node))
+			return false;
+
+		var seen    = new HashSet<RuleSymbol>();
+		var pending = new Stack<Node>();
+
+		pending.Push(node);
+
+		while (pending.Count > 0)
+			foreach (var one in NodeWalk.Descendants(pending.Pop()))
+				switch (one)
+				{
+					case Node.Guard or Node.Condition or Node.External or Node.Marked or Node.Construct:
+					case Node.Choice { Selection: not null }:
+					case Node.Call(_, { Count: > 0 }):
+						return false;
+
+					case Node.Call(var rule, _) when seen.Add(rule):
+						if (!_graph.Bodies.TryGetValue(rule, out var body))
+							return false;
+
+						pending.Push(body);
+						break;
+				}
+
+		return true;
 	}
 
 	/// <summary>
