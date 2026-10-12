@@ -373,6 +373,96 @@ public sealed partial class BackReferenceTests
 		new("TriviaInsideABinding", "R", "trivia = [' ']*\nR = $q: (W & W) & '=' & $q\nW = ['a'..'z']+",
 			Accepted: ["a b=a b", "a b = a b", "ab=ab"],
 			Refused:  ["a b = ab", "a b = a  b"]),
+
+		// ── Adversarial rows: give-back across alternatives, nesting, copies of a rule ──
+
+		// The first alternative binds and fails after its binding; the second binds again, and a
+		// greedy binding of either gives items back before the reference is tried again.
+		new("GiveBackAcrossAlternatives", "R", "R = ($q: 'a'+ & 'x' | $q: 'a'+) & $q & 'y'",
+			Accepted: ["axay", "aay", "aaaay", "aaxaay"],
+			Refused:  ["aaay", "aaxay", "axaay", "ay", "y"]),
+
+		// One name in two top-level alternatives is two bindings, even over a shared head.
+		new("TopLevelAlternativesWithASharedHead", "R", "R = $q: W & '-' & $q | $q: W & '=' & 'x'{#q}\nW = ['a'..'z']+",
+			Accepted: ["ab-ab", "ab=xx", "a=x"],
+			Refused:  ["ab-xx", "ab=ab", "ab=x", "ab-a"]),
+
+		// Siblings after a nested element: the outer name survives every inner call.
+		new("XmlElementSiblings", "Element", """
+			Element = '<' & $n: Name & '>' & (Element | Text)* & "</" & $n & '>'
+			Name    = ['a'..'z']+
+			Text    = { [^ '<']+ }
+			""",
+			Accepted: ["<a><b></b><c></c></a>", "<a><b><c></c></b><b></b></a>", "<a><a></a><a></a></a>", "<a>t<b>u</b>v<c>w</c>x</a>"],
+			Refused:  ["<a><b></b><c></c></c>", "<a><b></b><c></b></a>", "<a><b></b><b></a></a>"],
+			Text:     "<a><b></b><c></c></a><x></y><d></d>",
+			Found:    [0, 28]),
+
+		// The recursion runs through another rule, which is called with the binding live.
+		new("XmlElementThroughContent", "Element", """
+			Element = '<' & $n: Name & '>' & Content & "</" & $n & '>'
+			Content = (Element | Text)*
+			Name    = ['a'..'z']+
+			Text    = { [^ '<']+ }
+			""",
+			Accepted: ["<a></a>", "<a><b>x</b></a>", "<ab><a><ab></ab></a></ab>"],
+			Refused:  ["<a><b></a></b>", "<ab><a></ab></a>", "<a><b></b></b>"],
+			Text:     "<p><q></q></p><r></s>",
+			Found:    [0]),
+
+		// A binding whose body calls a rule that binds for itself.
+		new("BindingOverARuleThatBinds", "R", "R = $q: P & '|' & $q\nP = $r: 'a'+ & '-' & $r",
+			Accepted: ["a-a|a-a", "aa-aa|aa-aa"],
+			Refused:  ["a-a|aa-aa", "aa-aa|a-a", "a-a|a-b"]),
+
+		// A binding whose body is a recursive call.
+		new("BindingOverARecursiveRule", "R", "R = $q: P & '|' & $q\nP = '(' & P* & ')'",
+			Accepted: ["()|()", "(())|(())", "(()())|(()())"],
+			Refused:  ["()|(())", "(())|()", "(()|(()"]),
+
+		// One rule that binds, called twice in a row and in a loop: each call binds its own.
+		new("RuleThatBindsCalledTwice", "R", "R = P & ' ' & P\nP = $q: ['a'..'z']+ & '-' & $q",
+			Accepted: ["ab-ab c-c", "a-a a-a"],
+			Refused:  ["ab-ab c-ab", "ab-c c-c", "ab-ab c-"]),
+
+		new("RuleThatBindsCalledInALoop", "R", "R = (P & ';')*\nP = $q: ['a'..'z']+ & '-' & $q",
+			Accepted: ["", "a-a;bb-bb;", "ab-ab;ab-ab;"],
+			Refused:  ["a-a;b-a;", "a-a;bb-b;"]),
+
+		// The same, by a recognizer parameter.
+		new("SpecialisedByARecognizerParameter", "R", "R = P('a') & ' ' & P('b')\nP(d) = $q: d+ & ':' & $q",
+			Accepted: ["aa:aa b:b", "a:a bb:bb"],
+			Refused:  ["aa:a b:b", "a:a bb:b", "a:a a:a"]),
+
+		// The same, by `with` on the call.
+		new("SpecialisedByAWith", "R", "R = (P with (D = E)) & ' ' & P\nP = $q: D+ & ':' & $q\nD = 'a'\nE = 'b'",
+			Accepted: ["bb:bb aa:aa", "b:b a:a"],
+			Refused:  ["bb:b aa:aa", "bb:bb aa:a", "aa:aa aa:aa"]),
+
+		// A binding in the base of a left-recursive rule, which is read once before the steps.
+		new("BindingInTheBaseOfAFold", "R", "R = E\nE = E & '+' & N | $q: N & '=' & $q\nN = ['0'..'9']+",
+			Accepted: ["12=12+3+4", "1=1", "1=1+2"],
+			Refused:  ["12=1+3", "1=1+", "1=2"]),
+
+		// ── Counts over an empty binding ──
+
+		new("CountAtLeastAnEmptyLength", "R", "R = $q: 'a'* & '[' & 'b'{#q,} & ']'",
+			Accepted: ["[]", "[b]", "a[b]", "a[bb]", "aa[bb]"],
+			Refused:  ["a[]", "aa[b]"]),
+
+		new("CountByAnEmptyLengthInALoop", "R", "R = $q: 'a'* & ':' & ('x' & 'b'{#q})*",
+			Accepted: [":", ":xx", "a:xbxb", "aa:xbb"],
+			Refused:  ["a:x", ":xb", "a:xbx"]),
+
+		// ── Over UTF-16: a binding's length and its items are code units, everywhere ──
+
+		new("SurrogatePairs", "R", "R = $q: [^ '-']+ & '-' & 'x'{#q} & '-' & $q",
+			Accepted: ["\uD83D\uDE00-xx-\uD83D\uDE00", "a\uD83D\uDE00-xxx-a\uD83D\uDE00"],
+			Refused:  ["\uD83D\uDE00-x-\uD83D\uDE00", "\uD83D\uDE00-xx-\uD83D\uDE01", "\uD83D\uDE00-xx-\uD83D"]),
+
+		new("AnyItemIsACodeUnit", "R", "R = $q: any & $q",
+			Accepted: ["\uD83D\uD83D", "aa"],
+			Refused:  ["\uD83D\uDE00", "ab"]),
 	];
 
 	public static TheoryData<string> RowNames()

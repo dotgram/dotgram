@@ -88,13 +88,18 @@ public sealed partial class BackReferenceTests
 	/// <item>A rule wanted inside a group of looks around: the reader says the class the rule is,
 	/// the engine its name — <c>'"' &amp; { ('\\' &amp; '#'* &amp; Escape | ?!('"' &amp; '#'*) &amp;
 	/// ?!('\\' &amp; '#'*) &amp; any)* } &amp; '"' &amp; '#'*</c> on <c>"a\q"</c>.</item>
+	/// <item>A rule that keeps its own frame, specialised by <c>with</c>: the reader names the rule
+	/// the specialisation calls, the engine the literal that rule is — <c>(P with (D = E))</c>
+	/// over <c>P = c: D+ &amp; ':' &amp; D+</c>, with a capture where the row has a binding, says
+	/// <c>E</c> to the one and <c>'b'</c> to the other.</item>
 	/// </list>
 	/// </remarks>
 	static readonly HashSet<string> WordedApart =
 	[
 		"CppRaw", "CSharpRawString", "Heredoc", "HeredocWithQuotedTag", "LuaLongComment", "LuaLongString",
 		"MarkdownFence", "PostgreSqlDollarQuoted", "RawStringWithoutAtomicGroups", "RestructuredTextHeading",
-		"RustRaw", "SwiftExtendedDelimiter", "UntilTheSameCharacter",
+		"RustRaw", "SwiftExtendedDelimiter", "UntilTheSameCharacter", "GiveBackAcrossAlternatives", "SpecialisedByAWith",
+		"BindingInTheBaseOfAFold",
 	];
 
 	/// <summary>
