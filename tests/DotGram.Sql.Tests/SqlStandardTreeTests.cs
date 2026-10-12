@@ -428,8 +428,8 @@ public sealed class SqlStandardTreeTests
 
 	[Theory]
 	[InlineData("UPDATE ONLY (t) FOR PORTION OF p FROM a TO b AS x SET c = DEFAULT, (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE c > 0",
-		"Update(Target: Named(t, Only: true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0, false))")]
-	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true)])")]
+		"Update(Target: Named(t, Only: true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false, Operator: Assign), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true, Operator: Assign), Assignment([AssignmentTarget(f, 1, null, true)], 3, false, Operator: Assign), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false, Operator: Assign)], Where: Comparison(c, Greater, 0, false))")]
+	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true, Operator: Assign)])")]
 	public void A_searched_update_is_built_as_written(string input, string tree)
 	{
 		Assert.Equal(tree, Show(Both.ParseUpdateStatementSearched(input)));
@@ -438,7 +438,7 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_positioned_statement_names_its_cursor()
 	{
-		Assert.Equal("Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], 1, false)], CurrentOf: CursorReference(MODULE.c, null, false, false, false))",
+		Assert.Equal("Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], 1, false, Operator: Assign)], CurrentOf: CursorReference(MODULE.c, null, false, false, false))",
 			Show(Both.ParseUpdateStatementPositioned("UPDATE t SET a = 1 WHERE CURRENT OF MODULE.c")));
 		Assert.Equal("Delete(Target: Named(t), Alias: Alias(x, null, false), CurrentOf: CursorReference(c, null, false, false, false))",
 			Show(Both.ParseDeleteStatementPositioned("DELETE FROM t x WHERE CURRENT OF c")));
@@ -454,7 +454,7 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_merge_keeps_its_clauses_in_order()
 	{
-		Assert.Equal("Merge(Target: Named(t), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b, false), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0, false)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
+		Assert.Equal("Merge(Target: Named(t), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b, false), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false, Operator: Assign)]), Condition: Comparison(c, Greater, 0, false)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
 			Show(Both.ParseMergeStatement("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) OVERRIDING USER VALUE VALUES (1, DEFAULT)")));
 	}
 

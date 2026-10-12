@@ -462,20 +462,7 @@ public static partial class Sql2023Writer
 				// T-SQL: SELECT @local_variable (Transact-SQL).
 				case SelectColumn.VariableAssignment assignment:
 					PutVariableName(assignment, assignment.Variable);
-					Word(assignment.Operator switch
-					{
-						AssignmentOperator.Assign      => "=",
-						AssignmentOperator.Add         => "+=",
-						AssignmentOperator.Subtract    => "-=",
-						AssignmentOperator.Multiply    => "*=",
-						AssignmentOperator.Divide      => "/=",
-						AssignmentOperator.Modulo      => "%=",
-						AssignmentOperator.BitwiseAnd  => "&=",
-						AssignmentOperator.BitwiseOr   => "|=",
-						AssignmentOperator.BitwiseXor  => "^=",
-						AssignmentOperator.Concatenate => "||=",
-						_                              => throw NoText(assignment.Operator),
-					});
+					Word(AssignmentText(assignment.Operator));
 					PutExpression(assignment.Value);
 					break;
 
@@ -1599,7 +1586,7 @@ public static partial class Sql2023Writer
 						{
 							case MergeClause.Matched { Action: MergeMatchedAction.Update matchedUpdate }:
 								Word("UPDATE SET");
-								Each(matchedUpdate.Assignments, PutAssignment);
+								Each(matchedUpdate.Assignments, one => PutAssignment(one, merging: true));
 								break;
 
 							case MergeClause.Matched:
@@ -1609,7 +1596,7 @@ public static partial class Sql2023Writer
 							// T-SQL: MERGE (Transact-SQL). A matched clause's action.
 							case MergeClause.NotMatchedBySource { Action: MergeMatchedAction.Update sourceUpdate }:
 								Word("UPDATE SET");
-								Each(sourceUpdate.Assignments, PutAssignment);
+								Each(sourceUpdate.Assignments, one => PutAssignment(one, merging: true));
 								break;
 
 							case MergeClause.NotMatchedBySource:
@@ -1702,6 +1689,15 @@ public static partial class Sql2023Writer
 
 		void PutAssignment(Assignment assignment)
 		{
+			PutAssignment(assignment, merging: false);
+		}
+
+		void PutAssignment(Assignment assignment, bool merging)
+		{
+			// T-SQL: UPDATE (Transact-SQL). A variable, a compound operator, a method called alone.
+			if (PutTransactSqlAssignment(assignment, merging))
+				return;
+
 			if (assignment.Parenthesized)
 			{
 				Open();

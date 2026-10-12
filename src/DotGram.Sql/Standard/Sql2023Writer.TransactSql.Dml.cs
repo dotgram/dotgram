@@ -120,6 +120,76 @@ public static partial class Sql2023Writer
 			Each(from.Sources, PutSource);
 		}
 
+		/// <summary>T-SQL: SELECT @local_variable (Transact-SQL), UPDATE (Transact-SQL). An assignment's operator.</summary>
+		static string AssignmentText(AssignmentOperator op)
+		{
+			return op switch
+			{
+				AssignmentOperator.Assign      => "=",
+				AssignmentOperator.Add         => "+=",
+				AssignmentOperator.Subtract    => "-=",
+				AssignmentOperator.Multiply    => "*=",
+				AssignmentOperator.Divide      => "/=",
+				AssignmentOperator.Modulo      => "%=",
+				AssignmentOperator.BitwiseAnd  => "&=",
+				AssignmentOperator.BitwiseOr   => "|=",
+				AssignmentOperator.BitwiseXor  => "^=",
+				AssignmentOperator.Concatenate => "||=",
+				_                              => throw NoText(op),
+			};
+		}
+
+		/// <summary>
+		/// T-SQL: UPDATE (Transact-SQL). An assignment the standard's SET does not write: a variable, then the target and
+		/// the operator, then the value; or a method called on a column, alone. False for a plain assignment of targets,
+		/// which the standard's arm writes. Refused: nothing assigned and no call; a variable with more than one target
+		/// or brackets; a compound operator with more than one target or brackets; and in MERGE a variable with a
+		/// column (Msg 10723).
+		/// </summary>
+		bool PutTransactSqlAssignment(Assignment assignment, bool merging)
+		{
+			if (assignment.Variable is null && assignment.Operator == AssignmentOperator.Assign && assignment.Targets.Count > 0)
+				return false;
+
+			if (assignment.Targets.Count > 1 || assignment.Parenthesized)
+				throw Misplaced(assignment, "Variable or Operator", "with more than one target or with brackets");
+
+			if (assignment.Variable is { } variable)
+			{
+				if (merging && assignment.Targets.Count > 0)
+					throw Misplaced(assignment, "Variable", "with a column, which MERGE refuses (Msg 10723)");
+
+				PutExpression(variable);
+
+				if (assignment.Targets.Count == 0)
+				{
+					Word(AssignmentText(assignment.Operator));
+					PutExpression(assignment.Value);
+
+					return true;
+				}
+
+				Word("=");
+			}
+
+			if (assignment.Targets.Count == 0)
+			{
+				if (assignment.Value is not Expression.Member { Kind: MemberAccessKind.Dot, Arguments: not null, Target: Expression.Reference { Name.Parts.Count: 1 } } call
+					|| assignment.Operator != AssignmentOperator.Assign)
+					throw Misplaced(assignment, "Targets", "empty, with neither a variable nor a method called on a column");
+
+				PutExpression(call);
+
+				return true;
+			}
+
+			PutAssignmentTarget(assignment.Targets[0]);
+			Word(AssignmentText(assignment.Operator));
+			PutExpression(assignment.Value);
+
+			return true;
+		}
+
 		/// <summary>T-SQL: INSERT (Transact-SQL). The word before the target, where one was written.</summary>
 		void PutIntoKeyword(IntoKeyword? into)
 		{

@@ -1671,7 +1671,7 @@ public sealed partial record MergeInsertAction(SqlList<Identifier> Columns, Over
 	}
 }
 // BNF: <set clause>, <multiple column assignment>. Parenthesized where the targets were written in brackets: `(a) = (1)` is not `a = (1)`.
-public sealed record Assignment(SqlList<AssignmentTarget> Targets, Expression Value, bool Parenthesized = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record Assignment(SqlList<AssignmentTarget> Targets, Expression Value, bool Parenthesized = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
