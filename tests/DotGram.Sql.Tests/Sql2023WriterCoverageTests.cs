@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Sql.Ast;
+using DotGram.Sql.Standard;
+using DotGram.Sql.TransactSql;
 
 using Xunit;
 
@@ -1044,6 +1046,71 @@ public sealed class Sql2023WriterCoverageTests
 		};
 
 		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+	}
+
+	/// <summary>
+	/// A join's right side that is a join: bare only where the outer join writes its ON after it, which both grammars
+	/// read as closing the chain on the right; bracketed after a CROSS JOIN, a NATURAL JOIN or an APPLY. Each text is
+	/// read back by the parsers that read it and written again unchanged.
+	/// </summary>
+	[Theory]
+	[InlineData("two right-nested CROSS JOINs",             "t CROSS JOIN (u CROSS JOIN v)",        true,  true)]
+	[InlineData("a CROSS JOIN whose right side is an APPLY", "t CROSS JOIN (u CROSS APPLY v)",       false, true)]
+	[InlineData("a NATURAL JOIN whose right side is a join", "t NATURAL JOIN (u CROSS JOIN v)",      true,  false)]
+	[InlineData("the nested ON",                             "t JOIN u JOIN v ON a = b ON b = a",    true,  true)]
+	[InlineData("an APPLY in a qualified join's right side", "t JOIN u CROSS APPLY f(u.a) ON c = a", false, true)]
+	[InlineData("a PIVOT in a qualified join's right side",  "t JOIN u PIVOT (t(a) FOR b IN ([1])) p ON c = a", false, true)]
+	public void A_join_on_the_right_is_bracketed_only_without_an_ON(string which, string written, bool standard, bool transactSql)
+	{
+		var t = new TableSource.Named(T);
+		var u = new TableSource.Named(U);
+		var v = new TableSource.Named(new QualifiedName([new Identifier("v")]));
+		var c  = new Expression.Reference(new QualifiedName([new Identifier("c")]));
+		var ab = new Expression.Comparison(A, ComparisonOperator.Equal, B);
+		var ba = new Expression.Comparison(B, ComparisonOperator.Equal, A);
+		var ca = new Expression.Comparison(c, ComparisonOperator.Equal, A);
+
+		TableSource source = which switch
+		{
+			"two right-nested CROSS JOINs" =>
+				new TableSource.Join { Left = t, Right = new TableSource.Join { Left = u, Right = v, Kind = JoinKind.Cross }, Kind = JoinKind.Cross },
+			"a CROSS JOIN whose right side is an APPLY" =>
+				new TableSource.Join { Left = t, Right = new TableSource.Join { Left = u, Right = v, Kind = JoinKind.CrossApply }, Kind = JoinKind.Cross },
+			"a NATURAL JOIN whose right side is a join" =>
+				new TableSource.Join { Left = t, Right = new TableSource.Join { Left = u, Right = v, Kind = JoinKind.Cross }, Natural = true },
+			"the nested ON" =>
+				new TableSource.Join
+				{
+					Left          = t,
+					Right         = new TableSource.Join { Left = u, Right = v, Specification = new JoinSpecification.On(ab) },
+					Specification = new JoinSpecification.On(ba),
+				},
+			"an APPLY in a qualified join's right side" =>
+				new TableSource.Join
+				{
+					Left = t,
+					Right = new TableSource.Join
+					{
+						Left  = u,
+						Right = new TableSource.Function(new Expression.Invocation(new QualifiedName([new Identifier("f")]),
+							[new Argument(new Expression.Reference(new QualifiedName([new Identifier("u"), new Identifier("a")])))])),
+						Kind  = JoinKind.CrossApply,
+					},
+					Specification = new JoinSpecification.On(ca),
+				},
+			_ =>
+				new TableSource.Join { Left = t, Right = Pivoted(u), Specification = new JoinSpecification.On(ca) },
+		};
+
+		var text = Sql2023Writer.Write(new Statement.Select { Query = Joined(source) });
+
+		Assert.Contains("FROM " + written, text, StringComparison.Ordinal);
+
+		if (standard)
+			Assert.Equal(text, Sql2023Writer.Write(SqlStandardParser.ParseStatement(text)));
+
+		if (transactSql)
+			Assert.Equal(text, Sql2023Writer.Write(Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text)));
 	}
 
 	/// <summary>

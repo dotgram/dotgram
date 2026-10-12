@@ -1081,9 +1081,13 @@ public static partial class Sql2023Writer
 						Word("JOIN");
 					}
 
-					// An APPLY's right side that is a join is bracketed: written bare, the join would take the APPLY as
-					// its left side.
-					if (join.Kind is JoinKind.CrossApply or JoinKind.OuterApply && join.Right is TableSource.Join)
+					// A right side that is a join is written bare only where this join writes its ON or USING after it:
+					// both grammars read a qualified join's right side as a chain of joins that its specification closes
+					// (SqlStandard.gram's JoinOperand: CROSS, NATURAL and qualified joins; TransactSql.gram's
+					// JoinedRight: qualified joins with the pivots after their ON, CROSS JOIN and both APPLYs), so no
+					// kind needs brackets there in either dialect. A CROSS JOIN, a NATURAL JOIN and an APPLY take one
+					// source on the right, and a join there is bracketed, which reads back as Parenthesized.
+					if (join.Right is TableSource.Join && join.Specification is null)
 					{
 						Open();
 						PutSource(join.Right);

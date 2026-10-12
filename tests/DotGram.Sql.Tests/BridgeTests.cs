@@ -100,6 +100,18 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("Expression.RoutineInvocation.Name", "dbo.max",             "dbo.MAX",             false)]
 	[InlineData("Statement.SchemaDefinition.Tail",   "AUTHORIZATION cache", "AUTHORIZATION CACHE", false)]
 	[InlineData("Statement.Transaction.Tail",        "WITH MARK cache",     "WITH MARK CACHE",     false)]
+	[InlineData("Clause.Hint.Text",                  "use hint ('x')",      "USE HINT ('x')",      true)]
+	[InlineData("Clause.Hint.Text",                  "INDEX (path)",        "INDEX (PATH)",        false)]
+	[InlineData("Clause.Hint.Text",                  "FORCESEEK (ix (value))", "FORCESEEK (ix (VALUE))", false)]
+	[InlineData("Clause.Hint.Text",                  "TABLE HINT (data, nolock)", "TABLE HINT (DATA, nolock)", false)]
+	[InlineData("Clause.Hint.Text",                  "table hint (t, nolock)", "TABLE HINT (t, nolock)", true)]
+	[InlineData("Clause.For.Options",                "root ('r')",          "ROOT ('r')",          true)]
+	[InlineData("Expression.GraphMatch.Pattern",     "last_node (n) = last_node (m) and a-(e)->b", "LAST_NODE (n) = LAST_NODE (m) AND a-(e)->b", true)]
+	[InlineData("Expression.GraphMatch.Pattern",     "value-(e)->data",     "VALUE-(e)->DATA",     false)]
+	[InlineData("Expression.WindowFunction.Within",  "within group (order by type)", "WITHIN GROUP (ORDER BY TYPE)", false)]
+	[InlineData("Expression.WindowFunction.Within",  "within group (graph path)", "WITHIN GROUP (GRAPH PATH)", true)]
+	[InlineData("Clause.Option.Name",                "ORDER (root ASC)",    "ORDER (ROOT ASC)",    false)]
+	[InlineData("Clause.JsonColumn.Type",            "varchar(10) collate null", "VARCHAR(10) COLLATE NULL", false)]
 	public void A_key_word_folds_only_where_it_is_one(string member, string one, string two, bool same)
 	{
 		Assert.Equal(same, Trees.SameTokens(new object(), member, one, two));
@@ -194,6 +206,25 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		Assert.Contains(pattern, exempted);
 		Assert.Equal(shape, unexplained.Count > 0);
+	}
+
+	/// <summary>
+	/// The OPTION pattern exempts the statement's hints only where the standard's statement has none: a difference
+	/// between two lists of hints is a shape mismatch.
+	/// </summary>
+	[Fact]
+	public void The_option_pattern_needs_the_standard_side_without_hints()
+	{
+		const string text = "SELECT a FROM t OPTION (RECOMPILE)";
+
+		var made     = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var standard = made with { Hints = [new Ast.QueryHint.Named(new Ast.Identifier("MAXDOP"), [])] };
+
+		Assert.Contains(BridgeOracle.Option, BridgeOracle.Meaning(Trees.Differences(made, made with { Hints = [] }, old: false), out var none));
+		Assert.Empty(none);
+
+		BridgeOracle.Meaning(Trees.Differences(made, standard, old: false), out var unexplained);
+		Assert.NotEmpty(unexplained);
 	}
 
 	/// <summary>

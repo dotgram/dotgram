@@ -243,7 +243,7 @@ static class Trees
 
 			var same = a.Kind switch
 			{
-				SqlTokens.Kind.Word   => !named && !Named(x, at) && KeyWords.Contains(a.Text) && a.Text.Equals(b.Text, StringComparison.OrdinalIgnoreCase),
+				SqlTokens.Kind.Word   => !named && !Named(x, at) && Placed(member, x, at) && KeyWords.Contains(a.Text) && a.Text.Equals(b.Text, StringComparison.OrdinalIgnoreCase),
 				SqlTokens.Kind.String => a.Text.Length == b.Text.Length && a.Text[0] is 'N' or 'n' && b.Text[0] is 'N' or 'n' && a.Text[1..] == b.Text[1..],
 				_                     => false,
 			};
@@ -275,6 +275,55 @@ static class Trees
 	/// Whether the token at a position is a name by where it stands: the owner after <c>AUTHORIZATION</c>, the mark
 	/// after <c>MARK</c>, the transaction or savepoint after <c>TRAN</c> or <c>TRANSACTION</c>.
 	/// </summary>
+	/// <summary>
+	/// Whether the word at a place in a free text stands where a key word does, and not a name spelled like one:
+	/// never a part of a dotted name or the name after COLLATE; in a graph pattern only AND, and LAST_NODE or
+	/// SHORTEST_PATH before their bracket, every other word an alias; in a hint, not an index's name, the
+	/// columns FORCESEEK names, or the table TABLE HINT names first; in WITHIN GROUP and in a bulk option's ORDER,
+	/// not a sort's column, which follows BY, ORDER's bracket or a comma.
+	/// </summary>
+	static bool Placed(string member, List<SqlTokens.Token> tokens, int at)
+	{
+		string? Text(int place)
+		{
+			return place >= 0 && place < tokens.Count ? tokens[place].Text.ToUpperInvariant() : null;
+		}
+
+		if (Text(at - 1) is "." or "COLLATE" || Text(at + 1) == ".")
+			return false;
+
+		switch (member)
+		{
+			case "Expression.GraphMatch.Pattern":
+				return Text(at) == "AND" || Text(at) is "LAST_NODE" or "SHORTEST_PATH" && Text(at + 1) == "(";
+
+			case "Expression.WindowFunction.Within":
+				return Text(at - 1) is not ("BY" or ",") || Text(at) == "GRAPH";
+
+			case "Clause.Option.Name" when Text(0) == "ORDER":
+				return Text(at - 1) is not ("," or "(");
+
+			case "Clause.Hint.Text":
+				// The words before each open bracket, innermost last: a name stands inside INDEX's or FORCESEEK's
+				// brackets, and first inside TABLE HINT's.
+				var openers = new List<(string? Word, int At)>();
+
+				for (var place = 0; place < at; place++)
+				{
+					if (tokens[place].Text == "(")
+						openers.Add((Text(place - 1), place));
+					else if (tokens[place].Text == ")" && openers.Count > 0)
+						openers.RemoveAt(openers.Count - 1);
+				}
+
+				return !openers.Any(static one => one.Word is "INDEX" or "FORCESEEK")
+					&& !(openers.Count > 0 && openers[^1] is { Word: "HINT" } table && table.At == at - 1);
+
+			default:
+				return true;
+		}
+	}
+
 	static bool Named(List<SqlTokens.Token> tokens, int at)
 	{
 		return at > 0 && tokens[at - 1] is { Kind: SqlTokens.Kind.Word } before
