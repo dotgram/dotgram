@@ -383,6 +383,17 @@ public static partial class Sql2023Writer
 					Word("DROP TRIGGER");
 					PutIfExists(drop.IfExists);
 					Each(drop.Names, PutName);
+
+					if (drop.On is { } on)
+					{
+						Word(on switch
+						{
+							TriggerScope.Database  => "ON DATABASE",
+							TriggerScope.AllServer => "ON ALL SERVER",
+							_                      => throw NoText(on),
+						});
+					}
+
 					break;
 
 				case Statement.CreateType type:
@@ -566,9 +577,16 @@ public static partial class Sql2023Writer
 					Word("RESTRICT");
 					break;
 
+				// T-SQL's list, `DROP PROCEDURE IF EXISTS p, q`, names the kind once, the first routine's, and
+				// IF EXISTS after it; the standard's statement drops one routine and has no IF EXISTS.
 				case Statement.DropRoutine drop:
 					Word("DROP");
-					Each(drop.Routines, one => PutDesignator(one, drop.Proc));
+
+					if (drop.Routines.Count > 0)
+						PutDesignatorKind(drop.Routines[0], drop.Proc);
+
+					PutIfExists(drop.IfExists);
+					Each(drop.Routines, PutDesignatorName);
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -1653,6 +1671,13 @@ public static partial class Sql2023Writer
 		// one statement, so which was written is the caller's to say and this prints it.
 		void PutDesignator(RoutineDesignator designator, bool proc = false)
 		{
+			PutDesignatorKind(designator, proc);
+			PutDesignatorName(designator);
+		}
+
+		/// <summary>What a designator names, `SPECIFIC FUNCTION`, before the name.</summary>
+		void PutDesignatorKind(RoutineDesignator designator, bool proc)
+		{
 			if (designator.SpecificKeyword)
 				Word("SPECIFIC");
 
@@ -1667,6 +1692,11 @@ public static partial class Sql2023Writer
 				RoutineKind.Method    => "METHOD",
 				_                     => throw NoText(designator.Kind),
 			});
+		}
+
+		/// <summary>A designator's name, with the parameter types and the type it is for where written.</summary>
+		void PutDesignatorName(RoutineDesignator designator)
+		{
 			PutName(designator.Name);
 
 			if (designator.ParameterTypes is { } types)
@@ -1837,8 +1867,14 @@ public static partial class Sql2023Writer
 						Word("FROM");
 
 					PutCursor(fetch.Cursor);
-					Word("INTO");
-					PutArguments(fetch.Into!);
+
+					// T-SQL's FETCH may leave INTO out, and the row goes to the client.
+					if (fetch.Into is { } into)
+					{
+						Word("INTO");
+						PutArguments(into);
+					}
+
 					break;
 
 				case Statement.CloseCursor close:
@@ -1903,9 +1939,11 @@ public static partial class Sql2023Writer
 				case Statement.Return @return:
 					Word("RETURN");
 
+					// The standard writes `RETURN NULL` as a key word of its own rather than a value, which
+					// `NullKeyword` keeps; T-SQL's bare `RETURN` has neither.
 					if (@return.Value is { } value)
 						PutExpression(value);
-					else
+					else if (@return.NullKeyword)
 						Word("NULL");
 
 					break;

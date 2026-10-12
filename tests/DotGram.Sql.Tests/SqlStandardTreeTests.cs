@@ -588,6 +588,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("a * -b[1] + (c) - d / e")]
 	[InlineData("d MULTISET UNION ALL e MULTISET INTERSECT f")]
 	[InlineData("d AT TIME ZONE e")]
+	[InlineData("-a / -1 - -b")]
 	[InlineData("f AT LOCAL")]
 	[InlineData("(a + b) * c - (d)")]
 	[InlineData("CASE a WHEN < 1, 2 THEN 'x' ELSE NULL END")]
@@ -610,6 +611,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PARTITION BY a ORDER BY b MEASURES m AS n ONE ROW PER MATCH AFTER MATCH SKIP TO FIRST A PATTERN (^ A+? {- B -} (C | D){1,3} $) SUBSET S = (A, B) DEFINE A AS a > 1) AS m")]
 	[InlineData("SELECT a FROM JSON_TABLE(j, '$' COLUMNS (id FOR ORDINALITY, NESTED PATH '$.b' AS p COLUMNS (b INTEGER FORMAT JSON OMIT QUOTES)) PLAN DEFAULT (UNION, INNER) EMPTY ON ERROR) AS jt GROUP BY GROUPING SETS (ROLLUP (a), ()) HAVING COUNT(*) > 1 WINDOW w AS (ORDER BY a)")]
 	[InlineData("SELECT a FROM NEW TABLE (INSERT INTO t (a) OVERRIDING SYSTEM VALUE VALUES (DEFAULT), 1) AS x")]
+	[InlineData("SELECT a - -1 FROM t")]
 	public void A_query_is_written_back_as_the_tree_it_was(string input)
 	{
 		WrittenBack(input, Both.ParseQueryExpression);
@@ -624,6 +626,8 @@ public sealed class SqlStandardTreeTests
 	[InlineData("CREATE FUNCTION f (x INT) RETURNS TABLE (a INT) READS SQL DATA STATIC DISPATCH EXTERNAL NAME 'lib' PARAMETER STYLE GENERAL TRANSFORM GROUP g FOR TYPE t EXTERNAL SECURITY IMPLEMENTATION DEFINED")]
 	[InlineData("CREATE TYPE s.t UNDER u AS (a INT DEFAULT 1) NOT FINAL REF IS SYSTEM GENERATED CAST (SOURCE AS DISTINCT) WITH f OVERRIDING METHOD m () RETURNS INT")]
 	[InlineData("ALTER TRANSFORM FOR t g (DROP (TO SQL, FROM SQL RESTRICT))")]
+	[InlineData("DROP FUNCTION f (INT, DATE) FOR s.t CASCADE")]
+	[InlineData("DROP SPECIFIC PROCEDURE p RESTRICT")]
 	public void A_schema_statement_is_written_back_as_the_tree_it_was(string input)
 	{
 		WrittenBack(input, Both.ParseSQLSchemaStatement);
@@ -635,6 +639,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF GLOBAL :c")]
 	[InlineData("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN NOT MATCHED THEN INSERT (a) VALUES (1, DEFAULT)")]
 	[InlineData("FETCH ABSOLUTE 3 FROM c INTO :a INDICATOR :i, b[1]")]
+	[InlineData("RETURN NULL")]
 	[InlineData("GET DIAGNOSTICS CONDITION 1 :t = RETURNED_SQLSTATE, u = MESSAGE_TEXT")]
 	[InlineData("EXECUTE s INTO SQL DESCRIPTOR GLOBAL 'd' USING :b")]
 	[InlineData("ALLOCATE GLOBAL :c INSENSITIVE SCROLL CURSOR WITH HOLD FOR s")]

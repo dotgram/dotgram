@@ -76,7 +76,7 @@ public static partial class Sql2023Writer
 		/// <summary>A token, a space before it unless the last token asked for none.</summary>
 		void Word(string token)
 		{
-			if (!held)
+			if (!held || Fuses(token))
 				written.Append(' ');
 
 			written.Append(token);
@@ -86,8 +86,28 @@ public static partial class Sql2023Writer
 		/// <summary>A token against what stands before it.</summary>
 		void Tight(string token)
 		{
+			if (Fuses(token))
+				written.Append(' ');
+
 			written.Append(token);
 			held = false;
+		}
+
+		/// <summary>
+		/// Whether <paramref name="token"/>, written against what stands before it, would make a comment's
+		/// delimiter of the two: `- -1` written tight is `--1`, the rest of the line a comment, and `/` against
+		/// `*` opens a block comment. Every token goes through <see cref="Word"/> or <see cref="Tight"/>, so
+		/// checking here keeps every pair of tokens apart, whichever node wrote them.
+		/// </summary>
+		bool Fuses(string token)
+		{
+			if (written.Length == 0 || token.Length == 0)
+				return false;
+
+			var last  = written[written.Length - 1];
+			var first = token[0];
+
+			return (last == '-' && first == '-') || (last == '/' && first == '*') || (last == '*' && first == '/');
 		}
 
 		/// <summary>No space before the next token.</summary>
@@ -575,7 +595,8 @@ public static partial class Sql2023Writer
 					PutExpression(unary.Operand);
 					break;
 
-				// A sign is written against its operand, so that `- -` never becomes a comment's `--`.
+				// A sign is written against its operand; where the operand begins with a sign of its own, `Fuses`
+				// keeps the two apart, so that `- -1` never becomes a comment's `--1`.
 				// The operator is switched on rather than compared with one value: `Word(op == Minus ? "-"
 				// : "+")` wrote T-SQL's `~` as `+`, which is the catch-all defect wearing a ternary.
 				case Expression.Unary unary:

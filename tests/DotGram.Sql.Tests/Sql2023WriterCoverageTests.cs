@@ -128,6 +128,7 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(BinaryOperator)]     = v => new Expression.Binary(A, (BinaryOperator)v, B),
 		[typeof(UnaryOperator)]      = v => new Expression.Unary((UnaryOperator)v, A),
 		[typeof(LikeKind)]           = v => new Expression.Like(A, false, (LikeKind)v, B),
+		[typeof(TriggerScope)]       = v => new Statement.DropTrigger { Names = [T], On = (TriggerScope)v },
 		[typeof(NumericLiteralKind)] = v => new Expression.Literal(new LiteralValue.Numeric("1", (NumericLiteralKind)v)),
 		[typeof(DateTimeLiteralKind)] = v => new Expression.Literal(new LiteralValue.DateTime((DateTimeLiteralKind)v, "2026-09-26")),
 		[typeof(NumericTypeKind)]    = v => new DataType.Numeric((NumericTypeKind)v),
