@@ -2448,6 +2448,9 @@ public static partial class Sql2023Writer
 					break;
 
 				default:
+					if (TryPutTransactSql(statement))
+						break;
+
 					throw Unwritten(statement);
 			}
 		}

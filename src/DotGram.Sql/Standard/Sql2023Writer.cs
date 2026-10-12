@@ -251,6 +251,9 @@ public static partial class Sql2023Writer
 					break;
 
 				default:
+					if (TryPutTransactSql(literal))
+						break;
+
 					throw Unwritten(literal);
 			}
 		}
@@ -548,6 +551,9 @@ public static partial class Sql2023Writer
 					break;
 
 				default:
+					if (TryPutTransactSql(type))
+						break;
+
 					throw Unwritten(type);
 			}
 		}
@@ -1384,6 +1390,9 @@ public static partial class Sql2023Writer
 					break;
 
 				default:
+					if (TryPutTransactSql(expression))
+						break;
+
 					throw Unwritten(expression);
 			}
 		}
