@@ -33,7 +33,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true };
+				failure = new Failure { Unasked = true, Doors = failure.Position };
 				end     = Recognize_Url_Whole(text, 0, ref failure, out recognized);
 			}
 
@@ -93,7 +93,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true };
+				failure = new Failure { Unasked = true, Doors = failure.Position };
 				end     = Recognize_Url(text, at, ref failure, out recognized);
 			}
 
@@ -159,7 +159,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true };
+				failure = new Failure { Unasked = true, Doors = failure.Position };
 				end     = Recognize_Url(text, at, ref failure, out recognized);
 			}
 
@@ -490,7 +490,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class6[c] != 0) goto S187;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S187;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S187;
 				}
 
 				S9:
@@ -884,11 +884,14 @@ namespace DotGram.Snapshots
 
 				S47:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto Return;
@@ -896,11 +899,14 @@ namespace DotGram.Snapshots
 
 				S48:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S45;
@@ -908,11 +914,14 @@ namespace DotGram.Snapshots
 
 				S49:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S41;
@@ -920,11 +929,14 @@ namespace DotGram.Snapshots
 
 				S50:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S39;
@@ -932,11 +944,14 @@ namespace DotGram.Snapshots
 
 				S51:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S35;
@@ -944,11 +959,14 @@ namespace DotGram.Snapshots
 
 				S52:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S33;
@@ -956,11 +974,14 @@ namespace DotGram.Snapshots
 
 				S53:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S29;
@@ -968,11 +989,14 @@ namespace DotGram.Snapshots
 
 				S54:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S27;
@@ -1079,15 +1103,18 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S70;
 					}
-					if (lookahead < 0 && !failure.Quiet)
+					if (lookahead < 0)
 					{
 						if (p > failure.Position)
 						{
 							failure.Position = p;
-							failure.Expected = ExpectedSet_DotGram(26);
-							failure.ExpectedMore?.Clear();
+							if (!failure.Quiet)
+							{
+								failure.Expected = ExpectedSet_DotGram(26);
+								failure.ExpectedMore?.Clear();
+							}
 						}
-						else if (p == failure.Position)
+						else if (!failure.Quiet && p == failure.Position)
 							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(ExpectedSet_DotGram(26));
 					}
 				}
@@ -1196,15 +1223,18 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S79;
 					}
-					if (lookahead < 0 && !failure.Quiet)
+					if (lookahead < 0)
 					{
 						if (p > failure.Position)
 						{
 							failure.Position = p;
-							failure.Expected = ExpectedSet_DotGram(26);
-							failure.ExpectedMore?.Clear();
+							if (!failure.Quiet)
+							{
+								failure.Expected = ExpectedSet_DotGram(26);
+								failure.ExpectedMore?.Clear();
+							}
 						}
-						else if (p == failure.Position)
+						else if (!failure.Quiet && p == failure.Position)
 							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(ExpectedSet_DotGram(26));
 					}
 				}
@@ -1290,7 +1320,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S81;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S81;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S81;
 				}
 
 				S80:
@@ -1332,11 +1362,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(25);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(25);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 				}
 
@@ -1378,15 +1411,18 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S94;
 					}
-					if (lookahead < 0 && !failure.Quiet)
+					if (lookahead < 0)
 					{
 						if (p > failure.Position)
 						{
 							failure.Position = p;
-							failure.Expected = ExpectedSet_DotGram(26);
-							failure.ExpectedMore?.Clear();
+							if (!failure.Quiet)
+							{
+								failure.Expected = ExpectedSet_DotGram(26);
+								failure.ExpectedMore?.Clear();
+							}
 						}
-						else if (p == failure.Position)
+						else if (!failure.Quiet && p == failure.Position)
 							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(ExpectedSet_DotGram(26));
 					}
 				}
@@ -1472,7 +1508,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S96;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S96;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S96;
 				}
 
 				S95:
@@ -1514,11 +1550,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(25);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(25);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 				}
 
@@ -1560,15 +1599,18 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S106;
 					}
-					if (lookahead < 0 && !failure.Quiet)
+					if (lookahead < 0)
 					{
 						if (p > failure.Position)
 						{
 							failure.Position = p;
-							failure.Expected = ExpectedSet_DotGram(26);
-							failure.ExpectedMore?.Clear();
+							if (!failure.Quiet)
+							{
+								failure.Expected = ExpectedSet_DotGram(26);
+								failure.ExpectedMore?.Clear();
+							}
 						}
-						else if (p == failure.Position)
+						else if (!failure.Quiet && p == failure.Position)
 							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(ExpectedSet_DotGram(26));
 					}
 				}
@@ -1630,7 +1672,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S108;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S108;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S108;
 				}
 
 				S107:
@@ -1672,11 +1714,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(25);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(25);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 				}
 
@@ -1718,15 +1763,18 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S116;
 					}
-					if (lookahead < 0 && !failure.Quiet)
+					if (lookahead < 0)
 					{
 						if (p > failure.Position)
 						{
 							failure.Position = p;
-							failure.Expected = ExpectedSet_DotGram(26);
-							failure.ExpectedMore?.Clear();
+							if (!failure.Quiet)
+							{
+								failure.Expected = ExpectedSet_DotGram(26);
+								failure.ExpectedMore?.Clear();
+							}
 						}
-						else if (p == failure.Position)
+						else if (!failure.Quiet && p == failure.Position)
 							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(ExpectedSet_DotGram(26));
 					}
 				}
@@ -1761,7 +1809,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S118;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S118;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S118;
 				}
 
 				S117:
@@ -1803,11 +1851,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(25);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(25);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 				}
 
@@ -1849,15 +1900,18 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S126;
 					}
-					if (lookahead < 0 && !failure.Quiet)
+					if (lookahead < 0)
 					{
 						if (p > failure.Position)
 						{
 							failure.Position = p;
-							failure.Expected = ExpectedSet_DotGram(26);
-							failure.ExpectedMore?.Clear();
+							if (!failure.Quiet)
+							{
+								failure.Expected = ExpectedSet_DotGram(26);
+								failure.ExpectedMore?.Clear();
+							}
 						}
-						else if (p == failure.Position)
+						else if (!failure.Quiet && p == failure.Position)
 							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(ExpectedSet_DotGram(26));
 					}
 				}
@@ -1892,7 +1946,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S128;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S128;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S128;
 				}
 
 				S127:
@@ -1934,11 +1988,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(25);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(25);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 				}
 
@@ -1970,15 +2027,18 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S135;
 					}
-					if (lookahead < 0 && !failure.Quiet)
+					if (lookahead < 0)
 					{
 						if (p > failure.Position)
 						{
 							failure.Position = p;
-							failure.Expected = ExpectedSet_DotGram(26);
-							failure.ExpectedMore?.Clear();
+							if (!failure.Quiet)
+							{
+								failure.Expected = ExpectedSet_DotGram(26);
+								failure.ExpectedMore?.Clear();
+							}
 						}
-						else if (p == failure.Position)
+						else if (!failure.Quiet && p == failure.Position)
 							(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(ExpectedSet_DotGram(26));
 					}
 				}
@@ -2013,7 +2073,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S137;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S137;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S137;
 				}
 
 				S136:
@@ -2055,11 +2115,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(25);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(25);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 				}
 
@@ -2138,7 +2201,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == ':') goto S145;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S145;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S145;
 					goto Return;
 				}
 
@@ -2470,11 +2533,14 @@ namespace DotGram.Snapshots
 
 				S173:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S171;
@@ -2482,11 +2548,14 @@ namespace DotGram.Snapshots
 
 				S174:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S169;
@@ -2494,11 +2563,14 @@ namespace DotGram.Snapshots
 
 				S175:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S165;
@@ -2506,11 +2578,14 @@ namespace DotGram.Snapshots
 
 				S176:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S163;
@@ -2518,11 +2593,14 @@ namespace DotGram.Snapshots
 
 				S177:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S159;
@@ -2530,11 +2608,14 @@ namespace DotGram.Snapshots
 
 				S178:
 				{
-					if (p > turn0 && lookahead < 0 && !failure.Quiet && p > failure.Position)
+					if (p > turn0 && lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
-						failure.Expected = expected;
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = expected;
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					p = turn0;
 					goto S157;
@@ -2582,11 +2663,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(2);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(2);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 				}
 
@@ -2669,11 +2753,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(21);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(21);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 				}
 
@@ -2764,7 +2851,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == '/') goto S233;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S233;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S233;
 				}
 
 				S198:
@@ -2804,7 +2891,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == '?') goto S217;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S217;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S217;
 				}
 
 				S200:
@@ -2814,7 +2901,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == '#') goto S201;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S201;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S201;
 					goto Return;
 				}
 
@@ -2862,7 +2949,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class3[c] != 0) goto S208;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S208;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S208;
 				}
 
 				S206:
@@ -2961,11 +3048,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(2);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(2);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					goto S209;
 				}
@@ -3066,7 +3156,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class3[c] != 0) goto S224;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S224;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S224;
 				}
 
 				S222:
@@ -3165,11 +3255,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(2);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(2);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					goto S225;
 				}
@@ -3261,7 +3354,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class4[c] != 0) goto S237;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S237;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S237;
 					goto S234;
 				}
 
@@ -3304,11 +3397,14 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					if (scanReached > p && lookahead < 0 && !failure.Quiet && scanReached > failure.Position)
+					if (scanReached > p && lookahead < 0 && scanReached > failure.Position)
 					{
 						failure.Position = scanReached;
-						failure.Expected = ExpectedSet_DotGram(2);
-						failure.ExpectedMore?.Clear();
+						if (!failure.Quiet)
+						{
+							failure.Expected = ExpectedSet_DotGram(2);
+							failure.ExpectedMore?.Clear();
+						}
 					}
 					goto S238;
 				}
@@ -3413,11 +3509,14 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
-				if (lookahead < 0 && !failure.Quiet && p > failure.Position)
+				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected;
-					failure.ExpectedMore?.Clear();
+					if (!failure.Quiet)
+					{
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
@@ -4232,6 +4331,8 @@ namespace DotGram.Snapshots
 			public bool Quiet;
 
 			public bool Unasked;
+
+			public int Doors;
 		}
 
 		sealed class Window

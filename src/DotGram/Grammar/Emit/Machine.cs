@@ -42,6 +42,19 @@ sealed partial class Machine
 	/// </remarks>
 	public bool Quiets { get; }
 
+	/// <summary>
+	/// Whether the quiet reading writes down how far it got, for the reading that records after it
+	/// to try no turn behind a shut door below there (<c>Failure.Doors</c>).
+	/// </summary>
+	/// <remarks>
+	/// A turn tried behind a shut door refuses where it stands, and a refusal recorded below the
+	/// furthest one is wiped when the furthest moves on — so a turn below where the quiet reading
+	/// got, which the reading that records gets at least as far as, would say nothing that lasts.
+	/// Not in a trace build, whose sink is told every reading as it was: a machine written into
+	/// one is told so (<c>CSharpEmitter</c>), as the failure it shares has no place for it there.
+	/// </remarks>
+	internal bool KeepsDoors { get; set; }
+
 	string CaptureSpanType => $"global::System.ReadOnlySpan<{CaptureElement}>";
 
 	/// <summary>What a borrowed capture is a span of: the input's own element.</summary>
@@ -432,7 +445,7 @@ sealed partial class Machine
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
 		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
 		Dictionary<string, int>? expectedTables = null, bool deferCompilation = false,
-		bool quiets = false, TraceTables? tracing = null, ExpectedSets? expectedSets = null)
+		bool quiets = false, TraceTables? tracing = null, ExpectedSets? expectedSets = null, bool? keepsDoors = null)
 	{
 		// Before anything is compiled: the engine's states write the trace's events as they are compiled.
 		Tracing = tracing;
@@ -441,6 +454,9 @@ sealed partial class Machine
 		_ownsExpectedSets = expectedSets is null;
 		_expectedUsed = _expectedSets.Used;
 		Quiets = quiets;
+		// Told outright by a machine written into a trace build without tracing itself (the one
+		// that reads a terminal again): its states are compiled here, before anything could tell it.
+		KeepsDoors = keepsDoors ?? (quiets && tracing is null);
 		BufferedInput = bufferedInput;
 		_bufferedFind = bufferedFind;
 		_prefixTables = prefixTables;
@@ -2090,15 +2106,20 @@ sealed partial class Machine
 				file.Line();
 				file.Line("Fail:");
 
-				// A lookahead records nothing, and neither does a quiet reading.
+				// A lookahead records nothing, and neither does a quiet reading — which still writes
+				// down how far it got where that is kept (KeepsDoors).
 				var recording = Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0";
 
-				file.Line($"if ({recording} && p > failure.Position)");
+				file.Line($"if ({(KeepsDoors ? "lookahead < 0" : recording)} && p > failure.Position)");
 				using (file.Block(""))
 				{
 					file.Line("failure.Position = p;");
-					file.Line("failure.Expected = expected;");
-					file.Line("failure.ExpectedMore?.Clear();");
+
+					using (KeepsDoors ? file.Block("if (!failure.Quiet)") : null)
+					{
+						file.Line("failure.Expected = expected;");
+						file.Line("failure.ExpectedMore?.Clear();");
+					}
 				}
 				file.Line($"else if ({recording} && p == failure.Position && expected != null)");
 				using (file.Block(""))
@@ -5566,7 +5587,7 @@ sealed partial class Machine
 		// A lowered method has no look around but those kept in locals, which the caller has
 		// answered for, and no recovering repetition to count for.
 		var looking   = _lowering ? "" : " && lookahead < 0";
-		var recording = (Quiets ? "!failure.Quiet && " : "") + $"{at} > failure.Position";
+		var recording = (Quiets && !KeepsDoors ? "!failure.Quiet && " : "") + $"{at} > failure.Position";
 		var counting  = !_lowering && _recoveries.Count > 0;
 
 		using (writer.Block(counting ? $"if ({asked}{looking})" : $"if ({asked}{looking} && {recording})"))
@@ -5574,14 +5595,33 @@ sealed partial class Machine
 			using (counting ? writer.Block($"if ({recording})") : null)
 			{
 				writer.Line($"failure.Position = {at};");
-				writer.Line($"failure.Expected = {said};");
 
 				// A lowered method carries no list of ties where nothing in it can tie.
+				var records = new List<string> { $"failure.Expected = {said};" };
+
 				if (!_lowering || Ties)
-					writer.Line("failure.ExpectedMore?.Clear();");
+					records.Add("failure.ExpectedMore?.Clear();");
 
 				if (Tracing is not null)
-					writer.Line($"failure.Trace?.Refused({at}, {said});");
+					records.Add($"failure.Trace?.Refused({at}, {said});");
+
+				// The quiet reading writes down how far it got and no more (KeepsDoors).
+				if (!KeepsDoors)
+				{
+					foreach (var record in records)
+						writer.Line(record);
+				}
+				else if (records.Count == 1)
+				{
+					writer.Line("if (!failure.Quiet)");
+					writer.Then(records[0]);
+				}
+				else
+				{
+					using (writer.Block("if (!failure.Quiet)"))
+						foreach (var record in records)
+							writer.Line(record);
+				}
 			}
 
 			// How far a recovering element got is counted in every reading, the quiet one included:
@@ -5768,18 +5808,23 @@ sealed partial class Machine
 
 				_expectedUsed.Add(said);
 
-				using (atTest.Block("if (lookahead < 0 && !failure.Quiet)"))
+				// The quiet reading writes down how far it got and no more (KeepsDoors).
+				using (atTest.Block(KeepsDoors ? "if (lookahead < 0)" : "if (lookahead < 0 && !failure.Quiet)"))
 				{
 					atTest.Line("if (p > failure.Position)");
 
 					using (atTest.Block(""))
 					{
 						atTest.Line("failure.Position = p;");
-						atTest.Line($"failure.Expected = {said};");
-						atTest.Line("failure.ExpectedMore?.Clear();");
+
+						using (KeepsDoors ? atTest.Block("if (!failure.Quiet)") : null)
+						{
+							atTest.Line($"failure.Expected = {said};");
+							atTest.Line("failure.ExpectedMore?.Clear();");
+						}
 					}
 
-					atTest.Line("else if (p == failure.Position)");
+					atTest.Line(KeepsDoors ? "else if (!failure.Quiet && p == failure.Position)" : "else if (p == failure.Position)");
 					atTest.Then($"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add({said});");
 
 					if (Tracing is not null)
@@ -5931,8 +5976,13 @@ sealed partial class Machine
 			// EmitTurns), and not inside the seam, whose refusals neither records. Nor where the
 			// turn would run code of the host before its first item: the reading that records
 			// must answer what the quiet one did (RunsCodeBeforeItsFirstItem).
+			// Not below where the quiet reading got (Failure.Doors), where what the turn would say
+			// is wiped when the furthest refusal moves on — unless the turn looks around before
+			// its first item, which may read past where it stands (LooksBeforeItsFirstItem).
 			if (Quiets && !_lowering && !InSeam(repeatNode) && !RunsCodeBeforeItsFirstItem(body))
-				atProbe.Line($"if (lookahead < 0 && !failure.Quiet) goto {Label(atProbe, entry)};");
+				atProbe.Line(KeepsDoors && !LooksBeforeItsFirstItem(body)
+					? $"if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto {Label(atProbe, entry)};"
+					: $"if (lookahead < 0 && !failure.Quiet) goto {Label(atProbe, entry)};");
 
 			atProbe.Line($"goto {Label(atProbe, next)};");
 
@@ -7173,6 +7223,75 @@ sealed partial class Machine
 
 				default:
 					return false;
+			}
+		}
+	}
+
+	/// <summary>
+	/// Whether reading a node may look around before it has read its first item — a look ahead,
+	/// a look behind, a bound text matched again — in the node itself or in a rule it begins with;
+	/// or reaches anything this does not know to read nothing before that item.
+	/// </summary>
+	/// <remarks>
+	/// A turn behind a shut door, tried for what refused it, refuses at its first item where it
+	/// stands: whatever it records is recorded there, and is wiped once the furthest refusal moves
+	/// on. A look before that item is the one thing that reads further — a literal inside it that
+	/// finds the text ending writes that the input ran out where the look got to, and that is kept
+	/// whether the look saw or not — so such a turn is tried wherever it stands (Failure.Doors), as
+	/// every turn was. Conservative like <see cref="RunsCodeBeforeItsFirstItem"/>: a rule is looked
+	/// into once, and anything not plainly reading nothing counts as looking.
+	/// </remarks>
+	internal bool LooksBeforeItsFirstItem(Node node)
+	{
+		return Looks(node, []);
+
+		bool Looks(Node node, HashSet<RuleSymbol> seen)
+		{
+			switch (node)
+			{
+				case Node.Element or Node.Literal or Node.Empty or Node.Glue:
+					return false;
+
+				case Node.Choice choice:
+					return choice.Selection is not null || choice.Nodes.Any(one => Looks(one, seen));
+
+				case Node.Sequence(var parts):
+					foreach (var part in parts)
+					{
+						if (Looks(part, seen))
+							return true;
+
+						if (!FirstSets.Nullable(part, _graph))
+							return false;
+					}
+
+					return false;
+
+				case Node.Construct(var built, _):
+					return Looks(built, seen);
+
+				case Node.Repeat(var body, _, _):
+					return Looks(body, seen);
+
+				case Node.Counted(var counted, _, _):
+					return Looks(counted, seen);
+
+				case Node.Capture(_, var captured):
+					return Looks(captured, seen);
+
+				case Node.Bind(_, var bound, _):
+					return Looks(bound, seen);
+
+				case Node.Atomic(var body):
+					return Looks(body, seen);
+
+				case Node.Call(var rule, var arguments):
+					return arguments.Count > 0 ||
+						!_graph.Bodies.TryGetValue(rule, out var called) ||
+						seen.Add(rule) && Looks(called, seen);
+
+				default:
+					return true;
 			}
 		}
 	}

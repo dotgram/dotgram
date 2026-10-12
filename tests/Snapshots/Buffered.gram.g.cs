@@ -33,7 +33,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true };
+				failure = new Failure { Unasked = true, Doors = failure.Position };
 				end     = Recognize_Feed_Whole(text, 0, ref failure);
 			}
 
@@ -93,7 +93,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true };
+				failure = new Failure { Unasked = true, Doors = failure.Position };
 				end     = Recognize_Feed(text, at, ref failure);
 			}
 
@@ -159,7 +159,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true };
+				failure = new Failure { Unasked = true, Doors = failure.Position };
 				end     = Recognize_Feed(text, at, ref failure);
 			}
 
@@ -458,7 +458,7 @@ namespace DotGram.Snapshots
 						o1 = c == 'R';
 					}
 
-					if (!o1 && failure.Quiet)
+					if (!o1 && (failure.Quiet || p < failure.Doors))
 					{
 						break;
 					}
@@ -519,7 +519,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != 'R')
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(7));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(7));
 					return -1;
 				}
 				p += 1;
@@ -547,7 +547,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != ':')
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(5));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(5));
 					return -1;
 				}
 				p += 1;
@@ -574,7 +574,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(12));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(12));
 					return -1;
 				}
 
@@ -588,13 +588,13 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(13));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(13));
 					return -1;
 				}
 				c = text[p];
 				if (!(((c >= '0' && c <= '9'))))
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(13));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(13));
 					return -1;
 				}
 				p++;
@@ -647,7 +647,7 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(14));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(14));
 					return -1;
 				}
 				c = text[p];
@@ -705,7 +705,7 @@ namespace DotGram.Snapshots
 							break;
 						}
 					default:
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(14));
+						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(14));
 						return -1;
 				}
 				return p;
@@ -717,14 +717,14 @@ namespace DotGram.Snapshots
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
 					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\r\n")))
 				{
 					if (!failure.Quiet)
 						p = Recognize_DotGram_Feed_Agreeing(text, p, "\r\n", false);
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
 				p += 2;
@@ -736,7 +736,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != '\r')
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(9));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(9));
 					return -1;
 				}
 				p += 1;
@@ -753,7 +753,7 @@ namespace DotGram.Snapshots
 
 				if (q0 >= 0)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(0));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(0));
 					return -1;
 				}
 				return p;
@@ -765,7 +765,7 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(8));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
 				c = text[p];
@@ -800,7 +800,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(0));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(0));
 					return -1;
 				}
 				return p;
@@ -1032,11 +1032,14 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
-				if (lookahead < 0 && !failure.Quiet && p > failure.Position)
+				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected;
-					failure.ExpectedMore?.Clear();
+					if (!failure.Quiet)
+					{
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
@@ -2936,6 +2939,8 @@ namespace DotGram.Snapshots
 			public bool Quiet;
 
 			public bool Unasked;
+
+			public int Doors;
 		}
 
 		internal interface IParserInputSource<T>
@@ -3981,6 +3986,15 @@ namespace DotGram.Snapshots
 
 				more.Add(expected);
 			}
+		}
+
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+		static void Refused_DotGram(ref Failure failure, int at, string[]? expected)
+		{
+			if (!failure.Quiet)
+				Refuse_DotGram(ref failure, at, expected);
+			else if (failure.Looking == 0 && at > failure.Position)
+				failure.Position = at;
 		}
 
 		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered, int stood)

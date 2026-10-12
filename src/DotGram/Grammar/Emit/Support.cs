@@ -82,6 +82,21 @@ public static partial class CSharpEmitter
 			{{restore:Unasked}}
 		""";
 
+	const string DoorsField = """
+
+			/// <summary>
+			/// Below this place a turn behind a shut door is not tried: how far the quiet reading
+			/// got, handed to the reading that records after it. A turn tried there refuses where
+			/// it stands, and the record of a refusal below the furthest one is wiped when the
+			/// furthest moves on, so what is said at the end is the same; above it the turn is
+			/// tried, since the reading that records may get further than the quiet one did.
+			/// Zero where there was no quiet reading: every turn is tried.
+			/// </summary>
+			{{suppress:Doors}}
+			public int Doors;
+			{{restore:Doors}}
+		""";
+
 	const string StarvedField = """
 
 			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
@@ -757,6 +772,7 @@ public static partial class CSharpEmitter
 			("Looking",    "failure.Looking++",     "no reading of this grammar holds a lookahead"),
 			("Quiet",      "Quiet = true",          "no reading whose failure nothing reads is emitted"),
 			("Unasked",    "Unasked = true",        "no reading of this grammar is made for its message alone"),
+			("Doors",      "Doors = ",              "no reading of this grammar records after a quiet one"),
 			("Began",      "failure.Began = ",      "no reading that begins where it is told is emitted"),
 			("OutOfInput", "failure.OutOfInput = ", "every test in this grammar wants one character"),
 			("Trace",      "Trace = ",              "no reading of this file is begun where a sink could be set"),
@@ -909,7 +925,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string FailureStructWith(
 		bool reach, bool stood = false, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
-		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false)
+		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false, bool doors = false)
 	{
 		return Lines.Normalize(FailureStruct)
 			.Replace(
@@ -941,6 +957,9 @@ public static partial class CSharpEmitter
 				"\t{{unasked}}" + Lines.Ending,
 				unasked ? Lines.Normalize(UnaskedField) + Lines.Ending : "")
 			.Replace(
+				"\t{{doors}}" + Lines.Ending,
+				doors ? Lines.Normalize(DoorsField) + Lines.Ending : "")
+			.Replace(
 				"\t{{trace}}" + Lines.Ending,
 				trace ? Lines.Normalize(TraceField) + Lines.Ending : "")
 			// Whether each of these fields needs its suppression is not known here: the field is
@@ -953,6 +972,8 @@ public static partial class CSharpEmitter
 			.Replace("{{restore:Quiet}}", Mark("Quiet", false))
 			.Replace("{{suppress:Unasked}}", Mark("Unasked", true))
 			.Replace("{{restore:Unasked}}", Mark("Unasked", false))
+			.Replace("{{suppress:Doors}}", Mark("Doors", true))
+			.Replace("{{restore:Doors}}", Mark("Doors", false))
 			.Replace("{{suppress:Began}}", Mark("Began", true))
 			.Replace("{{restore:Began}}", Mark("Began", false))
 			.Replace("{{suppress:OutOfInput}}", Mark("OutOfInput", true))
@@ -1026,6 +1047,7 @@ public static partial class CSharpEmitter
 			{{looking}}
 			{{quiet}}
 			{{unasked}}
+			{{doors}}
 			{{trace}}
 		}
 		""";
@@ -3234,6 +3256,22 @@ public static partial class CSharpEmitter
 			}
 			// </turn>
 		}
+		// <furthest>
+
+		/// <summary>
+		/// A refusal as the reading sees it: recorded where the reading records, and where it is
+		/// quiet only how far it got, for the reading that records after it to try the turns
+		/// behind shut doors from (Failure.Doors). Inside a look neither, as nothing is recorded there.
+		/// </summary>
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+		static void Refused_DotGram(ref Failure failure, int at, string[]? expected)
+		{
+			if (!failure.Quiet)
+				Refuse_DotGram(ref failure, at, expected);
+			else if (failure.Looking == 0 && at > failure.Position)
+				failure.Position = at;
+		}
+		// </furthest>
 
 		/// <summary>
 		/// Records what a choice wanted where the call that begins its widest group refused at the

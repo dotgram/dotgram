@@ -351,6 +351,7 @@ public static partial class CSharpEmitter
 			made.Reporting = carriers is not null;
 			made.CountsRules = countRules;
 			made.Tracing = tracing;
+			made.KeepsDoors = made.KeepsDoors && tracing is null;
 			made.MemoisesFailures = memoise;
 			if (!made.CanDirect(publications)) continue;
 			// Kept only where the union carries as its members do.
@@ -415,7 +416,9 @@ public static partial class CSharpEmitter
 				only: Rereads(lexical),
 				tag: "_Value",
 				quiets: true,
-				expectedSets: expectedSets)
+				expectedSets: expectedSets,
+				// The failure of a trace build has no place for how far a quiet reading got.
+				keepsDoors: tracing is null)
 			: null;
 
 		// Each terminal that builds is a root of its own, and a whole one: the text handed to
@@ -857,6 +860,9 @@ public static partial class CSharpEmitter
 				// lexer measuring or valuing a token again.
 				quiet: quietField,
 				unasked: unaskedField,
+				// Where the quiet reading got, below which the reading that records after it tries
+				// no turn behind a shut door (Machine.KeepsDoors); not in a trace build.
+				doors: quietField && tracing is null,
 				// Where the value began, for a reading that begins where it is told over characters
 				// (§6.3): the entry writes it past the trivia it started on.
 				began: graph.Trivia.Count > 0 && !overKinds &&
@@ -982,7 +988,11 @@ public static partial class CSharpEmitter
 			var rewinds  = tape.Exists(static compiled => !compiled.Machine.BuildsDuringRecognition);
 			var regioned = Region(Region(Region(DirectSupport, "rewind", rewinds), "rewindbuilt", builds), "snap", tape.Count > 0);
 
-			file.Write(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns)
+			// A reading that is quiet writes down how far it got where the reading after it tries the
+			// turns behind shut doors from there (Machine.KeepsDoors); a trace build keeps every reading as it was.
+			var furthest = quiets && tracing is null;
+
+			file.Write(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" : "")
 				// A refusal a recording reading records is told to the sink, where the build traces.
@@ -1682,6 +1692,16 @@ public static partial class CSharpEmitter
 			return quiet ? $"new {FailureType} {{ Quiet = true }}" : unasked ? $"new {FailureType} {{ Unasked = true }}" : $"new {FailureType}()";
 		}
 
+		// What the second reading of a refused input starts as: fresh, and told how far the quiet
+		// reading got, below which it tries no turn behind a shut door (Failure.Doors). Not in a
+		// trace build, whose readings are kept as they were.
+		string Again(bool unasked)
+		{
+			return tracing is not null
+				? Fresh(false, unasked)
+				: $"new {FailureType} {{ {(unasked ? "Unasked = true, " : "")}Doors = failure.Position }}";
+		}
+
 		// A refusal the call answers with, told to the sink on its way out in a trace build.
 		void Refusing(string line)
 		{
@@ -2370,7 +2390,7 @@ public static partial class CSharpEmitter
 						if (rewinds)
 							file.Line("context.Rollback(mark);");
 
-						file.Line($"failure = {Fresh(false, unasked)};");
+						file.Line($"failure = {Again(unasked)};");
 						Begun(begins, windowed, declare: false);
 						Reads(
 							$"{reader}(text, {begins}" +
