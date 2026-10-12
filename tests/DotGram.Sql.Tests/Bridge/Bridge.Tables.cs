@@ -49,6 +49,13 @@ static partial class Bridge
 		{
 			switch (old)
 			{
+				// A table variable: the name keeps its `@`; what only a table has is not its.
+				case TableReference.Named { Table: var table } named when table.StartsWith('@'):
+					if (named is not { SystemTime: null, ForPath: false, Sample: null, Hints.Length: 0, Server: null, Columns: null } || table.Contains('.'))
+						throw BridgeGap.Open(old, "inventory TableReference.Named (a table variable with more than a name and an alias)");
+
+					return new Ast.TableSource.Variable(new Ast.Identifier(table)) { Alias = Alias(old, null, named.Name, null) };
+
 				case TableReference.Named named:
 					return Named(named);
 

@@ -1689,6 +1689,18 @@ public static partial class Sql2023Writer
 				Close();
 			}
 
+			// T-SQL: SHORTEST_PATH (Transact-SQL). The other WITHIN GROUP, over a graph path's nodes.
+			if (invocation.GraphPath)
+			{
+				if (invocation.WithinGroup is not null)
+					throw Both(invocation, "GraphPath", "WithinGroup");
+
+				Word("WITHIN GROUP");
+				Open();
+				Word("GRAPH PATH");
+				Close();
+			}
+
 			PutFilterAndOver(invocation.Filter, invocation.Over);
 		}
 

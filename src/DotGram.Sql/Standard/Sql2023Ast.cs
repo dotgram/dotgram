@@ -823,7 +823,7 @@ public abstract partial record Expression : ISqlNode
 
 	// BNF: <routine invocation>, <aggregate function>, <window function>, <row pattern navigation operation>,
 	// and the functions whose arguments are a plain comma list.
-	public record Invocation(QualifiedName Name, SqlList<Argument> Arguments) : Expression
+	public partial record Invocation(QualifiedName Name, SqlList<Argument> Arguments) : Expression
 	{
 		// BNF: <set quantifier> in a <general set function>, `COUNT (DISTINCT a)`.
 		public SetQuantifier? Quantifier { get; init; }
