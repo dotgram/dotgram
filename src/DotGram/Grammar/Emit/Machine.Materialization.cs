@@ -627,7 +627,11 @@ sealed partial class Machine
 
 		using (file.Block($"case {_ruleIds[rule]}:"))
 		{
-			if (_graph.Folds.ContainsKey(rule))
+			// A fold with no `=>` anywhere has no constructions to apply in turn: its value is the
+			// record of what the call captured (§4.1), built as any other rule's is below, which
+			// is what the direct reader builds as well. Folding it would walk no constructions
+			// and leave the value unset.
+			if (_graph.Folds.ContainsKey(rule) && factories.Count > 0)
 			{
 				MaterializeFold(file, rule, type, offset, factories);
 				file.Line("break;");

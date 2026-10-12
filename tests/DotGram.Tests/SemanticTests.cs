@@ -272,6 +272,52 @@ public sealed class SemanticTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a>").IsSuccess);
 	}
 
+	/// <summary>
+	/// A left-recursive rule whose value is the record its captures make, with no <c>=&gt;</c>
+	/// on any alternative, builds that record on the engine as the direct reader does. The
+	/// engine once folded it like a rule with constructions: a fold over none, an empty
+	/// <c>switch</c> (CS1522, a failed build under warnings as errors) and a value never set.
+	/// </summary>
+	[Theory]
+	[InlineData(CarrierKind.Auto)]
+	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Immediate)]
+	public void A_fold_with_no_construction_builds_its_record_on_the_engine(CarrierKind carrier)
+	{
+		const string grammar =
+			"""
+			E = E & '+' & N | c: N & '=' & N
+			N = ['0'..'9']+
+			parse E
+			""";
+
+		string Value(bool direct, string input)
+		{
+			var result = GramCompiler.Compile(
+				grammar,
+				new GramCompilerOptions
+				{
+					ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Carrier = carrier, Direct = direct,
+				});
+
+			EmittedCode.Quiet(result.Diagnostics);
+
+			var match = EmittedCode.Match(EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseE", input);
+
+			Assert.True(match.IsSuccess, match.Error);
+
+			var value = Assert.IsAssignableFrom<object>(match.Value);
+
+			return (string)value.GetType().GetProperty("C")!.GetValue(value)!;
+		}
+
+		foreach (var (input, expected) in new[] { ("12=3", "12"), ("12=3+4", "12"), ("12=3+4+56", "12") })
+		{
+			Assert.Equal(expected, Value(direct: false, input));
+			Assert.Equal(expected, Value(direct: true,  input));
+		}
+	}
+
 	// ── A split half the methods refuse is told it will backtrack ────────────
 
 	/// <summary>
