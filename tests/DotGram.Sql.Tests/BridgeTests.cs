@@ -277,6 +277,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("UPDATE t SET c.WRITE (@x, 0, NULL)",                              "Assignment call")]
 	[InlineData("UPDATE t SET a = 1",                                              "Assignment plain")]
 	[InlineData("INSERT INTO t SELECT a FROM (DELETE u OUTPUT deleted.a) AS c (a) WHERE a > 1", "Composable")]
+	[InlineData("TRUNCATE TABLE t WITH (PARTITIONS (1, 3 TO 5))",                  "Truncate partitions")]
+	[InlineData("READTEXT t.c @p 0 10 HOLDLOCK",                                   "ReadText")]
+	[InlineData("WRITETEXT BULK t.c @p TIMESTAMP = 0x0A WITH LOG",                 "WriteText")]
+	[InlineData("UPDATETEXT t.c @p NULL -1 WITH LOG u.d @q",                       "UpdateText source")]
 	[InlineData("MERGE INTO t USING u ON t.a = u.a WHEN NOT MATCHED BY SOURCE AND t.b = 1 THEN UPDATE SET b = 2 WHEN NOT MATCHED BY TARGET THEN INSERT DEFAULT VALUES;", "Merge.BySource ByTarget DefaultValues")]
 	public void The_bridge_builds_the_data_change_record_the_text_means(string text, string expected)
 	{
@@ -329,6 +333,13 @@ public sealed class BridgeTests(ITestOutputHelper output)
 						From.Sources: [Ast.TableSource.DataChange { Option: null, Change: Ast.Statement.Delete { Output: not null }, Alias: { AsKeyword: true, Columns.Count: 1 } }],
 					},
 				},
+			},
+			"Truncate partitions"         => made is Ast.Statement.TruncateTable { Partitions: [{ To: null }, { To: not null }] },
+			"ReadText"                    => made is Ast.Statement.ReadText { HoldLock: true, Column.Parts.Count: 2, Pointer: Ast.Expression.Variable },
+			"WriteText"                   => made is Ast.Statement.WriteText { Bulk: true, Log: true, Data: null, Timestamp: Ast.Expression.Literal { Value: Ast.LiteralValue.Binary { ZeroX: true } } },
+			"UpdateText source"           => made is Ast.Statement.UpdateText
+			{
+				Offset: Ast.Expression.Literal { Value: Ast.LiteralValue.Null }, Log: true, Data: null, Source.Parts.Count: 2, SourcePointer: Ast.Expression.Variable,
 			},
 			"Assignment plain"            => made is Ast.Statement.Update { Assignments: [{ Variable: null, Operator: Ast.AssignmentOperator.Assign, Targets.Count: 1 }] },
 			_                             => made is Ast.Statement.Merge { IntoOmitted: true, Output.Items.Count: 1 },

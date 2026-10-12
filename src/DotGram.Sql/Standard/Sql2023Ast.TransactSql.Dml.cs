@@ -88,6 +88,34 @@ public abstract partial record Statement
 		/// <summary>T-SQL: MERGE (Transact-SQL). <c>MERGE t</c> against <c>MERGE INTO t</c>.</summary>
 		[Spelling] public bool IntoOmitted { get; init; }
 	}
+
+	public partial record TruncateTable
+	{
+		/// <summary>T-SQL: TRUNCATE TABLE (Transact-SQL). <c>WITH (PARTITIONS (1, 3 TO 5))</c>: the partitions emptied.</summary>
+		public SqlList<PartitionRange> Partitions { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: READTEXT (Transact-SQL). <c>READTEXT t.c @ptr 0 10 [HOLDLOCK]</c>: part of a text, ntext or image value read
+	/// through its pointer, from an offset, so much of it.
+	/// </summary>
+	public sealed record ReadText(QualifiedName Column, Expression Pointer, Expression Offset, Expression Size, bool HoldLock) : Statement;
+
+	/// <summary>
+	/// T-SQL: WRITETEXT (Transact-SQL). <c>WRITETEXT [BULK] t.c @ptr [TIMESTAMP = 0x…] [WITH LOG] [data]</c>: the value
+	/// replaced through its pointer. <see cref="Data"/> is null where none was written, as after <c>BULK</c>.
+	/// </summary>
+	public sealed record WriteText(QualifiedName Column, Expression Pointer, Expression? Data, bool Bulk, bool Log, Expression? Timestamp) : Statement;
+
+	/// <summary>
+	/// T-SQL: UPDATETEXT (Transact-SQL). <c>UPDATETEXT [BULK] t.c @ptr [TIMESTAMP = 0x…] offset length [WITH LOG] [data |
+	/// t2.c2 @ptr2]</c>: part of the value replaced, by a value or by what another column's pointer reads. The offset
+	/// and the length may be <c>NULL</c>, the null literal. <see cref="Source"/> and <see cref="SourcePointer"/> come
+	/// together, and never with <see cref="Data"/>.
+	/// </summary>
+	public sealed record UpdateText(
+		QualifiedName Column, Expression Pointer, Expression Offset, Expression Length, Expression? Data, QualifiedName? Source,
+		Expression? SourcePointer, bool Bulk, bool Log, Expression? Timestamp) : Statement;
 }
 
 /// <summary>

@@ -30,6 +30,15 @@ static partial class Bridge
 				Statement.Delete delete     => Delete(delete),
 				Statement.Merge merge       => Merge(merge),
 				Statement.Truncate truncate => Truncate(truncate),
+				Statement.ReadText read     => new Ast.Statement.ReadText(Values.Name(read, read.Column), Values.Of(read.Pointer), Values.Of(read.Offset), Values.Of(read.Size), read.HoldLock),
+				Statement.WriteText write   => new Ast.Statement.WriteText(
+					Values.Name(write, write.Column), Values.Of(write.Pointer), write.Data is null ? null : Values.Of(write.Data), write.Bulk, write.Log,
+					write.Timestamp is null ? null : Values.Of(write.Timestamp)),
+				Statement.UpdateText update => new Ast.Statement.UpdateText(
+					Values.Name(update, update.Column), Values.Of(update.Pointer), Values.Of(update.Offset), Values.Of(update.Length),
+					update.Data is null ? null : Values.Of(update.Data), update.Source is null ? null : Values.Name(update, update.Source),
+					update.SourcePointer is null ? null : Values.Of(update.SourcePointer), update.Bulk, update.Log,
+					update.Timestamp is null ? null : Values.Of(update.Timestamp)),
 				TableReference.Changed changed => Changed(changed),
 				Query.FromFile              => throw BridgeGap.Missing(old, "Statement.BulkInsert (inventory Query.FromFile)"),
 				Query.FromStream            => throw BridgeGap.Missing(old, "Statement.InsertBulk (inventory Query.FromStream)"),
@@ -342,10 +351,15 @@ static partial class Bridge
 
 		static Ast.Statement Truncate(Statement.Truncate old)
 		{
-			if (old.Partitions is not null)
-				throw BridgeGap.Missing(old, "Statement.TruncateTable has no partitions (PartitionRange is declared, no member holds it)");
-
-			return new Ast.Statement.TruncateTable { Target = new Ast.TableSource.Named(Values.Name(old, old.Table)) };
+			return new Ast.Statement.TruncateTable
+			{
+				Target     = new Ast.TableSource.Named(Values.Name(old, old.Table)),
+				Partitions = old.Partitions is { } partitions
+					? Each(partitions, static one => one is Clause.PartitionRange(var from, var to)
+						? new Ast.PartitionRange(Values.Of(from), to is null ? null : Values.Of(to))
+						: throw BridgeGap.Open(one, "inventory Clause.PartitionRange"))
+					: [],
+			};
 		}
 	}
 }

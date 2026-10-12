@@ -11,7 +11,111 @@ public static partial class Sql2023Writer
 		/// </summary>
 		bool TryPutDml(ISqlNode node)
 		{
-			return false;
+			switch (node)
+			{
+				// T-SQL: READTEXT (Transact-SQL).
+				case Statement.ReadText read:
+					Word("READTEXT");
+					PutName(read.Column);
+					PutExpression(read.Pointer);
+					PutExpression(read.Offset);
+					PutExpression(read.Size);
+
+					if (read.HoldLock)
+						Word("HOLDLOCK");
+
+					return true;
+
+				// T-SQL: WRITETEXT (Transact-SQL).
+				case Statement.WriteText write:
+					Word("WRITETEXT");
+
+					if (write.Bulk)
+						Word("BULK");
+
+					PutName(write.Column);
+					PutExpression(write.Pointer);
+					PutTextStamp(write.Timestamp);
+					PutTextLog(write.Log);
+
+					if (write.Data is { } data)
+						PutExpression(data);
+
+					return true;
+
+				// T-SQL: UPDATETEXT (Transact-SQL).
+				case Statement.UpdateText update:
+					if ((update.Source is null) != (update.SourcePointer is null))
+						throw Misplaced(update, "Source or SourcePointer", "without the other");
+
+					if (update.Source is not null && update.Data is not null)
+						throw Both(update, "Source", "Data");
+
+					Word("UPDATETEXT");
+
+					if (update.Bulk)
+						Word("BULK");
+
+					PutName(update.Column);
+					PutExpression(update.Pointer);
+					PutTextStamp(update.Timestamp);
+					PutExpression(update.Offset);
+					PutExpression(update.Length);
+					PutTextLog(update.Log);
+
+					if (update.Source is { } from)
+					{
+						PutName(from);
+						PutExpression(update.SourcePointer!);
+					}
+					else if (update.Data is { } value)
+						PutExpression(value);
+
+					return true;
+
+				default:
+					return false;
+			}
+		}
+
+		void PutTextStamp(Expression? stamp)
+		{
+			if (stamp is null)
+				return;
+
+			Word("TIMESTAMP");
+			Word("=");
+			PutExpression(stamp);
+		}
+
+		void PutTextLog(bool log)
+		{
+			if (log)
+				Word("WITH LOG");
+		}
+
+		/// <summary>T-SQL: TRUNCATE TABLE (Transact-SQL). <c>WITH (PARTITIONS (1, 3 TO 5))</c>.</summary>
+		void PutPartitions(SqlList<PartitionRange> partitions)
+		{
+			if (partitions.Count == 0)
+				return;
+
+			Word("WITH");
+			Open();
+			Word("PARTITIONS");
+			Open();
+			Each(partitions, partition =>
+			{
+				PutExpression(partition.From);
+
+				if (partition.To is { } to)
+				{
+					Word("TO");
+					PutExpression(to);
+				}
+			});
+			Close();
+			Close();
 		}
 
 		/// <summary>

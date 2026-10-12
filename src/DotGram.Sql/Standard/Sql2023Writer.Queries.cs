@@ -1660,6 +1660,8 @@ public static partial class Sql2023Writer
 					if (truncate.Identity is { } identity)
 						Word(identity == IdentityRestart.Continue ? "CONTINUE IDENTITY" : "RESTART IDENTITY");
 
+					PutPartitions(truncate.Partitions);
+
 					break;
 
 				default:
