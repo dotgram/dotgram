@@ -416,14 +416,15 @@ public sealed partial class GrammarNormalizer
 							"on each route; give the inner binding another name (docs/syntax.md §3.5.1).",
 							Marked(binding, at));
 
-					// A recovery point inside the binding. The check over the recoveries in
-					// CheckBoundTexts() looks inside each recovering repetition; this is the binding
-					// around one, which holds the same route from outside.
-					if (_recoveries.Count > 0 && NodeWalk.Descendants(bind.Body).Any(_recoveries.ContainsKey))
+					// A recovery point inside the binding, written there or in a rule it calls. The check
+					// over the recoveries in CheckBoundTexts() looks inside each recovering repetition;
+					// this is the binding around one, which holds the same route from outside.
+					if (_recoveries.Count > 0 && ReachesRecovery(bind.Body))
 						Report(
 							BindingNotSupported,
 							$"'${binding.Name}' binds a repetition that recovers ('recover', docs/syntax.md §8.2), " +
-							"and a binding over a recovery point is not supported yet.",
+							"written in it or in a rule it calls, and a binding over a recovery point is not " +
+							"supported yet.",
 							Marked(binding, at));
 
 					break;
@@ -471,6 +472,28 @@ public sealed partial class GrammarNormalizer
 
 			around.RemoveAt(around.Count - 1);
 		}
+	}
+
+	/// <summary>
+	/// Whether reading <paramref name="node"/> can run a repetition that recovers: one written in it,
+	/// or one in the body of a rule it calls, however many calls away.
+	/// </summary>
+	bool ReachesRecovery(Node node)
+	{
+		var called  = new HashSet<RuleSymbol>();
+		var pending = new Stack<Node>([node]);
+
+		while (pending.Count > 0)
+			foreach (var each in NodeWalk.Descendants(pending.Pop()))
+			{
+				if (_recoveries.ContainsKey(each))
+					return true;
+
+				if (each is Node.Call(var rule, _) && called.Add(rule) && _bodies.TryGetValue(rule, out var body))
+					pending.Push(body);
+			}
+
+		return false;
 	}
 
 	/// <summary>Why a reference may be read unbound, in the words that say how to fix it.</summary>

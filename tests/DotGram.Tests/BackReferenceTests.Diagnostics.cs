@@ -261,6 +261,9 @@ public sealed partial class BackReferenceTests
 	[InlineData("R = ($q: 'a')* recover ';' & 'b'",            "(",  0)]
 	[InlineData("R = $q: (('a')* recover ';') & $q",           "$q", 0)]
 	[InlineData("R = $q: ('x' & ('a' & 'b')* recover ';') & 'c'", "$q", 0)]
+	[InlineData("R = $q: S & $q\nS = ('a' & ';')* recover ';'",   "$q", 0)]
+	[InlineData("R = $q: S & $q\nS = 'b' & U\nU = ('a' & ';')* recover ';'", "$q", 0)]
+	[InlineData("R = $q: S & $q\nS = '(' & S* & ')' | 'b' & U\nU = ('a' & ';')* recover ';'", "$q", 0)]
 	public void A_binding_in_a_repetition_that_recovers_is_not_supported_yet(string grammar, string at, int occurrence)
 	{
 		Refused(GrammarNormalizer.BindingNotSupported, grammar, at, "recover", occurrence);
@@ -343,6 +346,13 @@ public sealed partial class BackReferenceTests
 
 		Assert.Equal(grammar.IndexOf("parse R", StringComparison.Ordinal), refused.Position);
 		Assert.DoesNotContain(told, static one => one.Severity == GramSeverity.Error && one.Id != GrammarNormalizer.BindingNotSupported);
+	}
+
+	[Fact]
+	public void A_recursive_rule_a_binding_calls_without_recovering_is_accepted()
+	{
+		Assert.Empty(Errors("R = $q: S & $q\nS = '(' & S* & ')' | 'b'\nparse R"));
+		Assert.Empty(Errors("R = $q: S & $q\nS = 'b'\nT = ('a' & ';')* recover ';'\nparse R\nparse T"));
 	}
 
 	[Fact]
