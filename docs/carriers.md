@@ -13,16 +13,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-08 15:48 |
-| DotGram.Examples | 2026-10-08 15:47 |
-| DotGram.ExpressionLanguage | 2026-10-08 15:47 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-08 15:47 |
-| DotGram.Finance | 2026-10-08 15:47 |
-| DotGram.Finance.Fix44 | 2026-10-08 15:47 |
-| DotGram.Sql | 2026-10-08 15:47 |
-| DotGram.Sql.Productions | 2026-10-08 15:47 |
-| DotGram.Tests | 2026-10-08 15:48 |
-| DotGram.Web | 2026-10-08 15:47 |
+| DotGram.Benchmarks | 2026-10-12 19:21 |
+| DotGram.Examples | 2026-10-12 19:19 |
+| DotGram.ExpressionLanguage | 2026-10-12 19:19 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-12 19:19 |
+| DotGram.Finance | 2026-10-12 19:19 |
+| DotGram.Finance.Fix44 | 2026-10-12 19:20 |
+| DotGram.Sql | 2026-10-12 19:20 |
+| DotGram.Sql.Productions | 2026-10-12 19:20 |
+| DotGram.Tests | 2026-10-12 19:21 |
+| DotGram.Web | 2026-10-12 19:19 |
 
 **Carrier** is what a grammar left to the generator is read with — `immediate`, or `tape` where the
 immediate carrier refused a machine — or the author's own choice. **Gate** is what the tape would
@@ -66,7 +66,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Possession.Open | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Possession.Settled | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Settlements | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 7/7 |
-| DotGram.Benchmarks.TapeSql |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 12/244 |
+| DotGram.Benchmarks.TapeSql |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 12/311 |
 | DotGram.Benchmarks.TapeSqlStandard |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1248/2605 |
 | DotGram.Benchmarks.TinyScalar | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
@@ -97,7 +97,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Languages.Filter |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 33/33 |
 | DotGram.Examples.Languages.FilterFile | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 4/4 |
 | DotGram.Examples.Languages.Filters | 1 | 0 | immediate | replay | replay | GRAM5012 | 2 | 1 | 1 | 0 | 0 | 0 | 8/8 |
-| DotGram.Examples.Languages.GramGrammar | 1 | 0 | immediate | replay | replay | GRAM5012 | 35 | 28 | 2 | 0 | 0 | 0 | 108/108 |
+| DotGram.Examples.Languages.GramGrammar | 1 | 0 | immediate | replay | replay | GRAM5012 | 35 | 28 | 2 | 0 | 0 | 0 | 111/111 |
 | DotGram.Examples.Languages.Lexemes | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.Scoped |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 13/13 |
 | DotGram.Examples.Languages.Selectors | 1 | 0 | immediate | read again | read again | GRAM5012 | 6 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -111,9 +111,9 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Finance.Fix.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 14/14 |
 | DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1299/2659 |
-| DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/244 |
+| DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/311 |
 | DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1248/2605 |
-| DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2352/3138 |
+| DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2352/3127 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -180,7 +180,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Formats.YamlLite | ParseDoc | whole | immediate | read again | 6 | 0 | 7 | 0 | 11/11 |
 | DotGram.Examples.Languages.FilterFile | ParseFilter | whole | immediate | none | 0 | 0 | 0 | 0 | 4/4 |
 | DotGram.Examples.Languages.Filters | ParseFilter | whole | immediate | replay | 2 | 1 | 0 | 0 | 8/8 |
-| DotGram.Examples.Languages.GramGrammar | ParseFile | whole | immediate | replay | 35 | 28 | 0 | 0 | 108/108 |
+| DotGram.Examples.Languages.GramGrammar | ParseFile | whole | immediate | replay | 35 | 28 | 0 | 0 | 111/111 |
 | DotGram.Examples.Languages.Lexemes | ParseQuoted | whole | immediate | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Examples.Languages.Selectors | ParseSelector | whole | immediate | read again | 6 | 0 | 1 | 0 | 13/13 |
 | DotGram.Examples.Languages.SettingsFile | ParseSettings | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
@@ -511,8 +511,8 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Languages.GramGrammar
 
-- machine ParseFile [whole]: carrier: immediate; gate: replay; building: 35; replayed: 28; read again: 0; refused: 0; points: 108/108
-- memo ParseFile [whole]: remembered 0; not 7: Type (characters), Namespace (characters), With (characters), QuantifiedCore (characters), Primary (characters), RefOrCall (characters), AnyTest (characters)
+- machine ParseFile [whole]: carrier: immediate; gate: replay; building: 35; replayed: 28; read again: 0; refused: 0; points: 111/111
+- memo ParseFile [whole]: remembered 0; not 8: Type (characters), Namespace (characters), With (characters), QuantifiedCore (characters), Prefixed (characters), Primary (characters), RefOrCall (characters), AnyTest (characters)
 - replay AnyTest: Follows in OneTest [choice], then ')'
 - replay Reference: Follows in PublicationTarget [choice], then ?=':'
 - replay AllTest: under AnyTest
