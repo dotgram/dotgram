@@ -146,6 +146,7 @@ static partial class Bridge
 		"Expression.Trim.FromKeyword",
 		"Statement.DropRoutine.Proc",
 		"Statement.SetTransaction.Tran",
+		"Statement.Delete.FromOmitted",
 	];
 
 	/// <summary>

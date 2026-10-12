@@ -418,9 +418,9 @@ public sealed class SqlStandardTreeTests
 
 	[Theory]
 	[InlineData("INSERT INTO t (a, b) OVERRIDING SYSTEM VALUE VALUES (1, DEFAULT), ROW(NULL, 2), (DEFAULT), 3",
-		"Insert(Target: Named(t), Columns: [a, b], Override: SystemValue, SourceValue: Values([RowValue([1, Default()], false), RowValue([NULL, 2], true), RowValue([Parenthesized(Default())], false), RowValue([3], false)]))")]
-	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: Named(t), SourceValue: Subquery(Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
-	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: Named(t), SourceValue: DefaultValues())")]
+		"Insert(Target: Named(t), Columns: [a, b], Override: SystemValue, SourceValue: Values([RowValue([1, Default()], false), RowValue([NULL, 2], true), RowValue([Parenthesized(Default())], false), RowValue([3], false)]), Into: Into)")]
+	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: Named(t), SourceValue: Subquery(Select(Columns: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))), Into: Into)")]
+	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: Named(t), SourceValue: DefaultValues(), Into: Into)")]
 	public void An_insert_is_built_as_written(string input, string tree)
 	{
 		Assert.Equal(tree, Show(Both.ParseInsertStatement(input)));
@@ -572,7 +572,7 @@ public sealed class SqlStandardTreeTests
 	[Fact]
 	public void A_data_change_delta_table_holds_its_statement()
 	{
-		Assert.Equal("DataChange(New, Insert(Target: Named(t), SourceValue: Values([RowValue([1], false)])), Alias(x, null, true))",
+		Assert.Equal("DataChange(New, Insert(Target: Named(t), SourceValue: Values([RowValue([1], false)]), Into: Into), Alias(x, null, true))",
 			Show(Both.ParseTableReference("NEW TABLE (INSERT INTO t VALUES 1) AS x")));
 	}
 

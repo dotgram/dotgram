@@ -255,6 +255,56 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// Which record and member the bridge builds for a data change statement's T-SQL parts: what the round trip
+	/// cannot see where another record would write the same text.
+	/// </summary>
+	[Theory]
+	[InlineData("INSERT OVER t DEFAULT VALUES",                                    "Insert.Into Over")]
+	[InlineData("INSERT t VALUES (1)",                                             "Insert.Into null")]
+	[InlineData("INSERT INTO OPENDATASOURCE ('p', 'i').db.dbo.t VALUES (1)",       "Insert.Target DataSource")]
+	[InlineData("DELETE t WHERE a = 1",                                            "Delete.FromOmitted")]
+	[InlineData("DELETE TOP (1) FROM t",                                           "Delete.From written")]
+	[InlineData("WITH c AS (SELECT 1 AS a) DELETE FROM t",                         "Delete.With")]
+	[InlineData("DELETE FROM dbo.f(1)",                                            "Delete.Target Function")]
+	[InlineData("DELETE t OUTPUT deleted.a INTO @log (a) OUTPUT deleted.b",        "Delete.Output")]
+	[InlineData("UPDATE @t WITH (NOLOCK) SET a = 1",                               "Update.Target Variable")]
+	[InlineData("UPDATE t SET a = 1 OUTPUT inserted.* FROM t JOIN u ON t.a = u.a OPTION (RECOMPILE)", "Update.Output From Hints")]
+	[InlineData("UPDATE OPENQUERY (s, 'SELECT a FROM t') SET a = 1",               "Update.Target OpenQuery")]
+	[InlineData("MERGE t USING u ON t.a = u.a WHEN MATCHED THEN DELETE OUTPUT $action;", "Merge.IntoOmitted Output")]
+	public void The_bridge_builds_the_data_change_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = expected switch
+		{
+			"Insert.Into Over"            => made is Ast.Statement.Insert { Into: Ast.IntoKeyword.Over, SourceValue: Ast.InsertSource.DefaultValues },
+			"Insert.Into null"            => made is Ast.Statement.Insert { Into: null },
+			"Insert.Target DataSource"    => made is Ast.Statement.Insert { Into: Ast.IntoKeyword.Into, Target: Ast.TableSource.Named { DataSource: not null } },
+			"Delete.FromOmitted"          => made is Ast.Statement.Delete { FromOmitted: true, Where: not null },
+			"Delete.From written"         => made is Ast.Statement.Delete { FromOmitted: false, Top: not null },
+			"Delete.With"                 => made is Ast.Statement.Delete { With.Items.Count: 1, FromOmitted: false },
+			"Delete.Target Function"      => made is Ast.Statement.Delete { Target: Ast.TableSource.Function },
+			"Delete.Output"               => made is Ast.Statement.Delete
+			{
+				Output: { Into: Ast.TableSource.Variable { Name.Text: "@log" }, Columns: [{ Text: "a" }], Next: { Into: null, Items.Count: 1 } },
+			},
+			"Update.Target Variable"      => made is Ast.Statement.Update { Target: Ast.TableSource.Variable { Hints.Count: 1 } },
+			"Update.Output From Hints"    => made is Ast.Statement.Update
+			{
+				Output.Items: [Ast.SelectColumn.QualifiedAll], From.Sources: [Ast.TableSource.Join], Hints.Count: 1,
+			},
+			"Update.Target OpenQuery"     => made is Ast.Statement.Update { Target: Ast.TableSource.OpenQuery },
+			_                             => made is Ast.Statement.Merge { IntoOmitted: true, Output.Items.Count: 1 },
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	/// <summary>
 	/// Statements that must convert: the case of what the tree does not keep is folded, and a system type's name
 	/// however written is the type.
 	/// </summary>
