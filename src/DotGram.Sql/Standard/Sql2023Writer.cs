@@ -223,7 +223,7 @@ public static partial class Sql2023Writer
 				// T-SQL's `0x0A` keeps the digits after its introducer; the standard's `X'0A'` the quoted digits. A text
 				// that is not the flag's is refused, rather than written as another literal.
 				case LiteralValue.Binary binary:
-					if (binary.ZeroX == binary.Text.StartsWith('\''))
+					if (binary.ZeroX == binary.Text.StartsWith("'", StringComparison.Ordinal))
 						throw Misplaced(binary, "Text", binary.ZeroX ? "in quotes on a 0x literal" : "without quotes on an X literal");
 
 					Word(binary.ZeroX ? "0x" + binary.Text : "X" + binary.Text);
@@ -331,6 +331,45 @@ public static partial class Sql2023Writer
 
 		// ── §6.1 Data types ────────────────────────────────────────────────────────
 
+		/// <summary>
+		/// The key words T-SQL also reads as a type's name, bracketed, quoted or qualified by <c>sys</c>: the same type.
+		/// </summary>
+		static readonly HashSet<string> NamedKeyWords = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"INT", "INTEGER", "SMALLINT", "BIGINT", "DEC", "DECIMAL", "NUMERIC", "FLOAT", "REAL", "CHAR", "CHARACTER",
+			"VARCHAR", "NCHAR", "NVARCHAR", "BINARY", "VARBINARY", "DATE", "TIME", "JSON",
+		};
+
+		/// <summary>
+		/// A type's key word, or, where T-SQL's <c>WrittenName</c> is set, that name in its place: refused where the
+		/// name is not the key word as an identifier, or is qualified by anything but <c>sys</c>.
+		/// </summary>
+		void PutTypeName(DataType type, string keyword)
+		{
+			if (type.WrittenName is not { } written)
+			{
+				Word(keyword);
+
+				return;
+			}
+
+			if (!NamedKeyWords.Contains(keyword)
+				|| written.Parts.Count is 0 or > 2
+				|| written.Parts.Count == 2 && !Unquoted(written.Parts[0].Text).Equals("SYS", StringComparison.OrdinalIgnoreCase)
+				|| !Unquoted(written.Parts[written.Parts.Count - 1].Text).TrimEnd().Equals(keyword, StringComparison.OrdinalIgnoreCase))
+				throw Misplaced(type, "WrittenName", $"that is not {keyword} written as a name, bare or qualified by sys");
+
+			PutName(written);
+		}
+
+		/// <summary>A name part's text without its delimiters.</summary>
+		static string Unquoted(string text)
+		{
+			return text.Length >= 2 && (text[0] == '[' && text[text.Length - 1] == ']' || text[0] == '"' && text[text.Length - 1] == '"')
+				? text.Substring(1, text.Length - 2)
+				: text;
+		}
+
 		void PutType(DataType type)
 		{
 			if (!SqlStack.Enough())
@@ -340,10 +379,14 @@ public static partial class Sql2023Writer
 				return;
 			}
 
+			// T-SQL: the name of a type written as an identifier is only the name of a type the key word names.
+			if (type.WrittenName is not null && type is not (DataType.Character or DataType.Binary or DataType.Numeric or DataType.DateTime or DataType.Json))
+				throw Misplaced(type, "WrittenName", "on a type that is not written by a key word of one word");
+
 			switch (type)
 			{
 				case DataType.Character character:
-					Word(character.Kind switch
+					PutTypeName(character, character.Kind switch
 					{
 						CharacterTypeKind.Character                    => "CHARACTER",
 						CharacterTypeKind.Char                         => "CHAR",
@@ -398,7 +441,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case DataType.Binary binary:
-					Word(binary.Kind switch
+					PutTypeName(binary, binary.Kind switch
 					{
 						BinaryTypeKind.Binary            => "BINARY",
 						BinaryTypeKind.BinaryVarying     => "BINARY VARYING",
@@ -430,7 +473,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case DataType.Numeric numeric:
-					Word(numeric.Kind switch
+					PutTypeName(numeric, numeric.Kind switch
 					{
 						NumericTypeKind.Numeric         => "NUMERIC",
 						NumericTypeKind.Decimal         => "DECIMAL",
@@ -467,7 +510,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case DataType.DateTime datetime:
-					Word(datetime.Kind switch { DateTimeTypeKind.Date => "DATE", DateTimeTypeKind.Time => "TIME", DateTimeTypeKind.Timestamp => "TIMESTAMP", _ => throw NoText(datetime.Kind) });
+					PutTypeName(datetime, datetime.Kind switch { DateTimeTypeKind.Date => "DATE", DateTimeTypeKind.Time => "TIME", DateTimeTypeKind.Timestamp => "TIMESTAMP", _ => throw NoText(datetime.Kind) });
 
 					if (datetime.Precision is { } fraction)
 					{
@@ -534,8 +577,8 @@ public static partial class Sql2023Writer
 					PutName(user.Name);
 					break;
 
-				case DataType.Json:
-					Word("JSON");
+				case DataType.Json json:
+					PutTypeName(json, "JSON");
 					break;
 
 				case DataType.Descriptor:

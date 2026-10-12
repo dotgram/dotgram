@@ -47,10 +47,10 @@ and is exempted (`BridgeOracle.Meaning`); any other difference makes the stateme
   first argument of an invocation of either.
 - `DATEADD (day, …)`: a date part in T-SQL, a column in the standard. The first argument of a date part
   function, a `DatePart`, where the standard has a column of one part whose text is that part's word.
-- `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A
-  `DataType.Named` of one part on the list of system types, or an `nvarchar` with no length, with no
-  arguments, where the standard has a user-defined type of one part and the same text, or, for `timestamp`,
-  its own TIMESTAMP.
+- `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A system
+  type with no arguments — a `DataType.Named` of one part, or `sys` and a name, on the list of system types, a
+  standard record written as a name (`WrittenName`), or an `nvarchar` with no length — where the standard has
+  a user-defined type of the same name, or, for `timestamp`, its own TIMESTAMP.
 
 ## Words read from the text
 
