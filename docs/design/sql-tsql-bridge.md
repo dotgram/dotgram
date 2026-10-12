@@ -190,7 +190,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | Old record | Family | Category | Counted | Gaps | Occurrences |
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9322 |
-| `Expression.ColumnReference` | Values | B | gap 8 | 152: needs decision: inventory Expression.ColumnReference (`t.*` standing where a value does) (13); needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7) | 9235 |
+| `Expression.ColumnReference` | Values | B | gap 8 | 152: needs decision: inventory Expression.ColumnReference (`*` alone standing where a value does: CONTAINS, SEMANTICKEYPHRASETABLE) (13); needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7) | 9235 |
 | `Clause.Option` | Tables | C | — | — | 6517 |
 | `Clause.ColumnDefinition` | Tables | B | — | — | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |

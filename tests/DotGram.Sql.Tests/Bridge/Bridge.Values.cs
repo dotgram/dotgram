@@ -797,7 +797,7 @@ static partial class Bridge
 				throw BridgeGap.Open(owner, "Expression.Variable where a name stands: an assignment, a table source, EXEC (left open by task 2)");
 
 			if (text == "*")
-				throw BridgeGap.Open(owner, "inventory Expression.ColumnReference (`t.*` standing where a value does)");
+				throw BridgeGap.Open(owner, "inventory Expression.ColumnReference (`*` alone standing where a value does: CONTAINS, SEMANTICKEYPHRASETABLE)");
 
 			if (text.Any(char.IsWhiteSpace) && text.Length > 0 && text[0] is not '[' and not '"')
 				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a name part `{text}`)");
