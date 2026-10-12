@@ -99,7 +99,7 @@ static partial class Bridge
 				Expression.Collated(var value, var collation) =>
 					new Ast.Expression.Collate(Of(value), new Ast.CollationName(Name(old, collation))),
 
-				Expression.Parenthesized(var value)         => new Ast.Expression.Parenthesized(Of(value)),
+				Expression.Parenthesized(var value)         => Parenthesized(Of(value)),
 				Expression.Subquery(var query)              => new Ast.Expression.Subquery(QueryOf(query)),
 
 				Expression.GraphMatch      => throw BridgeGap.Missing(old, "Expression.GraphMatch, a graph pattern family (proposal 15)"),
@@ -115,6 +115,18 @@ static partial class Bridge
 
 				_ => throw BridgeGap.Missing(old, "no arm"),
 			};
+		}
+
+		/// <summary>
+		/// A pair of brackets around a value. Around a subquery, which has brackets of its own, the new tree
+		/// takes the second pair as the query's (<see cref="Ast.Query.Parenthesized"/>): <c>((SELECT 1))</c> is a
+		/// subquery of a bracketed query, where the old tree has a bracketed subquery.
+		/// </summary>
+		static Ast.Expression Parenthesized(Ast.Expression value)
+		{
+			return value is Ast.Expression.Subquery(var query)
+				? new Ast.Expression.Subquery(new Ast.Query.Parenthesized(query))
+				: new Ast.Expression.Parenthesized(value);
 		}
 
 		static Ast.Expression Binary(Expression left, Ast.BinaryOperator op, Expression right)
