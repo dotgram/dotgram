@@ -108,6 +108,127 @@ sealed partial class Machine
 		}
 	}
 
+	/// <summary>
+	/// The characters a turn of <c>(?!X &amp; any)*</c> can stop at, where they are few: the
+	/// characters <c>X</c> can begin with, so that the run between two of them is turns that
+	/// need not be read one at a time. Null where the repetition is not of that shape or the set
+	/// is not small.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// At a character none of the refused bodies can begin with, every one of them fails on its
+	/// first item, the look admits the turn, and <c>any</c> reads the character: the turn is
+	/// taken, and nothing is said, since what a look refuses is never recorded. So a search for
+	/// the next character that can begin one of them — an <c>IndexOfAny</c>, which the runtime
+	/// vectorizes — lands where the loop would next have had a question to ask, and the turn is
+	/// read there as it always was. That is the whole of the change: where the scan ends, what it
+	/// says there and what a failure after it may ask back are the loop's own.
+	/// </para>
+	/// <para>
+	/// It holds only where a refused body cannot match nothing (which matches everywhere, so the
+	/// loop never turns), knows what it begins with, runs no code of the host before its first
+	/// item (code a skipped turn would not run), and begins with no half of a surrogate pair. A
+	/// delimiter of one character is already a run (<see cref="StopCharacters"/>), and is left
+	/// to it. More than five characters is a class, and a class is read.
+	/// </para>
+	/// </remarks>
+	internal char[]? UntilStops(Node.Repeat repeat)
+	{
+		if (OverKinds || _starves || repeat.Max != null ||
+			repeat.Body is not Node.Sequence({ Count: >= 2 } parts) || RunTest(parts[^1]) != "true")
+			return null;
+
+		var made = new List<char>();
+
+		for (var i = 0; i < parts.Count - 1; i++)
+		{
+			if (parts[i] is not Node.Lookahead(false, var refused) ||
+				FirstSets.Nullable(refused, _graph) || RunsCodeBeforeItsFirstItem(refused) ||
+				FirstSets.Of(refused, _graph) is not { IsKnown: true } first)
+				return null;
+
+			foreach (var range in first.Ranges)
+				for (int c = range.From; c <= range.To; c++)
+				{
+					if (made.Count == 5 || char.IsSurrogate((char)c) || BufferedBytes && c > 0x7F)
+						return null;
+
+					if (!made.Contains((char)c))
+						made.Add((char)c);
+				}
+		}
+
+		return made.Count == 0 ? null : [.. made];
+	}
+
+	/// <summary>
+	/// Moves <c>p</c> past the turns of <c>(?!X &amp; any)*</c> that need not be read
+	/// (<see cref="UntilStops"/>): to the next character in <paramref name="stops"/>, or to the
+	/// end of the input.
+	/// </summary>
+	/// <remarks>
+	/// Where the repetition can be asked for a shorter reading, the turns passed over are kept as
+	/// one thing to give back from, a character at a time, as their own exits would have been: in
+	/// the engine a <c>Run</c> entry resuming at <paramref name="exit"/>; on the reader's tape a way
+	/// whose alternatives are how many characters to give back, named <paramref name="gave"/>,
+	/// which ends the loop where it gives any (as Reader.EmitRun's way does for a run).
+	/// </remarks>
+	/// <param name="turns">A count of turns to add the passed-over ones to, or null.</param>
+	internal void EmitUntilSkip(
+		Writer writer, IReadOnlyList<char> stops, int? exit = null, string? turns = null, string? gave = null)
+	{
+		using (writer.Block($"if ({Within("p")})"))
+		{
+			writer.Line($"c = {ReadAt("p")};");
+
+			using (writer.Block($"if (!({string.Join(" || ", stops.Select(stop => $"c == {CSharpEmitter.Char(stop)}"))}))"))
+			{
+				EmitSearch(writer, "until", "p", stops);
+
+				if (exit is not null || turns is not null || gave is not null)
+					writer.Line("var untilFrom = p;");
+
+				writer.Line($"p = until < 0 ? {EndOfInput} : until;");
+
+				if (turns is not null)
+					writer.Line($"{turns} += p - untilFrom;");
+
+				if (exit is { } resumes)
+				{
+					_usesRuns = true;
+					writer.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, resumes)}, untilFrom, " +
+						"call, atomic, repeat, lookahead, p));");
+				}
+
+				if (gave is not null)
+				{
+					writer.Line($"var {gave} = 0;");
+					writer.Line();
+
+					using (writer.Block("if (ways.Cursor < ways.Count)"))
+					{
+						writer.Line($"{gave} = ways.Items[ways.Cursor * 2];");
+						writer.Line("ways.Cursor++;");
+					}
+
+					writer.Line("else");
+
+					using (writer.Block(""))
+						writer.Line("ways.Open(p - untilFrom);");
+
+					writer.Line();
+
+					using (writer.Block($"if ({gave} > 0)"))
+					{
+						writer.Line($"p -= {gave};");
+						writer.Line("break;");
+					}
+				}
+			}
+		}
+	}
+
 	void EmitRecoverySearch(Writer writer, Node sync)
 	{
 		if (OverKinds || _starves)

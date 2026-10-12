@@ -5675,6 +5675,13 @@ sealed partial class Machine
 
 			_fail = saved;
 
+			// `(?!X & any)*` goes straight to where X may begin: nothing asks a silent loop back.
+			if (UntilStops(repeatNode) is { } stops)
+			{
+				_usesChar = true;
+				EmitUntilSkip(atLoop, stops);
+			}
+
 			if (!direct)
 				atLoop.Line($"turn{mine} = p;");
 			if (mine == 0 && CanReleaseBuffered)
@@ -5817,6 +5824,15 @@ sealed partial class Machine
 		atEntry.Line("repeat = repeatIndex;");
 		atEntry.Line($"Trace(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
 		atEntry.Line($"goto {Label(atEntry, loop)};");
+
+		// `(?!X & any)*` goes straight to where X may begin (UntilStops). A settled loop owes
+		// nothing for the turns it passed over; one that may be asked back leaves them as a run
+		// resuming at its exit, as each turn's own exit would have. Not where turns are counted.
+		if (min == 0 && UntilStops(repeatNode) is { } stops)
+		{
+			_usesChar = true;
+			EmitUntilSkip(atLoop, stops, settled ? null : exit);
+		}
 
 		if (settled || min > 0 || max is not null)
 		{
