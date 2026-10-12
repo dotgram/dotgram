@@ -4,12 +4,13 @@
 #   Meaning <pattern>   - a difference exempted from the shape check, inside the subtree the pattern names
 # Rewritten deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1.
 
+ByCase Clause.ColumnDefinition.Type = 2
 ByCase Clause.For.Kind = 20
 ByCase Clause.For.Options = 44
 ByCase Clause.GroupBy.With = 2
 ByCase Clause.Hint.Text = 28
 ByCase Clause.JsonColumn.Type = 54
-ByCase Clause.Option.Name = 4
+ByCase Clause.Option.Name = 7
 ByCase Clause.SystemTime.Kind = 0
 ByCase Clause.TableSample.Unit = 4
 ByCase Clause.Top.With = 0

@@ -43,6 +43,7 @@ static class Trees
 		"Clause.For.Options",
 		"Clause.Hint.Text",
 		"Clause.JsonColumn.Type",
+		"Clause.ColumnDefinition.Type",
 		"Expression.NamedArgument.Name",
 		"Expression.Prefixed.Word",
 		"Clause.GroupBy.With",

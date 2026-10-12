@@ -224,33 +224,8 @@ public static partial class Sql2023Writer
 
 					foreach (var option in bulk.Options)
 					{
-						if (option.Options.Count > 0)
-							throw Misplaced(option, "Options", "on an option of OPENROWSET BULK");
-
 						Tight(",");
-						PutIdentifier(option.Name);
-
-						// T-SQL: OPENROWSET BULK (Transact-SQL). `ORDER (…) [UNIQUE]`, under the option's name.
-						if (option.Order is { } order)
-						{
-							if (option.Value is not null)
-								throw Both(option, "Order", "Value");
-
-							if (order.Columns.Count == 0)
-								throw Empty(order, "Columns");
-
-							Open();
-							PutSorts(new OrderByClause(order.Columns));
-							Close();
-
-							if (order.Unique)
-								Word("UNIQUE");
-						}
-						else if (option.Value is { } value)
-						{
-							Word("=");
-							PutExpression(value);
-						}
+						PutBulkOption(option, unique: true);
 					}
 
 					Close();
@@ -700,26 +675,7 @@ public static partial class Sql2023Writer
 
 			Word("WITH");
 			Open();
-			Each(columns, column =>
-			{
-				if (column.Type is null)
-					throw Empty(column, "Type");
-
-				if (column.Generation is not null || column.Constraints.Any(static one => one is not Constraint.NotNull { Name: null, Characteristics: null }) || column.Constraints.Count > 1)
-					throw Misplaced(column, "Generation or Constraints", "on a column of PREDICT, which takes NOT NULL alone");
-
-				PutIdentifier(column.Name);
-				PutType(column.Type);
-
-				if (column.Collation is { } collation)
-				{
-					Word("COLLATE");
-					PutCollation(collation);
-				}
-
-				if (column.Constraints.Count > 0)
-					Word("NOT NULL");
-			});
+			Each(columns, column => PutTypedColumn(column, typed: true, "a column of PREDICT"));
 			Close();
 		}
 

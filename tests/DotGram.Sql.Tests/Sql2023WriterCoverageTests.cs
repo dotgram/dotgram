@@ -776,6 +776,10 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("an empty second FROM")]
 	[InlineData("an INSERT word that is none")]
 	[InlineData("DEFAULT VALUES with values in a MERGE")]
+	[InlineData("INSERT BULK with no column")]
+	[InlineData("a collation on an INSERT BULK column with no type")]
+	[InlineData("UNIQUE on BULK INSERT's ORDER")]
+	[InlineData("a bulk option with options")]
 	[InlineData("UPDATETEXT's source without its pointer")]
 	[InlineData("UPDATETEXT's source with data")]
 	[InlineData("T-SQL's data change table on a statement with no OUTPUT")]
@@ -820,6 +824,11 @@ public sealed class Sql2023WriterCoverageTests
 				Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null)),
 			},
 			"an empty second FROM"                  => new Statement.Delete { Target = new TableSource.Named(T), From = new FromClause([]) },
+			"INSERT BULK with no column"            => new Statement.InsertBulk(T, [], []),
+			"a collation on an INSERT BULK column with no type" =>
+				new Statement.InsertBulk(T, [new ColumnDefinition(new Identifier("a"), null, null, [], new CollationName(T))], []),
+			"UNIQUE on BULK INSERT's ORDER"         => new Statement.BulkInsert(T, A, [new Option(new Identifier("ORDER"), null, []) { Order = new RowOrder([new SortItem(A)], true) }]),
+			"a bulk option with options"            => new Statement.BulkInsert(T, A, [new Option(new Identifier("TABLOCK"), null, [new Option(new Identifier("X"), null, [])])]),
 			"UPDATETEXT's source without its pointer" => new Statement.UpdateText(T, A, A, A, null, U, null, false, false, null),
 			"UPDATETEXT's source with data"         => new Statement.UpdateText(T, A, A, A, B, U, B, false, false, null),
 			"T-SQL's data change table on a statement with no OUTPUT" =>

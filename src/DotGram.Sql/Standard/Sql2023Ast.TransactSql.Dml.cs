@@ -96,6 +96,19 @@ public abstract partial record Statement
 	}
 
 	/// <summary>
+	/// T-SQL: BULK INSERT (Transact-SQL). <c>BULK INSERT t FROM 'file' [WITH (…)]</c>: the file a string or a name, as the
+	/// grammar reads it, and the options in the order written, <c>ORDER (…)</c> among them an <see cref="Option.Order"/>.
+	/// </summary>
+	public sealed record BulkInsert(QualifiedName Table, Expression File, SqlList<Option> Options) : Statement;
+
+	/// <summary>
+	/// T-SQL: INSERT BULK (no syntax block in syntax.md). <c>INSERT BULK t (c INT NOT NULL, d) [WITH (…)]</c>: the rows a
+	/// client streams, named by their columns — a name, a type that may be left out, a collation, <c>NOT NULL</c> as the
+	/// standard builds it — and the options.
+	/// </summary>
+	public sealed record InsertBulk(QualifiedName Table, SqlList<ColumnDefinition> Columns, SqlList<Option> Options) : Statement;
+
+	/// <summary>
 	/// T-SQL: READTEXT (Transact-SQL). <c>READTEXT t.c @ptr 0 10 [HOLDLOCK]</c>: part of a text, ntext or image value read
 	/// through its pointer, from an offset, so much of it.
 	/// </summary>

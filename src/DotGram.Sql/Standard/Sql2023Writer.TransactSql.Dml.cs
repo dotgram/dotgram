@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace DotGram.Sql.Ast;
 
@@ -13,6 +14,28 @@ public static partial class Sql2023Writer
 		{
 			switch (node)
 			{
+				// T-SQL: BULK INSERT (Transact-SQL). A file, a string or a name.
+				case Statement.BulkInsert bulk:
+					Word("BULK INSERT");
+					PutName(bulk.Table);
+					Word("FROM");
+					PutExpression(bulk.File);
+					PutBulkWith(bulk.Options);
+					return true;
+
+				// T-SQL: INSERT BULK (no syntax block in syntax.md). Its columns, which it must name.
+				case Statement.InsertBulk stream:
+					if (stream.Columns.Count == 0)
+						throw Empty(stream, "Columns");
+
+					Word("INSERT BULK");
+					PutName(stream.Table);
+					Open();
+					Each(stream.Columns, column => PutTypedColumn(column, typed: false, "a column of INSERT BULK"));
+					Close();
+					PutBulkWith(stream.Options);
+					return true;
+
 				// T-SQL: READTEXT (Transact-SQL).
 				case Statement.ReadText read:
 					Word("READTEXT");
@@ -75,6 +98,82 @@ public static partial class Sql2023Writer
 
 				default:
 					return false;
+			}
+		}
+
+		/// <summary>
+		/// A column of PREDICT's schema or of INSERT BULK: a name, a type, a collation and <c>NOT NULL</c>, nothing
+		/// else; INSERT BULK may leave the type out, and then everything after it.
+		/// </summary>
+		void PutTypedColumn(ColumnDefinition column, bool typed, string where)
+		{
+			if (column.Generation is not null || column.Constraints.Any(static one => one is not Constraint.NotNull { Name: null, Characteristics: null }) || column.Constraints.Count > 1)
+				throw Misplaced(column, "Generation or Constraints", $"on {where}, which takes NOT NULL alone");
+
+			if (column.Type is null && (typed || column.Collation is not null || column.Constraints.Count > 0))
+				throw Empty(column, "Type");
+
+			PutIdentifier(column.Name);
+
+			if (column.Type is { } type)
+				PutType(type);
+
+			if (column.Collation is { } collation)
+			{
+				Word("COLLATE");
+				PutCollation(collation);
+			}
+
+			if (column.Constraints.Count > 0)
+				Word("NOT NULL");
+		}
+
+		/// <summary>BULK INSERT's and INSERT BULK's <c>WITH (…)</c>, where there are options.</summary>
+		void PutBulkWith(SqlList<Option> options)
+		{
+			if (options.Count == 0)
+				return;
+
+			Word("WITH");
+			Open();
+			Each(options, option => PutBulkOption(option, unique: false));
+			Close();
+		}
+
+		/// <summary>
+		/// One bulk option: a word, a word and its value, or <c>ORDER (…)</c> under the option's name, with <c>UNIQUE</c>
+		/// only where OPENROWSET BULK reads it.
+		/// </summary>
+		void PutBulkOption(Option option, bool unique)
+		{
+			if (option.Options.Count > 0)
+				throw Misplaced(option, "Options", "on a bulk option");
+
+			PutIdentifier(option.Name);
+
+			// T-SQL: BULK INSERT (Transact-SQL), OPENROWSET BULK (Transact-SQL). `ORDER (…) [UNIQUE]`.
+			if (option.Order is { } order)
+			{
+				if (option.Value is not null)
+					throw Both(option, "Order", "Value");
+
+				if (order.Unique && !unique)
+					throw Misplaced(order, "Unique", "on BULK INSERT's or INSERT BULK's ORDER");
+
+				if (order.Columns.Count == 0)
+					throw Empty(order, "Columns");
+
+				Open();
+				PutSorts(new OrderByClause(order.Columns));
+				Close();
+
+				if (order.Unique)
+					Word("UNIQUE");
+			}
+			else if (option.Value is { } value)
+			{
+				Word("=");
+				PutExpression(value);
 			}
 		}
 
