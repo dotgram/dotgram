@@ -1010,58 +1010,186 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.CircularWith, "B = A with (X = Z)\nA = B with (X = Y)\n" + Tail);
 	}
 
-	// ── A `with` around a call into a rebinding namespace (GRAM4036) ──────────────
+	// ── A `with` expression and a namespace header, in one order (§5.1) ────────────
 
 	/// <summary>
-	/// A `with` expression whose operand calls, at any depth, into a namespace with a header from
-	/// outside it is refused for now, rather than compiled into a parser that loses the header.
+	/// A <c>with</c> expression around a call into a namespace with a header composes on top of
+	/// the header, as a publication's <c>with</c> does; a <c>with</c> a header reaches is
+	/// specialized before the header, as it always was.
 	/// </summary>
 	[Theory]
-	[InlineData("R = Ns.G with (Z = Q)")]
-	[InlineData("R = Ns.E with (D = Y)")]
-	[InlineData("R = Ns.E with (B = Y)")]
-	[InlineData("R = X with (Z = Q)\nX = Ns.G")]
-	[InlineData("R = L(Ns.E) with (Z = Q)\nL(x) = x & Z")]
-	public void A_with_around_a_call_into_a_rebinding_namespace_is_refused(string rule)
+	[MemberData(nameof(WithsAndHeaders))]
+	public void A_with_expression_composes_with_a_namespace_header(
+		string rule, string accepted, string refused, CarrierKind carrier, bool direct)
 	{
-		Refused(GrammarNormalizer.WithIntoNamespace, IntoNamespace(rule));
+		var result = GramCompiler.Compile(
+			WithAndHeader(rule),
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				Carrier       = carrier,
+				Direct        = direct,
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(
+			result.Sources[0].Text, sourceParts: result.Sources.Skip(1).Select(static source => source.Text));
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", accepted).IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", refused).IsSuccess);
+	}
+
+	public static TheoryData<string, string, string, CarrierKind, bool> WithsAndHeaders()
+	{
+		var data = new TheoryData<string, string, string, CarrierKind, bool>();
+
+		const string EG  = "namespace Ns with (B = D) { E = B  G = E & Z }\n";
+		const string ZQ  = "Z = 'z'\nQ = 'q'\n";
+
+		(string Rule, string Accepted, string Refused)[] shapes =
+		[
+			// The header is kept under a `with` that names none of its rules.
+			(ZQ + EG + "R = Ns.G with (Z = Q)", "dq", "bq"),
+			// The `with` replaces what the header put in place.
+			("Y = 'y'\nnamespace Ns with (B = D) { E = B }\nR = Ns.E with (D = Y)", "y", "d"),
+			// The `with` replaces what the header already replaced: nothing is left to replace.
+			("Y = 'y'\nnamespace Ns with (B = D) { E = B }\nR = Ns.E with (B = Y)", "d", "y"),
+			// At any depth.
+			(ZQ + EG + "X = Ns.G\nR = X with (Z = Q)", "dq", "bq"),
+			// A `with` inside the namespace whose rules it reaches: as before.
+			(ZQ + "namespace Ns with (B = D) { E = B  G = E & Z  H = G with (Z = Q) }\nR = Ns.H", "dq", "bq"),
+			// A `with` reached from one namespace's header, calling into another's.
+			(ZQ + "Y = 'y'\n" + EG + "W = Ns.G with (Z = Q)\nnamespace N1 with (Q = Y) { K = W }\nR = N1.K", "dy", "dq"),
+			// A header's replacement that is another namespace's rule is read as that namespace makes it.
+			("C = 'c'\nY = 'y'\nnamespace Ns1 with (B = Ns2.F) { E = B }\nnamespace Ns2 with (C = D) { F = C }\nR = Ns1.E with (D = Y)", "y", "d"),
+		];
+
+		foreach (var (rule, accepted, refused) in shapes)
+			foreach (var (carrier, direct) in new[] { (CarrierKind.Auto, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, true) })
+				data.Add(rule, accepted, refused, carrier, direct);
+
+		return data;
 	}
 
 	/// <summary>
-	/// What the refusal does not touch: a `with` that reaches no rebinding namespace, and one
-	/// written inside the namespace whose rules it reaches.
+	/// A <c>with</c> that replaces a parameterized rule replaces the instance the header cloned.
 	/// </summary>
-	[Theory]
-	[InlineData("R = F with (Z = Q)\nF = Z & 'f'")]
-	[InlineData("R = Ns.H")]
-	public void A_with_that_calls_into_no_rebinding_namespace_from_outside_is_not_refused(string rule)
+	[Fact]
+	public void A_with_expression_replaces_an_instance_a_namespace_header_cloned()
 	{
-		var diagnostics = Compile(IntoNamespace(rule)).Diagnostics;
+		var result = Compile(
+			"""
+			using Ns;
 
-		Assert.DoesNotContain(diagnostics, one => one.Id == GrammarNormalizer.WithIntoNamespace);
-		Assert.DoesNotContain(diagnostics, one => one.Severity == GramSeverity.Error);
-	}
-
-	static string IntoNamespace(string rule)
-	{
-		return
-			$$"""
 			B = 'b'
 			D = 'd'
-			Y = 'y'
+			F(x) = 'f' & x
+
+			namespace Ns with (B = D)
+			{
+				E(x) = B & x
+				G = E('!')
+			}
+
+			R = Ns.G with (E = F)
+			parse R as ParseStart
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "f!").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "d!").IsSuccess);
+	}
+
+	/// <summary>
+	/// The same-name case reads what <c>parse … with</c> reads, and says the same about it.
+	/// </summary>
+	[Fact]
+	public void A_with_expression_over_a_rule_the_header_replaced_agrees_with_a_publications()
+	{
+		const string Header = "Y = 'y'\nnamespace Ns with (B = D) { E = B }\n";
+
+		var expression  = Compile(WithAndHeader(Header + "R = Ns.E with (B = Y)"));
+		var publication = Compile(WithAndHeader(Header + "R = Ns.E", publish: "parse R with (B = Y) as ParseStart"));
+
+		Assert.Equal(
+			publication.Diagnostics.Select(one => one.Id).Order(StringComparer.Ordinal),
+			expression.Diagnostics.Select(one => one.Id).Order(StringComparer.Ordinal));
+
+		var a = EmittedCode.Compile(expression.Sources[0].Text);
+		var b = EmittedCode.Compile(publication.Sources[0].Text);
+
+		foreach (var input in new[] { "b", "d", "y" })
+			Assert.Equal(
+				EmittedCode.Match(b, "Grammar", "TryParseStart", input).IsSuccess,
+				EmittedCode.Match(a, "Grammar", "TryParseStart", input).IsSuccess);
+	}
+
+	/// <summary>
+	/// A header that reaches a <c>with</c> whose operand calls back into the namespace from
+	/// outside it has no order to be specialized in, and is refused like a <c>with</c> cycle.
+	/// </summary>
+	[Fact]
+	public void A_header_and_a_with_that_reach_each_other_are_refused()
+	{
+		Refused(
+			GrammarNormalizer.CircularWith,
+			"""
+			B = 'b'
+			D = 'd'
 			Z = 'z'
 			Q = 'q'
 
 			namespace Ns with (B = D)
 			{
-				E = B
-				G = E & Z
-				H = G with (Z = Q)
+				F = B & Z
+				E = '[' & W & ']'
 			}
 
-			{{rule}}
+			W = Ns.F with (Z = Q)
+			R = Ns.E
 			parse R
-			""";
+			""");
+	}
+
+	/// <summary>
+	/// GRAM4014 for a <c>with</c> expression reads the rules the <c>with</c> actually replaces:
+	/// the header put <c>D</c>'s decimal in <c>B</c>'s place, and a decimal replacing <c>D</c>
+	/// fits there, as it does under <c>parse … with</c>.
+	/// </summary>
+	[Fact]
+	public void A_with_expressions_replacement_is_checked_against_what_the_header_put_in_place()
+	{
+		var result = CompileResolved(
+			"""
+			B : @int     = 'b' => @(1)
+			D : @decimal = 'd' => @(2m)
+			V : @decimal = 'v' => @(3m)
+
+			namespace Ns with (B = D)
+			{
+				E : B = B
+			}
+
+			R : @decimal = x: (Ns.E with (D = V)) => @(x)
+			parse R as ParseStart
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(3m, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "v").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "d").IsSuccess);
+	}
+
+	static string WithAndHeader(string rule, string publish = "parse R as ParseStart")
+	{
+		return "B = 'b'\nD = 'd'\n" + rule + "\n" + publish + "\n";
 	}
 
 	[Fact]

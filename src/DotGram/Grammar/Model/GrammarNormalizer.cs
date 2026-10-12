@@ -50,11 +50,6 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string CircularWith        = "GRAM4017";
 
-	/// <summary>
-	/// A <c>with</c> expression around a call into a namespace with a header, from outside it:
-	/// not supported yet, since the header would be lost.
-	/// </summary>
-	public const string WithIntoNamespace   = "GRAM4036";
 
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
@@ -172,13 +167,13 @@ public sealed partial class GrammarNormalizer
 
 		// All three before RewriteLeftRecursion(), for the reason already there — a
 		// clone's self-call must resolve to the clone before left-recursion rewriting
-		// runs. Expression-scoped `with` goes first: it mutates a rule's own body in
-		// place, and an enclosing `namespace (...)` clone of the same rule must see that
-		// mutation already applied. A publication's own `with` goes last, after
-		// `namespace (...)`, since it is the more locally written of the two and composes
-		// on top of whatever the namespace already did to the rule it publishes.
-		normalizer.SpecializeWithSites();
-		normalizer.SpecializeNamespaces();
+		// runs. Expression-scoped `with` and `namespace (...)` go in one dependency order:
+		// a `with` a namespace reaches before that namespace, which must see the mutation
+		// already applied, and a `with` around a call into a namespace after it, since it
+		// composes on top of the header. A publication's own `with` goes last, since it is
+		// the more locally written and composes on top of whatever the namespace already
+		// did to the rule it publishes.
+		normalizer.SpecializeWithSitesAndNamespaces();
 		normalizer.SpecializePublicationWith();
 
 		// After all three substitutions, so that what a condition reads is what this parser

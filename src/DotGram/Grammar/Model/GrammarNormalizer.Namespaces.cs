@@ -10,7 +10,7 @@ namespace DotGram.Grammar.Model;
 /// This is the whole of the feature — everything downstream (regions, `ExecutionPlan`,
 /// capture layout, materialization, emission) sees only a larger, ordinary
 /// <c>graph.Rules</c> and needs no idea a namespace was ever there. Also hosts the
-/// call-graph machinery <see cref="SpecializeWithSites"/> reuses for expression- and
+/// call-graph machinery <see cref="SpecializeWithGroup"/> reuses for expression- and
 /// publication-scoped `with`, and the §14 type-compatibility check shared by all three.
 /// </summary>
 public sealed partial class GrammarNormalizer
@@ -20,12 +20,25 @@ public sealed partial class GrammarNormalizer
 	IReadOnlyList<Publication> _publications = [];
 
 	/// <summary>
-	/// One pass per `namespace (...)` header, each computing its own affected set (§18
-	/// step 1) against its own fully-layered <see cref="GrammarNamespace.Rebindings"/>
-	/// and cloning independently — an inner header is never built on top of an outer
-	/// one's clones (§11).
+	/// Every `with` expression and every `namespace (...)` header, in one dependency order.
 	/// </summary>
-	void SpecializeNamespaces()
+	/// <remarks>
+	/// <para>
+	/// One pass per header, each computing its own affected set (§18 step 1) against its own
+	/// fully-layered <see cref="GrammarNamespace.Rebindings"/> and cloning independently — an
+	/// inner header is never built on top of an outer one's clones (§11). One pass per rule
+	/// that holds a `with` (<see cref="SpecializeWithGroup"/>).
+	/// </para>
+	/// <para>
+	/// A `with` a header's clones reach is specialized before that header, which must clone
+	/// the rule with the `with` already applied; a `with` whose operand calls into a namespace
+	/// with a header from outside it is specialized after that namespace, and composes on top
+	/// of its header, as a publication's own `with` does (§5.1). Where each wants the other
+	/// first there is no order, and the grammar is refused (GRAM4017), as two `with`s that
+	/// reach each other are.
+	/// </para>
+	/// </remarks>
+	void SpecializeWithSitesAndNamespaces()
 	{
 		_publications = _model.Publications;
 
@@ -33,15 +46,63 @@ public sealed partial class GrammarNormalizer
 
 		CollectSites(_model.Root, sites);
 
-		if (sites.Count == 0)
+		var groups = _pendingWith.GroupBy(site => site.Rule).ToList();
+
+		if (sites.Count == 0 && groups.Count == 0)
 			return;
 
-		var forward  = BuildCallGraph();
-		var calledBy = Reverse(forward);
-		var remap    = new Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>>();
+		var graph = BuildCallGraph();
 
-		foreach (var site in sites)
-			remap[site] = SpecializeSite(site, forward, calledBy);
+		// Before ordering, because a cycle is what has no order. Two rules whose sites
+		// reach each other cannot both be specialized against the other already specialized,
+		// and the walk below would settle it by whichever the loop met first — which is
+		// document order, and not an answer to anything.
+		if (groups.Count > 0 && RefuseCircularWith(groups, graph))
+			groups = [];
+
+		var order = InOneOrder(groups, sites, graph) ?? [.. sites];
+		var remap = new Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>>();
+
+		Dictionary<RuleSymbol, List<RuleSymbol>>? forward  = null;
+		Dictionary<RuleSymbol, List<RuleSymbol>>? calledBy = null;
+
+		foreach (var unit in order)
+		{
+			if (unit is GrammarNamespace site)
+			{
+				// Built once for every header that follows the last `with`, as it always
+				// was: the headers clone from the bodies as written, never from one another's
+				// clones (§11).
+				if (forward is null || calledBy is null)
+				{
+					forward  = BuildCallGraph();
+					calledBy = Reverse(forward);
+				}
+
+				remap[site] = SpecializeSite(site, forward, calledBy);
+
+				// A `with` after this header may replace a parameterized rule whose instance the
+				// header cloned, and has to know the clone for an instance of it.
+				if (groups.Count > 0)
+					foreach (var pair in remap[site])
+						if (_origins.TryGetValue(pair.Key, out var origin) && !_origins.ContainsKey(pair.Value))
+							_origins[pair.Value] = origin;
+
+				continue;
+			}
+
+			var group = (IGrouping<RuleSymbol, WithSite>)unit;
+
+			RetargetForWith(group, DeclaredClones(remap));
+			SpecializeWithGroup(group, remap);
+
+			// A `with` rewrites a body in place: a header after it reads the graph afresh.
+			forward  = null;
+			calledBy = null;
+		}
+
+		if (sites.Count == 0)
+			return;
 
 		var declared = DeclaredClones(remap);
 
@@ -196,6 +257,114 @@ public sealed partial class GrammarNormalizer
 				moved[pair.Key] = pair.Value;
 
 		return CloneAndRewrite(node, NoTargets, moved, "");
+	}
+
+	/// <summary>
+	/// The `with` rule-groups and the namespace sites, each after every one whose result it
+	/// reads; null where a namespace and a `with` each need the other first (reported).
+	/// </summary>
+	/// <remarks>
+	/// Where only one kind is present the order is the one each always had: the `with`s by
+	/// <see cref="OrderByDependency"/>, and the sites as written. Nothing is asked of a site's
+	/// reach then, so a grammar with no `with` expression is specialized exactly as before.
+	/// </remarks>
+	List<object>? InOneOrder(
+		List<IGrouping<RuleSymbol, WithSite>> groups,
+		List<GrammarNamespace> sites,
+		Dictionary<RuleSymbol, List<RuleSymbol>> graph)
+	{
+		var withs = groups.Count == 0 ? [] : OrderByDependency(groups, graph);
+
+		if (groups.Count == 0 || sites.Count == 0)
+			return [.. withs, .. sites];
+
+		var byRule  = groups.ToDictionary(group => group.Key);
+		var needs   = new Dictionary<object, List<object>>();
+
+		foreach (var group in groups)
+		{
+			var first = new List<object>();
+
+			foreach (var site in group)
+				foreach (var called in ReachableFromSeed(DirectCalls(site.Root), graph, site.Targets))
+					if (byRule.TryGetValue(called, out var other) && other != group && !first.Contains(other))
+						first.Add(other);
+
+			foreach (var (_, _, into) in CallsIntoSites(group, graph))
+				if (!first.Contains(into))
+					first.Add(into);
+
+			needs[group] = first;
+		}
+
+		foreach (var site in sites)
+		{
+			var reached = ReachableFromSeed(Seed(site), graph, site.Rebindings);
+
+			needs[site] = [.. groups.Where(group => reached.Contains(group.Key))];
+		}
+
+		bool Reaches(object from, object to)
+		{
+			var seen    = new HashSet<object>();
+			var pending = new Stack<object>([from]);
+
+			while (pending.Count > 0)
+			{
+				var unit = pending.Pop();
+
+				if (unit == to)
+					return true;
+
+				if (seen.Add(unit))
+					foreach (var next in needs[unit])
+						pending.Push(next);
+			}
+
+			return false;
+		}
+
+		var refused = false;
+
+		foreach (var site in sites)
+			foreach (IGrouping<RuleSymbol, WithSite> group in needs[site])
+				if (Reaches(group, site))
+				{
+					refused = true;
+
+					Report(
+						CircularWith,
+						$"'{group.Key.Name}' holds a 'with' that calls into namespace '{site.Name}' from " +
+						$"outside it, and the namespace's header reaches '{group.Key.Name}', so neither can " +
+						$"be specialized against the other already specialized. Write the rebinding inside " +
+						$"the namespace, or on a publication ('parse … with (…)').",
+						group.First().At);
+				}
+
+		if (refused)
+			return null;
+
+		var ordered = new List<object>(needs.Count);
+		var visited = new HashSet<object>();
+
+		void Visit(object unit)
+		{
+			if (!visited.Add(unit))
+				return;
+
+			foreach (var first in needs[unit])
+				Visit(first);
+
+			ordered.Add(unit);
+		}
+
+		foreach (var group in withs)
+			Visit(group);
+
+		foreach (var site in sites)
+			Visit(site);
+
+		return ordered;
 	}
 
 	static void CollectSites(GrammarNamespace ns, List<GrammarNamespace> sites)
@@ -690,6 +859,9 @@ public sealed partial class GrammarNormalizer
 				Sync = CloneAndRewrite(recovery.Sync, targets, cloneMap, siteName),
 				Factory = recovery.Factory is { } factory ? Renaming(factory) : null,
 			};
+
+		if (_watchedRoots is not null && _watchedRoots.Contains(node))
+			_movedRoots[node] = clone;
 
 		return clone;
 	}
