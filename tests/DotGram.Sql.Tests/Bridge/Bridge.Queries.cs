@@ -163,14 +163,31 @@ static partial class Bridge
 			if (upper is not ("XML" or "JSON") || options.Length == 0)
 				throw BridgeGap.Open(old, $"inventory Clause.For (FOR {kind})");
 
-			if (SqlTokens.Of(options[0]) is not [{ Kind: SqlTokens.Kind.Word } mode])
-				throw BridgeGap.Missing(old, "ForClause has no element name for RAW or PATH ('…') (proposal 1)");
+			// The mode, and RAW's or PATH's element name in brackets after it.
+			var (mode, element) = SqlTokens.Of(options[0]) switch
+			{
+				[{ Kind: SqlTokens.Kind.Word } word] => (word.Text.ToUpperInvariant(), (Ast.Expression?)null),
+				[{ Kind: SqlTokens.Kind.Word } word, { Text: "(" }, { Kind: SqlTokens.Kind.String } name, { Text: ")" }] => (word.Text.ToUpperInvariant(), Values.String(name.Text)),
+				_ => throw BridgeGap.Open(old, $"inventory Clause.For (a mode `{options[0]}`)"),
+			};
 
 			var rest = Each(options[1..], one => ForOption(old, one));
 
-			return upper == "XML"
-				? new Ast.ForClause.Xml(new Ast.Identifier(mode.Text), rest)
-				: new Ast.ForClause.Json(new Ast.Identifier(mode.Text), rest);
+			if (upper == "JSON")
+				return element is null && mode switch { "AUTO" => Ast.JsonMode.Auto, "PATH" => Ast.JsonMode.Path, _ => (Ast.JsonMode?)null } is { } json
+					? new Ast.ForClause.Json(json, rest)
+					: throw BridgeGap.Open(old, $"inventory Clause.For (FOR JSON {options[0]})");
+
+			Ast.XmlMode xml = mode switch
+			{
+				"RAW"      => Ast.XmlMode.Raw,
+				"AUTO"     => Ast.XmlMode.Auto,
+				"EXPLICIT" => Ast.XmlMode.Explicit,
+				"PATH"     => Ast.XmlMode.Path,
+				_          => throw BridgeGap.Open(old, $"inventory Clause.For (FOR XML {options[0]})"),
+			};
+
+			return new Ast.ForClause.Xml(xml, rest) { ElementName = element };
 		}
 
 		static Ast.Option ForOption(Clause old, string text)
@@ -190,47 +207,155 @@ static partial class Bridge
 			};
 		}
 
+		/// <summary>The query hints of several fixed words, by their words upper-cased.</summary>
+		static readonly Dictionary<string, Ast.QueryHintPhrase> Phrases = new(StringComparer.Ordinal)
+		{
+			["HASH GROUP"]                = Ast.QueryHintPhrase.HashGroup,
+			["ORDER GROUP"]               = Ast.QueryHintPhrase.OrderGroup,
+			["CONCAT UNION"]              = Ast.QueryHintPhrase.ConcatUnion,
+			["HASH UNION"]                = Ast.QueryHintPhrase.HashUnion,
+			["MERGE UNION"]               = Ast.QueryHintPhrase.MergeUnion,
+			["KEEP UNION"]                = Ast.QueryHintPhrase.KeepUnion,
+			["LOOP JOIN"]                 = Ast.QueryHintPhrase.LoopJoin,
+			["MERGE JOIN"]                = Ast.QueryHintPhrase.MergeJoin,
+			["HASH JOIN"]                 = Ast.QueryHintPhrase.HashJoin,
+			["EXPAND VIEWS"]              = Ast.QueryHintPhrase.ExpandViews,
+			["FORCE ORDER"]               = Ast.QueryHintPhrase.ForceOrder,
+			["FORCE SCALEOUTEXECUTION"]   = Ast.QueryHintPhrase.ForceScaleOutExecution,
+			["DISABLE SCALEOUTEXECUTION"] = Ast.QueryHintPhrase.DisableScaleOutExecution,
+			["KEEP PLAN"]                 = Ast.QueryHintPhrase.KeepPlan,
+			["KEEPFIXED PLAN"]            = Ast.QueryHintPhrase.KeepFixedPlan,
+			["ROBUST PLAN"]               = Ast.QueryHintPhrase.RobustPlan,
+		};
+
 		/// <summary>
-		/// One hint of <c>OPTION (…)</c>, which the old tree keeps as text.
+		/// One hint of <c>OPTION (…)</c>, which the old tree keeps as text, read into the family by its shape: words
+		/// fixed by the grammar, <c>USE HINT</c>, <c>USE PLAN</c>, <c>OPTIMIZE FOR</c>, <c>TABLE HINT</c>, and the rest
+		/// a name with its value.
 		/// </summary>
 		static Ast.QueryHint QueryHint(Clause old)
-		{
-			var (name, arguments) = Hint(old);
-
-			return new Ast.QueryHint.Named(name, arguments);
-		}
-
-		/// <summary>
-		/// A hint the old tree keeps as text, as a name and the values in its brackets: <c>RECOMPILE</c>,
-		/// <c>INDEX (ix, 2)</c>. Every other shape — <c>MAXDOP 2</c>, <c>HASH JOIN</c>, <c>INDEX = ix</c>,
-		/// <c>OPTIMIZE FOR (@v = 1)</c> — is not decided (proposal 9 names only the long tail's member).
-		/// </summary>
-		public static (Ast.Identifier Name, SqlList<Ast.Expression> Arguments) Hint(Clause old)
 		{
 			if (old is not Clause.Hint(var text))
 				throw BridgeGap.Open(old, "inventory Clause.Hint");
 
 			var tokens = SqlTokens.Of(text);
+			var words  = Words(text);
 
-			if (tokens is [{ Kind: SqlTokens.Kind.Word } bare] && bare.Text[0] is not ('@' or '#' or '$'))
-				return (new Ast.Identifier(bare.Text), []);
+			if (tokens is [{ Kind: SqlTokens.Kind.Word }, { Kind: SqlTokens.Kind.Word }] && Phrases.TryGetValue(words[0] + " " + words[1], out var phrase))
+				return new Ast.QueryHint.Phrase(phrase);
 
-			if (tokens is [{ Kind: SqlTokens.Kind.Word } name, { Text: "(" }, .., { Text: ")" }] && name.Text[0] is not ('@' or '#' or '$') && tokens.Count > 3)
+			switch (words)
 			{
-				var arguments = new List<Ast.Expression>();
+				case ["USE", "HINT", "(", .., ")"]:
+					return new Ast.QueryHint.UseHint([.. Split(tokens.Skip(3).Take(tokens.Count - 4).ToList()).Select(item => item is [{ Kind: SqlTokens.Kind.String } one]
+						? Values.String(one.Text)
+						: throw Unread(old))]);
 
-				foreach (var item in Split(tokens.Skip(2).Take(tokens.Count - 3).ToList()))
+				case ["USE", "PLAN", _] when tokens[2].Kind == SqlTokens.Kind.String:
+					return new Ast.QueryHint.UsePlan(Values.String(tokens[2].Text));
+
+				case ["OPTIMIZE", "FOR", "UNKNOWN"]:
+					return new Ast.QueryHint.OptimizeForUnknown();
+
+				case ["OPTIMIZE", "FOR", "(", .., ")"]:
+					return new Ast.QueryHint.OptimizeFor([.. Split(tokens.Skip(3).Take(tokens.Count - 4).ToList()).Select(item => item switch
+					{
+						[{ Kind: SqlTokens.Kind.Word } variable] when variable.Text.StartsWith('@') =>
+							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), null, false),
+						[{ Kind: SqlTokens.Kind.Word } variable, { Kind: SqlTokens.Kind.Word } unknown] when variable.Text.StartsWith('@') && unknown.Text.Equals("UNKNOWN", StringComparison.OrdinalIgnoreCase) =>
+							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), null, true),
+						[{ Kind: SqlTokens.Kind.Word } variable, { Text: "=" }, .. var value] when variable.Text.StartsWith('@') && value.Length > 0 =>
+							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), HintValue(old, value), false),
+						_ => throw Unread(old),
+					})]);
+
+				case ["OPTIMIZE", "FOR", ..]:
+					throw BridgeGap.Open(old, "inventory Clause.Hint (OPTIMIZE FOR a name, which the grammar reads and no record holds)");
+
+				case ["TABLE", "HINT", "(", .., ")"]:
 				{
-					if (item is not [var one] || HintArgument(old, one) is not { } value)
-						throw BridgeGap.Open(old, "inventory Clause.Hint (a hint that is not a name and the values in its brackets)");
+					var items = Split(tokens.Skip(3).Take(tokens.Count - 4).ToList());
 
-					arguments.Add(value);
+					if (items[0].Length == 0 || items[0].Any(static one => one.Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited) && one.Text != "."))
+						throw Unread(old);
+
+					return new Ast.QueryHint.ForTable(
+						Values.Name(old, string.Concat(items[0].Select(static one => one.Text))),
+						[.. items.Skip(1).Select(item => TableHintOf(old, item))]);
 				}
 
-				return (new Ast.Identifier(name.Text), [.. arguments]);
+				default:
+					var (name, arguments, form) = NamedHint(old, [.. tokens]);
+
+					return new Ast.QueryHint.Named(name, arguments) { Form = form };
+			}
+		}
+
+		/// <summary>
+		/// A table hint the old tree keeps as text: <c>FORCESEEK (ix (a, b))</c>, or a name with its values.
+		/// </summary>
+		public static Ast.TableHint TableHint(Clause old)
+		{
+			return old is Clause.Hint(var text)
+				? TableHintOf(old, [.. SqlTokens.Of(text)])
+				: throw BridgeGap.Open(old, "inventory Clause.Hint");
+		}
+
+		static Ast.TableHint TableHintOf(Clause old, SqlTokens.Token[] tokens)
+		{
+			if (tokens is [{ Kind: SqlTokens.Kind.Word } seek, { Text: "(" }, var index, { Text: "(" }, .., { Text: ")" }, { Text: ")" }]
+				&& seek.Text.Equals("FORCESEEK", StringComparison.OrdinalIgnoreCase))
+			{
+				var columns = Split(tokens.Skip(4).Take(tokens.Length - 6).ToList());
+
+				return new Ast.TableHint.ForceSeek(
+					HintArgument(old, index) ?? throw Unread(old),
+					[.. columns.Select(column => column is [{ Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited } one] ? Values.Part(old, one.Text) : throw Unread(old))]);
 			}
 
-			throw BridgeGap.Open(old, "inventory Clause.Hint (a hint that is not a name and the values in its brackets)");
+			var (name, arguments, form) = NamedHint(old, tokens);
+
+			return new Ast.TableHint.Named(name, arguments) { Form = form };
+		}
+
+		/// <summary>
+		/// A hint of one word and its values: none, in brackets (<c>INDEX (ix, 2)</c>), after it (<c>MAXDOP 2</c>), or
+		/// after <c>=</c> (<c>LABEL = 'x'</c>).
+		/// </summary>
+		static (Ast.Identifier Name, SqlList<Ast.Expression> Arguments, Ast.HintArgumentForm Form) NamedHint(Clause old, SqlTokens.Token[] tokens)
+		{
+			if (tokens is not [{ Kind: SqlTokens.Kind.Word } name, ..] || name.Text[0] is '@' or '#' or '$')
+				throw Unread(old);
+
+			var hint = new Ast.Identifier(name.Text);
+
+			return tokens switch
+			{
+				[_]                                   => (hint, [], Ast.HintArgumentForm.Brackets),
+				[_, { Text: "=" }, .. var value]      => (hint, [HintValue(old, value)], Ast.HintArgumentForm.Assigned),
+				[_, { Text: "(" }, .., { Text: ")" }] => (hint, [.. Split(tokens.Skip(2).Take(tokens.Length - 3).ToList()).Select(item => HintValue(old, item))], Ast.HintArgumentForm.Brackets),
+				[_, .. var value]                     => (hint, [HintValue(old, value)], Ast.HintArgumentForm.Bare),
+				_                                     => throw Unread(old),
+			};
+		}
+
+		/// <summary>A hint's value: one token, <c>NULL</c>, or a value the old grammar reads.</summary>
+		static Ast.Expression HintValue(Clause old, IReadOnlyList<SqlTokens.Token> tokens)
+		{
+			if (tokens is [var one] && HintArgument(old, one) is { } value)
+				return value;
+
+			var text = string.Join(" ", tokens.Select(static one => one.Text));
+			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSql("SELECT " + text);
+
+			return read.IsSuccess && read.Value is [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn(var expression, null)] } }]
+				? Values.Of(expression)
+				: throw Unread(old);
+		}
+
+		static BridgeGap Unread(Clause old)
+		{
+			return BridgeGap.Open(old, "inventory Clause.Hint (a hint of a shape the family does not hold)");
 		}
 
 		static Ast.Expression? HintArgument(Clause old, SqlTokens.Token token)
@@ -240,6 +365,7 @@ static partial class Bridge
 				SqlTokens.Kind.Number                                => new Ast.Expression.Literal(new Ast.LiteralValue.Numeric(token.Text, token.Text.All(char.IsDigit) ? Ast.NumericLiteralKind.DecimalInteger : Ast.NumericLiteralKind.Decimal)),
 				SqlTokens.Kind.String                                => Values.String(token.Text),
 				SqlTokens.Kind.Word when token.Text.StartsWith('@')  => new Ast.Expression.Variable(new Ast.Identifier(token.Text)),
+				SqlTokens.Kind.Word when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase) => new Ast.Expression.Literal(new Ast.LiteralValue.Null()),
 				SqlTokens.Kind.Word or SqlTokens.Kind.Delimited      => new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, token.Text)])),
 				_                                                    => null,
 			};

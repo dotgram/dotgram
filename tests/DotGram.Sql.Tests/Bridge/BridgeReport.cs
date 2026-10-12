@@ -74,12 +74,12 @@ static class BridgeReport
 		  type with no arguments — a `DataType.Named` of one part, or `sys` and a name, on the list of system types, a
 		  standard record written as a name (`WrittenName`), or an `nvarchar` with no length — where the standard has
 		  a user-defined type of the same name, or, for `timestamp`, its own TIMESTAMP.
-		- `GROUP BY ALL a`: the empty groups kept in T-SQL, the quantifier that changes nothing in the standard. A
-		  `GroupByClause` that is `AllKeyword`.
-		- `SELECT a INTO t`: a new table in T-SQL, a target in the standard. A `Query.Select`'s `Into` and
-		  `IntoTable` where the latter is set.
-		- `FROM t OPTION (h)`: a hint in T-SQL, an alias with columns in the standard. A statement's `Hints`, and
-		  the `Alias` of a source in a statement that has them.
+		- `GROUP BY ALL a`: the empty groups kept in T-SQL, the quantifier that changes nothing in the standard. The
+		  `Quantifier` and `AllKeyword` of a `GroupByClause` that is `AllKeyword`.
+		- `SELECT a INTO t`: a new table in T-SQL, a target in the standard. A `Query.Select`'s `IntoTable` with no
+		  filegroup, and its `Into` where the standard's one target names the same table.
+		- `FROM t OPTION (h)`: a hint in T-SQL, an alias with columns in the standard. A statement's `Hints`, and an
+		  `Alias` the standard reads the word OPTION as.
 
 		## Words read from the text
 

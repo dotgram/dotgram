@@ -174,6 +174,12 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT CAST (a AS money) FROM t WHERE b = 1", "SELECT CAST (a AS money) FROM t WHERE b = 2", BridgeOracle.TypeName, true)]
 	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 1, a) FROM t",    BridgeOracle.DatePart, false)]
 	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 2, a) FROM t",    BridgeOracle.DatePart, true)]
+	[InlineData("SELECT a FROM t GROUP BY ALL a",      "SELECT a FROM t GROUP BY ALL a",      BridgeOracle.GroupAll, false)]
+	[InlineData("SELECT a FROM t GROUP BY ALL a",      "SELECT a FROM t GROUP BY ALL b",      BridgeOracle.GroupAll, true)]
+	[InlineData("SELECT a INTO t FROM u",              "SELECT a INTO t FROM u",              BridgeOracle.Into, false)]
+	[InlineData("SELECT a INTO t FROM u",              "SELECT a INTO v FROM u",              BridgeOracle.Into, true)]
+	[InlineData("SELECT a AS x FROM t OPTION (RECOMPILE)", "SELECT a AS x FROM t OPTION (RECOMPILE)", BridgeOracle.Option, false)]
+	[InlineData("SELECT a AS x FROM t OPTION (RECOMPILE)", "SELECT a AS y FROM t OPTION (RECOMPILE)", BridgeOracle.Option, true)]
 	public void A_dialect_pattern_exempts_its_subtree_and_no_more(string bridged, string standard, string pattern, bool shape)
 	{
 		var made        = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(bridged), bridged);
@@ -309,6 +315,46 @@ public sealed class BridgeTests(ITestOutputHelper output)
 		};
 
 		Assert.True(holds, $"{text} built {value}");
+	}
+
+	/// <summary>
+	/// Which record the bridge builds for a query's T-SQL parts where another record would write the same text.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT * FROM @t AS x",                                  "TableSource.Variable")]
+	[InlineData("SELECT a FROM t GROUP BY ALL a",                         "GroupByClause.AllKeyword")]
+	[InlineData("SELECT a INTO t FROM u",                                 "Query.Select.IntoTable")]
+	[InlineData("SELECT * FROM OPENJSON (@j)",                            "TableSource.OpenJson")]
+	[InlineData("SELECT @v = a FROM t",                                   "SelectColumn.VariableAssignment")]
+	[InlineData("SELECT * FROM OPENXML (@h, '/r') WITH t2 x",             "TableSource.OpenXml.SchemaTable")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('p', 'i').db.dbo.t",       "TableSource.Named.DataSource")]
+	[InlineData("SELECT * FROM t PIVOT (SUM (a) FOR b IN ([1], [2])) p", "TableSource.Pivot")]
+	[InlineData("SELECT * FROM t UNPIVOT (v FOR c IN (a, b)) u",          "TableSource.Unpivot")]
+	[InlineData("SELECT * FROM t TABLESAMPLE (10)",                       "TableSource.Named.SampleMethodOmitted")]
+	[InlineData("SELECT * FROM OPENROWSET ('MSDASQL', 'srv'; 'u'; 'p', 'SELECT 1') r", "TableSource.OpenRowset.Connection")]
+	public void The_bridge_builds_the_query_record_the_text_means(string text, string expected)
+	{
+		var made   = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var select = (Ast.Query.Select)made.Query;
+		var source = select.From?.Sources[0];
+
+		var holds = expected switch
+		{
+			"TableSource.Variable"                  => source is Ast.TableSource.Variable { Name.Text: "@t", Alias.Name.Text: "x" },
+			"GroupByClause.AllKeyword"              => select.GroupBy is { AllKeyword: true, Quantifier: null },
+			"Query.Select.IntoTable"                => select is { Into: null, IntoTable.Table.Parts: [{ Text: "t" }] },
+			"TableSource.OpenJson"                  => source is Ast.TableSource.OpenJson { Schema: null, Path: null },
+			"SelectColumn.VariableAssignment"       => select.Columns is [Ast.SelectColumn.VariableAssignment { Variable.Text: "@v", Operator: Ast.AssignmentOperator.Assign }],
+			"TableSource.OpenXml.SchemaTable"       => source is Ast.TableSource.OpenXml { Schema: null, SchemaTable.Parts: [{ Text: "t2" }] },
+			"TableSource.Named.DataSource"          => source is Ast.TableSource.Named { DataSource: not null, Name.Parts.Count: 3 },
+			"TableSource.Pivot"                     => source is Ast.TableSource.Pivot { For.Text: "b", In: [{ Text: "[1]" }, { Text: "[2]" }], Alias.Name.Text: "p" },
+			"TableSource.Unpivot"                   => source is Ast.TableSource.Unpivot { Value.Text: "v", For.Text: "c", In: [{ Text: "a" }, { Text: "b" }], Alias.Name.Text: "u" },
+			"TableSource.Named.SampleMethodOmitted" => source is Ast.TableSource.Named { SampleMethodOmitted: true, SampleUnit: null, Sample: not null },
+			_                                       => source is Ast.TableSource.OpenRowset { Connection.Count: 3 }
+				&& Ast.Sql2023Writer.Write(made).Contains("'srv'; 'u'; 'p'", StringComparison.Ordinal),
+		};
+
+		Assert.True(holds, $"{text} built {made}");
 	}
 
 	/// <summary>

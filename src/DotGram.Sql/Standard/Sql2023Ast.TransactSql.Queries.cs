@@ -64,13 +64,13 @@ public abstract partial record TableSource
 	/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>t PIVOT (SUM (a) FOR b IN ([1], [2])) AS p</c>:
 	/// the source, the aggregate, the column whose values become columns, and those values as names.
 	/// </summary>
-	public sealed record Pivot(TableSource Source, Expression.Invocation Aggregate, Identifier For, SqlList<Identifier> In, Alias? Alias = null) : TableSource;
+	public sealed record Pivot(TableSource Source, Expression.Invocation Aggregate, Identifier For, SqlList<Identifier> In, Alias Alias) : TableSource;
 
 	/// <summary>
 	/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>t UNPIVOT (v FOR c IN (a, b)) AS u</c>: the
 	/// source, the column the values go to, the column their names go to, and the columns unpivoted.
 	/// </summary>
-	public sealed record Unpivot(TableSource Source, Identifier Value, Identifier For, SqlList<Identifier> In, Alias? Alias = null) : TableSource;
+	public sealed record Unpivot(TableSource Source, Identifier Value, Identifier For, SqlList<Identifier> In, Alias Alias) : TableSource;
 }
 
 public abstract partial record TableSource
@@ -105,10 +105,10 @@ public abstract partial record TableSource
 	public partial record Named
 	{
 		/// <summary>
-		/// T-SQL: OPENDATASOURCE (Transact-SQL). <c>OPENDATASOURCE ('provider', 'init').db.s.t</c>: the server
-		/// the name is looked up on, as a call of its two arguments.
+		/// T-SQL: OPENDATASOURCE (Transact-SQL). <c>OPENDATASOURCE ('provider', 'init').db.s.t</c>: the server the
+		/// name is looked up on, written before it.
 		/// </summary>
-		public Expression.Invocation? DataSource { get; init; }
+		public OpenDataSource? DataSource { get; init; }
 	}
 
 	/// <summary>
@@ -128,8 +128,9 @@ public abstract partial record TableSource
 
 	/// <summary>
 	/// T-SQL: OPENROWSET (Transact-SQL). <c>OPENROWSET ('provider', 'datasource'; 'user'; 'password', object)</c>,
-	/// or with a provider string in place of the three: <see cref="Connection"/> holds the one or the three.
-	/// <see cref="Object"/> is a name or a query's text.
+	/// or with a provider string in place of the three. <see cref="Connection"/> holds one item, the provider string,
+	/// or three, the data source, the user and the password; the writer refuses any other count. <see cref="Object"/>
+	/// is a name or a query's text.
 	/// </summary>
 	public sealed record OpenRowset(Expression Provider, SqlList<Expression> Connection, Expression Object, Alias? Alias = null) : TableSource;
 
@@ -141,9 +142,30 @@ public abstract partial record TableSource
 
 	/// <summary>
 	/// T-SQL: PREDICT (Transact-SQL). <c>PREDICT (MODEL = m, DATA = t AS d [, RUNTIME = ONNX]) WITH (…)</c>: the
-	/// model, the source scored with its alias, the runtime, and the columns the result adds.
+	/// model, the source scored with its alias, the runtime, and the columns the result adds — a name, a type, a
+	/// collation and <c>NOT NULL</c>, as the standard's column definition holds them, with no path.
 	/// </summary>
-	public sealed record Predict(Expression Model, TableSource Data, Identifier? Runtime, SqlList<RowsetColumn> Schema, Alias? Alias = null) : TableSource;
+	public sealed record Predict(Expression Model, TableSource Data, Identifier? Runtime, SqlList<ColumnDefinition> Schema, Alias? Alias = null) : TableSource;
+}
+
+/// <summary>
+/// T-SQL: OPENDATASOURCE (Transact-SQL). <c>OPENDATASOURCE ('provider', 'init')</c>: the provider and the string it
+/// is initialised with.
+/// </summary>
+public sealed record OpenDataSource(Expression Provider, Expression InitString) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+public abstract partial record SystemTimeSpecification
+{
+	/// <summary>T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>FOR SYSTEM_TIME CONTAINED IN (a, b)</c>.</summary>
+	public sealed record ContainedIn(Expression From, Expression To) : SystemTimeSpecification;
+
+	/// <summary>T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). <c>FOR SYSTEM_TIME ALL</c>.</summary>
+	public sealed record All : SystemTimeSpecification;
 }
 
 // Variables where a query names a table or assigns a value (docs/design/sql-tsql-tree.md, Decided: a variable

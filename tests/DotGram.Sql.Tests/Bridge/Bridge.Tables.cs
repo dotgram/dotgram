@@ -84,10 +84,10 @@ static partial class Bridge
 					if (Values.Of(aggregate) is not Ast.Expression.Invocation summed)
 						throw BridgeGap.Open(old, "inventory TableReference.Pivot (an aggregate that is not a call)");
 
-					return new Ast.TableSource.Pivot(Source(of), summed, Values.Part(old, column), Values.Parts(old, values), Closing(old, name));
+					return new Ast.TableSource.Pivot(Source(of), summed, Values.RotatedPart(old, column), Each(values, v => Values.RotatedPart(old, v)), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
 
 				case TableReference.Unpivot(var of, var value, var column, var values, var name):
-					return new Ast.TableSource.Unpivot(Source(of), Values.Part(old, value), Values.Part(old, column), Values.Parts(old, values), Closing(old, name));
+					return new Ast.TableSource.Unpivot(Source(of), Values.RotatedPart(old, value), Values.RotatedPart(old, column), Each(values, v => Values.RotatedPart(old, v)), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
 
 				case TableReference.OdbcJoin(var inner):
 					return new Ast.TableSource.OdbcJoin(Source(inner));
@@ -102,8 +102,16 @@ static partial class Bridge
 
 		static Ast.TableSource Named(TableReference.Named old)
 		{
-			var server = old.Server is null ? null : Values.Function(old.Server) as Ast.Expression.Invocation
-				?? throw BridgeGap.Open(old, "inventory TableReference.Named (an OPENDATASOURCE that is not a call)");
+			var server = old.Server switch
+			{
+				null => null,
+				{ Arguments: [var provider, var init] } => new Ast.OpenDataSource(Values.Of(provider), Values.Of(init)),
+				_ => throw BridgeGap.Open(old, "inventory TableReference.Named (an OPENDATASOURCE that is not a provider and a string)"),
+			};
+
+			// A hint against the sample, `TABLESAMPLE (10) (NOLOCK)`, and the old `WITH (0)`: decided not to be built.
+			if (old.Sample is not null && old.Hints.Length > 0 && Spelled(old) is { } text && !Words(text).Contains("WITH"))
+				throw BridgeGap.Open(old, "inventory Clause.Hint (a hint written against the sample)");
 
 			if (old.ForPath)
 				throw BridgeGap.Missing(old, "TableSource.Named has no FOR PATH (inventory TableReference.Named)");
@@ -113,12 +121,9 @@ static partial class Bridge
 				DataSource = server,
 				SystemTime = old.SystemTime is null ? null : SystemTime(old.SystemTime),
 				Alias      = Alias(old, null, old.Name, old.Columns),
-				Hints      = Each(old.Hints, static one =>
-				{
-					var (name, arguments) = Queries.Hint(one);
-
-					return (Ast.TableHint)new Ast.TableHint.Named(name, arguments);
-				}),
+				Hints      = Each(old.Hints, static one => one is Clause.Hint(var text) && SqlTokens.Of(text) is [{ Kind: SqlTokens.Kind.Number }]
+					? throw BridgeGap.Open(one, "inventory Clause.Hint (the old WITH (n))")
+					: Queries.TableHint(one)),
 			};
 
 			return old.Sample is null ? made : Sample(made, old.Sample);
@@ -195,7 +200,10 @@ static partial class Bridge
 			{
 				Expression.NamedArgument(var name, var value)                 => new Ast.Option(Values.Part(old, name), Values.Of(value), []),
 				Expression.ColumnReference(var word) when !word.Contains('.') => new Ast.Option(Values.Part(old, word), null, []),
-				Expression.RowsetOrder                                        => throw BridgeGap.Missing(old, "OpenRowsetBulk has no ORDER (…) UNIQUE among its options (proposal 7)"),
+				Expression.RowsetOrder(var by, var unique)                    => new Ast.Option(new Ast.Identifier("ORDER"), null, [])
+				{
+					Order = new Ast.RowOrder(Queries.Order(new Clause.OrderBy(by, null, null)).Items, unique),
+				},
 				_                                                             => throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (an OPENROWSET BULK option that is not a word or a value)"),
 			};
 		}
@@ -220,7 +228,42 @@ static partial class Bridge
 
 			var scored = new Ast.TableSource.Named(Values.Name(old, source)) { Alias = new Ast.Alias(Values.Part(old, named), null, written) };
 
-			return new Ast.TableSource.Predict(Values.Of(value), scored, runtime, Schema(old.Schema), alias);
+			return new Ast.TableSource.Predict(Values.Of(value), scored, runtime, Each(old.Schema, PredictColumn), alias);
+		}
+
+		/// <summary>
+		/// A column of PREDICT's <c>WITH (…)</c>, whose type the old tree keeps with its collation and nullability
+		/// after it: a name, a type, a collation and <c>NOT NULL</c>, as the standard's column definition holds them.
+		/// </summary>
+		static Ast.ColumnDefinition PredictColumn(Clause old)
+		{
+			if (old is not Clause.JsonColumn(var name, { } text, null, false, null))
+				throw BridgeGap.Open(old, "inventory Clause.JsonColumn (a PREDICT column)");
+
+			var words = Words(text);
+			var notNull = words is [.., "NOT", "NULL"];
+
+			if (!notNull && words is [.., "NULL"])
+				throw BridgeGap.Open(old, "inventory Clause.ColumnOption (an explicit NULL, decided with CREATE TABLE's column options)");
+
+			if (notNull)
+				text = text[..text.LastIndexOf("NOT", StringComparison.OrdinalIgnoreCase)].TrimEnd();
+
+			var (type, collation) = Collated(old, text);
+
+			return new Ast.ColumnDefinition(Values.Part(old, name), type, null, notNull ? [new Ast.Constraint.NotNull()] : [], collation);
+		}
+
+		/// <summary>
+		/// A type the old tree keeps with its <c>COLLATE</c> after it: the type, and the collation.
+		/// </summary>
+		static (Ast.DataType Type, Ast.CollationName? Collation) Collated(Clause old, string text)
+		{
+			var at = text.IndexOf(" COLLATE ", StringComparison.OrdinalIgnoreCase);
+
+			return at < 0
+				? (Values.Type(old, text), null)
+				: (Values.Type(old, text[..at].TrimEnd()), new Ast.CollationName(Values.Name(old, text[(at + " COLLATE ".Length)..].Trim())));
 		}
 
 		/// <summary>
@@ -233,15 +276,17 @@ static partial class Bridge
 				if (one is not Clause.JsonColumn(var name, var type, var path, var json, var ordinal) || type is null)
 					throw BridgeGap.Open(one, "inventory Clause.JsonColumn (a column without a type)");
 
+				var (typed, collation) = Collated(one, type);
+
 				return new Ast.RowsetColumn(
 					Values.Part(one, name),
-					Values.Type(one, type),
+					typed,
 					path,
 					json,
 					ordinal is null ? null
 						: !int.TryParse(ordinal, out var number) ? throw BridgeGap.Open(one, $"inventory Clause.JsonColumn (ordinal {ordinal})")
 						: number.ToString(System.Globalization.CultureInfo.InvariantCulture) != ordinal ? throw BridgeGap.Missing(one, "RowsetColumn.Ordinal is a number, and keeps no spelling of it such as `00`")
-						: number);
+						: number) { Collation = collation };
 			});
 		}
 
@@ -254,8 +299,14 @@ static partial class Bridge
 			if (name is null)
 				return null;
 
-			var said = Recover("Alias.AsKeyword of a table source", Spelled(old) is { } text ? text[(text.LastIndexOf(')') + 1)..] : null,
-				static text => Words(text) is ["AS", ..], false);
+			// The words after the rotation's last bracket, read as tokens: a bracket in a quoted alias is not one.
+			var said = Recover("Alias.AsKeyword of a table source", Spelled(old), static text =>
+			{
+				var tokens = SqlTokens.Of(text);
+				var close  = tokens.FindLastIndex(static one => one is { Kind: SqlTokens.Kind.Punctuation, Text: ")" });
+
+				return close >= 0 && close + 1 < tokens.Count && tokens[close + 1] is { Kind: SqlTokens.Kind.Word } word && word.Text.Equals("AS", StringComparison.OrdinalIgnoreCase);
+			}, false);
 
 			return new Ast.Alias(Values.Part(old, name), null, said);
 		}
@@ -308,6 +359,8 @@ static partial class Bridge
 				("AS OF", 1)   => new Ast.SystemTimeSpecification.AsOf(Values.Of(at[0])),
 				("BETWEEN", 2) => new Ast.SystemTimeSpecification.Between(Values.Of(at[0]), Values.Of(at[1]), null),
 				("FROM", 2)    => new Ast.SystemTimeSpecification.FromTo(Values.Of(at[0]), Values.Of(at[1])),
+				("CONTAINED IN", 2) => new Ast.SystemTimeSpecification.ContainedIn(Values.Of(at[0]), Values.Of(at[1])),
+				("ALL", 0)     => new Ast.SystemTimeSpecification.All(),
 				_              => throw BridgeGap.Missing(old, $"SystemTimeSpecification has no `{kind}` (inventory Clause.SystemTime)"),
 			};
 		}
