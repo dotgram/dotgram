@@ -726,7 +726,7 @@ static partial class Bridge
 		public static Ast.QualifiedName Name(object owner, string text)
 		{
 			if (text.StartsWith('@'))
-				throw BridgeGap.Open(owner, "Expression.Variable where a name stands: an assignment, a table source, EXEC (left open by task 2)");
+				throw BridgeGap.Missing(owner, "a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements");
 
 			var parts = new List<Ast.Identifier>();
 			var at    = 0;
@@ -794,7 +794,7 @@ static partial class Bridge
 		public static Ast.Identifier Part(object owner, string text)
 		{
 			if (text.StartsWith('@'))
-				throw BridgeGap.Open(owner, "Expression.Variable where a name stands: an assignment, a table source, EXEC (left open by task 2)");
+				throw BridgeGap.Missing(owner, "a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements");
 
 			if (text == "*")
 				throw BridgeGap.Open(owner, "inventory Expression.ColumnReference (`*` alone standing where a value does: CONTAINS, SEMANTICKEYPHRASETABLE)");
@@ -834,15 +834,15 @@ static partial class Bridge
 		public static readonly HashSet<string> StandardWords = new(StringComparer.OrdinalIgnoreCase)
 		{
 			"int", "integer", "smallint", "bigint", "dec", "decimal", "numeric", "float", "real", "char", "character",
-			"varchar", "nchar", "nvarchar", "binary", "varbinary", "date", "time", "json",
+			"varchar", "nchar", "nvarchar", "binary", "varbinary", "date", "time", "json", "xml",
 		};
 
 		/// <summary>
 		/// A data type the old tree keeps as text. On SQL Server a system type's name bracketed, quoted or qualified by
 		/// <c>sys</c> is the same type as the bare word. In order: a one-word standard spelling, bare or so written, is
 		/// the standard's record, with <c>WrittenName</c> unless it was bare (never <c>timestamp</c>, T-SQL's
-		/// rowversion); a standard spelling of several words, unbracketed, is the standard's record; a bare
-		/// <c>xml</c> is <see cref="Ast.DataType.Xml"/>; a name, or <c>sys</c> and a name, that is one of T-SQL's system
+		/// rowversion); a standard spelling of several words, unbracketed, is the standard's record; <c>xml</c>, bare
+		/// or so written, is <see cref="Ast.DataType.Xml"/>, with <c>WrittenName</c> unless it was bare; a name, or <c>sys</c> and a name, that is one of T-SQL's system
 		/// types is <see cref="Ast.DataType.Named"/>, its arguments numbers; a word or a bracketed <c>[max]</c> in the
 		/// brackets is a gap; and every other name is the standard's <see cref="Ast.DataType.UserDefined"/>.
 		/// </summary>
@@ -874,8 +874,9 @@ static partial class Bridge
 			if (system && StandardWords.Contains(last) && Standard(last.ToUpperInvariant(), arguments) is { } standard)
 				return bare ? standard : standard with { WrittenName = name };
 
-			if (bare && last.Equals("xml", StringComparison.OrdinalIgnoreCase))
-				return Xml(owner, text, inside);
+			// xml, however written, before the system types, so that `[xml]` is never Named.
+			if (system && last.Equals("xml", StringComparison.OrdinalIgnoreCase))
+				return bare ? Xml(owner, text, inside) : Xml(owner, text, inside) with { WrittenName = name };
 
 			if (system && SystemTypes.Contains(last))
 				return arguments.All(static one => one.Length > 0 && one.All(char.IsDigit))

@@ -93,7 +93,7 @@ public static partial class Sql2023Writer
 					return true;
 
 				case DataType.Xml xml:
-					Word("XML");
+					PutTypeName(xml, "XML");
 
 					if (xml.Schema is { } schema)
 					{

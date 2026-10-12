@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace DotGram.Sql.Ast;
@@ -226,6 +227,9 @@ public static partial class Sql2023Writer
 					if (binary.ZeroX == binary.Text.StartsWith("'", StringComparison.Ordinal))
 						throw Misplaced(binary, "Text", binary.ZeroX ? "in quotes on a 0x literal" : "without quotes on an X literal");
 
+					if (binary.ZeroX && !HexDigits(binary.Text))
+						throw Misplaced(binary, "Text", "that is not hex digits on a 0x literal");
+
 					Word(binary.ZeroX ? "0x" + binary.Text : "X" + binary.Text);
 					break;
 
@@ -337,7 +341,7 @@ public static partial class Sql2023Writer
 		static readonly HashSet<string> NamedKeyWords = new(StringComparer.OrdinalIgnoreCase)
 		{
 			"INT", "INTEGER", "SMALLINT", "BIGINT", "DEC", "DECIMAL", "NUMERIC", "FLOAT", "REAL", "CHAR", "CHARACTER",
-			"VARCHAR", "NCHAR", "NVARCHAR", "BINARY", "VARBINARY", "DATE", "TIME", "JSON",
+			"VARCHAR", "NCHAR", "NVARCHAR", "BINARY", "VARBINARY", "DATE", "TIME", "JSON", "XML",
 		};
 
 		/// <summary>
@@ -362,6 +366,31 @@ public static partial class Sql2023Writer
 			PutName(written);
 		}
 
+		/// <summary>
+		/// Whether a 0x literal's text is hex digits, perhaps broken by T-SQL's line continuation, a backslash and the
+		/// end of a line.
+		/// </summary>
+		static bool HexDigits(string text)
+		{
+			for (var at = 0; at < text.Length; at++)
+			{
+				if (Uri.IsHexDigit(text[at]))
+					continue;
+
+				if (text[at] != '\\')
+					return false;
+
+				if (at + 1 < text.Length && text[at + 1] == '\n')
+					at++;
+				else if (at + 2 < text.Length && text[at + 1] == '\r' && text[at + 2] == '\n')
+					at += 2;
+				else
+					return false;
+			}
+
+			return true;
+		}
+
 		/// <summary>A name part's text without its delimiters.</summary>
 		static string Unquoted(string text)
 		{
@@ -380,7 +409,7 @@ public static partial class Sql2023Writer
 			}
 
 			// T-SQL: the name of a type written as an identifier is only the name of a type the key word names.
-			if (type.WrittenName is not null && type is not (DataType.Character or DataType.Binary or DataType.Numeric or DataType.DateTime or DataType.Json))
+			if (type.WrittenName is not null && type is not (DataType.Character or DataType.Binary or DataType.Numeric or DataType.DateTime or DataType.Json or DataType.Xml))
 				throw Misplaced(type, "WrittenName", "on a type that is not written by a key word of one word");
 
 			switch (type)

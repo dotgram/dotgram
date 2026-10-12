@@ -300,11 +300,26 @@ static class BridgeOracle
 	/// <summary>
 	/// A T-SQL system type with no arguments where the standard reads a user-defined type of the same name: a
 	/// <c>Named</c> of one part, or <c>sys</c> and a name, on the list of system types; a standard record written as
-	/// a name (<c>WrittenName</c>); an <c>nvarchar</c> with no length. And T-SQL's <c>timestamp</c>, where the
+	/// a name (<c>WrittenName</c>) with no length, precision or schema; an <c>nvarchar</c> with no length; a bare
+	/// <c>xml</c> with no schema, never a <c>Named</c> one, which is never built. And T-SQL's <c>timestamp</c>, where the
 	/// standard reads its own TIMESTAMP.
 	/// </summary>
 	static bool TypeNamed(Trees.Diff difference)
 	{
+		// The standard's user-defined type has no arguments, and neither has a name it is held against.
+		static bool Bare(Ast.DataType type)
+		{
+			return type switch
+			{
+				Ast.DataType.Character one => one is { Length: null, Max: false },
+				Ast.DataType.Binary one    => one is { Length: null, Max: false },
+				Ast.DataType.Numeric one   => one is { Precision: null, Scale: null },
+				Ast.DataType.DateTime one  => one is { Precision: null },
+				Ast.DataType.Xml one       => one is { Modifier: null, Schema: null },
+				_                          => true,
+			};
+		}
+
 		if (difference is { Left: Ast.DataType.Named { Name.Parts: [var stamp], Arguments.Count: 0 }, Right: Ast.DataType.DateTime { Kind: Ast.DateTimeTypeKind.Timestamp } })
 			return Bridge.Values.Unquoted(stamp.Text).Equals("timestamp", StringComparison.OrdinalIgnoreCase);
 
@@ -319,15 +334,19 @@ static class BridgeOracle
 
 		static bool System(Ast.QualifiedName name)
 		{
-			return name.Parts.Count == 1 && Bridge.Values.SystemTypes.Contains(Bridge.Values.Unquoted(name.Parts[0].Text))
-				|| name.Parts.Count == 2 && Bridge.Values.Unquoted(name.Parts[0].Text).Equals("sys", StringComparison.OrdinalIgnoreCase)
-					&& Bridge.Values.SystemTypes.Contains(Bridge.Values.Unquoted(name.Parts[1].Text));
+			var last = Bridge.Values.Unquoted(name.Parts[^1].Text);
+
+			return !last.Equals("xml", StringComparison.OrdinalIgnoreCase)
+				&& Bridge.Values.SystemTypes.Contains(last)
+				&& (name.Parts.Count == 1 || name.Parts.Count == 2 && Bridge.Values.Unquoted(name.Parts[0].Text).Equals("sys", StringComparison.OrdinalIgnoreCase));
 		}
 
 		return difference.Left switch
 		{
 			Ast.DataType.Named { Arguments.Count: 0, Name: var name }                       => System(name) && Same(name, read),
-			Ast.DataType { WrittenName: { } written }                                       => Same(written, read),
+			Ast.DataType { WrittenName: { } written } type when Bare(type)                  => Same(written, read),
+			Ast.DataType.Xml { WrittenName: null, Modifier: null, Schema: null }            =>
+				read.Parts is [var word] && word.Text.Equals("xml", StringComparison.OrdinalIgnoreCase),
 			Ast.DataType.Character { Kind: Ast.CharacterTypeKind.Nvarchar, Length: null, Max: false } =>
 				read.Parts is [var part] && part.Text.Equals("nvarchar", StringComparison.OrdinalIgnoreCase),
 			_                                                                                => false,
