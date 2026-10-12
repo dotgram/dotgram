@@ -155,7 +155,7 @@ static class BridgeOracle
 	}
 
 	/// <summary>
-	/// The four constructs the two dialects read with different meanings. Each exempts one subtree of the
+	/// The six constructs the two dialects read with different meanings. Each exempts one subtree of the
 	/// bridge's tree, found by its construct and never by the statement's text:
 	/// <list type="bullet">
 	/// <item><c>TOP (n) a</c> is a row count in T-SQL, and the standard reads a call to <c>TOP</c> aliased <c>a</c>:
@@ -166,6 +166,10 @@ static class BridgeOracle
 	/// <c>CursorReference</c> that is <c>Global</c>.</item>
 	/// <item><c>FREETEXT ((c), …)</c> and <c>CONTAINS ((c), …)</c> take a column list in T-SQL, and a value in
 	/// brackets in the standard: the first argument of an invocation of either.</item>
+	/// <item><c>DATEADD (day, …)</c> takes a date part in T-SQL, and a column in the standard: an argument that is a
+	/// <c>DatePart</c>.</item>
+	/// <item><c>CAST (a AS money)</c> names one of T-SQL's own types, and a user-defined type in the standard: a
+	/// <c>DataType.Named</c>.</item>
 	/// </list>
 	/// A difference outside every exempted subtree is unexplained, and makes the statement a shape mismatch.
 	/// </summary>
@@ -190,8 +194,10 @@ static class BridgeOracle
 	public const string SetTc    = "SET t.c: a qualified column in T-SQL, a mutated set clause in the standard";
 	public const string Global   = "GLOBAL c: a cursor of the connection in T-SQL, an extended name in the standard";
 	public const string FullText = "FREETEXT ((c), ...): a column list in T-SQL, a value in brackets in the standard";
+	public const string DatePart = "DATEADD (day, ...): a date part in T-SQL, a column in the standard";
+	public const string TypeName = "CAST (a AS money): a type of T-SQL's own in T-SQL, a user-defined type in the standard";
 
-	public static readonly string[] Patterns = [Top, SetTc, Global, FullText];
+	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName];
 
 	/// <summary>
 	/// The pattern whose subtree a difference lies in, or null.
@@ -214,7 +220,17 @@ static class BridgeOracle
 				case Ast.Expression.Invocation { Name.Parts: [var name] } when step.Member == "Arguments" && step.Index == 0
 					&& (name.Text.Equals("FREETEXT", StringComparison.OrdinalIgnoreCase) || name.Text.Equals("CONTAINS", StringComparison.OrdinalIgnoreCase)):
 					return FullText;
+
+				case Ast.Argument { Value: Ast.Expression.DatePart }:
+					return DatePart;
+
+				case Ast.DataType.Named:
+					return TypeName;
 			}
+
+			// The type is the member the difference is in, where it is the node that differs.
+			if (step.Node.GetType().GetProperty(step.Member)?.GetValue(step.Node) is Ast.DataType.Named)
+				return TypeName;
 		}
 
 		return null;

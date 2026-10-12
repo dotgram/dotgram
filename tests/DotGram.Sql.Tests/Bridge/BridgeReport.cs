@@ -56,7 +56,7 @@ static class BridgeReport
 
 		## The shape check, and the dialects' different meanings
 
-		Every place the two trees differ is collected. A difference inside one of four subtrees, found by its
+		Every place the two trees differ is collected. A difference inside one of six subtrees, found by its
 		construct and never by the statement's text, is the two dialects reading the text with different meanings,
 		and is exempted (`BridgeOracle.Meaning`); any other difference makes the statement a **shape** mismatch.
 
@@ -68,6 +68,9 @@ static class BridgeReport
 		  that is `Global`.
 		- `FREETEXT ((c), …)`, `CONTAINS ((c), …)`: a column list in T-SQL, a value in brackets in the standard. The
 		  first argument of an invocation of either.
+		- `DATEADD (day, …)`: a date part in T-SQL, a column in the standard. An argument that is a `DatePart`.
+		- `CAST (a AS money)`: one of T-SQL's own types in T-SQL, a user-defined type in the standard. A
+		  `DataType.Named`.
 
 		## Words read from the text
 

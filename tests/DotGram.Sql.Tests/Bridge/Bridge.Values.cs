@@ -66,6 +66,9 @@ static partial class Bridge
 
 				Expression.In(var value, var not, var from) => new Ast.Expression.In(Of(value), not, InSource(old, from)),
 
+				Expression.Like(_, _, _, Expression.OdbcEscape) =>
+					throw BridgeGap.Missing(old, "Expression.Like has no flag for ODBC's `{ESCAPE …}` (proposal 15)"),
+
 				Expression.Like(var value, var not, var pattern, var escape) =>
 					new Ast.Expression.Like(Of(value), not, Ast.LikeKind.Like, Of(pattern), escape is null ? null : Of(escape)),
 
@@ -107,7 +110,7 @@ static partial class Bridge
 				Expression.Prefixed        => throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)"),
 				Expression.Pieced          => throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)"),
 				Expression.Measured        => throw BridgeGap.Unwritten(old, "Expression.Measured"),
-				Expression.OdbcEscape      => throw BridgeGap.Unwritten(old, "Expression.OdbcEscape"),
+				Expression.OdbcEscape escape => Odbc(escape),
 				Expression.Hinted          => throw BridgeGap.Open(old, "inventory Expression.Hinted"),
 				Expression.JsonPair        => throw BridgeGap.Open(old, "inventory Expression.JsonPair"),
 				Expression.NamedArgument   => throw BridgeGap.Open(old, "inventory Expression.NamedArgument"),
@@ -244,13 +247,13 @@ static partial class Bridge
 					return Special(old);
 
 				case SqlLiteralKind.Parameter when text.StartsWith('@'):
-					throw BridgeGap.Missing(old, "Expression.Variable for `@x` and `@@x` (decided 2026-09-15, not declared)");
+					return new Ast.Expression.Variable(new Ast.Identifier(text));
 
 				case SqlLiteralKind.Parameter when text == "?":
 					return new Ast.Expression.Parameter(Ast.ParameterKind.Dynamic);
 
 				case SqlLiteralKind.Hex:
-					throw BridgeGap.Missing(old, "LiteralValue.Binary has no flag for T-SQL's `0x` spelling (proposal 11)");
+					return Value(new Ast.LiteralValue.Binary(text) { ZeroX = true });
 
 				case SqlLiteralKind.Bit:
 					throw BridgeGap.Missing(old, "a bit string literal, which SQL:2023 removed");
@@ -304,14 +307,6 @@ static partial class Bridge
 		// ── Functions ─────────────────────────────────────────────────────────────
 
 		/// <summary>
-		/// The built-ins whose arguments are not all values, which proposal 12 gives typed nodes not yet declared.
-		/// </summary>
-		static readonly HashSet<string> Typed = new(StringComparer.OrdinalIgnoreCase)
-		{
-			"CONVERT", "TRY_CONVERT", "TRY_CAST", "PARSE", "TRY_PARSE",
-		};
-
-		/// <summary>
 		/// The JSON functions the standard has nodes of its own for, which T-SQL's old tree reads as calls.
 		/// </summary>
 		static readonly HashSet<string> Json = new(StringComparer.OrdinalIgnoreCase)
@@ -332,14 +327,53 @@ static partial class Bridge
 
 		public static Ast.Expression Function(Expression.RoutineInvocation old)
 		{
-			var name = old.Name;
+			var name  = old.Name;
+			var upper = name.ToUpperInvariant();
 
-			if (name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
+			// `CAST (DISTINCT 1)` reads, as any call does, with a quantifier where the type would stand.
+			var type = old.Word is { } word && word.ToUpperInvariant() is not ("DISTINCT" or "ALL" or "*") ? word : null;
+
+			if (upper is "CAST" or "TRY_CAST" && type is not null)
 			{
-				if (old.Arguments.Length != 1 || old.Word is null)
+				if (old.Arguments.Length != 1)
 					throw BridgeGap.Open(old, "inventory Expression.RoutineInvocation (a CAST that is not one value and a type)");
 
-				return new Ast.Expression.Cast(Of(old.Arguments[0]), Type(old, old.Word));
+				return new Ast.Expression.Cast(Of(old.Arguments[0]), Type(old, type)) { Try = upper == "TRY_CAST" };
+			}
+
+			// `[TRY_]CONVERT (type, value [, style])`: the type is the old call's word, and the arguments are the rest.
+			if (upper is "CONVERT" or "TRY_CONVERT" && type is not null)
+			{
+				if (old.Arguments.Length is < 1 or > 2)
+					throw BridgeGap.Open(old, "inventory Expression.RoutineInvocation (a CONVERT that is not a type, a value and a style)");
+
+				return new Ast.Expression.Convert(
+					Type(old, type),
+					Of(old.Arguments[0]),
+					old.Arguments.Length > 1 ? Of(old.Arguments[1]) : null,
+					upper == "TRY_CONVERT");
+			}
+
+			// `[TRY_]PARSE (value AS type [USING culture])`: the culture is the second argument.
+			if (upper is "PARSE" or "TRY_PARSE" && type is not null)
+			{
+				if (old.Arguments.Length is < 1 or > 2)
+					throw BridgeGap.Open(old, "inventory Expression.RoutineInvocation (a PARSE that is not a value, a type and a culture)");
+
+				return new Ast.Expression.Parse(
+					Of(old.Arguments[0]),
+					Type(old, type),
+					old.Arguments.Length > 1 ? Of(old.Arguments[1]) : null,
+					upper == "TRY_PARSE");
+			}
+
+			// `NEXT VALUE FOR s`: the sequence is the old call's word.
+			if (Words(name) is ["NEXT", "VALUE", "FOR"])
+			{
+				if (old.Arguments.Length != 0 || old.Word is null)
+					throw BridgeGap.Open(old, "inventory Expression.RoutineInvocation (a NEXT VALUE FOR without its sequence)");
+
+				return new Ast.Expression.NextValue(Name(old, old.Word));
 			}
 
 			if (name.Equals("AT TIME ZONE", StringComparison.OrdinalIgnoreCase))
@@ -356,14 +390,8 @@ static partial class Bridge
 			if (Json.Contains(name))
 				throw BridgeGap.Open(old, "inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes)");
 
-			if (Typed.Contains(name))
-				throw BridgeGap.Missing(old, $"a typed node for {name.ToUpperInvariant()} (proposal 12)");
-
-			if (name.StartsWith("NEXT VALUE FOR", StringComparison.OrdinalIgnoreCase))
-				throw BridgeGap.Missing(old, "NextValue with a window (proposal 12)");
-
-			if (Syntax.IsDatePartFunction(name.ToUpperInvariant()))
-				throw BridgeGap.Missing(old, "a date part argument (proposal 12)");
+			if (Syntax.IsDatePartFunction(upper) && old.Word is null)
+				return DatePart(old);
 
 			if (old.Arguments.Length == 0 && old.Word is null && Niladic.TryGetValue(name, out var current))
 				return new Ast.Expression.Current(current);
@@ -402,6 +430,36 @@ static partial class Bridge
 		}
 
 		/// <summary>
+		/// A call whose first argument is a date part, <c>DATEADD (day, 1, d)</c>: the old tree reads the part as
+		/// a column, and the new one as the <see cref="Ast.Expression.DatePart"/> it is.
+		/// </summary>
+		static Ast.Expression DatePart(Expression.RoutineInvocation old)
+		{
+			if (old.Arguments is not [Expression.ColumnReference(var part), ..] || part.Contains('.'))
+				throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({old.Name} without a date part)");
+
+			return new Ast.Expression.Invocation(
+				Name(old, old.Name),
+				[new Ast.Argument(new Ast.Expression.DatePart(Part(old, part))), .. old.Arguments.Skip(1).Select(Argument)]);
+		}
+
+		/// <summary>
+		/// An ODBC escape, <c>{fn LEFT (a, 2)}</c>, <c>{d '2026-09-26'}</c>. A function inside one is ODBC's and
+		/// not T-SQL's — <c>{fn CONVERT (a, SQL_INTEGER)}</c> names its type as ODBC does — so it is a plain call.
+		/// </summary>
+		static Ast.Expression Odbc(Expression.OdbcEscape old)
+		{
+			if (old.Kind.Length == 0)
+				throw BridgeGap.Open(old, "inventory Expression.OdbcEscape (an escape without its kind)");
+
+			var value = old.Value is Expression.RoutineInvocation { Word: null } call
+				? new Ast.Expression.Invocation(Name(call, call.Name), Each(call.Arguments, Argument))
+				: Of(old.Value);
+
+			return new Ast.Expression.OdbcEscape(Part(old, old.Kind), value, old.Called);
+		}
+
+		/// <summary>
 		/// T-SQL's <c>TRIM ([LEADING | TRAILING | BOTH] [characters FROM] string)</c>, which the old tree keeps as
 		/// a call with the specification as its word: two arguments are the characters and the string, and
 		/// <c>FROM</c> stood between them; one is the string, and <c>FROM</c> stood before it where the text says.
@@ -437,21 +495,61 @@ static partial class Bridge
 
 		static Ast.Expression Windowed(Expression.WindowFunction old)
 		{
-			// The words between the call and its window are text in the old tree: a null treatment is two words,
-			// and WITHIN GROUP holds an order the text would have to be read again for.
-			Ast.NullTreatment? nulls = old.Within is null ? null : Words(old.Within) switch
+			if (old.Function is Expression.RoutineInvocation sequence && Function(sequence) is Ast.Expression.NextValue next)
 			{
-				["IGNORE", "NULLS"]  => Ast.NullTreatment.IgnoreNulls,
-				["RESPECT", "NULLS"] => Ast.NullTreatment.RespectNulls,
-				_                    => throw BridgeGap.Open(old, "inventory Expression.WindowFunction (WITHIN GROUP kept as text)"),
-			};
+				// `NEXT VALUE FOR s OVER (ORDER BY …)`: a specification, never a window's name.
+				if (old.Within is not null || old.Over is not Clause.Window window)
+					throw BridgeGap.Open(old, "inventory Expression.WindowFunction (NEXT VALUE FOR over something that is not a window)");
+
+				return next with { Over = Specification(window) };
+			}
+
+			// The words between the call and its window are text in the old tree: a null treatment is two words,
+			// and WITHIN GROUP an order, which is read again as the old tree reads one.
+			Ast.NullTreatment? nulls = null;
+			Ast.WithinGroupClause? within = null;
+
+			if (old.Within is { } text)
+			{
+				switch (Words(text))
+				{
+					case ["IGNORE", "NULLS"]:
+						nulls = Ast.NullTreatment.IgnoreNulls;
+						break;
+
+					case ["RESPECT", "NULLS"]:
+						nulls = Ast.NullTreatment.RespectNulls;
+						break;
+
+					case ["WITHIN", "GROUP", "(", "ORDER", "BY", .., ")"]:
+						within = new Ast.WithinGroupClause(Ordering(old, text[(text.IndexOf('(') + 1)..text.LastIndexOf(')')]));
+						break;
+
+					default:
+						throw BridgeGap.Open(old, $"inventory Expression.WindowFunction (the words `{text}` before its window)");
+				}
+			}
 
 			if (old.Function is not Expression.RoutineInvocation call || Function(call) is not Ast.Expression.Invocation invocation)
 				throw BridgeGap.Open(old, "inventory Expression.WindowFunction (a window over something that is not a call)");
 
-			invocation = invocation with { Nulls = nulls };
+			invocation = invocation with { Nulls = nulls, WithinGroup = within };
 
 			return old.Over is null ? invocation : invocation with { Over = Window(old.Over) };
+		}
+
+		/// <summary>
+		/// An <c>ORDER BY …</c> the old tree keeps as text, read by the old grammar as a query's own order, and
+		/// carried as that order is.
+		/// </summary>
+		static Ast.OrderByClause Ordering(object owner, string text)
+		{
+			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSql("SELECT 1 " + text);
+
+			if (read.IsSuccess && read.Value is [Statement.Select { OrderBy: Clause.OrderBy { Offset: null, Fetch: null } by }])
+				return Queries.Order(by);
+
+			throw BridgeGap.Open(owner, $"inventory Expression.WindowFunction (an order `{text}` that does not read)");
 		}
 
 		/// <summary>
@@ -472,9 +570,6 @@ static partial class Bridge
 
 		public static Ast.WindowSpecification Specification(Clause.Window window)
 		{
-			if (window.Frame is not null)
-				throw BridgeGap.Open(window, "inventory Clause.Window (the frame kept as text)");
-
 			Ast.OrderByClause? order = null;
 
 			if (window.By is Clause.OrderBy by)
@@ -489,7 +584,75 @@ static partial class Bridge
 				window.Name is { } name ? Part(window, name) : null,
 				Each(window.PartitionBy, Of),
 				order,
-				null);
+				window.Frame is { } frame ? Frame(window, frame) : null);
+		}
+
+		/// <summary>
+		/// A window's frame, which the old tree keeps as text: <c>ROWS BETWEEN UNBOUNDED PRECEDING AND 2 FOLLOWING</c>.
+		/// T-SQL's frame is <c>ROWS</c> or <c>RANGE</c>, one bound or two, and an offset that is a number.
+		/// </summary>
+		static Ast.WindowFrame Frame(Clause.Window window, string text)
+		{
+			var words = Words(text);
+			var at    = 0;
+
+			string? Next()
+			{
+				return at < words.Length ? words[at++] : null;
+			}
+
+			Ast.WindowFrameBound Bound()
+			{
+				var first = Next();
+
+				switch (first, Next())
+				{
+					case ("UNBOUNDED", "PRECEDING"):
+						return new Ast.WindowFrameBound(Ast.WindowBoundKind.UnboundedPreceding);
+
+					case ("UNBOUNDED", "FOLLOWING"):
+						return new Ast.WindowFrameBound(Ast.WindowBoundKind.UnboundedFollowing);
+
+					case ("CURRENT", "ROW"):
+						return new Ast.WindowFrameBound(Ast.WindowBoundKind.CurrentRow);
+
+					case ({ } number, { } side) when side is "PRECEDING" or "FOLLOWING" && number.All(char.IsDigit):
+						return new Ast.WindowFrameBound(
+							side == "PRECEDING" ? Ast.WindowBoundKind.Preceding : Ast.WindowBoundKind.Following,
+							Value(new Ast.LiteralValue.Numeric(number, Ast.NumericLiteralKind.DecimalInteger)));
+
+					default:
+						throw BridgeGap.Open(window, $"inventory Clause.Window (a frame `{text}`)");
+				}
+			}
+
+			var unit = Next() switch
+			{
+				"ROWS"  => Ast.WindowFrameUnit.Rows,
+				"RANGE" => Ast.WindowFrameUnit.Range,
+				_       => throw BridgeGap.Open(window, $"inventory Clause.Window (a frame `{text}`)"),
+			};
+
+			Ast.WindowFrameExtent extent;
+
+			if (at < words.Length && words[at] == "BETWEEN")
+			{
+				at++;
+
+				var from = Bound();
+
+				if (Next() != "AND")
+					throw BridgeGap.Open(window, $"inventory Clause.Window (a frame `{text}`)");
+
+				extent = new Ast.WindowFrameExtent.Between(from, Bound());
+			}
+			else
+				extent = new Ast.WindowFrameExtent.Single(Bound());
+
+			if (at != words.Length)
+				throw BridgeGap.Open(window, $"inventory Clause.Window (a frame `{text}`)");
+
+			return new Ast.WindowFrame(unit, extent, null, null);
 		}
 
 		// ── Names ─────────────────────────────────────────────────────────────────
@@ -501,7 +664,7 @@ static partial class Bridge
 		public static Ast.QualifiedName Name(object owner, string text)
 		{
 			if (text.StartsWith('@'))
-				throw BridgeGap.Missing(owner, "Expression.Variable for `@x` and `@@x` (decided 2026-09-15, not declared)");
+				throw BridgeGap.Open(owner, "Expression.Variable where a name stands: an assignment, a table source, EXEC (left open by task 2)");
 
 			var parts = new List<Ast.Identifier>();
 			var at    = 0;
@@ -557,7 +720,7 @@ static partial class Bridge
 		public static Ast.Identifier Part(object owner, string text)
 		{
 			if (text.StartsWith('@'))
-				throw BridgeGap.Missing(owner, "Expression.Variable for `@x` and `@@x` (decided 2026-09-15, not declared)");
+				throw BridgeGap.Open(owner, "Expression.Variable where a name stands: an assignment, a table source, EXEC (left open by task 2)");
 
 			if (text == "*")
 				throw BridgeGap.Open(owner, "inventory Expression.ColumnReference (`t.*` standing where a value does)");
@@ -578,59 +741,71 @@ static partial class Bridge
 		// ── Data types ────────────────────────────────────────────────────────────
 
 		/// <summary>
-		/// A data type the old tree keeps as text, where it is a spelling the new <see cref="Ast.DataType"/>
-		/// already has. The rest — <c>tinyint</c>, <c>datetime2</c>, <c>nvarchar</c>, <c>[int]</c>,
-		/// T-SQL's <c>timestamp</c> — is <c>DataType.Named</c> (proposal 14), which is not declared.
+		/// A data type the old tree keeps as text. A spelling the standard has is the standard's type; <c>xml</c>
+		/// is <see cref="Ast.DataType.Xml"/>; a name of several parts with nothing in brackets is the standard's
+		/// <see cref="Ast.DataType.UserDefined"/>; and everything else — <c>tinyint</c>, <c>datetime2 (7)</c>,
+		/// <c>nvarchar (MAX)</c>, <c>[int]</c>, <c>int (10)</c>, T-SQL's <c>timestamp</c> — is
+		/// <see cref="Ast.DataType.Named"/>, a name and what was written in its brackets (proposal 14).
 		/// </summary>
 		public static Ast.DataType Type(object owner, string text)
 		{
 			var open  = text.IndexOf('(');
-			var words = string.Join(' ', (open < 0 ? text : text[..open]).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
+			var head  = (open < 0 ? text : text[..open]).Trim();
+			var words = string.Join(' ', head.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
 			var tail  = open < 0 ? "" : text[open..].Trim();
 
-			string[] arguments = [];
+			if (tail.Length > 0 && (!tail.EndsWith(')') || tail.IndexOf(')') != tail.Length - 1))
+				throw BridgeGap.Open(owner, $"inventory DataType (a type `{text}` whose brackets do not close it)");
 
-			if (tail.Length > 0)
-			{
-				if (!tail.EndsWith(')') || tail.IndexOf(')') != tail.Length - 1)
-					throw BridgeGap.Missing(owner, $"DataType.Named for `{text}` (proposal 14)");
+			var inside    = tail.Length > 0 ? tail[1..^1].Trim() : "";
+			var arguments = tail.Length > 0 ? inside.Split(',').Select(static one => one.Trim()).ToArray() : [];
 
-				arguments = [.. tail[1..^1].Split(',').Select(static one => one.Trim().ToUpperInvariant())];
-			}
+			if (words == "XML")
+				return Xml(owner, text, inside);
+
+			return Standard(words, arguments) ?? Named(owner, text, head, arguments);
+		}
+
+		/// <summary>
+		/// The standard's type a T-SQL spelling is, or null where the standard has no such spelling or not with
+		/// those arguments.
+		/// </summary>
+		static Ast.DataType? Standard(string words, string[] arguments)
+		{
+			var upper = arguments.Select(static one => one.ToUpperInvariant()).ToArray();
+			var valid = true;
 
 			int? Number(int at)
 			{
-				if (arguments.Length <= at)
+				if (upper.Length <= at)
 					return null;
 
-				return int.TryParse(arguments[at], out var value) ? value : throw BridgeGap.Missing(owner, $"DataType.Named for `{text}` (proposal 14)");
+				if (int.TryParse(upper[at], out var value))
+					return value;
+
+				valid = false;
+
+				return null;
 			}
 
-			void Arity(int most)
+			Ast.DataType? Checked(Ast.DataType type, int most)
 			{
-				if (arguments.Length > most)
-					throw BridgeGap.Missing(owner, $"DataType.Named for `{text}` (proposal 14)");
+				return valid && upper.Length <= most ? type : null;
 			}
 
-			Ast.DataType Numeric(Ast.NumericTypeKind kind, int most)
+			Ast.DataType? Numeric(Ast.NumericTypeKind kind, int most)
 			{
-				Arity(most);
-
-				return new Ast.DataType.Numeric(kind, Number(0), Number(1));
+				return Checked(new Ast.DataType.Numeric(kind, Number(0), Number(1)), most);
 			}
 
-			Ast.DataType Character(Ast.CharacterTypeKind kind)
+			Ast.DataType? Character(Ast.CharacterTypeKind kind)
 			{
-				Arity(1);
-
-				return arguments is ["MAX"] ? new Ast.DataType.Character(kind, Max: true) : new Ast.DataType.Character(kind, Number(0));
+				return upper is ["MAX"] ? new Ast.DataType.Character(kind, Max: true) : Checked(new Ast.DataType.Character(kind, Number(0)), 1);
 			}
 
-			Ast.DataType Binary(Ast.BinaryTypeKind kind)
+			Ast.DataType? Binary(Ast.BinaryTypeKind kind)
 			{
-				Arity(1);
-
-				return arguments is ["MAX"] ? new Ast.DataType.Binary(kind, Max: true) : new Ast.DataType.Binary(kind, Number(0));
+				return upper is ["MAX"] ? new Ast.DataType.Binary(kind, Max: true) : Checked(new Ast.DataType.Binary(kind, Number(0)), 1);
 			}
 
 			return words switch
@@ -659,10 +834,65 @@ static partial class Bridge
 				"BINARY"                     => Binary(Ast.BinaryTypeKind.Binary),
 				"BINARY VARYING"             => Binary(Ast.BinaryTypeKind.BinaryVarying),
 				"VARBINARY"                  => Binary(Ast.BinaryTypeKind.Varbinary),
-				"DATE" when arguments.Length == 0 => new Ast.DataType.DateTime(Ast.DateTimeTypeKind.Date),
-				"TIME" when arguments.Length <= 1 => new Ast.DataType.DateTime(Ast.DateTimeTypeKind.Time, Number(0)),
-				_                            => throw BridgeGap.Missing(owner, $"DataType.Named for `{text}` (proposal 14)"),
+				"DATE"                       => Checked(new Ast.DataType.DateTime(Ast.DateTimeTypeKind.Date), 0),
+				"TIME"                       => Checked(new Ast.DataType.DateTime(Ast.DateTimeTypeKind.Time, Number(0)), 1),
+				"JSON"                       => Checked(new Ast.DataType.Json(), 0),
+				_                            => null,
 			};
+		}
+
+		/// <summary>
+		/// <c>xml</c>, and what its brackets say: <c>CONTENT</c> or <c>DOCUMENT</c>, and the schema collection.
+		/// </summary>
+		static Ast.DataType Xml(object owner, string text, string inside)
+		{
+			if (inside.Length == 0)
+				return new Ast.DataType.Xml();
+
+			var first = inside.Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries);
+
+			Ast.XmlContent? content = first[0].ToUpperInvariant() switch
+			{
+				"CONTENT"  => Ast.XmlContent.Content,
+				"DOCUMENT" => Ast.XmlContent.Document,
+				_          => null,
+			};
+
+			var schema = content is null ? inside : first.Length > 1 ? first[1].Trim() : "";
+
+			if (schema.Length == 0 || schema.Any(char.IsWhiteSpace))
+				throw BridgeGap.Open(owner, $"inventory DataType (an xml type `{text}`)");
+
+			return new Ast.DataType.Xml(content, Name(owner, schema));
+		}
+
+		/// <summary>
+		/// A type the standard does not spell. A name of several parts with nothing in brackets is the
+		/// standard's user-defined type; any other is <see cref="Ast.DataType.Named"/>, its arguments numbers
+		/// and words as written.
+		/// </summary>
+		static Ast.DataType Named(object owner, string text, string head, string[] arguments)
+		{
+			if (head.Length == 0 || Words(head).Length != 1 && !head.Contains('.'))
+				throw BridgeGap.Open(owner, $"inventory DataType (a type `{text}` of several words)");
+
+			var name = Name(owner, head);
+
+			if (name.Parts.Count > 1 && arguments.Length == 0)
+				return new Ast.DataType.UserDefined(name);
+
+			return new Ast.DataType.Named(name, [.. arguments.Select(one => TypeArgument(owner, text, one))]);
+		}
+
+		static Ast.Expression TypeArgument(object owner, string text, string argument)
+		{
+			if (argument.Length > 0 && argument.All(char.IsDigit))
+				return Value(new Ast.LiteralValue.Numeric(argument, Ast.NumericLiteralKind.DecimalInteger));
+
+			if (Words(argument) is [var word] && (char.IsLetter(word[0]) || word[0] == '_'))
+				return new Ast.Expression.Reference(new Ast.QualifiedName([Part(owner, argument)]));
+
+			throw BridgeGap.Open(owner, $"inventory DataType (an argument `{argument}` of `{text}`)");
 		}
 
 		/// <summary>

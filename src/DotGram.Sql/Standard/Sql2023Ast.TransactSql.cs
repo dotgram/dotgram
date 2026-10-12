@@ -252,6 +252,93 @@ public abstract partial record Expression
 	/// the grammar has read them all and the set is known to be closed.
 	/// </remarks>
 	public sealed record OdbcEscape(Identifier Kind, Expression Value, bool Called) : Expression;
+
+	/// <summary>
+	/// T-SQL: DECLARE @local_variable (Transact-SQL). A variable standing where a value does: a local <c>@x</c>
+	/// or a system <c>@@x</c>.
+	/// </summary>
+	/// <remarks>
+	/// The identifier's text holds the <c>@</c> or the <c>@@</c>, as <c>#t</c>'s text holds its <c>#</c>
+	/// (proposal 10): in T-SQL the sign is part of the name's token, so it is part of the name, and one record
+	/// serves both. Not <see cref="Parameter"/>, the standard's <c>:x</c> and <c>?</c>, whose name leaves its
+	/// colon out.
+	/// </remarks>
+	public sealed record Variable(Identifier Name) : Expression;
+
+	/// <summary>
+	/// T-SQL: CAST and CONVERT (Transact-SQL), TRY_CONVERT (Transact-SQL).
+	/// <c>[TRY_]CONVERT (type, value [, style])</c>.
+	/// </summary>
+	public sealed record Convert(DataType Type, Expression Value, Expression? Style = null, bool Try = false) : Expression;
+
+	/// <summary>
+	/// T-SQL: PARSE (Transact-SQL), TRY_PARSE (Transact-SQL). <c>[TRY_]PARSE (value AS type [USING culture])</c>.
+	/// </summary>
+	public sealed record Parse(Expression Value, DataType Type, Expression? Culture = null, bool Try = false) : Expression;
+
+	/// <summary>
+	/// T-SQL: DATEADD (Transact-SQL), and DATEDIFF, DATEDIFF_BIG, DATENAME, DATEPART, DATETRUNC, DATE_BUCKET.
+	/// The date part these take as their first argument: a key word or its abbreviation, as written
+	/// (<c>day</c>, <c>dd</c>), which is neither a column nor a value.
+	/// </summary>
+	public sealed record DatePart(Identifier Name) : Expression;
+
+	/// <summary>
+	/// T-SQL: TRY_CAST (Transact-SQL). <c>Try</c> is <c>TRY_CAST</c>, which gives null where <c>CAST</c> fails.
+	/// </summary>
+	public partial record Cast
+	{
+		public bool Try { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: NEXT VALUE FOR (Transact-SQL). <c>OVER (ORDER BY …)</c>, which numbers the rows of one statement in
+	/// that order.
+	/// </summary>
+	public partial record NextValue
+	{
+		public WindowSpecification? Over { get; init; }
+	}
+}
+
+/// <summary>T-SQL's own data types, in the standard's family (proposal 14).</summary>
+public abstract partial record DataType
+{
+	/// <summary>
+	/// T-SQL: CAST and CONVERT (Transact-SQL). A type T-SQL names that the standard does not spell: a name and
+	/// what was written in its brackets — <c>tinyint</c>, <c>money</c>, <c>datetime2 (7)</c>, <c>[int]</c>,
+	/// <c>int (10)</c>, <c>nvarchar (MAX)</c>, <c>vector (3, float32)</c>.
+	/// </summary>
+	/// <remarks>
+	/// A name of more than one part with nothing in brackets is the standard's <see cref="UserDefined"/>. An
+	/// argument is a number, or a word as written (<c>MAX</c>, <c>float32</c>), which is a reference.
+	/// </remarks>
+	public sealed record Named(QualifiedName Name, SqlList<Expression> Arguments) : DataType;
+
+	/// <summary>
+	/// T-SQL: xml (Transact-SQL). <c>xml [([CONTENT | DOCUMENT] schema_collection)]</c>.
+	/// </summary>
+	public sealed record Xml(XmlContent? Content = null, QualifiedName? Schema = null) : DataType;
+}
+
+/// <summary>T-SQL: xml (Transact-SQL). What a typed <c>xml</c> holds, where it was said.</summary>
+public enum XmlContent { Content, Document }
+
+/// <summary>T-SQL's own literals, in the standard's family (proposal 11).</summary>
+public abstract partial record LiteralValue
+{
+	/// <summary>
+	/// T-SQL: Constants (Transact-SQL), a page syntax.md does not transcribe. T-SQL writes a binary string
+	/// <c>0x0A</c> where the standard writes <c>X'0A'</c>.
+	/// </summary>
+	public partial record Binary
+	{
+		/// <summary>
+		/// Written <c>0x…</c>. Then <c>Text</c> is the literal as written, <c>0x</c> and all; without it,
+		/// <c>Text</c> is the quoted digits after the standard's <c>X</c>.
+		/// </summary>
+		[Spelling] public bool ZeroX { get; init; }
+	}
 }
 
 /// <summary>T-SQL: ALTER DATABASE (Transact-SQL). What an <c>ALTER DATABASE</c> does.</summary>
