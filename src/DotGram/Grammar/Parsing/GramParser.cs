@@ -558,7 +558,7 @@ public sealed class GramParser
 
 		var name = left + "_With" + (++_substitutions).ToString(CultureInfo.InvariantCulture);
 
-		_lifted.Add(new Decl.Rule(name, [], null, replacement) { At = From(at) });
+		_lifted.Add(new Decl.Rule(name, [], null, replacement) { At = From(at), Replaces = left });
 
 		return name;
 	}

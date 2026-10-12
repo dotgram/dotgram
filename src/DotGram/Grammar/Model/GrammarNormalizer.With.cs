@@ -70,7 +70,7 @@ public sealed partial class GrammarNormalizer
 		// first pass already made, since that clone is a new rule referenced only by
 		// symbol, and nothing about a bare `Node.Call` carries a rule's body along
 		// for a second rewrite to see.
-		foreach (var atRoot in group.GroupBy(site => CurrentRoot(site.Root), NodeIdentity.Instance))
+		foreach (var atRoot in group.GroupBy(site => site.Root, NodeIdentity.Instance))
 		{
 			var merged = new Dictionary<RuleSymbol, RuleSymbol>();
 			var name   = "";
@@ -83,15 +83,28 @@ public sealed partial class GrammarNormalizer
 				name = site.Name;
 			}
 
-			merged = OnTopOfHeaders(merged, sites);
+			var written = merged;
 
-			var reachable = ReachableFromSeed(DirectCalls(atRoot.Key), forward, merged);
+			merged = OnTopOfHeaders(merged, sites, NearestSite(group.Key.Namespace));
+
+			// The operand's own calls into a namespace already specialized read its clone, and
+			// what the clone calls is what this `with` rebinds on top.
+			var seed = DirectCalls(atRoot.Key);
+
+			foreach (var called in seed.ToList())
+				if (!written.ContainsKey(called) && merged.TryGetValue(called, out var clone))
+					seed.Add(clone);
+
+			var reachable = ReachableFromSeed(seed, forward, merged);
 			var affected  = AffectedSet(BoundCalls(merged), calledBy, reachable);
 
 			var cloneMap = affected.Count == 0 ? [] : CloneAffected(affected, merged, name);
 
 			foreach (var site in atRoot)
+			{
 				_withClones[site.Targets] = cloneMap;
+				_withHosts[site.Targets]  = group.Key;
+			}
 
 			rewrites[atRoot.Key] = (merged, cloneMap, name);
 		}
@@ -100,19 +113,29 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// A <c>with</c>'s rebindings as they apply on top of the namespaces already specialized:
-	/// where a namespace cloned a rule the <c>with</c> names, the clone is replaced too, since
-	/// the clone is what a call into that namespace now reads; and a replacement a namespace
-	/// declares is its clone, as a call to it from anywhere is.
+	/// A <c>with</c>'s rebindings as they apply on top of the namespaces already specialized.
 	/// </summary>
 	/// <remarks>
-	/// <c>Ns.E with (D = Y)</c>, where <c>Ns</c> binds <c>B = D</c>: the <c>with</c> runs after
-	/// <c>Ns</c>, over <c>Ns</c>'s clone of <c>E</c>, which calls <c>D</c>, and replaces it — the
-	/// same answer <c>parse Ns.E with (D = Y)</c> gives (§5.1).
+	/// <para>
+	/// A call into one of those namespaces from outside it reads the namespace's clone (§5.1),
+	/// so the <c>with</c> reads it that way too: each rule such a namespace declares is bound to
+	/// its clone, and the <c>with</c>'s own rebindings go on top — where the namespace cloned a
+	/// rule the <c>with</c> names, the clone is replaced too, and a replacement the namespace
+	/// declares is its clone. <c>Ns.E with (D = Y)</c>, where <c>Ns</c> binds <c>B = D</c>, then
+	/// reads <c>Ns</c>'s clone of <c>E</c>, which calls <c>D</c>, and replaces it — the same
+	/// answer <c>parse Ns.E with (D = Y)</c> gives.
+	/// </para>
+	/// <para>
+	/// As bindings and not as an edit of the rules the <c>with</c> reaches: those are shared,
+	/// and a header specialized later reads them as written, whatever order the grammar
+	/// declares its <c>with</c>s in. The namespace the <c>with</c> is written in is left out;
+	/// its header goes on top of the <c>with</c>, after it.
+	/// </para>
 	/// </remarks>
 	Dictionary<RuleSymbol, RuleSymbol> OnTopOfHeaders(
 		Dictionary<RuleSymbol, RuleSymbol> targets,
-		IReadOnlyDictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> sites)
+		IReadOnlyDictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> sites,
+		GrammarNamespace? own)
 	{
 		if (sites.Count == 0)
 			return targets;
@@ -120,11 +143,12 @@ public sealed partial class GrammarNormalizer
 		var declared = new Dictionary<RuleSymbol, RuleSymbol>();
 
 		foreach (var pair in sites)
-			foreach (var clone in pair.Value)
-				if (NearestSite(clone.Key.Namespace) == pair.Key)
-					declared[clone.Key] = clone.Value;
+			if (pair.Key != own)
+				foreach (var clone in pair.Value)
+					if (NearestSite(clone.Key.Namespace) == pair.Key)
+						declared[clone.Key] = clone.Value;
 
-		var layered = new Dictionary<RuleSymbol, RuleSymbol>();
+		var layered = new Dictionary<RuleSymbol, RuleSymbol>(declared);
 
 		foreach (var pair in targets)
 		{
@@ -132,8 +156,8 @@ public sealed partial class GrammarNormalizer
 
 			layered[pair.Key] = replacement;
 
-			foreach (var site in sites.Values)
-				if (site.TryGetValue(pair.Key, out var clone))
+			foreach (var site in sites)
+				if (site.Key != own && site.Value.TryGetValue(pair.Key, out var clone))
 					layered[clone] = replacement;
 		}
 
@@ -141,33 +165,16 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// Where a <c>with</c>'s operand root is now: the node it was lowered to, or what a rebuild
-	/// of the body it sits in made of it (<see cref="RetargetForWith"/>).
-	/// </summary>
-	Node CurrentRoot(Node root)
-	{
-		while (_movedRoots.TryGetValue(root, out var moved))
-			root = moved;
-
-		return root;
-	}
-
-	/// <summary>Every operand root a rebuild moved, to the node it became.</summary>
-	readonly Dictionary<Node, Node> _movedRoots = new(NodeIdentity.Instance);
-
-	/// <summary>The operand roots a rebuild under way has to say where it put.</summary>
-	HashSet<Node>? _watchedRoots;
-
-	/// <summary>
 	/// Every call a <c>with</c>'s operand makes, at any depth, into a namespace with a header
 	/// from outside it: the caller, the rule called, and the namespace.
 	/// </summary>
 	/// <remarks>
 	/// Each call is read as the parse will make it: through the header of the namespace the
-	/// walk is in, and then through the <c>with</c>'s own rebindings on top. A header's
-	/// replacement can itself be a rule of another namespace — <c>namespace Ns1 with (B =
-	/// Ns2.F)</c> — and that call is one into <c>Ns2</c>, which the <c>with</c> then reads as
-	/// <c>Ns2</c> makes it.
+	/// walk is in, and then through the <c>with</c>'s own rebindings on top. Not through the
+	/// header of the namespace the <c>with</c> itself is written in: that one is specialized
+	/// after the <c>with</c>, on top of it. A header's replacement can itself be a rule of
+	/// another namespace — <c>namespace Ns1 with (B = Ns2.F)</c> — and that call is one into
+	/// <c>Ns2</c>, which the <c>with</c> then reads as <c>Ns2</c> makes it.
 	/// </remarks>
 	List<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace Into)> CallsIntoSites(
 		IGrouping<RuleSymbol, WithSite> group,
@@ -179,9 +186,10 @@ public sealed partial class GrammarNormalizer
 		{
 			var seen    = new HashSet<(RuleSymbol, GrammarNamespace?)>();
 			var pending = new Queue<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace? In)>();
+			var own     = NearestSite(group.Key.Namespace);
 
-			foreach (var called in DirectCalls(CurrentRoot(site.Root)))
-				pending.Enqueue((group.Key, called, NearestSite(group.Key.Namespace)));
+			foreach (var called in DirectCalls(site.Root))
+				pending.Enqueue((group.Key, called, null));
 
 			while (pending.Count > 0)
 			{
@@ -193,7 +201,7 @@ public sealed partial class GrammarNormalizer
 				if (namespaced is not null && namespaced != NearestSite(caller.Namespace))
 					into.Add((caller, reached, namespaced));
 
-				var onward = namespaced ?? within;
+				var onward = namespaced == own && namespaced is not null ? null : namespaced ?? within;
 
 				if (!seen.Add((reached, onward)))
 					continue;
@@ -204,59 +212,6 @@ public sealed partial class GrammarNormalizer
 		}
 
 		return into;
-	}
-
-	/// <summary>
-	/// Moves the calls a <c>with</c>'s operand makes into the namespaces already specialized
-	/// onto their clones, before the <c>with</c> is specialized over them.
-	/// </summary>
-	/// <remarks>
-	/// The same move <see cref="RetargetCallsIntoSites"/> makes for every call once all sites
-	/// are done, made early for the rules this <c>with</c> reaches: the <c>with</c> composes on
-	/// top of the header, so it has to see what the header made. A body rebuilt here may hold
-	/// the operand of a <c>with</c> still to come, whose identity the rebuild changes; every such
-	/// root is watched, and <see cref="CurrentRoot"/> finds it again.
-	/// </remarks>
-	void RetargetForWith(
-		IGrouping<RuleSymbol, WithSite> group,
-		Dictionary<RuleSymbol, RuleSymbol> declared)
-	{
-		if (declared.Count == 0)
-			return;
-
-		// Until nothing moves: a moved call reaches a clone, and the clone's own calls — a
-		// header's replacement among them — are walked the next time round.
-		for (var moved = true; moved;)
-		{
-			moved = false;
-
-			var callers = new List<RuleSymbol>();
-
-			foreach (var (caller, called, _) in CallsIntoSites(group, BuildCallGraph()))
-				if (declared.ContainsKey(called) && !callers.Contains(caller))
-					callers.Add(caller);
-
-			_watchedRoots = new HashSet<Node>(_pendingWith.Select(site => CurrentRoot(site.Root)), NodeIdentity.Instance);
-
-			foreach (var caller in callers)
-			{
-				var site = NearestSite(caller.Namespace);
-
-				if (_bodies.TryGetValue(caller, out var body) && CallsInto(body, declared, site))
-				{
-					_bodies[caller] = Retargeted(body, declared, site);
-					moved           = true;
-				}
-
-				if (_trivia.TryGetValue(caller, out var trivia) && CallsInto(trivia, declared, site))
-				{
-					_trivia[caller] = Retargeted(trivia, declared, site);
-					moved           = true;
-				}
-			}
-
-			_watchedRoots = null;
-		}
 	}
 
 	/// <summary>
@@ -503,9 +458,12 @@ public sealed partial class GrammarNormalizer
 		// reading is whatever number the first publication that substitutes nothing gets.
 		_readings.Clear();
 
+		var dequeued = 0;
+
 		while (pending.Count > 0)
 		{
 			var publication     = pending.Dequeue();
+			var at              = dequeued++;
 			var (asked, cloned) = Asked(publication);
 			var numbered        = publication with { Reading = Reading(asked, publication) };
 
@@ -537,6 +495,9 @@ public sealed partial class GrammarNormalizer
 			CloneAffected(affected, cloned, cloning.Name, cloning.Map);
 
 			_renaming = null;
+
+			if (at < written.Count)
+				_publicationWithClones[at] = cloning.Map;
 
 			remapped.Add(
 				cloning.Map.TryGetValue(numbered.Rule, out var clone)

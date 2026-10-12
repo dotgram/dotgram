@@ -1062,6 +1062,8 @@ public sealed class SemanticTests
 			(ZQ + "namespace Ns with (B = D) { E = B  G = E & Z  H = G with (Z = Q) }\nR = Ns.H", "dq", "bq"),
 			// A `with` reached from one namespace's header, calling into another's.
 			(ZQ + "Y = 'y'\n" + EG + "W = Ns.G with (Z = Q)\nnamespace N1 with (Q = Y) { K = W }\nR = N1.K", "dy", "dq"),
+			// An instance a `with` rebuilds passes what the original passed: the specialization.
+			("Y = 'y'\nL(x) = x\nF(x) = x & '!'\nnamespace Ns with (B = D) { E = B }\nR = L(Ns.E) with (L = F, D = Y)", "y!", "d!"),
 			// A header's replacement that is another namespace's rule is read as that namespace makes it.
 			("C = 'c'\nY = 'y'\nnamespace Ns1 with (B = Ns2.F) { E = B }\nnamespace Ns2 with (C = D) { F = C }\nR = Ns1.E with (D = Y)", "y", "d"),
 		];
@@ -1157,6 +1159,36 @@ public sealed class SemanticTests
 	}
 
 	/// <summary>
+	/// A <c>with</c> inside a namespace goes before the namespace's header, so a header that
+	/// replaces what the <c>with</c> already replaced has nothing left to do, and there is no
+	/// cycle to refuse.
+	/// </summary>
+	[Fact]
+	public void A_with_inside_a_namespace_goes_before_its_header()
+	{
+		var result = Compile(
+			"""
+			B = 'b'
+			Y = 'y'
+			X = Ns.H
+
+			namespace Ns with (B = X)
+			{
+				H = B with (B = Y)
+			}
+
+			parse Ns.H as ParseStart
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "y").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "b").IsSuccess);
+	}
+
+	/// <summary>
 	/// GRAM4014 for a <c>with</c> expression reads the rules the <c>with</c> actually replaces:
 	/// the header put <c>D</c>'s decimal in <c>B</c>'s place, and a decimal replacing <c>D</c>
 	/// fits there, as it does under <c>parse … with</c>.
@@ -1185,6 +1217,157 @@ public sealed class SemanticTests
 
 		Assert.Equal(3m, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "v").Value);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "d").IsSuccess);
+	}
+
+	/// <summary>
+	/// A replacement whose type does not fit where a copy of the replaced rule's value lands is
+	/// refused as GRAM4014, whichever way the rebinding is written — not reported later, on
+	/// the name of a clone the author never wrote.
+	/// </summary>
+	[Theory]
+	[InlineData("R : @decimal = x: (Ns.E with (D = S)) => @(x)\nparse R as ParseStart")]
+	[InlineData("R : @decimal = x: Ns.E => @(x)\nparse R with (D = S) as ParseStart")]
+	public void A_replacement_that_changes_the_type_a_fixed_type_reads_is_refused(string rule)
+	{
+		var result = CompileResolved(
+			"""
+			B : @int     = 'b' => @(1)
+			D : @decimal = 'd' => @(2m)
+			S : @string  = 's' => @("s")
+
+			namespace Ns with (B = D)
+			{
+				E : B = B
+			}
+
+			""" + rule);
+
+		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.IncompatibleRebinding);
+		Assert.DoesNotContain(result.Diagnostics, one => one.Message.Contains("_With", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// A rule of the name the parser gives an expression on the right of a rebinding is
+	/// reported at the expression, in words about the expression.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_rule_named_like_a_rebinding_expressions_rule_is_reported_at_the_expression(bool before)
+	{
+		const string Mine = "Sp_With1 = 'x'\n";
+
+		var grammar =
+			(before ? Mine : "") +
+			"""
+			Sp = ' '
+			L  = 'a' & Sp & 'b'
+
+			namespace N with (Sp = '_')
+			{
+				M = L
+				parse M as ParseStart
+			}
+
+			""" +
+			(before ? "" : Mine);
+
+		var diagnostics = Compile(grammar).Diagnostics;
+		var expression  = grammar.IndexOf("'_'", StringComparison.Ordinal);
+
+		var duplicate = Assert.Single(diagnostics, one => one.Id == GrammarBinder.DuplicateRule);
+
+		Assert.Equal(expression, duplicate.Position);
+		Assert.Contains("replaces 'Sp'", duplicate.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A rule whose type is a namespace's rule, under a <c>with</c> that changes that type,
+	/// declares what it now builds.
+	/// </summary>
+	[Fact]
+	public void A_rule_typed_by_a_namespaces_rule_follows_a_with_expressions_replacement()
+	{
+		var result = CompileResolved(
+			"""
+			B : @object = 'b' => @((object)1)
+			D : @object = 'd' => @((object)2)
+			V : @string = 'v' => @("v")
+
+			namespace Ns with (B = D)
+			{
+				E : B = B
+			}
+
+			X : Ns.E = Ns.E
+			R : @string = x: (X with (D = V)) => @(x)
+			parse R as ParseStart
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal("v", EmittedCode.Match(assembly, "Grammar", "TryParseStart", "v").Value);
+	}
+
+	/// <summary>
+	/// What a header makes of a rule does not depend on the order the grammar declares its
+	/// <c>with</c>s in: a <c>with</c> reads a namespace's clones without editing the rules
+	/// another header specializes later.
+	/// </summary>
+	[Fact]
+	public void A_header_reads_the_same_whatever_order_the_withs_are_declared_in()
+	{
+		const string Head =
+			"""
+			B = 'b'
+			D = 'd'
+			Y = 'y'
+			Z = 'z'
+			Q = 'q'
+			P = 'p'
+
+			namespace Ns with (B = D) { E = B }
+
+			X = Ns.E & Z
+
+			namespace Other with (B = Y) { H = X }
+
+			""";
+
+		const string S = "S = Other.H with (Y = P)\n";
+		const string R = "R = X with (Z = Q)\n";
+		const string Tail = "parse Other.H as ParseStart\nparse S\nparse R\n";
+
+		var first  = EmittedCode.Compile(Compile(Head + S + R + Tail).Sources[0].Text);
+		var second = EmittedCode.Compile(Compile(Head + R + S + Tail).Sources[0].Text);
+
+		foreach (var input in new[] { "yz", "dz", "bz" })
+			Assert.Equal(
+				EmittedCode.Match(first, "Grammar", "TryParseStart", input).IsSuccess,
+				EmittedCode.Match(second, "Grammar", "TryParseStart", input).IsSuccess);
+	}
+
+	/// <summary>
+	/// A rule that reads the original keeps the original's type, and a publication's
+	/// <c>with</c> that changes the type of its own copy is not refused on its account.
+	/// </summary>
+	[Fact]
+	public void A_type_changing_publication_with_is_not_refused_for_a_reader_of_the_original()
+	{
+		var result = CompileResolved(
+			"""
+			B : @int    = 'b' => @(1)
+			D : @string = 'd' => @("d")
+			R : B = B
+			F : @object = x: R => @(x)
+
+			parse R with (B = D) as Swapped
+			parse F as ParseF
+			""");
+
+		Assert.DoesNotContain(result.Diagnostics, one => one.Id == GrammarNormalizer.IncompatibleRebinding);
 	}
 
 	static string WithAndHeader(string rule, string publish = "parse R as ParseStart")

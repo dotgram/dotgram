@@ -103,6 +103,14 @@ public abstract record Decl : ILocated
 		/// reads it.
 		/// </remarks>
 		public string? OnFail { get; init; }
+
+		/// <summary>
+		/// The rule a rebinding's right side replaces, where this rule is what the parser made
+		/// of an expression written there (<c>with (Sp = '_')</c>); null for a rule the author
+		/// declared. Its name is one the author never wrote, and a message about it says where
+		/// the expression is instead.
+		/// </summary>
+		public string? Replaces { get; init; }
 	}
 
 	public sealed record Namespace(
