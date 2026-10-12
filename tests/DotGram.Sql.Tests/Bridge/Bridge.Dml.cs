@@ -258,15 +258,20 @@ static partial class Bridge
 			if (old is not Clause.MergeWhen(var matched, var by, var condition, var action))
 				throw BridgeGap.Open(old, "inventory Clause.MergeWhen");
 
-			if (by is not null)
-				throw BridgeGap.Missing(old, "MergeClause.NotMatchedBySource and the BY TARGET flag (proposal 3)");
+			var source = "SOURCE".Equals(by, StringComparison.OrdinalIgnoreCase);
+			var target = "TARGET".Equals(by, StringComparison.OrdinalIgnoreCase);
 
-			Ast.MergeClause made = (matched, action) switch
+			if (by is not null && !source && !target)
+				throw BridgeGap.Open(old, $"inventory Clause.MergeWhen (BY {by})");
+
+			Ast.MergeClause made = (matched, source, action) switch
 			{
-				(true, Statement.Update { Set: var set }) => new Ast.MergeClause.Matched(new Ast.MergeMatchedAction.Update(Each(set, Assignment))),
-				(true, Statement.Delete)                  => new Ast.MergeClause.Matched(new Ast.MergeMatchedAction.Delete()),
-				(false, Statement.Insert insert)          => new Ast.MergeClause.NotMatched(Inserted(insert)),
-				_                                         => throw BridgeGap.Open(old, $"inventory Clause.MergeWhen (a {NameOf(action)} action)"),
+				(true, false, Statement.Update { Set: var set }) => new Ast.MergeClause.Matched(new Ast.MergeMatchedAction.Update(Each(set, Assignment))),
+				(true, false, Statement.Delete)                  => new Ast.MergeClause.Matched(new Ast.MergeMatchedAction.Delete()),
+				(false, true, Statement.Update { Set: var set }) => new Ast.MergeClause.NotMatchedBySource(new Ast.MergeMatchedAction.Update(Each(set, Assignment))),
+				(false, true, Statement.Delete)                  => new Ast.MergeClause.NotMatchedBySource(new Ast.MergeMatchedAction.Delete()),
+				(false, false, Statement.Insert insert)          => new Ast.MergeClause.NotMatched(Inserted(insert)) { ByTarget = target },
+				_                                                => throw BridgeGap.Open(old, $"inventory Clause.MergeWhen (a {NameOf(action)} action)"),
 			};
 
 			return condition is null ? made : made with { Condition = Values.Of(condition) };
@@ -280,7 +285,7 @@ static partial class Bridge
 					new Ast.MergeInsertAction(Values.Parts(old, old.Columns), null, Each(items, Values.Of)),
 				Query.TableValueConstructor { Rows: [Expression.Parenthesized(var one)] } =>
 					new Ast.MergeInsertAction(Values.Parts(old, old.Columns), null, [Values.Of(one)]),
-				Query.DefaultValues => throw BridgeGap.Missing(old, "MergeInsertAction has no DEFAULT VALUES (proposal 3)"),
+				Query.DefaultValues when old.Columns is null => new Ast.MergeInsertAction([], null, []) { DefaultValues = true },
 				_                   => throw BridgeGap.Open(old, "inventory Clause.MergeWhen (an INSERT that is not one row)"),
 			};
 		}
