@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
@@ -40,8 +41,6 @@ static partial class Bridge
 					update.SourcePointer is null ? null : Values.Of(update.SourcePointer), update.Bulk, update.Log,
 					update.Timestamp is null ? null : Values.Of(update.Timestamp)),
 				TableReference.Changed changed => Changed(changed),
-				Query.FromFile              => throw BridgeGap.Missing(old, "Statement.BulkInsert (inventory Query.FromFile)"),
-				Query.FromStream            => throw BridgeGap.Missing(old, "Statement.InsertBulk (inventory Query.FromStream)"),
 				Query.FromExecute           => throw BridgeGap.Missing(old, "InsertSource.Execute (inventory Query.FromExecute)"),
 				Query.DefaultValues         => throw BridgeGap.Open(old, "inventory Query.DefaultValues (outside an INSERT)"),
 				_ when Owned(Owns, old)     => throw Inventory.Unconverted(old),
@@ -70,6 +69,30 @@ static partial class Bridge
 				return null;
 
 			return node.Span.End <= within.Span.End && within.Span.End <= source.Length ? source[node.Span.End..within.Span.End] : null;
+		}
+
+		/// <summary>
+		/// One option of BULK INSERT or INSERT BULK: a word, or a word and its value; <c>ORDER (…)</c>, which the old tree
+		/// keeps as the option's name with its sort list in it, read as a sort list again.
+		/// </summary>
+		static Ast.Option BulkOption(Clause old)
+		{
+			if (old is not Clause.Option { Name: var name, Value: var value, Options.Length: 0, Partitions: null, Bare: false })
+				throw BridgeGap.Open(old, "inventory Clause.Option (a bulk option)");
+
+			if (Words(name) is ["ORDER", "(", ..] && name.TrimEnd().EndsWith(')'))
+			{
+				var inside = name[(name.IndexOf('(') + 1)..name.LastIndexOf(')')];
+
+				if (value is not null || TransactSql.TransactSqlParser.TryParseSql("SELECT 1 ORDER BY " + inside) is not { IsSuccess: true, Value: [Statement.Select { OrderBy: Clause.OrderBy by }] })
+					throw BridgeGap.Open(old, "inventory Clause.Option (an ORDER that is not a sort list)");
+
+				return new Ast.Option(new Ast.Identifier("ORDER"), null, []) { Order = new Ast.RowOrder(Queries.Order(by).Items, false) };
+			}
+
+			return name.Contains('.') || name.Any(char.IsWhiteSpace)
+				? throw BridgeGap.Open(old, $"inventory Clause.Option (a bulk option `{name}`)")
+				: new Ast.Option(Values.Part(old, name), value is null ? null : Values.Of(value), []);
 		}
 
 		/// <summary>The WITH a data change statement is written after, where it has one.</summary>
@@ -125,11 +148,17 @@ static partial class Bridge
 		{
 			switch (old.Rows)
 			{
-				case Query.FromFile:
-					throw BridgeGap.Missing(old.Rows, "Statement.BulkInsert (inventory Query.FromFile)");
+				// BULK INSERT and INSERT BULK, which the old tree keeps as an INSERT whose rows are a file or a stream.
+				case Query.FromFile(var file, var options) when old.Target is TableReference.Named { Table: var table }:
+					return new Ast.Statement.BulkInsert(Values.Name(old, table), Values.Of(file), Each(options ?? [], BulkOption));
 
-				case Query.FromStream:
-					throw BridgeGap.Missing(old.Rows, "Statement.InsertBulk (inventory Query.FromStream)");
+				case Query.FromStream(var columns, var options) when old.Target is TableReference.Named { Table: var table }:
+					return new Ast.Statement.InsertBulk(
+						Values.Name(old, table),
+						Each(columns ?? [], static one => one is Clause.ColumnDefinition(var name, var type, null, { Length: 0 })
+							? Tables.TypedColumn(one, name, type)
+							: throw BridgeGap.Open(one, "inventory Clause.ColumnDefinition (a column of INSERT BULK)")),
+						Each(options ?? [], BulkOption));
 
 				case Query.FromExecute:
 					throw BridgeGap.Missing(old.Rows, "InsertSource.Execute (inventory Query.FromExecute)");

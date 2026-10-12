@@ -278,6 +278,8 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("UPDATE t SET a = 1",                                              "Assignment plain")]
 	[InlineData("INSERT INTO t SELECT a FROM (DELETE u OUTPUT deleted.a) AS c (a) WHERE a > 1", "Composable")]
 	[InlineData("TRUNCATE TABLE t WITH (PARTITIONS (1, 3 TO 5))",                  "Truncate partitions")]
+	[InlineData("BULK INSERT t FROM 'f.csv' WITH (ORDER (a ASC, b DESC), TABLOCK, BATCHSIZE = 10)", "BulkInsert")]
+	[InlineData("INSERT BULK t (a INT NOT NULL, b VARCHAR(10) COLLATE Latin1_General_CI_AS, TIMESTAMP) WITH (TABLOCK)", "InsertBulk")]
 	[InlineData("READTEXT t.c @p 0 10 HOLDLOCK",                                   "ReadText")]
 	[InlineData("WRITETEXT BULK t.c @p TIMESTAMP = 0x0A WITH LOG",                 "WriteText")]
 	[InlineData("UPDATETEXT t.c @p NULL -1 WITH LOG u.d @q",                       "UpdateText source")]
@@ -333,6 +335,16 @@ public sealed class BridgeTests(ITestOutputHelper output)
 						From.Sources: [Ast.TableSource.DataChange { Option: null, Change: Ast.Statement.Delete { Output: not null }, Alias: { AsKeyword: true, Columns.Count: 1 } }],
 					},
 				},
+			},
+			"BulkInsert"                  => made is Ast.Statement.BulkInsert
+			{
+				File: Ast.Expression.Literal,
+				Options: [{ Name.Text: "ORDER", Value: null, Order: { Unique: false, Columns.Count: 2 } }, { Name.Text: "TABLOCK", Value: null }, { Value: not null }],
+			},
+			"InsertBulk"                  => made is Ast.Statement.InsertBulk
+			{
+				Columns: [{ Type: not null, Constraints: [Ast.Constraint.NotNull] }, { Collation: not null, Constraints.Count: 0 }, { Type: null }],
+				Options.Count: 1,
 			},
 			"Truncate partitions"         => made is Ast.Statement.TruncateTable { Partitions: [{ To: null }, { To: not null }] },
 			"ReadText"                    => made is Ast.Statement.ReadText { HoldLock: true, Column.Parts.Count: 2, Pointer: Ast.Expression.Variable },

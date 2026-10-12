@@ -239,6 +239,19 @@ static partial class Bridge
 			if (old is not Clause.JsonColumn(var name, { } text, null, false, null))
 				throw BridgeGap.Open(old, "inventory Clause.JsonColumn (a PREDICT column)");
 
+			return TypedColumn(old, name, text);
+		}
+
+		/// <summary>
+		/// A column's name and the text the old tree keeps after it — a type, perhaps a collation and a nullability,
+		/// or nothing where the type was left out — as the standard's column definition holds them: <c>NOT NULL</c> a
+		/// constraint, and an explicit <c>NULL</c> a gap, decided with CREATE TABLE's column options.
+		/// </summary>
+		internal static Ast.ColumnDefinition TypedColumn(Clause old, string name, string? text)
+		{
+			if (text is null)
+				return new Ast.ColumnDefinition(Values.Part(old, name), null, null, [], null);
+
 			var words = Words(text);
 			var notNull = words is [.., "NOT", "NULL"];
 
