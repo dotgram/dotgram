@@ -351,6 +351,31 @@ public sealed partial class BackReferenceTests
 	}
 
 	[Fact]
+	public void A_reader_form_over_a_call_into_a_namespace_whose_trivia_binds_is_refused_rather_than_built()
+	{
+		// An ordinary call to 'N.T' never runs N's trivia at T's two ends, but the reader form is
+		// compiled over every rule the publication reaches, the trivia of each included, and
+		// compiling a reference there is what is not supported. Refused, then, not thrown.
+		const string grammar =
+			"""
+			namespace N
+			{
+				trivia = { $q: (' '*) & $q }
+				T = 'a'
+			}
+			R = 'x' & N.T
+			parse R
+			""";
+
+		var told = GramCompiler.Compile(
+			grammar, new GramCompilerOptions { ClassName = "Grammar", BufferedInput = true }).Diagnostics;
+
+		var refused = Assert.Single(told, static one => one.Id == GrammarNormalizer.BindingNotSupported);
+
+		Assert.Equal(grammar.IndexOf("parse R", StringComparison.Ordinal), refused.Position);
+	}
+
+	[Fact]
 	public void A_recursive_rule_a_binding_calls_without_recovering_is_accepted()
 	{
 		Assert.Empty(Errors("R = $q: S & $q\nS = '(' & S* & ')' | 'b'\nparse R"));

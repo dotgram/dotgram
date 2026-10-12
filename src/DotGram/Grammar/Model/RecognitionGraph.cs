@@ -767,8 +767,10 @@ public sealed class RecognitionGraph(
 	/// reference compares text bound earlier, and a window may have let it go. Answered from the
 	/// set of rules that hold one, worked out once, so a grammar with none pays one walk. A rule
 	/// holds one in its body or in the trivia it is given at the two ends of a parse, and what is
-	/// reached is what <see cref="Reaches"/> says a publication reads — trivia and what a recovery
-	/// skips to included.
+	/// reached is what <see cref="Reaches"/> says — the rules a reader form is compiled over, trivia
+	/// and what a recovery skips to included. That is wider than what a parse runs: a rule only
+	/// called is never read with the trivia of its own ends. It is the set a reference would have
+	/// to be compiled in, though, so it is the set asked.
 	/// </remarks>
 	public bool ReachesBoundText(RuleSymbol rule)
 	{
