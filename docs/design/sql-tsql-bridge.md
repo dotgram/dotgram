@@ -102,7 +102,7 @@ holds, at any depth.
 | `Expression.GraphMatch` | Values | C | gap 80: no target record: Expression.GraphMatch, a graph pattern family (proposal 15) | 106 |
 | `Clause.Set` | Dml | B | gap 45: no target record: Assignment has no compound operator (proposal 4); no target record: Assignment has no Through for `@v = column = value` (proposal 4) | 98 |
 | `Statement.Update` | Dml | A | converted 31, gap 29: no target record: Statement.Update has no second FROM (proposal 2); no target record: Statement.Update has no OutputClause in the new tree (proposal 2) | 94 |
-| `Statement.Insert` | Dml | A | converted 15, gap 49, shape 1: no target record: Statement.Insert has no member for whether INTO was written (proposal 2); no target record: Statement.Insert has no OutputClause in the new tree (proposal 2) | 90 |
+| `Statement.Insert` | Dml | A | converted 15, gap 49: no target record: Statement.Insert has no member for whether INTO was written (proposal 2); no target record: Statement.Insert has no OutputClause in the new tree (proposal 2) | 90 |
 | `TableReference.Parenthesized` | Tables | A | not seen | 90 |
 | `Statement.Transaction` | Procedural | B | converted 49, gap 60: target exists, no writer arm: Statement.BeginTransaction; target exists, no writer arm: Statement.SaveTransaction | 86 |
 | `Statement.WorkloadGroupDefinition` | Server | C | gap 155: no target record: Statement.CreateWorkloadGroup | 84 |
