@@ -2125,8 +2125,7 @@ sealed partial class Machine
 				using (file.Block(""))
 				{
 					file.Line(
-						"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
-						".Add(expected);");
+						"(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);");
 				}
 				if (_recoveries.Count > 0)
 				{
@@ -5825,7 +5824,7 @@ sealed partial class Machine
 					}
 
 					atTest.Line(KeepsDoors ? "else if (!failure.Quiet && p == failure.Position)" : "else if (p == failure.Position)");
-					atTest.Then($"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add({said});");
+					atTest.Then($"(failure.ExpectedMore ??= Ties_DotGram()).Add({said});");
 
 					if (Tracing is not null)
 						atTest.Line($"failure.Trace?.Refused(p, {said});");

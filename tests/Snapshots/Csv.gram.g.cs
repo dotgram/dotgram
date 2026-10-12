@@ -509,7 +509,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
 				}
 				Trace("fail", state, p, entries.Count, text, "");
 
@@ -876,6 +876,34 @@ namespace DotGram.Snapshots
 			public string[]? Expected;
 
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
+		}
+
+		[global::System.ThreadStatic]
+		private static global::System.Collections.Generic.List<string[]>? _spareTies;
+
+		private static global::System.Collections.Generic.List<string[]> Ties_DotGram()
+		{
+			var ties = _spareTies;
+
+			if (ties == null)
+				return new global::System.Collections.Generic.List<string[]>();
+
+			_spareTies = null;
+
+			return ties;
+		}
+
+		private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)
+		{
+			if (ties == null)
+				return null;
+
+			var tied = ties.Count == 0 ? null : ties.ToArray();
+
+			ties.Clear();
+			_spareTies = ties;
+
+			return tied;
 		}
 
 		private sealed class Parser

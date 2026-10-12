@@ -156,8 +156,7 @@ sealed partial class Machine
 				using (file.Block($"else if ({quiet}p == failure.Position && expected != null)"))
 				{
 					file.Line(
-						"(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>())" +
-						".Add(expected);");
+						"(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);");
 				}
 				if (Tracing is not null)
 					file.Line("failure.Trace?.Refused(p, expected);");

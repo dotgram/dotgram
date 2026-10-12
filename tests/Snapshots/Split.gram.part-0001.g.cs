@@ -1472,7 +1472,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
 				}
 				Trace("fail", state, p, entries.Count, text, "");
 

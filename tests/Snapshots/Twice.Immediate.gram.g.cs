@@ -48,7 +48,7 @@ namespace DotGram.Snapshots
 						? "Expected more input."
 						: "Input does not match 'Sum'.";
 
-					return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+					return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 				}
 
 				return Match<int>.Success(recognized, 0, end);
@@ -112,7 +112,7 @@ namespace DotGram.Snapshots
 						? "Expected more input."
 						: "Input does not match 'Sum'.";
 
-					return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+					return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 				}
 
 				return Match<int>.Success(recognized, began, end - began);
@@ -184,7 +184,7 @@ namespace DotGram.Snapshots
 						? "Expected more input."
 						: "Input does not match 'Sum'.";
 
-					return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+					return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
 				}
 
 				return Match<int>.Success(recognized, began, end - began);
@@ -1268,13 +1268,13 @@ namespace DotGram.Snapshots
 			{
 				private readonly string[]? _expected;
 
-				private readonly global::System.Collections.Generic.List<string[]>? _tied;
+				private readonly string[][]? _tied;
 
 				private readonly string? _otherwise;
 
 				private Match(
 					Outcome outcome, T value, long position, int length,
-					string[]? expected, global::System.Collections.Generic.List<string[]>? tied,
+					string[]? expected, string[][]? tied,
 					string? otherwise)
 				{
 					Outcome    = outcome;
@@ -1415,7 +1415,7 @@ namespace DotGram.Snapshots
 
 				internal static Match<T> Failed(
 					Outcome outcome, string otherwise, long position, string[]? expected,
-					global::System.Collections.Generic.List<string[]>? tied)
+					string[][]? tied)
 				{
 					return new Match<T>(outcome, default!, position, 0, expected, tied, otherwise);
 				}
@@ -1456,6 +1456,34 @@ namespace DotGram.Snapshots
 				public bool Unasked;
 
 				public int Doors;
+			}
+
+			[global::System.ThreadStatic]
+			private static global::System.Collections.Generic.List<string[]>? _spareTies;
+
+			private static global::System.Collections.Generic.List<string[]> Ties_DotGram()
+			{
+				var ties = _spareTies;
+
+				if (ties == null)
+					return new global::System.Collections.Generic.List<string[]>();
+
+				_spareTies = null;
+
+				return ties;
+			}
+
+			private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)
+			{
+				if (ties == null)
+					return null;
+
+				var tied = ties.Count == 0 ? null : ties.ToArray();
+
+				ties.Clear();
+				_spareTies = ties;
+
+				return tied;
 			}
 
 			sealed class Ways
@@ -1809,7 +1837,7 @@ namespace DotGram.Snapshots
 					var more = failure.ExpectedMore;
 
 					if (more == null)
-						failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+						failure.ExpectedMore = more = Ties_DotGram();
 					else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
 						return;
 
