@@ -43,7 +43,104 @@ public sealed partial class GrammarNormalizer
 		foreach (var site in sites)
 			remap[site] = SpecializeSite(site, forward, calledBy);
 
+		RetargetCallsIntoSites(remap);
 		RemapPublications(remap);
+	}
+
+	/// <summary>
+	/// Points every call made from outside a site, to a rule that site declares, at the site's
+	/// clone of it — the body-level counterpart of <see cref="RemapPublications"/>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A site's clones are what its own rules mean: <c>Ns.E</c> resolves the bindings of
+	/// <c>Ns</c>'s header wherever it is named from (§5.1). A publication was pointed at the clone,
+	/// but a call in a rule body kept the original, so <c>R = Ns.E</c> read <c>E</c> as though
+	/// the header had not been written, on every back end and with no diagnostic.
+	/// </para>
+	/// <para>
+	/// A rule within the same site is left alone: whatever it calls that the site cloned, it
+	/// reaches through its own clone, and the original is what nothing reaches once every
+	/// call from outside has been moved. A body is rebuilt only where it has a call to move,
+	/// so a grammar with no such call keeps every node it had.
+	/// </para>
+	/// </remarks>
+	void RetargetCallsIntoSites(Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap)
+	{
+		var declared = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		foreach (var pair in remap)
+			foreach (var clone in pair.Value)
+				if (NearestSite(clone.Key.Namespace) == pair.Key)
+					declared[clone.Key] = clone.Value;
+
+		if (declared.Count == 0)
+			return;
+
+		foreach (var rule in _rules.ToList())
+		{
+			var site = NearestSite(rule.Namespace);
+
+			if (_bodies.TryGetValue(rule, out var body) && CallsInto(body, declared, site))
+				_bodies[rule] = Retargeted(body, declared, site);
+
+			if (_trivia.TryGetValue(rule, out var trivia) && CallsInto(trivia, declared, site))
+				_trivia[rule] = Retargeted(trivia, declared, site);
+
+			if (TypeFrom(rule) is ({ } produced, var isSequence) &&
+				declared.TryGetValue(produced, out var clone) &&
+				NearestSite(produced.Namespace) != site)
+				_produces[rule] = (clone, isSequence);
+		}
+	}
+
+	/// <summary>
+	/// The rule whose value <paramref name="rule"/> takes (§4.1 case 3), as far as it is known
+	/// before <see cref="ComputeTypes"/> has run: what an earlier pass recorded, or what the
+	/// declared type names.
+	/// </summary>
+	/// <remarks>
+	/// A rule that calls the clone takes its type from the clone too: <c>R : Ns.E = Ns.E</c>
+	/// whose type stayed the original's built the replacement's value and declared the old
+	/// one, and the consumer's build failed on C# nobody wrote.
+	/// </remarks>
+	(RuleSymbol? Produces, bool IsSequence) TypeFrom(RuleSymbol rule)
+	{
+		if (_produces.TryGetValue(rule, out var known))
+			return known;
+
+		if (rule.Declaration?.Type is { IsCSharp: false } declared &&
+			!IsCSharpKeyword(declared.Name) &&
+			!rule.Declaration.Params.Any(one => one.Name == declared.Name) &&
+			rule.Namespace.LookupQualified(declared.Name) is { } produced)
+			return (produced, declared.IsSequence);
+
+		return (null, false);
+	}
+
+	/// <summary>Whether a node calls a rule another site than the caller's own cloned.</summary>
+	bool CallsInto(Node node, Dictionary<RuleSymbol, RuleSymbol> declared, GrammarNamespace? site)
+	{
+		foreach (var called in DirectCalls(node))
+			if (declared.ContainsKey(called) && NearestSite(called.Namespace) != site)
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
+	/// <paramref name="node"/> rebuilt with every call into another site moved to that site's
+	/// clone; the caller's own site, where it has one, is left out of the map.
+	/// </summary>
+	Node Retargeted(Node node, Dictionary<RuleSymbol, RuleSymbol> declared, GrammarNamespace? site)
+	{
+		var moved = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		foreach (var pair in declared)
+			if (NearestSite(pair.Key.Namespace) != site)
+				moved[pair.Key] = pair.Value;
+
+		return CloneAndRewrite(node, NoTargets, moved, "");
 	}
 
 	static void CollectSites(GrammarNamespace ns, List<GrammarNamespace> sites)

@@ -4303,6 +4303,96 @@ public sealed class SemanticTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryNamespaceA", "b").IsSuccess);
 	}
 
+	/// <summary>
+	/// A call into a rebinding namespace from outside it reads the namespace's specialization, not
+	/// the rule as written: <c>Ns.E</c> resolves <c>A</c> through <c>D</c> wherever it is called from.
+	/// </summary>
+	/// <remarks>
+	/// Only a publication used to be pointed at the specialization. A call in a rule body kept the
+	/// original target, so <c>R = Ns.E</c> read <c>E</c> as though the header had not been written.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(CallsIntoARebindingNamespace))]
+	public void A_call_from_outside_a_rebinding_namespace_reads_its_specialization(
+		string inside, string outside, string accepted, string refused, CarrierKind carrier, bool direct)
+	{
+		var result = GramCompiler.Compile(
+			$$"""
+			B = 'b'
+			D = 'd'
+			A = B+ & ':' & B+
+
+			namespace Ns with (B = D)
+			{
+				{{inside}}
+			}
+
+			R = {{outside}}
+			parse R as ParseStart
+			""",
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				Carrier       = carrier,
+				Direct        = direct,
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(
+			result.Sources[0].Text, sourceParts: result.Sources.Skip(1).Select(static source => source.Text));
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", accepted).IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", refused).IsSuccess);
+	}
+
+	public static TheoryData<string, string, string, string, CarrierKind, bool> CallsIntoARebindingNamespace()
+	{
+		var data = new TheoryData<string, string, string, string, CarrierKind, bool>();
+
+		(string Inside, string Outside, string Accepted, string Refused)[] shapes =
+		[
+			("E = A",              "Ns.E & \" f\"", "dd:d f", "bb:b f"),
+			("E = A",              "Ns.E",          "dd:d",   "bb:b"),
+			("E = A",              "'<' & Ns.E",    "<dd:d",  "<bb:b"),
+			("E = A & '!'",        "Ns.E & \" f\"", "d:d! f", "b:b! f"),
+			("E = A\nG = E & '!'", "Ns.G",          "d:dd!",  "b:bb!"),
+		];
+
+		foreach (var (inside, outside, accepted, refused) in shapes)
+			foreach (var (carrier, direct) in new[] { (CarrierKind.Auto, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, true) })
+				data.Add(inside, outside, accepted, refused, carrier, direct);
+
+		return data;
+	}
+
+	[Fact]
+	public void A_rule_typed_by_a_rule_of_a_rebinding_namespace_takes_the_specializations_type()
+	{
+		// §4.1 case 3 over §5.1: `R : Ns.E` takes the value of the `Ns.E` it calls, which is the
+		// specialization's — `D`'s decimal, not `B`'s int.
+		var result = Compile("""
+			B : @int     = 'b' => @(1)
+			D : @decimal = 'd' => @(2m)
+
+			namespace Ns with (B = D)
+			{
+				E : B = B
+			}
+
+			R : Ns.E = Ns.E
+			parse R as ParseStart
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(2m, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "d").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "b").IsSuccess);
+	}
+
 	[Fact]
 	public void A_parameterized_rule_may_be_rebound_to_one_of_the_same_signature()
 	{
