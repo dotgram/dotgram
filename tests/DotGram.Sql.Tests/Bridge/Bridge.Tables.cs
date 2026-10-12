@@ -16,7 +16,7 @@ static partial class Bridge
 	{
 		public static readonly string[] Owns =
 		[
-			.. typeof(TableReference).GetNestedTypes().Where(static one => one.IsSubclassOf(typeof(TableReference))).Select(NameOf),
+			.. typeof(TableReference).GetNestedTypes().Where(static one => one.IsSubclassOf(typeof(TableReference)) && one != typeof(TableReference.Changed)).Select(NameOf),
 			"Clause.SystemTime", "Clause.TableSample", "Clause.JsonColumn", "Clause.ColumnDefinition", "Clause.ColumnOption",
 			"Clause.ConstraintDefinition", "Clause.References", "Clause.Connection", "Clause.Dropped", "Clause.Placement",
 			"Clause.Option",
@@ -37,7 +37,7 @@ static partial class Bridge
 		{
 			made = old switch
 			{
-				TableReference source   => Of(source),
+				TableReference source when Owned(Owns, old) => Of(source),
 				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
 				_                       => null,
 			};
@@ -88,9 +88,6 @@ static partial class Bridge
 
 				case TableReference.OdbcJoin(var inner):
 					return new Ast.TableSource.OdbcJoin(Source(inner));
-
-				case TableReference.Changed:
-					throw BridgeGap.Open(old, "inventory TableReference.Changed");
 
 				default:
 					throw Inventory.Unconverted(old);

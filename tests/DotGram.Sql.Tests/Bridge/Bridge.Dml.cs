@@ -18,6 +18,7 @@ static partial class Bridge
 			"Statement.ReadText", "Statement.WriteText", "Statement.UpdateText",
 			"Query.DefaultValues", "Query.FromFile", "Query.FromStream", "Query.FromExecute",
 			"Clause.Set", "Clause.Output", "Clause.MergeWhen", "Clause.PartitionRange",
+			"TableReference.Changed",
 		];
 
 		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
@@ -29,6 +30,7 @@ static partial class Bridge
 				Statement.Delete delete     => Delete(delete),
 				Statement.Merge merge       => Merge(merge),
 				Statement.Truncate truncate => Truncate(truncate),
+				TableReference.Changed changed => Changed(changed),
 				Query.FromFile              => throw BridgeGap.Missing(old, "Statement.BulkInsert (inventory Query.FromFile)"),
 				Query.FromStream            => throw BridgeGap.Missing(old, "Statement.InsertBulk (inventory Query.FromStream)"),
 				Query.FromExecute           => throw BridgeGap.Missing(old, "InsertSource.Execute (inventory Query.FromExecute)"),
@@ -38,6 +40,27 @@ static partial class Bridge
 			};
 
 			return made is not null;
+		}
+
+		/// <summary>
+		/// <c>(MERGE … OUTPUT …) AS c (cols)</c>, the rows a data change statement returns read as a table: the new
+		/// tree's data change table with no result option, whose rows are the statement's OUTPUT.
+		/// </summary>
+		static Ast.TableSource Changed(TableReference.Changed old)
+		{
+			var said = Recover("Alias.AsKeyword of a table source", After(old.Statement, old), static text => Words(text) is [")", "AS", ..], false);
+
+			return new Ast.TableSource.DataChange(null, StatementOf(old.Statement),
+				new Ast.Alias(Values.Part(old, old.Name), old.Columns is { } columns ? Values.Parts(old, columns) : null, said));
+		}
+
+		/// <summary>The text from the end of one located node to the end of the node it stands in.</summary>
+		static string? After(ISqlSpan node, ISqlSpan within)
+		{
+			if (source is null || !node.Span.Known || !within.Span.Known || node.Span.IsStale || within.Span.IsStale)
+				return null;
+
+			return node.Span.End <= within.Span.End && within.Span.End <= source.Length ? source[node.Span.End..within.Span.End] : null;
 		}
 
 		/// <summary>The WITH a data change statement is written after, where it has one.</summary>

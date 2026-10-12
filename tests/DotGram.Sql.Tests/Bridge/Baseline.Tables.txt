@@ -25,7 +25,6 @@ Statement.StatisticsDefinition = 0/43/0/0/0/0/0
 Statement.TableDefinition = 0/1829/0/0/0/0/0
 Statement.UpdateStatistics = 0/41/0/0/0/0/0
 Statement.ViewDefinition = 0/84/0/0/0/0/0
-TableReference.Changed = 0/29/0/0/0/0/0
 TableReference.Derived = 0/0/0/0/0/0/0
 TableReference.FunctionCall = 0/6/0/0/0/0/0
 TableReference.Joined = 0/0/0/0/0/0/0
