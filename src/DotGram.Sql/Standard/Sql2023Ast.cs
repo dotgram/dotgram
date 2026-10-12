@@ -1650,7 +1650,7 @@ public sealed record RowValue(SqlList<Expression> Items, bool RowKeyword = false
 	}
 }
 public enum OverrideKind { UserValue, SystemValue }
-public abstract record MergeClause : ISqlNode
+public abstract partial record MergeClause : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -1661,10 +1661,10 @@ public abstract record MergeClause : ISqlNode
 
 	public Expression? Condition { get; init; }
 	public record Matched(MergeMatchedAction Action) : MergeClause;
-	public record NotMatched(MergeInsertAction Action) : MergeClause;
+	public partial record NotMatched(MergeInsertAction Action) : MergeClause;
 }
 public abstract record MergeMatchedAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Update(SqlList<Assignment> Assignments) : MergeMatchedAction; public record Delete : MergeMatchedAction; }
-public sealed record MergeInsertAction(SqlList<Identifier> Columns, OverrideKind? Override, SqlList<Expression> Values) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record MergeInsertAction(SqlList<Identifier> Columns, OverrideKind? Override, SqlList<Expression> Values) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));

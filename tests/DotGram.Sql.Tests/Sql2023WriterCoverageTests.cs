@@ -447,6 +447,9 @@ public sealed class Sql2023WriterCoverageTests
 			["Delete.FromOmitted"] = (
 				new Statement.Delete { Target = new TableSource.Named(T) },
 				new Statement.Delete { Target = new TableSource.Named(T), FromOmitted = true }),
+			["NotMatched.ByTarget"] = (
+				Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, [A]))] },
+				Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, [A])) { ByTarget = true }] }),
 			["Merge.IntoOmitted"] = (
 				Merged(),
 				Merged() with { IntoOmitted = true }),
@@ -534,6 +537,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("Try on a cast")]
 	[InlineData("Try on a convert")]
 	[InlineData("Try on a parse")]
+	[InlineData("DefaultValues on a MERGE insert")]
+	[InlineData("NotMatchedBySource against Matched")]
 	[InlineData("ForceSeek on CHANGETABLE CHANGES")]
 	[InlineData("ForceSeek on CHANGETABLE VERSION")]
 	[InlineData("ForPath on a table")]
@@ -558,6 +563,12 @@ public sealed class Sql2023WriterCoverageTests
 			"Try on a parse" => (
 				Sql2023Writer.Write(new Expression.Parse(A, type)),
 				Sql2023Writer.Write(new Expression.Parse(A, type, Try: true))),
+			"DefaultValues on a MERGE insert" => (
+				Sql2023Writer.Write(Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, []))] }),
+				Sql2023Writer.Write(Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, []) { DefaultValues = true })] })),
+			"NotMatchedBySource against Matched" => (
+				Sql2023Writer.Write(Merged()),
+				Sql2023Writer.Write(Merged() with { Clauses = [new MergeClause.NotMatchedBySource(new MergeMatchedAction.Delete())] })),
 			"ForceSeek on CHANGETABLE CHANGES" => (
 				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, false))),
 				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, true)))),
@@ -752,6 +763,7 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a second OUTPUT without INTO")]
 	[InlineData("an empty second FROM")]
 	[InlineData("an INSERT word that is none")]
+	[InlineData("DEFAULT VALUES with values in a MERGE")]
 	[InlineData("a written name on xml qualified by dbo")]
 	[InlineData("a 0x literal that is not hex digits")]
 	[InlineData("a table variable with hints in a FROM")]
@@ -787,6 +799,7 @@ public sealed class Sql2023WriterCoverageTests
 				Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null)),
 			},
 			"an empty second FROM"                  => new Statement.Delete { Target = new TableSource.Named(T), From = new FromClause([]) },
+			"DEFAULT VALUES with values in a MERGE" => Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, [A]) { DefaultValues = true })] },
 			"an INSERT word that is none"           => new Statement.Insert { Target = new TableSource.Named(T), Into = (IntoKeyword)9 },
 			"a written name on xml qualified by dbo" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("xml")]) },
 			"a 0x literal that is not hex digits"   => new Expression.Literal(new LiteralValue.Binary("0x0A") { ZeroX = true }),

@@ -1578,7 +1578,14 @@ public static partial class Sql2023Writer
 
 					foreach (var clause in merge.Clauses)
 					{
-						Word(clause is MergeClause.Matched ? "WHEN MATCHED" : "WHEN NOT MATCHED");
+						Word(clause switch
+						{
+							MergeClause.Matched                   => "WHEN MATCHED",
+							MergeClause.NotMatched { ByTarget: true } => "WHEN NOT MATCHED BY TARGET",
+							MergeClause.NotMatched                => "WHEN NOT MATCHED",
+							MergeClause.NotMatchedBySource        => "WHEN NOT MATCHED BY SOURCE",
+							_                                     => throw Unwritten(clause),
+						});
 
 						if (clause.Condition is { } condition)
 						{
@@ -1599,10 +1606,30 @@ public static partial class Sql2023Writer
 								Word("DELETE");
 								break;
 
+							// T-SQL: MERGE (Transact-SQL). A matched clause's action.
+							case MergeClause.NotMatchedBySource { Action: MergeMatchedAction.Update sourceUpdate }:
+								Word("UPDATE SET");
+								Each(sourceUpdate.Assignments, PutAssignment);
+								break;
+
+							case MergeClause.NotMatchedBySource:
+								Word("DELETE");
+								break;
+
 							default:
 								var action = ((MergeClause.NotMatched)clause).Action;
 
 								Word("INSERT");
+
+								// T-SQL: MERGE (Transact-SQL). A row of defaults, with nothing else.
+								if (action.DefaultValues)
+								{
+									if (action.Columns.Count > 0 || action.Values.Count > 0 || action.Override is not null)
+										throw Misplaced(action, "DefaultValues", "with columns, values or an override");
+
+									Word("DEFAULT VALUES");
+									break;
+								}
 
 								if (action.Columns.Count > 0)
 								{

@@ -271,6 +271,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("UPDATE t SET a = 1 OUTPUT inserted.* FROM t JOIN u ON t.a = u.a OPTION (RECOMPILE)", "Update.Output From Hints")]
 	[InlineData("UPDATE OPENQUERY (s, 'SELECT a FROM t') SET a = 1",               "Update.Target OpenQuery")]
 	[InlineData("MERGE t USING u ON t.a = u.a WHEN MATCHED THEN DELETE OUTPUT $action;", "Merge.IntoOmitted Output")]
+	[InlineData("MERGE INTO t USING u ON t.a = u.a WHEN NOT MATCHED BY SOURCE AND t.b = 1 THEN UPDATE SET b = 2 WHEN NOT MATCHED BY TARGET THEN INSERT DEFAULT VALUES;", "Merge.BySource ByTarget DefaultValues")]
 	public void The_bridge_builds_the_data_change_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -294,6 +295,15 @@ public sealed class BridgeTests(ITestOutputHelper output)
 				Output.Items: [Ast.SelectColumn.QualifiedAll], From.Sources: [Ast.TableSource.Join], Hints.Count: 1,
 			},
 			"Update.Target OpenQuery"     => made is Ast.Statement.Update { Target: Ast.TableSource.OpenQuery },
+			"Merge.BySource ByTarget DefaultValues" => made is Ast.Statement.Merge
+			{
+				IntoOmitted: false,
+				Clauses:
+				[
+					Ast.MergeClause.NotMatchedBySource { Condition: not null, Action: Ast.MergeMatchedAction.Update },
+					Ast.MergeClause.NotMatched { ByTarget: true, Action: { DefaultValues: true, Values.Count: 0 } },
+				],
+			},
 			_                             => made is Ast.Statement.Merge { IntoOmitted: true, Output.Items.Count: 1 },
 		};
 

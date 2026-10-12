@@ -95,3 +95,27 @@ public abstract partial record Statement
 /// with no <c>None</c> member, as <see cref="TransactionKeyword"/> is: null is no word.
 /// </summary>
 public enum IntoKeyword { Into, Over }
+
+public abstract partial record MergeClause
+{
+	/// <summary>
+	/// T-SQL: MERGE (Transact-SQL). <c>WHEN NOT MATCHED BY SOURCE [AND c] THEN UPDATE SET … | DELETE</c>: a row of the
+	/// target no row of the source matched, which may be changed or removed as a matched one may.
+	/// </summary>
+	public sealed record NotMatchedBySource(MergeMatchedAction Action) : MergeClause;
+
+	public partial record NotMatched
+	{
+		/// <summary>T-SQL: MERGE (Transact-SQL). <c>WHEN NOT MATCHED BY TARGET</c>, which means what the words without BY TARGET mean.</summary>
+		[Spelling] public bool ByTarget { get; init; }
+	}
+}
+
+public sealed partial record MergeInsertAction
+{
+	/// <summary>
+	/// T-SQL: MERGE (Transact-SQL). <c>INSERT DEFAULT VALUES</c>: a row of defaults; the writer refuses it with columns or
+	/// values.
+	/// </summary>
+	public bool DefaultValues { get; init; }
+}
