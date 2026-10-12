@@ -141,12 +141,17 @@ sealed partial class Machine
 				// the failure to the site it opened over, until none is open.
 				var quiet = Quiets ? "!failure.Quiet && " : "";
 
-				file.Line($"if ({quiet}p > failure.Position)");
+				// The quiet reading writes down how far it got and no more (KeepsDoors).
+				file.Line($"if ({(KeepsDoors ? "" : quiet)}p > failure.Position)");
 				using (file.Block(""))
 				{
 					file.Line("failure.Position = p;");
-					file.Line("failure.Expected = expected;");
-					file.Line("failure.ExpectedMore?.Clear();");
+
+					using (KeepsDoors ? file.Block("if (!failure.Quiet)") : null)
+					{
+						file.Line("failure.Expected = expected;");
+						file.Line("failure.ExpectedMore?.Clear();");
+					}
 				}
 				using (file.Block($"else if ({quiet}p == failure.Position && expected != null)"))
 				{

@@ -36,7 +36,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure { Unasked = true };
+					failure = new Failure { Unasked = true, Doors = failure.Position };
 					end     = Recognize_Sum_Whole(text, 0, ref failure, out recognized, parserWhole);
 				}
 
@@ -98,7 +98,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure { Unasked = true };
+					failure = new Failure { Unasked = true, Doors = failure.Position };
 					end     = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
 				}
 
@@ -170,7 +170,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure { Unasked = true };
+					failure = new Failure { Unasked = true, Doors = failure.Position };
 					end     = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
 				}
 
@@ -452,7 +452,7 @@ namespace DotGram.Snapshots
 							o1 = c == ' ' || c == '+';
 						}
 
-						if (!o1 && failure.Quiet)
+						if (!o1 && (failure.Quiet || p < failure.Doors))
 						{
 							break;
 						}
@@ -509,7 +509,7 @@ namespace DotGram.Snapshots
 					int g0 = (int)g0At!;
 					if (!Recognize_DotGram_Guard4(g0))
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+						Refused_DotGram(ref failure, p, null);
 						{ values.Count0 = rb_0; return -1; }
 					}
 					if (unbuilt == 0) last0 = Construct_Sum(r0!, values.Take0(rb_0)!); else { values.Count0 = rb_0; }
@@ -573,7 +573,7 @@ namespace DotGram.Snapshots
 					int? r1 = default;
 					if ((uint)p >= (uint)text.Length)
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(4));
 						return -1;
 					}
 					c = text[p];
@@ -594,7 +594,7 @@ namespace DotGram.Snapshots
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
 								{
-									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+									Refused_DotGram(ref failure, p, ExpectedSet_DotGram(1));
 									return -1;
 								}
 								p += 1;
@@ -671,7 +671,7 @@ namespace DotGram.Snapshots
 					p = q0;
 					if ((uint)p >= (uint)text.Length || text[p] != '^')
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
+						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 						return -1;
 					}
 					p += 1;
@@ -690,7 +690,7 @@ namespace DotGram.Snapshots
 					int g1 = (int)g1At!;
 					if (!Recognize_DotGram_Guard5(g0, g1))
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+						Refused_DotGram(ref failure, p, null);
 						return -1;
 					}
 					if (unbuilt == 0) last0 = Construct_Term_1((int)r1!, (int)r2!);
@@ -757,7 +757,7 @@ namespace DotGram.Snapshots
 
 					if (p < m0 + 1)
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(5));
+						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(5));
 						return -1;
 					}
 
@@ -808,7 +808,7 @@ namespace DotGram.Snapshots
 					int r0 = default!;
 					if ((uint)p >= (uint)text.Length || text[p] != '+')
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(0));
+						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(0));
 						return -1;
 					}
 					p += 1;
@@ -873,7 +873,7 @@ namespace DotGram.Snapshots
 					p = q2;
 					if (p != text.Length)
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(7));
+						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(7));
 						return -1;
 					}
 					return p;
@@ -1454,6 +1454,8 @@ namespace DotGram.Snapshots
 				public bool Quiet;
 
 				public bool Unasked;
+
+				public int Doors;
 			}
 
 			sealed class Ways
@@ -1813,6 +1815,15 @@ namespace DotGram.Snapshots
 
 					more.Add(expected);
 				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			static void Refused_DotGram(ref Failure failure, int at, string[]? expected)
+			{
+				if (!failure.Quiet)
+					Refuse_DotGram(ref failure, at, expected);
+				else if (failure.Looking == 0 && at > failure.Position)
+					failure.Position = at;
 			}
 
 			static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered, int stood)

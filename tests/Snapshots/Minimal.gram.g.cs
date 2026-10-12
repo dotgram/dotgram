@@ -2046,11 +2046,14 @@ namespace DotGram.Snapshots
 			return p;
 
 			Fail:
-			if (!failure.Quiet && p > failure.Position)
+			if (p > failure.Position)
 			{
 				failure.Position = p;
-				failure.Expected = expected;
-				failure.ExpectedMore?.Clear();
+				if (!failure.Quiet)
+				{
+					failure.Expected = expected;
+					failure.ExpectedMore?.Clear();
+				}
 			}
 			else if (!failure.Quiet && p == failure.Position && expected != null)
 			{
@@ -2205,11 +2208,14 @@ namespace DotGram.Snapshots
 			return p;
 
 			Fail:
-			if (!failure.Quiet && p > failure.Position)
+			if (p > failure.Position)
 			{
 				failure.Position = p;
-				failure.Expected = expected;
-				failure.ExpectedMore?.Clear();
+				if (!failure.Quiet)
+				{
+					failure.Expected = expected;
+					failure.ExpectedMore?.Clear();
+				}
 			}
 			else if (!failure.Quiet && p == failure.Position && expected != null)
 			{
@@ -2327,11 +2333,14 @@ namespace DotGram.Snapshots
 			return p;
 
 			Fail:
-			if (!failure.Quiet && p > failure.Position)
+			if (p > failure.Position)
 			{
 				failure.Position = p;
-				failure.Expected = expected;
-				failure.ExpectedMore?.Clear();
+				if (!failure.Quiet)
+				{
+					failure.Expected = expected;
+					failure.ExpectedMore?.Clear();
+				}
 			}
 			else if (!failure.Quiet && p == failure.Position && expected != null)
 			{
@@ -2728,10 +2737,11 @@ namespace DotGram.Snapshots
 
 			S7:
 			{
-				if (p > turn0 && !failure.Quiet && p > failure.Position)
+				if (p > turn0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected;
+					if (!failure.Quiet)
+						failure.Expected = expected;
 				}
 				p = turn0;
 			}
@@ -3163,10 +3173,11 @@ namespace DotGram.Snapshots
 
 			S8:
 			{
-				if (p > turn0 && !failure.Quiet && p > failure.Position)
+				if (p > turn0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected;
+					if (!failure.Quiet)
+						failure.Expected = expected;
 				}
 				p = turn0;
 			}
@@ -3310,13 +3321,13 @@ namespace DotGram.Snapshots
 				a0 = p;
 				if ((uint)p >= (uint)text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(11));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(11));
 					return -1;
 				}
 				c = text[p];
 				if (!(((c >= '0' && c <= '9'))))
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(11));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(11));
 					return -1;
 				}
 				p++;
@@ -3332,7 +3343,7 @@ namespace DotGram.Snapshots
 						o1 = c == '+';
 					}
 
-					if (!o1 && failure.Quiet)
+					if (!o1 && (failure.Quiet || p < failure.Doors))
 					{
 						{ if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(42)); }
 						break;
@@ -3394,7 +3405,7 @@ namespace DotGram.Snapshots
 
 				if ((uint)p >= (uint)text.Length || text[p] != '+')
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(24));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(24));
 					return -1;
 				}
 				p += 1;
@@ -3433,7 +3444,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				if (p != text.Length)
 				{
-					if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(30));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(30));
 					return -1;
 				}
 				return p;
@@ -4492,11 +4503,14 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
-				if (lookahead < 0 && !failure.Quiet && p > failure.Position)
+				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected;
-					failure.ExpectedMore?.Clear();
+					if (!failure.Quiet)
+					{
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
@@ -5109,11 +5123,14 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
-				if (lookahead < 0 && !failure.Quiet && p > failure.Position)
+				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected;
-					failure.ExpectedMore?.Clear();
+					if (!failure.Quiet)
+					{
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
@@ -5924,6 +5941,14 @@ namespace DotGram.Snapshots
 			#pragma warning restore 0649
 
 			public bool Quiet;
+
+			// Nothing assigns this here: no reading of this grammar records after a quiet one.
+			// A field nothing assigns is CS0649 in somebody else's build, which for one
+			// that treats warnings as errors is a broken compilation of a file they did
+			// not write.
+			#pragma warning disable 0649
+			public int Doors;
+			#pragma warning restore 0649
 		}
 
 		sealed class Window
@@ -6640,6 +6665,15 @@ namespace DotGram.Snapshots
 
 				more.Add(expected);
 			}
+		}
+
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+		static void Refused_DotGram(ref Failure failure, int at, string[]? expected)
+		{
+			if (!failure.Quiet)
+				Refuse_DotGram(ref failure, at, expected);
+			else if (failure.Looking == 0 && at > failure.Position)
+				failure.Position = at;
 		}
 
 		static void Refuse_DotGram_Over(ref Failure failure, int at, string[] expected, string[] covered, int stood)
