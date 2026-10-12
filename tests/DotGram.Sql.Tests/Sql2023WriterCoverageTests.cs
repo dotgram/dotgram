@@ -1514,6 +1514,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a natural union join")]
 	[InlineData("an outer union join")]
 	[InlineData("a partitioned union join")]
+	[InlineData("a union join partitioned on its right")]
+	[InlineData("a union join with a hint")]
 	public void A_value_with_no_text_is_refused(string which)
 	{
 		var type = new DataType.Numeric(NumericTypeKind.Int);
@@ -1867,6 +1869,8 @@ public sealed class Sql2023WriterCoverageTests
 			"a natural union join"                  => UnionJoin with { Natural = true },
 			"an outer union join"                   => UnionJoin with { OuterKeyword = true },
 			"a partitioned union join"              => UnionJoin with { LeftPartition = [A] },
+			"a union join partitioned on its right" => UnionJoin with { RightPartition = [A] },
+			"a union join with a hint"              => UnionJoin with { Hint = JoinHint.Hash },
 			_                                       => new LiteralValue.Binary("0A"),
 		};
 
