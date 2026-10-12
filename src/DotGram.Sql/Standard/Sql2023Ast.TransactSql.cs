@@ -313,16 +313,25 @@ public abstract partial record Expression
 public abstract partial record DataType
 {
 	/// <summary>
+	/// T-SQL: the type's name when it was written as an identifier — bracketed, quoted or <c>sys.</c>-qualified —
+	/// rather than as the key word; the same type.
+	/// </summary>
+	[Spelling] public QualifiedName? WrittenName { get; init; }
+
+	/// <summary>
 	/// T-SQL: Data types (Transact-SQL), a page syntax.md does not transcribe. A type T-SQL names that the standard
 	/// does not spell: a name and the numbers written in its brackets — <c>tinyint</c>, <c>money</c>,
-	/// <c>datetime2 (7)</c>, <c>[int]</c>, <c>int (10)</c>.
+	/// <c>datetime2 (7)</c>, <c>[money]</c>, <c>sys.sysname</c>.
 	/// </summary>
 	/// <remarks>
-	/// Quoting and the count of parts never choose the record. In order: a spelling whose meaning is the standard
-	/// type's, unbracketed, is the standard's record (never <c>timestamp</c>, which in T-SQL is rowversion);
-	/// <c>xml</c> is <see cref="Xml"/>; a name with numbers in its brackets is <see cref="Named"/>; a name of one
-	/// part, however quoted, whose text is one of T-SQL's system types is <see cref="Named"/>; and every other
-	/// name is the standard's <see cref="UserDefined"/>.
+	/// On SQL Server a system type's name bracketed, quoted or qualified by <c>sys</c> is the same type as the bare
+	/// word, and the tree says so. In order: a one-word spelling whose meaning is the standard type's (int, integer,
+	/// smallint, bigint, dec, decimal, numeric, float, real, char, character, varchar, nchar, nvarchar, binary,
+	/// varbinary, date, time, json), bare, bracketed, quoted or qualified by <c>sys</c>, is the standard's record,
+	/// with <see cref="WrittenName"/> set unless it was bare — never <c>timestamp</c>, which in T-SQL is rowversion;
+	/// a standard spelling of several words, unbracketed, is the standard's record; <c>xml</c> is <see cref="Xml"/>;
+	/// a name of one part, or <c>sys</c> and a name, however quoted, that is one of T-SQL's system types is
+	/// <see cref="Named"/>, its arguments numbers; and every other name is the standard's <see cref="UserDefined"/>.
 	/// </remarks>
 	public sealed record Named(QualifiedName Name, SqlList<Expression> Arguments) : DataType;
 

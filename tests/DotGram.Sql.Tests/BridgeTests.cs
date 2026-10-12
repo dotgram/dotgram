@@ -170,6 +170,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT CAST (a AS money) FROM t",     "SELECT CAST (a AS money) FROM t",     BridgeOracle.TypeName, false)]
 	[InlineData("SELECT CAST (a AS timestamp) FROM t", "SELECT CAST (a AS timestamp) FROM t", BridgeOracle.TypeName, false)]
 	[InlineData("SELECT CAST (a AS nvarchar) FROM t",  "SELECT CAST (a AS nvarchar) FROM t",  BridgeOracle.TypeName, false)]
+	[InlineData("SELECT CAST (a AS sys.sysname) FROM t", "SELECT CAST (a AS sys.sysname) FROM t", BridgeOracle.TypeName, false)]
 	[InlineData("SELECT CAST (a AS money) FROM t WHERE b = 1", "SELECT CAST (a AS money) FROM t WHERE b = 2", BridgeOracle.TypeName, true)]
 	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 1, a) FROM t",    BridgeOracle.DatePart, false)]
 	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 2, a) FROM t",    BridgeOracle.DatePart, true)]
@@ -209,7 +210,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 		}
 	}
 
-	/// <summary>Every one of T-SQL's system types, however quoted, is <c>DataType.Named</c>; <c>xml</c> is its own.</summary>
+	/// <summary>
+	/// Every one of T-SQL's system types, bracketed, is the type its bare word is: a standard spelling of one word the
+	/// standard's record written as a name, and the rest <c>DataType.Named</c>.
+	/// </summary>
 	[Theory]
 	[InlineData("bigint")] [InlineData("binary")] [InlineData("bit")] [InlineData("char")] [InlineData("cursor")]
 	[InlineData("date")] [InlineData("datetime")] [InlineData("datetime2")] [InlineData("datetimeoffset")]
@@ -225,12 +229,13 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	{
 		Assert.Contains(name, Bridge.Values.SystemTypes);
 
-		var type = Bridge.Values.Type(new object(), "[" + name + "]");
+		var written = new Ast.QualifiedName([new Ast.Identifier("[" + name + "]", Ast.IdentifierStyle.Bracketed)]);
+		var type    = Bridge.Values.Type(new object(), "[" + name + "]");
 
-		if (name == "xml")
-			Assert.IsType<Ast.DataType.Xml>(type);
+		if (Bridge.Values.StandardWords.Contains(name))
+			Assert.Equal(Bridge.Values.Type(new object(), name) with { WrittenName = written }, type);
 		else
-			Assert.Equal(new Ast.DataType.Named(new Ast.QualifiedName([new Ast.Identifier("[" + name + "]", Ast.IdentifierStyle.Bracketed)]), []), type);
+			Assert.Equal(new Ast.DataType.Named(written, []), type);
 	}
 
 	/// <summary>
@@ -244,7 +249,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT TRY_CAST (a AS int)",                         "Expression.Cast { Try }")]
 	[InlineData("SELECT CAST (a AS int)",                             "DataType.Numeric { Int }")]
 	[InlineData("SELECT CAST (a AS nvarchar(max))",                   "DataType.Character { Nvarchar, Max }")]
-	[InlineData("SELECT CAST (a AS [int])",                           "DataType.Named [int]")]
+	[InlineData("SELECT CAST (a AS [int])",                           "DataType.Numeric { Int, [int] }")]
+	[InlineData("SELECT CAST (a AS [nvarchar] (max))",                "DataType.Character { Nvarchar, Max, [nvarchar] }")]
+	[InlineData("SELECT CAST (a AS sys.sysname)",                     "DataType.Named sys.sysname")]
+	[InlineData("SELECT CAST (a AS [double precision])",              "DataType.UserDefined [double precision]")]
 	[InlineData("SELECT CAST (a AS dbo.T)",                           "DataType.UserDefined dbo.T")]
 	[InlineData("SELECT CAST (a AS xml(CONTENT s))",                  "DataType.Xml { Content, s }")]
 	[InlineData("SELECT 0x0A",                                        "LiteralValue.Binary { 0A, ZeroX }")]
@@ -276,8 +284,14 @@ public sealed class BridgeTests(ITestOutputHelper output)
 				Target(value) is Ast.DataType.Numeric { Kind: Ast.NumericTypeKind.Int },
 			"DataType.Character { Nvarchar, Max }" =>
 				Target(value) is Ast.DataType.Character { Kind: Ast.CharacterTypeKind.Nvarchar, Max: true },
-			"DataType.Named [int]" =>
-				Target(value) is Ast.DataType.Named { Name.Parts: [{ Text: "[int]" }], Arguments.Count: 0 },
+			"DataType.Numeric { Int, [int] }" =>
+				Target(value) is Ast.DataType.Numeric { Kind: Ast.NumericTypeKind.Int, WrittenName.Parts: [{ Text: "[int]" }] },
+			"DataType.Character { Nvarchar, Max, [nvarchar] }" =>
+				Target(value) is Ast.DataType.Character { Kind: Ast.CharacterTypeKind.Nvarchar, Max: true, WrittenName.Parts: [{ Text: "[nvarchar]" }] },
+			"DataType.Named sys.sysname" =>
+				Target(value) is Ast.DataType.Named { Name.Parts: [{ Text: "sys" }, { Text: "sysname" }], Arguments.Count: 0 },
+			"DataType.UserDefined [double precision]" =>
+				Target(value) is Ast.DataType.UserDefined { Name.Parts: [{ Text: "[double precision]" }] },
 			"DataType.UserDefined dbo.T" =>
 				Target(value) is Ast.DataType.UserDefined { Name.Parts: [{ Text: "dbo" }, { Text: "T" }] },
 			"DataType.Xml { Content, s }" =>

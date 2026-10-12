@@ -349,6 +349,10 @@ public sealed class Sql2023WriterCoverageTests
 			["Binary.ZeroX"] = (
 				new Expression.Literal(new LiteralValue.Binary("'0A'")),
 				new Expression.Literal(new LiteralValue.Binary("0A") { ZeroX = true })),
+			// T-SQL's type named as an identifier, the same type as its key word.
+			["DataType.WrittenName"] = (
+				new DataType.Numeric(NumericTypeKind.Int),
+				new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("[int]", IdentifierStyle.Bracketed)]) }),
 			// T-SQL's escape in ODBC's braces.
 			["Like.BracedEscape"] = (
 				new Expression.Like(A, false, LikeKind.Like, B, A),
@@ -369,7 +373,13 @@ public sealed class Sql2023WriterCoverageTests
 		// Covered instead, and demanding a pair of it would ask the wrong question. What both roads
 		// share is that a marked property nobody asserted fails: the enum has to be COVERED, not merely
 		// mentioned.
-		var flags = marked.Where(one => one.PropertyType == typeof(bool))
+		// A flag, or a spelling held as text — a type's name written as an identifier — is asserted as a pair.
+		static bool Paired(System.Reflection.PropertyInfo one)
+		{
+			return one.PropertyType == typeof(bool) || !(Nullable.GetUnderlyingType(one.PropertyType) ?? one.PropertyType).IsEnum;
+		}
+
+		var flags = marked.Where(Paired)
 			.Select(one => one.DeclaringType!.Name + "." + one.Name)
 			.Distinct(StringComparer.Ordinal)
 			.OrderBy(one => one, StringComparer.Ordinal)
@@ -377,7 +387,7 @@ public sealed class Sql2023WriterCoverageTests
 
 		Assert.Equal(flags, pairs.Keys.OrderBy(one => one, StringComparer.Ordinal));
 
-		foreach (var one in marked.Where(one => one.PropertyType != typeof(bool)))
+		foreach (var one in marked.Where(one => !Paired(one)))
 		{
 			// An optional enum in this tree is nullable, so what is covered is the enum inside it.
 			var named = Nullable.GetUnderlyingType(one.PropertyType) ?? one.PropertyType;
@@ -595,6 +605,10 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("an ODBC call without brackets that holds more than its name")]
 	[InlineData("a 0x literal in quotes")]
 	[InlineData("an X literal without quotes")]
+	[InlineData("a written name that is not the key word")]
+	[InlineData("a written name qualified by other than sys")]
+	[InlineData("a written name on a type of several words")]
+	[InlineData("a written name on a named type")]
 	public void A_value_with_no_text_is_refused(string which)
 	{
 		var type = new DataType.Numeric(NumericTypeKind.Int);
@@ -610,6 +624,10 @@ public sealed class Sql2023WriterCoverageTests
 			"an ODBC call without brackets that holds more than its name" =>
 				new Expression.OdbcEscape(new Identifier("fn"), new Expression.Invocation(T, []) { Quantifier = SetQuantifier.Distinct }, false),
 			"a 0x literal in quotes"                => new Expression.Literal(new LiteralValue.Binary("'0A'") { ZeroX = true }),
+			"a written name that is not the key word" => new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("[integer]", IdentifierStyle.Bracketed)]) },
+			"a written name qualified by other than sys" => new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("int")]) },
+			"a written name on a type of several words" => new DataType.Numeric(NumericTypeKind.DoublePrecision) { WrittenName = new QualifiedName([new Identifier("[double precision]", IdentifierStyle.Bracketed)]) },
+			"a written name on a named type"        => new DataType.Named(T, []) { WrittenName = T },
 			_                                       => new Expression.Literal(new LiteralValue.Binary("0A")),
 		};
 

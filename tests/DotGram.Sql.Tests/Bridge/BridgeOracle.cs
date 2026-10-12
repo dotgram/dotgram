@@ -200,8 +200,9 @@ static class BridgeOracle
 	/// <item><c>DATEADD (day, …)</c> takes a date part in T-SQL, and a column in the standard: the first argument of
 	/// a date part function, against a column of one part whose text is the part's word.</item>
 	/// <item><c>CAST (a AS money)</c> names one of T-SQL's system types, and a user-defined type in the standard: a
-	/// system type with no arguments, against a user-defined type of one part and the same text, or for
-	/// <c>timestamp</c> the standard's own.</item>
+	/// system type with no arguments — a <c>Named</c> on the list, a standard record written as a name, an
+	/// <c>nvarchar</c> with no length — against a user-defined type of the same name, or for <c>timestamp</c> the
+	/// standard's own.</item>
 	/// </list>
 	/// A difference outside every exempted subtree is unexplained, and makes the statement a shape mismatch.
 	/// </summary>
@@ -269,23 +270,39 @@ static class BridgeOracle
 	}
 
 	/// <summary>
-	/// A T-SQL system type with no arguments where the standard reads a user-defined type of one part and the same
-	/// text, or, for <c>timestamp</c>, its own TIMESTAMP.
+	/// A T-SQL system type with no arguments where the standard reads a user-defined type of the same name: a
+	/// <c>Named</c> of one part, or <c>sys</c> and a name, on the list of system types; a standard record written as
+	/// a name (<c>WrittenName</c>); an <c>nvarchar</c> with no length. And T-SQL's <c>timestamp</c>, where the
+	/// standard reads its own TIMESTAMP.
 	/// </summary>
 	static bool TypeNamed(Trees.Diff difference)
 	{
-		var name = difference.Left switch
-		{
-			Ast.DataType.Named { Name.Parts: [var part], Arguments.Count: 0 } when Bridge.Values.SystemTypes.Contains(Bridge.Values.Unquoted(part.Text)) => part.Text,
-			Ast.DataType.Character { Kind: Ast.CharacterTypeKind.Nvarchar, Length: null, Max: false }                                                => "nvarchar",
-			_                                                                                                                                         => null,
-		};
+		if (difference is { Left: Ast.DataType.Named { Name.Parts: [var stamp], Arguments.Count: 0 }, Right: Ast.DataType.DateTime { Kind: Ast.DateTimeTypeKind.Timestamp } })
+			return Bridge.Values.Unquoted(stamp.Text).Equals("timestamp", StringComparison.OrdinalIgnoreCase);
 
-		return name is not null && difference.Right switch
+		if (difference.Right is not Ast.DataType.UserDefined { Name: var read })
+			return false;
+
+		static bool Same(Ast.QualifiedName one, Ast.QualifiedName two)
 		{
-			Ast.DataType.UserDefined { Name.Parts: [var part] } => part.Text.Equals(name, StringComparison.OrdinalIgnoreCase),
-			Ast.DataType.DateTime { Kind: Ast.DateTimeTypeKind.Timestamp } => name.Equals("timestamp", StringComparison.OrdinalIgnoreCase),
-			_                                                               => false,
+			return one.Parts.Count == two.Parts.Count
+				&& one.Parts.Zip(two.Parts).All(static pair => pair.First.Text.Equals(pair.Second.Text, StringComparison.OrdinalIgnoreCase));
+		}
+
+		static bool System(Ast.QualifiedName name)
+		{
+			return name.Parts.Count == 1 && Bridge.Values.SystemTypes.Contains(Bridge.Values.Unquoted(name.Parts[0].Text))
+				|| name.Parts.Count == 2 && Bridge.Values.Unquoted(name.Parts[0].Text).Equals("sys", StringComparison.OrdinalIgnoreCase)
+					&& Bridge.Values.SystemTypes.Contains(Bridge.Values.Unquoted(name.Parts[1].Text));
+		}
+
+		return difference.Left switch
+		{
+			Ast.DataType.Named { Arguments.Count: 0, Name: var name }                       => System(name) && Same(name, read),
+			Ast.DataType { WrittenName: { } written }                                       => Same(written, read),
+			Ast.DataType.Character { Kind: Ast.CharacterTypeKind.Nvarchar, Length: null, Max: false } =>
+				read.Parts is [var part] && part.Text.Equals("nvarchar", StringComparison.OrdinalIgnoreCase),
+			_                                                                                => false,
 		};
 	}
 

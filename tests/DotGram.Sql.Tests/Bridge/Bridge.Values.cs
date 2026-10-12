@@ -800,13 +800,23 @@ static partial class Bridge
 		};
 
 		/// <summary>
-		/// A data type the old tree keeps as text. Quoting and the count of parts never choose the record. In order:
-		/// a spelling whose meaning is the standard type's, unbracketed, is the standard's record (never
-		/// <c>timestamp</c>, which is T-SQL's rowversion); <c>xml</c> is <see cref="Ast.DataType.Xml"/>; a name with
-		/// <c>max</c> in its brackets is a gap, that shape not decided; a name with numbers in its brackets is
-		/// <see cref="Ast.DataType.Named"/>, and with a word there a gap; a name of one part whose text is one of
-		/// T-SQL's system types is <see cref="Ast.DataType.Named"/>; and every other name is the standard's
-		/// <see cref="Ast.DataType.UserDefined"/>.
+		/// The one-word spellings whose meaning is the standard type's, which T-SQL also reads as a name, bracketed,
+		/// quoted or qualified by <c>sys</c>, for the same type.
+		/// </summary>
+		public static readonly HashSet<string> StandardWords = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"int", "integer", "smallint", "bigint", "dec", "decimal", "numeric", "float", "real", "char", "character",
+			"varchar", "nchar", "nvarchar", "binary", "varbinary", "date", "time", "json",
+		};
+
+		/// <summary>
+		/// A data type the old tree keeps as text. On SQL Server a system type's name bracketed, quoted or qualified by
+		/// <c>sys</c> is the same type as the bare word. In order: a one-word standard spelling, bare or so written, is
+		/// the standard's record, with <c>WrittenName</c> unless it was bare (never <c>timestamp</c>, T-SQL's
+		/// rowversion); a standard spelling of several words, unbracketed, is the standard's record; a bare
+		/// <c>xml</c> is <see cref="Ast.DataType.Xml"/>; a name, or <c>sys</c> and a name, that is one of T-SQL's system
+		/// types is <see cref="Ast.DataType.Named"/>, its arguments numbers; a word or a bracketed <c>[max]</c> in the
+		/// brackets is a gap; and every other name is the standard's <see cref="Ast.DataType.UserDefined"/>.
 		/// </summary>
 		public static Ast.DataType Type(object owner, string text)
 		{
@@ -821,28 +831,32 @@ static partial class Bridge
 			var inside    = tail.Length > 0 ? tail[1..^1].Trim() : "";
 			var arguments = tail.Length > 0 ? inside.Split(',').Select(static one => one.Trim()).ToArray() : [];
 
-			if (head.Length == 0 || Words(head).Length != 1 && !head.Contains('.') && Standard(words, arguments) is null)
-				throw BridgeGap.Open(owner, $"inventory DataType (a type `{text}` of several words)");
+			if (arguments.Any(static one => one.StartsWith('[') || one.StartsWith('"')))
+				throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a name in the brackets of a type)");
 
-			if (Standard(words, arguments) is { } standard)
-				return standard;
+			// Several words unbracketed: only the standard's spellings of several words.
+			if (head.Length == 0 || Words(head).Length != 1 && !head.Contains('.'))
+				return Standard(words, arguments) ?? throw BridgeGap.Open(owner, $"inventory DataType (a type `{text}` of several words)");
 
-			var name = Name(owner, head);
+			var name   = Name(owner, head);
+			var last   = Unquoted(name.Parts[^1].Text).TrimEnd();
+			var system = name.Parts.Count == 1 || name.Parts.Count == 2 && Unquoted(name.Parts[0].Text).Equals("sys", StringComparison.OrdinalIgnoreCase);
+			var bare   = name.Parts is [{ Style: Ast.IdentifierStyle.Regular }];
 
-			if (name.Parts is [var only] && Unquoted(only.Text).Equals("XML", StringComparison.OrdinalIgnoreCase))
+			if (system && StandardWords.Contains(last) && Standard(last.ToUpperInvariant(), arguments) is { } standard)
+				return bare ? standard : standard with { WrittenName = name };
+
+			if (bare && last.Equals("xml", StringComparison.OrdinalIgnoreCase))
 				return Xml(owner, text, inside);
 
-			if (arguments.Any(static one => one.Equals("MAX", StringComparison.OrdinalIgnoreCase)))
-				throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: MAX in the brackets of a type the standard does not spell)");
-
-			if (arguments.Length > 0)
+			if (system && SystemTypes.Contains(last))
 				return arguments.All(static one => one.Length > 0 && one.All(char.IsDigit))
 					? new Ast.DataType.Named(name, [.. arguments.Select(static one => Value(new Ast.LiteralValue.Numeric(one, Ast.NumericLiteralKind.DecimalInteger)))])
 					: throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a word in the brackets of a type)");
 
-			return name.Parts is [var single] && SystemTypes.Contains(Unquoted(single.Text))
-				? new Ast.DataType.Named(name, [])
-				: new Ast.DataType.UserDefined(name);
+			return arguments.Length == 0
+				? new Ast.DataType.UserDefined(name)
+				: throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a user-defined type with arguments)");
 		}
 
 		/// <summary>A name part's text without its delimiters, a doubled closing one undoubled.</summary>
