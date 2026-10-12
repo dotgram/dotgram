@@ -416,6 +416,16 @@ public sealed partial class GrammarNormalizer
 							"on each route; give the inner binding another name (docs/syntax.md §3.5.1).",
 							Marked(binding, at));
 
+					// A recovery point inside the binding. The check over the recoveries in
+					// CheckBoundTexts() looks inside each recovering repetition; this is the binding
+					// around one, which holds the same route from outside.
+					if (_recoveries.Count > 0 && NodeWalk.Descendants(bind.Body).Any(_recoveries.ContainsKey))
+						Report(
+							BindingNotSupported,
+							$"'${binding.Name}' binds a repetition that recovers ('recover', docs/syntax.md §8.2), " +
+							"and a binding over a recovery point is not supported yet.",
+							Marked(binding, at));
+
 					break;
 
 				case Node.Same(var binding, var at):

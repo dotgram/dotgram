@@ -256,6 +256,8 @@ public sealed partial class BackReferenceTests
 	[InlineData("R = $q: 'a' & ('b' & $q & ';')* recover ';'", "$q", 1)]
 	[InlineData("R = $q: 'a' & ('b'){#q} recover ';'",         "(",  0)]
 	[InlineData("R = ($q: 'a')* recover ';' & 'b'",            "(",  0)]
+	[InlineData("R = $q: (('a')* recover ';') & $q",           "$q", 0)]
+	[InlineData("R = $q: ('x' & ('a' & 'b')* recover ';') & 'c'", "$q", 0)]
 	public void A_binding_in_a_repetition_that_recovers_is_not_supported_yet(string grammar, string at, int occurrence)
 	{
 		Refused(GrammarNormalizer.BindingNotSupported, grammar, at, "recover", occurrence);
