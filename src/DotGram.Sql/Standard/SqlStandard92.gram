@@ -306,32 +306,52 @@ CastOperand       : @Expression = v: ValueExpression => @(v) | "NULL"i => @(Node
 // ── §6.1 Data type, cut to what a CAST target can be ───────────────────────
 //
 // Each keeps which of its spellings was written. `BIT` and `BIT VARYING` left the standard
-// after 1992 and the tree has no type for them (Nodes.BitType).
+// after 1992 and are SQL-92's own record (DataType.BitString). A length or a precision is
+// an int in the tree, which is this implementation's largest (§6.1 leaves it to one), and a
+// larger number is refused where it is read (Number).
 
 DataType : @DataType
     = w: ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i) & n: Length? & ("CHARACTER"i & "SET"i & set: QualifiedName)?
         => @(Nodes.Characters(Nodes.CharacterType(w, n), set is null ? null : new CharacterSetName(set), null))
     | w: ("NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NCHAR"i & "VARYING"i?) & n: Length?
         => @(Nodes.CharacterType(w, n))
-    | ("BIT"i & "VARYING"i?) & Length? => @(Nodes.BitType())
-    | w: ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ('(' & p: Digits & (',' & s: Digits)? & ')')? => @(Nodes.NumericType(w, Nodes.Bounded(p), Nodes.Bounded(s)))
+    | w: ("BIT"i & "VARYING"i?) & n: Length? => @(Nodes.BitString(w, n))
+    | w: ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ('(' & p: Number & (',' & s: Number)? & ')')? => @(Nodes.NumericType(w, p, s))
     | w: "INTEGER"i => @(Nodes.NumericType(w, null, null))
     | w: "INT"i => @(Nodes.NumericType(w, null, null))
     | w: "SMALLINT"i => @(Nodes.NumericType(w, null, null))
-    | (w: "FLOAT"i & ('(' & p: Digits & ')')?) => @(Nodes.NumericType(w, Nodes.Bounded(p), null))
+    | (w: "FLOAT"i & ('(' & p: Number & ')')?) => @(Nodes.NumericType(w, p, null))
     | w: "REAL"i => @(Nodes.NumericType(w, null, null))
     | ("DOUBLE"i & "PRECISION"i) => @(Nodes.NumericType("DOUBLE PRECISION", null, null))
     | "DATE"i => @(new DataType.DateTime(DateTimeTypeKind.Date))
-    | w: ("TIME"i | "TIMESTAMP"i) & ('(' & p: Digits & ')')? & (z: "WITH"i & "TIME"i & "ZONE"i)? => @(Nodes.DateTime(w, Nodes.Bounded(p), z))
+    | w: ("TIME"i | "TIMESTAMP"i) & ('(' & p: Number & ')')? & (z: "WITH"i & "TIME"i & "ZONE"i)? => @(Nodes.DateTime(w, p, z))
     | "INTERVAL"i & q: IntervalQualifier => @(new DataType.Interval(q))
 
-Length : @string = '(' & n: Digits & ')' => @(n)
+Length : @string = '(' & n: Number & ')' => @(n)
+
+// A length, a precision or a scale: digits, and no more of them than an int holds.
+Number : @string = n: Digits & when @(Nodes.FitsInt(n)) => @(n)
 
 // §10.1 <interval qualifier>, which is what an INTERVAL type and an interval literal
-// both end with. A field's numbers are kept as they were written, and the qualifier is
-// made of them as SQL:2023 makes it (Nodes.Interval).
-IntervalQualifier   : @IntervalQualifier = start: SingleDatetimeField & ("TO"i & end: SingleDatetimeField)? => @(Nodes.Interval(start, end))
-SingleDatetimeField : @Nodes.Field92 = f: ExtractField & ('(' & p: Digits & (',' & q: Digits)? & ')')? => @(new Nodes.Field92(f, p, q))
+// both end with, production for production: a start field is a field other than SECOND
+// with a leading precision, an end field takes a precision only if it is SECOND, and then
+// the fractional one, and a single SECOND may take both. TIMEZONE_HOUR and
+// TIMEZONE_MINUTE are §6.6's extract fields and no interval's.
+IntervalQualifier : @IntervalQualifier
+    = start: StartField & "TO"i & end: EndField => @(Nodes.Qualifier(start, end))
+    | f: SingleDatetimeField                    => @(f)
+
+StartField : @IntervalQualifier = f: NonSecondDatetimeField & ('(' & p: Number & ')')? => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
+
+EndField : @IntervalQualifier
+    = f: NonSecondDatetimeField                    => @(new IntervalQualifier(Nodes.Field(f)))
+    | f: "SECOND"i & ('(' & p: Number & ')')?      => @(new IntervalQualifier(Nodes.Field(f), null, null, Nodes.Integer(p)))
+
+SingleDatetimeField : @IntervalQualifier
+    = f: NonSecondDatetimeField & ('(' & p: Number & ')')?                  => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
+    | f: "SECOND"i & ('(' & p: Number & (',' & q: Number)? & ')')?          => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p), null, Nodes.Integer(q)))
+
+NonSecondDatetimeField = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i
 
 // ── §6.3 Value specification, §6.4 Column reference ────────────────────────
 
@@ -339,12 +359,12 @@ UnsignedValueSpecification : @Expression = l: UnsignedLiteral => @(new Expressio
 
 // The literals a value may begin with. A typed literal keeps the string after its key
 // word, from its first quote to its last, as SQL:2023's does. A bit string left the
-// standard after 1992, and the tree has no literal for one (Nodes.BitLiteral).
+// standard after 1992, and is SQL-92's own literal (LiteralValue.BitString).
 UnsignedLiteral : @LiteralValue
     = t: UnsignedNumericLiteral         => @(Nodes.NumericLiteral(t))
     | t: CharacterStringLiteral         => @(Nodes.StringLiteral(t, StringLiteralKind.Character))
     | t: NationalCharacterStringLiteral => @(Nodes.StringLiteral(t, StringLiteralKind.National))
-    | t: BitStringLiteral               => @(Nodes.BitLiteral(t))
+    | t: BitStringLiteral               => @(new LiteralValue.BitString(Nodes.Quoted(t)))
     | t: HexStringLiteral               => @(Nodes.BinaryLiteral(t))
     | t: DateLiteral                    => @(new LiteralValue.DateTime(DateTimeLiteralKind.Date,      Nodes.Quoted(t)))
     | t: TimeLiteral                    => @(new LiteralValue.DateTime(DateTimeLiteralKind.Time,      Nodes.Quoted(t)))
@@ -452,12 +472,12 @@ FromClause : @FromClause
 
 // §7.5 <joined table>, left recursive so that §4.3 folds it and the table at the head
 // is read once however many joins follow it. A union join left the standard after 1992,
-// and the tree has no join for one (Nodes.UnionJoin).
+// and is SQL-92's own join kind (JoinKind.Union).
 TableReference : @TableSource
     = left: TableReference & "CROSS"i & "JOIN"i & right: TablePrimary
         => @(new TableSource.Join { Left = left, Right = right, Kind = JoinKind.Cross })
     | left: TableReference & "UNION"i & "JOIN"i & right: TablePrimary
-        => @(Nodes.UnionJoin(left, right))
+        => @(new TableSource.Join { Left = left, Right = right, Kind = JoinKind.Union })
     | left: TableReference & natural: "NATURAL"i? & kind: JoinType? & "JOIN"i & right: TablePrimary
       & ("ON"i & on: SearchCondition
         | "USING"i & '(' & columns: ColumnList & ')')?

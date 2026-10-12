@@ -1859,9 +1859,8 @@ static class Nodes
 	// ── SQL-92 (SqlStandard92.gram) ────────────────────────────────────────────
 	//
 	// What Sql92Parser's grammar is written differently from this one for, brought to the shape this
-	// grammar builds: the same text is the same tree whichever of the two read it. The four SQL-92 has
-	// that SQL:2023 took out — a bit string literal, BIT and BIT VARYING, a union join, and an interval
-	// field this tree has no member for — have no record, and building one says so.
+	// grammar builds: the same text is the same tree whichever of the two read it. None of these throws: what
+	// the tree cannot hold, the grammar refuses before it gets here.
 
 	/// <summary>`+`, `-`, `||`, `*` or `/` between two values.</summary>
 	public static Expression Arithmetic(Expression left, string op, Expression right)
@@ -1912,22 +1911,19 @@ static class Nodes
 		return token.Substring(token.IndexOf('\''));
 	}
 
-	/// <summary>A number the tree holds as an <see cref="int"/>, as it was written; one larger has no value there.</summary>
-	public static string? Bounded(string? digits)
+	/// <summary>
+	/// Whether digits name a number the tree holds as an <see cref="int"/>: a length, a precision or a scale. Asked
+	/// by a guard, which may ask before the capture is bound; nothing bound fits.
+	/// </summary>
+	public static bool FitsInt(string? digits)
 	{
-		if (digits is null)
-			return null;
-
-		if (!int.TryParse(digits, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _))
-			throw new NotSupportedException($"The number {digits} is larger than the SQL:2023 tree holds.");
-
-		return digits;
+		return digits is not null && int.TryParse(digits, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _);
 	}
 
 	/// <summary>A character string type from the words written for it, and its length.</summary>
 	public static DataType CharacterType(string words, string? length)
 	{
-		return Character(Words(words), length is null ? null : LengthOf(Bounded(length)!, null));
+		return Character(Words(words), length is null ? null : LengthOf(length, null));
 	}
 
 	/// <summary>
@@ -1980,22 +1976,12 @@ static class Nodes
 		return text.Length > 0 ? SignOf(text.Substring(0, 1)) : null;
 	}
 
-	/// <summary>`BIT` and `BIT VARYING`, which SQL:2023 removed and the tree has no type for.</summary>
-	public static DataType BitType()
+	/// <summary>`BIT` or `BIT VARYING` from the words written for it, and its length (SQL-92's own type).</summary>
+	public static DataType BitString(string words, string? length)
 	{
-		throw new NotSupportedException("BIT and BIT VARYING are SQL-92 types that SQL:2023 removed, and the tree has no record for them.");
-	}
+		var kind = Words(words).EndsWith("VARYING", StringComparison.OrdinalIgnoreCase) ? BitStringTypeKind.BitVarying : BitStringTypeKind.Bit;
 
-	/// <summary>A bit string literal, <c>B'0101'</c>, which SQL:2023 removed and the tree has no literal for.</summary>
-	public static LiteralValue BitLiteral(string text)
-	{
-		throw new NotSupportedException("A bit string literal is SQL-92's, SQL:2023 removed it, and the tree has no record for it.");
-	}
-
-	/// <summary>A union join, <c>t UNION JOIN u</c>, which SQL:2023 removed and the tree has no join kind for.</summary>
-	public static TableSource UnionJoin(TableSource left, TableSource right)
-	{
-		throw new NotSupportedException("A union join is SQL-92's, SQL:2023 removed it, and the tree has no join kind for it.");
+		return new DataType.BitString(kind, Integer(length));
 	}
 
 	/// <summary>A qualified or natural join: its type's words, whether it is natural, and its condition or its columns.</summary>
@@ -2014,62 +2000,5 @@ static class Nodes
 			OuterKeyword  = step.Outer,
 			Specification = step.Specification,
 		};
-	}
-
-	/// <summary>An SQL-92 datetime field as written: its word, and the one or two numbers after it.</summary>
-	public sealed record Field92(string Word, string? Leading, string? Fractional);
-
-	/// <summary>
-	/// An interval qualifier from SQL-92's fields: a field alone with its precision, or a start field with
-	/// its leading precision and an end field with the fractional precision of a `SECOND`.
-	/// </summary>
-	/// <remarks>
-	/// SQL-92 writes every field the same way, `f (p, q)`, where SQL:2023 lets only a `SECOND` alone carry
-	/// two numbers and an end field only a `SECOND`'s fractional one. What the tree has a member for is
-	/// built; a `TIMEZONE_HOUR` or `TIMEZONE_MINUTE` field, or a number no member holds, is not.
-	/// </remarks>
-	public static IntervalQualifier Interval(Field92 start, Field92? end)
-	{
-		var first = DatetimeField(start.Word);
-
-		if (end is null)
-		{
-			if (start.Fractional is not null && first != DateTimeField.Second)
-				throw Unheld(start.Word, "two precisions");
-
-			return new IntervalQualifier(first, Integer(Bounded(start.Leading)), null, Integer(Bounded(start.Fractional)));
-		}
-
-		var last = DatetimeField(end.Word);
-
-		if (start.Fractional is not null)
-			throw Unheld(start.Word, "a fractional precision on a start field");
-
-		if (end.Fractional is not null)
-			throw Unheld(end.Word, "two precisions on an end field");
-
-		if (end.Leading is not null && last != DateTimeField.Second)
-			throw Unheld(end.Word, "a leading precision on an end field");
-
-		return new IntervalQualifier(first, Integer(Bounded(start.Leading)), last, Integer(Bounded(end.Leading)));
-	}
-
-	static DateTimeField DatetimeField(string word)
-	{
-		return word.ToUpperInvariant() switch
-		{
-			"YEAR"   => DateTimeField.Year,
-			"MONTH"  => DateTimeField.Month,
-			"DAY"    => DateTimeField.Day,
-			"HOUR"   => DateTimeField.Hour,
-			"MINUTE" => DateTimeField.Minute,
-			"SECOND" => DateTimeField.Second,
-			_        => throw Unheld(word, "the field"),
-		};
-	}
-
-	static NotSupportedException Unheld(string word, string what)
-	{
-		return new NotSupportedException($"An SQL-92 interval qualifier's {what} ({word}) has no member in the SQL:2023 tree.");
 	}
 }

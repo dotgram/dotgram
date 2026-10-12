@@ -51,6 +51,7 @@ public sealed class Sql92TreeTests
 	/// </summary>
 	static readonly Dictionary<(Level Level, string Text), string> Differences = new()
 	{
+		[(Level.ValueExpression, "CAST(a AS BIT)")] = "BIT is SQL-92's bit string type, which SQL:2003 removed; SQL:2023 reads the word as a user-defined type's name",
 	};
 
 	/// <summary>
@@ -69,7 +70,15 @@ public sealed class Sql92TreeTests
 		["SELECT * FROM MemoryOptimizedTable WITH (SNAPSHOT)"] = WithIsAName,
 		["SELECT * FROM t WITH (FORCESCAN) WHERE c1 = 0 AND c3 = 100"] = WithIsAName,
 		["SELECT * FROM t WITH (FORCESEEK) WHERE c1 = 0 AND c3 = 100"] = WithIsAName,
+		["CAST(a AS BIT VARYING(8))"] = Removed,
+		["CAST(a AS BIT /* x */ VARYING)"] = Removed,
+		["B'0101'"] = Removed,
+		["B''"] = Removed,
+		["SELECT a FROM t UNION JOIN u"] = Removed,
+		["SELECT a FROM t UNION JOIN u UNION JOIN v"] = Removed,
 	};
+
+	const string Removed = "SQL-92's bit string type, bit string literal and union join, which SQL:2003 removed, are SQL-92's own records";
 
 	const string WithIsAName = "WITH is a reserved word in SQL:2023; SQL-92 reads T-SQL's table hint as a correlation name WITH and its columns";
 
@@ -138,20 +147,28 @@ public sealed class Sql92TreeTests
 	}
 
 	/// <summary>
-	/// What SQL-92 has and SQL:2023 took out has no record in the tree, and is not built as something
-	/// else: reading it says so.
+	/// What SQL-92 does not say, the grammar refuses rather than build: an interval qualifier §10.1 does not have,
+	/// and a length or a precision larger than the tree's <see cref="int"/>.
 	/// </summary>
 	[Theory]
-	[InlineData("B'0101' = a")]
-	[InlineData("CAST(a AS BIT VARYING(8)) = b")]
-	[InlineData("CAST(a AS INTERVAL TIMEZONE_HOUR) = b")]
-	[InlineData("CAST(a AS INTERVAL DAY TO HOUR(2)) = b")]
-	[InlineData("CAST(a AS INTERVAL DAY(2, 3)) = b")]
-	[InlineData("CAST(a AS CHAR(2147483648)) = b")]
-	[InlineData("EXISTS (SELECT a FROM t UNION JOIN u)")]
-	public void What_the_tree_has_no_record_for_is_not_built(string text)
+	[InlineData("CAST(a AS INTERVAL TIMEZONE_HOUR)")]
+	[InlineData("CAST(a AS INTERVAL DAY TO TIMEZONE_MINUTE)")]
+	[InlineData("CAST(a AS INTERVAL DAY TO HOUR(2))")]
+	[InlineData("CAST(a AS INTERVAL DAY(2, 3))")]
+	[InlineData("CAST(a AS INTERVAL DAY(2, 3) TO SECOND)")]
+	[InlineData("CAST(a AS INTERVAL DAY TO SECOND(1, 2))")]
+	[InlineData("CAST(a AS INTERVAL SECOND TO MINUTE)")]
+	[InlineData("INTERVAL '1' HOUR(2, 3)")]
+	[InlineData("CAST(a AS CHAR(2147483648))")]
+	[InlineData("CAST(a AS BIT VARYING(2147483648))")]
+	[InlineData("CAST(a AS NUMERIC(10, 2147483648))")]
+	[InlineData("CAST(a AS FLOAT(99999999999999999999))")]
+	[InlineData("CAST(a AS TIME(2147483648))")]
+	[InlineData("INTERVAL '1' DAY(2147483648)")]
+	[InlineData("INTERVAL '1' SECOND(1, 2147483648)")]
+	public void What_SQL92_does_not_say_is_refused(string text)
 	{
-		Assert.Throws<NotSupportedException>(() => Sql92Parser.TryParseSearchCondition(text));
+		Assert.False(Sql92Parser.TryParseValueExpression(text).IsSuccess, text);
 	}
 
 	/// <summary>
@@ -322,6 +339,13 @@ public sealed class Sql92TreeTests
 		"CAST(a AS CHAR --c\rVARYING(10))", "CAST(a AS NATIONAL --c\nCHAR(10))", "CAST(a AS NCHAR /* VARYING */ VARYING)",
 		"INTERVAL - /* ' */ '1' DAY", "SELECT a FROM t /* AS */ x", "SELECT a FROM t AS -- c\n x", "SELECT a /* AS */ b FROM t",
 		":a INDICATOR /* : */ :b",
+
+		// What SQL-92 has and SQL:2003 removed, which are SQL-92's own records.
+		"CAST(a AS BIT)", "CAST(a AS BIT VARYING(8))", "CAST(a AS BIT /* x */ VARYING)", "B'0101'", "B''",
+		"SELECT a FROM t UNION JOIN u", "SELECT a FROM t UNION JOIN u UNION JOIN v",
+
+		// The largest number the tree holds.
+		"CAST(a AS CHAR(2147483647))", "CAST(a AS NUMERIC(2147483647, 0))", "INTERVAL '1' DAY(2147483647)",
 	];
 
 	/// <summary>The SQL-92 rows of the stand (benchmarks/DotGram.Benchmarks/Stand.cs) that read.</summary>

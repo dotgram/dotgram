@@ -23,8 +23,9 @@ namespace DotGram.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>What it holds.</b> <c>BooleanPrimary</c> (SqlStandard92.gram) asks for a predicate before a
-/// bracketed condition, so each level of <c>WHERE ((( … a = 1 … )))</c> first reads everything below
+/// <b>What it holds.</b> <c>BooleanPrimary</c> — SqlStandard92.gram's, and the copy of it that
+/// TransactSql.gram writes out beside its own rules since it stopped including SQL-92 — asks for a
+/// predicate before a bracketed condition, so each level of <c>WHERE ((( … a = 1 … )))</c> first reads everything below
 /// it as the value its predicate opens with, and each value bracket reads everything below it once
 /// more as a subquery: the accepted nest cost the cube of its depth, and one never closed tried
 /// every alternative and cost its cube too — until the reader remembered where a recursive rule had
@@ -37,8 +38,9 @@ namespace DotGram.Tests;
 /// <para>
 /// <b>Counted, not timed</b> (D144). Every rule the reader reads by a method of its own counts its
 /// entries where the compilation defines <c>DOTGRAM_COUNTS</c>, and the count here is their sum. The
-/// grammars are <c>TransactSql.gram</c> and <c>SqlStandard92.gram</c> as they ship, run through the
-/// generator here with the symbol defined, under a name the package shows its internals to, since
+/// grammars are <c>TransactSql.gram</c> and <c>SqlStandard92.gram</c> as they ship, each standing alone
+/// and each building its own tree — T-SQL's of SqlSyntax.cs, SQL-92 the SQL:2023 tree of DotGram.Sql.Ast —
+/// run through the generator here with the symbol defined, under a name the package shows its internals to, since
 /// the code beside the grammars uses them. A count is a function of the grammar and the generator,
 /// so it is what the shipped parser does, without a clock or a quiet machine.
 /// </para>
@@ -268,7 +270,7 @@ public sealed class BracketNestingCountTests
 
 	static readonly Lazy<Type> _parser = new(() => Compile(Host, "TransactSql", "TransactSql.gram", "DotGram.Sql.TransactSql.Counted.TransactSqlParser"));
 
-	/// <summary>The counted copy of <c>Sql92Parser</c>, whose <c>BooleanPrimary</c> T-SQL reads.</summary>
+	/// <summary>The counted copy of <c>Sql92Parser</c>, whose <c>BooleanPrimary</c> T-SQL's grammar restates.</summary>
 	static Type Sql92 => _sql92.Value;
 
 	static readonly Lazy<Type> _sql92 = new(() => Compile(Host92, "Standard", "SqlStandard92.gram", "DotGram.Sql.Standard.Counted.Sql92Parser"));
