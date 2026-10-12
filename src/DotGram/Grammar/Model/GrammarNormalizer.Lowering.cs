@@ -479,7 +479,7 @@ public sealed partial class GrammarNormalizer
 		var lowered = Lower(operand, ns);
 
 		if (_model.WithBindings.TryGetValue(expression, out var targets) && targets.Count > 0)
-			_pendingWith.Add(new WithSite(_currentRule!, lowered, targets, "With" + (++_withCounter)));
+			_pendingWith.Add(new WithSite(_currentRule!, lowered, targets, "With" + (++_withCounter), expression.At));
 
 		return lowered;
 	}

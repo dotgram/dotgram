@@ -1636,6 +1636,12 @@ for `with` when the substitution belongs to one place a rule is used; reach for 
 header once more than one call needs the same rebinding, or the substitution is worth
 a name of its own.
 
+Not yet supported: a `with` expression whose operand calls, at any depth, into a namespace
+with a header from outside that namespace — `Ns.G with (Z = Q)`, or `X with (Z = Q)` where
+`X` calls `Ns.G`. It is refused (`GRAM4036`) rather than compiled into a parser that loses
+the namespace's header. The same rebinding written on a publication, `parse Ns.G with (Z =
+Q)`, composes on top of the header and is supported.
+
 A `parse`/`find` directive (§6) may carry the same header directly, rather than being
 wrapped in a `namespace Name with (...)` block just to reach it:
 

@@ -50,6 +50,12 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string CircularWith        = "GRAM4017";
 
+	/// <summary>
+	/// A <c>with</c> expression around a call into a namespace with a header, from outside it:
+	/// not supported yet, since the header would be lost.
+	/// </summary>
+	public const string WithIntoNamespace   = "GRAM4036";
+
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
 

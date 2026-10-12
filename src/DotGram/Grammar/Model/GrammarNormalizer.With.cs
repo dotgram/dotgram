@@ -20,7 +20,7 @@ public sealed partial class GrammarNormalizer
 	/// resolved rebindings, and the name a clone made for it is given.
 	/// </summary>
 	internal sealed record WithSite(
-		RuleSymbol Rule, Node Root, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, string Name);
+		RuleSymbol Rule, Node Root, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, string Name, Location At);
 
 	readonly List<WithSite> _pendingWith = [];
 	int _withCounter;
@@ -53,6 +53,9 @@ public sealed partial class GrammarNormalizer
 
 		var groups = _pendingWith.GroupBy(site => site.Rule).ToList();
 		var graph  = BuildCallGraph();
+
+		if (RefuseWithIntoNamespaces(graph))
+			return;
 
 		// Before ordering, because a cycle is what has no order. Two rules whose sites
 		// reach each other cannot both be specialized against the other already specialized,
@@ -109,6 +112,68 @@ public sealed partial class GrammarNormalizer
 
 			_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);
 		}
+	}
+
+	/// <summary>
+	/// Refuses every <c>with</c> expression whose operand calls, at any depth, into a namespace
+	/// with a header from outside it (GRAM4036).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §5.1 says a namespace's rules carry its header wherever they are called from, and a
+	/// <c>with</c> composes on top of the headers of what it reaches. This pass runs before
+	/// namespaces are specialized, so a <c>with</c> over <c>Ns.G</c> copied <c>G</c> as written
+	/// and the header was lost: <c>Ns.G with (Z = Q)</c>, where <c>Ns</c> binds <c>B = D</c>,
+	/// read <c>b</c> where it should read <c>d</c>, even though the <c>with</c> names neither.
+	/// </para>
+	/// <para>
+	/// Until the two are specialized in one order, every such <c>with</c> is refused rather
+	/// than compiled into a parser that silently reads the wrong language. A call is "into" a
+	/// namespace when the rule called belongs to a namespace with a header and the caller does
+	/// not belong to that same one; a <c>with</c> written inside the namespace whose rules it
+	/// reaches is unaffected.
+	/// </para>
+	/// </remarks>
+	bool RefuseWithIntoNamespaces(Dictionary<RuleSymbol, List<RuleSymbol>> graph)
+	{
+		var refused = false;
+
+		foreach (var site in _pendingWith)
+		{
+			var seen    = new HashSet<RuleSymbol>();
+			var pending = new Queue<(RuleSymbol Caller, RuleSymbol Called)>();
+
+			foreach (var called in DirectCalls(site.Root))
+				pending.Enqueue((site.Rule, called));
+
+			while (pending.Count > 0)
+			{
+				var (caller, called) = pending.Dequeue();
+
+				if (NearestSite(called.Namespace) is { } into && into != NearestSite(caller.Namespace))
+				{
+					Report(
+						WithIntoNamespace,
+						$"This 'with' reaches '{called.Name}' in namespace '{into.Name}', whose header " +
+						"rebinds what it calls, from outside it. A 'with' around a call into a namespace " +
+						"with a header is not supported yet: write the rebinding on a publication " +
+						"('parse … with (…)') or as a namespace header (§5.1).",
+						site.At);
+
+					refused = true;
+
+					break;
+				}
+
+				if (!seen.Add(called) || !graph.TryGetValue(called, out var next))
+					continue;
+
+				foreach (var one in next)
+					pending.Enqueue((called, one));
+			}
+		}
+
+		return refused;
 	}
 
 	/// <summary>

@@ -1010,6 +1010,60 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.CircularWith, "B = A with (X = Z)\nA = B with (X = Y)\n" + Tail);
 	}
 
+	// ── A `with` around a call into a rebinding namespace (GRAM4036) ──────────────
+
+	/// <summary>
+	/// A `with` expression whose operand calls, at any depth, into a namespace with a header from
+	/// outside it is refused for now, rather than compiled into a parser that loses the header.
+	/// </summary>
+	[Theory]
+	[InlineData("R = Ns.G with (Z = Q)")]
+	[InlineData("R = Ns.E with (D = Y)")]
+	[InlineData("R = Ns.E with (B = Y)")]
+	[InlineData("R = X with (Z = Q)\nX = Ns.G")]
+	[InlineData("R = L(Ns.E) with (Z = Q)\nL(x) = x & Z")]
+	public void A_with_around_a_call_into_a_rebinding_namespace_is_refused(string rule)
+	{
+		Refused(GrammarNormalizer.WithIntoNamespace, IntoNamespace(rule));
+	}
+
+	/// <summary>
+	/// What the refusal does not touch: a `with` that reaches no rebinding namespace, and one
+	/// written inside the namespace whose rules it reaches.
+	/// </summary>
+	[Theory]
+	[InlineData("R = F with (Z = Q)\nF = Z & 'f'")]
+	[InlineData("R = Ns.H")]
+	public void A_with_that_calls_into_no_rebinding_namespace_from_outside_is_not_refused(string rule)
+	{
+		var diagnostics = Compile(IntoNamespace(rule)).Diagnostics;
+
+		Assert.DoesNotContain(diagnostics, one => one.Id == GrammarNormalizer.WithIntoNamespace);
+		Assert.DoesNotContain(diagnostics, one => one.Severity == GramSeverity.Error);
+	}
+
+	static string IntoNamespace(string rule)
+	{
+		return
+			$$"""
+			B = 'b'
+			D = 'd'
+			Y = 'y'
+			Z = 'z'
+			Q = 'q'
+
+			namespace Ns with (B = D)
+			{
+				E = B
+				G = E & Z
+				H = G with (Z = Q)
+			}
+
+			{{rule}}
+			parse R
+			""";
+	}
+
 	[Fact]
 	public void And_a_chain_that_does_not_come_back_is_not_a_cycle()
 	{
