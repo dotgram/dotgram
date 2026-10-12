@@ -25,11 +25,11 @@ and which parser answers with which is under the table.
 | [`Sql92Parser`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it |
 | [`TransactSqlParser`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/TransactSql/TransactSql.gram) | `DotGram.Sql.TransactSql` | SQL Server's T-SQL, as the engine reads it |
 
-The third names the second — `[GramInclude(typeof(Sql92Parser), As = "Sql92")]` — and
-rebinds the rules where T-SQL differs, so what the two languages share is written once and the
-dialect is the size of the difference.
+Each grammar stands alone: `TransactSqlParser` includes no other grammar, and the rules it has in the
+shape of the standard's (a search condition, a row value constructor, a case expression) are written
+out in `TransactSql.gram` beside T-SQL's own.
 
-`TransactSqlParser` builds the tree, and `Sql92Parser` the expressions in it that the two share.
+`TransactSqlParser` builds the tree, and `Sql92Parser` builds the same records for the expressions of SQL-92.
 `SqlStandardParser` builds a tree of its own, the standard's, laid out in
 [`SqlAst.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/SqlAst.cs) in `DotGram.Sql.Ast` and printed back by
 [`Sql2023Writer`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/Sql2023Writer.cs). Its records are named for the standard's

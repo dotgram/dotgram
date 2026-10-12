@@ -1,13 +1,12 @@
 ﻿using System;
 
 using DotGram;
-using DotGram.Sql.Standard;
 
 namespace DotGram.Sql.TransactSql;
 
 /// <summary>
-/// A first slice of Microsoft's T-SQL, written as a dialect of <see cref="Sql92Parser"/>
-/// rather than as a grammar of its own.
+/// A first slice of Microsoft's T-SQL, written as a grammar that stands on its own: it includes no
+/// other grammar, and the rules it shares in shape with ISO/IEC 9075:1992 are restated in it.
 /// </summary>
 /// <remarks>
 /// <c>ParseSql</c> reads what a program sends the server in one call, and reads it as the server
@@ -23,9 +22,6 @@ namespace DotGram.Sql.TransactSql;
 // them by name, `TransactSqlParser.Located.TryParseStatement`. The grammar is compiled once: one
 // reader, which asks once a record whether to keep where the record stands, and a walk that builds
 // the values generic over whether the reading locates, which the runtime compiles once for each.
-// The standard this dialect is written on top of, named rather than inherited: a class has
-// one base and as many attributes as it likes, and what a grammar is called inside this one
-// — `Sql92.ValueExpression` — is this grammar's business rather than the standard's.
 // Carried immediately, by name: every construction runs the moment its alternative is read,
 // rather than being recorded on the tape and replayed after the parse is accepted. The gates
 // `Auto` asks would keep this grammar on the tape (about half of its building rules are read for
@@ -39,7 +35,6 @@ namespace DotGram.Sql.TransactSql;
 // token, through the plain and the located door: the same trees, the same messages, nothing thrown.
 // What it buys is the time the tape spent recording and replaying — about half of every T-SQL
 // row of the stand — for more bytes allocated on a reading that is abandoned part-way.
-[GramInclude(typeof(Sql92Parser), As = "Sql92")]
 [Gram("TransactSql.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
 [GramOptions(LocationType = typeof(ISqlLocatable), Suffix = "Located", PerCall = true)]
 public abstract partial class TransactSqlParser
