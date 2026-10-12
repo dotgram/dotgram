@@ -216,16 +216,43 @@ static partial class Bridge
 			if (old is not Clause.Set(var target, var op, var value, var through))
 				throw BridgeGap.Open(old, "inventory Clause.Set");
 
+			// A method called on a column, `SET c.WRITE (…)`: the call is the value, on the column's reference.
 			if (op == "")
-				throw BridgeGap.Missing(old, "`.WRITE (…)` as a member call on the target (proposal 4)");
+			{
+				if (value is not Expression.RoutineInvocation(var method, var arguments, null) || !method.StartsWith('.') || target.Contains('.'))
+					throw BridgeGap.Open(old, "inventory Clause.Set (a method call that is not one on a column)");
 
-			if (op is not null and not "=")
-				throw BridgeGap.Missing(old, "Assignment has no compound operator (proposal 4)");
+				return new Ast.Assignment([], new Ast.Expression.Member(
+					new Ast.Expression.Reference(Values.Name(old, target)),
+					Ast.MemberAccessKind.Dot,
+					Values.Part(old, method[1..]),
+					Each(arguments, static one => new Ast.Argument(Values.Of(one)))));
+			}
 
-			if (through is not null)
-				throw BridgeGap.Missing(old, "Assignment has no Through for `@v = column = value` (proposal 4)");
+			var assigned = op switch
+			{
+				null or "=" => Ast.AssignmentOperator.Assign,
+				"+="        => Ast.AssignmentOperator.Add,
+				"-="        => Ast.AssignmentOperator.Subtract,
+				"*="        => Ast.AssignmentOperator.Multiply,
+				"/="        => Ast.AssignmentOperator.Divide,
+				"%="        => Ast.AssignmentOperator.Modulo,
+				"&="        => Ast.AssignmentOperator.BitwiseAnd,
+				"|="        => Ast.AssignmentOperator.BitwiseOr,
+				"^="        => Ast.AssignmentOperator.BitwiseXor,
+				"||="       => Ast.AssignmentOperator.Concatenate,
+				_           => throw BridgeGap.Open(old, $"inventory Clause.Set (operator `{op}`)"),
+			};
 
-			return new Ast.Assignment([new Ast.AssignmentTarget(Values.Name(old, target))], Values.Of(value));
+			// A variable, alone or taking the new value of the column after it.
+			if (target.StartsWith('@'))
+				return new Ast.Assignment(through is null ? [] : [new Ast.AssignmentTarget(Values.Name(old, through))], Values.Of(value))
+				{
+					Variable = new Ast.Expression.Variable(new Ast.Identifier(target)),
+					Operator = assigned,
+				};
+
+			return new Ast.Assignment([new Ast.AssignmentTarget(Values.Name(old, target))], Values.Of(value)) { Operator = assigned };
 		}
 
 		static Ast.Statement Merge(Statement.Merge old)

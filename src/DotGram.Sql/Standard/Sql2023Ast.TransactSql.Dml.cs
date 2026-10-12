@@ -119,3 +119,21 @@ public sealed partial record MergeInsertAction
 	/// </summary>
 	public bool DefaultValues { get; init; }
 }
+
+/// <remarks>
+/// T-SQL: UPDATE (Transact-SQL). What T-SQL's SET adds. <c>SET @v = e</c> and <c>SET @v += e</c> are a
+/// <see cref="Variable"/> with no targets, the operator the variable's. <c>SET @v = c = e</c> and <c>SET @v = c += e</c>
+/// are a variable and one target, the variable taking the column's new value and the operator the column's (the
+/// variable's <c>=</c> is always plain). A method called on a column, <c>SET c.WRITE (@x, 0, NULL)</c> or
+/// <c>SET p.SetXY (1, 2)</c>, has neither targets nor a variable: its <see cref="Value"/> is the call, an
+/// <see cref="Expression.Member"/> on the column's one-part reference, and the column it writes is that receiver,
+/// not in <see cref="Targets"/>.
+/// </remarks>
+public sealed partial record Assignment
+{
+	/// <summary>T-SQL: UPDATE (Transact-SQL). The operator the targets are assigned with: <c>=</c>, <c>+=</c>, …, <c>||=</c>.</summary>
+	public AssignmentOperator Operator { get; init; } = AssignmentOperator.Assign;
+
+	/// <summary>T-SQL: UPDATE (Transact-SQL). The variable assigned, alone or with the column it takes the new value of.</summary>
+	public Expression.Variable? Variable { get; init; }
+}

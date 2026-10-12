@@ -271,6 +271,11 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("UPDATE t SET a = 1 OUTPUT inserted.* FROM t JOIN u ON t.a = u.a OPTION (RECOMPILE)", "Update.Output From Hints")]
 	[InlineData("UPDATE OPENQUERY (s, 'SELECT a FROM t') SET a = 1",               "Update.Target OpenQuery")]
 	[InlineData("MERGE t USING u ON t.a = u.a WHEN MATCHED THEN DELETE OUTPUT $action;", "Merge.IntoOmitted Output")]
+	[InlineData("UPDATE t SET @v = c += 1",                                        "Assignment variable through column")]
+	[InlineData("UPDATE t SET @v -= 1",                                            "Assignment variable")]
+	[InlineData("UPDATE t SET c ||= 'x'",                                          "Assignment compound")]
+	[InlineData("UPDATE t SET c.WRITE (@x, 0, NULL)",                              "Assignment call")]
+	[InlineData("UPDATE t SET a = 1",                                              "Assignment plain")]
 	[InlineData("MERGE INTO t USING u ON t.a = u.a WHEN NOT MATCHED BY SOURCE AND t.b = 1 THEN UPDATE SET b = 2 WHEN NOT MATCHED BY TARGET THEN INSERT DEFAULT VALUES;", "Merge.BySource ByTarget DefaultValues")]
 	public void The_bridge_builds_the_data_change_record_the_text_means(string text, string expected)
 	{
@@ -304,6 +309,17 @@ public sealed class BridgeTests(ITestOutputHelper output)
 					Ast.MergeClause.NotMatched { ByTarget: true, Action: { DefaultValues: true, Values.Count: 0 } },
 				],
 			},
+			"Assignment variable through column" => made is Ast.Statement.Update
+			{
+				Assignments: [{ Variable.Name.Text: "@v", Targets: [{ Name.Parts: [{ Text: "c" }] }], Operator: Ast.AssignmentOperator.Add }],
+			},
+			"Assignment variable"         => made is Ast.Statement.Update { Assignments: [{ Variable.Name.Text: "@v", Targets.Count: 0, Operator: Ast.AssignmentOperator.Subtract }] },
+			"Assignment compound"         => made is Ast.Statement.Update { Assignments: [{ Variable: null, Targets.Count: 1, Operator: Ast.AssignmentOperator.Concatenate }] },
+			"Assignment call"             => made is Ast.Statement.Update
+			{
+				Assignments: [{ Variable: null, Targets.Count: 0, Value: Ast.Expression.Member { Kind: Ast.MemberAccessKind.Dot, Name.Text: "WRITE", Arguments.Count: 3, Target: Ast.Expression.Reference } }],
+			},
+			"Assignment plain"            => made is Ast.Statement.Update { Assignments: [{ Variable: null, Operator: Ast.AssignmentOperator.Assign, Targets.Count: 1 }] },
 			_                             => made is Ast.Statement.Merge { IntoOmitted: true, Output.Items.Count: 1 },
 		};
 

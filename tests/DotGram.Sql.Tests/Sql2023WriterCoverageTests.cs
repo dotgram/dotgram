@@ -764,6 +764,11 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("an empty second FROM")]
 	[InlineData("an INSERT word that is none")]
 	[InlineData("DEFAULT VALUES with values in a MERGE")]
+	[InlineData("an assignment of nothing that is not a call")]
+	[InlineData("a variable with two targets")]
+	[InlineData("a compound operator on bracketed targets")]
+	[InlineData("a variable through a column in MERGE")]
+	[InlineData("a method call with a compound operator")]
 	[InlineData("a written name on xml qualified by dbo")]
 	[InlineData("a 0x literal that is not hex digits")]
 	[InlineData("a table variable with hints in a FROM")]
@@ -799,6 +804,26 @@ public sealed class Sql2023WriterCoverageTests
 				Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null)),
 			},
 			"an empty second FROM"                  => new Statement.Delete { Target = new TableSource.Named(T), From = new FromClause([]) },
+			"an assignment of nothing that is not a call" => new Statement.Update { Target = new TableSource.Named(T), Assignments = [new Assignment([], B)] },
+			"a variable with two targets"           => new Statement.Update
+			{
+				Target      = new TableSource.Named(T),
+				Assignments = [Assigned() with { Targets = [Assigned().Targets[0], Assigned().Targets[0]], Variable = new Expression.Variable(new Identifier("@v")) }],
+			},
+			"a compound operator on bracketed targets" => new Statement.Update
+			{
+				Target      = new TableSource.Named(T),
+				Assignments = [Assigned() with { Parenthesized = true, Operator = AssignmentOperator.Add }],
+			},
+			"a variable through a column in MERGE"  => Merged() with
+			{
+				Clauses = [new MergeClause.Matched(new MergeMatchedAction.Update([Assigned() with { Variable = new Expression.Variable(new Identifier("@v")) }]))],
+			},
+			"a method call with a compound operator" => new Statement.Update
+			{
+				Target      = new TableSource.Named(T),
+				Assignments = [new Assignment([], new Expression.Member(A, MemberAccessKind.Dot, new Identifier("WRITE"), [new Argument(B)])) { Operator = AssignmentOperator.Add }],
+			},
 			"DEFAULT VALUES with values in a MERGE" => Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, [A]) { DefaultValues = true })] },
 			"an INSERT word that is none"           => new Statement.Insert { Target = new TableSource.Named(T), Into = (IntoKeyword)9 },
 			"a written name on xml qualified by dbo" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("xml")]) },
@@ -1002,6 +1027,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("xml qualified by sys",         "sys.xml")]
 	[InlineData("a string alias",               "SELECT a 'b c'")]
 	[InlineData("a national string alias first", "SELECT N'h''i' = a")]
+	[InlineData("a variable through a column",  "SET @v = a += b")]
+	[InlineData("a method called on a column",  "SET a.WRITE(b)")]
 	public void The_writer_brackets_and_keeps_what_the_grammar_needs(string which, string written)
 	{
 		var t = new TableSource.Named(T);
@@ -1025,6 +1052,15 @@ public sealed class Sql2023WriterCoverageTests
 			"a national string alias first" => Selected with
 			{
 				Columns = [new SelectColumn.ExpressionItem(A, new Identifier("h'i", IdentifierStyle.NationalString)) { AliasFirst = true }],
+			"a variable through a column" => new Statement.Update
+			{
+				Target      = t,
+				Assignments = [Assigned() with { Variable = new Expression.Variable(new Identifier("@v")), Operator = AssignmentOperator.Add }],
+			},
+			"a method called on a column" => new Statement.Update
+			{
+				Target      = t,
+				Assignments = [new Assignment([], new Expression.Member(A, MemberAccessKind.Dot, new Identifier("WRITE"), [new Argument(B)]))],
 			},
 			"xml qualified by sys" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("sys"), new Identifier("xml")]) },
 			_                    => new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([t with { DataSource = Server }]), Table = true },
