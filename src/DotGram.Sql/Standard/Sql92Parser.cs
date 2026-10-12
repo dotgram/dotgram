@@ -46,8 +46,9 @@ namespace DotGram.Sql.Standard;
 /// <c>ParseQuery</c> a <c>Query</c>, and <c>ParseSearchCondition</c> and <c>ParseValueExpression</c> an
 /// <c>Expression</c>. What SQL-92 has and SQL:2003 took out — a bit string literal, <c>BIT</c> and
 /// <c>BIT VARYING</c>, a union join — is SQL-92's own in that tree (<c>Sql2023Ast.Sql92.cs</c>). An interval
-/// qualifier is read as §10.1 writes it, and a length or precision is no larger than the tree's
-/// <c>int</c>: what SQL-92 does not say is refused, and nothing it reads is left without a record.
+/// qualifier is read as §10.1 writes it, and a length, precision or scale the tree holds as an <c>int</c> is
+/// no larger than one (a <c>CURRENT_TIME</c> precision is a literal, and keeps its digits): what SQL-92 does
+/// not say is refused, and nothing it reads is left without a record.
 /// </para>
 /// <para>
 /// <b>Temporary.</b> The standard's parser is <c>SqlStandardParser</c>, written from SQL:2023 down
