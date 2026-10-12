@@ -119,7 +119,6 @@ static class SqlVariants
 		"using DotGram;\n" +
 		"namespace DotGram.Sql.TransactSql.Variant\n" +
 		"{\n" +
-		"\t[GramInclude(typeof(DotGram.Sql.Standard.Sql92Parser), As = \"Sql92\")]\n" +
 		"\t[Gram(\"TransactSql.gram\", Lexical = true, Carrier = GramCarrier.Tape)]\n" +
 		"\tpublic abstract partial class TransactSqlParser\n" +
 		"\t{\n" +
