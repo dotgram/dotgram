@@ -442,7 +442,7 @@ public sealed class SetOperationTests
 	}
 
 	[Fact]
-	public void A_statements_hints_are_not_written_yet()
+	public void A_statements_hints_are_written_after_its_query()
 	{
 		var statement = new Statement.Select
 		{
@@ -450,6 +450,6 @@ public sealed class SetOperationTests
 			Hints = [new QueryHint.Named(new Identifier("RECOMPILE"), [])],
 		};
 
-		Assert.Throws<NotSupportedException>(() => Sql2023Writer.Write(statement));
+		Assert.EndsWith(" OPTION (RECOMPILE)", Sql2023Writer.Write(statement).TrimEnd(';', ' '), StringComparison.Ordinal);
 	}
 }
