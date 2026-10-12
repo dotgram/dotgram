@@ -728,7 +728,13 @@ static partial class Bridge
 			if (text.StartsWith('@'))
 				throw BridgeGap.Missing(owner, "a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements");
 
-			var parts = new List<Ast.Identifier>();
+			return new Ast.QualifiedName([.. Split(text).Select(part => Part(owner, part, split: false))]);
+		}
+
+		/// <summary>A name's text cut at its dots, a dot inside a delimited part not among them.</summary>
+		static List<string> Split(string text)
+		{
+			var parts = new List<string>();
 			var at    = 0;
 
 			while (true)
@@ -765,7 +771,7 @@ static partial class Bridge
 					at++;
 				}
 
-				parts.Add(Part(owner, text.Substring(start, Math.Min(at, text.Length) - start)));
+				parts.Add(text.Substring(start, Math.Min(at, text.Length) - start));
 
 				if (at >= text.Length)
 					break;
@@ -773,26 +779,23 @@ static partial class Bridge
 				at++;
 			}
 
-			return new Ast.QualifiedName([.. parts]);
+			return parts;
 		}
 
 		/// <summary>
-		/// One name of a PIVOT or an UNPIVOT, which the old tree keeps as text and may have kept qualified,
-		/// `PIVOT (… FOR t.b …)`: not one identifier, and so a gap.
-		/// </summary>
-		public static Ast.Identifier RotatedPart(object owner, string text)
-		{
-			if (text.Contains('.') && text.Length > 0 && text[0] is not '[' and not '"')
-				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a qualified pivot or unpivot column `{text}`)");
-
-			return Part(owner, text);
-		}
-
-		/// <summary>
-		/// One part of a name, with the style its first character says.
+		/// One part of a name, with the style its first character says. The old tree keeps some names as text where
+		/// one identifier stands; one of several parts, `t.b` or `[t].[b]`, is not one identifier, and so a gap.
 		/// </summary>
 		public static Ast.Identifier Part(object owner, string text)
 		{
+			return Part(owner, text, split: true);
+		}
+
+		static Ast.Identifier Part(object owner, string text, bool split)
+		{
+			if (split && text.Length > 0 && text[0] != '@' && Split(text).Count > 1)
+				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a qualified name `{text}` where one name stands)");
+
 			if (text.StartsWith('@'))
 				throw BridgeGap.Missing(owner, "a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements");
 

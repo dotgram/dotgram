@@ -88,10 +88,10 @@ public static partial class Sql2023Writer
 					Open();
 					PutExpression(pivot.Aggregate);
 					Word("FOR");
-					PutIdentifier(pivot.Column);
+					PutName(pivot.Column);
 					Word("IN");
 					Open();
-					Each(pivot.Values, PutIdentifier);
+					Each(pivot.Values, PutName);
 					Close();
 					Close();
 					PutAlias(pivot.Alias);
@@ -101,12 +101,12 @@ public static partial class Sql2023Writer
 					PutRotated(unpivot, unpivot.Source, unpivot.Columns, "Columns", unpivot.Alias);
 					Word("UNPIVOT");
 					Open();
-					PutIdentifier(unpivot.Value);
+					PutName(unpivot.Value);
 					Word("FOR");
-					PutIdentifier(unpivot.Column);
+					PutName(unpivot.Column);
 					Word("IN");
 					Open();
-					Each(unpivot.Columns, PutIdentifier);
+					Each(unpivot.Columns, PutName);
 					Close();
 					Close();
 					PutAlias(unpivot.Alias);
@@ -188,6 +188,11 @@ public static partial class Sql2023Writer
 					if (rowset.ProviderString is not null && rowset.Login is not null)
 						throw Both(rowset, "ProviderString", "Login");
 
+					// The provider and the connection are strings written out, which the grammar reads and nothing else.
+					foreach (var (part, member) in new[] { (rowset.Provider, "Provider"), (rowset.ProviderString, "ProviderString"), (rowset.Login?.DataSource, "Login"), (rowset.Login?.User, "Login"), (rowset.Login?.Password, "Login") })
+						if (part is not null && !StringLiteral(part))
+							throw Misplaced(rowset, member, "that is not one string literal");
+
 					Word("OPENROWSET");
 					Call();
 					PutExpression(rowset.Provider);
@@ -231,6 +236,9 @@ public static partial class Sql2023Writer
 							if (option.Value is not null)
 								throw Both(option, "Order", "Value");
 
+							if (order.Columns.Count == 0)
+								throw Empty(order, "Columns");
+
 							Open();
 							PutSorts(new OrderByClause(order.Columns));
 							Close();
@@ -272,7 +280,7 @@ public static partial class Sql2023Writer
 					PutAlias(predict.Alias);
 					return true;
 
-				// T-SQL: ODBC Scalar Functions (Transact-SQL).
+				// T-SQL: the ODBC outer join escape { oj … } (no syntax block in syntax.md).
 				case TableSource.OdbcJoin odbc:
 					if (odbc.Source is TableSource.Pivot or TableSource.Unpivot)
 						throw Misplaced(odbc, "Source", "that is a PIVOT or an UNPIVOT, which an ODBC escape does not hold");
@@ -294,7 +302,7 @@ public static partial class Sql2023Writer
 		/// rotation its right side alone; and the refusals the grammar's requirements make: an alias, without
 		/// columns, and at least one name in the list.
 		/// </summary>
-		void PutRotated(TableSource rotation, TableSource source, SqlList<Identifier> names, string member, Alias alias)
+		void PutRotated(TableSource rotation, TableSource source, SqlList<QualifiedName> names, string member, Alias alias)
 		{
 			if (names.Count == 0)
 				throw Empty(rotation, member);
@@ -527,6 +535,9 @@ public static partial class Sql2023Writer
 
 					if (xml.ElementName is { } element)
 					{
+						if (!StringLiteral(element))
+							throw Misplaced(xml, "ElementName", "that is not one string literal");
+
 						Open();
 						PutExpression(element);
 						Close();
@@ -594,6 +605,9 @@ public static partial class Sql2023Writer
 
 				if (directive.Name is { } name)
 				{
+					if (!StringLiteral(name))
+						throw Misplaced(directive, "Name", "that is not one string literal");
+
 					Open();
 					PutExpression(name);
 					Close();
@@ -722,6 +736,18 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>T-SQL: Query Hints (Transact-SQL).</summary>
+		/// <summary>The words a query hint record of several words starts with, which no named hint may be.</summary>
+		static readonly System.Collections.Generic.HashSet<string> PhraseWords = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"HASH", "ORDER", "CONCAT", "MERGE", "KEEP", "LOOP", "EXPAND", "FORCE", "DISABLE", "KEEPFIXED", "ROBUST", "USE", "OPTIMIZE", "TABLE",
+		};
+
+		/// <summary>Whether a value is one string literal, all that the grammar reads in some places.</summary>
+		static bool StringLiteral(Expression value)
+		{
+			return value is Expression.Literal { Value: LiteralValue.String };
+		}
+
 		void PutQueryHint(QueryHint hint)
 		{
 			switch (hint)
@@ -730,6 +756,10 @@ public static partial class Sql2023Writer
 				case QueryHint.Named named:
 					if (named.Arguments.Count > 0 && named.Form == HintArgumentForm.Brackets)
 						throw Misplaced(named, "Form", "Brackets with arguments on a query hint, which T-SQL does not read");
+
+					// A name another hint record starts with reads back as that record, and a name of several words not at all.
+					if (named.Name.Style != IdentifierStyle.Regular || PhraseWords.Contains(named.Name.Text))
+						throw Misplaced(named, "Name", "that is not a regular identifier, or is a word another hint record starts with");
 
 					PutHint(named, named.Name, named.Arguments, named.Form);
 					break;
@@ -760,6 +790,9 @@ public static partial class Sql2023Writer
 				case QueryHint.UseHint use:
 					if (use.Hints.Count == 0)
 						throw Empty(use, "Hints");
+
+					if (!use.Hints.All(StringLiteral))
+						throw Misplaced(use, "Hints", "with a hint that is not one string literal");
 
 					Word("USE HINT");
 					Open();
@@ -836,6 +869,9 @@ public static partial class Sql2023Writer
 			switch (hint)
 			{
 				case TableHint.Named named:
+					if (named.Arguments.Count > 0 && named.Name.Text.Equals("FORCESEEK", StringComparison.OrdinalIgnoreCase))
+						throw Misplaced(named, "Arguments", "on FORCESEEK, which is TableHint.ForceSeek with them");
+
 					PutHint(named, named.Name, named.Arguments, named.Form);
 					break;
 

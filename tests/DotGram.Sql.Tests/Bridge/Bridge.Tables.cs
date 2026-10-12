@@ -81,10 +81,10 @@ static partial class Bridge
 					if (Values.Of(aggregate) is not Ast.Expression.Invocation summed)
 						throw BridgeGap.Open(old, "inventory TableReference.Pivot (an aggregate that is not a call)");
 
-					return new Ast.TableSource.Pivot(Source(of), summed, Values.RotatedPart(old, column), Each(values, v => Values.RotatedPart(old, v)), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
+					return new Ast.TableSource.Pivot(Source(of), summed, Values.Name(old, column), Each(values, v => Values.Name(old, v)), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
 
 				case TableReference.Unpivot(var of, var value, var column, var values, var name):
-					return new Ast.TableSource.Unpivot(Source(of), Values.RotatedPart(old, value), Values.RotatedPart(old, column), Each(values, v => Values.RotatedPart(old, v)), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
+					return new Ast.TableSource.Unpivot(Source(of), Values.Name(old, value), Values.Name(old, column), Each(values, v => Values.Name(old, v)), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
 
 				case TableReference.OdbcJoin(var inner):
 					return new Ast.TableSource.OdbcJoin(Source(inner));

@@ -168,7 +168,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard | 15 |
 | Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard | 2 |
 | Recovered Alias.AsKeyword of MERGE's target | 7 |
-| Recovered Alias.AsKeyword of a table source | 832 |
+| Recovered Alias.AsKeyword of a table source | 836 |
 | Recovered Clause.DerivedColumn alias = expression | 277 |
 | Recovered Expression.Invocation without brackets | 31 |
 | Recovered Expression.Trim.FromKeyword | 0 |
@@ -195,7 +195,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.ColumnDefinition` | Tables | B | — | — | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |
 | `Clause.ColumnOption` | Tables | B | — | — | 2995 |
-| `Statement.Select` | Queries | B | converted 2221 | — | 2976 |
+| `Statement.Select` | Queries | B | converted 2225 | — | 2976 |
 | `Clause.DerivedColumn` | Queries | A | gap 24 | 24: needs decision: inventory Clause.DerivedColumn (a string alias) (19); needs decision: inventory Clause.DerivedColumn (alias = expression) (5) | 2967 |
 | `TableReference.Named` | Tables | A | gap 5 | 5: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
 | `Expression.RoutineInvocation` | Values | B | gap 159 | 191: needs decision: inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes) (122); needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12) | 2310 |
@@ -220,7 +220,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateProcedure` | Routines | B | gap 279 | 279: needs decision: inventory Statement.CreateProcedure (279) | 279 |
 | `Clause.Connection` | Tables | C | — | — | 270 |
 | `Statement.EndpointDefinition` | Server | C | gap 249 | 249: no target record: Statement.CreateEndpoint (249) | 249 |
-| `Statement.Insert` | Dml | A | converted 28, gap 49 | 71: no target record: Statement.Insert has no member for whether INTO was written (proposal 2) (28); needs decision: inventory Statement.Insert (no target) (16) | 242 |
+| `Statement.Insert` | Dml | A | converted 27, gap 50 | 72: no target record: Statement.Insert has no member for whether INTO was written (proposal 2) (28); needs decision: inventory Statement.Insert (no target) (16) | 242 |
 | `Expression.Measured` | Values | C | — | 190: target exists, no writer arm: Expression.Measured (190) | 234 |
 | `Statement.AlterDatabaseSet` | Database | C | gap 218 | 218: no target record: Statement.AlterDatabase (218) | 218 |
 | `Expression.Add` | Values | A | — | — | 198 |
@@ -248,7 +248,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.GraphMatch` | Values | C | — | — | 131 |
 | `Expression.Hinted` | Values | C | gap 23 | 127: needs decision: inventory Expression.Hinted (127) | 127 |
 | `Expression.And` | Values | A | — | — | 122 |
-| `Statement.Transaction` | Procedural | B | converted 49, gap 60 | 63: target exists, no writer arm: Statement.BeginTransaction (33); target exists, no writer arm: Statement.SaveTransaction (21) | 119 |
+| `Statement.Transaction` | Procedural | B | converted 45, gap 64 | 67: target exists, no writer arm: Statement.BeginTransaction (33); target exists, no writer arm: Statement.SaveTransaction (21) | 119 |
 | `Statement.ServerAuditDefinition` | Server | C | gap 118 | 118: no target record: Statement.CreateServerAudit (118) | 118 |
 | `Statement.Delete` | Dml | A | converted 23, gap 45 | 89: no target record: Statement.Delete has no OutputClause in the new tree (proposal 2) (48); needs decision: inventory Statement.Delete (no target) (25) | 114 |
 | `Expression.Subquery` | Values | A | — | — | 113 |
@@ -258,7 +258,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Member` | Values | A | — | — | 98 |
 | `Clause.Output` | Dml | C | — | — | 97 |
 | `TableReference.Derived` | Tables | A | — | — | 97 |
-| `TableReference.Pivot` | Tables | C | gap 2 | 2: needs decision: inventory cross-cutting gaps, identifier styles (a qualified pivot or unpivot column `st.DaysToManufacture`) (2) | 93 |
+| `TableReference.Pivot` | Tables | C | — | — | 93 |
 | `Statement.AlterFullTextIndex` | Tables | C | gap 92 | 92: no target record: Statement.AlterFullTextIndex (92) | 92 |
 | `Statement.ExternalDataSourceDefinition` | Server | C | gap 92 | 92: no target record: Statement.CreateExternalDataSource (92) | 92 |
 | `Statement.SetVariable` | Procedural | C | gap 78 | 89: no target record: Statement.SetVariable (89) | 89 |
@@ -358,7 +358,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.OpenSymmetricKey` | Security | C | gap 22 | 22: no target record: Statement.OpenSymmetricKey (22) | 22 |
 | `Statement.AlterAsymmetricKey` | Security | C | gap 21 | 21: no target record: Statement.AlterAsymmetricKey (21) | 21 |
 | `Statement.PartitionFunctionDefinition` | Database | C | gap 21 | 21: no target record: Statement.CreatePartitionFunction (21) | 21 |
-| `TableReference.Unpivot` | Tables | C | gap 2 | 2: needs decision: inventory cross-cutting gaps, identifier styles (a qualified pivot or unpivot column `t1.c0`) (2) | 21 |
+| `TableReference.Unpivot` | Tables | C | — | — | 21 |
 | `Statement.CredentialDefinition` | Security | C | gap 20 | 20: no target record: Statement.CreateCredential (20) | 20 |
 | `Statement.ExecuteAs` | Procedural | C | gap 20 | 20: no target record: Statement.ExecuteAs (20) | 20 |
 | `Statement.FullTextCatalogDefinition` | Database | C | gap 20 | 20: no target record: Statement.CreateFullTextCatalog (20) | 20 |
