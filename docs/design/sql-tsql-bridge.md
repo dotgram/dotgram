@@ -127,7 +127,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Counter | Count |
 | --- | ---: |
 | ByCase Clause.For.Kind | 20 |
-| ByCase Clause.For.Options | 26 |
+| ByCase Clause.For.Options | 44 |
 | ByCase Clause.GroupBy.With | 2 |
 | ByCase Clause.Hint.Text | 28 |
 | ByCase Clause.JsonColumn.Type | 54 |
@@ -137,6 +137,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Clause.Top.With | 0 |
 | ByCase Clause.Window.Frame | 7 |
 | ByCase Expression.ColumnReference.Text of a date part | 108 |
+| ByCase Expression.GraphMatch.Pattern | 114 |
 | ByCase Expression.Literal.Text | 24 |
 | ByCase Expression.Match.Qualifier | 0 |
 | ByCase Expression.NamedArgument.Name | 0 |
@@ -145,7 +146,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Expression.Quantified.Quantifier | 0 |
 | ByCase Expression.RoutineInvocation.Name | 116 |
 | ByCase Expression.RoutineInvocation.Word | 110 |
-| ByCase Expression.WindowFunction.Within | 0 |
+| ByCase Expression.WindowFunction.Within | 14 |
 | ByCase Query.Specification.Quantifier | 5 |
 | ByCase SetExpression.Transactions.IsolationLevel.Level | 0 |
 | ByCase Statement.CursorAction.Verb | 0 |
@@ -167,7 +168,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Meaning SET t.c: a qualified column in T-SQL, a mutated set clause in the standard | 15 |
 | Meaning TOP (n) a: a row count in T-SQL, a call to TOP in the standard | 2 |
 | Recovered Alias.AsKeyword of MERGE's target | 7 |
-| Recovered Alias.AsKeyword of a table source | 435 |
+| Recovered Alias.AsKeyword of a table source | 802 |
 | Recovered Clause.DerivedColumn alias = expression | 277 |
 | Recovered Expression.Invocation without brackets | 31 |
 | Recovered Expression.Trim.FromKeyword | 0 |
@@ -194,9 +195,9 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.ColumnDefinition` | Tables | B | — | — | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |
 | `Clause.ColumnOption` | Tables | B | — | — | 2995 |
-| `Statement.Select` | Queries | B | converted 2065 | — | 2976 |
+| `Statement.Select` | Queries | B | converted 2189 | — | 2976 |
 | `Clause.DerivedColumn` | Queries | A | gap 24 | 24: needs decision: inventory Clause.DerivedColumn (a string alias) (19); needs decision: inventory Clause.DerivedColumn (alias = expression) (5) | 2967 |
-| `TableReference.Named` | Tables | A | gap 37 | 37: no target record: TableSource.Named has no FOR PATH (inventory TableReference.Named) (32); needs decision: inventory Clause.Hint (a hint written against the sample) (4) | 2944 |
+| `TableReference.Named` | Tables | A | gap 5 | 5: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
 | `Expression.RoutineInvocation` | Values | B | gap 159 | 191: needs decision: inventory Expression.JsonPair (T-SQL's JSON functions as the standard's JSON nodes) (122); needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12) | 2310 |
 | `Statement.TableDefinition` | Tables | B | gap 1829 | 1878: needs decision: inventory Statement.TableDefinition (1878) | 1906 |
 | `Clause.ConstraintDefinition` | Tables | B | — | — | 1841 |
@@ -244,7 +245,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.References` | Tables | A | — | — | 145 |
 | `Statement.Return` | Procedural | A | converted 3 | — | 145 |
 | `Statement.Update` | Dml | A | converted 40, gap 29 | 53: needs decision: inventory Statement.Update (no target) (20); no target record: Statement.Update has no OutputClause in the new tree (proposal 2) (13) | 140 |
-| `Expression.GraphMatch` | Values | C | gap 84 | 119: no target record: Expression.GraphMatch, a graph pattern family (proposal 15) (119) | 131 |
+| `Expression.GraphMatch` | Values | C | — | — | 131 |
 | `Expression.Hinted` | Values | C | gap 23 | 127: needs decision: inventory Expression.Hinted (127) | 127 |
 | `Expression.And` | Values | A | — | — | 122 |
 | `Statement.Transaction` | Procedural | B | converted 49, gap 60 | 63: target exists, no writer arm: Statement.BeginTransaction (33); target exists, no writer arm: Statement.SaveTransaction (21) | 119 |
@@ -256,7 +257,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.FullTextIndexDefinition` | Tables | C | gap 99 | 99: no target record: Statement.CreateFullTextIndex (99) | 99 |
 | `Expression.Member` | Values | A | — | — | 98 |
 | `Clause.Output` | Dml | C | — | — | 97 |
-| `TableReference.Derived` | Tables | A | gap 8 | 8: no target record: TableSource.Subquery has no FOR PATH (inventory TableReference.Derived) (8) | 97 |
+| `TableReference.Derived` | Tables | A | — | — | 97 |
 | `TableReference.Pivot` | Tables | C | gap 2 | 2: needs decision: inventory cross-cutting gaps, identifier styles (a qualified pivot or unpivot column `st.DaysToManufacture`) (2) | 93 |
 | `Statement.AlterFullTextIndex` | Tables | C | gap 92 | 92: no target record: Statement.AlterFullTextIndex (92) | 92 |
 | `Statement.ExternalDataSourceDefinition` | Server | C | gap 92 | 92: no target record: Statement.CreateExternalDataSource (92) | 92 |

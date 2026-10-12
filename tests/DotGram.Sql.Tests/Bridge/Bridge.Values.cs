@@ -112,7 +112,7 @@ static partial class Bridge
 				Expression.Parenthesized(var value)         => Parenthesized(Of(value)),
 				Expression.Subquery(var query)              => new Ast.Expression.Subquery(QueryOf(query)),
 
-				Expression.GraphMatch      => throw BridgeGap.Missing(old, "Expression.GraphMatch, a graph pattern family (proposal 15)"),
+				Expression.GraphMatch(var pattern) => Queries.GraphMatch(old, pattern),
 				Expression.RowsetOrder     => throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)"),
 				Expression.Prefixed        => throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)"),
 				Expression.Pieced          => throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)"),

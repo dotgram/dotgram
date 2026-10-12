@@ -14,32 +14,51 @@ public static partial class Sql2023Writer
 		{
 			switch (node)
 			{
+				// T-SQL: MATCH (SQL Graph). The patterns, AND between them.
+				case Expression.GraphMatch match:
+					if (match.Patterns.Count == 0)
+						throw Empty(match, "Patterns");
+
+					Word("MATCH");
+					Open();
+
+					for (var at = 0; at < match.Patterns.Count; at++)
+					{
+						if (at > 0)
+							Word("AND");
+
+						PutGraphPattern(match.Patterns[at]);
+					}
+
+					Close();
+					return true;
+
 				// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL).
 				case TableSource.Pivot pivot:
-					PutRotated(pivot, pivot.Source, pivot.In, pivot.Alias);
+					PutRotated(pivot, pivot.Source, pivot.Values, "Values", pivot.Alias);
 					Word("PIVOT");
 					Open();
 					PutExpression(pivot.Aggregate);
 					Word("FOR");
-					PutIdentifier(pivot.For);
+					PutIdentifier(pivot.Column);
 					Word("IN");
 					Open();
-					Each(pivot.In, PutIdentifier);
+					Each(pivot.Values, PutIdentifier);
 					Close();
 					Close();
 					PutAlias(pivot.Alias);
 					return true;
 
 				case TableSource.Unpivot unpivot:
-					PutRotated(unpivot, unpivot.Source, unpivot.In, unpivot.Alias);
+					PutRotated(unpivot, unpivot.Source, unpivot.Columns, "Columns", unpivot.Alias);
 					Word("UNPIVOT");
 					Open();
 					PutIdentifier(unpivot.Value);
 					Word("FOR");
-					PutIdentifier(unpivot.For);
+					PutIdentifier(unpivot.Column);
 					Word("IN");
 					Open();
-					Each(unpivot.In, PutIdentifier);
+					Each(unpivot.Columns, PutIdentifier);
 					Close();
 					Close();
 					PutAlias(unpivot.Alias);
@@ -116,23 +135,26 @@ public static partial class Sql2023Writer
 					PutAlias(query.Alias);
 					return true;
 
-				// T-SQL: OPENROWSET (Transact-SQL). The three parts of a connection are apart by semicolons.
+				// T-SQL: OPENROWSET (Transact-SQL). The three parts of a login are apart by semicolons.
 				case TableSource.OpenRowset rowset:
-					if (rowset.Connection.Count is not (1 or 3))
-						throw Misplaced(rowset, "Connection", "with other than a provider string or a data source, a user and a password");
+					if (rowset.ProviderString is not null && rowset.Login is not null)
+						throw Both(rowset, "ProviderString", "Login");
 
 					Word("OPENROWSET");
 					Call();
 					PutExpression(rowset.Provider);
 					Tight(",");
 
-					for (var at = 0; at < rowset.Connection.Count; at++)
+					if (rowset.Login is { } login)
 					{
-						if (at > 0)
-							Tight(";");
-
-						PutExpression(rowset.Connection[at]);
+						PutExpression(login.DataSource);
+						Tight(";");
+						PutExpression(login.User);
+						Tight(";");
+						PutExpression(login.Password);
 					}
+					else
+						PutExpression(rowset.ProviderString ?? throw Empty(rowset, "ProviderString or Login"));
 
 					Tight(",");
 					PutExpression(rowset.Object);
@@ -224,10 +246,10 @@ public static partial class Sql2023Writer
 		/// rotation its right side alone; and the refusals the grammar's requirements make: an alias, without
 		/// columns, and at least one name in the list.
 		/// </summary>
-		void PutRotated(TableSource rotation, TableSource source, SqlList<Identifier> names, Alias alias)
+		void PutRotated(TableSource rotation, TableSource source, SqlList<Identifier> names, string member, Alias alias)
 		{
 			if (names.Count == 0)
-				throw Empty(rotation, "In");
+				throw Empty(rotation, member);
 
 			if (alias is null || alias.Columns is not null)
 				throw Misplaced(rotation, "Alias", "missing or with columns, where the grammar takes a name alone");
@@ -243,9 +265,135 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// T-SQL: FOR Clause (Transact-SQL). The mode, then each option: a name alone (<c>TYPE</c>), a name
-		/// and its value in brackets (<c>ROOT ('r')</c>), or a name and the one word it takes
-		/// (<c>ELEMENTS XSINIL</c>, <c>BINARY BASE64</c>), which is an option of its own inside it.
+		/// T-SQL: MATCH (SQL Graph). One pattern: a chain, the last nodes of two paths compared, or a shortest path
+		/// with its anchor at the end it was written at. A drawing's arrows are written tight against what they join.
+		/// </summary>
+		void PutGraphPattern(GraphPattern pattern)
+		{
+			switch (pattern)
+			{
+				case GraphPattern.Chain chain:
+					if (chain.Steps.Count == 0)
+						throw Empty(chain, "Steps");
+
+					PutGraphNode(chain.Start);
+
+					foreach (var step in chain.Steps)
+					{
+						PutGraphEdge(step.Edge);
+						PutGraphNode(step.Node);
+					}
+
+					break;
+
+				case GraphPattern.LastNodes last:
+					PutGraphNode(new GraphNode(last.Left, true));
+					Word("=");
+					PutGraphNode(new GraphNode(last.Right, true));
+					break;
+
+				case GraphPattern.ShortestPath path:
+					if (path.Steps.Count == 0)
+						throw Empty(path, "Steps");
+
+					if (path.Steps.Any(static one => one.Node.LastNode))
+						throw Misplaced(path, "Steps", "with a node that is LAST_NODE, which SHORTEST_PATH reads only as its anchor");
+
+					Word("SHORTEST_PATH");
+					Open();
+
+					if (!path.AnchorLast)
+						PutGraphNode(path.Anchor);
+
+					Open();
+
+					foreach (var step in path.Steps)
+					{
+						if (path.AnchorLast)
+						{
+							PutGraphNode(step.Node);
+							PutGraphEdge(step.Edge);
+						}
+						else
+						{
+							PutGraphEdge(step.Edge);
+							PutGraphNode(step.Node);
+						}
+					}
+
+					Close();
+					PutGraphQuantifier(path.Quantifier);
+
+					if (path.AnchorLast)
+						PutGraphNode(path.Anchor);
+
+					Close();
+					break;
+
+				default:
+					throw Unwritten(pattern);
+			}
+		}
+
+		void PutGraphNode(GraphNode node)
+		{
+			if (node.LastNode)
+			{
+				Word("LAST_NODE");
+				Open();
+				PutIdentifier(node.Alias);
+				Close();
+			}
+			else
+				PutIdentifier(node.Alias);
+		}
+
+		void PutGraphEdge(GraphEdge edge)
+		{
+			switch (edge.Direction)
+			{
+				case GraphDirection.Right:
+					Tight("-(");
+					Hold();
+					PutIdentifier(edge.Alias);
+					Tight(")->");
+					Hold();
+					break;
+
+				case GraphDirection.Left:
+					Tight("<-(");
+					Hold();
+					PutIdentifier(edge.Alias);
+					Tight(")-");
+					Hold();
+					break;
+
+				default:
+					throw NoText(edge.Direction);
+			}
+		}
+
+		void PutGraphQuantifier(GraphQuantifier quantifier)
+		{
+			if (quantifier.Min < 0 || quantifier.Max < quantifier.Min)
+				throw Misplaced(quantifier, "Min or Max", "out of order, or below nought");
+
+			if (quantifier.Plus)
+			{
+				if (quantifier is not { Min: 1, Max: null })
+					throw Misplaced(quantifier, "Plus", "with bounds other than {1,}");
+
+				Tight("+");
+				return;
+			}
+
+			Tight("{" + quantifier.Min.ToString(System.Globalization.CultureInfo.InvariantCulture) + ","
+				+ quantifier.Max?.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}");
+		}
+
+		/// <summary>
+		/// T-SQL: FOR Clause (Transact-SQL). The mode, the element name XML's modes take, then each directive
+		/// in the order written.
 		/// </summary>
 		void PutFor(ForClause clause)
 		{
@@ -262,18 +410,14 @@ public static partial class Sql2023Writer
 						_                => throw NoText(xml.Mode),
 					});
 
-					// The element a row is written as, RAW's and PATH's only.
 					if (xml.ElementName is { } element)
 					{
-						if (xml.Mode is not (XmlMode.Raw or XmlMode.Path))
-							throw Misplaced(xml, "ElementName", "with a mode other than RAW or PATH");
-
 						Open();
 						PutExpression(element);
 						Close();
 					}
 
-					PutForOptions(xml.Options);
+					PutDirectives(xml.Directives, json: false);
 					break;
 
 				case ForClause.Json json:
@@ -284,7 +428,7 @@ public static partial class Sql2023Writer
 						JsonMode.Path => "PATH",
 						_             => throw NoText(json.Mode),
 					});
-					PutForOptions(json.Options);
+					PutDirectives(json.Directives, json: true);
 					break;
 
 				case ForClause.Browse:
@@ -296,32 +440,48 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutForOptions(SqlList<Option> options)
+		/// <summary>
+		/// The directives of <c>FOR XML</c> or <c>FOR JSON</c>, refusing a kind the other reads, a name where the
+		/// kind takes none, and <c>ABSENT</c> on any kind but <c>ELEMENTS</c>.
+		/// </summary>
+		void PutDirectives(SqlList<ForDirective> directives, bool json)
 		{
-			foreach (var option in options)
+			foreach (var directive in directives)
 			{
-				if (option.Order is not null)
-					throw Misplaced(option, "Order", "on an option of a FOR clause");
+				var (text, xmlOnly, jsonOnly) = directive.Kind switch
+				{
+					ForDirectiveKind.BinaryBase64        => ("BINARY BASE64", true, false),
+					ForDirectiveKind.Type                => ("TYPE", true, false),
+					ForDirectiveKind.Root                => ("ROOT", false, false),
+					ForDirectiveKind.XmlData             => ("XMLDATA", true, false),
+					ForDirectiveKind.XmlSchema           => ("XMLSCHEMA", true, false),
+					ForDirectiveKind.Elements            => ("ELEMENTS", true, false),
+					ForDirectiveKind.ElementsXsiNil      => ("ELEMENTS XSINIL", true, false),
+					ForDirectiveKind.IncludeNullValues   => ("INCLUDE_NULL_VALUES", false, true),
+					ForDirectiveKind.WithoutArrayWrapper => ("WITHOUT_ARRAY_WRAPPER", false, true),
+					_                                    => throw NoText(directive.Kind),
+				};
+
+				if (json ? xmlOnly : jsonOnly)
+					throw Misplaced(directive, "Kind", json ? "an XML directive under FOR JSON" : "a JSON directive under FOR XML");
+
+				if (directive.Name is not null && directive.Kind is not (ForDirectiveKind.Root or ForDirectiveKind.XmlSchema))
+					throw Misplaced(directive, "Name", "on a directive other than ROOT or XMLSCHEMA");
+
+				if (directive.Absent && directive.Kind != ForDirectiveKind.Elements)
+					throw Misplaced(directive, "Absent", "on a directive other than ELEMENTS");
 
 				Tight(",");
-				PutIdentifier(option.Name);
+				Word(text);
 
-				if (option.Value is { } value)
+				if (directive.Absent)
+					Word("ABSENT");
+
+				if (directive.Name is { } name)
 				{
-					if (option.Options.Count > 0)
-						throw Both(option, "Value", "Options");
-
 					Open();
-					PutExpression(value);
+					PutExpression(name);
 					Close();
-				}
-
-				foreach (var word in option.Options)
-				{
-					if (word.Value is not null || word.Options.Count > 0)
-						throw Misplaced(word, "Value or Options", "on the word a FOR clause's option takes");
-
-					PutIdentifier(word.Name);
 				}
 			}
 		}

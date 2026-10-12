@@ -330,8 +330,14 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT * FROM OPENDATASOURCE ('p', 'i').db.dbo.t",       "TableSource.Named.DataSource")]
 	[InlineData("SELECT * FROM t PIVOT (SUM (a) FOR b IN ([1], [2])) p", "TableSource.Pivot")]
 	[InlineData("SELECT * FROM t UNPIVOT (v FOR c IN (a, b)) u",          "TableSource.Unpivot")]
-	[InlineData("SELECT * FROM t TABLESAMPLE (10)",                       "TableSource.Named.SampleMethodOmitted")]
-	[InlineData("SELECT * FROM OPENROWSET ('MSDASQL', 'srv'; 'u'; 'p', 'SELECT 1') r", "TableSource.OpenRowset.Connection")]
+	[InlineData("SELECT * FROM t TABLESAMPLE (10)",                       "SampleClause.MethodOmitted")]
+	[InlineData("SELECT * FROM OPENROWSET ('MSDASQL', 'srv'; 'u'; 'p', 'SELECT 1') r", "TableSource.OpenRowset.Login")]
+	[InlineData("SELECT * FROM OPENROWSET ('SQLNCLI', 'Server=s;', 'SELECT 1') r", "TableSource.OpenRowset.ProviderString")]
+	[InlineData("SELECT a FROM t FOR XML PATH ('')",                     "ForClause.Xml.ElementName")]
+	[InlineData("SELECT a FROM t FOR XML AUTO ('r'), ELEMENTS ABSENT, ROOT ('x')", "ForDirective")]
+	[InlineData("SELECT 1 FROM a, b FOR PATH AS e, c FOR PATH AS f WHERE MATCH(SHORTEST_PATH((f<-(e)-){1,3}a) AND LAST_NODE(f) = LAST_NODE(a))", "GraphPattern.ShortestPath")]
+	[InlineData("SELECT 1 FROM a, b FOR PATH AS e WHERE MATCH(SHORTEST_PATH(a(-(e)->a)+) AND LAST_NODE(a)-(e)->a)", "GraphPattern.Chain")]
+	[InlineData("SELECT 1 FROM (SELECT 1 AS x) FOR PATH AS e",              "TableSource.Subquery.ForPath")]
 	public void The_bridge_builds_the_query_record_the_text_means(string text, string expected)
 	{
 		var made   = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -347,10 +353,34 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"SelectColumn.VariableAssignment"       => select.Columns is [Ast.SelectColumn.VariableAssignment { Variable.Text: "@v", Operator: Ast.AssignmentOperator.Assign }],
 			"TableSource.OpenXml.SchemaTable"       => source is Ast.TableSource.OpenXml { Schema: null, SchemaTable.Parts: [{ Text: "t2" }] },
 			"TableSource.Named.DataSource"          => source is Ast.TableSource.Named { DataSource: not null, Name.Parts.Count: 3 },
-			"TableSource.Pivot"                     => source is Ast.TableSource.Pivot { For.Text: "b", In: [{ Text: "[1]" }, { Text: "[2]" }], Alias.Name.Text: "p" },
-			"TableSource.Unpivot"                   => source is Ast.TableSource.Unpivot { Value.Text: "v", For.Text: "c", In: [{ Text: "a" }, { Text: "b" }], Alias.Name.Text: "u" },
-			"TableSource.Named.SampleMethodOmitted" => source is Ast.TableSource.Named { SampleMethodOmitted: true, SampleUnit: null, Sample: not null },
-			_                                       => source is Ast.TableSource.OpenRowset { Connection.Count: 3 }
+			"TableSource.Pivot"                     => source is Ast.TableSource.Pivot { Column.Text: "b", Values: [{ Text: "[1]" }, { Text: "[2]" }], Alias.Name.Text: "p" },
+			"TableSource.Unpivot"                   => source is Ast.TableSource.Unpivot { Value.Text: "v", Column.Text: "c", Columns: [{ Text: "a" }, { Text: "b" }], Alias.Name.Text: "u" },
+			"GraphPattern.ShortestPath"             => select.Where is Ast.Expression.GraphMatch
+			{
+				Patterns:
+				[
+					Ast.GraphPattern.ShortestPath { AnchorLast: true, Anchor: { Alias.Text: "a", LastNode: false }, Quantifier: { Min: 1, Max: 3, Plus: false }, Steps: [{ Edge: { Alias.Text: "e", Direction: Ast.GraphDirection.Left }, Node.Alias.Text: "f" }] },
+					Ast.GraphPattern.LastNodes { Left.Text: "f", Right.Text: "a" },
+				],
+			} && select.From!.Sources[1] is Ast.TableSource.Named { ForPath: true },
+			"GraphPattern.Chain"                    => select.Where is Ast.Expression.GraphMatch
+			{
+				Patterns:
+				[
+					Ast.GraphPattern.ShortestPath { AnchorLast: false, Quantifier.Plus: true, Steps: [{ Edge.Direction: Ast.GraphDirection.Right }] },
+					Ast.GraphPattern.Chain { Start: { Alias.Text: "a", LastNode: true }, Steps: [{ Edge.Direction: Ast.GraphDirection.Right, Node.LastNode: false }] },
+				],
+			},
+			"TableSource.Subquery.ForPath"          => source is Ast.TableSource.Subquery { ForPath: true, Alias.Name.Text: "e" },
+			"SampleClause.MethodOmitted"            => source is Ast.TableSource.Named { Sample: { MethodOmitted: true, Unit: null } },
+			"TableSource.OpenRowset.ProviderString" => source is Ast.TableSource.OpenRowset { ProviderString: not null, Login: null },
+			"ForClause.Xml.ElementName"             => select.For is Ast.ForClause.Xml { Mode: Ast.XmlMode.Path, ElementName: Ast.Expression.Literal, Directives: [] },
+			"ForDirective"                          => select.For is Ast.ForClause.Xml
+			{
+				Mode: Ast.XmlMode.Auto, ElementName: not null,
+				Directives: [{ Kind: Ast.ForDirectiveKind.Elements, Absent: true, Name: null }, { Kind: Ast.ForDirectiveKind.Root, Name: not null }],
+			},
+			_                                       => source is Ast.TableSource.OpenRowset { ProviderString: null, Login: not null }
 				&& Ast.Sql2023Writer.Write(made).Contains("'srv'; 'u'; 'p'", StringComparison.Ordinal),
 		};
 

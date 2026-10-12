@@ -64,10 +64,25 @@ public sealed class Sql2023WriterCoverageTests
 	{
 		return Joined(new TableSource.Named(T)
 		{
-			Sample              = new SampleClause(SampleMethod.System, A),
-			SampleMethodOmitted = omitted,
-			SampleUnit          = unit,
+			Sample = new SampleClause(SampleMethod.System, A) { MethodOmitted = omitted, Unit = unit },
 		});
+	}
+
+	/// <summary><c>SELECT a WHERE MATCH (…)</c> over the patterns given.</summary>
+	static Query.Select Matched(params GraphPattern[] patterns)
+	{
+		return Selected with { Where = new Expression.GraphMatch([.. patterns]) };
+	}
+
+	static GraphNode Node(string alias, bool last = false)
+	{
+		return new GraphNode(new Identifier(alias), last);
+	}
+
+	/// <summary><c>SHORTEST_PATH (a(-(e)->b)+)</c>, or with the anchor last, and the quantifier and step node given.</summary>
+	static GraphPattern.ShortestPath Shortest(GraphQuantifier quantifier, bool anchorLast = false, GraphNode? step = null)
+	{
+		return new GraphPattern.ShortestPath(Node("a"), [new GraphStep(new GraphEdge(new Identifier("e"), GraphDirection.Right), step ?? Node("b"))], quantifier, anchorLast);
 	}
 
 	/// <summary><c>SELECT a</c>, the smallest query there is, for a clause to be put on.</summary>
@@ -171,11 +186,18 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(JoinHint)]           = v => Joined(new TableSource.Join { Left = new TableSource.Named(T), Right = new TableSource.Named(U), Kind = JoinKind.Inner, Hint = (JoinHint)v }),
 		[typeof(GroupByWith)]        = v => Selected with { GroupBy = new GroupByClause(null, [new GroupingElement.Ordinary([A])]) { With = (GroupByWith)v } },
 		[typeof(SampleUnit)]         = v => Sampled(false, (SampleUnit)v),
+		[typeof(GraphDirection)]     = v => Matched(new GraphPattern.Chain(Node("a"), [new GraphStep(new GraphEdge(new Identifier("e"), (GraphDirection)v), Node("b"))])),
 		[typeof(AssignmentOperator)] = v => new Query.Select { Columns = [new SelectColumn.VariableAssignment(new Identifier("@v"), (AssignmentOperator)v, A)] },
 		[typeof(HintArgumentForm)]   = v => Joined(new TableSource.Named(T) { Hints = [new TableHint.Named(new Identifier("INDEX"), [A]) { Form = (HintArgumentForm)v }] }),
 		[typeof(QueryHintPhrase)]    = v => new Statement.Select { Query = Selected, Hints = [new QueryHint.Phrase((QueryHintPhrase)v)] },
-		[typeof(XmlMode)]            = v => Selected with { For = new ForClause.Xml((XmlMode)v, []) },
+		[typeof(XmlMode)]            = v => Selected with { For = new ForClause.Xml((XmlMode)v, null, []) },
 		[typeof(JsonMode)]           = v => Selected with { For = new ForClause.Json((JsonMode)v, []) },
+		[typeof(ForDirectiveKind)]   = v => Selected with
+		{
+			For = (ForDirectiveKind)v is ForDirectiveKind.IncludeNullValues or ForDirectiveKind.WithoutArrayWrapper
+				? new ForClause.Json(JsonMode.Auto, [new ForDirective((ForDirectiveKind)v)])
+				: new ForClause.Xml(XmlMode.Auto, null, [new ForDirective((ForDirectiveKind)v)]),
+		},
 	};
 
 	/// <summary>
@@ -385,9 +407,17 @@ public sealed class Sql2023WriterCoverageTests
 				new Expression.Like(A, false, LikeKind.Like, B, A),
 				new Expression.Like(A, false, LikeKind.Like, B, A) { BracedEscape = true }),
 			// T-SQL's TABLESAMPLE may leave its only method out.
-			["Named.SampleMethodOmitted"] = (
+			["SampleClause.MethodOmitted"] = (
 				Sampled(false),
 				Sampled(true)),
+			// T-SQL's + after SHORTEST_PATH's steps is {1,} written short.
+			["GraphQuantifier.Plus"] = (
+				Matched(Shortest(new GraphQuantifier(1, null, false))),
+				Matched(Shortest(new GraphQuantifier(1, null, true)))),
+			// T-SQL's ELEMENTS ABSENT, which means what ELEMENTS alone means.
+			["ForDirective.Absent"] = (
+				Selected with { For = new ForClause.Xml(XmlMode.Auto, null, [new ForDirective(ForDirectiveKind.Elements)]) },
+				Selected with { For = new ForClause.Xml(XmlMode.Auto, null, [new ForDirective(ForDirectiveKind.Elements, Absent: true)]) }),
 			["UpdatabilityClause.Underscored"] = (
 				Declared(new CursorProperties(null, null, null, null), false, false),
 				Declared(new CursorProperties(null, null, null, null), false, true)),
@@ -460,6 +490,10 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("Try on a cast")]
 	[InlineData("Try on a convert")]
 	[InlineData("Try on a parse")]
+	[InlineData("ForPath on a table")]
+	[InlineData("ForPath on a subquery")]
+	[InlineData("AnchorLast on a shortest path")]
+	[InlineData("LastNode on a graph node")]
 	[InlineData("Over on a next value")]
 	[InlineData("GraphPath on a call")]
 	public void A_flag_changes_what_is_written(string which)
@@ -478,6 +512,18 @@ public sealed class Sql2023WriterCoverageTests
 			"Try on a parse" => (
 				Sql2023Writer.Write(new Expression.Parse(A, type)),
 				Sql2023Writer.Write(new Expression.Parse(A, type, Try: true))),
+			"ForPath on a table" => (
+				Sql2023Writer.Write(Joined(new TableSource.Named(T))),
+				Sql2023Writer.Write(Joined(new TableSource.Named(T) { ForPath = true }))),
+			"ForPath on a subquery" => (
+				Sql2023Writer.Write(Joined(new TableSource.Subquery(Selected))),
+				Sql2023Writer.Write(Joined(new TableSource.Subquery(Selected) { ForPath = true }))),
+			"AnchorLast on a shortest path" => (
+				Sql2023Writer.Write(Matched(Shortest(new GraphQuantifier(1, 3, false)))),
+				Sql2023Writer.Write(Matched(Shortest(new GraphQuantifier(1, 3, false), anchorLast: true)))),
+			"LastNode on a graph node" => (
+				Sql2023Writer.Write(Matched(new GraphPattern.Chain(Node("a"), [new GraphStep(new GraphEdge(new Identifier("e"), GraphDirection.Right), Node("b"))]))),
+				Sql2023Writer.Write(Matched(new GraphPattern.Chain(Node("a", true), [new GraphStep(new GraphEdge(new Identifier("e"), GraphDirection.Right), Node("b"))])))),
 			"GraphPath on a call" => (
 				Sql2023Writer.Write(new Expression.Invocation(s, [new Argument(A)])),
 				Sql2023Writer.Write(new Expression.Invocation(s, [new Argument(A)]) { GraphPath = true })),
@@ -712,24 +758,35 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a hint written with = and no argument")]
 	[InlineData("an OPTIMIZE FOR variable with a value and UNKNOWN")]
 	[InlineData("a FOR XML mode that is none")]
-	[InlineData("an element name with FOR XML AUTO")]
-	[InlineData("a FOR option with a value and options")]
-	[InlineData("a FOR option's word with a value")]
+	[InlineData("a FOR directive that is none")]
+	[InlineData("a name on a FOR directive other than ROOT")]
+	[InlineData("ABSENT on a FOR directive other than ELEMENTS")]
+	[InlineData("an XML directive under FOR JSON")]
+	[InlineData("a JSON directive under FOR XML")]
 	[InlineData("INTO variables and INTO a table")]
 	[InlineData("an APPLY with NATURAL")]
 	[InlineData("an APPLY with OUTER")]
 	[InlineData("an APPLY with a hint")]
 	[InlineData("an APPLY with ON")]
-	[InlineData("OPENROWSET with two connection parts")]
+	[InlineData("OPENROWSET with a provider string and a login")]
+	[InlineData("OPENROWSET with neither a provider string nor a login")]
 	[InlineData("a BULK option with options")]
 	[InlineData("a BULK ORDER option with a value")]
 	[InlineData("OPENXML with a schema and a schema table")]
-	[InlineData("the sample's flags without a sample")]
+	[InlineData("T-SQL's sample flags on a source not a table's name")]
 	[InlineData("SYSTEM left out of a BERNOULLI sample")]
 	[InlineData("an empty schema")]
 	[InlineData("a schema column without a type")]
 	[InlineData("a schema column with a path and an ordinal")]
 	[InlineData("a schema column whose path is not one string")]
+	[InlineData("a MATCH with no pattern")]
+	[InlineData("a graph chain with no step")]
+	[InlineData("a shortest path with no step")]
+	[InlineData("a shortest path whose step is a last node")]
+	[InlineData("+ with bounds other than {1,}")]
+	[InlineData("a quantifier whose most is below its least")]
+	[InlineData("a graph edge pointing nowhere")]
+	[InlineData("FOR PATH on a LATERAL subquery")]
 	public void A_query_part_with_no_text_is_refused(string which)
 	{
 		var named = new TableSource.Named(T);
@@ -758,21 +815,32 @@ public sealed class Sql2023WriterCoverageTests
 			"a hint written bare with two arguments"             => new Statement.Select { Query = Selected, Hints = [new QueryHint.Named(new Identifier("MAXDOP"), [A, B]) { Form = HintArgumentForm.Bare }] },
 			"a hint written with = and no argument"              => Joined(named with { Hints = [new TableHint.Named(new Identifier("INDEX"), []) { Form = HintArgumentForm.Assigned }] }),
 			"an OPTIMIZE FOR variable with a value and UNKNOWN"  => new Statement.Select { Query = Selected, Hints = [new QueryHint.OptimizeFor([new OptimizeForVariable(new Identifier("@a"), A, true)])] },
-			"a FOR XML mode that is none"                        => Selected with { For = new ForClause.Xml((XmlMode)99, []) },
-			"an element name with FOR XML AUTO"                  => Selected with { For = new ForClause.Xml(XmlMode.Auto, []) { ElementName = A } },
-			"a FOR option with a value and options"              => Selected with { For = new ForClause.Xml(XmlMode.Raw, [new Option(new Identifier("ROOT"), A, [new Option(new Identifier("X"), null, [])])]) },
-			"a FOR option's word with a value"                   => Selected with { For = new ForClause.Xml(XmlMode.Raw, [new Option(new Identifier("ELEMENTS"), null, [new Option(new Identifier("XSINIL"), A, [])])]) },
+			"a FOR XML mode that is none"                        => Selected with { For = new ForClause.Xml((XmlMode)99, null, []) },
+			"a FOR directive that is none"                       => Selected with { For = new ForClause.Xml(XmlMode.Raw, null, [new ForDirective((ForDirectiveKind)99)]) },
+			"a name on a FOR directive other than ROOT"          => Selected with { For = new ForClause.Xml(XmlMode.Raw, null, [new ForDirective(ForDirectiveKind.Type, A)]) },
+			"ABSENT on a FOR directive other than ELEMENTS"      => Selected with { For = new ForClause.Xml(XmlMode.Raw, null, [new ForDirective(ForDirectiveKind.ElementsXsiNil, Absent: true)]) },
+			"an XML directive under FOR JSON"                    => Selected with { For = new ForClause.Json(JsonMode.Path, [new ForDirective(ForDirectiveKind.XmlSchema)]) },
+			"a JSON directive under FOR XML"                     => Selected with { For = new ForClause.Xml(XmlMode.Raw, null, [new ForDirective(ForDirectiveKind.WithoutArrayWrapper)]) },
 			"INTO variables and INTO a table"                    => Selected with { Into = new IntoClause([A]), IntoTable = new SelectIntoTable(T, null) },
 			"an APPLY with NATURAL"                              => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.CrossApply, Natural = true }),
 			"an APPLY with OUTER"                                => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.OuterApply, OuterKeyword = true }),
 			"an APPLY with a hint"                               => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.CrossApply, Hint = JoinHint.Hash }),
 			"an APPLY with ON"                                   => Joined(new TableSource.Join { Left = named, Right = new TableSource.Named(U), Kind = JoinKind.CrossApply, Specification = new JoinSpecification.On(A) }),
-			"OPENROWSET with two connection parts"               => Joined(new TableSource.OpenRowset(A, [A, B], A)),
+			"OPENROWSET with a provider string and a login"      => Joined(new TableSource.OpenRowset(A, B, new RowsetLogin(A, B, A), A)),
+			"OPENROWSET with neither a provider string nor a login" => Joined(new TableSource.OpenRowset(A, null, null, A)),
 			"a BULK option with options"                         => Joined(new TableSource.OpenRowsetBulk(A, [new Option(new Identifier("FORMAT"), A, [new Option(new Identifier("X"), null, [])])], null)),
 			"a BULK ORDER option with a value"                   => Joined(new TableSource.OpenRowsetBulk(A, [new Option(new Identifier("ORDER"), A, []) { Order = new RowOrder([new SortItem(A)], false) }], null)),
 			"OPENXML with a schema and a schema table"           => Joined(new TableSource.OpenXml(A, B, null, [Column()], T)),
-			"the sample's flags without a sample"                => Joined(named with { SampleUnit = SampleUnit.Rows }),
-			"SYSTEM left out of a BERNOULLI sample"              => Joined(named with { Sample = new SampleClause(SampleMethod.Bernoulli, A), SampleMethodOmitted = true }),
+			"T-SQL's sample flags on a source not a table's name" => Joined(new TableSource.Function(new Expression.Invocation(T, [])) { Sample = new SampleClause(SampleMethod.System, A) { Unit = SampleUnit.Rows } }),
+			"SYSTEM left out of a BERNOULLI sample"              => Joined(named with { Sample = new SampleClause(SampleMethod.Bernoulli, A) { MethodOmitted = true } }),
+			"a MATCH with no pattern"                            => Matched(),
+			"a graph chain with no step"                         => Matched(new GraphPattern.Chain(Node("a"), [])),
+			"a shortest path with no step"                       => Matched(new GraphPattern.ShortestPath(Node("a"), [], new GraphQuantifier(1, null, true), false)),
+			"a shortest path whose step is a last node"          => Matched(Shortest(new GraphQuantifier(1, null, true), step: Node("b", true))),
+			"+ with bounds other than {1,}"                      => Matched(Shortest(new GraphQuantifier(1, 3, true))),
+			"a quantifier whose most is below its least"         => Matched(Shortest(new GraphQuantifier(3, 1, false))),
+			"a graph edge pointing nowhere"                      => Matched(new GraphPattern.Chain(Node("a"), [new GraphStep(new GraphEdge(new Identifier("e"), (GraphDirection)9), Node("b"))])),
+			"FOR PATH on a LATERAL subquery"                     => Joined(new TableSource.Subquery(Selected) { Lateral = true, ForPath = true }),
 			"an empty schema"                                    => json([]),
 			"a schema column without a type"                     => json([Column(typed: false)]),
 			"a schema column with a path and an ordinal"         => json([Column("'$.a'", 1)]),

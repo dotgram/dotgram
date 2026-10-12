@@ -769,7 +769,7 @@ public sealed record Alias(Identifier Name, SqlList<Identifier>? Columns = null,
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record SampleClause(SampleMethod Method, Expression Percentage, Expression? Repeat = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record SampleClause(SampleMethod Method, Expression Percentage, Expression? Repeat = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
