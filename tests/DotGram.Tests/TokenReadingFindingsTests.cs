@@ -277,6 +277,76 @@ public sealed class TokenReadingFindingsTests
 	}
 
 	/// <summary>
+	/// The reading that records tries a turn behind a shut door only from where the quiet reading
+	/// got (<c>Failure.Doors</c>), and says what it said when it tried every one — held where the
+	/// furthest the quiet reading got is not where the reading that records ends up, on every
+	/// rendering over characters.
+	/// </summary>
+	/// <remarks>
+	/// Three shapes, found by review. (1) An optional before a required turn whose look refuses
+	/// silently: the quiet reading passes the optional by at its door and refuses the required
+	/// turn at 1 — below the minimum, recording nothing on its own path — while the reading that
+	/// records tries the optional's turn at 0, which is all that is ever recorded, so the message
+	/// is the optional's, at 0. Were the quiet reading's furthest written where only it goes, the
+	/// turn at 0 would go untried and the message would say only that the input did not match.
+	/// (2) A look before an optional turn's first item reads to the end of the text and writes
+	/// that it ran out there, which is what makes the refusal at the next item starved; the turn
+	/// stands below where the quiet reading got, and is tried all the same. (3) The same, where
+	/// nothing names what was wanted: the fallback still says the input ran out.
+	/// </remarks>
+	[Theory]
+	[InlineData(
+		"Start = (\"mn\")? & 'a' & (?!('x' & 'y') & 'b' & 'c')+ & when @(Keep())\nparse Start\n",
+		"axy", "NoMatch at 0: Expected \"mn\".", "NoMatch at 1: Expected ?!\"xy\".")]
+	[InlineData(
+		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & 'q' & when @(Keep())\nparse Start\n",
+		"ax", "Starved at 1: Expected \"aq\".", null)]
+	[InlineData(
+		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & when @(Reject())\nparse Start\n",
+		"ax", "Starved at 1: Expected more input.", null)]
+	public void A_turn_behind_a_shut_door_below_where_the_quiet_reading_got_is_said_as_it_was(string grammar, string input, string said, string? saidByTheEngine)
+	{
+		const string members = "public static bool Keep() { return true; } public static bool Reject() { return false; }";
+
+		foreach (var (direct, carrier) in new (bool, CarrierKind?)[] { (false, null), (true, CarrierKind.Tape), (true, CarrierKind.Immediate) })
+		{
+			var options = Options(lexical: false, direct);
+
+			if (carrier is { } kind)
+				options.Carrier = kind;
+
+			var result = GramCompiler.Compile(grammar, options);
+
+			EmittedCode.Quiet(result.Diagnostics);
+
+			var assembly = EmittedCode.Compile(result.Sources[0].Text, declarationMembers: members);
+
+			Assert.Equal(direct ? said : saidByTheEngine ?? said, Refusal(assembly, input, null, null));
+		}
+	}
+
+	/// <summary>
+	/// What the quiet reading writes down of how far it got is written outside a look only, as
+	/// nothing is recorded inside one: a look that reads past where the parse then refuses must
+	/// not put the shut doors there out of the reading that records.
+	/// </summary>
+	/// <remarks>
+	/// On <c>"abz"</c> the first optional's turn reads the <c>a</c> and looks ahead to the <c>z</c>
+	/// before it is given up; the parse then refuses at 1, where the turn behind the second
+	/// optional's shut door is what names the <c>'z'</c> beside the <c>'x'</c>. Had the look's
+	/// refusal at 3 been written down as how far the quiet reading got, that turn would go untried.
+	/// </remarks>
+	[Fact]
+	public void How_far_the_quiet_reading_got_is_not_written_inside_a_look()
+	{
+		const string grammar = "Start = ('a' & ?=('b' & 'c' & 'd'))? & 'a' & ('z' & 'y')? & 'x'\nparse Start\n";
+
+		// The engine names the look's own literal, which the reader does not: today's difference, kept.
+		foreach (var (assembly, engine) in OverCharacters(grammar).Select(static (one, i) => (one, i == 0)))
+			Assert.Equal(engine ? "Starved at 1: Expected \"bcd\" or 'x'." : "Starved at 1: Expected \"zy\" or 'x'.", Refusal(assembly, "abz", null, null));
+	}
+
+	/// <summary>
 	/// <c>any</c> over tokens reads a token, and a character no token begins with as one
 	/// character, as it reads one over characters; what follows it is still there, and
 	/// <c>eof</c> is not met until the text ends.

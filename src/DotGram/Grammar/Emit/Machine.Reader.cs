@@ -2955,9 +2955,12 @@ sealed partial class Machine
 
 				machine._expectedUsed.Add(said);
 
-				code.Line(
-					$"if ({result} < 0 && failure.Position <= p{(machine.Quiets ? " && !failure.Quiet" : "")}) " +
-					$"{Refusing}(ref failure, p, {said});");
+				// The quiet reading writes down how far it got here too (KeepsDoors): the reading
+				// that records gets at least this far, recording the words or having got past them.
+				code.Line(machine.KeepsDoors
+					? $"if ({result} < 0 && failure.Position <= p) Refused_DotGram(ref failure, p, {said});"
+					: $"if ({result} < 0 && failure.Position <= p{(machine.Quiets ? " && !failure.Quiet" : "")}) " +
+						$"{Refusing}(ref failure, p, {said});");
 			}
 
 			if (_refuseWith is { } expected)
@@ -4305,7 +4308,9 @@ sealed partial class Machine
 
 					code.Line();
 
-					using (code.Block($"if (!{open} && failure.Quiet)"))
+					// Nor below where the quiet reading got (FromTheQuiet): what the turn would say
+					// there is wiped when the furthest refusal moves on.
+					using (code.Block(FromTheQuiet(body) ? $"if (!{open} && (failure.Quiet || p < failure.Doors))" : $"if (!{open} && failure.Quiet)"))
 						code.Line("break;");
 
 					code.Line();
@@ -4487,6 +4492,17 @@ sealed partial class Machine
 				machine.RunTest(body) is null && (repeat is null || !machine.IsFoldLoop(repeat));
 		}
 
+		/// <summary>
+		/// Whether a turn tried behind a shut door (TriesBehindTheDoor) is tried only from where
+		/// the quiet reading got (<c>Failure.Doors</c>): where the quiet reading writes that down,
+		/// and the turn does not look around before its first item, which could read past where
+		/// it stands (Machine.LooksBeforeItsFirstItem).
+		/// </summary>
+		bool FromTheQuiet(Node body)
+		{
+			return machine.KeepsDoors && !machine.LooksBeforeItsFirstItem(body);
+		}
+
 		/// <summary>The repetition <see cref="EmitScan"/> is writing the loop of.</summary>
 		Node.Repeat? _scanned;
 
@@ -4520,7 +4536,7 @@ sealed partial class Machine
 				}
 
 				code.Line();
-				scopes.Push(code.Block($"if ({open} || !failure.Quiet)"));
+				scopes.Push(code.Block(FromTheQuiet(body) ? $"if ({open} || (!failure.Quiet && p >= failure.Doors))" : $"if ({open} || !failure.Quiet)"));
 			}
 			else if (Door([body]) is { } closed)
 			{
@@ -5208,14 +5224,25 @@ sealed partial class Machine
 					var tries = machine.Quiets && machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner) &&
 						!machine.RunsCodeBeforeItsFirstItem(body);
 
-					using (code.Block(tries ? $"if (!{open} && failure.Quiet)" : $"if (!{open})"))
+					// Nor below where the quiet reading got (FromTheQuiet): what the turn would say
+					// there is wiped when the furthest refusal moves on.
+					var shut = tries && FromTheQuiet(body)
+						? $"if (!{open} && (failure.Quiet || p < failure.Doors))"
+						: tries
+						? $"if (!{open} && failure.Quiet)"
+						: $"if (!{open})";
+
+					using (code.Block(shut))
 					{
 						// A door that does not open below the minimum is not the loop ending
-						// but the rule failing, and says what it wanted.
+						// but the rule failing, and says what it wanted. Where the reading that
+						// records tries the turn instead, this is the quiet reading's path alone,
+						// and the furthest it writes down is not written here: the turn tried may
+						// say nothing at all, refused by a look before its first item.
 						if (min is not null)
 						{
 							using (code.Block($"if ({turn} < {min})"))
-								Refused(code, machine.DeclareExpected(machine.Displays(body)));
+								Refused(code, machine.DeclareExpected(machine.Displays(body)), furthest: !tries);
 
 							code.Line();
 						}
@@ -6004,24 +6031,34 @@ sealed partial class Machine
 
 			// Braced where it asks first: a note stands between an `if` and its `else`, and an
 			// `if` of its own there would take the `else` for itself.
-			return machine.Quiets ? "{ " + Refusal(expected) + " }" : Refusal(expected);
+			return machine.Quiets && !machine.KeepsDoors ? "{ " + Refusal(expected) + " }" : Refusal(expected);
 		}
 
-		void Refused(Writer code, string expected)
+		/// <param name="furthest">
+		/// Whether the quiet reading writes down how far it got here (<see cref="Refusal"/>). Not
+		/// on a path only the quiet reading takes, where the reading that records says nothing of
+		/// its own: the furthest it writes must be somewhere the reading that records gets to.
+		/// </param>
+		void Refused(Writer code, string expected, bool furthest = true)
 		{
 			// Declaring the array is not asking for it: what is written out is what
 			// something wrote a reference to, and until the reader said so the only thing
 			// that ever did was the rendering beside it.
 			machine._expectedUsed.Add(expected);
 
-			code.Line(Refusal(expected));
+			code.Line(Refusal(expected, furthest));
 			code.Line(Fails());
 		}
 
-		/// <summary>The statement that records a refusal here, asking first where a reading may be quiet.</summary>
-		string Refusal(string expected)
+		/// <summary>
+		/// The statement that records a refusal here, asking first where a reading may be quiet —
+		/// through Refused_DotGram where the quiet reading writes down how far it got (KeepsDoors).
+		/// </summary>
+		string Refusal(string expected, bool furthest = true)
 		{
-			return machine.Quiets
+			return machine.KeepsDoors && furthest
+				? $"Refused_DotGram(ref failure, p, {expected});"
+				: machine.Quiets
 				? $"if (!failure.Quiet) {Refusing}(ref failure, p, {expected});"
 				: $"{Refusing}(ref failure, p, {expected});";
 		}

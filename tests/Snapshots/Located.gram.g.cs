@@ -33,7 +33,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true };
+				failure = new Failure { Unasked = true, Doors = failure.Position };
 				end     = Recognize_Config_Whole(text, 0, ref failure, out recognized);
 			}
 
@@ -93,7 +93,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true };
+				failure = new Failure { Unasked = true, Doors = failure.Position };
 				end     = Recognize_Config(text, at, ref failure, out recognized);
 			}
 
@@ -163,7 +163,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true };
+				failure = new Failure { Unasked = true, Doors = failure.Position };
 				end     = Recognize_Config(text, at, ref failure, out recognized);
 			}
 
@@ -345,7 +345,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == ' ' || (c >= 'a' && c <= 'z')) goto S7;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S7;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S7;
 					goto Return;
 				}
 
@@ -559,7 +559,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c == ' ' || (c >= 'a' && c <= 'z')) goto S30;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S30;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S30;
 					goto S27;
 				}
 
@@ -704,11 +704,14 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
-				if (lookahead < 0 && !failure.Quiet && p > failure.Position)
+				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected;
-					failure.ExpectedMore?.Clear();
+					if (!failure.Quiet)
+					{
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
@@ -1445,6 +1448,8 @@ namespace DotGram.Snapshots
 			public bool Quiet;
 
 			public bool Unasked;
+
+			public int Doors;
 		}
 
 		sealed class Window

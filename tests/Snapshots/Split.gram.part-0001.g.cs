@@ -110,7 +110,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S7;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S7;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S7;
 					goto Return;
 				}
 
@@ -1321,7 +1321,7 @@ namespace DotGram.Snapshots
 						c = text[p];
 						if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S116;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S116;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S116;
 					goto S113;
 				}
 
@@ -1461,11 +1461,14 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
-				if (lookahead < 0 && !failure.Quiet && p > failure.Position)
+				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
-					failure.Expected = expected;
-					failure.ExpectedMore?.Clear();
+					if (!failure.Quiet)
+					{
+						failure.Expected = expected;
+						failure.ExpectedMore?.Clear();
+					}
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
