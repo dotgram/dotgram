@@ -351,23 +351,12 @@ UnsignedValueSpecification : @Expression = v: UnsignedLiteral => @(v) | v: TSqlV
 // The functions the standard spells out rather than leaving to <routine invocation>.
 // Each is a keyword and a fixed shape, which is why they are here and not a call.
 ValueFunction : @Expression
-    = name: "POSITION"i         & '(' & a: TSqlValueExpression & "IN"i & b: TSqlValueExpression & ')'    => @(new Expression.RoutineInvocation(name, [a, b]))
-    | name: "EXTRACT"i          & '(' & field: ExtractField & "FROM"i & v: TSqlValueExpression & ')' => @(new Expression.RoutineInvocation(name, [v], field))
-    | name: "CHAR_LENGTH"i      & '(' & v: TSqlValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, [v]))
+    = name: "CHAR_LENGTH"i      & '(' & v: TSqlValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, [v]))
     | name: "CHARACTER_LENGTH"i & '(' & v: TSqlValueExpression & ')'                            => @(new Expression.RoutineInvocation(name, [v]))
     | name: "OCTET_LENGTH"i     & '(' & v: TSqlValueExpression & ')'                                => @(new Expression.RoutineInvocation(name, [v]))
     | name: "BIT_LENGTH"i       & '(' & v: TSqlValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, [v]))
-    | name: "SUBSTRING"i        & '(' & v: TSqlValueExpression & "FROM"i & from: TSqlValueExpression
-                          & ("FOR"i & length: TSqlValueExpression)? & ')'
-        => @(new Expression.RoutineInvocation(
-            "SUBSTRING",
-            SqlList.Own(length is null
-                ? new Expression[] { v, from }
-                : new Expression[] { v, from, length })))
     | name: "UPPER"i     & '(' & v: TSqlValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, [v]))
     | name: "LOWER"i     & '(' & v: TSqlValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, [v]))
-    | name: "CONVERT"i   & '(' & v: TSqlValueExpression & "USING"i & name: TSqlQualifiedName & ')' => @(new Expression.RoutineInvocation(name, [v], name))
-    | name: "TRANSLATE"i & '(' & v: TSqlValueExpression & "USING"i & name: TSqlQualifiedName & ')' => @(new Expression.RoutineInvocation(name, [v], name))
     | name: "TRIM"i      & '(' & { how: TSqlTrimSpecification? } & what: TSqlValueExpression?
                    & "FROM"i & v: TSqlValueExpression & ')'
         => @(new Expression.RoutineInvocation(
@@ -376,8 +365,7 @@ ValueFunction : @Expression
             how))
     | name: "TRIM"i & '(' & v: TSqlValueExpression & ')'      => @(new Expression.RoutineInvocation(name, [v]))
     | name: "CURRENT_DATE"i                                      => @(new Expression.RoutineInvocation(name, Expression.None))
-    | name: "CURRENT_TIME"i      & ('(' & digits: Lexical.Digits & ')')? => @(new Expression.RoutineInvocation(name, Expression.None, digits))
-    | name: "CURRENT_TIMESTAMP"i & ('(' & digits: Lexical.Digits & ')')? => @(new Expression.RoutineInvocation(name, Expression.None, digits))
+    | name: "CURRENT_TIMESTAMP"i                                 => @(new Expression.RoutineInvocation(name, Expression.None))
 
 WhereClause  : @Expression = "WHERE"i  & c: SearchCondition => @(c)
 
@@ -657,6 +645,13 @@ OdbcFunction : @Expression.OdbcEscape
 	| ?!("CONVERT"i & '(') & name: OdbcName & '(' & args: Arguments? & ')'
 		=> @(new Expression.OdbcEscape(
 				 "", new Expression.RoutineInvocation(name, SqlList.Own(args)), true))
+	// Two escapes keep a shape that is ODBC's own and that a bare T-SQL expression does not have:
+	// `{ fn EXTRACT (HOUR FROM d) }` and `{ fn CURRENT_TIME }`. The engine reads both inside an
+	// escape and refuses `EXTRACT (…)` and `CURRENT_TIME` outside one.
+	| name: "EXTRACT"i & '(' & field: ExtractField & "FROM"i & v: TSqlValueExpression & ')'
+		=> @(new Expression.OdbcEscape("", new Expression.RoutineInvocation(name, [v], field)))
+	| name: "CURRENT_TIME"i
+		=> @(new Expression.OdbcEscape("", new Expression.RoutineInvocation(name, Expression.None)))
 	| v: TSqlValueExpression => @(new Expression.OdbcEscape("", v))
 
 OdbcName = word
