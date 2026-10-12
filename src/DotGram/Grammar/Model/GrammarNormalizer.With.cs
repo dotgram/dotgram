@@ -33,9 +33,11 @@ public sealed partial class GrammarNormalizer
 	/// own to specialize.
 	/// </summary>
 	/// <remarks>
-	/// Runs before <see cref="SpecializeNamespaces"/> (§5.1): a `with` mutates a rule's
-	/// body in place, and an enclosing `namespace (...)` clone of that same rule must see
-	/// the mutation already applied. The same has to hold between two `with` sites in
+	/// Runs in one order with the namespaces (<see cref="SpecializeWithSitesAndNamespaces"/>,
+	/// §5.1): before a namespace whose clones reach this rule, since a `with` mutates a rule's
+	/// body in place and the clone must see the mutation already applied, and after a
+	/// namespace the operand calls into from outside, whose header it composes on top of.
+	/// The same has to hold between two `with` sites in
 	/// different rules — `R2 = R1 with (C = D)` must see whatever `R1`'s own `with`
 	/// already did to it, since a `with` rebinds what a rule actually resolves to, not a
 	/// syntactic snapshot of it taken before this pass ran. So rule-groups are processed
@@ -46,134 +48,215 @@ public sealed partial class GrammarNormalizer
 	/// wherever it only reached the earlier group's rule through a call the splice itself
 	/// introduced.
 	/// </remarks>
-	void SpecializeWithSites()
+	void SpecializeWithGroup(
+		IGrouping<RuleSymbol, WithSite> group,
+		IReadOnlyDictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> sites)
 	{
-		if (_pendingWith.Count == 0)
-			return;
+		var forward  = BuildCallGraph();
+		var calledBy = Reverse(forward);
 
-		var groups = _pendingWith.GroupBy(site => site.Rule).ToList();
-		var graph  = BuildCallGraph();
+		var rewrites = new Dictionary<Node, (
+			IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets,
+			Dictionary<RuleSymbol, RuleSymbol> CloneMap,
+			string Name)>(NodeIdentity.Instance);
 
-		if (RefuseWithIntoNamespaces(graph))
-			return;
-
-		// Before ordering, because a cycle is what has no order. Two rules whose sites
-		// reach each other cannot both be specialized against the other already specialized,
-		// and the walk below would settle it by whichever the loop met first — which is
-		// document order, and not an answer to anything.
-		if (RefuseCircularWith(groups, graph))
-			return;
-
-		var order = OrderByDependency(groups, graph);
-
-		foreach (var group in order)
+		// Two or more sites sharing the same root only arise from direct stacking —
+		// `(X with (A=B)) with (C=D)` — since `Group` is transparent at lowering and
+		// both `with`s' operand lowers to the exact same node. Merged into one
+		// combined rebinding set, later overriding earlier for a shared key — the
+		// same child-overrides-parent layering `namespace (...)` nesting already uses
+		// (`ChainResolve`) — rather than cloned in two separate passes: a second pass
+		// computed against the pre-splice graph could not reach inside the clone the
+		// first pass already made, since that clone is a new rule referenced only by
+		// symbol, and nothing about a bare `Node.Call` carries a rule's body along
+		// for a second rewrite to see.
+		foreach (var atRoot in group.GroupBy(site => CurrentRoot(site.Root), NodeIdentity.Instance))
 		{
-			var forward  = BuildCallGraph();
-			var calledBy = Reverse(forward);
+			var merged = new Dictionary<RuleSymbol, RuleSymbol>();
+			var name   = "";
 
-			var rewrites = new Dictionary<Node, (
-				IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets,
-				Dictionary<RuleSymbol, RuleSymbol> CloneMap,
-				string Name)>(NodeIdentity.Instance);
-
-			// Two or more sites sharing the same root only arise from direct stacking —
-			// `(X with (A=B)) with (C=D)` — since `Group` is transparent at lowering and
-			// both `with`s' operand lowers to the exact same node. Merged into one
-			// combined rebinding set, later overriding earlier for a shared key — the
-			// same child-overrides-parent layering `namespace (...)` nesting already uses
-			// (`ChainResolve`) — rather than cloned in two separate passes: a second pass
-			// computed against the pre-splice graph could not reach inside the clone the
-			// first pass already made, since that clone is a new rule referenced only by
-			// symbol, and nothing about a bare `Node.Call` carries a rule's body along
-			// for a second rewrite to see.
-			foreach (var atRoot in group.GroupBy(site => site.Root, NodeIdentity.Instance))
+			foreach (var site in atRoot)
 			{
-				var merged = new Dictionary<RuleSymbol, RuleSymbol>();
-				var name   = "";
+				foreach (var pair in site.Targets)
+					merged[pair.Key] = pair.Value;
 
-				foreach (var site in atRoot)
-				{
-					foreach (var pair in site.Targets)
-						merged[pair.Key] = pair.Value;
-
-					name = site.Name;
-				}
-
-				var reachable = ReachableFromSeed(DirectCalls(atRoot.Key), forward, merged);
-				var affected  = AffectedSet(BoundCalls(merged), calledBy, reachable);
-
-				var cloneMap = affected.Count == 0 ? [] : CloneAffected(affected, merged, name);
-
-				foreach (var site in atRoot)
-					_withClones[site.Targets] = cloneMap;
-
-				rewrites[atRoot.Key] = (merged, cloneMap, name);
+				name = site.Name;
 			}
 
-			_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);
+			merged = OnTopOfHeaders(merged, sites);
+
+			var reachable = ReachableFromSeed(DirectCalls(atRoot.Key), forward, merged);
+			var affected  = AffectedSet(BoundCalls(merged), calledBy, reachable);
+
+			var cloneMap = affected.Count == 0 ? [] : CloneAffected(affected, merged, name);
+
+			foreach (var site in atRoot)
+				_withClones[site.Targets] = cloneMap;
+
+			rewrites[atRoot.Key] = (merged, cloneMap, name);
 		}
+
+		_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);
 	}
 
 	/// <summary>
-	/// Refuses every <c>with</c> expression whose operand calls, at any depth, into a namespace
-	/// with a header from outside it (GRAM4036).
+	/// A <c>with</c>'s rebindings as they apply on top of the namespaces already specialized:
+	/// where a namespace cloned a rule the <c>with</c> names, the clone is replaced too, since
+	/// the clone is what a call into that namespace now reads; and a replacement a namespace
+	/// declares is its clone, as a call to it from anywhere is.
 	/// </summary>
 	/// <remarks>
-	/// <para>
-	/// §5.1 says a namespace's rules carry its header wherever they are called from, and a
-	/// <c>with</c> composes on top of the headers of what it reaches. This pass runs before
-	/// namespaces are specialized, so a <c>with</c> over <c>Ns.G</c> copied <c>G</c> as written
-	/// and the header was lost: <c>Ns.G with (Z = Q)</c>, where <c>Ns</c> binds <c>B = D</c>,
-	/// read <c>b</c> where it should read <c>d</c>, even though the <c>with</c> names neither.
-	/// </para>
-	/// <para>
-	/// Until the two are specialized in one order, every such <c>with</c> is refused rather
-	/// than compiled into a parser that silently reads the wrong language. A call is "into" a
-	/// namespace when the rule called belongs to a namespace with a header and the caller does
-	/// not belong to that same one; a <c>with</c> written inside the namespace whose rules it
-	/// reaches is unaffected.
-	/// </para>
+	/// <c>Ns.E with (D = Y)</c>, where <c>Ns</c> binds <c>B = D</c>: the <c>with</c> runs after
+	/// <c>Ns</c>, over <c>Ns</c>'s clone of <c>E</c>, which calls <c>D</c>, and replaces it — the
+	/// same answer <c>parse Ns.E with (D = Y)</c> gives (§5.1).
 	/// </remarks>
-	bool RefuseWithIntoNamespaces(Dictionary<RuleSymbol, List<RuleSymbol>> graph)
+	Dictionary<RuleSymbol, RuleSymbol> OnTopOfHeaders(
+		Dictionary<RuleSymbol, RuleSymbol> targets,
+		IReadOnlyDictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> sites)
 	{
-		var refused = false;
+		if (sites.Count == 0)
+			return targets;
 
-		foreach (var site in _pendingWith)
+		var declared = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		foreach (var pair in sites)
+			foreach (var clone in pair.Value)
+				if (NearestSite(clone.Key.Namespace) == pair.Key)
+					declared[clone.Key] = clone.Value;
+
+		var layered = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		foreach (var pair in targets)
 		{
-			var seen    = new HashSet<RuleSymbol>();
-			var pending = new Queue<(RuleSymbol Caller, RuleSymbol Called)>();
+			var replacement = declared.TryGetValue(pair.Value, out var cloned) ? cloned : pair.Value;
 
-			foreach (var called in DirectCalls(site.Root))
-				pending.Enqueue((site.Rule, called));
+			layered[pair.Key] = replacement;
+
+			foreach (var site in sites.Values)
+				if (site.TryGetValue(pair.Key, out var clone))
+					layered[clone] = replacement;
+		}
+
+		return layered;
+	}
+
+	/// <summary>
+	/// Where a <c>with</c>'s operand root is now: the node it was lowered to, or what a rebuild
+	/// of the body it sits in made of it (<see cref="RetargetForWith"/>).
+	/// </summary>
+	Node CurrentRoot(Node root)
+	{
+		while (_movedRoots.TryGetValue(root, out var moved))
+			root = moved;
+
+		return root;
+	}
+
+	/// <summary>Every operand root a rebuild moved, to the node it became.</summary>
+	readonly Dictionary<Node, Node> _movedRoots = new(NodeIdentity.Instance);
+
+	/// <summary>The operand roots a rebuild under way has to say where it put.</summary>
+	HashSet<Node>? _watchedRoots;
+
+	/// <summary>
+	/// Every call a <c>with</c>'s operand makes, at any depth, into a namespace with a header
+	/// from outside it: the caller, the rule called, and the namespace.
+	/// </summary>
+	/// <remarks>
+	/// Each call is read as the parse will make it: through the header of the namespace the
+	/// walk is in, and then through the <c>with</c>'s own rebindings on top. A header's
+	/// replacement can itself be a rule of another namespace — <c>namespace Ns1 with (B =
+	/// Ns2.F)</c> — and that call is one into <c>Ns2</c>, which the <c>with</c> then reads as
+	/// <c>Ns2</c> makes it.
+	/// </remarks>
+	List<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace Into)> CallsIntoSites(
+		IGrouping<RuleSymbol, WithSite> group,
+		Dictionary<RuleSymbol, List<RuleSymbol>> forward)
+	{
+		var into = new List<(RuleSymbol, RuleSymbol, GrammarNamespace)>();
+
+		foreach (var site in group)
+		{
+			var seen    = new HashSet<(RuleSymbol, GrammarNamespace?)>();
+			var pending = new Queue<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace? In)>();
+
+			foreach (var called in DirectCalls(CurrentRoot(site.Root)))
+				pending.Enqueue((group.Key, called, NearestSite(group.Key.Namespace)));
 
 			while (pending.Count > 0)
 			{
-				var (caller, called) = pending.Dequeue();
+				var (caller, called, within) = pending.Dequeue();
+				var headed                   = within is null ? called : Rebound(called, within.Rebindings) ?? called;
+				var reached                  = Rebound(headed, site.Targets) ?? headed;
+				var namespaced               = NearestSite(reached.Namespace);
 
-				if (NearestSite(called.Namespace) is { } into && into != NearestSite(caller.Namespace))
-				{
-					Report(
-						WithIntoNamespace,
-						$"This 'with' reaches '{called.Name}' in namespace '{into.Name}', whose header " +
-						"rebinds what it calls, from outside it. A 'with' around a call into a namespace " +
-						"with a header is not supported yet: write the rebinding on a publication " +
-						"('parse … with (…)') or as a namespace header (§5.1).",
-						site.At);
+				if (namespaced is not null && namespaced != NearestSite(caller.Namespace))
+					into.Add((caller, reached, namespaced));
 
-					refused = true;
+				var onward = namespaced ?? within;
 
-					break;
-				}
-
-				if (!seen.Add(called) || !graph.TryGetValue(called, out var next))
+				if (!seen.Add((reached, onward)))
 					continue;
 
-				foreach (var one in next)
-					pending.Enqueue((called, one));
+				foreach (var next in CallsOf(reached, forward))
+					pending.Enqueue((reached, next, onward));
 			}
 		}
 
-		return refused;
+		return into;
+	}
+
+	/// <summary>
+	/// Moves the calls a <c>with</c>'s operand makes into the namespaces already specialized
+	/// onto their clones, before the <c>with</c> is specialized over them.
+	/// </summary>
+	/// <remarks>
+	/// The same move <see cref="RetargetCallsIntoSites"/> makes for every call once all sites
+	/// are done, made early for the rules this <c>with</c> reaches: the <c>with</c> composes on
+	/// top of the header, so it has to see what the header made. A body rebuilt here may hold
+	/// the operand of a <c>with</c> still to come, whose identity the rebuild changes; every such
+	/// root is watched, and <see cref="CurrentRoot"/> finds it again.
+	/// </remarks>
+	void RetargetForWith(
+		IGrouping<RuleSymbol, WithSite> group,
+		Dictionary<RuleSymbol, RuleSymbol> declared)
+	{
+		if (declared.Count == 0)
+			return;
+
+		// Until nothing moves: a moved call reaches a clone, and the clone's own calls — a
+		// header's replacement among them — are walked the next time round.
+		for (var moved = true; moved;)
+		{
+			moved = false;
+
+			var callers = new List<RuleSymbol>();
+
+			foreach (var (caller, called, _) in CallsIntoSites(group, BuildCallGraph()))
+				if (declared.ContainsKey(called) && !callers.Contains(caller))
+					callers.Add(caller);
+
+			_watchedRoots = new HashSet<Node>(_pendingWith.Select(site => CurrentRoot(site.Root)), NodeIdentity.Instance);
+
+			foreach (var caller in callers)
+			{
+				var site = NearestSite(caller.Namespace);
+
+				if (_bodies.TryGetValue(caller, out var body) && CallsInto(body, declared, site))
+				{
+					_bodies[caller] = Retargeted(body, declared, site);
+					moved           = true;
+				}
+
+				if (_trivia.TryGetValue(caller, out var trivia) && CallsInto(trivia, declared, site))
+				{
+					_trivia[caller] = Retargeted(trivia, declared, site);
+					moved           = true;
+				}
+			}
+
+			_watchedRoots = null;
+		}
 	}
 
 	/// <summary>
@@ -263,7 +346,7 @@ public sealed partial class GrammarNormalizer
 	/// Read off <paramref name="forward"/> as it was before any group in this pass ran:
 	/// which with-bearing rules a site's own operand can reach does not change once one
 	/// of them is spliced, only what lies inside it does, so one snapshot answers the
-	/// ordering question for the whole pass even though <see cref="SpecializeWithSites"/>
+	/// ordering question for the whole pass even though <see cref="SpecializeWithGroup"/>
 	/// rebuilds the graph again, per group, for the affected-set computation itself.
 	/// A cycle between two with-bearing rules has no order that satisfies both, and is
 	/// refused before this runs (<see cref="RefuseCircularWith"/>) — so <c>visited</c> here
@@ -386,10 +469,10 @@ public sealed partial class GrammarNormalizer
 	/// itself, and specializing it either produces a clone to publish instead, or —
 	/// when the rebinding cannot reach anything from there — leaves the publication
 	/// exactly as it was, the same "no-op when nothing is affected" shape
-	/// <see cref="SpecializeWithSites"/> and <see cref="SpecializeNamespaces"/> both have.
+	/// <see cref="SpecializeWithGroup"/> and <see cref="SpecializeWithSitesAndNamespaces"/> both have.
 	/// </summary>
 	/// <remarks>
-	/// Runs after <see cref="SpecializeNamespaces"/>, deliberately: a publication's own
+	/// Runs after <see cref="SpecializeWithSitesAndNamespaces"/>, deliberately: a publication's own
 	/// `with` is the more locally written of the two, and composes on top of whatever an
 	/// enclosing `namespace (...)` already did to it — the child-overrides-parent ordering
 	/// nested namespace headers already use for a shared key, applied here between a block

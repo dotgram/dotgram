@@ -471,7 +471,7 @@ public sealed partial class GrammarNormalizer
 	/// would be, no wrapper node, so a capture, a sequence or another <c>with</c> stays
 	/// literally embedded in the enclosing rule's own body (§5.1). What is recorded is
 	/// where to come back once every rule is lowered and the whole call graph is known —
-	/// the same ordering <see cref="SpecializeNamespaces"/> already relies on for
+	/// the same ordering <see cref="SpecializeWithSitesAndNamespaces"/> already relies on for
 	/// <c>namespace (...)</c>.
 	/// </summary>
 	Node LowerWith(Expr expression, Expr operand, GrammarNamespace ns)
