@@ -1849,7 +1849,7 @@ partial class HandSqlStandard
 
 			var marked = cursor;
 
-			if (cursor.Take(SqlWord.For) && !Names(ref cursor, 3, out forType!))
+			if (cursor.Take(SqlWord.For) && !OptionalNames(ref cursor, 3, out forType))
 			{
 				cursor  = marked;
 				forType = null;
@@ -1929,7 +1929,7 @@ partial class HandSqlStandard
 
 		var marked = cursor;
 
-		if (cursor.TakeWord("UNDER") && !Names(ref cursor, 3, out under!))
+		if (cursor.TakeWord("UNDER") && !OptionalNames(ref cursor, 3, out under))
 		{
 			cursor = marked;
 			under  = null;
@@ -2325,7 +2325,7 @@ partial class HandSqlStandard
 
 		var marked = cursor;
 
-		if (cursor.Take(SqlWord.Specific) && !Names(ref cursor, 3, out specific!))
+		if (cursor.Take(SqlWord.Specific) && !OptionalNames(ref cursor, 3, out specific))
 		{
 			cursor   = marked;
 			specific = null;
@@ -2601,7 +2601,7 @@ partial class HandSqlStandard
 
 			var marked = cursor;
 
-			if (!Names(ref cursor, 3, out name!))
+			if (!OptionalNames(ref cursor, 3, out name))
 			{
 				cursor = marked;
 				name   = null;

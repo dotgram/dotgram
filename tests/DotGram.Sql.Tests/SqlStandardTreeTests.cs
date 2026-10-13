@@ -243,7 +243,7 @@ public sealed class SqlStandardTreeTests
 
 		var reference = Assert.IsType<DataType.Reference>(Both.ParseDataType("REF(t) SCOPE s.u"));
 
-		Assert.Equal(new[] { "s", "u" }, reference.Scope!.Parts.Select(one => one.Text));
+		Assert.Equal(new[] { "s", "u" }, reference.Scope!.Value.Parts.Select(one => one.Text));
 		Assert.Equal(new IntervalQualifier(DateTimeField.Second, 2, null, 3), Assert.IsType<DataType.Interval>(Both.ParseDataType("INTERVAL SECOND(2, 3)")).Qualifier);
 	}
 
