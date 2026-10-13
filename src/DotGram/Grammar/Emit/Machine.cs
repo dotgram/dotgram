@@ -3975,6 +3975,12 @@ sealed partial class Machine
 					atMatched.Line($"p = {begun};");
 					EmitTerminalFailure(atMatched, _fail, arrayName);
 
+					// The entry writes the local and the way out on a match reads it, so it is
+					// declared wherever the entry is written and not only where the door the body's
+					// refusals leave by is: a body that cannot refuse (one that matches nothing as
+					// well as something) never writes that door, and the local went undeclared (CS0103).
+					_turns.Add((mine, entered));
+
 					_depth = mine;
 
 					return entered;

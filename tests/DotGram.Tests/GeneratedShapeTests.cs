@@ -118,4 +118,32 @@ public sealed class GeneratedShapeTests
 		Assert.Equal("xx", EmittedCode.Match(assembly, "Grammar", "TryParseStart", "xx").Value);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "x;x;.").IsSuccess);
 	}
+
+	// ── A negative lookahead over a body that cannot refuse ──────────────────
+
+	/// <summary>
+	/// A negative lookahead whose body matches nothing as well as something compiles. The
+	/// lookahead keeps where it began in a local, declared only where the door its body's
+	/// refusals leave by was written; a body that cannot refuse never writes that door, and the
+	/// local the entry sets and the way out on a match reads went undeclared (CS0103).
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Ways))]
+	public void A_negative_lookahead_over_a_body_that_cannot_refuse_compiles(CarrierKind carrier, bool direct)
+	{
+		const string grammar =
+			"""
+			D = 'x'? & 'y'?
+			Body = (?!D & any)*
+			Start : @int = b: Body & any* => @(b.Length)
+			parse Start
+			find Start
+			""";
+
+		var assembly = Compiled(grammar, carrier, direct);
+
+		// `D` matches everywhere, so `?!D` never lets `Body` take a character.
+		Assert.Equal(0, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "xyz").Value);
+		Assert.Equal(0, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "").Value);
+	}
 }
