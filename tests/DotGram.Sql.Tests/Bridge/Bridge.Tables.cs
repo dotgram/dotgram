@@ -984,7 +984,8 @@ static partial class Bridge
 		{
 			switch (value)
 			{
-				case Expression.ColumnReference(var words) when words.Any(char.IsWhiteSpace) || words.StartsWith('('):
+				// A blank inside a bracketed or quoted name is the name's own: the tokens are the text less its blanks.
+				case Expression.ColumnReference(var words) when SqlTokens.Of(words).Sum(static one => one.Text.Length) != words.Length || words.StartsWith('('):
 					throw BridgeGap.Open(owner, $"inventory Clause.Option (a value that is a run of words or numbers, `{words}`)");
 
 				case Expression.RoutineInvocation { Name: "" }:

@@ -450,6 +450,12 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("ALTER TABLE t SET (LOCK_ESCALATION = AUTO)", "Set options")]
 	[InlineData("ALTER TABLE t REBUILD PARTITION = ALL", "Rebuild")]
 	[InlineData("INSERT BULK t (a INT NULL)", "Insert bulk explicit null")]
+	[InlineData("ALTER TABLE t ENABLE TRIGGER ALL", "Triggers all")]
+	[InlineData("CREATE TABLE t (a INT NOT NULL)", "Lone not null")]
+	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_BIN)", "Default collated")]
+	[InlineData("CREATE TABLE t (a VARCHAR(10) COLLATE Latin1_General_BIN)", "Type collated")]
+	[InlineData("CREATE TABLE t (a INT, PRIMARY KEY (a))", "Plain key")]
+	[InlineData("CREATE TABLE t (a INT) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = [dbo 2].[t history]))", "Option a bracketed name with a blank")]
 	public void The_bridge_builds_the_table_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -537,6 +543,15 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Triggers" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Triggers { Enable: true, All: false, Names.Count: 2 }] },
 			"Set options" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.SetOptions { Options: [{ Name.Text: "LOCK_ESCALATION" }] }] },
 			"Rebuild" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Rebuild { All: true, Partition: null }] },
+			"Triggers all" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Triggers { Enable: true, All: true, Names.Count: 0 }] },
+			"Lone not null" => Columns(made) is [{ Options: [Ast.ColumnOption.Constraint { Value: Ast.Constraint.NotNull }], Generation: null, Constraints.Count: 0, Collation: null }],
+			"Default collated" => Columns(made) is [{ Options: [Ast.ColumnOption.Default { Value: Ast.Expression.Collate { Value: Ast.Expression.Literal } }], Generation: null, Collation: null, Type: Ast.DataType.Character { Collation: null } }],
+			"Type collated" => Columns(made) is [{ Options: [Ast.ColumnOption.Collation], Collation: null, Type: Ast.DataType.Character { Collation: null } }],
+			"Plain key" => Elements(made) is [_, Ast.TableElement.TableConstraint { Value: Ast.Constraint.Unique { Kind: Ast.UniqueKind.PrimaryKey, Columns.Count: 0, Keys: [{ Direction: null, Key: Ast.Expression.Reference }], Clustering: null } }],
+			"Option a bracketed name with a blank" => made is Ast.Statement.CreateTable
+			{
+				Options: [{ Options: [{ Name.Text: "HISTORY_TABLE", Value: Ast.Expression.Reference { Name.Parts: [{ Style: Ast.IdentifierStyle.Bracketed }, { Style: Ast.IdentifierStyle.Bracketed }] } }] }],
+			},
 			"Insert bulk explicit null" => made is Ast.Statement.InsertBulk { Columns: [{ Options: [Ast.ColumnOption.Null], Constraints.Count: 0 }] },
 			_ => false,
 		};
@@ -587,6 +602,66 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			BridgeOracle.Meaning(Trees.Differences(projected, standard, old: false), out var unexplained);
 			Assert.NotEmpty(unexplained);
 		}
+	}
+
+	/// <summary>
+	/// <c>DEFAULT v COLLATE x</c> is exempted as the one move it names, the collation from the default's value to the
+	/// column, and only where the value and the collation are the standard's: either half alone, another value or
+	/// another collation is a shape mismatch.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_BIN)", false)]
+	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'y' COLLATE Latin1_General_BIN)", true)]
+	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_CI_AS)", true)]
+	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'x')", true)]
+	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_BIN, b INT DEFAULT 2)", true)]
+	public void The_collated_default_pattern_exempts_the_move_and_no_more(string standard, bool shape)
+	{
+		const string text = "CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_BIN)";
+
+		var made        = BridgeOracle.Projection(Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text), []);
+		var differences = Trees.Differences(made, SqlStandardParser.ParseStatement(standard), old: false);
+		var exempted    = BridgeOracle.Meaning(differences, out var unexplained);
+
+		Assert.NotEmpty(differences);
+		Assert.Equal(shape, unexplained.Count > 0);
+
+		if (!shape)
+			Assert.Equal([BridgeOracle.Collated], exempted);
+	}
+
+	/// <summary>
+	/// The bridge builds T-SQL's column and key, which the shape check then projects: a tree already in the
+	/// standard's form is refused by the oracle before any comparison, as a different tree.
+	/// </summary>
+	[Fact]
+	public void The_oracle_refuses_a_tree_already_in_the_standards_form()
+	{
+		const string text = "CREATE TABLE t (a VARCHAR(10) COLLATE Latin1_General_BIN NOT NULL, PRIMARY KEY (a))";
+
+		var made = (Ast.Statement.CreateTable)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.Null(BridgeOracle.Unprojected(made));
+
+		var items  = ((Ast.TableContents.Elements)made.Contents).Items;
+		var column = ((Ast.TableElement.Column)items[0]).Definition;
+		var key    = (Ast.Constraint.Unique)((Ast.TableElement.TableConstraint)items[1]).Value;
+
+		Ast.Statement With(Ast.TableElement first, Ast.TableElement second)
+		{
+			return made with { Contents = new Ast.TableContents.Elements([first, second]) };
+		}
+
+		var collation = new Ast.CollationName(new Ast.QualifiedName([new Ast.Identifier("Latin1_General_BIN")]));
+
+		foreach (var standard in new[]
+		{
+			With(new Ast.TableElement.Column(column with { Options = [], Constraints = [new Ast.Constraint.NotNull()] }), items[1]),
+			With(new Ast.TableElement.Column(column with { Options = [column.Options[1]], Collation = collation }), items[1]),
+			With(new Ast.TableElement.Column(column with { Options = [column.Options[1]], Type = new Ast.DataType.Character(Ast.CharacterTypeKind.Varchar, 10, Collation: collation) }), items[1]),
+			With(items[0], new Ast.TableElement.TableConstraint(key with { Keys = null, Columns = [new Ast.Identifier("a")] })),
+		})
+			Assert.NotNull(BridgeOracle.Unprojected(standard));
 	}
 
 	/// <summary>

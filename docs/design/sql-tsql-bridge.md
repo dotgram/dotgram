@@ -48,6 +48,11 @@ A column or a key the projection does not apply to is left as it is, so that it 
 column with one option wrong still differs: either is a shape mismatch. Each projection made is counted
 (`Projected`).
 
+The projection makes the standard's form out of T-SQL's, so the bridge must have built T-SQL's: before
+anything is compared the oracle asks every column of the bridge's tree for empty `Generation`, `Constraints`
+and `Collation` and no collation inside its type, and every PRIMARY KEY and UNIQUE for empty `Columns`
+(`BridgeOracle.Unprojected`). A tree in the standard's form there is counted **different**.
+
 Every place the two trees differ is then collected. A difference inside one of twelve subtrees, found by its
 construct and never by the statement's text, is the two dialects reading the text with different meanings,
 and is exempted (`BridgeOracle.Meaning`); any other difference makes the statement a **shape** mismatch.
@@ -78,7 +83,9 @@ and is exempted (`BridgeOracle.Meaning`); any other difference makes the stateme
   standard. The statement's `Target`, a `TableSource.Function` of the one-part name `ONLY`. The standard's
   `INSERT` reads no `ONLY`, and the writer refuses it there.
 - `c t DEFAULT v COLLATE x`: the default value's collation in T-SQL, the column's in the standard. The
-  `ColumnDefinition` whose default is an `Expression.Collate`, its `Generation` and `Collation`.
+  `ColumnDefinition` whose default is an `Expression.Collate`: the default's value against the standard's,
+  which must be the collated value, and the column's `Collation`, which must be the value's collation. Only
+  both together are exempted; either alone is a shape mismatch.
 
 ## Words read from the text
 
@@ -163,7 +170,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 
 | Counter | Count |
 | --- | ---: |
-| ByCase Clause.ColumnDefinition.Type | 1480 |
+| ByCase Clause.ColumnDefinition.Type | 1486 |
 | ByCase Clause.Dropped.Tail | 0 |
 | ByCase Clause.For.Kind | 20 |
 | ByCase Clause.For.Options | 44 |
@@ -240,7 +247,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9322 |
 | `Expression.ColumnReference` | Values | B | gap 1 | 140: needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7); needs decision: inventory cross-cutting gaps, identifier styles (a name part `READ COMMITTED`) (6) | 9235 |
-| `Clause.Option` | Tables | C | gap 67 | 71: needs decision: inventory Clause.Option (a name of several words, `MOVE TO`) (22); needs decision: inventory Clause.Option (ON PARTITIONS, which Option has no place for) (18) | 6517 |
+| `Clause.Option` | Tables | C | gap 65 | 69: needs decision: inventory Clause.Option (a name of several words, `MOVE TO`) (22); needs decision: inventory Clause.Option (ON PARTITIONS, which Option has no place for) (18) | 6517 |
 | `Clause.ColumnDefinition` | Tables | B | gap 110 | 110: needs decision: inventory DataType (`decimal(max)`: a word in the brackets of a type) (21); needs decision: inventory Clause.ConstraintDefinition (a default added WITH VALUES) (11) | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |
 | `Clause.ColumnOption` | Tables | B | gap 103 | 103: needs decision: inventory Statement.AlterTable (ALTER COLUMN with more than a collation and a nullability) (64); needs decision: inventory Clause.ColumnOption (COLUMN_SET FOR ALL_SPARSE_COLUMNS) (39) | 2995 |
@@ -248,7 +255,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.DerivedColumn` | Queries | A | — | — | 2967 |
 | `TableReference.Named` | Tables | A | gap 5 | 5: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
 | `Expression.RoutineInvocation` | Values | B | gap 56 | 71: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); needs decision: inventory Expression.RoutineInvocation (the word `INT`) (8) | 2310 |
-| `Statement.TableDefinition` | Tables | B | converted 1587, gap 79 | 79: needs decision: inventory Statement.TableDefinition (CREATE EXTERNAL TABLE, which another task owns) (79) | 1906 |
+| `Statement.TableDefinition` | Tables | B | converted 1589, gap 79 | 79: needs decision: inventory Statement.TableDefinition (CREATE EXTERNAL TABLE, which another task owns) (79) | 1906 |
 | `Clause.ConstraintDefinition` | Tables | B | gap 13 | 13: needs decision: inventory Clause.ConstraintDefinition (PRIMARY KEY with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter) (4); needs decision: inventory Clause.ConstraintDefinition (an index's FILESTREAM_ON, which IndexDefinition has no place for) (4) | 1841 |
 | `Clause.SortSpecification` | Queries | A | — | — | 1303 |
 | `Clause.QualifiedAsterisk` | Queries | A | — | — | 1221 |

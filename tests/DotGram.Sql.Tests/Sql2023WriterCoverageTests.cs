@@ -1005,6 +1005,29 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("SET with no option")]
 	[InlineData("WITH CHECK before a SWITCH")]
 	[InlineData("a T-SQL action beside another")]
+	[InlineData("a collation directly after a default")]
+	[InlineData("a collation after a computed column's value")]
+	[InlineData("NOT FOR REPLICATION not after an identity")]
+	[InlineData("NOT FOR REPLICATION alone")]
+	[InlineData("NOT FOR REPLICATION on a column with no type")]
+	[InlineData("a T-SQL column whose type has a collation")]
+	[InlineData("a name on a computed column")]
+	[InlineData("SPARSE after an identity")]
+	[InlineData("HIDDEN alone")]
+	[InlineData("HIDDEN before GENERATED ALWAYS")]
+	[InlineData("two collations")]
+	[InlineData("PERSISTED on a typed column")]
+	[InlineData("an encryption after FILESTREAM")]
+	[InlineData("a plain ALL among CHECK CONSTRAINT's names")]
+	[InlineData("a plain ALL among ENABLE TRIGGER's names")]
+	[InlineData("a REBUILD partition that is a plain ALL")]
+	[InlineData("a behavior on a constraint dropped without its word")]
+	[InlineData("a behavior on a column in a DROP list")]
+	[InlineData("a behavior on a constraint in a DROP list")]
+	[InlineData("an unbracketed option other than FILLFACTOR or SORTED_DATA")]
+	[InlineData("an unbracketed FILLFACTOR with no value")]
+	[InlineData("an unbracketed option twice")]
+	[InlineData("ON DEFAULT with columns")]
 	[InlineData("a mask function on other than ADD MASKED")]
 	[InlineData("ADD MASKED without its function")]
 	[InlineData("a collation beside SET DATA TYPE")]
@@ -1172,6 +1195,29 @@ public sealed class Sql2023WriterCoverageTests
 			"a T-SQL action beside another" => new Statement.AlterTable { Name = T, Actions = [new AlterTableAction.SetOptions([new Option(new Identifier("LOCK_ESCALATION"), A, [])]), new AlterTableAction.AddSystemVersioning()] },
 			"a mask function on other than ADD MASKED" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(false, ColumnPropertyKind.Masked, Str, []), true)),
 			"ADD MASKED without its function" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(true, ColumnPropertyKind.Masked, null, []), true)),
+			"a collation directly after a default" => Tabled(null, IntColumn(new ColumnOption.Default(A), new ColumnOption.Collation(new CollationName(T)))),
+			"a collation after a computed column's value" => Tabled(null, IntColumn(), new TableElement.Column(new ColumnDefinition(new Identifier("d"), null, null, [], null) { Options = [new ColumnOption.Computed(A), new ColumnOption.Collation(new CollationName(T))] })),
+			"NOT FOR REPLICATION not after an identity" => Tabled(null, IntColumn(new ColumnOption.Null(), new ColumnOption.NotForReplication())),
+			"NOT FOR REPLICATION alone" => Tabled(null, IntColumn(new ColumnOption.NotForReplication())),
+			"NOT FOR REPLICATION on a column with no type" => Tabled(null, new TableElement.Column(new ColumnDefinition(new Identifier("c"), null, null, [], null) { Options = [new ColumnOption.Identity(null, null), new ColumnOption.NotForReplication()] })),
+			"a T-SQL column whose type has a collation" => Tabled(null, new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Character(CharacterTypeKind.Varchar, Collation: new CollationName(T)), null, [], null) { Options = [new ColumnOption.Null()] })),
+			"a name on a computed column" => Tabled(null, IntColumn(), new TableElement.Column(new ColumnDefinition(new Identifier("d"), null, null, [], null) { Options = [new ColumnOption.Computed(A) { Name = new Identifier("n") }] })),
+			"SPARSE after an identity" => Tabled(null, IntColumn(new ColumnOption.Identity(null, null), new ColumnOption.Sparse())),
+			"HIDDEN alone" => Tabled(null, IntColumn(new ColumnOption.Hidden())),
+			"HIDDEN before GENERATED ALWAYS" => Tabled(null, IntColumn(new ColumnOption.Hidden(), new ColumnOption.GeneratedAlways(GeneratedAlwaysKind.RowStart))),
+			"two collations" => Tabled(null, IntColumn(new ColumnOption.Collation(new CollationName(T)), new ColumnOption.Collation(new CollationName(U)))),
+			"PERSISTED on a typed column" => Tabled(null, IntColumn(new ColumnOption.Persisted())),
+			"an encryption after FILESTREAM" => Tabled(null, IntColumn(new ColumnOption.Filestream(), new ColumnOption.Encrypted([new Option(new Identifier("ENCRYPTION_TYPE"), A, [])]))),
+			"a plain ALL among CHECK CONSTRAINT's names" => Altered(new AlterTableAction.CheckConstraints(ConstraintCheck.Check, false, [new Identifier("ALL")])),
+			"a plain ALL among ENABLE TRIGGER's names" => Altered(new AlterTableAction.Triggers(true, false, [new Identifier("b"), new Identifier("all")])),
+			"a REBUILD partition that is a plain ALL" => Altered(new AlterTableAction.Rebuild(new Expression.Reference(new QualifiedName([new Identifier("ALL")])), false, [])),
+			"a behavior on a constraint dropped without its word" => Altered(new AlterTableAction.DropConstraint(T, DropBehavior.Cascade) { ConstraintKeywordOmitted = true }),
+			"a behavior on a column in a DROP list" => Altered(new AlterTableAction.Drop([new AlterTableAction.DropColumn(new Identifier("b"), DropBehavior.Cascade, true), new AlterTableAction.DropColumn(new Identifier("c"), null, false)])),
+			"a behavior on a constraint in a DROP list" => Altered(new AlterTableAction.Drop([new AlterTableAction.DropColumn(new Identifier("b"), null, true), new AlterTableAction.DropConstraint(T, DropBehavior.Restrict)])),
+			"an unbracketed option other than FILLFACTOR or SORTED_DATA" => Tabled(null, new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [Flag("PAD_INDEX")], OptionsUnbracketed = true })),
+			"an unbracketed FILLFACTOR with no value" => Tabled(null, new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [Flag("FILLFACTOR")], OptionsUnbracketed = true })),
+			"an unbracketed option twice" => Tabled(null, new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [Flag("SORTED_DATA"), Flag("sorted_data")], OptionsUnbracketed = true })),
+			"ON DEFAULT with columns" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement(PlacementKind.On, new Identifier("DEFAULT"), [new Identifier("a")])] },
 			"a collation beside SET DATA TYPE" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.SetDataType(new DataType.Numeric(NumericTypeKind.Int)) { Collation = new CollationName(T) }, true)),
 			"ONLY on an INSERT's target"            => new Statement.Insert { Target = new TableSource.Named(T) { Only = true } },
 			"TRUNCATE with IDENTITY and partitions" => new Statement.TruncateTable

@@ -74,6 +74,11 @@ static class BridgeOracle
 			return new Outcome(root, gap.OldType, Status.Gap, text, gap.Reason, Gaps: gaps);
 		}
 
+		// The projection below is the standard's form made of T-SQL's, so the bridge must have built T-SQL's: a
+		// tree already in the standard's form would compare equal with nothing projected.
+		if (Unprojected(made) is { } standardForm)
+			return new Outcome(root, root, Status.Different, text, Detail: "T-SQL form: " + standardForm, Gaps: gaps);
+
 		var recovered = Bridge.Recovered.ToArray();
 		var standard  = SqlStandardParser.TryParseStatement(text);
 		var read      = standard.IsSuccess;
@@ -244,6 +249,31 @@ static class BridgeOracle
 	}
 
 	/// <summary>
+	/// A node of the bridge's tree in the standard's form where T-SQL has its own, or null: a column with the
+	/// standard's <c>Generation</c>, <c>Constraints</c> or <c>Collation</c>, or a collation inside its type, and a
+	/// PRIMARY KEY or UNIQUE with the standard's <c>Columns</c>.
+	/// </summary>
+	public static string? Unprojected(Ast.Statement made)
+	{
+		foreach (var node in Trees.Nodes(made))
+		{
+			switch (node)
+			{
+				case Ast.ColumnDefinition column when column.Generation is not null || column.Constraints.Count > 0 || column.Collation is not null:
+					return $"column {column.Name.Text} has the standard's Generation, Constraints or Collation";
+
+				case Ast.ColumnDefinition { Type: Ast.DataType.Character { Collation: not null } } column:
+					return $"column {column.Name.Text} has a collation inside its type";
+
+				case Ast.Constraint.Unique { Columns.Count: > 0 }:
+					return "a key has the standard's Columns";
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>
 	/// Where the written text, read back located and carried with that text as its source, builds another new tree
 	/// than the one written: the first difference, or null where they are equal, spans aside.
 	/// </summary>
@@ -355,9 +385,15 @@ static class BridgeOracle
 
 		unexplained = [];
 
+		// A collation moved is two differences, the default's value and the column's collation, and either alone is
+		// another difference.
+		var halves = differences.Select(Moved).Where(static one => one is not null).Select(static one => one!.Value).ToList();
+
 		foreach (var difference in differences)
 		{
-			if (Exempting(difference) is not { } found)
+			if (Moved(difference) is { } moved && halves.Count(one => ReferenceEquals(one.Column, moved.Column)) != 2)
+				unexplained.Add(difference);
+			else if (Exempting(difference) is not { } found)
 				unexplained.Add(difference);
 			// One entry for each subtree exempted, however many differences lie in it.
 			else if (!subtrees.Any(one => ReferenceEquals(one, found.Subtree)))
@@ -406,10 +442,10 @@ static class BridgeOracle
 			return (Option, last.Node);
 
 		// c t DEFAULT v COLLATE x: the column's default and collation, where T-SQL reads the collation as the default
-		// value's own and the standard as the column's.
-		foreach (var step in difference.Path)
-			if (step is { Node: Ast.ColumnDefinition { Generation: Ast.ColumnGeneration.Default { Value: Ast.Expression.Collate }, Collation: null } column, Member: "Generation" or "Collation" })
-				return (Collated, column);
+		// value's own and the standard as the column's. Only the move itself: the default's value is the standard's,
+		// and the column's collation the one the value was collated with (Meaning asks for both).
+		if (Moved(difference) is { } moved)
+			return (Collated, moved.Column);
 
 		// SELECT x = a: the column the alias comes first in, which the standard reads as a comparison.
 		if (difference.Path is [.., { Node: Ast.SelectColumn.ExpressionItem { AliasFirst: true } item, Member: "Expression" or "Alias" or "AliasFirst" }])
@@ -451,6 +487,25 @@ static class BridgeOracle
 
 			}
 		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// One half of <c>c t DEFAULT v COLLATE x</c> read both ways: the default's value, a collation of the standard's
+	/// value, or the column's collation, the standard's and the one the value was collated with; with the column.
+	/// </summary>
+	static (Ast.ColumnDefinition Column, bool Value)? Moved(Trees.Diff difference)
+	{
+		var path = difference.Path;
+
+		if (path is [.., { Node: Ast.ColumnDefinition { Generation: Ast.ColumnGeneration.Default { Value: Ast.Expression.Collate collate }, Collation: null } column, Member: "Collation" }]
+			&& difference is { Left: null, Right: Ast.CollationName name } && collate.Collation.Equals(name))
+			return (column, false);
+
+		if (path is [.., { Node: Ast.ColumnDefinition { Generation: Ast.ColumnGeneration.Default { Value: Ast.Expression.Collate value }, Collation: null } owner, Member: "Generation" }, { Node: Ast.ColumnGeneration.Default, Member: "Value" }]
+			&& difference.Right is { } standard && value.Value.Equals(standard))
+			return (owner, true);
 
 		return null;
 	}
