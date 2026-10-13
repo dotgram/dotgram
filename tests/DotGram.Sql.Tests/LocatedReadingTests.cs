@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 using DotGram.Sql;
+using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
 
 using Xunit;
@@ -282,6 +284,73 @@ public sealed class LocatedReadingTests
 		Assert.Equal(5, new SqlSpan(At: 6, Length: 1, GapStart: 5).GapStart);
 	}
 
+	/// <summary>
+	/// A node of the SQL:2023 tree keeps its span in eight bytes, where and how much, and a node of the
+	/// T-SQL tree in twelve, the start of the gap in front of it with them: every record of either that
+	/// declares the field, found by reflection, so a record added later is held to it too.
+	/// </summary>
+	[Fact]
+	public void A_SQL2023_node_keeps_its_span_in_eight_bytes()
+	{
+		var holders = typeof(Statement).Assembly.GetTypes()
+			.Where(static type => !type.IsInterface && typeof(ISqlSpan).IsAssignableFrom(type))
+			.Select(static type => (Type: type, Field: type.GetField("_location", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)))
+			.Where(static holder => holder.Field is not null)
+			.ToList();
+
+		var ast    = holders.Where(static holder => holder.Type.Namespace == "DotGram.Sql.Ast").ToList();
+		var syntax = holders.Where(static holder => holder.Type.Namespace == "DotGram.Sql").ToList();
+
+		Assert.True(ast.Count > 100, $"{ast.Count} records of the SQL:2023 tree hold a span");
+		Assert.Equal(6, syntax.Count);
+		Assert.Equal(holders.Count, ast.Count + syntax.Count);
+
+		foreach (var holder in ast)
+			Assert.True(SizeOf(holder.Field!.FieldType) == 8, holder.Type.FullName);
+
+		foreach (var holder in syntax)
+			Assert.True(SizeOf(holder.Field!.FieldType) == 12, holder.Type.FullName);
+	}
+
+	/// <summary>
+	/// A node of the SQL:2023 tree hands back the span it was offered, the text in front of it said to
+	/// begin where the node does, and a node nobody located says nothing at all; equality looks at
+	/// neither. Every node of each statement is offered a span of its own.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT a.b, COUNT(*) AS n, CASE WHEN x > 1 THEN 'y' ELSE NULL END FROM t AS a JOIN u ON a.id = u.id WHERE a.c BETWEEN 1 AND 2 AND d IN (SELECT e FROM f) GROUP BY a.b HAVING COUNT(*) > 1 ORDER BY 1 DESC")]
+	[InlineData("INSERT INTO t (a, b) VALUES (1, 'x'), (2, X'0F')")]
+	[InlineData("UPDATE t SET b = CAST(c AS DECIMAL(10, 2)) WHERE a IS NOT NULL")]
+	[InlineData("CREATE TABLE t (a INT NOT NULL, b VARCHAR(20) DEFAULT 'x', PRIMARY KEY (a))")]
+	public void A_SQL2023_node_hands_back_the_span_it_was_offered(string text)
+	{
+		var plain   = SqlStandardParser.ParseStatement(text);
+		var located = SqlStandardParser.ParseStatement(text);
+
+		Assert.True(SqlWalker.Walk(plain, static node => node.Span == default && node.Span.GapStart == 0 && !node.Span.Known));
+
+		var nodes = Nodes(located).Distinct<ISqlSpan>(ReferenceEqualityComparer.Instance).ToList();
+
+		Assert.True(nodes.Count > 5, text);
+
+		for (var i = 0; i < nodes.Count; i++)
+			nodes[i].Locate(i + 1, 2 * i + 3);
+
+		for (var i = 0; i < nodes.Count; i++)
+		{
+			var span = nodes[i].Span;
+
+			Assert.Equal(new SqlSpan(i + 1, 2 * i + 3), span);
+			Assert.Equal(i + 1, span.GapStart);
+			Assert.Equal(3 * i + 4, span.End);
+			Assert.False(span.IsStale);
+			Assert.True(span.Known);
+		}
+
+		Assert.Equal(plain, located);
+		Assert.Equal(plain.GetHashCode(), located.GetHashCode());
+	}
+
 	/// <summary>A backup's tail is put on the statement with <c>with</c>, and the statement keeps its span.</summary>
 	[Theory]
 	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH INIT")]
@@ -513,6 +582,11 @@ public sealed class LocatedReadingTests
 		}
 
 		return true;
+	}
+
+	static int SizeOf(Type type)
+	{
+		return (int)typeof(Unsafe).GetMethod(nameof(Unsafe.SizeOf))!.MakeGenericMethod(type).Invoke(null, null)!;
 	}
 
 	static List<ISqlSpan> Nodes(ISqlSpan root)

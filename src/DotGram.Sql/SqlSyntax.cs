@@ -92,8 +92,8 @@ public enum StatementCategory
 /// <summary>A statement: §13 of the standard, and most of a dialect's reference.</summary>
 public abstract record Statement : ISqlSpan, ISqlLocatable
 {
-	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
-	SqlLocation _location;
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlSyntaxLocation"/>).</summary>
+	SqlSyntaxLocation _location;
 
 	/// <summary>A node not yet read from anywhere.</summary>
 	protected Statement()
@@ -112,12 +112,12 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length));
 	}
 
 	void ISqlLocatable.Locate(int at, int length, int gapStart)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>
@@ -2229,8 +2229,8 @@ public enum SetCategory
 /// </remarks>
 public abstract record SetExpression : ISqlSpan, ISqlLocatable
 {
-	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
-	SqlLocation _location;
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlSyntaxLocation"/>).</summary>
+	SqlSyntaxLocation _location;
 
 	/// <summary>A node not yet read from anywhere.</summary>
 	protected SetExpression()
@@ -2249,12 +2249,12 @@ public abstract record SetExpression : ISqlSpan, ISqlLocatable
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length));
 	}
 
 	void ISqlLocatable.Locate(int at, int length, int gapStart)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>The group Microsoft's page of the SET statements puts the setting in.</summary>
@@ -2425,8 +2425,8 @@ public abstract record SetExpression : ISqlSpan, ISqlLocatable
 /// </summary>
 public abstract record Query : ISqlSpan, ISqlLocatable
 {
-	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
-	SqlLocation _location;
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlSyntaxLocation"/>).</summary>
+	SqlSyntaxLocation _location;
 
 	/// <summary>A node not yet read from anywhere.</summary>
 	protected Query()
@@ -2445,12 +2445,12 @@ public abstract record Query : ISqlSpan, ISqlLocatable
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length));
 	}
 
 	void ISqlLocatable.Locate(int at, int length, int gapStart)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>§7.12 <c>SELECT</c>, and the clauses under it.</summary>
@@ -2549,8 +2549,8 @@ public abstract record Query : ISqlSpan, ISqlLocatable
 /// <summary>§6 the value level, and §8 the predicates: what stands where a value does.</summary>
 public abstract record Expression : ISqlSpan, ISqlLocatable
 {
-	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
-	SqlLocation _location;
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlSyntaxLocation"/>).</summary>
+	SqlSyntaxLocation _location;
 
 	/// <summary>A node not yet read from anywhere.</summary>
 	protected Expression()
@@ -2569,12 +2569,12 @@ public abstract record Expression : ISqlSpan, ISqlLocatable
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length));
 	}
 
 	void ISqlLocatable.Locate(int at, int length, int gapStart)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	// ---- §6.39 the boolean tower ---------------------------------------------------------------
@@ -2928,8 +2928,8 @@ public abstract record Expression : ISqlSpan, ISqlLocatable
 /// </summary>
 public abstract record TableReference : ISqlSpan, ISqlLocatable
 {
-	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
-	SqlLocation _location;
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlSyntaxLocation"/>).</summary>
+	SqlSyntaxLocation _location;
 
 	/// <summary>A node not yet read from anywhere.</summary>
 	protected TableReference()
@@ -2948,12 +2948,12 @@ public abstract record TableReference : ISqlSpan, ISqlLocatable
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length));
 	}
 
 	void ISqlLocatable.Locate(int at, int length, int gapStart)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>
@@ -3046,8 +3046,8 @@ public abstract record TableReference : ISqlSpan, ISqlLocatable
 /// </summary>
 public abstract record Clause : ISqlSpan, ISqlLocatable
 {
-	/// <summary>The span, held where the record's equality does not look (<see cref="SqlLocation"/>).</summary>
-	SqlLocation _location;
+	/// <summary>The span, held where the record's equality does not look (<see cref="SqlSyntaxLocation"/>).</summary>
+	SqlSyntaxLocation _location;
 
 	/// <summary>A node not yet read from anywhere.</summary>
 	protected Clause()
@@ -3066,12 +3066,12 @@ public abstract record Clause : ISqlSpan, ISqlLocatable
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length));
 	}
 
 	void ISqlLocatable.Locate(int at, int length, int gapStart)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length, gapStart));
+		_location = new SqlSyntaxLocation(new SqlSpan(at, length, gapStart));
 	}
 
 	/// <summary>§7.12 one entry of a select list: what it is, and what it is called.</summary>

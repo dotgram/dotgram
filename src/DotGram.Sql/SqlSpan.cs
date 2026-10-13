@@ -107,6 +107,18 @@ public readonly record struct SqlSpan
 		return new SqlSpan(At, Length, GapStart, stale: true);
 	}
 
+	/// <summary>The length as it is kept: its complement where the span is stale.</summary>
+	internal int StoredLength => _length;
+
+	/// <summary>
+	/// A span of a length kept as <see cref="StoredLength"/> keeps it, the text in front of which
+	/// begins where it does: what <see cref="SqlLocation"/> hands back.
+	/// </summary>
+	internal static SqlSpan Stored(int at, int storedLength)
+	{
+		return new SqlSpan(at, storedLength < 0 ? ~storedLength : storedLength, at, stale: storedLength < 0);
+	}
+
 	/// <summary>Where and how much, as the span was once written as a pair.</summary>
 	public void Deconstruct(out int At, out int Length)
 	{
@@ -116,7 +128,8 @@ public readonly record struct SqlSpan
 }
 
 /// <summary>
-/// What a node of the T-SQL tree holds its span in: the span, kept out of the record's equality.
+/// What a node of the SQL:2023 tree holds its span in: where it was written and how much, kept out
+/// of the record's equality.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -127,23 +140,31 @@ public readonly record struct SqlSpan
 /// a table keyed by node has to be keyed by reference.
 /// </para>
 /// <para>
-/// A copy made with <c>with</c> passes through the record's copy constructor, which keeps where
-/// the original was written and marks it stale (<see cref="SqlSpan.IsStale"/>).
+/// Two numbers and not a whole <see cref="SqlSpan"/>: every node of the tree carries one, located or
+/// not, and eight bytes are what a record pays where the span's twelve were padded to sixteen. A
+/// span it hands back has its gap begin at <see cref="SqlSpan.At"/>, which is all a node of this
+/// tree was ever offered; what lies in front of a node is the reading's to say, not the node's.
 /// </para>
 /// </remarks>
 internal readonly struct SqlLocation : IEquatable<SqlLocation>
 {
+	readonly int _at;
+
+	/// <summary>The length, or its complement where the span is stale (<see cref="SqlSpan.StoredLength"/>).</summary>
+	readonly int _length;
+
 	public SqlLocation(SqlSpan span)
 	{
-		Span = span;
+		_at     = span.At;
+		_length = span.StoredLength;
 	}
 
-	public SqlSpan Span { get; }
-
-	/// <summary>What a copy holds: the same place, stale.</summary>
-	public SqlLocation Copied()
+	public SqlSpan Span
 	{
-		return Span.Known || Span.GapStart != 0 ? new SqlLocation(Span.Stale()) : this;
+		get
+		{
+			return SqlSpan.Stored(_at, _length);
+		}
 	}
 
 	// Equality and the hash recurse, and a deep tree — a chain of a hundred thousand `+`, which the
@@ -175,6 +196,53 @@ internal readonly struct SqlLocation : IEquatable<SqlLocation>
 		RuntimeHelpers.EnsureSufficientExecutionStack();
 
 		return contract;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public override int GetHashCode()
+	{
+		RuntimeHelpers.EnsureSufficientExecutionStack();
+
+		return 0;
+	}
+}
+
+/// <summary>
+/// What a node of the T-SQL tree holds its span in: the whole span, the start of the gap in front of
+/// the node with it, kept out of the record's equality as <see cref="SqlLocation"/> keeps its own.
+/// </summary>
+/// <remarks>
+/// A copy made with <c>with</c> passes through the record's copy constructor, which keeps where
+/// the original was written and marks it stale (<see cref="SqlSpan.IsStale"/>).
+/// </remarks>
+internal readonly struct SqlSyntaxLocation : IEquatable<SqlSyntaxLocation>
+{
+	public SqlSyntaxLocation(SqlSpan span)
+	{
+		Span = span;
+	}
+
+	public SqlSpan Span { get; }
+
+	/// <summary>What a copy holds: the same place, stale.</summary>
+	public SqlSyntaxLocation Copied()
+	{
+		return Span.Known || Span.GapStart != 0 ? new SqlSyntaxLocation(Span.Stale()) : this;
+	}
+
+	// The stack is checked here for the reason SqlLocation gives.
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public bool Equals(SqlSyntaxLocation other)
+	{
+		RuntimeHelpers.EnsureSufficientExecutionStack();
+
+		return true;
+	}
+
+	public override bool Equals(object? obj)
+	{
+		return obj is SqlSyntaxLocation;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
