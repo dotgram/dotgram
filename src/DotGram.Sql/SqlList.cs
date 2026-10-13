@@ -18,6 +18,12 @@ namespace DotGram.Sql;
 /// with nothing written per record, and a record added later does too.
 /// </para>
 /// <para>
+/// A list of one reference holds its element without an array: a name of one part, a list of one
+/// column, are most of the lists a tree holds, and the array cost them 32 bytes and an object more.
+/// The list is the same list either way — it compares, hashes and walks as one — and only
+/// <see cref="AsSpan"/> shows the difference: it copies a list of one into an array of its own.
+/// </para>
+/// <para>
 /// It is the size of the array reference it replaces. <c>default</c> is the empty list: it equals
 /// <c>[]</c> and hashes the same. Where a member may be left out altogether it is a
 /// <c>SqlList&lt;T&gt;?</c>, and there null and empty stay different answers.
@@ -32,32 +38,87 @@ namespace DotGram.Sql;
 [CollectionBuilder(typeof(SqlList), nameof(SqlList.Create))]
 public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 {
-	readonly T[]? _items;
+	// Null is the empty list, a T[] holds the elements, and anything else is the one element of a list of
+	// one. Only an element of a reference type that is not itself an array is held so: an array element
+	// would read as the list's array, and a value would be boxed.
+	readonly object? _items;
 
 	/// <summary>Takes the array as it is; the caller hands it over and keeps no other reference.</summary>
 	internal SqlList(T[]? items)
 	{
-		_items = items;
+		_items = items is { Length: 1 } && Alone(items[0]) is { } one ? one : items;
 	}
 
-	T[] Items => _items ?? Array.Empty<T>();
+	SqlList(object one)
+	{
+		_items = one;
+	}
+
+	/// <summary>A list of <paramref name="item"/> alone, held without an array where it can be.</summary>
+	internal static SqlList<T> Of(T item)
+	{
+		return Alone(item) is { } one ? new SqlList<T>(one) : new SqlList<T>(new[] { item });
+	}
+
+	/// <summary>The element as a list of one holds it, or null where it needs an array.</summary>
+	static object? Alone(T item)
+	{
+		return !typeof(T).IsValueType && item is not null and not Array ? item : null;
+	}
+
+	/// <summary>The elements as an array: the list's own, or a new one for a list of one.</summary>
+	T[] Items => _items switch
+	{
+		null      => Array.Empty<T>(),
+		T[] items => items,
+		var one   => new[] { (T)one },
+	};
 
 	/// <summary>How many elements the list holds.</summary>
-	public int Count => _items?.Length ?? 0;
+	public int Count => _items switch
+	{
+		null      => 0,
+		T[] items => items.Length,
+		_         => 1,
+	};
 
 	/// <summary>How many elements the list holds, under the name an array gives it.</summary>
-	public int Length => _items?.Length ?? 0;
+	public int Length => Count;
 
 	/// <summary>Whether the list holds nothing.</summary>
-	public bool IsEmpty => Length == 0;
+	public bool IsEmpty => Count == 0;
 
 	/// <summary>The element at <paramref name="index"/>.</summary>
-	public T this[int index] => Items[index];
+	/// <exception cref="IndexOutOfRangeException"><paramref name="index"/> is not a place in the list.</exception>
+	public T this[int index]
+	{
+		get
+		{
+			if (_items is T[] items)
+				return items[index];
 
-	/// <summary>The elements as a span, without a copy.</summary>
+			if (_items is null || index != 0)
+				throw new IndexOutOfRangeException();
+
+			return (T)_items;
+		}
+	}
+
+	/// <summary>The elements as a span: without a copy, but for a list of one, which is copied.</summary>
+	/// <remarks>
+	/// A list of one holds its element in the field an array would stand in, and a span over that field would
+	/// read whatever the field holds later: the variable the list was taken from may be given a longer list,
+	/// and its array would be read as the element. So a list of one is copied into an array of its own, and
+	/// the span is as safe to keep as an array's. The list's own members read the element where it is.
+	/// </remarks>
 	public ReadOnlySpan<T> AsSpan()
 	{
-		return Items;
+		return _items switch
+		{
+			null      => default,
+			T[] items => items,
+			var one   => new[] { (T)one },
+		};
 	}
 
 	/// <summary>A part of the list, as a list of its own; what a list pattern's <c>..</c> reads.</summary>
@@ -66,25 +127,51 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 		if ((uint)start > (uint)Length || (uint)length > (uint)(Length - start))
 			throw new ArgumentOutOfRangeException(start < 0 || start > Length ? nameof(start) : nameof(length));
 
-		return length == 0 ? default : new SqlList<T>(AsSpan().Slice(start, length).ToArray());
+		if (length == 0)
+			return default;
+
+		if (length == 1)
+			return Of(this[start]);
+
+		// A span read only, which takes an array of a type derived from T as it is; a writable one would refuse it.
+		return new SqlList<T>(new ReadOnlySpan<T>((T[])_items!, start, length).ToArray());
 	}
 
 	/// <summary>Whether any element matches <paramref name="match"/>, as <see cref="Array.Exists{T}(T[], Predicate{T})"/> asks of an array.</summary>
 	public bool Exists(Predicate<T> match)
 	{
-		return Array.Exists(Items, match);
+		if (match is null)
+			throw new ArgumentNullException(nameof(match));
+
+		foreach (var item in this)
+			if (match(item))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>Whether every element matches <paramref name="match"/>, as <see cref="Array.TrueForAll{T}(T[], Predicate{T})"/> asks of an array.</summary>
 	public bool TrueForAll(Predicate<T> match)
 	{
-		return Array.TrueForAll(Items, match);
+		if (match is null)
+			throw new ArgumentNullException(nameof(match));
+
+		foreach (var item in this)
+			if (!match(item))
+				return false;
+
+		return true;
 	}
 
 	/// <summary>The elements copied into a new array.</summary>
 	public T[] ToArray()
 	{
-		return AsSpan().ToArray();
+		return _items switch
+		{
+			null      => Array.Empty<T>(),
+			T[] items => ((ReadOnlySpan<T>)items).ToArray(),
+			var one   => new[] { (T)one },
+		};
 	}
 
 	/// <summary>Whether two lists hold equal elements in the same order.</summary>
@@ -106,20 +193,19 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// </remarks>
 	public bool Equals(SqlList<T> other)
 	{
-		var mine   = Items;
-		var theirs = other.Items;
-
-		if (ReferenceEquals(mine, theirs))
+		if (ReferenceEquals(_items, other._items))
 			return true;
 
-		if (mine.Length != theirs.Length)
+		var length = Count;
+
+		if (length != other.Count)
 			return false;
 
 		var comparer = EqualityComparer<T>.Default;
 
-		for (var at = 0; at < mine.Length; at++)
+		for (var at = 0; at < length; at++)
 		{
-			if (!comparer.Equals(mine[at], theirs[at]))
+			if (!comparer.Equals(this[at], other[at]))
 				return false;
 		}
 
@@ -140,11 +226,10 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// </remarks>
 	public override int GetHashCode()
 	{
-		var items    = Items;
 		var comparer = EqualityComparer<T>.Default;
-		var hash     = SqlHash.Start(items.Length);
+		var hash     = SqlHash.Start(Count);
 
-		foreach (var item in items)
+		foreach (var item in this)
 			hash = SqlHash.Add(hash, item is null ? 0 : comparer.GetHashCode(item));
 
 		return SqlHash.Finish(hash);
@@ -155,7 +240,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	{
 		var text = new StringBuilder("[");
 
-		foreach (var item in Items)
+		foreach (var item in this)
 		{
 			if (text.Length > 1)
 				text.Append(", ");
@@ -169,7 +254,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// <summary>Walks the elements in order, without allocating.</summary>
 	public Enumerator GetEnumerator()
 	{
-		return new Enumerator(Items);
+		return new Enumerator(this);
 	}
 
 	IEnumerator<T> IEnumerable<T>.GetEnumerator()
@@ -185,22 +270,24 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// <summary>What <c>foreach</c> over a <see cref="SqlList{T}"/> walks with.</summary>
 	public struct Enumerator
 	{
-		readonly T[] _items;
-		int          _at;
+		readonly SqlList<T> _list;
+		readonly int        _count;
+		int                 _at;
 
-		internal Enumerator(T[] items)
+		internal Enumerator(SqlList<T> list)
 		{
-			_items = items;
+			_list  = list;
+			_count = list.Count;
 			_at    = -1;
 		}
 
 		/// <summary>The element the walk stands on.</summary>
-		public readonly T Current => _items[_at];
+		public readonly T Current => _list[_at];
 
 		/// <summary>Steps to the next element; false past the last.</summary>
 		public bool MoveNext()
 		{
-			return ++_at < _items.Length;
+			return ++_at < _count;
 		}
 	}
 }
@@ -216,7 +303,12 @@ public static class SqlList
 	/// </summary>
 	public static SqlList<T> Create<T>(ReadOnlySpan<T> items)
 	{
-		return items.IsEmpty ? default : new SqlList<T>(items.ToArray());
+		return items.Length switch
+		{
+			0 => default,
+			1 => SqlList<T>.Of(items[0]),
+			_ => new SqlList<T>(items.ToArray()),
+		};
 	}
 
 	/// <summary>A list of a copy of <paramref name="items"/>, in their order.</summary>
