@@ -96,6 +96,61 @@ public sealed class Sql2023WriterCoverageTests
 		return new Assignment([new AssignmentTarget(new QualifiedName([new Identifier("a")]))], B);
 	}
 
+	/// <summary><c>CREATE TABLE t (…)</c> of the kind and with the elements given, or of one column <c>c INT</c>.</summary>
+	static Statement.CreateTable Tabled(TableKind? kind, params TableElement[] elements)
+	{
+		return new Statement.CreateTable
+		{
+			Name     = T,
+			Contents = new TableContents.Elements(elements.Length > 0 ? [.. elements] : [IntColumn()]),
+			Kind     = kind,
+		};
+	}
+
+	/// <summary><c>c INT</c>, with the T-SQL options given.</summary>
+	static TableElement.Column IntColumn(params ColumnOption[] options)
+	{
+		return new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [], null) { Options = [.. options] });
+	}
+
+	static TableElement.Column Optioned(ColumnOption option)
+	{
+		return IntColumn(option);
+	}
+
+	static TableElement.Index Indexed(IndexDefinition index)
+	{
+		return new TableElement.Index(index with { Columns = index.Columns.Count > 0 ? index.Columns : [new SortItem(A)] });
+	}
+
+	/// <summary><c>PRIMARY KEY (a) WITH (FILLFACTOR = 80)</c>, the brackets left out or not.</summary>
+	static TableElement.TableConstraint Keyed(bool unbracketed)
+	{
+		return new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, [])
+		{
+			Keys               = [new SortItem(A)],
+			Options            = [new Option(new Identifier("FILLFACTOR"), new Expression.Literal(new LiteralValue.Numeric("80", NumericLiteralKind.DecimalInteger)), [])],
+			OptionsUnbracketed = unbracketed,
+		});
+	}
+
+	static ReferencesSpecification Referenced()
+	{
+		return new ReferencesSpecification(U, [], null, null, null, null);
+	}
+
+	/// <summary><c>ALTER TABLE t</c> and the action given.</summary>
+	static Statement.AlterTable Altered(AlterTableAction action)
+	{
+		return new Statement.AlterTable { Name = T, Actions = [action] };
+	}
+
+	/// <summary>An altered column's <c>INT</c>, written alone.</summary>
+	static AlterColumnAction.SetDataType Typed()
+	{
+		return new AlterColumnAction.SetDataType(new DataType.Numeric(NumericTypeKind.Int)) { SetDataTypeOmitted = true };
+	}
+
 	/// <summary><c>MERGE INTO t USING u ON a WHEN MATCHED THEN DELETE</c>.</summary>
 	static Statement.Merge Merged()
 	{
@@ -223,6 +278,14 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(QueryHintPhrase)]    = v => new Statement.Select { Query = Selected, Hints = [new QueryHint.Phrase((QueryHintPhrase)v)] },
 		[typeof(XmlMode)]            = v => Selected with { For = new ForClause.Xml((XmlMode)v, null, []) },
 		[typeof(JsonMode)]           = v => Selected with { For = new ForClause.Json((JsonMode)v, []) },
+		[typeof(TableKind)]          = v => Tabled((TableKind)v),
+		[typeof(ConstraintCheck)]    = v => Altered(new AlterTableAction.CheckConstraints((ConstraintCheck)v, true, [])),
+		[typeof(GeneratedAlwaysKind)] = v => Tabled(null, Optioned(new ColumnOption.GeneratedAlways((GeneratedAlwaysKind)v))),
+		[typeof(IndexClustering)]    = v => Tabled(null, Indexed(new IndexDefinition(new Identifier("i")) { Clustering = (IndexClustering)v })),
+		[typeof(IndexStorage)]       = v => Tabled(null, Indexed(new IndexDefinition(new Identifier("i")) { Storage = (IndexStorage)v })),
+		[typeof(PlacementKind)]      = v => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement((PlacementKind)v, new Identifier("fg"), null)] },
+		[typeof(ColumnNullability)]  = v => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), Typed() with { Nullability = (ColumnNullability)v }, true)),
+		[typeof(ColumnPropertyKind)] = v => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(false, (ColumnPropertyKind)v, null, []), true)),
 		[typeof(ForDirectiveKind)]   = v => Selected with
 		{
 			For = (ForDirectiveKind)v is ForDirectiveKind.IncludeNullValues or ForDirectiveKind.WithoutArrayWrapper
@@ -470,6 +533,20 @@ public sealed class Sql2023WriterCoverageTests
 			["ForDirective.Absent"] = (
 				Selected with { For = new ForClause.Xml(XmlMode.Auto, null, [new ForDirective(ForDirectiveKind.Elements)]) },
 				Selected with { For = new ForClause.Xml(XmlMode.Auto, null, [new ForDirective(ForDirectiveKind.Elements, Absent: true)]) }),
+			// T-SQL's ALTER TABLE: a constraint dropped without its word, and an altered column's type written alone.
+			["DropConstraint.ConstraintKeywordOmitted"] = (
+				Altered(new AlterTableAction.DropConstraint(T, null)),
+				Altered(new AlterTableAction.DropConstraint(T, null) { ConstraintKeywordOmitted = true })),
+			["SetDataType.SetDataTypeOmitted"] = (
+				Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.SetDataType(new DataType.Numeric(NumericTypeKind.Int)), true)),
+				Altered(new AlterTableAction.AlterColumn(new Identifier("c"), Typed(), true))),
+			// T-SQL's key with its old options outside brackets, and a column's FOREIGN KEY with no columns.
+			["Unique.OptionsUnbracketed"] = (
+				Tabled(null, Keyed(false)),
+				Tabled(null, Keyed(true))),
+			["ForeignKey.ForeignKeyWords"] = (
+				Tabled(null, Optioned(new ColumnOption.Constraint(new Constraint.ForeignKey([], null, Referenced())))),
+				Tabled(null, Optioned(new ColumnOption.Constraint(new Constraint.ForeignKey([], null, Referenced()) { ForeignKeyWords = true })))),
 			["UpdatabilityClause.Underscored"] = (
 				Declared(new CursorProperties(null, null, null, null), false, false),
 				Declared(new CursorProperties(null, null, null, null), false, true)),
@@ -555,6 +632,18 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("LastNode on a graph node")]
 	[InlineData("Over on a next value")]
 	[InlineData("GraphPath on a call")]
+	[InlineData("NotForReplication on a check")]
+	[InlineData("NotForReplication on a reference")]
+	[InlineData("IfExists on a column dropped")]
+	[InlineData("IfExists on a constraint dropped")]
+	[InlineData("Unique on an index")]
+	[InlineData("All on a rebuild")]
+	[InlineData("All on CHECK CONSTRAINT")]
+	[InlineData("All on ENABLE TRIGGER")]
+	[InlineData("Enable on triggers")]
+	[InlineData("Enable on change tracking")]
+	[InlineData("Add on a column property")]
+	[InlineData("OnDeleteCascade on a connection")]
 	public void A_flag_changes_what_is_written(string which)
 	{
 		var type = new DataType.Numeric(NumericTypeKind.Int);
@@ -610,6 +699,42 @@ public sealed class Sql2023WriterCoverageTests
 			"Over on a next value" => (
 				Sql2023Writer.Write(new Expression.NextValue(s)),
 				Sql2023Writer.Write(new Expression.NextValue(s) { Over = new WindowSpecification(null, [], new OrderByClause([new SortItem(A)]), null) })),
+			"NotForReplication on a check" => (
+				Sql2023Writer.Write(Tabled(null, new TableElement.TableConstraint(new Constraint.Check(A)))),
+				Sql2023Writer.Write(Tabled(null, new TableElement.TableConstraint(new Constraint.Check(A) { NotForReplication = true })))),
+			"NotForReplication on a reference" => (
+				Sql2023Writer.Write(Tabled(null, Optioned(new ColumnOption.Constraint(new Constraint.ForeignKey([], null, Referenced()))))),
+				Sql2023Writer.Write(Tabled(null, Optioned(new ColumnOption.Constraint(new Constraint.ForeignKey([], null, Referenced() with { NotForReplication = true })))))),
+			"IfExists on a column dropped" => (
+				Sql2023Writer.Write(Altered(new AlterTableAction.DropColumn(new Identifier("c"), null, true))),
+				Sql2023Writer.Write(Altered(new AlterTableAction.DropColumn(new Identifier("c"), null, true) { IfExists = true }))),
+			"IfExists on a constraint dropped" => (
+				Sql2023Writer.Write(Altered(new AlterTableAction.DropConstraint(T, null))),
+				Sql2023Writer.Write(Altered(new AlterTableAction.DropConstraint(T, null) { IfExists = true }))),
+			"Unique on an index" => (
+				Sql2023Writer.Write(Tabled(null, Indexed(new IndexDefinition(new Identifier("i"))))),
+				Sql2023Writer.Write(Tabled(null, Indexed(new IndexDefinition(new Identifier("i")) { Unique = true })))),
+			"All on a rebuild" => (
+				Sql2023Writer.Write(Altered(new AlterTableAction.Rebuild(null, false, []))),
+				Sql2023Writer.Write(Altered(new AlterTableAction.Rebuild(null, true, [])))),
+			"All on CHECK CONSTRAINT" => (
+				Sql2023Writer.Write(Altered(new AlterTableAction.CheckConstraints(ConstraintCheck.Check, false, [new Identifier("c")]))),
+				Sql2023Writer.Write(Altered(new AlterTableAction.CheckConstraints(ConstraintCheck.Check, true, [])))),
+			"All on ENABLE TRIGGER" => (
+				Sql2023Writer.Write(Altered(new AlterTableAction.Triggers(true, false, [new Identifier("g")]))),
+				Sql2023Writer.Write(Altered(new AlterTableAction.Triggers(true, true, [])))),
+			"Enable on triggers" => (
+				Sql2023Writer.Write(Altered(new AlterTableAction.Triggers(false, true, []))),
+				Sql2023Writer.Write(Altered(new AlterTableAction.Triggers(true, true, [])))),
+			"Enable on change tracking" => (
+				Sql2023Writer.Write(Altered(new AlterTableAction.ChangeTracking(false, []))),
+				Sql2023Writer.Write(Altered(new AlterTableAction.ChangeTracking(true, [])))),
+			"Add on a column property" => (
+				Sql2023Writer.Write(Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(false, ColumnPropertyKind.Sparse, null, []), true))),
+				Sql2023Writer.Write(Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(true, ColumnPropertyKind.Sparse, null, []), true)))),
+			"OnDeleteCascade on a connection" => (
+				Sql2023Writer.Write(Tabled(TableKind.Edge, new TableElement.TableConstraint(new Constraint.Connection([new EdgeConnection(T, U)], false)))),
+				Sql2023Writer.Write(Tabled(TableKind.Edge, new TableElement.TableConstraint(new Constraint.Connection([new EdgeConnection(T, U)], true))))),
 			"Max on a character type" => (
 				Sql2023Writer.Write(new DataType.Character(CharacterTypeKind.Varchar)),
 				Sql2023Writer.Write(new DataType.Character(CharacterTypeKind.Varchar, Max: true))),
@@ -846,6 +971,48 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("ORDER's rows under another name")]
 	[InlineData("TRUNCATE with IDENTITY and partitions")]
 	[InlineData("ONLY on an INSERT's target")]
+	[InlineData("a T-SQL column with the standard's members")]
+	[InlineData("a computed column with a type")]
+	[InlineData("a computed column after another option")]
+	[InlineData("a name on a column option other than DEFAULT or NULL")]
+	[InlineData("an identity's increment without its seed")]
+	[InlineData("a mask that is not a string")]
+	[InlineData("an encryption with no option")]
+	[InlineData("a table's default on a column")]
+	[InlineData("a connection on a column")]
+	[InlineData("a connection with no pair")]
+	[InlineData("a key with both keys and columns")]
+	[InlineData("a key with empty keys")]
+	[InlineData("unbracketed options with none")]
+	[InlineData("a key placed other than ON")]
+	[InlineData("FOREIGN KEY words with columns")]
+	[InlineData("a T-SQL table with the standard's scope")]
+	[InlineData("a table made of a query with a kind")]
+	[InlineData("a table made of a query with neither columns nor options")]
+	[InlineData("a table of no element and no kind")]
+	[InlineData("TEXTIMAGE_ON with columns")]
+	[InlineData("a placement with empty columns")]
+	[InlineData("a placement in a national string")]
+	[InlineData("an option with a bulk order")]
+	[InlineData("ADD of one element")]
+	[InlineData("DROP of one item")]
+	[InlineData("a dropped column without its word after a constraint")]
+	[InlineData("a dropped constraint without its word after a column")]
+	[InlineData("a dropped column with options")]
+	[InlineData("a dropped column's IF EXISTS without its word")]
+	[InlineData("a lone dropped column without its word or a behavior")]
+	[InlineData("a dropped constraint's IF EXISTS without its word")]
+	[InlineData("an item of a DROP that is not dropped")]
+	[InlineData("ALL with names in CHECK CONSTRAINT")]
+	[InlineData("neither ALL nor names in ENABLE TRIGGER")]
+	[InlineData("ALL with a partition in REBUILD")]
+	[InlineData("options on DISABLE CHANGE_TRACKING")]
+	[InlineData("SET with no option")]
+	[InlineData("WITH CHECK before a SWITCH")]
+	[InlineData("a T-SQL action beside another")]
+	[InlineData("a mask function on other than ADD MASKED")]
+	[InlineData("ADD MASKED without its function")]
+	[InlineData("a collation beside SET DATA TYPE")]
 	public void A_value_with_no_text_is_refused(string which)
 	{
 		var type = new DataType.Numeric(NumericTypeKind.Int);
@@ -979,6 +1146,48 @@ public sealed class Sql2023WriterCoverageTests
 			"a bulk string that is a number"        => new Statement.BulkInsert(T, Str, [new Option(new Identifier("FIELDTERMINATOR"), Two, [])]),
 			"a data file type outside the list"     => new Statement.BulkInsert(T, Str, [new Option(new Identifier("DATAFILETYPE"), Str, [])]),
 			"ORDER's rows under another name"       => new Statement.BulkInsert(T, Str, [new Option(new Identifier("TABLOCK"), null, []) { Order = new RowOrder([new SortItem(A)], false) }]),
+			"a T-SQL column with the standard's members" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [new Constraint.NotNull()], null) { Options = [new ColumnOption.Sparse()] })]) },
+			"a computed column with a type" => Tabled(null, IntColumn(new ColumnOption.Computed(A))),
+			"a computed column after another option" => Tabled(null, new TableElement.Column(new ColumnDefinition(new Identifier("c"), null, null, [], null) { Options = [new ColumnOption.Sparse(), new ColumnOption.Computed(A)] })),
+			"a name on a column option other than DEFAULT or NULL" => Tabled(null, IntColumn(new ColumnOption.Sparse { Name = new Identifier("n") })),
+			"an identity's increment without its seed" => Tabled(null, IntColumn(new ColumnOption.Identity(null, A))),
+			"a mask that is not a string" => Tabled(null, IntColumn(new ColumnOption.Masked(A))),
+			"an encryption with no option" => Tabled(null, IntColumn(new ColumnOption.Encrypted([]))),
+			"a table's default on a column" => Tabled(null, IntColumn(new ColumnOption.Constraint(new Constraint.Default(A, new Identifier("c"))))),
+			"a connection on a column" => Tabled(null, IntColumn(new ColumnOption.Constraint(new Constraint.Connection([new EdgeConnection(T, U)], false)))),
+			"a connection with no pair" => Tabled(TableKind.Edge, new TableElement.TableConstraint(new Constraint.Connection([], false))),
+			"a key with both keys and columns" => Tabled(null, new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, [new Identifier("a")]) { Keys = [new SortItem(A)] })),
+			"a key with empty keys" => Tabled(null, new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [], Clustering = IndexClustering.Clustered })),
+			"unbracketed options with none" => Tabled(null, new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], OptionsUnbracketed = true })),
+			"a key placed other than ON" => Tabled(null, new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], On = new Placement(PlacementKind.TextImageOn, new Identifier("fg"), null) })),
+			"FOREIGN KEY words with columns" => Tabled(null, new TableElement.TableConstraint(new Constraint.ForeignKey([new Identifier("a")], null, Referenced()) { ForeignKeyWords = true })),
+			"a T-SQL table with the standard's scope" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Kind = TableKind.Node, Scope = TableScope.LocalTemporary },
+			"a table made of a query with a kind" => new Statement.CreateTable { Name = T, Contents = new TableContents.AsQuery([new Identifier("a")], Selected, null), Kind = TableKind.Node },
+			"a table made of a query with neither columns nor options" => new Statement.CreateTable { Name = T, Contents = new TableContents.AsQuery([], Selected, null) },
+			"a table of no element and no kind" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([]), Options = [new Option(new Identifier("MEMORY_OPTIMIZED"), A, [])] },
+			"TEXTIMAGE_ON with columns" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement(PlacementKind.TextImageOn, new Identifier("fg"), [new Identifier("a")])] },
+			"a placement with empty columns" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement(PlacementKind.On, new Identifier("ps"), [])] },
+			"a placement in a national string" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement(PlacementKind.On, new Identifier("fg", IdentifierStyle.NationalString), null)] },
+			"an option with a bulk order" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Options = [new Option(new Identifier("ORDER"), null, []) { Order = new RowOrder([new SortItem(A)], false) }] },
+			"ADD of one element" => Altered(new AlterTableAction.Add([IntColumn()])),
+			"DROP of one item" => Altered(new AlterTableAction.Drop([new AlterTableAction.DropColumn(new Identifier("c"), null, true)])),
+			"a dropped column without its word after a constraint" => Altered(new AlterTableAction.Drop([new AlterTableAction.DropConstraint(T, null), new AlterTableAction.DropColumn(new Identifier("c"), null, false)])),
+			"a dropped constraint without its word after a column" => Altered(new AlterTableAction.Drop([new AlterTableAction.DropColumn(new Identifier("c"), null, true), new AlterTableAction.DropConstraint(T, null) { ConstraintKeywordOmitted = true }])),
+			"a dropped column with options" => Altered(new AlterTableAction.DropColumn(new Identifier("c"), null, true) { Options = [new Option(new Identifier("ONLINE"), A, [])] }),
+			"a dropped column's IF EXISTS without its word" => Altered(new AlterTableAction.Drop([new AlterTableAction.DropColumn(new Identifier("b"), null, true), new AlterTableAction.DropColumn(new Identifier("c"), null, false) { IfExists = true }])),
+			"a lone dropped column without its word or a behavior" => Altered(new AlterTableAction.DropColumn(new Identifier("c"), null, false)),
+			"a dropped constraint's IF EXISTS without its word" => Altered(new AlterTableAction.DropConstraint(T, null) { ConstraintKeywordOmitted = true, IfExists = true }),
+			"an item of a DROP that is not dropped" => Altered(new AlterTableAction.Drop([new AlterTableAction.DropColumn(new Identifier("c"), null, true), new AlterTableAction.AddSystemVersioning()])),
+			"ALL with names in CHECK CONSTRAINT" => Altered(new AlterTableAction.CheckConstraints(ConstraintCheck.Check, true, [new Identifier("c")])),
+			"neither ALL nor names in ENABLE TRIGGER" => Altered(new AlterTableAction.Triggers(true, false, [])),
+			"ALL with a partition in REBUILD" => Altered(new AlterTableAction.Rebuild(A, true, [])),
+			"options on DISABLE CHANGE_TRACKING" => Altered(new AlterTableAction.ChangeTracking(false, [new Option(new Identifier("TRACK_COLUMNS_UPDATED"), A, [])])),
+			"SET with no option" => Altered(new AlterTableAction.SetOptions([])),
+			"WITH CHECK before a SWITCH" => new Statement.AlterTable { Name = T, Actions = [new AlterTableAction.Switch(null, U, null, [])], Check = ConstraintCheck.Check },
+			"a T-SQL action beside another" => new Statement.AlterTable { Name = T, Actions = [new AlterTableAction.SetOptions([new Option(new Identifier("LOCK_ESCALATION"), A, [])]), new AlterTableAction.AddSystemVersioning()] },
+			"a mask function on other than ADD MASKED" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(false, ColumnPropertyKind.Masked, Str, []), true)),
+			"ADD MASKED without its function" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(true, ColumnPropertyKind.Masked, null, []), true)),
+			"a collation beside SET DATA TYPE" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.SetDataType(new DataType.Numeric(NumericTypeKind.Int)) { Collation = new CollationName(T) }, true)),
 			"ONLY on an INSERT's target"            => new Statement.Insert { Target = new TableSource.Named(T) { Only = true } },
 			"TRUNCATE with IDENTITY and partitions" => new Statement.TruncateTable
 			{

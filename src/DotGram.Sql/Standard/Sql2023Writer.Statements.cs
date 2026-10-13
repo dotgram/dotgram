@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace DotGram.Sql.Ast;
@@ -43,6 +44,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.CreateTable table:
+					// T-SQL: CREATE TABLE (Transact-SQL). A kind, placements, options, or a query without WITH DATA.
+					if (PutTransactSqlTable(table))
+						break;
+
 					Word("CREATE");
 
 					if (table.Scope is { } scope)
@@ -61,6 +66,21 @@ public static partial class Sql2023Writer
 				case Statement.AlterTable alter:
 					Word("ALTER TABLE");
 					PutName(alter.Name);
+
+					// T-SQL: ALTER TABLE (Transact-SQL). One action, and WITH CHECK only before what it checks.
+					if (alter.Check is { } checking)
+					{
+						if (alter.Actions is not [AlterTableAction.AddColumn or AlterTableAction.AddConstraint or AlterTableAction.Add or AlterTableAction.CheckConstraints])
+							throw Misplaced(alter, "Check", "other than before one ADD or one CHECK CONSTRAINT");
+
+						Word(checking == ConstraintCheck.Check ? "WITH CHECK" : checking == ConstraintCheck.NoCheck ? "WITH NOCHECK" : throw NoText(checking));
+					}
+
+					if (alter.Actions.Count > 1 && alter.Actions.Any(static one => one is AlterTableAction.Add or AlterTableAction.Drop
+						or AlterTableAction.Switch or AlterTableAction.SetOptions or AlterTableAction.Rebuild or AlterTableAction.CheckConstraints
+						or AlterTableAction.Triggers or AlterTableAction.ChangeTracking))
+						throw Misplaced(alter, "Actions", "more than one beside one of T-SQL's, which ALTER TABLE takes alone");
+
 					Each(alter.Actions, PutAlterTable);
 					break;
 
@@ -702,7 +722,13 @@ public static partial class Sql2023Writer
 
 					Word("AS");
 					PutSubquery(query.Query);
-					Word(query.Data == WithDataMode.WithData ? "WITH DATA" : "WITH NO DATA");
+					Word(query.Data switch
+					{
+						WithDataMode.WithData   => "WITH DATA",
+						WithDataMode.WithNoData => "WITH NO DATA",
+						null                    => throw Misplaced(query, "Data", "null, which only T-SQL's table made of a query is written with"),
+						_                       => throw NoText(query.Data.Value),
+					});
 					break;
 			}
 		}
@@ -716,6 +742,14 @@ public static partial class Sql2023Writer
 
 		void PutElement(TableElement element)
 		{
+			// T-SQL: CREATE TABLE (Transact-SQL). An element holds constraints, which reach elements again through T-SQL's.
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, element, static (into, node) => into.PutElement(node));
+
+				return;
+			}
+
 			switch (element)
 			{
 				case TableElement.Column column:
@@ -752,6 +786,12 @@ public static partial class Sql2023Writer
 					Word("REF IS");
 					PutIdentifier(self.Name);
 					PutGeneration(self.Generation);
+					break;
+
+				case TableElement.Index:
+					if (!TryPutTransactSql(element))
+						throw Unwritten(element);
+
 					break;
 
 				default:
@@ -793,6 +833,10 @@ public static partial class Sql2023Writer
 
 		void PutColumn(ColumnDefinition column)
 		{
+			// T-SQL: column_definition (Transact-SQL). Options in the order written.
+			if (PutTransactSqlColumn(column))
+				return;
+
 			PutIdentifier(column.Name);
 
 			if (column.Type is { } type)
@@ -867,6 +911,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case Constraint.Unique unique:
+					// T-SQL: table_constraint (Transact-SQL). Clustering, keys, options and a placement.
+					if (PutTransactSqlKey(unique))
+						break;
+
 					Word(unique.Kind == UniqueKind.Unique ? "UNIQUE" : "PRIMARY KEY");
 
 					if (unique.Nulls is { } nulls)
@@ -890,6 +938,15 @@ public static partial class Sql2023Writer
 					break;
 
 				case Constraint.ForeignKey foreign:
+					// T-SQL: column_constraint (Transact-SQL). A column's FOREIGN KEY, which names no columns.
+					if (foreign.ForeignKeyWords)
+					{
+						if (foreign.Columns.Count > 0)
+							throw Misplaced(foreign, "ForeignKeyWords", "with columns, which write the words already");
+
+						Word("FOREIGN KEY");
+					}
+
 					if (foreign.Columns.Count > 0)
 					{
 						Word("FOREIGN KEY");
@@ -909,11 +966,22 @@ public static partial class Sql2023Writer
 					PutReferences(foreign.References);
 					break;
 
-				default:
+				case Constraint.Check check:
 					Word("CHECK");
+
+					// T-SQL: table_constraint (Transact-SQL).
+					if (check.NotForReplication)
+						Word("NOT FOR REPLICATION");
+
 					Open();
-					PutExpression(((Constraint.Check)constraint).Condition);
+					PutExpression(check.Condition);
 					Close();
+					break;
+
+				default:
+					if (!TryPutTransactSql(constraint))
+						throw Unwritten(constraint);
+
 					break;
 			}
 
@@ -953,6 +1021,10 @@ public static partial class Sql2023Writer
 				PutRule("ON UPDATE", references.OnUpdate);
 				PutRule("ON DELETE", references.OnDelete);
 			}
+
+			// T-SQL: column_constraint (Transact-SQL), table_constraint (Transact-SQL). Last, after the actions.
+			if (references.NotForReplication)
+				Word("NOT FOR REPLICATION");
 		}
 
 		void PutRule(string rule, ReferentialAction? action)
@@ -1019,10 +1091,13 @@ public static partial class Sql2023Writer
 					PutAlterColumn(alter.Action);
 					break;
 
+				// T-SQL: ALTER TABLE (Transact-SQL). Without a behavior T-SQL reads `DROP a` as a constraint.
 				case AlterTableAction.DropColumn drop:
-					Word(drop.ColumnKeyword ? "DROP COLUMN" : "DROP");
-					PutIdentifier(drop.Column);
-					PutBehavior(drop.Behavior);
+					if (drop is { ColumnKeyword: false, Behavior: null })
+						throw Misplaced(drop, "ColumnKeyword", "false with no Behavior, which T-SQL reads as a constraint dropped");
+
+					Word("DROP");
+					PutDroppedColumn(drop);
 					break;
 
 				case AlterTableAction.AddConstraint add:
@@ -1037,9 +1112,8 @@ public static partial class Sql2023Writer
 					break;
 
 				case AlterTableAction.DropConstraint drop:
-					Word("DROP CONSTRAINT");
-					PutName(drop.Name);
-					PutBehavior(drop.Behavior);
+					Word("DROP");
+					PutDroppedConstraint(drop);
 					break;
 
 				case AlterTableAction.AddPeriod add:
@@ -1075,7 +1149,10 @@ public static partial class Sql2023Writer
 					break;
 
 				default:
-					throw Unwritten(action);
+					if (!TryPutTransactSql(action))
+						throw Unwritten(action);
+
+					break;
 			}
 		}
 
@@ -1111,6 +1188,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case AlterColumnAction.SetDataType type:
+					// T-SQL: ALTER TABLE (Transact-SQL). The type alone, with its collation, nullability and options.
+					if (PutTransactSqlType(type))
+						break;
+
 					Word("SET DATA TYPE");
 					PutType(type.Type);
 					break;
@@ -1133,8 +1214,14 @@ public static partial class Sql2023Writer
 					Word("DROP IDENTITY");
 					break;
 
-				default:
+				case AlterColumnAction.DropExpression:
 					Word("DROP EXPRESSION");
+					break;
+
+				default:
+					if (!TryPutTransactSql(action))
+						throw Unwritten(action);
+
 					break;
 			}
 		}
