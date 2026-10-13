@@ -1126,6 +1126,13 @@ capture this step made before the guard — is refused (`GRAM4031`): give every 
 that shares the head the same name, or capture this step's leading call under the name
 the guard reads.
 
+**A rule with no `=>` on any alternative is not folded.** It may still recurse on the left:
+`E = E & '+' & N | c: N & '=' & N` is a record of what its base captured, and the steps only
+extend what it matched. Its steps capture nothing — neither the leading call, which would
+name a value so far that nothing builds, nor anything after it, which a record has one place
+for and the steps would write once each — and a step that does is refused (`GRAM4037`). Give
+every alternative a `=>` to fold, or capture only in the alternatives that are not recursive.
+
 Each application of a fold is a derivation of its own, so `parserText` and `parserSpan`
 (§3.7) see this step's extent — from where the fold began to where this step ends —
 the same whether they were built at acceptance or early, for a guard.

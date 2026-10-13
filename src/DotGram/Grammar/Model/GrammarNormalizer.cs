@@ -92,6 +92,9 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A guard in a fold step names another step's name for the value so far, not its own.</summary>
 	public const string GuardNamesOtherAccumulator = "GRAM4031";
 
+	/// <summary>A step of a left-recursive rule with no <c>=&gt;</c> that captures.</summary>
+	public const string UnbuiltFoldCapture = "GRAM4037";
+
 	/// <summary>Whether a refused input is read again over a context put back as it was, or read once.</summary>
 	public const string ContextRestored = "GRAM5013";
 
@@ -590,6 +593,13 @@ public sealed partial class GrammarNormalizer
 				else if (Tail(alternative, rule) is var (step, _))
 					RefuseFoldStep(rule, step);
 
+			// And a step that captures, where no alternative builds: there is no fold to hand
+			// the capture to (§4.3).
+			if (!NodeWalk.Descendants(alternatives).Any(static one => one is Node.Construct))
+				foreach (var alternative in alternatives)
+					if (BoundHead(alternative, rule) is null && Tail(alternative, rule) is var (step, accumulator))
+						RefuseUnbuiltFoldCapture(rule, step, accumulator);
+
 			// A rule that states its own strengths is climbed rather than folded: the same
 			// loop over the same tails, entered on a comparison instead of unconditionally.
 			if (RewriteBindingPowers(rule, alternatives))
@@ -810,6 +820,51 @@ public sealed partial class GrammarNormalizer
 				case Node.Call     (var called, _) call      : return ReferenceEquals(called, rule) ? call : null;
 				default                                      : return null;
 			}
+	}
+
+	/// <summary>
+	/// Reports a step of a left-recursive rule with no <c>=&gt;</c> anywhere that captures:
+	/// its leading call, or anything after it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Without a <c>=&gt;</c> nothing is folded. The rule's value is what its base made — the
+	/// record of the base's captures, or the text — and the steps only extend the match. So
+	/// the leading capture names a value so far that nothing builds, and a guard that reads
+	/// it has nothing to be handed; and a capture after it is written once per step into a
+	/// record that has one place for it. Both were accepted and then compiled into C# that
+	/// does not compile, or answered with whatever one back end happened to keep.
+	/// </para>
+	/// <para>
+	/// Refused rather than given a meaning: what a value so far without a construction should
+	/// be, or which of the steps' captures a record should hold, is a design of its own. A
+	/// <c>=&gt;</c> on every alternative says it, which is what the message asks for.
+	/// </para>
+	/// </remarks>
+	void RefuseUnbuiltFoldCapture(RuleSymbol rule, Node step, string accumulator)
+	{
+		if (accumulator.Length > 0)
+		{
+			Report(
+				UnbuiltFoldCapture,
+				$"'{rule.Name}' captures its leading call as '{accumulator}', the value so far, and no " +
+				"alternative of it has a '=>', so nothing is folded and there is no value so far to " +
+				"capture (docs/syntax.md §4.3). Give every alternative a '=>' that builds the value step " +
+				"by step, or drop the capture.",
+				rule.Declaration!.At);
+
+			return;
+		}
+
+		if (NodeWalk.Descendants(step).OfType<Node.Capture>().FirstOrDefault() is { } capture)
+			Report(
+				UnbuiltFoldCapture,
+				$"A left-recursive alternative of '{rule.Name}' captures '{capture.Name}', and no " +
+				"alternative of it has a '=>', so nothing is folded: the value is what the base made, " +
+				"and each step's capture has nowhere to go (docs/syntax.md §4.3). Give every " +
+				"alternative a '=>' that builds the value step by step, or capture only in the " +
+				"alternatives that are not recursive.",
+				rule.Declaration!.At);
 	}
 
 	/// <summary>
