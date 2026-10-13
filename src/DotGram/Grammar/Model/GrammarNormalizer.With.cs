@@ -76,14 +76,42 @@ public sealed partial class GrammarNormalizer
 		{
 			var merged = new Dictionary<RuleSymbol, RuleSymbol>();
 			var name   = "";
+			var loops  = false;
 
+			// Stacked `(X with (D = Y)) with (Y = P)`: the outer on top of the inner. It rebinds
+			// what the inner put in place, `D` on to `P`, as one `with (D = Y, Y = P)` would; and a
+			// name the inner replaced already is not called any more, so binding it again does
+			// nothing. Where the two together send a name back to itself they loop, as one header
+			// `with (D = Y, Y = D)` does, and are refused the same way.
 			foreach (var site in atRoot)
 			{
-				foreach (var pair in site.Targets)
-					merged[pair.Key] = pair.Value;
+				var layered = new Dictionary<RuleSymbol, RuleSymbol>();
 
-				name = site.Name;
+				foreach (var pair in merged)
+					layered[pair.Key] = site.Targets.TryGetValue(pair.Value, out var over) ? over : pair.Value;
+
+				foreach (var pair in site.Targets)
+					if (!merged.ContainsKey(pair.Key))
+						layered[pair.Key] = pair.Value;
+
+				foreach (var pair in layered)
+					if (ReferenceEquals(pair.Key, pair.Value))
+					{
+						Report(
+							GrammarBinder.CircularRebinding,
+							$"'{pair.Key}' is bound in a cycle: this 'with' sends back to it what the " +
+							"'with' it is written around put in its place.",
+							site.At);
+
+						loops = true;
+					}
+
+				merged = layered;
+				name   = site.Name;
 			}
+
+			if (loops)
+				continue;
 
 			merged = OnTopOfHeaders(merged, sites, NearestSite(group.Key.Namespace));
 
@@ -113,6 +141,30 @@ public sealed partial class GrammarNormalizer
 		_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);
 
 		_composeOnHeaders = false;
+
+		_specializedWith.UnionWith(group);
+	}
+
+	/// <summary>Every `with` site specialized, or refused with the reason (<see cref="RefuseLateWith"/>).</summary>
+	readonly HashSet<WithSite> _specializedWith = [];
+
+	/// <summary>
+	/// Refuses every `with` site that was never specialized (GRAM4036): one recorded after the
+	/// order was fixed, inside an instance of a parameterized rule made only while another
+	/// substitution was specialized. It used to be dropped, and the parser read the operand as
+	/// though the `with` had not been written.
+	/// </summary>
+	void RefuseLateWith()
+	{
+		foreach (var site in _pendingWith)
+			if (_specializedWith.Add(site))
+				Report(
+					LateWith,
+					"This 'with' is inside an instance of a parameterized rule made only while another " +
+					"rebinding was applied, after every 'with' was put in order, and is not supported " +
+					"yet. Write the rebinding where the instance is called, or on the rule's own " +
+					"declaration.",
+					site.At);
 	}
 
 	/// <summary>
@@ -146,7 +198,7 @@ public sealed partial class GrammarNormalizer
 		var declared = new Dictionary<RuleSymbol, RuleSymbol>();
 
 		foreach (var pair in sites)
-			if (pair.Key != own)
+			if (!Nested(pair.Key, own))
 				foreach (var clone in pair.Value)
 					if (NearestSite(clone.Key.Namespace) == pair.Key)
 						declared[clone.Key] = clone.Value;
@@ -160,7 +212,7 @@ public sealed partial class GrammarNormalizer
 			layered[pair.Key] = replacement;
 
 			foreach (var site in sites)
-				if (site.Key != own && site.Value.TryGetValue(pair.Key, out var clone))
+				if (!Nested(site.Key, own) && site.Value.TryGetValue(pair.Key, out var clone))
 					layered[clone] = replacement;
 		}
 
@@ -223,7 +275,7 @@ public sealed partial class GrammarNormalizer
 				var reached                  = Rebound(headed, site.Targets) ?? headed;
 				var namespaced               = NearestSite(reached.Namespace);
 
-				if (namespaced is not null && namespaced != NearestSite(caller.Namespace))
+				if (namespaced is not null && namespaced != NearestSite(caller.Namespace) && !Nested(namespaced, own))
 					into.Add((caller, reached, namespaced));
 
 				var onward = namespaced == own && namespaced is not null ? null : namespaced ?? within;

@@ -79,7 +79,13 @@ public sealed partial class GrammarNormalizer
 		if (groups.Count > 0 && RefuseCircularWith(groups, graph))
 			groups = [];
 
-		var order = InOneOrder(groups, sites, graph) ?? [.. sites];
+		var order = InOneOrder(groups, sites, graph);
+
+		// Refused, and said why: none of them is specialized, and none is refused again as late.
+		if (order is null || groups.Count == 0)
+			_specializedWith.UnionWith(_pendingWith);
+
+		order ??= [.. sites];
 		var remap = new Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>>();
 
 		_siteClones = remap;
@@ -91,16 +97,22 @@ public sealed partial class GrammarNormalizer
 		{
 			if (unit is GrammarNamespace site)
 			{
-				// Built once for every header that follows the last `with`, as it always
-				// was: the headers clone from the bodies as written, never from one another's
-				// clones (§11).
+				// Built afresh after anything that adds to what a header can reach: a `with`
+				// rewrites a body, and a header specialized before this one made the clones a call
+				// into its namespace reads, which this one's header goes on top of.
 				if (forward is null || calledBy is null)
 				{
 					forward  = BuildCallGraph();
 					calledBy = Reverse(forward);
 				}
 
-				remap[site] = SpecializeSite(site, forward, calledBy);
+				remap[site] = SpecializeSite(site, forward, calledBy, remap);
+
+				if (remap[site].Count > 0)
+				{
+					forward  = null;
+					calledBy = null;
+				}
 
 				// A `with` after this header may replace a parameterized rule whose instance the
 				// header cloned, and has to know the clone for an instance of it — of the arguments
@@ -381,7 +393,7 @@ public sealed partial class GrammarNormalizer
 	{
 		var withs = groups.Count == 0 ? [] : OrderByDependency(groups, graph);
 
-		if (groups.Count == 0 || sites.Count == 0)
+		if (sites.Count == 0 || groups.Count == 0 && sites.Count == 1)
 			return [.. withs, .. sites];
 
 		var byRule  = groups.ToDictionary(group => group.Key);
@@ -403,11 +415,27 @@ public sealed partial class GrammarNormalizer
 			needs[group] = first;
 		}
 
+		// What each header clones, asked before any is specialized: a header reaching a rule of
+		// another from outside it is specialized after it only where the other clones that rule,
+		// so that two namespaces calling into each other need no order where neither changes
+		// what the other reads.
+		var reverse = Reverse(graph);
+		var clones  = new Dictionary<GrammarNamespace, HashSet<RuleSymbol>>();
+
+		foreach (var site in sites)
+			clones[site] = AffectedSet(
+				BoundCalls(site.Rebindings), reverse, ReachableFromSeed(Seed(site), graph, site.Rebindings));
+
 		foreach (var site in sites)
 		{
 			var reached = ReachableFromSeed(Seed(site), graph, site.Rebindings);
+			var first   = new List<object>(groups.Where(group => reached.Contains(group.Key)));
 
-			needs[site] = [.. groups.Where(group => reached.Contains(group.Key))];
+			foreach (var (_, called, into) in SiteCallsInto(site, graph))
+				if (clones[into].Contains(called) && !first.Contains(into))
+					first.Add(into);
+
+			needs[site] = first;
 		}
 
 		bool Reaches(object from, object to)
@@ -432,8 +460,25 @@ public sealed partial class GrammarNormalizer
 
 		var refused = false;
 
+		var told = new HashSet<(GrammarNamespace, GrammarNamespace)>();
+
 		foreach (var site in sites)
-			foreach (IGrouping<RuleSymbol, WithSite> group in needs[site])
+			foreach (var other in needs[site].OfType<GrammarNamespace>())
+				if (Reaches(other, site) && told.Add((other, site)) && told.Add((site, other)))
+				{
+					refused = true;
+
+					Report(
+						CircularWith,
+						$"Namespace '{site.Name}' and namespace '{other.Name}' each reach a rule the " +
+						$"other's header rebinds, from outside it, so neither header can be applied " +
+						$"on top of the other. Write the rebindings in one of them, or on a publication " +
+						$"('parse … with (…)').",
+						site.OwnRebindings.FirstOrDefault()?.At ?? default);
+				}
+
+		foreach (var site in sites)
+			foreach (var group in needs[site].OfType<IGrouping<RuleSymbol, WithSite>>())
 				if (Reaches(group, site))
 				{
 					refused = true;
@@ -475,6 +520,66 @@ public sealed partial class GrammarNormalizer
 			Visit(site);
 
 		return ordered;
+	}
+
+	/// <summary>
+	/// Every call a header's reach makes into another namespace with a header from outside it:
+	/// the caller, the rule called and the namespace — read through the header of the namespace
+	/// the walk is in and the site's own header on top, as the parse will read them.
+	/// </summary>
+	List<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace Into)> SiteCallsInto(
+		GrammarNamespace site,
+		Dictionary<RuleSymbol, List<RuleSymbol>> forward)
+	{
+		var into    = new List<(RuleSymbol, RuleSymbol, GrammarNamespace)>();
+		var seen    = new HashSet<(RuleSymbol, GrammarNamespace?)>();
+		var pending = new Queue<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace? In)>();
+
+		foreach (var rule in Seed(site))
+			foreach (var called in CallsOf(rule, forward))
+				pending.Enqueue((rule, called, site));
+
+		while (pending.Count > 0)
+		{
+			var (caller, called, within) = pending.Dequeue();
+			var headed                   = within is null ? called : Rebound(called, within.Rebindings) ?? called;
+			var reached                  = Rebound(headed, site.Rebindings) ?? headed;
+			var namespaced               = NearestSite(reached.Namespace);
+
+			if (namespaced is not null && !Nested(namespaced, site) && namespaced != NearestSite(caller.Namespace))
+				into.Add((caller, reached, namespaced));
+
+			var onward = namespaced ?? within;
+
+			if (!seen.Add((reached, onward)))
+				continue;
+
+			foreach (var next in CallsOf(reached, forward))
+				pending.Enqueue((reached, next, onward));
+		}
+
+		return into;
+	}
+
+	/// <summary>
+	/// Whether two sites are the same or one is nested in the other. A nested header already
+	/// holds what it inherits (§5.1), and may replace any of it, so it is specialized from the
+	/// rules as written and never stacked on top of its ancestor's clones, nor they on its.
+	/// </summary>
+	static bool Nested(GrammarNamespace one, GrammarNamespace? other)
+	{
+		if (other is null)
+			return false;
+
+		for (var at = one; at is not null; at = at.Parent)
+			if (at == other)
+				return true;
+
+		for (var at = other; at is not null; at = at.Parent)
+			if (at == one)
+				return true;
+
+		return false;
 	}
 
 	static void CollectSites(GrammarNamespace ns, List<GrammarNamespace> sites)
@@ -731,12 +836,18 @@ public sealed partial class GrammarNormalizer
 	IReadOnlyDictionary<RuleSymbol, RuleSymbol> SpecializeSite(
 		GrammarNamespace site,
 		Dictionary<RuleSymbol, List<RuleSymbol>> forward,
-		Dictionary<RuleSymbol, List<RuleSymbol>> calledBy)
+		Dictionary<RuleSymbol, List<RuleSymbol>> calledBy,
+		IReadOnlyDictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> before)
 	{
 		var targets = site.Rebindings;
 
 		if (targets.Count == 0)
 			return EmptyClones;
+
+		// A call from here into a namespace specialized before this one reads that namespace's
+		// clone, and this header goes on top of it, as a `with` there would (§5.1).
+		if (before.Count > 0)
+			targets = OnTopOfHeaders(targets.ToDictionary(static pair => pair.Key, static pair => pair.Value), before, site);
 
 		var reachable = ReachableFromSeed(Seed(site), forward, targets);
 		var affected  = AffectedSet(BoundCalls(targets), calledBy, reachable);
