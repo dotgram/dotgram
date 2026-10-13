@@ -1248,12 +1248,11 @@ public static partial class Sql2023Writer
 		{
 			return value switch
 			{
-				Expression.Unary { Operator: UnaryOperator.Minus, Operand: Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money } } } => true,
 				Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money } } => true,
 				Expression.Literal { Value: LiteralValue.Null } => true,
 				Expression.Literal { Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } } => true,
 				Expression.Literal { Value: LiteralValue.Binary { ZeroX: true } } => true,
-				_ => IsName(value),
+				_ => IsName(value) && !IsWord(value, "NULL"),
 			};
 		}
 
@@ -1272,7 +1271,7 @@ public static partial class Sql2023Writer
 		/// <summary>T-SQL: CREATE TYPE (Transact-SQL). A type's name has no empty part, as a synonym's may.</summary>
 		static void CheckTypeName(ISqlNode owner, QualifiedName name)
 		{
-			if (name.Parts.Any(static part => part.Text.Length == 0))
+			if (name.Parts.Count == 0 || name.Parts.Any(static part => part.Text.Length == 0))
 				throw Misplaced(owner, "Name", "with an empty part, which a type's name is not read with");
 		}
 
@@ -1354,12 +1353,18 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		/// <summary>A key or an index of a table type is told IGNORE_DUP_KEY and BUCKET_COUNT in brackets, SORTED_DATA and SORTED_DATA_REORG out of them.</summary>
+		/// <summary>A key or an index of a table type is told IGNORE_DUP_KEY (ON or OFF) and BUCKET_COUNT (a number) in brackets, SORTED_DATA and SORTED_DATA_REORG out of them.</summary>
 		static void CheckTypedKey(Statement.CreateTableType type, SqlList<Option> options, bool bracketed)
 		{
 			var words = bracketed ? new[] { "IGNORE_DUP_KEY", "BUCKET_COUNT" } : new[] { "SORTED_DATA", "SORTED_DATA_REORG" };
 
-			if (options.Any(one => !Plain(one.Name, words)))
+			// Each with its value: a switch, a bucket count, or the bare word of the old spelling.
+			var read = static (Option one) => one.Options.Count == 0 && one.Order is null && one.Partitions is null
+				&& (Plain(one.Name, "IGNORE_DUP_KEY") ? IsWord(one.Value, "ON", "OFF")
+					: Plain(one.Name, "BUCKET_COUNT") ? IsUnsigned(one.Value, decimals: true)
+					: one.Value is null);
+
+			if (options.Any(one => !Plain(one.Name, words) || !read(one)))
 				throw Misplaced(type, "Elements", "with a key told options a table type does not read");
 		}
 

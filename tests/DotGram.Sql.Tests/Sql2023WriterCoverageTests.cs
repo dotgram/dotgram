@@ -1181,6 +1181,11 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("an unbracketed statistics name that is two")]
 	[InlineData("an unbracketed statistics name that is none")]
 	[InlineData("a table type with no element")]
+	[InlineData("a spatial option set to a negated number")]
+	[InlineData("a spatial option set to the name NULL")]
+	[InlineData("a table type key with IGNORE_DUP_KEY set to a number")]
+	[InlineData("a table type key with BUCKET_COUNT set to a name")]
+	[InlineData("a type named with no part")]
 	[InlineData("partitions on an option other than a compression")]
 	[InlineData("partitions on an option with no value")]
 	[InlineData("partitions on a BULK INSERT option")]
@@ -1489,6 +1494,11 @@ public sealed class Sql2023WriterCoverageTests
 			"an unbracketed statistics name that is two" => new Statement.UpdateStatistics(T) { Names = [new Identifier("s"), new Identifier("r")], NameUnbracketed = true },
 			"an unbracketed statistics name that is none" => new Statement.UpdateStatistics(T) { NameUnbracketed = true },
 			"a table type with no element" => new Statement.CreateTableType(T, []),
+			"a spatial option set to a negated number" => SpatialWith(new Option(new Identifier("CELLS_PER_OBJECT"), new Expression.Unary(UnaryOperator.Minus, Two), [])),
+			"a spatial option set to the name NULL" => SpatialWith(new Option(new Identifier("CELLS_PER_OBJECT"), new Expression.Reference(new QualifiedName([new Identifier("NULL")])), [])),
+			"a table type key with IGNORE_DUP_KEY set to a number" => new Statement.CreateTableType(T, [IntColumn(), new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [new Option(new Identifier("IGNORE_DUP_KEY"), Two, [])] })]),
+			"a table type key with BUCKET_COUNT set to a name" => new Statement.CreateTableType(T, [IntColumn(), new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [new Option(new Identifier("BUCKET_COUNT"), A, [])] })]),
+			"a type named with no part" => new Statement.CreateAliasType(new QualifiedName([]), new DataType.Numeric(NumericTypeKind.Int)),
 			"partitions on an option other than a compression" => Altered(new AlterTableAction.Rebuild(null, false, [Set("PAD_INDEX", "ON") with { Partitions = [new PartitionRange(Two, null)] }])),
 			"partitions on an option with no value" => Altered(new AlterTableAction.Rebuild(null, false, [Flag("DATA_COMPRESSION") with { Partitions = [new PartitionRange(Two, null)] }])),
 			"partitions on a BULK INSERT option" => new Statement.BulkInsert(T, Str, [Flag("TABLOCK") with { Partitions = [new PartitionRange(Two, null)] }]),
