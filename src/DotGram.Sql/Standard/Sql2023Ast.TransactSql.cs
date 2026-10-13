@@ -210,6 +210,12 @@ public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> 
 
 	/// <summary>T-SQL: OPENROWSET BULK (Transact-SQL). An <c>ORDER (…) [UNIQUE]</c> option, whose name is <c>ORDER</c>.</summary>
 	public RowOrder? Order { get; init; }
+
+	/// <summary>
+	/// T-SQL: ALTER TABLE index_option (Transact-SQL), UPDATE STATISTICS (Transact-SQL). <c>DATA_COMPRESSION = PAGE ON
+	/// PARTITIONS (1, 3 TO 5)</c>: the partitions the option is set for, after its value; null where none were said.
+	/// </summary>
+	public SqlList<PartitionRange>? Partitions { get; init; }
 }
 
 /// <summary>

@@ -174,7 +174,7 @@ public abstract partial record Statement : ISqlNode
 	public record DropTable : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: <view definition>
-	public record CreateView : Statement
+	public partial record CreateView : Statement
 	{
 		public bool Recursive { get; init; }
 		public required QualifiedName Name { get; init; }
@@ -2001,7 +2001,7 @@ public sealed record TransformGroupForType(Identifier Group, QualifiedName Type)
 }
 
 // --- Sequences --------------------------------------------------------------
-public abstract record SequenceOption : ISqlNode
+public abstract partial record SequenceOption : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
