@@ -352,17 +352,30 @@ static partial class Bridge
 				words         = tail;
 			}
 
-			// Read from the end: RETURNING and its type, then the null clause, then what is left.
-			var said = Words(words).ToList();
+			// The clauses by their tokens' places, never by searching the text: JSON_VALUE's `RETURNING type` from
+			// the first token, a constructor's `RETURNING JSON` the last two; then the null clause; then what is left.
+			var tokens = Placed(words);
+			var end    = tokens.Count;
+
+			static bool Is(SqlTokens.Token token, string word)
+			{
+				return token.Kind == SqlTokens.Kind.Word && token.Text.Equals(word, StringComparison.OrdinalIgnoreCase);
+			}
 
 			string? returning = null;
-			var at = said.LastIndexOf("RETURNING");
 
-			if (at >= 0)
+			if (upper == "JSON_VALUE" && tokens is [var first, var type, ..] && Is(first.Token, "RETURNING"))
 			{
-				returning = words[(words.LastIndexOf("RETURNING", StringComparison.OrdinalIgnoreCase) + "RETURNING".Length)..].Trim();
-				said      = said[..at];
+				returning = words[type.At..].Trim();
+				end       = 0;
 			}
+			else if (upper != "JSON_VALUE" && tokens is [.., var word, var json] && Is(word.Token, "RETURNING") && Is(json.Token, "JSON"))
+			{
+				returning = json.Token.Text;
+				end       = tokens.Count - 2;
+			}
+
+			var said = tokens.Take(end).Select(static one => one.Token.Kind == SqlTokens.Kind.Word ? one.Token.Text.ToUpperInvariant() : one.Token.Text).ToList();
 
 			Ast.JsonNullHandling? nulls = said switch
 			{
@@ -372,7 +385,13 @@ static partial class Bridge
 			};
 
 			if (nulls is not null)
+			{
 				said = said[..^3];
+				end -= 3;
+			}
+
+			// What is left as written, from its first token to the clauses after it.
+			var rest = end == 0 ? "" : words[tokens[0].At..(end < tokens.Count ? tokens[end].At : words.Length)];
 
 			Ast.JsonOutput? Output()
 			{
@@ -413,7 +432,7 @@ static partial class Bridge
 
 					return arguments is [var pair]
 						? new Ast.Expression.JsonObjectAggregate(Member(pair), nulls, null, Output())
-						: throw BridgeGap.Open(old, "inventory Expression.RoutineInvocation (JSON_OBJECTAGG of several pairs, where the record holds one)");
+						: throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation (JSON_OBJECTAGG of {(arguments.Count == 0 ? "no pair" : "several pairs")}, where the record holds one)");
 
 				case "JSON_ARRAYAGG":
 					if (arguments is not [var item])
@@ -421,7 +440,7 @@ static partial class Bridge
 
 					// What is left is the aggregate's order, read again as an order.
 					var order = said.Count == 0 ? null
-						: said is ["ORDER", "BY", ..] ? Ordering(old, string.Join(" ", SqlTokens.Of(words).Take(said.Count).Select(static one => one.Text)))
+						: said is ["ORDER", "BY", ..] ? Ordering(old, rest)
 						: throw Rest();
 
 					return new Ast.Expression.JsonArrayAggregate(new Ast.JsonElement(Of(item)), order, nulls, Output());
@@ -687,12 +706,14 @@ static partial class Bridge
 			}
 
 			// A JSON aggregate takes its window as the standard's record does; WITHIN GROUP after it has no place there.
-			if (old.Function is Expression.RoutineInvocation aggregate && Function(aggregate) is Ast.Expression.JsonObjectAggregate or Ast.Expression.JsonArrayAggregate)
+			var function = old.Function is Expression.RoutineInvocation aggregate ? Function(aggregate) : null;
+
+			if (function is Ast.Expression.JsonObjectAggregate or Ast.Expression.JsonArrayAggregate)
 			{
 				if (old.Within is not null || old.Over is null)
 					throw BridgeGap.Open(old, "inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for)");
 
-				return Function(aggregate) switch
+				return function switch
 				{
 					Ast.Expression.JsonObjectAggregate objects => objects with { Over = Window(old.Over) },
 					var arrays                                 => ((Ast.Expression.JsonArrayAggregate)arrays) with { Over = Window(old.Over) },
@@ -731,12 +752,32 @@ static partial class Bridge
 				}
 			}
 
-			if (old.Function is not Expression.RoutineInvocation call || Function(call) is not Ast.Expression.Invocation invocation)
+			if (function is not Ast.Expression.Invocation invocation)
 				throw BridgeGap.Open(old, "inventory Expression.WindowFunction (a window over something that is not a call)");
 
 			invocation = invocation with { Nulls = nulls, WithinGroup = within, GraphPath = path };
 
 			return old.Over is null ? invocation : invocation with { Over = Window(old.Over) };
+		}
+
+		/// <summary>
+		/// The tokens of a stretch of text with where each begins in it, found in order so that a token is never
+		/// found again inside one before it.
+		/// </summary>
+		static List<(SqlTokens.Token Token, int At)> Placed(string text)
+		{
+			var placed = new List<(SqlTokens.Token, int)>();
+			var from   = 0;
+
+			foreach (var token in SqlTokens.Of(text))
+			{
+				var at = text.IndexOf(token.Text, from, StringComparison.Ordinal);
+
+				placed.Add((token, at));
+				from = at + token.Text.Length;
+			}
+
+			return placed;
 		}
 
 		/// <summary>

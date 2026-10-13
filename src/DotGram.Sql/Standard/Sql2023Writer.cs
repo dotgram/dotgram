@@ -1280,7 +1280,7 @@ public static partial class Sql2023Writer
 				case Expression.JsonExists exists:
 					Word("JSON_EXISTS");
 					Call();
-					PutCommon(exists.Common);
+					PutCommon(exists.Common, standard: true);
 
 					if (exists.OnError is { } onError)
 					{
@@ -1294,7 +1294,7 @@ public static partial class Sql2023Writer
 				case Expression.JsonValue value:
 					Word("JSON_VALUE");
 					Call();
-					PutCommon(value.Common);
+					PutCommon(value.Common, standard: value.OnEmpty is not null || value.OnError is not null);
 
 					if (value.Returning is { } returning)
 					{
@@ -1325,13 +1325,13 @@ public static partial class Sql2023Writer
 					// text for: the context alone, with nothing of the standard's beside it.
 					if (query.Common.Path is null)
 					{
-						if (query is not { Output: null, Quotes: null, OnEmpty: null, OnError: null, Common: { PathName: null, Passing.Count: 0, ContextFormat: null } })
+						if (query is not { Output: null, Quotes: null, OnEmpty: null, OnError: null, Wrapper: null or JsonWrapperBehavior.WithArray, Common: { PathName: null, Passing.Count: 0, ContextFormat: null } })
 							throw Misplaced(query, "Common.Path", "null beside what only the standard's JSON_QUERY writes");
 
 						PutExpression(query.Common.Context);
 					}
 					else
-						PutCommon(query.Common);
+						PutCommon(query.Common, standard: query is not { Output: null, Quotes: null, OnEmpty: null, OnError: null, Wrapper: null or JsonWrapperBehavior.WithArray });
 					PutOutput(query.Output);
 
 					if (query.Wrapper is { } wrapper)
@@ -1889,8 +1889,17 @@ public static partial class Sql2023Writer
 
 		// ── JSON ───────────────────────────────────────────────────────────────────
 
-		void PutCommon(JsonApiCommon common)
+		/// <summary>
+		/// The context, the path and what may follow it. T-SQL writes any value as a path; where something only the
+		/// standard writes stands beside it (<paramref name="standard"/>, or the common's own name, PASSING or FORMAT),
+		/// the path is the standard's, a character string, as nothing else reads back there.
+		/// </summary>
+		void PutCommon(JsonApiCommon common, bool standard = false)
 		{
+			if ((standard || common.PathName is not null || common.Passing.Count > 0 || common.ContextFormat is not null)
+				&& common.Path is not (null or Expression.Literal { Value: LiteralValue.String { Kind: StringLiteralKind.Character } }))
+				throw Misplaced(common, "Path", "that is not a character string, beside what only the standard's JSON functions write");
+
 			PutExpression(common.Context);
 
 			if (common.ContextFormat is { } format)

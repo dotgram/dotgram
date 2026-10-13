@@ -721,6 +721,11 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("JSON_EXISTS with no path")]
 	[InlineData("JSON_TABLE with no path")]
 	[InlineData("JSON_QUERY with no path beside the standard's members")]
+	[InlineData("JSON_QUERY with no path and a conditional wrapper")]
+	[InlineData("JSON_QUERY with no path and no wrapper")]
+	[InlineData("JSON_EXISTS with a path that is a variable")]
+	[InlineData("JSON_VALUE with a variable path beside ON ERROR")]
+	[InlineData("JSON_VALUE with a path named beside a variable path")]
 	[InlineData("a written name on xml qualified by dbo")]
 	[InlineData("a 0x literal that is not hex digits")]
 	[InlineData("a table variable with hints in a FROM")]
@@ -747,6 +752,16 @@ public sealed class Sql2023WriterCoverageTests
 			"JSON_VALUE with no path"               => new Expression.JsonValue(new JsonApiCommon(A, null, null, []), null, null, null),
 			"JSON_EXISTS with no path"              => new Expression.JsonExists(new JsonApiCommon(A, null, null, []), null),
 			"JSON_TABLE with no path"               => Joined(new TableSource.JsonTable(new JsonTableDefinition(new JsonApiCommon(A, null, null, []), [new JsonTableColumn.Ordinality(new Identifier("n"))], null, null))),
+			"JSON_QUERY with no path and a conditional wrapper" =>
+				new Expression.JsonQuery(new JsonApiCommon(A, null, null, []), null, JsonWrapperBehavior.WithConditionalArray, null, null, null),
+			"JSON_QUERY with no path and no wrapper" =>
+				new Expression.JsonQuery(new JsonApiCommon(A, null, null, []), null, JsonWrapperBehavior.Without, null, null, null),
+			"JSON_EXISTS with a path that is a variable" =>
+				new Expression.JsonExists(new JsonApiCommon(A, new Expression.Variable(new Identifier("@p")), null, []), null),
+			"JSON_VALUE with a variable path beside ON ERROR" =>
+				new Expression.JsonValue(new JsonApiCommon(A, new Expression.Variable(new Identifier("@p")), null, []), null, null, new JsonValueBehavior.Null()),
+			"JSON_VALUE with a path named beside a variable path" =>
+				new Expression.JsonValue(new JsonApiCommon(A, new Expression.Variable(new Identifier("@p")), new Identifier("n"), []), null, null, null),
 			"JSON_QUERY with no path beside the standard's members" =>
 				new Expression.JsonQuery(new JsonApiCommon(A, null, null, []), null, null, null, null, JsonQueryBehavior.Null),
 			"a written name on xml qualified by dbo" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("xml")]) },

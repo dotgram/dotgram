@@ -277,6 +277,17 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT 0XFF FROM t")]
 	[InlineData("SELECT CAST (a AS [xml]) FROM t")]
 	[InlineData("SELECT CAST (a AS [xml] (CONTENT s)) FROM t")]
+	[InlineData("SELECT json_value(j, '$.x' returning int) FROM t")]
+	[InlineData("SELECT json_object('a':1 absent on null returning json) FROM t")]
+	[InlineData("SELECT Json_Query(j) FROM t")]
+	[InlineData("SELECT json_array(1, 2 null on null) FROM t")]
+	[InlineData("SELECT json_arrayagg(a order by b) FROM t")]
+	[InlineData("SELECT json_objectagg('a':b) FROM t")]
+	[InlineData("SELECT JSON_VALUE(a, '$' RETURNING returning_int) FROM t")]
+	[InlineData("SELECT JSON_VALUE(a, '$' RETURNING [returning]) FROM t")]
+	[InlineData("SELECT JSON_ARRAYAGG(c.name ORDER BY c.column_id) FROM t AS c")]
+	[InlineData("SELECT JSON_ARRAYAGG(a ORDER BY b << 1) FROM t")]
+	[InlineData("SELECT JSON_ARRAYAGG(a ORDER BY b || c) FROM t")]
 	public void A_statement_converts(string text)
 	{
 		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
