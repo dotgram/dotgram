@@ -865,8 +865,7 @@ public static partial class CSharpEmitter
 				doors: quietField && tracing is null,
 				// Where the value began, for a reading that begins where it is told over characters
 				// (§6.3): the entry writes it past the trivia it started on.
-				began: graph.Trivia.Count > 0 && !overKinds &&
-					graph.Publications.Any(one => one.Kind == PublishKind.Parse),
+				began: RecordsBegan(graph, overKinds),
 				trace: tracing is not null));
 			file.Line();
 
@@ -5277,6 +5276,22 @@ file.Line("return spare;");
 	static bool ReadsQuietlyFirst(RecognitionGraph graph)
 	{
 		return (graph.Context is null || graph.ContextRewinds) && graph.Recoveries.Count == 0;
+	}
+
+	/// <summary>
+	/// Whether the failure carries where a reading's value began past the trivia it started on,
+	/// and so whether a reading that begins where it is told writes it down (§6.3).
+	/// </summary>
+	/// <remarks>
+	/// Only a <c>parse</c> publication's positional forms read it, so a grammar without one has
+	/// no field to write into: the entry still reads the trivia, and says nothing about where it
+	/// ended. The field and every write to it ask this one question, so that neither is ever
+	/// emitted without the other.
+	/// </remarks>
+	internal static bool RecordsBegan(RecognitionGraph graph, bool overKinds)
+	{
+		return graph.Trivia.Count > 0 && !overKinds &&
+			graph.Publications.Any(one => one.Kind == PublishKind.Parse);
 	}
 
 	/// <summary>Whether a recovery sits inside anything <paramref name="only"/> reaches.</summary>

@@ -1797,8 +1797,13 @@ sealed partial class Machine
 				file.Line();
 				file.Line("if (began < 0) began = pos;");
 				file.Line();
-				file.Line("failure.Began = began;");
-				file.Line();
+
+				// Where nothing reads it there is no field to write it into (CSharpEmitter.RecordsBegan).
+				if (CSharpEmitter.RecordsBegan(_graph, OverKinds))
+				{
+					file.Line("failure.Began = began;");
+					file.Line();
+				}
 			}
 
 			file.Line(
