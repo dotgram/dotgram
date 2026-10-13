@@ -274,10 +274,6 @@ static class Trees
 	}
 
 	/// <summary>
-	/// Whether the token at a position is a name by where it stands: the owner after <c>AUTHORIZATION</c>, the mark
-	/// after <c>MARK</c>, the transaction or savepoint after <c>TRAN</c> or <c>TRANSACTION</c>.
-	/// </summary>
-	/// <summary>
 	/// Whether the word at a place in a free text stands where a key word does, and not a name spelled like one:
 	/// never a part of a dotted name or the name after COLLATE; in a graph pattern only AND, and LAST_NODE or
 	/// SHORTEST_PATH before their bracket, every other word an alias; in a hint, not an index's name, the
@@ -326,6 +322,10 @@ static class Trees
 		}
 	}
 
+	/// <summary>
+	/// Whether the token at a position is a name by where it stands: the owner after <c>AUTHORIZATION</c>, the mark
+	/// after <c>MARK</c>, the transaction or savepoint after <c>TRAN</c> or <c>TRANSACTION</c>.
+	/// </summary>
 	static bool Named(List<SqlTokens.Token> tokens, int at)
 	{
 		return at > 0 && tokens[at - 1] is { Kind: SqlTokens.Kind.Word } before
