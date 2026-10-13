@@ -120,7 +120,7 @@ static class Nodes
 				=> new(new Expression.Parenthesized(value.Node), Towers.Difference | Towers.Parenthesized),
 			Towers.Parenthesized => new(new Expression.Parenthesized(value.Node), Towers.Value | Towers.Parenthesized | (value.Roles & Towers.Truth)),
 			Towers.Row => new(new Expression.Row(List(value.Node, tail.Rest)), Towers.Row),
-			_ => new(new Expression.Member(new Expression.Generalized(value.Node, tail.Type!), MemberAccessKind.Dot, tail.Method!.Value, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
+			_ => new(new Expression.Member(new Expression.Generalized(value.Node, tail.Type!), MemberAccessKind.Dot, tail.Method!, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
 		};
 	}
 
@@ -134,7 +134,7 @@ static class Nodes
 		{
 			Towers.AsMeasure      => new(new Expression.Invocation(new QualifiedName(name), []) { WithoutParentheses = true, Over = tail.Over }, Towers.Value | Towers.Truth | Towers.Bare),
 			Towers.AsRoutine      => new(new Expression.Invocation(Chain(name, tail.Rest), tail.Arguments.GetValueOrDefault()), Towers.Value | Towers.Truth | Towers.Bare | Towers.Invoked),
-			Towers.AsStaticMethod => new(new Expression.Member(new Expression.Reference(Chain(name, tail.Rest)), MemberAccessKind.StaticMethod, tail.Method!.Value, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
+			Towers.AsStaticMethod => new(new Expression.Member(new Expression.Reference(Chain(name, tail.Rest)), MemberAccessKind.StaticMethod, tail.Method!, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
 			_                     => new(new Expression.Reference(Chain(name, tail.Rest)), Towers.Value | Towers.Truth | Towers.Bare | Towers.Chain),
 		};
 	}

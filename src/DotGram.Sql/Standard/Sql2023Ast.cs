@@ -41,22 +41,7 @@ public interface ISqlNode : ISqlSpan;
 internal sealed class SpellingAttribute : Attribute;
 
 // Text is the identifier as written, its quotes included. UnicodeEscape is `U&"a" UESCAPE '!'`'s character.
-//
-// A value, not an object: a name is the commonest node there is, and a reference to one held a
-// pointer to a name that held a pointer to an array of pointers to its parts. The location is a
-// field all of whose values are equal, so equality and the hash stay what was written. Not readonly:
-// Locate sets the location, on the value where it is stored. default(Identifier) has no text and is
-// no name; nothing the parsers build is one.
-public record struct Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode
-{
-	SqlLocation _location;
-
-	public string Text { get; init; } = Text;
-	public IdentifierStyle Style { get; init; } = Style;
-	public char? UnicodeEscape { get; init; } = UnicodeEscape;
-
-	public readonly SqlSpan Span => _location.Span;
-
+public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -1716,9 +1701,9 @@ public enum IdentityRestart { Continue, Restart }
 
 // --- Names and small value objects -----------------------------------------
 //
-// A value, as Identifier is: the first part inline, the others, if any, in an array of their own, so a
-// one-part name costs nothing beyond what holds it. Its span is its parts' first to last; it stores
-// none. default(QualifiedName) has no parts and is no name; the writer refuses it.
+// A value of two references: the first part, and the others, if any, in an array of their own, so a
+// one-part name costs nothing beyond what holds it and its identifier. Its span is its parts' first to
+// last; it stores none. default(QualifiedName) has no parts and is no name; the writer refuses it.
 public readonly record struct QualifiedName : ISqlNode
 {
 	readonly Identifier _first;
@@ -1746,9 +1731,9 @@ public readonly record struct QualifiedName : ISqlNode
 	}
 
 	/// <summary>How many parts the name has; none only for default.</summary>
-	public int Count => _first.Text is null ? 0 : 1 + (_rest?.Length ?? 0);
+	public int Count => _first is null ? 0 : 1 + (_rest?.Length ?? 0);
 
-	public Identifier this[int index] => index == 0 && _first.Text is not null ? _first : _rest is not null && (uint)(index - 1) < (uint)_rest.Length ? _rest[index - 1] : throw new ArgumentOutOfRangeException(nameof(index));
+	public Identifier this[int index] => index == 0 && _first is not null ? _first : _rest is not null && (uint)(index - 1) < (uint)_rest.Length ? _rest[index - 1] : throw new ArgumentOutOfRangeException(nameof(index));
 
 	public Identifier First => _first;
 
@@ -1759,7 +1744,7 @@ public readonly record struct QualifiedName : ISqlNode
 	{
 		get
 		{
-			if (_first.Text is null)
+			if (_first is null)
 				return default;
 
 			var parts = new Identifier[1 + (_rest?.Length ?? 0)];
@@ -1775,6 +1760,9 @@ public readonly record struct QualifiedName : ISqlNode
 	{
 		get
 		{
+			if (_first is null)
+				return default;
+
 			var first = _first.Span;
 
 			if (_rest is null || !first.Known)
@@ -1793,7 +1781,7 @@ public readonly record struct QualifiedName : ISqlNode
 
 	public bool Equals(QualifiedName other)
 	{
-		if (!_first.Equals(other._first))
+		if (!EqualityComparer<Identifier>.Default.Equals(_first, other._first))
 			return false;
 
 		return new SqlList<Identifier>(_rest).Equals(new SqlList<Identifier>(other._rest));
@@ -1801,7 +1789,7 @@ public readonly record struct QualifiedName : ISqlNode
 
 	public override int GetHashCode()
 	{
-		return SqlHash.Finish(SqlHash.Add(SqlHash.Add(SqlHash.Start(Count), _first.GetHashCode()), new SqlList<Identifier>(_rest).GetHashCode()));
+		return SqlHash.Finish(SqlHash.Add(SqlHash.Add(SqlHash.Start(Count), _first?.GetHashCode() ?? 0), new SqlList<Identifier>(_rest).GetHashCode()));
 	}
 
 	bool PrintMembers(System.Text.StringBuilder builder)

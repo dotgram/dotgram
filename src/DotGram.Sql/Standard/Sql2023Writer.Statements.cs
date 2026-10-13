@@ -1407,7 +1407,7 @@ public static partial class Sql2023Writer
 				return;
 
 			Word("AS");
-			PutIdentifier(principal.Value);
+			PutIdentifier(principal);
 		}
 
 		void PutGrantee(Grantee grantee)

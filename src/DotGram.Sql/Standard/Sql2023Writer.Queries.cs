@@ -756,17 +756,17 @@ public static partial class Sql2023Writer
 
 					case RowPatternSkipKind.First:
 						Word("SKIP TO FIRST");
-						PutIdentifier(skip.Variable!.Value);
+						PutIdentifier(skip.Variable!);
 						break;
 
 					case RowPatternSkipKind.Last:
 						Word("SKIP TO LAST");
-						PutIdentifier(skip.Variable!.Value);
+						PutIdentifier(skip.Variable!);
 						break;
 
 					default:
 						Word("SKIP TO");
-						PutIdentifier(skip.Variable!.Value);
+						PutIdentifier(skip.Variable!);
 						break;
 				}
 			}

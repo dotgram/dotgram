@@ -156,9 +156,6 @@ public static partial class Sql2023Writer
 
 		void PutIdentifier(Identifier identifier)
 		{
-			if (identifier.Text is null)
-				throw new ArgumentException("default(Identifier) has no text and is not written.", nameof(identifier));
-
 			// T-SQL: SELECT Clause (Transact-SQL). A string is a column's alias and nothing else's name.
 			if (identifier.Style is IdentifierStyle.String or IdentifierStyle.NationalString)
 				throw Misplaced(identifier, "Style", "a string, which only a select column's alias is written as");
@@ -1616,7 +1613,7 @@ public static partial class Sql2023Writer
 
 			Word(":");
 			Hold();
-			PutIdentifier(parameter.Name!.Value);
+			PutIdentifier(parameter.Name!);
 
 			if (parameter.Indicator is { } indicator)
 			{
@@ -1795,7 +1792,7 @@ public static partial class Sql2023Writer
 		{
 			if (argument.NamedAssignment)
 			{
-				PutIdentifier(argument.Name!.Value);
+				PutIdentifier(argument.Name!);
 				Word("=>");
 			}
 
