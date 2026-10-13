@@ -1223,10 +1223,11 @@ public abstract record TableContents : ISqlNode
 
 	public record Elements(SqlList<TableElement> Items) : TableContents;
 	public record Typed(QualifiedName TypeName, QualifiedName? Under, SqlList<TableElement> Items) : TableContents;
-	public record AsQuery(SqlList<Identifier> Columns, Query Query, WithDataMode Data) : TableContents;
+	// T-SQL: CREATE TABLE AS SELECT (Microsoft Fabric and Azure Synapse Analytics) writes no `WITH [NO] DATA`: Data is null there.
+	public record AsQuery(SqlList<Identifier> Columns, Query Query, WithDataMode? Data) : TableContents;
 }
 public enum WithDataMode { WithData, WithNoData }
-public abstract record TableElement : ISqlNode
+public abstract partial record TableElement : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -1242,7 +1243,7 @@ public abstract record TableElement : ISqlNode
 	public record SelfReference(Identifier Name, ReferenceGeneration? Generation) : TableElement;
 	public record ColumnOptions(Identifier Name, ColumnOptionList Options) : TableElement;
 }
-public sealed record ColumnDefinition(Identifier Name, DataType? Type, ColumnGeneration? Generation, SqlList<Constraint> Constraints, CollationName? Collation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record ColumnDefinition(Identifier Name, DataType? Type, ColumnGeneration? Generation, SqlList<Constraint> Constraints, CollationName? Collation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -1273,7 +1274,7 @@ public sealed record ColumnOptionList(QualifiedName? Scope, Expression? Default,
 public enum LikeOption { IncludingIdentity, ExcludingIdentity, IncludingDefaults, ExcludingDefaults, IncludingGenerated, ExcludingGenerated }
 public enum ReferenceGeneration { SystemGenerated, UserGenerated, Derived }
 
-public abstract record Constraint : ISqlNode
+public abstract partial record Constraint : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -1285,13 +1286,13 @@ public abstract record Constraint : ISqlNode
 	public QualifiedName? Name { get; init; }
 	public ConstraintCharacteristics? Characteristics { get; init; }
 	public record NotNull : Constraint;
-	public record Unique(UniqueKind Kind, NullDistinctness? Nulls, SqlList<Identifier> Columns, Identifier? WithoutOverlapsPeriod = null) : Constraint;
-	public record ForeignKey(SqlList<Identifier> Columns, Identifier? ReferencingPeriod, ReferencesSpecification References) : Constraint;
-	public record Check(Expression Condition) : Constraint;
+	public partial record Unique(UniqueKind Kind, NullDistinctness? Nulls, SqlList<Identifier> Columns, Identifier? WithoutOverlapsPeriod = null) : Constraint;
+	public partial record ForeignKey(SqlList<Identifier> Columns, Identifier? ReferencingPeriod, ReferencesSpecification References) : Constraint;
+	public partial record Check(Expression Condition) : Constraint;
 }
 public enum UniqueKind { Unique, PrimaryKey, UniqueValue }
 public enum NullDistinctness { Distinct, NotDistinct }
-public sealed record ReferencesSpecification(QualifiedName Table, SqlList<Identifier> Columns, Identifier? Period, MatchType? Match, ReferentialAction? OnUpdate, ReferentialAction? OnDelete, bool DeleteRuleFirst = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record ReferencesSpecification(QualifiedName Table, SqlList<Identifier> Columns, Identifier? Period, MatchType? Match, ReferentialAction? OnUpdate, ReferentialAction? OnDelete, bool DeleteRuleFirst = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -1308,7 +1309,7 @@ public sealed record ConstraintCharacteristics(ConstraintTiming? Timing, bool? D
 }
 public enum ConstraintTiming { InitiallyDeferred, InitiallyImmediate, Deferred, Immediate }
 
-public abstract record AlterTableAction : ISqlNode
+public abstract partial record AlterTableAction : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -1319,17 +1320,19 @@ public abstract record AlterTableAction : ISqlNode
 
 	public record AddColumn(ColumnDefinition Column, bool ColumnKeyword = false) : AlterTableAction;
 	public record AlterColumn(Identifier Column, AlterColumnAction Action, bool ColumnKeyword = false) : AlterTableAction;
-	public record DropColumn(Identifier Column, DropBehavior Behavior, bool ColumnKeyword = false) : AlterTableAction;
+	// T-SQL: ALTER TABLE (Transact-SQL) writes no behavior, so it is null there; the standard's parser always sets it.
+	public partial record DropColumn(Identifier Column, DropBehavior? Behavior, bool ColumnKeyword = false) : AlterTableAction;
 	public record AddConstraint(Constraint Constraint) : AlterTableAction;
 	public record AlterConstraint(QualifiedName Name, bool Enforced) : AlterTableAction;
-	public record DropConstraint(QualifiedName Name, DropBehavior Behavior) : AlterTableAction;
+	// T-SQL: ALTER TABLE (Transact-SQL) writes no behavior, so it is null there; the standard's parser always sets it.
+	public partial record DropConstraint(QualifiedName Name, DropBehavior? Behavior) : AlterTableAction;
 	public record AddPeriod(PeriodDefinition Period, SqlList<AddColumn> AddedColumns) : AlterTableAction;
 	public record DropPeriod(PeriodKind Kind, Identifier? ApplicationName, DropBehavior Behavior) : AlterTableAction;
 	public record AddSystemVersioning : AlterTableAction;
 	public record DropSystemVersioning(DropBehavior Behavior) : AlterTableAction;
 	public record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : AlterTableAction;
 }
-public abstract record AlterColumnAction : ISqlNode
+public abstract partial record AlterColumnAction : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -1344,7 +1347,7 @@ public abstract record AlterColumnAction : ISqlNode
 	public record DropNotNull : AlterColumnAction;
 	public record AddScope(QualifiedName Table) : AlterColumnAction;
 	public record DropScope(DropBehavior Behavior) : AlterColumnAction;
-	public record SetDataType(DataType Type) : AlterColumnAction;
+	public partial record SetDataType(DataType Type) : AlterColumnAction;
 	public record SetIdentityGeneration(IdentityGeneration Generation, SqlList<SequenceOption> Options) : AlterColumnAction;
 	public record IdentityOptions(SqlList<SequenceOption> Options) : AlterColumnAction;
 	public record DropIdentity : AlterColumnAction;
