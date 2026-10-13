@@ -527,7 +527,7 @@ BooleanPrimary : @Towers.Typed
 	| j: JSONExistsPredicate => @(new Towers.Typed(j, Towers.Logical | Towers.Truth))
 	| "UNIQUE"i & ("NULLS"i & n: "NOT"i? & d: "DISTINCT"i)? & q: TableSubquery => @(new Towers.Typed(new Expression.Unique(Nodes.Nulls(d, n), q), Towers.Logical | Towers.Truth))
 	| p: PeriodConstructor & t: PeriodPredicatePart2 => @(new Towers.Typed(t with { Left = p }, Towers.Logical | Towers.Truth))
-	| e: CommonValueExpressionOrRow & takes: PredicatePart2Mark & when @(Towers.RolesOf(takes) == 0 || (Towers.RolesOf(e) & Towers.RolesOf(takes)) != 0) => @(takes.Roles == 0 ? e : new Towers.Typed(Nodes.Predicated(e.Node, takes.Node!), Towers.Logical | Towers.Truth))
+	| e: CommonValueExpressionOrRow & takes: PredicatePart2Mark & when @(Towers.RolesOf(takes) == 0 || (Towers.RolesOf(e) & Towers.RolesOf(takes)) != 0) => @(takes.Roles == 0 ? e : new Towers.Typed(Nodes.Predicated(e.Node, takes), Towers.Logical | Towers.Truth))
 
 PredicatePart2Mark : @Towers.Tail = p: PredicatePart2 => @(p)
                                   | none => @(default)
@@ -537,24 +537,26 @@ PredicatePart2Mark : @Towers.Tail = p: PredicatePart2 => @(p)
 // The second parts, which is what the BNF calls them too: each says what it takes before it. Most
 // take any row value predicand; a JSON predicate a string or a JSON value; a period predicate a
 // period's name. Each builds its predicate with the left side empty, and `Nodes.Predicated` puts the
-// predicand in.
+// predicand in; a comparison's second part is kept as its operator and right side, and the comparison
+// is built once, with its left side.
 //
 // A quantified comparison is asked after a comparison: `ANY ((SELECT …))` and `SOME ((SELECT …))`
 // are aggregates of a scalar subquery too, and read as one they may go on — `a = ANY ((SELECT a FROM
 // t)) + 1` — where the quantifier's reading would stop.
 PredicatePart2 : @Towers.Tail
-	= o: CompOp & compared: ComparisonTail => @(new Towers.Tail(Towers.Any, Nodes.Compared(compared, o)))
+	= o: CompOp & compared: ComparisonTail => @(Nodes.Compared(compared, o))
 	| "MATCH"i & u: "UNIQUE"i? & m: ("SIMPLE"i | "PARTIAL"i | "FULL"i)? & q: TableSubquery => @(new Towers.Tail(Towers.Any, new Expression.Match(null!, u is not null, Nodes.Matching(m), q)))
-	| n: "NOT"i? & negatable: NegatablePredicatePart2 => @(new Towers.Tail(Towers.Any, Nodes.Negated(negatable, n is not null)))
-	| "IS"i & n: "NOT"i? & tested: IsPredicatePart2 => @(tested with { Node = Nodes.Negated(tested.Node!, n is not null) })
+	| n: "NOT"i? & negatable: NegatablePredicatePart2 => @(new Towers.Tail(Towers.Any, negatable, Not: n is not null))
+	| "IS"i & n: "NOT"i? & tested: IsPredicatePart2 => @(tested with { Not = n is not null })
 	| "OVERLAPS"i & r: RowValuePredicand => @(new Towers.Tail(Towers.Any, new Expression.Overlaps(null!, r.Node)))
 	| i: JSONInputClause & "IS"i & n: "NOT"i? & "JSON"i & y: JSONPredicateTypeConstraint? & k: JSONKeyUniquenessConstraint? => @(new Towers.Tail(Towers.String | Towers.Json, new Expression.JsonPredicate(null!, i, n is not null, Nodes.JsonType(y), Nodes.Uniqueness(k))))
 	| period: PeriodPredicatePart2 => @(new Towers.Tail(Towers.Chain, period))
 
-// What follows a comparison's operator: a row value predicand, or a quantifier and a subquery.
-ComparisonTail : @Expression
-	= r: RowValuePredicand => @(new Expression.Comparison(null!, default, r.Node))
-	| w: ("ALL"i | "SOME"i | "ANY"i) & q: TableSubquery => @(new Expression.QuantifiedComparison(null!, default, Nodes.Quantified(w), q))
+// What follows a comparison's operator: a row value predicand, or a quantifier and a subquery. The
+// comparison is built once, by `Nodes.Predicated`, when its left side is known; the tail keeps the rest.
+ComparisonTail : @Towers.Tail
+	= r: RowValuePredicand => @(new Towers.Tail(Towers.Any, r.Node, Towers.Comparing))
+	| w: ("ALL"i | "SOME"i | "ANY"i) & q: TableSubquery => @(new Towers.Tail(Towers.Any, null, Towers.Quantifying, Quantifier: Nodes.Quantified(w), Subquery: q))
 
 // <comp op>, the longer operators first.
 CompOp = "<>" | "<=" | ">=" | '=' | '<' | '>'
@@ -736,9 +738,9 @@ PrimaryStep : @Towers.Step
 
 ArrayElementStep : @Towers.Step = l: LeftBracketOrTrigraph & i: NumericValueExpression & RightBracketOrTrigraph => @(new Towers.Step(Towers.Subscript, new Expression.Element(null!, i.Node, null, l == "??(")))
 
-// Not a production: what a non-parenthesized primary begins with. A name followed by arguments is
-// a routine's, and a name followed by a method call stops before the method: `a.b.c.d(1)` is
-// `a.b.c` and a method `d`.
+// Not a production: what a non-parenthesized primary begins with. What begins with a name -- a static
+// method invocation, a routine invocation, a window row pattern measure, an identifier chain -- is read
+// last and as one, the name once and `NameTail` after it.
 PrimaryBase : @Towers.Typed
 	= literal: UnsignedLiteral => @(new Towers.Typed(new Expression.Literal(literal), Towers.Value | Towers.Truth | Towers.Bare))
 	| "ROW"i & '(' & first: ValueNode & (',' & rest: ValueNode)* & ')' => @(new Towers.Typed(new Expression.Row(Nodes.List(first, rest), true), Towers.Row))
@@ -752,21 +754,33 @@ PrimaryBase : @Towers.Typed
 	| v: CollectionValueConstructor => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: MultisetElementReference => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: GreatestOrLeastFunction => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
-	| v: StaticMethodInvocation => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: WindowedFunction => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: JSONValueFunction => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: JSONQuery => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: JSONObjectConstructor => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: JSONArrayConstructor => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: RowPatternNavigationOperation => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
-	| v: RoutineInvocation => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare | Towers.Invoked))
 	| m: "MODULE"i & '.' & q: QualifiedIdentifier & '.' & c: ColumnName => @(new Towers.Typed(new Expression.Reference(Nodes.Named(m, q, c)), Towers.Value | Towers.Truth | Towers.Bare))
-	| i: Identifier & chained: ChainOrMeasure => @(Nodes.ChainOrMeasure(i, chained))
+	| i: Identifier & named: NameTail => @(Nodes.NamedPrimary(i, named))
 
-// After a name: the rest of an identifier chain, or `OVER` and a window, which makes the name a
-// <window row pattern measure>'s.
-ChainOrMeasure : @Towers.Chained = o: WindowOver => @(new Towers.Chained(true, null, o))
-                                 | ('.' & rest: Identifier & ?!'(')* => @(new Towers.Chained(false, rest))
+// After a name, read once for the four primaries that begin with one: `OVER` and a window, which makes
+// the name a <window row pattern measure>'s; up to two more parts, then `::`, a method and its arguments,
+// a <static method invocation> with the type's name; up to two more parts and an argument list, a
+// <routine invocation>; or the rest of an <identifier chain>, which stops before a part that a method
+// call follows: `a.b.c.d(1)` is `a.b.c` and a method `d`. The three that are not the chain each stop at
+// the token after the name, and read apart each built the name before stopping -- three names for
+// every column. The qualifiers are read once and the tail says what they were.
+NameTail : @Towers.Chained = o: WindowOver => @(new Towers.Chained(Towers.AsMeasure, null, o))
+                           | q: QualifierRest & tail: QualifiedTail => @(Nodes.Qualified(q, tail))
+                           | ('.' & rest: Identifier & ?!'(')* => @(new Towers.Chained(Towers.AsChain, rest))
+QualifierRest : @Towers.Chained = ('.' & rest: Identifier){0,2} => @(new Towers.Chained(Towers.AsChain, rest))
+// A chain stops before a part that a `(` follows, whatever stands between: the qualifiers are a chain's
+// only where no bracket follows them, and where one does and is no argument list -- a JSON item method's,
+// `a.time_tz(` -- the chain is read again from the name, as it was, and the steps take the rest.
+QualifiedTail : @Towers.Chained
+	= "::" & m: MethodName & a: SQLArgumentList? => @(new Towers.Chained(Towers.AsStaticMethod, null, null, m, a))
+	| a: SQLArgumentList => @(new Towers.Chained(Towers.AsRoutine, null, null, null, a))
+	| ?!'(' & ('.' & rest: Identifier & ?!'(')* => @(new Towers.Chained(Towers.AsChain, rest))
 
 // <general value specification>, but an SQL parameter reference, which is an identifier chain and
 // read as one; <embedded variable specification> is left to a host language.
@@ -796,7 +810,7 @@ Result             : @Expression = v: ValueNode => @(v)
 // Of those two, the ones that begin with a word a name may be spelled with (`FORMAT JSON IS JSON`,
 // `IMMEDIATELY PRECEDES`) are left out in front as well as by the guard: then the two alternatives
 // begin apart, and a second part that fails is not a reading the predicand replaces.
-WhenOperand : @Expression = ?!("FORMAT"i | "IMMEDIATELY"i) & p: PredicatePart2 & when @(Towers.RolesOf(p) == Towers.Any) => @(Nodes.Predicated(new Expression.CaseOperand(), p.Node!))
+WhenOperand : @Expression = ?!("FORMAT"i | "IMMEDIATELY"i) & p: PredicatePart2 & when @(Towers.RolesOf(p) == Towers.Any) => @(Nodes.Predicated(new Expression.CaseOperand(), p))
                           | r: RowValuePredicand => @(r.Node)
 
 // <cast specification>. A domain's name is a user-defined type's in shape, and <data type> reads it.
@@ -817,7 +831,6 @@ NewSpecification         : @Expression = "NEW"i & n: PathResolvedUserDefinedType
 ReferenceResolution      : @Expression = "DEREF"i & '(' & v: ValueExpressionPrimary & ')' => @(new Expression.Dereference(v.Node))
 MultisetElementReference : @Expression = w: "ELEMENT"i & '(' & v: MultisetValueExpression & ')' => @(Nodes.Invoked(w, v.Node, null))
 GreatestOrLeastFunction  : @Expression = w: ("GREATEST"i | "LEAST"i) & '(' & first: ValueNode & (',' & rest: ValueNode)+ & ')' => @(Nodes.Invoked(w, first, rest))
-StaticMethodInvocation   : @Expression = t: PathResolvedUserDefinedTypeName & "::" & m: MethodName & a: SQLArgumentList? => @(new Expression.Member(new Expression.Reference(t), MemberAccessKind.StaticMethod, m, a))
 RoutineInvocation        : @Expression = n: RoutineName & a: SQLArgumentList => @(new Expression.Invocation(n, a))
 
 // <collection value constructor>: by enumeration, and by query — `TABLE (…)` is a multiset's.

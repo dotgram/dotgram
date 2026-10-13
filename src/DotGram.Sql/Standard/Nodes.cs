@@ -137,12 +137,36 @@ static class Nodes
 		};
 	}
 
-	/// <summary>A name and what followed it: a row pattern measure called over a window, or a chain.</summary>
-	public static Towers.Typed ChainOrMeasure(Identifier name, Towers.Chained chained)
+	/// <summary>
+	/// A name and what followed it: a row pattern measure called over a window, a routine's invocation, a
+	/// static method's, or a chain. The name was read once for all four.
+	/// </summary>
+	public static Towers.Typed NamedPrimary(Identifier name, Towers.Chained tail)
 	{
-		return chained.Measure
-			? new(new Expression.Invocation(new QualifiedName([name]), []) { WithoutParentheses = true, Over = chained.Over }, Towers.Value | Towers.Truth | Towers.Bare)
-			: new(new Expression.Reference(Chain(name, chained.Rest)), Towers.Value | Towers.Truth | Towers.Bare | Towers.Chain);
+		return tail.Kind switch
+		{
+			Towers.AsMeasure      => new(new Expression.Invocation(new QualifiedName([name]), []) { WithoutParentheses = true, Over = tail.Over }, Towers.Value | Towers.Truth | Towers.Bare),
+			Towers.AsRoutine      => new(new Expression.Invocation(Chain(name, tail.Rest), tail.Arguments.GetValueOrDefault()), Towers.Value | Towers.Truth | Towers.Bare | Towers.Invoked),
+			Towers.AsStaticMethod => new(new Expression.Member(new Expression.Reference(Chain(name, tail.Rest)), MemberAccessKind.StaticMethod, tail.Method!, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
+			_                     => new(new Expression.Reference(Chain(name, tail.Rest)), Towers.Value | Towers.Truth | Towers.Bare | Towers.Chain),
+		};
+	}
+
+	/// <summary>The parts read after a name's first, and what followed them, as one: a chain's own parts come after the qualifiers.</summary>
+	public static Towers.Chained Qualified(Towers.Chained qualifiers, Towers.Chained tail)
+	{
+		if (qualifiers.Rest is not { Length: > 0 })
+			return tail;
+
+		if (tail.Rest is not { Length: > 0 })
+			return tail with { Rest = qualifiers.Rest };
+
+		var parts = new Identifier[qualifiers.Rest.Length + tail.Rest.Length];
+
+		qualifiers.Rest.CopyTo(parts, 0);
+		tail.Rest.CopyTo(parts, qualifiers.Rest.Length);
+
+		return tail with { Rest = parts };
 	}
 
 	/// <summary>`.SPECIFICTYPE`, with its brackets where they were written.</summary>
@@ -277,53 +301,44 @@ static class Nodes
 		};
 	}
 
-	/// <summary>A predicate's second part with the predicand it follows put in: the one reading of the row, and the predicate it turned out to be.</summary>
-	public static Expression Predicated(Expression left, Expression tail)
+	/// <summary>
+	/// A predicate's second part with the predicand it follows put in: the one reading of the row, and the
+	/// predicate it turned out to be. A comparison is built here, once, from the operator and the right side
+	/// the tail kept; the others were built with their left side empty, and `NOT` goes in with it.
+	/// </summary>
+	public static Expression Predicated(Expression left, Towers.Tail tail)
 	{
-		return tail switch
+		switch (tail.Kind)
 		{
-			Expression.Comparison c => c with { Left = left },
-			Expression.QuantifiedComparison q => q with { Left = left },
-			Expression.Between b => b with { Value = left },
-			Expression.In i => i with { Value = left },
-			Expression.Like l => l with { Value = left },
-			Expression.IsNull n => n with { Value = left },
-			Expression.IsDistinct d => d with { Left = left },
-			Expression.IsNormalized n => n with { Value = left },
-			Expression.MemberOf m => m with { Value = left },
-			Expression.SubmultisetOf s => s with { Value = left },
-			Expression.IsSet s => s with { Value = left },
-			Expression.IsOf o => o with { Value = left },
+			case Towers.Comparing:   return new Expression.Comparison(left, tail.Operator, tail.Node!);
+			case Towers.Quantifying: return new Expression.QuantifiedComparison(left, tail.Operator, tail.Quantifier, tail.Subquery!);
+		}
+
+		var not = tail.Not;
+
+		return tail.Node switch
+		{
+			Expression.Between b => b with { Value = left, Not = not },
+			Expression.In i => i with { Value = left, Not = not },
+			Expression.Like l => l with { Value = left, Not = not },
+			Expression.IsNull n => n with { Value = left, Not = not },
+			Expression.IsDistinct d => d with { Left = left, Not = not },
+			Expression.IsNormalized n => n with { Value = left, Not = not },
+			Expression.MemberOf m => m with { Value = left, Not = not },
+			Expression.SubmultisetOf s => s with { Value = left, Not = not },
+			Expression.IsSet s => s with { Value = left, Not = not },
+			Expression.IsOf o => o with { Value = left, Not = not },
 			Expression.Match m => m with { Value = left },
 			Expression.Overlaps o => o with { Left = left },
-			Expression.JsonPredicate j => j with { Value = left },
+			// Written `IS NOT JSON` after FORMAT, the predicate has its NOT already; after a bare IS, the tail has it.
+			Expression.JsonPredicate j => j with { Value = left, Not = j.Not | not },
 			Expression.PeriodPredicate p => p with { Left = left is Expression.Reference r ? new PeriodValue.Reference(r.Name) : throw new ArgumentOutOfRangeException(nameof(left), left, "A period predicate names its period by a chain.") },
-			_ => throw new ArgumentOutOfRangeException(nameof(tail), tail, "A predicate this method cannot complete."),
+			_ => throw new ArgumentOutOfRangeException(nameof(tail), tail.Node, "A predicate this method cannot complete."),
 		};
 	}
 
-	/// <summary>A predicate with `NOT` in it, where it was written.</summary>
-	public static Expression Negated(Expression predicate, bool not)
-	{
-		return !not ? predicate : predicate switch
-		{
-			Expression.Between b => b with { Not = true },
-			Expression.In i => i with { Not = true },
-			Expression.Like l => l with { Not = true },
-			Expression.IsNull n => n with { Not = true },
-			Expression.IsDistinct d => d with { Not = true },
-			Expression.IsNormalized n => n with { Not = true },
-			Expression.MemberOf m => m with { Not = true },
-			Expression.SubmultisetOf s => s with { Not = true },
-			Expression.IsSet s => s with { Not = true },
-			Expression.IsOf o => o with { Not = true },
-			Expression.JsonPredicate j => j with { Not = true },
-			_ => throw new ArgumentOutOfRangeException(nameof(predicate), predicate, "A predicate that takes no NOT."),
-		};
-	}
-
-	/// <summary>A comparison, or a quantified one, with the operator written.</summary>
-	public static Expression Compared(Expression tail, string op)
+	/// <summary>A comparison's tail with the operator written: the node waits for the left side.</summary>
+	public static Towers.Tail Compared(Towers.Tail tail, string op)
 	{
 		var compared = op switch
 		{
@@ -335,7 +350,7 @@ static class Nodes
 			_    => ComparisonOperator.Greater,
 		};
 
-		return tail is Expression.QuantifiedComparison q ? q with { Operator = compared } : ((Expression.Comparison)tail) with { Operator = compared };
+		return tail with { Operator = compared };
 	}
 
 	public static Ast.Quantifier Quantified(string word)

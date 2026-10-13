@@ -5,8 +5,9 @@ using DotGram.Sql.Ast;
 
 namespace DotGram.Sql.Standard;
 
-// Inside the namespace, where it is asked before DotGram.Sql's own Expression, the tree T-SQL builds.
+// Inside the namespace, where they are asked before DotGram.Sql's own Expression and Query, the tree T-SQL builds.
 using Expression = DotGram.Sql.Ast.Expression;
+using Query = DotGram.Sql.Ast.Query;
 
 /// <summary>
 /// What a value expression can still be, as the BNF of SQL:2023 types it: a set of its towers,
@@ -197,11 +198,26 @@ static class Towers
 	/// </summary>
 	public readonly record struct Bracket(int Kind, Expression[]? Rest = null, DataType? Type = null, Identifier? Method = null, SqlList<Argument>? Arguments = null);
 
-	/// <summary>What follows a name: the rest of an identifier chain, or `OVER` and a window.</summary>
-	public readonly record struct Chained(bool Measure, Identifier[]? Rest, WindowReference? Over = null);
+	/// <summary>What a name turned out to begin: an identifier chain, a window row pattern measure, a routine invocation, or a static method invocation.</summary>
+	public const int AsChain = 0, AsMeasure = 1, AsRoutine = 2, AsStaticMethod = 3;
 
-	/// <summary>A predicate's second part: the predicate with its left side empty, and what it takes there.</summary>
-	public readonly record struct Tail(int Roles, Expression? Node);
+	/// <summary>
+	/// What follows a name, read once for the four primaries that begin with one: the rest of an
+	/// identifier chain; `OVER` and a window; the rest of a routine's name and its arguments; the rest of
+	/// a type's name, `::`, a method and its arguments.
+	/// </summary>
+	public readonly record struct Chained(int Kind, Identifier[]? Rest, WindowReference? Over = null, Identifier? Method = null, SqlList<Argument>? Arguments = null);
+
+	/// <summary>What a tail holds: a predicate built with its left side empty, a comparison's right side, or a quantified comparison's quantifier and subquery.</summary>
+	public const int Built = 0, Comparing = 1, Quantifying = 2;
+
+	/// <summary>
+	/// A predicate's second part, and what it takes before it. A comparison is not built until its left
+	/// side is known: the tail keeps its operator and its right side, or its quantifier and subquery, and
+	/// <c>Nodes.Predicated</c> builds the node once. Every other predicate is built with its left side
+	/// empty, and `NOT`, where it was written, goes in with the left side.
+	/// </summary>
+	public readonly record struct Tail(int Roles, Expression? Node, int Kind = Built, ComparisonOperator Operator = default, Ast.Quantifier Quantifier = default, Query? Subquery = null, bool Not = false);
 
 	public static Expression Apply(Expression primary, Step[]? steps)
 	{
