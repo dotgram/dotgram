@@ -99,7 +99,27 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.CreateView view:
-					Word(view.Recursive ? "CREATE RECURSIVE VIEW" : "CREATE VIEW");
+					// T-SQL: CREATE VIEW (Transact-SQL). ALTER and CREATE OR ALTER, and the attributes, beside a view the standard's grammar reads.
+					// Null is the plain CREATE; Create would be the same text, read back as null.
+					if (view.Verb == DefinitionVerb.Create)
+						throw Misplaced(view, "Verb", "Create, which is written as null, the standard's plain CREATE");
+
+					if (view.Verb is not null || view.Attributes.Count > 0)
+					{
+						if (view.Recursive || view.Specification is ViewSpecification.Referenceable)
+							throw Misplaced(view, "Verb or Attributes", "beside RECURSIVE or a typed view");
+
+						if (view.CheckOption is CheckOption.Cascaded or CheckOption.Local)
+							throw Misplaced(view, "Verb or Attributes", "beside a CASCADED or LOCAL check option");
+					}
+
+					Word(view.Verb switch
+					{
+						null                         => view.Recursive ? "CREATE RECURSIVE VIEW" : "CREATE VIEW",
+						DefinitionVerb.Alter         => "ALTER VIEW",
+						DefinitionVerb.CreateOrAlter => "CREATE OR ALTER VIEW",
+						_                            => throw NoText(view.Verb.Value),
+					});
 					PutName(view.Name);
 
 					switch (view.Specification)
@@ -139,6 +159,18 @@ public static partial class Sql2023Writer
 							}
 
 							break;
+					}
+
+					if (view.Attributes.Count > 0)
+					{
+						Word("WITH");
+						Each(view.Attributes, attribute => Word(attribute switch
+						{
+							ViewAttribute.Encryption    => "ENCRYPTION",
+							ViewAttribute.SchemaBinding => "SCHEMABINDING",
+							ViewAttribute.ViewMetadata  => "VIEW_METADATA",
+							_                           => throw NoText(attribute),
+						}));
 					}
 
 					Word("AS");
@@ -1275,16 +1307,35 @@ public static partial class Sql2023Writer
 					Word(cycle.Value ? "CYCLE" : "NO CYCLE");
 					break;
 
-				default:
+				case SequenceOption.Restart restart:
 					Word("RESTART");
 
-					if (((SequenceOption.Restart)option).Value is { } value)
+					if (restart.Value is { } value)
 					{
 						Word("WITH");
 						PutExpression(value);
 					}
 
 					break;
+
+				// T-SQL: CREATE SEQUENCE (Transact-SQL). A sequence's cache, which an identity column has none of.
+				case SequenceOption.Cache cache when !altered:
+					Word("CACHE");
+
+					if (cache.Size is { } size)
+						PutExpression(size);
+
+					break;
+
+				case SequenceOption.NoCache when !altered:
+					Word("NO CACHE");
+					break;
+
+				case SequenceOption.Cache or SequenceOption.NoCache:
+					throw Misplaced(option, "Cache", "on an identity column, which has no cache");
+
+				default:
+					throw Unwritten(option);
 			}
 		}
 

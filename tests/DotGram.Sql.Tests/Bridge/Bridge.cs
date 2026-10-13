@@ -167,6 +167,26 @@ static partial class Bridge
 		return read(text);
 	}
 
+	/// <summary>
+	/// A conversion of nodes read again from another text than the statement's, with that text as the source their
+	/// spans are in; what is read from the text is still counted for the statement.
+	/// </summary>
+	static T Inside<T>(string text, Func<T> convert)
+	{
+		var outer = source;
+
+		source = text;
+
+		try
+		{
+			return convert();
+		}
+		finally
+		{
+			source = outer;
+		}
+	}
+
 	internal static Ast.Statement StatementOf(Statement old)
 	{
 		return Convert<Ast.Statement>(old);

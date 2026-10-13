@@ -346,16 +346,7 @@ public static partial class Sql2023Writer
 			Open();
 			Word("PARTITIONS");
 			Open();
-			Each(partitions, partition =>
-			{
-				PutExpression(partition.From);
-
-				if (partition.To is { } to)
-				{
-					Word("TO");
-					PutExpression(to);
-				}
-			});
+			PutRangeList(partitions);
 			Close();
 			Close();
 		}
