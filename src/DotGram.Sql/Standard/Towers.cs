@@ -138,7 +138,7 @@ static class Towers
 	/// <summary>What an operand can be, asked of its parts before they are made one.</summary>
 	public static int OperandRoles(UnaryOperator? sign, Typed? primary, After? postfix)
 	{
-		return Roles(new Piece(sign, primary ?? Typed.None, postfix ?? After.None));
+		return Roles(sign is not null, primary?.Roles ?? 0, postfix?.Kind ?? 0);
 	}
 
 	// ── A primary ──────────────────────────────────────────────────────────────
@@ -175,9 +175,24 @@ static class Towers
 		public static readonly Stepping None = new(0, null);
 	}
 
-	/// <summary>A primary and the steps after it, each taking what stands before it as its target.</summary>
+	/// <summary>
+	/// The steps read after a primary, or <see cref="Stepping.None"/> where none were: most primaries have
+	/// none, and share it.
+	/// </summary>
+	public static Stepping Following(Step[]? steps)
+	{
+		return steps is { Length: > 0 } ? new Stepping(Steps(steps), steps) : Stepping.None;
+	}
+
+	/// <summary>
+	/// A primary and the steps after it, each taking what stands before it as its target; a primary with
+	/// none is itself.
+	/// </summary>
 	public static Typed Stepped(Typed primary, Stepping steps)
 	{
+		if (steps.Steps is not { Length: > 0 })
+			return primary;
+
 		return new(Apply(primary.Node, steps.Steps), Stepped(primary.Roles, steps.Roles));
 	}
 
@@ -273,9 +288,12 @@ static class Towers
 	/// </summary>
 	public static int Roles(Piece piece)
 	{
-		var primary = piece.Primary.Roles;
+		return Roles(piece.Signed, piece.Primary.Roles, piece.Postfix.Kind);
+	}
 
-		var roles = piece.Postfix.Kind switch
+	static int Roles(bool signed, int primary, int postfix)
+	{
+		var roles = postfix switch
 		{
 			Qualified     => (primary & Value) == Value || (primary & Difference) != 0 ? Interval : 0,
 			Zoned         => primary & Datetime,
@@ -285,10 +303,10 @@ static class Towers
 			_             => primary & Value,
 		};
 
-		if (piece.Signed)
+		if (signed)
 			return roles & (Numeric | Interval);
 
-		return piece.Postfix.Kind == 0 ? roles | primary & (Truth | Chain | Bare | Parenthesized | Row | Invoked | Starred) : roles;
+		return postfix == 0 ? roles | primary & (Truth | Chain | Bare | Parenthesized | Row | Invoked | Starred) : roles;
 	}
 
 	/// <summary>An operand's node: its primary, what follows the primary, and its sign around both.</summary>
@@ -322,10 +340,17 @@ static class Towers
 
 	public readonly record struct Operated(Op Operator, Piece Operand);
 
-	/// <summary>Operands and the operators between them: the node, and what the towers say it can be — nothing, where it can be nothing.</summary>
+	/// <summary>
+	/// Operands and the operators between them: the node, and what the towers say it can be — nothing,
+	/// where it can be nothing. A lone primary that no sign, postfix or operator touched is its own
+	/// answer, and is returned as it came.
+	/// </summary>
 	public static Typed Expression(Piece first, Operated[]? rest)
 	{
 		var roles = Common(first, rest);
+
+		if (rest is not { Length: > 0 } && !first.Signed && first.Postfix.Kind == 0 && roles == first.Primary.Roles)
+			return first.Primary;
 
 		return new Typed(roles == 0 ? first.Primary.Node : Build(first, rest), roles);
 	}
@@ -334,53 +359,50 @@ static class Towers
 	/// What the expression can be, or nothing where it can be nothing. An explicit row is read where a
 	/// bracket is, and is something only alone: no operator joins one.
 	/// </summary>
+	/// <remarks>
+	/// Read over the operands where they stand, in the operand and the array of operated ones the rule
+	/// captured: nothing is copied for the common shapes — one operand, or a run of one operator kind.
+	/// Only a run of `||` that ends in a subscript folds, and only then are the operands copied into
+	/// lists to be folded.
+	/// </remarks>
 	public static int Common(Piece? first, Operated[]? rest)
 	{
-		var pieces    = new List<Piece> { first ?? Piece.None };
-		var operators = new List<int>();
-
-		foreach (var (op, operand) in rest ?? [])
-		{
-			operators.Add(op.Kind);
-			pieces.Add(operand);
-		}
-
-		Fold(pieces, operators);
-
-		var roles = Join(pieces, operators);
+		var run   = new Run(first ?? Piece.None, rest);
+		var roles = Join(Folds(run) ? Fold(run) : run);
 
 		return (roles & (Value | Row | Difference)) != 0 ? roles : 0;
 	}
 
 	/// <summary>
 	/// The node of operands and operators: `*`, `/` and `MULTISET INTERSECT` bind tighter than `+`, `-`,
-	/// `||`, `MULTISET UNION` and `MULTISET EXCEPT`, and each strength is read from the left.
+	/// `||`, `MULTISET UNION` and `MULTISET EXCEPT`, and each strength is read from the left. A tight
+	/// operator joins its operand to the term on its left as it is read; a loose one closes that term
+	/// into the sum before it.
 	/// </summary>
 	static Expression Build(Piece first, Operated[]? rest)
 	{
 		if (rest is not { Length: > 0 })
 			return Node(first);
 
-		var terms = new List<Expression> { Node(first) };
-		var loose = new List<Op>();
+		Expression? sum   = null;
+		Op          loose = default;
+		var         term  = Node(first);
 
 		foreach (var (op, operand) in rest)
 		{
 			if (op.Kind is Times or Divided || op.Kind == MultisetOperator && op.Multiset == Ast.MultisetOperator.Intersect)
-				terms[terms.Count - 1] = Combine(terms[terms.Count - 1], op, Node(operand));
-			else
 			{
-				loose.Add(op);
-				terms.Add(Node(operand));
+				term = Combine(term, op, Node(operand));
+
+				continue;
 			}
+
+			sum   = sum is null ? term : Combine(sum, loose, term);
+			loose = op;
+			term  = Node(operand);
 		}
 
-		var node = terms[0];
-
-		for (var at = 0; at < loose.Count; at++)
-			node = Combine(node, loose[at], terms[at + 1]);
-
-		return node;
+		return sum is null ? term : Combine(sum, loose, term);
 	}
 
 	static Expression Combine(Expression left, Op op, Expression right)
@@ -397,14 +419,74 @@ static class Towers
 	}
 
 	/// <summary>
+	/// The operands and operators the towers are asked about, where they stand: the first operand and the
+	/// operated ones as the rule captured them, or the lists a fold made of them. Operand <c>i</c> has
+	/// operator <c>i - 1</c> before it.
+	/// </summary>
+	readonly struct Run
+	{
+		readonly Piece        _first;
+		readonly Operated[]?  _rest;
+		readonly List<Piece>? _pieces;
+		readonly List<int>?   _operators;
+
+		public Run(Piece first, Operated[]? rest)
+		{
+			_first = first;
+			_rest  = rest;
+		}
+
+		public Run(List<Piece> pieces, List<int> operators)
+		{
+			_first     = pieces[0];
+			_pieces    = pieces;
+			_operators = operators;
+		}
+
+		public int Count => _pieces?.Count ?? (_rest?.Length ?? 0) + 1;
+
+		public Piece this[int at] => _pieces is not null ? _pieces[at] : at == 0 ? _first : _rest![at - 1].Operand;
+
+		public int Operator(int at)
+		{
+			return _operators is not null ? _operators[at] : _rest![at].Operator.Kind;
+		}
+	}
+
+	/// <summary>
+	/// Whether a run holds what a fold begins at — a subscripted, unsigned operand after a `||` — so that
+	/// only a run that may fold is copied to be folded.
+	/// </summary>
+	static bool Folds(in Run run)
+	{
+		for (var at = 1; at < run.Count; at++)
+			if ((run[at].Primary.Roles & Subscript) != 0 && !run[at].Signed && run.Operator(at - 1) == Concatenate)
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
 	/// A run of `||` that ends in a subscripted operand is also one array element reference: the run
 	/// is the array, the sign of its first operand stands before the whole and what follows its last
 	/// after it. Folding takes operators away and constrains nothing, so a run is taken as far as it
 	/// goes: over array primaries, unsigned and with nothing after them, and over one signed one
-	/// where the run begins.
+	/// where the run begins. The operands are copied into lists for this, which only a run that may
+	/// fold pays: one with a subscripted operand after a `||`, whether or not the run before it is arrays.
 	/// </summary>
-	static void Fold(List<Piece> pieces, List<int> operators)
+	static Run Fold(in Run run)
 	{
+		var pieces    = new List<Piece>(run.Count);
+		var operators = new List<int>(run.Count - 1);
+
+		for (var at = 0; at < run.Count; at++)
+		{
+			if (at > 0)
+				operators.Add(run.Operator(at - 1));
+
+			pieces.Add(run[at]);
+		}
+
 		for (var last = 1; last < pieces.Count; last++)
 		{
 			if ((pieces[last].Primary.Roles & Subscript) == 0 || pieces[last].Signed || operators[last - 1] != Concatenate)
@@ -429,25 +511,27 @@ static class Towers
 
 			last = first;
 		}
+
+		return new Run(pieces, operators);
 	}
 
 	/// <summary>The operators of one tower only: `||`, or `MULTISET`'s, or arithmetic.</summary>
-	static int Join(List<Piece> pieces, List<int> operators)
+	static int Join(in Run run)
 	{
-		if (operators.Count == 0)
-			return Roles(pieces[0]);
+		if (run.Count == 1)
+			return Roles(run[0]);
 
-		var kind = Kind(operators[0]);
+		var kind = Kind(run.Operator(0));
 
-		foreach (var op in operators)
-			if (Kind(op) != kind)
+		for (var at = 1; at < run.Count; at++)
+			if (Kind(run.Operator(at - 1)) != kind)
 				return 0;
 
 		return kind switch
 		{
-			Concatenate      => Every(pieces, String | Array),
-			MultisetOperator => Every(pieces, Multiset),
-			_                => Arithmetic(pieces, operators),
+			Concatenate      => Every(run, String | Array),
+			MultisetOperator => Every(run, Multiset),
+			_                => Arithmetic(run),
 		};
 	}
 
@@ -457,10 +541,10 @@ static class Towers
 	}
 
 	/// <summary>`||` joins character, binary and array operands, and a `MULTISET` operator multisets: all of one kind.</summary>
-	static int Every(List<Piece> pieces, int kinds)
+	static int Every(in Run run, int kinds)
 	{
-		foreach (var piece in pieces)
-			kinds &= Roles(piece);
+		for (var at = 0; at < run.Count; at++)
+			kinds &= Roles(run[at]);
 
 		return kinds;
 	}
@@ -495,22 +579,23 @@ static class Towers
 	/// interval one. A datetime is one datetime term among interval terms, with a `+` before it where
 	/// anything is: §6.35 adds an interval to a datetime on either side and subtracts one only after it.
 	/// </summary>
-	static int Arithmetic(List<Piece> pieces, List<int> operators)
+	static int Arithmetic(in Run run)
 	{
-		var product = Product.Of(Roles(pieces[0]));
-		var adds    = true;
-		var terms   = 0;
-		var roles   = 0;
+		var operators = run.Count - 1;
+		var product   = Product.Of(Roles(run[0]));
+		var adds      = true;
+		var terms     = 0;
+		var roles     = 0;
 
 		bool numeric = false, interval = false, datetime = false, difference = false;
 
-		for (var at = 0; at <= operators.Count; at++)
+		for (var at = 0; at <= operators; at++)
 		{
-			var op = at < operators.Count ? operators[at] : Plus;
+			var op = at < operators ? run.Operator(at) : Plus;
 
 			if (op is Times or Divided)
 			{
-				product = product.Then(op == Times, Roles(pieces[at + 1]));
+				product = product.Then(op == Times, Roles(run[at + 1]));
 				continue;
 			}
 
@@ -531,10 +616,10 @@ static class Towers
 				interval &= (term & Interval) != 0;
 			}
 
-			if (at < operators.Count)
+			if (at < operators)
 			{
 				adds    = op == Plus;
-				product = Product.Of(Roles(pieces[at + 1]));
+				product = Product.Of(Roles(run[at + 1]));
 			}
 		}
 
@@ -567,12 +652,18 @@ static class Towers
 		return Logical | Truth;
 	}
 
-	/// <summary>Operands joined by one of `AND` and `OR`, from the left: the node, and what the whole can be.</summary>
+	/// <summary>
+	/// Operands joined by one of `AND` and `OR`, from the left: the node, and what the whole can be; one
+	/// operand alone is itself.
+	/// </summary>
 	public static Typed Connected(Typed first, Typed[]? rest, BinaryOperator op)
 	{
+		if (rest is not { Length: > 0 })
+			return first;
+
 		var roles = Connect(first, rest);
 
-		if (roles == 0 || rest is not { Length: > 0 })
+		if (roles == 0)
 			return new Typed(first.Node, roles);
 
 		var node = first.Node;
