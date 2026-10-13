@@ -42,6 +42,23 @@ internal sealed class SpellingAttribute : Attribute;
 
 // Text is the identifier as written, its quotes included. UnicodeEscape is `U&"a" UESCAPE '!'`'s character.
 public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	// The style and the escape packed into three bytes, so that the record is 40 bytes rather than 48.
+	byte _style = (byte)Style;
+	bool _escaped = UnicodeEscape is not null;
+	char _escape = UnicodeEscape ?? '\0';
+
+	public IdentifierStyle Style
+	{
+		get { return (IdentifierStyle)_style; }
+		init { _style = (byte)value; }
+	}
+
+	public char? UnicodeEscape
+	{
+		get { return _escaped ? _escape : null; }
+		init { _escaped = value is not null; _escape = value ?? '\0'; }
+	}
+
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
