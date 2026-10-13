@@ -99,7 +99,9 @@ BooleanPrimary : @Expression
 Predicate : @Expression
     = "EXISTS"i                & q:    TableSubquery => @(new Expression.Exists(q))
     | "UNIQUE"i                & q:    TableSubquery => @(new Expression.Unique(null, q))
-    | row: RowValueConstructor & tail: PredicateTail => @(Nodes.Predicated(row, tail))
+    | row: RowValueConstructor
+      & ( op: CompOp & ( some: Quantifier & sub: TableSubquery | right: RowValueConstructor ) | tail: PredicateTail )
+        => @(op is null ? Nodes.Predicated(row, tail!) : Nodes.Compared(row, op, some, sub, right))
 
 // What may follow a row on the left of a predicate. One rule so that the row is read
 // once: written as six alternatives of <predicate> each beginning with <row value
@@ -110,20 +112,10 @@ Predicate : @Expression
 // predicate is one record whichever way it was written, and its operands are named
 // rather than numbered.
 PredicateTail : @Expression
-          // §8.2 <comparison predicate> and §8.8 <quantified comparison predicate>
-          // share their operator, and differ only in what stands on the right.
-          // The two comparison forms share their operator, so it is read once and
-          // what may follow it is the choice — which is the same grammar written the
-          // way GRAM4016 asks for, and a row on the right is not cheap to read twice.
-          = op: CompOp & ( some: Quantifier & sub: TableSubquery | right: RowValueConstructor ) =>
-              @(Nodes.Compared(some is null
-                 ? new Expression.Comparison(null!, default, right!)
-                 : new Expression.QuantifiedComparison(null!, default, Nodes.Quantified(some), sub!), op))
-
           // §8.3 to §8.5, the three a `NOT` may stand in front of. The `NOT` is read once and
           // the word after it says which: written three times, a `NOT` in front of `IN` was
           // read by the first, which found no `BETWEEN` and gave it back.
-          | negated: "NOT"i? & p: NegatablePredicate => @(Nodes.Negated(p, negated is not null))
+          = negated: "NOT"i? & p: NegatablePredicate => @(Nodes.Negated(p, negated is not null))
 
           // §8.6 <null predicate>
           | "IS"i & negated: "NOT"i? & "NULL"i => @(new Expression.IsNull(null!, negated is not null))
@@ -463,8 +455,12 @@ SelectList : @Sql.SqlList<SelectColumn>
     | first: SelectSublist & (',' & rest: SelectSublist)* => @(Nodes.List(first, rest))
 
 SelectSublist : @SelectColumn
-    = qualifier: QualifiedName & '.' & '*'   => @(new SelectColumn.QualifiedAll(new Expression.Reference(qualifier)))
+    = ?=QualifiedAsterisk & qualifier: QualifiedName & '.' & '*'   => @(new SelectColumn.QualifiedAll(new Expression.Reference(qualifier)))
     | v: ValueExpression & name: AsClause?   => @(Nodes.Selected(v, name ?? Nodes.Unnamed))
+
+// What a qualified asterisk looks like, recognized without building it.
+QualifiedAsterisk = NameWord & ('.' & NameWord)* & '.' & '*'
+NameWord          = ?!Reserved & RegularIdentifier | DelimitedIdentifier
 
 AsClause : @Nodes.Fields = w: ("AS"i? & t: Identifier) => @(new Nodes.Fields(t, Nodes.Worded(w, t), null))
 

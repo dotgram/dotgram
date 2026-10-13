@@ -338,6 +338,27 @@ static class Nodes
 		return tail is Expression.QuantifiedComparison q ? q with { Operator = compared } : ((Expression.Comparison)tail) with { Operator = compared };
 	}
 
+	/// <summary>
+	/// A comparison, or a quantified one, built once with both operands and the operator: what the
+	/// tail form above builds three times, and gives two of them away.
+	/// </summary>
+	public static Expression Compared(Expression left, string op, string? some, Query? sub, Expression? right)
+	{
+		var compared = op switch
+		{
+			"<>" => ComparisonOperator.NotEqual,
+			"<=" => ComparisonOperator.LessOrEqual,
+			">=" => ComparisonOperator.GreaterOrEqual,
+			"="  => ComparisonOperator.Equal,
+			"<"  => ComparisonOperator.Less,
+			_    => ComparisonOperator.Greater,
+		};
+
+		return some is null
+			? new Expression.Comparison(left, compared, right!)
+			: new Expression.QuantifiedComparison(left, compared, Quantified(some), sub!);
+	}
+
 	public static Ast.Quantifier Quantified(string word)
 	{
 		return (word[0] | 0x20) switch
