@@ -49,7 +49,7 @@ namespace DotGram.Sql.Standard;
 /// qualifier is read as §10.1 writes it, and a length, precision or scale the tree holds as an <c>int</c> is
 /// no larger than one (a <c>CURRENT_TIME</c> precision is a literal, and keeps its digits): what SQL-92 does
 /// not say is refused, and nothing it reads is left without a record. Its reserved words are §5.2's, all
-/// of them, so a field's word after a value is an interval primary (§6.14) and never a name.
+/// of them, so a field's word after a value is an interval primary (§6.15) and never a name.
 /// </para>
 /// <para>
 /// <b>Temporary.</b> The standard's parser is <c>SqlStandardParser</c>, written from SQL:2023 down

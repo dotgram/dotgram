@@ -226,7 +226,7 @@ ValueExpression : @Expression
     // the primary rather than as a strength of its own because that is where the
     // standard puts it, and nothing binds tighter than a primary anyway.
     //
-    // §6.14 <interval primary> is a primary and an interval qualifier, written on the primary
+    // §6.15 <interval primary> is a primary and an interval qualifier, written on the primary
     // for the same reason; a primary takes one or the other.
     | p: ValueExpressionPrimary & (q: IntervalQualifier | how: Collate)?
         => @(q is not null ? new Expression.IntervalQualified(p, q) : how is not null ? new Expression.Collate(p, how) : p)
@@ -543,7 +543,7 @@ SortKey : @Expression
 // What an identifier may not be: §5.2's <reserved word>, the whole list, as SQL-92 has it.
 // The words of the statement level are reserved too, though this grammar reads no
 // statement but a query: a name SQL-92 refuses is refused here, so `year > month` is not
-// a search condition and `b DAY` is an interval primary (§6.14) rather than a column with
+// a search condition and `b DAY` is an interval primary (§6.15) rather than a column with
 // an alias. END-EXEC is left out: a name has no hyphen, so no name could be spelled as it.
 Reserved = ("ABSOLUTE"i | "ACTION"i | "ADD"i | "ALL"i | "ALLOCATE"i | "ALTER"i | "AND"i | "ANY"i
          | "ARE"i | "AS"i | "ASC"i | "ASSERTION"i | "AT"i | "AUTHORIZATION"i | "AVG"i
