@@ -1026,7 +1026,7 @@ JSONQueryBehavior        = "ERROR"i | "NULL"i | "EMPTY"i & ("ARRAY"i | "OBJECT"i
 
 // <JSON API common syntax>: a context item, a path, the path's name, and what the path is passed.
 JSONAPICommonSyntax : @JsonApiCommon = i: JSONInputExpression & ',' & p: CharacterStringLiteral & ("AS"i & n: Identifier)?
-	  & ("PASSING"i & first: JSONArgument & (',' & rest: JSONArgument)*)? => @(new JsonApiCommon(i.Value, p, n, Nodes.ListOrEmpty(first, rest), i.Format))
+	  & ("PASSING"i & first: JSONArgument & (',' & rest: JSONArgument)*)? => @(new JsonApiCommon(i.Value, new Expression.Literal(Nodes.StringLiteral(p, StringLiteralKind.Character)), n, Nodes.ListOrEmpty(first, rest), i.Format))
 JSONArgument        : @JsonArgument = e: JSONInputExpression & "AS"i & n: Identifier => @(new JsonArgument(e.Value, n, e.Format))
 JSONInputExpression : @JsonElement = v: ValueNode & f: JSONInputClause? => @(new JsonElement(v, f))
 JSONOutputClause    : @JsonOutput = "RETURNING"i & t: DataType & ("FORMAT"i & r: JSONRepresentation)? => @(new JsonOutput(t, r))

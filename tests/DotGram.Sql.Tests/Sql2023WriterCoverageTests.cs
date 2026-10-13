@@ -794,6 +794,10 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a compound operator on bracketed targets")]
 	[InlineData("a variable through a column in MERGE")]
 	[InlineData("a method call with a compound operator")]
+	[InlineData("JSON_VALUE with no path")]
+	[InlineData("JSON_EXISTS with no path")]
+	[InlineData("JSON_TABLE with no path")]
+	[InlineData("JSON_QUERY with no path beside the standard's members")]
 	[InlineData("a written name on xml qualified by dbo")]
 	[InlineData("a 0x literal that is not hex digits")]
 	[InlineData("a table variable with hints in a FROM")]
@@ -901,6 +905,11 @@ public sealed class Sql2023WriterCoverageTests
 			},
 			"DEFAULT VALUES with values in a MERGE" => Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, [A]) { DefaultValues = true })] },
 			"an INSERT word that is none"           => new Statement.Insert { Target = new TableSource.Named(T), Into = (IntoKeyword)9 },
+			"JSON_VALUE with no path"               => new Expression.JsonValue(new JsonApiCommon(A, null, null, []), null, null, null),
+			"JSON_EXISTS with no path"              => new Expression.JsonExists(new JsonApiCommon(A, null, null, []), null),
+			"JSON_TABLE with no path"               => Joined(new TableSource.JsonTable(new JsonTableDefinition(new JsonApiCommon(A, null, null, []), [new JsonTableColumn.Ordinality(new Identifier("n"))], null, null))),
+			"JSON_QUERY with no path beside the standard's members" =>
+				new Expression.JsonQuery(new JsonApiCommon(A, null, null, []), null, null, null, null, JsonQueryBehavior.Null),
 			"a written name on xml qualified by dbo" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("xml")]) },
 			"a 0x literal that is not hex digits"   => new Expression.Literal(new LiteralValue.Binary("0x0A") { ZeroX = true }),
 			"GraphPath with a WITHIN GROUP order"   => new Expression.Invocation(T, [new Argument(A)]) { GraphPath = true, WithinGroup = new WithinGroupClause(new OrderByClause([new SortItem(A)])) },
@@ -1263,6 +1272,7 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("TABLE t with a data source",   "OPENDATASOURCE('p', 'i').t")]
 	[InlineData("xml written as a name",        "[xml](CONTENT s)")]
 	[InlineData("xml qualified by sys",         "sys.xml")]
+	[InlineData("JSON_QUERY with no path",      "JSON_QUERY(a)")]
 	[InlineData("a string alias",               "SELECT a 'b c'")]
 	[InlineData("a national string alias first", "SELECT N'h''i' = a")]
 	[InlineData("a variable through a column",  "SET @v = a += b")]
@@ -1301,6 +1311,7 @@ public sealed class Sql2023WriterCoverageTests
 				Target      = t,
 				Assignments = [new Assignment([], new Expression.Member(A, MemberAccessKind.Dot, new Identifier("WRITE"), [new Argument(B)]))],
 			},
+			"JSON_QUERY with no path" => new Expression.JsonQuery(new JsonApiCommon(A, null, null, []), null, null, null, null, null),
 			"xml qualified by sys" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("sys"), new Identifier("xml")]) },
 			_                    => new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([t with { DataSource = Server }]), Table = true },
 		};
