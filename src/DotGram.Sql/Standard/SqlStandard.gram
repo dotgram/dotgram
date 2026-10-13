@@ -722,7 +722,7 @@ BracketTail : @Towers.Bracket
 	| (',' & rest: ValueNode)+ & ')' => @(new Towers.Bracket(Towers.Row, rest))
 	| "AS"i & t: DataType & ')' & '.' & m: MethodName & a: SQLArgumentList? => @(new Towers.Bracket(Towers.Bare, null, t, m, a))
 
-PrimarySteps : @Towers.Stepping = s: PrimaryStep* => @(new Towers.Stepping(Towers.Steps(s), s))
+PrimarySteps : @Towers.Stepping = s: PrimaryStep* => @(Towers.Following(s))
 //
 // With them the operations of a <JSON simplified accessor>, which is a primary and its operations:
 // `.*`, an item method — asked before a method, since its names are mostly reserved words and its
