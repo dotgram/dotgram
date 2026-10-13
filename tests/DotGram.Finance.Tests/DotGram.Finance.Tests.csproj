@@ -9,7 +9,7 @@
 		<PackageReference Include="xunit.v3" />
 		<!-- To compile the fenced C# of the shipped pages, which is what ShippedPages does. -->
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
+		<ProjectReference Include="../../tests/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
 		<!-- One configuration a process (D115): a rule lives in a static field on the message class,
 		     so a test that loads somebody's dictionary changes what every other test sees while it

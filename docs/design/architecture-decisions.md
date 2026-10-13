@@ -51,7 +51,7 @@ may land on a commit that never built on its own.
 
 Decided 2026-09-17 by Igor.
 
-Every parser in `examples/DotGram.Handwritten` reads the language of the generated parser
+Every parser in `tests/DotGram.Handwritten` reads the language of the generated parser
 it is compared with, as that grammar is implemented now: the same publications, the same
 accepted and refused input, the same values (trees, fields) and locations. Error wording
 may differ; the position of an error may not.
@@ -607,7 +607,7 @@ Decided 2026-09-17 by the architect, on expr-2d's inventory of `HandExpression` 
   reached. Both are recorded as such. If Q1 or D7 makes tokenizing lazy, which D5 requires for
   streams, the first changes, and which position is right is then decided in `syntax.md`, not
   by whichever parser is written second.
-- **One corpus.** `ExpressionAgainst`'s corpus moves to `examples/DotGram.Handwritten` as plain
+- **One corpus.** `ExpressionAgainst`'s corpus moves to `tests/DotGram.Handwritten` as plain
   data, read by the benchmark and by the conformance test alike.
 - **The conformance test** compares outcome, position on failure, `State` refusals, exception
   type and the tree by its debug view, over `ExpressionParserTests`, the shared corpus and a

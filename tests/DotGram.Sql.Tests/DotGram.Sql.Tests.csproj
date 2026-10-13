@@ -30,7 +30,7 @@
 		<!-- The same language read by hand (Both.cs): the yardstick the generated parser is
 		     measured against, held to it here so that a difference between the two fails as a
 		     test rather than as a ratio nobody could explain. -->
-		<ProjectReference Include="..\..\examples\DotGram.Handwritten\DotGram.Handwritten.csproj" />
+		<ProjectReference Include="..\DotGram.Handwritten\DotGram.Handwritten.csproj" />
 	</ItemGroup>
 
 	<!-- D37's page checker, written once for DotGram.Tests and linked rather than copied: two
