@@ -46,9 +46,6 @@
 		<File Path="docs/syntax.md" />
 	</Folder>
 	<Folder Name="/examples/">
-		<Project Path="examples/DotGram.Handwritten/DotGram.Handwritten.csproj">
-			<BuildType Solution="Linux|*" Project="Release" />
-		</Project>
 		<File Path="examples/README.md" />
 		<Project Path="examples/DotGram.Examples/DotGram.Examples.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
@@ -86,6 +83,9 @@
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Finance.Tests/DotGram.Finance.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.Handwritten/DotGram.Handwritten.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.VisualStudio.Tests/DotGram.VisualStudio.Tests.csproj">

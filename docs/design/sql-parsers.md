@@ -30,7 +30,7 @@ is open until it is built, and `status.md` is what will say when it has been.
   includes and the benchmarks hold against a hand-written parser, and goes when T-SQL restates
   what it takes from it and 1992 is an edition of the new grammar.
 - **The standard's parser has a yardstick written by hand** (Igor, 2026-09-17).
-  `examples/DotGram.Handwritten/Sql/HandSqlStandard.cs` reads ISO/IEC 9075-2:2023 the way a
+  `tests/DotGram.Handwritten/Sql/HandSqlStandard.cs` reads ISO/IEC 9075-2:2023 the way a
   person would write it, builds the same `DotGram.Sql.Ast` tree, and is held to the generated
   parser's every answer. It is what the generated parser is measured against and optimized
   towards: a ratio is only worth having if the other side did the same work, so the handwritten
@@ -131,7 +131,7 @@ is open until it is built, and `status.md` is what will say when it has been.
   asks for the same tree and the same text — every fuzz family of the standard's grammar, over 60,000
   lines, with no difference. The first step of moving T-SQL onto the tree.
 - ~~**The handwritten SQL:2023 parser, chapter by chapter**~~ Done, 2026-09-17
-  (`examples/DotGram.Handwritten/Sql`): all forty-two publications, every one of them going through
+  (`tests/DotGram.Handwritten/Sql`): all forty-two publications, every one of them going through
   `Both` in the tests, and every fuzz corpus of the standard's grammar — 113,000 lines — put to the
   two with nothing differing. Two places where it mirrors the generated parser rather than the BNF
   are written down in the project's README. It is the yardstick the generated parser is now

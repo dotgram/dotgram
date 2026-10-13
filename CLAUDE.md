@@ -84,7 +84,6 @@ src/
 	                      teaching material — and, being an ordinary project the generator
 	                      runs over, it is where a real symbol resolver is exercised
 examples/
-	DotGram.Handwritten/  reusable manual parsers for differential tests and benchmarks.
 	DotGram.Examples/     whole parsers meant to be copied: a grammar, the class it
 	                      attaches to, and the code written against it. No test
 	                      framework and no scaffolding — DotGram.Tests runs them.
@@ -103,6 +102,8 @@ tests/
 	                      GRAM5003's parts at every size, and a nine-hundred-rule split
 	DotGram.Sql.Tests/    the SQL parsers held to what SQL Server answers, and the tree, its
 	                      writer and walker
+	DotGram.Handwritten/  the hand-written parsers the tests and the stand hold the generated
+	                      ones against. Not shipped: it is a fixture, and nothing a user copies
 	DotGram.Finance.Tests/ the FIX package: fields, messages, the streaming forms, and the
 	                      hand-written parser beside the generated one
 	DotGram.Finance.Fix44/ the FIX 4.4 grammar and its generated parser, the oracle the

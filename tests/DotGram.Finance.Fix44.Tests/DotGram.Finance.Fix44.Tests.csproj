@@ -9,7 +9,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="xunit.v3" />
-		<ProjectReference Include="../../examples/DotGram.Handwritten/DotGram.Handwritten.csproj" />
+		<ProjectReference Include="../../tests/DotGram.Handwritten/DotGram.Handwritten.csproj" />
 		<ProjectReference Include="../../src/DotGram.Finance/DotGram.Finance.csproj" />
 		<ProjectReference Include="../DotGram.Finance.Fix44/DotGram.Finance.Fix44.csproj" />
 	</ItemGroup>
