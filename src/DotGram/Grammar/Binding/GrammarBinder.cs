@@ -632,6 +632,13 @@ public sealed class GrammarBinder
 		foreach (var binding in ownRebindings)
 			resolved[binding.Left] = Follow(binding, raw);
 
+		// An inherited binding resolves through this level's too: `B = D` above `D = C` sends a
+		// call to `B` on to `C`, as one header `with (B = D, D = C)` would. One of the same name
+		// was replaced above (§5.1: a nested header may replace any of them).
+		foreach (var pair in inherited)
+			if (!ownRebindings.Any(binding => ReferenceEquals(binding.Left, pair.Key)) && raw.ContainsKey(pair.Value))
+				resolved[pair.Key] = Follow(new ResolvedRebinding(pair.Key, pair.Value, ownRebindings[0].At), raw);
+
 		return resolved;
 	}
 
