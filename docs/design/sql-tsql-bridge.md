@@ -241,15 +241,15 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Projected a T-SQL column's options as the standard's members | 234 |
 | Projected a key's T-SQL columns as the standard's names | 6 |
 | Recovered Alias.AsKeyword of MERGE's target | 19 |
-| Recovered Alias.AsKeyword of a table source | 930 |
-| Recovered Clause.DerivedColumn alias = expression | 387 |
+| Recovered Alias.AsKeyword of a table source | 931 |
+| Recovered Clause.DerivedColumn alias = expression | 388 |
 | Recovered Expression.Invocation without brackets | 34 |
 | Recovered Expression.Trim.FromKeyword | 0 |
 | Recovered Limit.FetchRowWord | 23 |
 | Recovered Limit.OffsetRowWord | 26 |
 | Recovered Limit.Position | 23 |
 | Recovered ReferencesSpecification.DeleteRuleFirst | 44 |
-| Recovered SelectColumn.ExpressionItem.AsKeyword | 382 |
+| Recovered SelectColumn.ExpressionItem.AsKeyword | 383 |
 | Recovered Statement.Delete.FromOmitted | 82 |
 | Recovered Statement.DropRoutine.Proc | 24 |
 | Recovered Statement.SetTransaction.Tran | 23 |
@@ -265,7 +265,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | Old record | Family | Category | Counted | Gaps | Occurrences |
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9322 |
-| `Expression.ColumnReference` | Values | B | gap 1 | 140: needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7); needs decision: inventory cross-cutting gaps, identifier styles (a name part `READ COMMITTED`) (6) | 9235 |
+| `Expression.ColumnReference` | Values | B | — | 139: needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7); needs decision: inventory cross-cutting gaps, identifier styles (a name part `READ COMMITTED`) (6) | 9235 |
 | `Clause.Option` | Tables | C | gap 153 | 157: needs decision: inventory Clause.Option (a bracketed list of values) (34); needs decision: inventory Clause.Option (a name of several words, `MOVE TO`) (22) | 6517 |
 | `Clause.ColumnDefinition` | Tables | B | gap 112 | 112: needs decision: inventory DataType (`decimal(max)`: a word in the brackets of a type) (22); needs decision: inventory Clause.ConstraintDefinition (a default added WITH VALUES) (11) | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |
