@@ -13,16 +13,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-12 19:21 |
-| DotGram.Examples | 2026-10-12 19:19 |
-| DotGram.ExpressionLanguage | 2026-10-12 19:19 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-12 19:19 |
-| DotGram.Finance | 2026-10-12 19:19 |
-| DotGram.Finance.Fix44 | 2026-10-12 19:20 |
-| DotGram.Sql | 2026-10-12 19:20 |
-| DotGram.Sql.Productions | 2026-10-12 19:20 |
-| DotGram.Tests | 2026-10-12 19:21 |
-| DotGram.Web | 2026-10-12 19:19 |
+| DotGram.Benchmarks | 2026-10-12 20:39 |
+| DotGram.Examples | 2026-10-12 20:37 |
+| DotGram.ExpressionLanguage | 2026-10-12 20:37 |
+| DotGram.ExpressionLanguage.Immediate | 2026-10-12 20:37 |
+| DotGram.Finance | 2026-10-12 20:37 |
+| DotGram.Finance.Fix44 | 2026-10-12 20:38 |
+| DotGram.Sql | 2026-10-12 20:38 |
+| DotGram.Sql.Productions | 2026-10-12 20:38 |
+| DotGram.Tests | 2026-10-12 20:39 |
+| DotGram.Web | 2026-10-12 20:37 |
 
 **Carrier** is what a grammar left to the generator is read with — `immediate`, or `tape` where the
 immediate carrier refused a machine — or the author's own choice. **Gate** is what the tape would
@@ -66,7 +66,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Possession.Open | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Possession.Settled | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Settlements | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 7/7 |
-| DotGram.Benchmarks.TapeSql |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 12/311 |
+| DotGram.Benchmarks.TapeSql |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 12/312 |
 | DotGram.Benchmarks.TapeSqlStandard |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1248/2605 |
 | DotGram.Benchmarks.TinyScalar | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
@@ -111,7 +111,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Finance.Fix.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 14/14 |
 | DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1299/2659 |
-| DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/311 |
+| DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/312 |
 | DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1248/2605 |
 | DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2352/3127 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 18/18 |

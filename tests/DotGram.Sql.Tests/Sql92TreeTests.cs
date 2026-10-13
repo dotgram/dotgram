@@ -375,7 +375,7 @@ public sealed class Sql92TreeTests
 		"CAST(a AS CHAR(2147483647))", "CAST(a AS NUMERIC(2147483647, 0))", "INTERVAL '1' DAY(2147483647)",
 		"SELECT CAST(a AS VARCHAR(2147483647)) FROM t", "CURRENT_TIME(2147483648)", "CURRENT_TIMESTAMP(99999999999999999999999999)",
 
-		// An interval primary (§6.14): a field's word after a value is its qualifier, not a name for it.
+		// An interval primary (§6.15): a field's word after a value is its qualifier, not a name for it.
 		"SELECT b DAY FROM t", "SELECT b YEAR TO MONTH FROM t", "(a - b) DAY TO SECOND", "a HOUR(2) > b",
 
 		// A quantified comparison whose query is in brackets of its own, which SQL:2023 reads otherwise.
