@@ -239,6 +239,68 @@ public sealed class SqlStandardEntryTests
 		Assert.False(HandSqlStandard.TryParseSql("COMMIT ROLLBACK", out _));
 	}
 
+	// ── A number that does not fit its record ──────────────────────────────────
+
+	/// <summary>
+	/// A length, a precision, a scale, a cardinality and an item method's precision are <c>int</c>s in the
+	/// tree, and a large object's length a <c>long</c>: a number that does not fit is refused, rather than
+	/// cut to what fits or thrown out of the reading.
+	/// </summary>
+	[Theory]
+	[InlineData("CHAR(2147483647)", true)]
+	[InlineData("CHAR(2147483648)", false)]
+	[InlineData("CHAR(4294967297)", false)]
+	[InlineData("CHAR(123456789012345678901234567890)", false)]
+	[InlineData("VARBINARY(0x7FFF_FFFF)", true)]
+	[InlineData("VARBINARY(0x8000_0000)", false)]
+	[InlineData("VARBINARY(0xFFFFFFFFFFFFFFFF)", false)]
+	[InlineData("CHAR(2147483647 OCTETS)", true)]
+	[InlineData("CHAR(2147483648 OCTETS)", false)]
+	[InlineData("VARBINARY(2147483648)", false)]
+	[InlineData("DECIMAL(2147483648)", false)]
+	[InlineData("DECIMAL(10, 2147483648)", false)]
+	[InlineData("FLOAT(2147483648)", false)]
+	[InlineData("TIME(2147483648)", false)]
+	[InlineData("TIMESTAMP(2147483648) WITH TIME ZONE", false)]
+	[InlineData("INTERVAL DAY(2147483648)", false)]
+	[InlineData("INTERVAL DAY TO SECOND(2147483648)", false)]
+	[InlineData("INTERVAL SECOND(2, 2147483648)", false)]
+	[InlineData("INTEGER ARRAY[2147483647]", true)]
+	[InlineData("INTEGER ARRAY[2147483648]", false)]
+	[InlineData("BLOB(9223372036854775807K)", true)]
+	[InlineData("BLOB(9223372036854775807 K)", true)]
+	[InlineData("BLOB(9223372036854775808K)", false)]
+	[InlineData("BLOB(9223372036854775808 K)", false)]
+	[InlineData("BLOB(9223372036854775808)", false)]
+	[InlineData("CLOB(123456789012345678901234567890M)", false)]
+	public void A_number_that_does_not_fit_its_record_is_refused(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseDataType(input).IsSuccess);
+	}
+
+	/// <summary>The number read is the number written, up to the last that fits.</summary>
+	[Fact]
+	public void The_largest_length_that_fits_is_read_as_written()
+	{
+		Assert.Equal(int.MaxValue, ((DataType.Character)SqlStandardParser.ParseDataType("CHAR(2147483647)")).Length);
+		Assert.Equal(new LargeObjectSize(long.MaxValue, 'K'), ((DataType.Binary)SqlStandardParser.ParseDataType("BLOB(9223372036854775807K)")).LargeObject);
+	}
+
+	/// <summary>
+	/// An item method in the path language holds its precision as an <c>int</c>; the same method read as a
+	/// step of an SQL accessor keeps the literal as written, and takes any number.
+	/// </summary>
+	[Theory]
+	[InlineData("a[$.decimal(2147483647, 2)]", true)]
+	[InlineData("a[$.decimal(2147483648, 2)]", false)]
+	[InlineData("a[$.decimal(1, 2147483648)]", false)]
+	[InlineData("a[$.time(2147483648)]", false)]
+	[InlineData("a.decimal(2147483648, 2)", true)]
+	public void A_path_method_whose_precision_does_not_fit_is_refused(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseExpression(input).IsSuccess);
+	}
+
 	/// <summary>A refusal inside the second statement is said where it is, not where the second statement begins.</summary>
 	[Fact]
 	public void A_refusal_in_a_later_statement_points_into_it()
@@ -260,6 +322,7 @@ public sealed class SqlStandardEntryTests
 		"x BETWEEN 1 AND 2 OR EXISTS (SELECT 1 FROM t)", "CHAR VARYING(20)", "DECIMAL(10, 2)", "INTERVAL DAY TO SECOND(3)",
 		"SELECT a FROM t", "SELECT a FROM t;", "SELECT a FROM t; DELETE FROM t", "COMMIT ROLLBACK", "SELECT a FROM", "SELECT TOP 1 a FROM t",
 		"INSERT INTO t VALUES (1", "CREATE TABLE t (a INT", "UPDATE t SET a = 1 WHERE CURRENT OF c", "", ";", "a +", "CASE WHEN",
+		"CHAR(2147483648)", "BLOB(9223372036854775808K)", "a[$.decimal(2147483648)]",
 	];
 
 	/// <summary>
