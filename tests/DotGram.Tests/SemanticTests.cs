@@ -1481,6 +1481,35 @@ public sealed class SemanticTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", refused).IsSuccess);
 	}
 
+	/// <summary>
+	/// A reader that expects the replaced rule's type is refused whether it reads the rule
+	/// itself or a rule following it, whatever its action does with the value — and the
+	/// refusal names the reader, the rule it reads and both types.
+	/// </summary>
+	[Theory]
+	[InlineData("F : @int = x: R => @(x.GetHashCode())", "'F' reads 'R'")]
+	[InlineData("F : @int = x: B => @(x.GetHashCode())", "'F' reads 'B'")]
+	public void A_reader_expecting_the_replaced_type_is_refused_by_name(string reader, string named)
+	{
+		var result = CompileResolved(
+			$$"""
+			B : @int    = 'b' => @(1)
+			D : @string = 'd' => @("d")
+			R : B = B
+			{{reader}}
+
+			parse R
+			parse F with (B = D) as Swapped
+			""");
+
+		var refusal = Assert.Single(result.Diagnostics, one => one.Id == GrammarNormalizer.IncompatibleRebinding);
+
+		Assert.Contains(named, refusal.Message, StringComparison.Ordinal);
+		Assert.Contains("'int'", refusal.Message, StringComparison.Ordinal);
+		Assert.Contains("'string'", refusal.Message, StringComparison.Ordinal);
+		Assert.Contains("Declare 'F' as ':", refusal.Message, StringComparison.Ordinal);
+	}
+
 	static string WithAndHeader(string rule, string publish = "parse R as ParseStart")
 	{
 		return "B = 'b'\nD = 'd'\n" + rule + "\n" + publish + "\n";
