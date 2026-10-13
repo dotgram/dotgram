@@ -105,11 +105,35 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// A column of PREDICT's schema or of INSERT BULK: a name, a type, a collation and <c>NOT NULL</c>, nothing
-		/// else; INSERT BULK may leave the type out, and then everything after it.
+		/// A column of PREDICT's schema or of INSERT BULK: a name, a type, a collation and <c>NULL</c> or
+		/// <c>NOT NULL</c>, nothing else, held as T-SQL's options in that order or as the standard's members; INSERT
+		/// BULK may leave the type out, and then everything after it.
 		/// </summary>
 		void PutTypedColumn(ColumnDefinition column, bool typed, string where)
 		{
+			if (column.Options.Count > 0)
+			{
+				if (column.Generation is not null || column.Constraints.Count > 0 || column.Collation is not null)
+					throw Misplaced(column, "Options", "beside the standard's Generation, Constraints or Collation");
+
+				var at = column.Options[0] is ColumnOption.Collation { Name: null } ? 1 : 0;
+
+				if (column.Options.Count - at > 1 || at < column.Options.Count
+					&& column.Options[at] is not (ColumnOption.Null { Name: null } or ColumnOption.Constraint { Name: null, Value: Constraint.NotNull { Name: null, Characteristics: null } }))
+					throw Misplaced(column, "Options", $"on {where}, which takes a collation and NULL or NOT NULL alone");
+
+				if (column.Type is null)
+					throw Empty(column, "Type");
+
+				PutIdentifier(column.Name);
+				PutType(column.Type);
+
+				foreach (var option in column.Options)
+					PutColumnOption(option);
+
+				return;
+			}
+
 			if (column.Generation is not null || column.Constraints.Any(static one => one is not Constraint.NotNull { Name: null, Characteristics: null }) || column.Constraints.Count > 1)
 				throw Misplaced(column, "Generation or Constraints", $"on {where}, which takes NOT NULL alone");
 
