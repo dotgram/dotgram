@@ -156,6 +156,9 @@ public static partial class Sql2023Writer
 
 		void PutIdentifier(Identifier identifier)
 		{
+			if (identifier.Text is null)
+				throw new ArgumentException("default(Identifier) has no text and is not written.", nameof(identifier));
+
 			// T-SQL: SELECT Clause (Transact-SQL). A string is a column's alias and nothing else's name.
 			if (identifier.Style is IdentifierStyle.String or IdentifierStyle.NationalString)
 				throw Misplaced(identifier, "Style", "a string, which only a select column's alias is written as");
@@ -168,7 +171,10 @@ public static partial class Sql2023Writer
 
 		void PutName(QualifiedName name)
 		{
-			for (var at = 0; at < name.Parts.Count; at++)
+			if (name.Count == 0)
+				throw new ArgumentException("A name of no parts, default(QualifiedName), is no name and is not written.", nameof(name));
+
+			for (var at = 0; at < name.Count; at++)
 			{
 				if (at > 0)
 				{
@@ -176,7 +182,7 @@ public static partial class Sql2023Writer
 					Hold();
 				}
 
-				PutIdentifier(name.Parts[at]);
+				PutIdentifier(name[at]);
 			}
 		}
 
@@ -1610,7 +1616,7 @@ public static partial class Sql2023Writer
 
 			Word(":");
 			Hold();
-			PutIdentifier(parameter.Name!);
+			PutIdentifier(parameter.Name!.Value);
 
 			if (parameter.Indicator is { } indicator)
 			{
@@ -1629,7 +1635,7 @@ public static partial class Sql2023Writer
 			{
 				case CurrentValue.TransformGroupForType:
 					Word("CURRENT_TRANSFORM_GROUP_FOR_TYPE");
-					PutName(current.TypeName!);
+					PutName(current.TypeName!.Value);
 					return;
 
 				case CurrentValue.Time or CurrentValue.Timestamp or CurrentValue.LocalTime or CurrentValue.LocalTimestamp:
@@ -1789,7 +1795,7 @@ public static partial class Sql2023Writer
 		{
 			if (argument.NamedAssignment)
 			{
-				PutIdentifier(argument.Name!);
+				PutIdentifier(argument.Name!.Value);
 				Word("=>");
 			}
 

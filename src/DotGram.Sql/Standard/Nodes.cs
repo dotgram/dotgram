@@ -36,32 +36,19 @@ static class Nodes
 	/// <summary>A name made of a word read as a key word, <c>MODULE</c>, and the names after it.</summary>
 	public static QualifiedName Named(string word, params Identifier[] rest)
 	{
-		var parts = new Identifier[rest.Length + 1];
-
-		parts[0] = new Identifier(word);
-		Array.Copy(rest, 0, parts, 1, rest.Length);
-
-		return new QualifiedName(SqlList.Own(parts));
+		return new QualifiedName(new Identifier(word), rest);
 	}
 
 	/// <summary>A name and the parts after it, as many as were read.</summary>
 	public static QualifiedName Chain(Identifier first, Identifier[]? rest)
 	{
-		if (rest is not { Length: > 0 })
-			return new QualifiedName([first]);
-
-		var parts = new Identifier[rest.Length + 1];
-
-		parts[0] = first;
-		Array.Copy(rest, 0, parts, 1, rest.Length);
-
-		return new QualifiedName(SqlList.Own(parts));
+		return new QualifiedName(first, rest);
 	}
 
 	/// <summary>A name and one optional part after it.</summary>
 	public static QualifiedName Chain(Identifier first, Identifier? second)
 	{
-		return second is null ? new QualifiedName([first]) : new QualifiedName([first, second]);
+		return second is { } part ? new QualifiedName(first, [part]) : new QualifiedName(first);
 	}
 
 	/// <summary>A character set's name: its qualifiers, and the SQL language identifier after them.</summary>
@@ -70,7 +57,7 @@ static class Nodes
 
 	public static AssignmentTarget Assigned(Identifier column, TargetTail tail)
 	{
-		return new AssignmentTarget(new QualifiedName([column]), tail.Index, tail.MutationPath, tail.Trigraphs);
+		return new AssignmentTarget(new QualifiedName(column), tail.Index, tail.MutationPath, tail.Trigraphs);
 	}
 
 	public static CharacterSetName CharacterSet(Identifier[]? qualifiers, string name)
@@ -133,7 +120,7 @@ static class Nodes
 				=> new(new Expression.Parenthesized(value.Node), Towers.Difference | Towers.Parenthesized),
 			Towers.Parenthesized => new(new Expression.Parenthesized(value.Node), Towers.Value | Towers.Parenthesized | (value.Roles & Towers.Truth)),
 			Towers.Row => new(new Expression.Row(List(value.Node, tail.Rest)), Towers.Row),
-			_ => new(new Expression.Member(new Expression.Generalized(value.Node, tail.Type!), MemberAccessKind.Dot, tail.Method!, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
+			_ => new(new Expression.Member(new Expression.Generalized(value.Node, tail.Type!), MemberAccessKind.Dot, tail.Method!.Value, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
 		};
 	}
 
@@ -145,9 +132,9 @@ static class Nodes
 	{
 		return tail.Kind switch
 		{
-			Towers.AsMeasure      => new(new Expression.Invocation(new QualifiedName([name]), []) { WithoutParentheses = true, Over = tail.Over }, Towers.Value | Towers.Truth | Towers.Bare),
+			Towers.AsMeasure      => new(new Expression.Invocation(new QualifiedName(name), []) { WithoutParentheses = true, Over = tail.Over }, Towers.Value | Towers.Truth | Towers.Bare),
 			Towers.AsRoutine      => new(new Expression.Invocation(Chain(name, tail.Rest), tail.Arguments.GetValueOrDefault()), Towers.Value | Towers.Truth | Towers.Bare | Towers.Invoked),
-			Towers.AsStaticMethod => new(new Expression.Member(new Expression.Reference(Chain(name, tail.Rest)), MemberAccessKind.StaticMethod, tail.Method!, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
+			Towers.AsStaticMethod => new(new Expression.Member(new Expression.Reference(Chain(name, tail.Rest)), MemberAccessKind.StaticMethod, tail.Method!.Value, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
 			_                     => new(new Expression.Reference(Chain(name, tail.Rest)), Towers.Value | Towers.Truth | Towers.Bare | Towers.Chain),
 		};
 	}
@@ -222,7 +209,7 @@ static class Nodes
 		for (var at = 1; at < arguments.Length; at++)
 			arguments[at] = new Argument(rest![at - 1]);
 
-		return new Expression.Invocation(new QualifiedName([new Identifier(word)]), SqlList.Own(arguments));
+		return new Expression.Invocation(new QualifiedName(new Identifier(word)), SqlList.Own(arguments));
 	}
 
 	/// <summary>An array or a multiset by enumeration, empty where nothing was written, and whether its brackets were trigraphs.</summary>
@@ -458,7 +445,7 @@ static class Nodes
 	/// <summary>A name read as a key word, as the one part of a routine's name.</summary>
 	public static QualifiedName Name(string word)
 	{
-		return new([new Identifier(word)]);
+		return new(new Identifier(word));
 	}
 
 	/// <summary>A function the BNF spells out whose arguments are a comma list: its name as written, and the arguments written, in order.</summary>
@@ -1006,7 +993,7 @@ static class Nodes
 	public static CursorReference CursorName(string? scope, Expression value, bool ptf)
 	{
 		return Alone(scope, value) is { } name
-			? new CursorReference(new QualifiedName([name]), null, ptf)
+			? new CursorReference(new QualifiedName(name), null, ptf)
 			: new CursorReference(null, value, ptf, IsGlobal(scope), IsLocal(scope));
 	}
 

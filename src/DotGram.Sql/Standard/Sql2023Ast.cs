@@ -41,7 +41,22 @@ public interface ISqlNode : ISqlSpan;
 internal sealed class SpellingAttribute : Attribute;
 
 // Text is the identifier as written, its quotes included. UnicodeEscape is `U&"a" UESCAPE '!'`'s character.
-public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+//
+// A value, not an object: a name is the commonest node there is, and a reference to one held a
+// pointer to a name that held a pointer to an array of pointers to its parts. The location is a
+// field all of whose values are equal, so equality and the hash stay what was written. Not readonly:
+// Locate sets the location, on the value where it is stored. default(Identifier) has no text and is
+// no name; nothing the parsers build is one.
+public record struct Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode
+{
+	SqlLocation _location;
+
+	public string Text { get; init; } = Text;
+	public IdentifierStyle Style { get; init; } = Style;
+	public char? UnicodeEscape { get; init; } = UnicodeEscape;
+
+	public readonly SqlSpan Span => _location.Span;
+
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -1700,19 +1715,126 @@ public sealed record PeriodPortion(Identifier Name, Expression From, Expression 
 public enum IdentityRestart { Continue, Restart }
 
 // --- Names and small value objects -----------------------------------------
-public sealed record QualifiedName(SqlList<Identifier> Parts) : ISqlNode
+//
+// A value, as Identifier is: the first part inline, the others, if any, in an array of their own, so a
+// one-part name costs nothing beyond what holds it. Its span is its parts' first to last; it stores
+// none. default(QualifiedName) has no parts and is no name; the writer refuses it.
+public readonly record struct QualifiedName : ISqlNode
 {
-	SqlLocation _location;
-	Type EqualityContract => SqlLocation.Guard(GetType());
-	public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
+	readonly Identifier _first;
+	readonly Identifier[]? _rest;
+
+	/// <summary>A name of <paramref name="first"/> and the parts after it, the array taken as it is.</summary>
+	public QualifiedName(Identifier first, Identifier[]? rest = null)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length));
+		_first = first;
+		_rest  = rest is { Length: > 0 } ? rest : null;
+	}
+
+	public QualifiedName(SqlList<Identifier> parts)
+	{
+		if (parts.IsEmpty)
+			throw new ArgumentException("A name has a part at least.", nameof(parts));
+
+		_first = parts[0];
+		_rest  = parts.Length > 1 ? parts.AsSpan().Slice(1).ToArray() : null;
 	}
 
 	public static QualifiedName Of(params Identifier[] parts)
 	{
 		return new(SqlList.From(parts));
+	}
+
+	/// <summary>How many parts the name has; none only for default.</summary>
+	public int Count => _first.Text is null ? 0 : 1 + (_rest?.Length ?? 0);
+
+	public Identifier this[int index] => index == 0 && _first.Text is not null ? _first : _rest is not null && (uint)(index - 1) < (uint)_rest.Length ? _rest[index - 1] : throw new ArgumentOutOfRangeException(nameof(index));
+
+	public Identifier First => _first;
+
+	public Identifier Last => _rest is { } rest ? rest[rest.Length - 1] : _first;
+
+	/// <summary>The parts as a list, made on each call.</summary>
+	public SqlList<Identifier> Parts
+	{
+		get
+		{
+			if (_first.Text is null)
+				return default;
+
+			var parts = new Identifier[1 + (_rest?.Length ?? 0)];
+
+			parts[0] = _first;
+			_rest?.CopyTo(parts, 1);
+
+			return SqlList.Own(parts);
+		}
+	}
+
+	public SqlSpan Span
+	{
+		get
+		{
+			var first = _first.Span;
+
+			if (_rest is null || !first.Known)
+				return first;
+
+			var last = _rest[_rest.Length - 1].Span;
+
+			return new SqlSpan(first.At, last.At + last.Length - first.At);
+		}
+	}
+
+	/// <summary>Nothing to keep: the span is the parts'.</summary>
+	public void Locate(int at, int length)
+	{
+	}
+
+	public bool Equals(QualifiedName other)
+	{
+		if (!_first.Equals(other._first))
+			return false;
+
+		return new SqlList<Identifier>(_rest).Equals(new SqlList<Identifier>(other._rest));
+	}
+
+	public override int GetHashCode()
+	{
+		return SqlHash.Finish(SqlHash.Add(SqlHash.Add(SqlHash.Start(Count), _first.GetHashCode()), new SqlList<Identifier>(_rest).GetHashCode()));
+	}
+
+	bool PrintMembers(System.Text.StringBuilder builder)
+	{
+		builder.Append("Parts = ");
+		builder.Append(Parts.ToString());
+
+		return true;
+	}
+
+	public Enumerator GetEnumerator()
+	{
+		return new Enumerator(this);
+	}
+
+	/// <summary>What <c>foreach</c> over a name walks with.</summary>
+	public struct Enumerator
+	{
+		readonly QualifiedName _name;
+		int                    _at;
+
+		internal Enumerator(QualifiedName name)
+		{
+			_name = name;
+			_at   = -1;
+		}
+
+		public readonly Identifier Current => _name[_at];
+
+		public bool MoveNext()
+		{
+			return ++_at < _name.Count;
+		}
 	}
 }
 public sealed record CharacterSetName(QualifiedName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;

@@ -131,7 +131,7 @@ namespace Lexical
 	// parts a simple comment runs to a line break, as §5.2's <simple comment> does; a comment that no line
 	// break ends is not followed by a part, and the literal ends before it.
 	PartSeparator = (LineComment | BracketedComment | Whitespace)+
-	LineComment   = "--" & [^ '\n' | '\r' | '\u0085' | ' ' | ' ']* & ['\n' | '\r' | '\u0085' | ' ' | ' ']
+	LineComment   = "--" & [^ '\n' | '\r' | '\u0085' | '\u2028' | '\u2029']* & ['\n' | '\r' | '\u0085' | '\u2028' | '\u2029']
 
 	// <character set name> as it stands after an introducer: a schema's name, and a catalog's
 	// before it, and then an <SQL language identifier>. Said as a run, since a name the chain
@@ -843,7 +843,7 @@ CollectionValueConstructor : @Expression
 SQLArgumentList : @Sql.SqlList<Argument> = '(' & { first: SQLArgument & (',' & rest: SQLArgument)* }? & ')' => @(Nodes.Arguments(first, rest))
 SQLArgument : @Argument
 	= n: Identifier & "=>" & v: ArgumentValue => @(new Argument(v, n, true))
-	| v: ValueNode & ("AS"i & t: PathResolvedUserDefinedTypeName)? => @(new Argument(t is null ? v : new Expression.Generalized(v, new DataType.UserDefined(t))))
+	| v: ValueNode & ("AS"i & t: PathResolvedUserDefinedTypeName)? => @(new Argument(t is { } type ? new Expression.Generalized(v, new DataType.UserDefined(type)) : v))
 	| v: ContextuallyTypedValueSpecification => @(new Argument(v))
 ArgumentValue : @Expression = v: ValueNode => @(v)
                             | v: ContextuallyTypedValueSpecification => @(v)
@@ -911,7 +911,7 @@ StringValueFunction : @Expression
 	| w: ("BTRIM"i | "LTRIM"i | "RTRIM"i) & '(' & v: CharacterValueExpression & (',' & characters: CharacterNode)? & ')' => @(Nodes.Call(w, v.Node, characters))
 	| overlay: OverlayFunction => @(overlay)
 	| "NORMALIZE"i & '(' & v: CharacterValueExpression & (',' & form: NormalForm & (',' & length: CharacterLargeObjectLength)?)? & ')' => @(Nodes.Normalized(v.Node, form, length))
-	| w: "CLASSIFIER"i & '(' & variable: Identifier? & ')' => @(Nodes.Call(w, variable is null ? null : new Expression.Reference(new QualifiedName([variable]))))
+	| w: "CLASSIFIER"i & '(' & variable: Identifier? & ')' => @(Nodes.Call(w, variable is { } name ? new Expression.Reference(new QualifiedName(name)) : null))
 
 // <character substring function>, <binary substring function>, <regular expression substring
 // function>. All three begin with the string, which is read once and what follows it says which: the
@@ -1538,7 +1538,7 @@ ForPortionOf : @PeriodPortion = "FOR"i & "PORTION"i & "OF"i & n: Identifier & "F
 
 // <cursor name>, a <local qualified name>.
 CursorName : @QualifiedName = m: "MODULE"i & '.' & i: Identifier => @(Nodes.Named(m, i))
-                            | i: Identifier => @(new QualifiedName([i]))
+                            | i: Identifier => @(new QualifiedName(i))
 
 // ── §14.11 Insert statement ─────────────────────────────────────────────────
 
@@ -1694,7 +1694,7 @@ SchemaNameClause : @Nodes.SchemaNaming
 	| n: SchemaName => @(new Nodes.SchemaNaming(n, null))
 
 SchemaCharacterSetOrPath : @Nodes.SchemaDefaults
-	= c: SchemaCharacterSetSpecification & ("PATH"i & first: SchemaName & (',' & rest: SchemaName)*)? => @(new Nodes.SchemaDefaults(c, first is null ? null : new PathSpecification(Nodes.List(first, rest)), false))
+	= c: SchemaCharacterSetSpecification & ("PATH"i & first: SchemaName & (',' & rest: SchemaName)*)? => @(new Nodes.SchemaDefaults(c, first is { } schema ? new PathSpecification(Nodes.List(schema, rest)) : null, false))
 	| "PATH"i & first: SchemaName & (',' & rest: SchemaName)* & c: SchemaCharacterSetSpecification? => @(new Nodes.SchemaDefaults(c, new PathSpecification(Nodes.List(first, rest)), true))
 
 SchemaCharacterSetSpecification : @CharacterSetName = "DEFAULT"i & "CHARACTER"i & "SET"i & c: CharacterSetSpecification => @(c)
@@ -1992,7 +1992,7 @@ MethodSpecificationDesignator : @RoutineDefinition
 	= "SPECIFIC"i & "METHOD"i & n: SchemaQualifiedName
 	  => @(new RoutineDefinition(RoutineKind.Method, n, [], null, [], null!, SpecificMethod: true))
 	| m: ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & k: MethodName & p: SQLParameterDeclarationList & r: ReturnsClause? & "FOR"i & t: SchemaQualifiedName
-	  => @(new RoutineDefinition(RoutineKind.Method, new QualifiedName([k]), p, r, [], null!, Nodes.Method(m).Modifier, t))
+	  => @(new RoutineDefinition(RoutineKind.Method, new QualifiedName(k), p, r, [], null!, Nodes.Method(m).Modifier, t))
 
 SQLParameterDeclarationList : @Sql.SqlList<ParameterDefinition> = '(' & { first: SQLParameterDeclaration & (',' & rest: SQLParameterDeclaration)* }? & ')' => @(Nodes.ListOrEmpty(first, rest))
 
