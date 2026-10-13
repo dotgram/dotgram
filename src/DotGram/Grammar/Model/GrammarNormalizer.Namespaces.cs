@@ -1285,15 +1285,49 @@ public sealed partial class GrammarNormalizer
 		// own type from it: those follow the replacement, and a rebinding that changes the
 		// type is what a `with` on a publication is for — one grammar, an `int` calculator
 		// and a `decimal` one, differing in the rule that says what a number is.
+		_misread = null;
+
 		if (Follows(binding.Left, readers, actual))
 			return;
 
-		if (!_resolver.IsAssignable(actual, expected))
+		if (_resolver.IsAssignable(actual, expected))
+			return;
+
+		// Said of the rule that expects the old type where one does, by the names the author
+		// wrote: a copy a specialization made is named after the rule it copies.
+		if (_misread is ({ } reader, { } read, var wants, { } finds))
+			Report(
+				IncompatibleRebinding,
+				$"'{binding.Right}' cannot replace '{binding.Left}': '{Written(reader).Name}' reads " +
+				$"'{Written(read).Name}' expecting '{wants ?? expected}', and with the replacement it is " +
+				$"'{finds}'. Declare '{Written(reader).Name}' as ': {Written(read).Name}' so that its type " +
+				$"follows the rule it reads (§4.1), or replace '{binding.Left}' with a rule whose result " +
+				$"converts to '{expected}'.",
+				binding.At);
+		else
 			Report(
 				IncompatibleRebinding,
 				$"'{binding.Right}' cannot replace '{binding.Left}': expected a result " +
 				$"compatible with '{expected}', found '{actual}'.",
 				binding.At);
+	}
+
+	/// <summary>
+	/// The first rule <see cref="Follows(RuleSymbol, IReadOnlyCollection{RuleSymbol}, string)"/>
+	/// found expecting something particular: the reader, the rule it reads, the type it expects
+	/// (null: the replaced rule's own) and the type it would be handed.
+	/// </summary>
+	(RuleSymbol Reader, RuleSymbol Read, string? Wants, string Finds)? _misread;
+
+	/// <summary>The rule the author wrote that <paramref name="rule"/> is, or is a copy of.</summary>
+	RuleSymbol Written(RuleSymbol rule)
+	{
+		var seen = new HashSet<RuleSymbol>();
+
+		while (_cloneOf.TryGetValue(rule, out var made) && seen.Add(rule))
+			rule = made;
+
+		return rule;
 	}
 
 	/// <summary>
@@ -1326,11 +1360,11 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	bool Follows(RuleSymbol replaced, IReadOnlyCollection<RuleSymbol>? readers, string actual)
 	{
-		return readers is not null ? Follows(replaced, true, [], readers, actual) : FollowsHere(replaced);
+		return readers is not null ? Follows(replaced, true, [], readers, actual) : FollowsHere(replaced, actual);
 	}
 
 	/// <summary>The same, asked only of the captures of the rule itself and of its site's clone.</summary>
-	bool FollowsHere(RuleSymbol replaced)
+	bool FollowsHere(RuleSymbol replaced, string actual)
 	{
 		var read = false;
 
@@ -1349,7 +1383,11 @@ public sealed partial class GrammarNormalizer
 
 				if (!_produces.TryGetValue(rule, out var produces) ||
 					!ReferenceEquals(produces.Produces, called))
+				{
+					_misread = (rule, called, null, actual);
+
 					return false;
+				}
 
 				read = true;
 			}
@@ -1407,8 +1445,12 @@ public sealed partial class GrammarNormalizer
 
 				if (!ReferenceEquals(TypeSource(rule), TypeSource(called)))
 				{
-					if (!top && _types.TryGetValue(rule, out var reads) && _resolver.IsAssignable(actual, reads))
+					var reads = _types.TryGetValue(rule, out var declared) ? declared : null;
+
+					if (!top && reads is not null && _resolver.IsAssignable(actual, reads))
 						continue;
+
+					_misread = (rule, called, top ? null : reads, actual);
 
 					return false;
 				}
