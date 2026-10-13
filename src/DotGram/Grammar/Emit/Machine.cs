@@ -1896,7 +1896,13 @@ sealed partial class Machine
 				if (_recoveries.Count > 0)
 				{
 					file.Line("var reach   = 0;");
-					file.Line("var syncFrom = 0;");
+
+					// Read only by a recovering repetition's search for its synchronization, which a
+					// grammar whose recoveries are all out of the engine's reach does not write: a
+					// rule that recovers and is only looked ahead at is scanned, not run in states.
+					if (_recoveringStates.Exists(one => Written(one.Asked)))
+						file.Line("var syncFrom = 0;");
+
 					RecoveryLocals(file);
 				}
 
