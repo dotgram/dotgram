@@ -134,6 +134,33 @@ public sealed class Sql2023WriterCoverageTests
 		});
 	}
 
+	static readonly Identifier I = new("i");
+	static readonly Identifier C = new("c");
+
+	/// <summary><c>CREATE INDEX i ON t (a)</c>, the index given its key if it has none.</summary>
+	static Statement.CreateIndex Created(IndexDefinition index)
+	{
+		return new Statement.CreateIndex(T, index.Storage is null && index.Columns.Count == 0 ? index with { Columns = [new SortItem(A)] } : index);
+	}
+
+	/// <summary><c>ALTER FULLTEXT INDEX ON t</c> and the action given.</summary>
+	static Statement.AlterFullTextIndex FullText(FullTextAlteration action)
+	{
+		return new Statement.AlterFullTextIndex(T, action);
+	}
+
+	/// <summary><c>CREATE VIEW v AS SELECT a</c>.</summary>
+	static Statement.CreateView Viewed()
+	{
+		return new Statement.CreateView { Name = new QualifiedName([new Identifier("v")]), Query = Selected };
+	}
+
+	/// <summary><c>c</c>, set to <c>v</c>: an option whose value is a word.</summary>
+	static Option Set(string name, string value)
+	{
+		return new Option(new Identifier(name), new Expression.Reference(new QualifiedName([new Identifier(value)])), []);
+	}
+
 	static ReferencesSpecification Referenced()
 	{
 		return new ReferencesSpecification(U, [], null, null, null, null);
@@ -286,6 +313,11 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(PlacementKind)]      = v => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement((PlacementKind)v, new Identifier("fg"), null)] },
 		[typeof(ColumnNullability)]  = v => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), Typed() with { Nullability = (ColumnNullability)v }, true)),
 		[typeof(ColumnPropertyKind)] = v => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(false, (ColumnPropertyKind)v, null, []), true)),
+		[typeof(XmlIndexFor)]        = v => new Statement.CreateXmlIndex(T, I, C) { Using = new Identifier("p"), For = (XmlIndexFor)v },
+		[typeof(SpatialTessellation)] = v => new Statement.CreateSpatialIndex(T, I, C) { Using = (SpatialTessellation)v },
+		[typeof(PopulationAction)]   = v => FullText(new FullTextAlteration.Population((PopulationAction)v, (PopulationAction)v == PopulationAction.Start ? PopulationKind.Full : null)),
+		[typeof(PopulationKind)]     = v => FullText(new FullTextAlteration.Population(PopulationAction.Start, (PopulationKind)v)),
+		[typeof(ViewAttribute)]      = v => Viewed() with { Attributes = [(ViewAttribute)v] },
 		[typeof(ForDirectiveKind)]   = v => Selected with
 		{
 			For = (ForDirectiveKind)v is ForDirectiveKind.IncludeNullValues or ForDirectiveKind.WithoutArrayWrapper
@@ -550,6 +582,23 @@ public sealed class Sql2023WriterCoverageTests
 			["UpdatabilityClause.Underscored"] = (
 				Declared(new CursorProperties(null, null, null, null), false, false),
 				Declared(new CursorProperties(null, null, null, null), false, true)),
+			// T-SQL's full-text index: its options without their brackets, and a setting's = left out.
+			["CreateFullTextIndex.OptionsUnbracketed"] = (
+				new Statement.CreateFullTextIndex(T, [], I) { Options = [Set("CHANGE_TRACKING", "AUTO")] },
+				new Statement.CreateFullTextIndex(T, [], I) { Options = [Set("CHANGE_TRACKING", "AUTO")], OptionsUnbracketed = true }),
+			["SetChangeTracking.EqualsOmitted"] = (
+				FullText(new FullTextAlteration.SetChangeTracking(new Identifier("AUTO"))),
+				FullText(new FullTextAlteration.SetChangeTracking(new Identifier("AUTO")) { EqualsOmitted = true })),
+			["SetStopList.EqualsOmitted"] = (
+				FullText(new FullTextAlteration.SetStopList(null, true, false)),
+				FullText(new FullTextAlteration.SetStopList(null, true, false) { EqualsOmitted = true })),
+			["SetSearchPropertyList.EqualsOmitted"] = (
+				FullText(new FullTextAlteration.SetSearchPropertyList(null, true)),
+				FullText(new FullTextAlteration.SetSearchPropertyList(null, true) { EqualsOmitted = true })),
+			// T-SQL's UPDATE STATISTICS t s, one name without its brackets.
+			["UpdateStatistics.NameUnbracketed"] = (
+				new Statement.UpdateStatistics(T) { Names = [new Identifier("s")] },
+				new Statement.UpdateStatistics(T) { Names = [new Identifier("s")], NameUnbracketed = true }),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()
@@ -644,6 +693,16 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("Enable on change tracking")]
 	[InlineData("Add on a column property")]
 	[InlineData("OnDeleteCascade on a connection")]
+	[InlineData("Unique on CREATE INDEX")]
+	[InlineData("Primary on an XML index")]
+	[InlineData("All on ALTER INDEX")]
+	[InlineData("AllPartitions on an index rebuilt")]
+	[InlineData("StatisticalSemantics on a full-text column")]
+	[InlineData("Add on a full-text column altered")]
+	[InlineData("Off against System on a stoplist")]
+	[InlineData("Off on a search property list")]
+	[InlineData("Verb on a view")]
+	[InlineData("a sequence's cache against none")]
 	public void A_flag_changes_what_is_written(string which)
 	{
 		var type = new DataType.Numeric(NumericTypeKind.Int);
@@ -735,6 +794,36 @@ public sealed class Sql2023WriterCoverageTests
 			"OnDeleteCascade on a connection" => (
 				Sql2023Writer.Write(Tabled(TableKind.Edge, new TableElement.TableConstraint(new Constraint.Connection([new EdgeConnection(T, U)], false)))),
 				Sql2023Writer.Write(Tabled(TableKind.Edge, new TableElement.TableConstraint(new Constraint.Connection([new EdgeConnection(T, U)], true))))),
+			"Unique on CREATE INDEX" => (
+				Sql2023Writer.Write(Created(new IndexDefinition(I))),
+				Sql2023Writer.Write(Created(new IndexDefinition(I) { Unique = true }))),
+			"Primary on an XML index" => (
+				Sql2023Writer.Write(new Statement.CreateXmlIndex(T, I, C)),
+				Sql2023Writer.Write(new Statement.CreateXmlIndex(T, I, C) { Primary = true })),
+			"All on ALTER INDEX" => (
+				Sql2023Writer.Write(new Statement.AlterIndex(T, new IndexAlteration.Disable()) { Name = I }),
+				Sql2023Writer.Write(new Statement.AlterIndex(T, new IndexAlteration.Disable()) { All = true })),
+			"AllPartitions on an index rebuilt" => (
+				Sql2023Writer.Write(new Statement.AlterIndex(T, new IndexAlteration.Rebuild(null, false, [])) { Name = I }),
+				Sql2023Writer.Write(new Statement.AlterIndex(T, new IndexAlteration.Rebuild(null, true, [])) { Name = I })),
+			"StatisticalSemantics on a full-text column" => (
+				Sql2023Writer.Write(FullText(new FullTextAlteration.AddColumns([new FullTextIndexColumn(C)]))),
+				Sql2023Writer.Write(FullText(new FullTextAlteration.AddColumns([new FullTextIndexColumn(C) { StatisticalSemantics = true }])))),
+			"Add on a full-text column altered" => (
+				Sql2023Writer.Write(FullText(new FullTextAlteration.AlterColumn(new FullTextIndexColumn(C), false))),
+				Sql2023Writer.Write(FullText(new FullTextAlteration.AlterColumn(new FullTextIndexColumn(C), true)))),
+			"Off against System on a stoplist" => (
+				Sql2023Writer.Write(FullText(new FullTextAlteration.SetStopList(null, false, true))),
+				Sql2023Writer.Write(FullText(new FullTextAlteration.SetStopList(null, true, false)))),
+			"Off on a search property list" => (
+				Sql2023Writer.Write(FullText(new FullTextAlteration.SetSearchPropertyList(new Identifier("p"), false))),
+				Sql2023Writer.Write(FullText(new FullTextAlteration.SetSearchPropertyList(null, true)))),
+			"Verb on a view" => (
+				Sql2023Writer.Write(Viewed() with { Verb = DefinitionVerb.Alter }),
+				Sql2023Writer.Write(Viewed() with { Verb = DefinitionVerb.CreateOrAlter })),
+			"a sequence's cache against none" => (
+				Sql2023Writer.Write(new Statement.CreateSequence { Name = T, Options = [new SequenceOption.Cache(null)] }),
+				Sql2023Writer.Write(new Statement.CreateSequence { Name = T, Options = [new SequenceOption.NoCache()] })),
 			"Max on a character type" => (
 				Sql2023Writer.Write(new DataType.Character(CharacterTypeKind.Varchar)),
 				Sql2023Writer.Write(new DataType.Character(CharacterTypeKind.Varchar, Max: true))),
@@ -1019,6 +1108,57 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("PERSISTED on a typed column")]
 	[InlineData("an encryption after FILESTREAM")]
 	[InlineData("a plain ALL among CHECK CONSTRAINT's names")]
+	[InlineData("a relational index with no column")]
+	[InlineData("an ORDER on a relational index")]
+	[InlineData("UNIQUE on a columnstore index")]
+	[InlineData("INCLUDE on a columnstore index")]
+	[InlineData("FILESTREAM_ON on a columnstore index")]
+	[InlineData("a hash index made by CREATE INDEX")]
+	[InlineData("FILESTREAM_ON before ON")]
+	[InlineData("TEXTIMAGE_ON on an index")]
+	[InlineData("a primary XML index built over another")]
+	[InlineData("USING XML INDEX without FOR")]
+	[InlineData("FOR without USING XML INDEX")]
+	[InlineData("a spatial index on a partition scheme")]
+	[InlineData("a spatial option with options of its own")]
+	[InlineData("ALTER INDEX of ALL and a name")]
+	[InlineData("ALTER INDEX of neither ALL nor a name")]
+	[InlineData("ALTER INDEX of a plain ALL name")]
+	[InlineData("a rebuild of all partitions and one")]
+	[InlineData("a rebuilt partition that is a plain ALL")]
+	[InlineData("an index SET with no option")]
+	[InlineData("ALTER TABLE's ALTER INDEX other than a rebuild with options")]
+	[InlineData("a full-text index's unbracketed options with none")]
+	[InlineData("a full-text option with partitions")]
+	[InlineData("options on a full-text action")]
+	[InlineData("a change tracking other than MANUAL, AUTO or OFF")]
+	[InlineData("full-text columns added with none")]
+	[InlineData("a full-text column altered with a language")]
+	[InlineData("full-text columns dropped with none")]
+	[InlineData("a population started with no kind")]
+	[InlineData("a population stopped with a kind")]
+	[InlineData("a stoplist both OFF and SYSTEM")]
+	[InlineData("a stoplist of none")]
+	[InlineData("a stoplist named a plain SYSTEM")]
+	[InlineData("a search property list named and OFF")]
+	[InlineData("a search property list of none")]
+	[InlineData("a search property list named a plain OFF")]
+	[InlineData("statistics on no column")]
+	[InlineData("a SAMPLE that is not measured")]
+	[InlineData("a SAMPLE in a unit other than PERCENT or ROWS")]
+	[InlineData("a measured statistics option other than SAMPLE")]
+	[InlineData("a statistics option with options of its own")]
+	[InlineData("an unbracketed statistics name that is two")]
+	[InlineData("an unbracketed statistics name that is none")]
+	[InlineData("a table type with no element")]
+	[InlineData("a view's Verb Create")]
+	[InlineData("a view's Verb beside RECURSIVE")]
+	[InlineData("a view's attributes beside a LOCAL check option")]
+	[InlineData("a cache on an identity column")]
+	[InlineData("an option with partitions and options")]
+	[InlineData("an option with an empty list of partitions")]
+	[InlineData("a constraint dropped without its word by a name of two parts")]
+	[InlineData("NOT FOR REPLICATION dropped online")]
 	[InlineData("a plain ALL among ENABLE TRIGGER's names")]
 	[InlineData("a REBUILD partition that is a plain ALL")]
 	[InlineData("a behavior on a constraint dropped without its word")]
@@ -1220,6 +1360,57 @@ public sealed class Sql2023WriterCoverageTests
 			"ON DEFAULT with columns" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement(PlacementKind.On, new Identifier("DEFAULT"), [new Identifier("a")])] },
 			"a collation beside SET DATA TYPE" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.SetDataType(new DataType.Numeric(NumericTypeKind.Int)) { Collation = new CollationName(T) }, true)),
 			"ONLY on an INSERT's target"            => new Statement.Insert { Target = new TableSource.Named(T) { Only = true } },
+			"a relational index with no column" => new Statement.CreateIndex(T, new IndexDefinition(I)),
+			"an ORDER on a relational index" => Created(new IndexDefinition(I) { Order = [C] }),
+			"UNIQUE on a columnstore index" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Unique = true }),
+			"INCLUDE on a columnstore index" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Include = [C] }),
+			"FILESTREAM_ON on a columnstore index" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Placements = [new Placement(PlacementKind.FilestreamOn, new Identifier("fs"), null)] }),
+			"a hash index made by CREATE INDEX" => Created(new IndexDefinition(I) { Storage = IndexStorage.Hash }),
+			"FILESTREAM_ON before ON" => Created(new IndexDefinition(I) { Placements = [new Placement(PlacementKind.FilestreamOn, new Identifier("fs"), null), new Placement(PlacementKind.On, new Identifier("fg"), null)] }),
+			"TEXTIMAGE_ON on an index" => Tabled(null, Indexed(new IndexDefinition(I) { Placements = [new Placement(PlacementKind.TextImageOn, new Identifier("fg"), null)] })),
+			"a primary XML index built over another" => new Statement.CreateXmlIndex(T, I, C) { Primary = true, Using = new Identifier("p"), For = XmlIndexFor.Path },
+			"USING XML INDEX without FOR" => new Statement.CreateXmlIndex(T, I, C) { Using = new Identifier("p") },
+			"FOR without USING XML INDEX" => new Statement.CreateXmlIndex(T, I, C) { For = XmlIndexFor.Value },
+			"a spatial index on a partition scheme" => new Statement.CreateSpatialIndex(T, I, C) { Placements = [new Placement(PlacementKind.On, new Identifier("ps"), [C])] },
+			"a spatial option with options of its own" => new Statement.CreateSpatialIndex(T, I, C) { Options = [new Option(new Identifier("BOUNDING_BOX"), null, [new Option(new Identifier("XMIN"), Two, [])])] },
+			"ALTER INDEX of ALL and a name" => new Statement.AlterIndex(T, new IndexAlteration.Disable()) { Name = I, All = true },
+			"ALTER INDEX of neither ALL nor a name" => new Statement.AlterIndex(T, new IndexAlteration.Disable()),
+			"ALTER INDEX of a plain ALL name" => new Statement.AlterIndex(T, new IndexAlteration.Disable()) { Name = new Identifier("all") },
+			"a rebuild of all partitions and one" => new Statement.AlterIndex(T, new IndexAlteration.Rebuild(Two, true, [])) { Name = I },
+			"a rebuilt partition that is a plain ALL" => new Statement.AlterIndex(T, new IndexAlteration.Rebuild(new Expression.Reference(new QualifiedName([new Identifier("ALL")])), false, [])) { Name = I },
+			"an index SET with no option" => new Statement.AlterIndex(T, new IndexAlteration.SetOptions([])) { Name = I },
+			"ALTER TABLE's ALTER INDEX other than a rebuild with options" => Altered(new AlterTableAction.AlterIndex(I, new IndexAlteration.Rebuild(null, false, []))),
+			"a full-text index's unbracketed options with none" => new Statement.CreateFullTextIndex(T, [], I) { OptionsUnbracketed = true },
+			"a full-text option with partitions" => new Statement.CreateFullTextIndex(T, [], I) { Options = [Set("CHANGE_TRACKING", "AUTO") with { Partitions = [new PartitionRange(Two, null)] }] },
+			"options on a full-text action" => FullText(new FullTextAlteration.Enable { Options = [Flag("NO_POPULATION")] }),
+			"a change tracking other than MANUAL, AUTO or OFF" => FullText(new FullTextAlteration.SetChangeTracking(new Identifier("ON"))),
+			"full-text columns added with none" => FullText(new FullTextAlteration.AddColumns([])),
+			"a full-text column altered with a language" => FullText(new FullTextAlteration.AlterColumn(new FullTextIndexColumn(C) { Language = Two }, true)),
+			"full-text columns dropped with none" => FullText(new FullTextAlteration.DropColumns([])),
+			"a population started with no kind" => FullText(new FullTextAlteration.Population(PopulationAction.Start, null)),
+			"a population stopped with a kind" => FullText(new FullTextAlteration.Population(PopulationAction.Stop, PopulationKind.Full)),
+			"a stoplist both OFF and SYSTEM" => FullText(new FullTextAlteration.SetStopList(null, true, true)),
+			"a stoplist of none" => FullText(new FullTextAlteration.SetStopList(null, false, false)),
+			"a stoplist named a plain SYSTEM" => FullText(new FullTextAlteration.SetStopList(new Identifier("system"), false, false)),
+			"a search property list named and OFF" => FullText(new FullTextAlteration.SetSearchPropertyList(new Identifier("p"), true)),
+			"a search property list of none" => FullText(new FullTextAlteration.SetSearchPropertyList(null, false)),
+			"a search property list named a plain OFF" => FullText(new FullTextAlteration.SetSearchPropertyList(new Identifier("OFF"), false)),
+			"statistics on no column" => new Statement.CreateStatistics(T, new Identifier("s"), []),
+			"a SAMPLE that is not measured" => new Statement.CreateStatistics(T, new Identifier("s"), [C]) { Options = [new Option(new Identifier("SAMPLE"), Two, [])] },
+			"a SAMPLE in a unit other than PERCENT or ROWS" => new Statement.CreateStatistics(T, new Identifier("s"), [C]) { Options = [new Option(new Identifier("SAMPLE"), new Expression.Measured(Two, new Identifier("MINUTES")), [])] },
+			"a measured statistics option other than SAMPLE" => new Statement.UpdateStatistics(T) { Options = [new Option(new Identifier("MAXDOP"), new Expression.Measured(Two, new Identifier("PERCENT")), [])] },
+			"a statistics option with options of its own" => new Statement.UpdateStatistics(T) { Options = [new Option(new Identifier("RESAMPLE"), null, [Flag("X")])] },
+			"an unbracketed statistics name that is two" => new Statement.UpdateStatistics(T) { Names = [new Identifier("s"), new Identifier("r")], NameUnbracketed = true },
+			"an unbracketed statistics name that is none" => new Statement.UpdateStatistics(T) { NameUnbracketed = true },
+			"a table type with no element" => new Statement.CreateTableType(T, []),
+			"a view's Verb Create" => Viewed() with { Verb = DefinitionVerb.Create },
+			"a view's Verb beside RECURSIVE" => Viewed() with { Verb = DefinitionVerb.Alter, Recursive = true },
+			"a view's attributes beside a LOCAL check option" => Viewed() with { Attributes = [ViewAttribute.SchemaBinding], CheckOption = CheckOption.Local },
+			"a cache on an identity column" => Altered(new AlterTableAction.AlterColumn(C, new AlterColumnAction.IdentityOptions([new SequenceOption.Cache(null)]), true)),
+			"an option with partitions and options" => Altered(new AlterTableAction.Rebuild(null, false, [Set("DATA_COMPRESSION", "PAGE") with { Partitions = [new PartitionRange(Two, null)], Options = [Flag("X")] }])),
+			"an option with an empty list of partitions" => Altered(new AlterTableAction.Rebuild(null, false, [Set("DATA_COMPRESSION", "PAGE") with { Partitions = [] }])),
+			"a constraint dropped without its word by a name of two parts" => Altered(new AlterTableAction.DropConstraint(new QualifiedName([new Identifier("s"), new Identifier("c")]), null) { ConstraintKeywordOmitted = true }),
+			"NOT FOR REPLICATION dropped online" => Altered(new AlterTableAction.AlterColumn(C, new AlterColumnAction.Property(false, ColumnPropertyKind.NotForReplication, null, [Set("ONLINE", "ON")]), true)),
 			"TRUNCATE with IDENTITY and partitions" => new Statement.TruncateTable
 			{
 				Target     = new TableSource.Named(T),

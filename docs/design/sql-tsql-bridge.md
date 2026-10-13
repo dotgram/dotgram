@@ -128,6 +128,17 @@ case only where both are in the closed list of key words the writer capitalises 
 national string's `N` without case, and every other token — a name in brackets or quotes, a string, a
 number, any other word — exactly. A statement that passes only so is converted, and counted per member.
 
+## Definitions kept as text
+
+The old tree keeps CREATE STATISTICS, UPDATE STATISTICS, CREATE TYPE, CREATE SYNONYM, CREATE and ALTER
+FULLTEXT INDEX, a sequence and the action of ALTER TABLE … ALTER INDEX as a name and the text after it. The
+bridge cuts that text at its brackets and its commas outside them, and reads each part again by the grammar's
+own rule for it: a value as a select list's, a condition as a WHERE, a list of options as a table's, a list of
+partitions as TRUNCATE TABLE's, a table type's body as a table's. Each such text is in the closed list above.
+
+A view's verb is null for the plain CREATE, which is the standard's and what its parser builds; `ALTER` and
+`CREATE OR ALTER` are values of it, and `DefinitionVerb.Create`, the same text as null, is refused.
+
 ## Checks for the grammar switch
 
 Where the new tree reads a text differently from the old one, the T-SQL grammar has to build the new form
@@ -170,7 +181,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 
 | Counter | Count |
 | --- | ---: |
-| ByCase Clause.ColumnDefinition.Type | 1486 |
+| ByCase Clause.ColumnDefinition.Type | 1488 |
 | ByCase Clause.Dropped.Tail | 0 |
 | ByCase Clause.For.Kind | 20 |
 | ByCase Clause.For.Options | 44 |
@@ -178,6 +189,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Clause.Hint.Text | 28 |
 | ByCase Clause.JsonColumn.Type | 54 |
 | ByCase Clause.Option.Name | 8 |
+| ByCase Clause.Option.Partitions | 3 |
 | ByCase Clause.SystemTime.Kind | 0 |
 | ByCase Clause.TableSample.Unit | 4 |
 | ByCase Clause.Top.With | 0 |
@@ -196,16 +208,23 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Expression.WindowFunction.Within | 16 |
 | ByCase Query.Specification.Quantifier | 5 |
 | ByCase SetExpression.Transactions.IsolationLevel.Level | 0 |
-| ByCase Statement.AlterTable.Tail | 52 |
+| ByCase Statement.AlterFullTextIndex.Tail | 29 |
+| ByCase Statement.AlterTable.Tail | 54 |
+| ByCase Statement.CreateIndex.Using | 6 |
 | ByCase Statement.CursorAction.Verb | 0 |
 | ByCase Statement.Fetch.Orientation | 0 |
+| ByCase Statement.FullTextIndexDefinition.Tail | 7 |
 | ByCase Statement.Insert.Into | 1 |
 | ByCase Statement.SchemaDefinition.Tail | 2 |
 | ByCase Statement.SequenceDefinition.Tail | 1 |
+| ByCase Statement.StatisticsDefinition.Tail | 26 |
+| ByCase Statement.SynonymDefinition.Tail | 18 |
 | ByCase Statement.TableDefinition.Kind | 8 |
 | ByCase Statement.Transaction.Kind | 0 |
 | ByCase Statement.Transaction.Tail | 8 |
 | ByCase Statement.Transaction.Word | 0 |
+| ByCase Statement.TypeDefinition.Tail | 133 |
+| ByCase Statement.UpdateStatistics.Tail | 8 |
 | ByCase TableReference.Joined.Hint | 0 |
 | Meaning CAST (a AS money): a type of T-SQL's own in T-SQL, a user-defined type in the standard | 43 |
 | Meaning DATEADD (day, ...): a date part in T-SQL, a column in the standard | 6 |
@@ -222,15 +241,15 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Projected a T-SQL column's options as the standard's members | 234 |
 | Projected a key's T-SQL columns as the standard's names | 6 |
 | Recovered Alias.AsKeyword of MERGE's target | 19 |
-| Recovered Alias.AsKeyword of a table source | 926 |
-| Recovered Clause.DerivedColumn alias = expression | 378 |
+| Recovered Alias.AsKeyword of a table source | 930 |
+| Recovered Clause.DerivedColumn alias = expression | 387 |
 | Recovered Expression.Invocation without brackets | 34 |
 | Recovered Expression.Trim.FromKeyword | 0 |
 | Recovered Limit.FetchRowWord | 23 |
 | Recovered Limit.OffsetRowWord | 26 |
 | Recovered Limit.Position | 23 |
 | Recovered ReferencesSpecification.DeleteRuleFirst | 44 |
-| Recovered SelectColumn.ExpressionItem.AsKeyword | 373 |
+| Recovered SelectColumn.ExpressionItem.AsKeyword | 382 |
 | Recovered Statement.Delete.FromOmitted | 82 |
 | Recovered Statement.DropRoutine.Proc | 24 |
 | Recovered Statement.SetTransaction.Tran | 23 |
@@ -247,23 +266,23 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9322 |
 | `Expression.ColumnReference` | Values | B | gap 1 | 140: needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7); needs decision: inventory cross-cutting gaps, identifier styles (a name part `READ COMMITTED`) (6) | 9235 |
-| `Clause.Option` | Tables | C | gap 65 | 69: needs decision: inventory Clause.Option (a name of several words, `MOVE TO`) (22); needs decision: inventory Clause.Option (ON PARTITIONS, which Option has no place for) (18) | 6517 |
-| `Clause.ColumnDefinition` | Tables | B | gap 110 | 110: needs decision: inventory DataType (`decimal(max)`: a word in the brackets of a type) (21); needs decision: inventory Clause.ConstraintDefinition (a default added WITH VALUES) (11) | 3528 |
+| `Clause.Option` | Tables | C | gap 153 | 157: needs decision: inventory Clause.Option (a bracketed list of values) (34); needs decision: inventory Clause.Option (a name of several words, `MOVE TO`) (22) | 6517 |
+| `Clause.ColumnDefinition` | Tables | B | gap 112 | 112: needs decision: inventory DataType (`decimal(max)`: a word in the brackets of a type) (22); needs decision: inventory Clause.ConstraintDefinition (a default added WITH VALUES) (11) | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3358 |
 | `Clause.ColumnOption` | Tables | B | gap 103 | 103: needs decision: inventory Statement.AlterTable (ALTER COLUMN with more than a collation and a nullability) (64); needs decision: inventory Clause.ColumnOption (COLUMN_SET FOR ALL_SPARSE_COLUMNS) (39) | 2995 |
 | `Statement.Select` | Queries | B | converted 2365 | — | 2976 |
 | `Clause.DerivedColumn` | Queries | A | — | — | 2967 |
 | `TableReference.Named` | Tables | A | gap 5 | 5: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
 | `Expression.RoutineInvocation` | Values | B | gap 56 | 71: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); needs decision: inventory Expression.RoutineInvocation (the word `INT`) (8) | 2310 |
-| `Statement.TableDefinition` | Tables | B | converted 1589, gap 79 | 79: needs decision: inventory Statement.TableDefinition (CREATE EXTERNAL TABLE, which another task owns) (79) | 1906 |
-| `Clause.ConstraintDefinition` | Tables | B | gap 13 | 13: needs decision: inventory Clause.ConstraintDefinition (PRIMARY KEY with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter) (4); needs decision: inventory Clause.ConstraintDefinition (an index's FILESTREAM_ON, which IndexDefinition has no place for) (4) | 1841 |
+| `Statement.TableDefinition` | Tables | B | converted 1610, gap 79 | 79: needs decision: inventory Statement.TableDefinition (CREATE EXTERNAL TABLE, which another task owns) (79) | 1906 |
+| `Clause.ConstraintDefinition` | Tables | B | gap 36 | 36: needs decision: inventory Clause.ConstraintDefinition (an index's options without brackets, which IndexDefinition has no flag for) (25); needs decision: inventory Clause.ConstraintDefinition (PRIMARY KEY with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter) (7) | 1841 |
 | `Clause.SortSpecification` | Queries | A | — | — | 1303 |
 | `Clause.QualifiedAsterisk` | Queries | A | — | — | 1221 |
 | `Expression.Comparison` | Values | A | — | — | 841 |
-| `Statement.AlterTable` | Tables | B | converted 491, gap 42 | 42: needs decision: inventory Statement.AlterTable (ALTER) (16); needs decision: inventory Statement.AlterTable (MERGE) (7) | 644 |
+| `Statement.AlterTable` | Tables | B | converted 518, gap 19 | 19: needs decision: inventory Statement.AlterTable (MERGE) (7); needs decision: inventory Statement.AlterTable (SPLIT) (5) | 644 |
 | `Clause.EventPiece` | Server | C | — | — | 514 |
-| `Expression.NamedArgument` | Values | A | gap 39 | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
-| `Statement.CreateIndex` | Tables | C | gap 495 | 495: no target record: Statement.CreateIndex (495) | 495 |
+| `Expression.NamedArgument` | Values | A | gap 41 | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
+| `Statement.CreateIndex` | Tables | C | converted 358, gap 57 | 57: needs decision: inventory Statement.CreateIndex (SELECTIVE XML INDEX, which no record holds) (31); needs decision: inventory Statement.CreateIndex (a secondary XML index FOR a selective index's path) (13) | 495 |
 | `TableReference.FunctionCall` | Tables | A | gap 6 | 6: needs decision: inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema) (6) | 487 |
 | `Expression.Parenthesized` | Values | A | — | — | 438 |
 | `TableReference.Joined` | Tables | A | — | — | 382 |
@@ -287,7 +306,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateFunction` | Routines | B | gap 181 | 181: needs decision: inventory Statement.CreateFunction (181) | 181 |
 | `Clause.OrderBy` | Queries | B | — | — | 177 |
 | `Clause.Placement` | Tables | C | — | — | 177 |
-| `Statement.TypeDefinition` | Routines | B | gap 174 | 174: needs decision: inventory Statement.TypeDefinition (174) | 174 |
+| `Statement.TypeDefinition` | Tables | B | converted 148, gap 21 | 21: needs decision: inventory Statement.TypeDefinition (a CLR type, EXTERNAL NAME) (2); needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1) | 174 |
 | `Expression.Negate` | Values | A | — | — | 173 |
 | `Statement.SetStatement` | Procedural | C | converted 23, gap 131 | 142: no target record: Statement.SetOptions (142) | 165 |
 | `TableReference.Parenthesized` | Tables | A | — | — | 162 |
@@ -296,13 +315,13 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.WorkloadGroupDefinition` | Server | C | gap 155 | 155: no target record: Statement.CreateWorkloadGroup (155) | 155 |
 | `Statement.CreateDatabase` | Database | C | gap 154 | 154: no target record: Statement.CreateDatabase (154) | 154 |
 | `Clause.Set` | Dml | B | — | — | 151 |
-| `Statement.AlterIndex` | Tables | C | gap 148 | 148: no target record: Statement.AlterIndex (148) | 148 |
+| `Statement.AlterIndex` | Tables | C | converted 134, gap 14 | 14: needs decision: inventory Statement.AlterIndex (a selective XML index's paths) (14) | 148 |
 | `Statement.Execute` | Routines | B | gap 135 | 147: needs decision: inventory Statement.Execute (147) | 147 |
 | `Clause.References` | Tables | A | — | — | 145 |
 | `Statement.Return` | Procedural | A | converted 3 | — | 145 |
 | `Statement.Update` | Dml | A | converted 114 | — | 140 |
 | `Expression.GraphMatch` | Values | C | — | — | 131 |
-| `Expression.Hinted` | Values | C | gap 25 | 127: needs decision: inventory Expression.Hinted (127) | 127 |
+| `Expression.Hinted` | Values | C | gap 27 | 127: needs decision: inventory Expression.Hinted (127) | 127 |
 | `Expression.And` | Values | A | — | — | 122 |
 | `Statement.Transaction` | Procedural | B | converted 45, gap 64 | 67: target exists, no writer arm: Statement.BeginTransaction (33); target exists, no writer arm: Statement.SaveTransaction (21) | 119 |
 | `Statement.ServerAuditDefinition` | Server | C | gap 118 | 118: no target record: Statement.CreateServerAudit (118) | 118 |
@@ -310,21 +329,21 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Subquery` | Values | A | — | — | 113 |
 | `Statement.Grant` | Security | B | gap 108 | 108: needs decision: inventory Statement.Grant (108) | 108 |
 | `Statement.ExternalFileFormatDefinition` | Server | C | gap 101 | 101: no target record: Statement.CreateExternalFileFormat (101) | 101 |
-| `Statement.FullTextIndexDefinition` | Tables | C | gap 99 | 99: no target record: Statement.CreateFullTextIndex (99) | 99 |
+| `Statement.FullTextIndexDefinition` | Tables | C | converted 45, gap 3 | 3: needs decision: inventory Statement.FullTextIndexDefinition (a catalog after its filegroup, or a place of other words) (2); needs decision: inventory Statement.FullTextIndexDefinition (ON (catalog) in brackets without a filegroup) (1) | 99 |
 | `Expression.Member` | Values | A | — | — | 98 |
 | `Clause.Output` | Dml | C | — | — | 97 |
 | `TableReference.Derived` | Tables | A | — | — | 97 |
 | `TableReference.Pivot` | Tables | C | — | — | 93 |
-| `Statement.AlterFullTextIndex` | Tables | C | gap 92 | 92: no target record: Statement.AlterFullTextIndex (92) | 92 |
+| `Statement.AlterFullTextIndex` | Tables | C | converted 70, gap 22 | 22: needs decision: inventory Statement.AlterFullTextIndex (WITH NO POPULATION, which no Option of one name says) (22) | 92 |
 | `Statement.ExternalDataSourceDefinition` | Server | C | gap 92 | 92: no target record: Statement.CreateExternalDataSource (92) | 92 |
 | `Statement.SetVariable` | Procedural | C | gap 78 | 89: no target record: Statement.SetVariable (89) | 89 |
 | `Clause.DatabaseFile` | Database | C | — | — | 88 |
 | `Statement.ResourcePoolDefinition` | Server | C | gap 86 | 86: no target record: Statement.CreateResourcePool (86) | 86 |
 | `Clause.Top` | Queries | C | — | — | 84 |
 | `Query.TableValueConstructor` | Queries | A | — | — | 84 |
-| `Statement.ViewDefinition` | Tables | B | gap 84 | 84: needs decision: inventory Statement.ViewDefinition (84) | 84 |
+| `Statement.ViewDefinition` | Tables | B | converted 43, gap 37 | 37: needs decision: inventory Statement.ViewDefinition (CREATE MATERIALIZED VIEW, Synapse's) (37) | 84 |
 | `Query.FromFile` | Dml | C | — | — | 83 |
-| `Clause.Dropped` | Tables | B | gap 4 | 4: needs decision: inventory Clause.Dropped (INDEX) (2); needs decision: inventory Clause.Dropped (a period or an index, which no action holds) (2) | 82 |
+| `Clause.Dropped` | Tables | B | gap 2 | 2: needs decision: inventory Clause.Dropped (a period or an index, which no action holds) (2) | 82 |
 | `Clause.For` | Queries | C | — | — | 82 |
 | `Statement.ExternalResourcePoolDefinition` | Server | C | gap 79 | 79: no target record: Statement.CreateExternalResourcePool (79) | 79 |
 | `Statement.Print` | Procedural | C | gap 38 | 70: no target record: Statement.Print (70) | 75 |
@@ -350,14 +369,14 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.TriggerSwitch` | Routines | C | gap 44 | 47: no target record: Statement.EnableTrigger (47) | 51 |
 | `Statement.QueueDefinition` | Server | C | gap 48 | 48: no target record: Statement.CreateQueue (48) | 48 |
 | `Statement.If` | Procedural | C | gap 23 | 37: no target record: Statement.If (37) | 47 |
-| `Statement.SequenceDefinition` | Routines | A | converted 29, gap 18 | 18: no target record: SequenceOption has no CACHE (inventory Statement.SequenceDefinition) (17); needs decision: inventory cross-cutting gaps, identifier styles (a name part ` TestSeq`) (1) | 47 |
+| `Statement.SequenceDefinition` | Tables | A | converted 46, gap 1 | 1: needs decision: inventory cross-cutting gaps, identifier styles (a name part ` TestSeq`) (1) | 47 |
 | `Statement.AlterFullTextStopList` | Database | C | gap 46 | 46: no target record: Statement.AlterFullTextStopList (46) | 46 |
 | `Statement.RestoreDatabase` | Database | C | gap 46 | 46: no target record: Statement.RestoreDatabase (46) | 46 |
 | `Statement.AuditSpecificationDefinition` | Server | C | gap 45 | 45: no target record: Statement.CreateServerAuditSpecification (45) | 45 |
 | `Statement.AssemblyDefinition` | Routines | C | gap 44 | 44: no target record: Statement.CreateAssembly (44) | 44 |
 | `Statement.AsymmetricKeyDefinition` | Security | C | gap 43 | 43: no target record: Statement.CreateAsymmetricKey (43) | 43 |
-| `Statement.StatisticsDefinition` | Tables | C | gap 43 | 43: no target record: Statement.CreateStatistics (43) | 43 |
-| `Statement.UpdateStatistics` | Tables | C | gap 41 | 43: no target record: Statement.UpdateStatistics (43) | 43 |
+| `Statement.StatisticsDefinition` | Tables | C | converted 43 | — | 43 |
+| `Statement.UpdateStatistics` | Tables | C | converted 41 | — | 43 |
 | `Clause.Into` | Queries | C | — | — | 41 |
 | `Expression.Multiply` | Values | A | — | — | 41 |
 | `Statement.EndConversation` | Server | C | gap 27 | 34: no target record: Statement.EndConversation (34) | 41 |
@@ -389,7 +408,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Aliased` | Values | A | — | 29: needs decision: inventory Expression.Aliased (29) | 29 |
 | `Expression.In` | Values | A | — | — | 29 |
 | `Statement.AlterResourceGovernor` | Server | C | gap 29 | 29: no target record: Statement.AlterResourceGovernor (29) | 29 |
-| `Statement.SynonymDefinition` | Routines | C | gap 29 | 29: no target record: Statement.CreateSynonym (29) | 29 |
+| `Statement.SynonymDefinition` | Tables | C | converted 29 | — | 29 |
 | `TableReference.Changed` | Dml | A | — | — | 29 |
 | `Query.DefaultValues` | Dml | A | — | — | 28 |
 | `Statement.Kill` | Server | C | gap 28 | 28: no target record: Statement.Kill (28) | 28 |

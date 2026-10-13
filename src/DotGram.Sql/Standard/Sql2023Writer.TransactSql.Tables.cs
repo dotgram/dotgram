@@ -52,9 +52,10 @@ public static partial class Sql2023Writer
 
 					return true;
 
+				// T-SQL: ALTER TABLE (Transact-SQL). One index may be added alone; one column or constraint is the standard's.
 				case AlterTableAction.Add add:
-					if (add.Elements.Count < 2)
-						throw Misplaced(add, "Elements", "fewer than two, which the standard's AddColumn or AddConstraint holds");
+					if (add.Elements is not ({ Count: > 1 } or [TableElement.Index]))
+						throw Misplaced(add, "Elements", "fewer than two and not one index, which the standard's AddColumn or AddConstraint holds");
 
 					Word("ADD");
 					Each(add.Elements, PutElement);
@@ -129,6 +130,11 @@ public static partial class Sql2023Writer
 					if ((property.MaskFunction is not null) != (property.Add && property.Kind == ColumnPropertyKind.Masked))
 						throw Misplaced(property, "MaskFunction", "other than on ADD MASKED, which must have one");
 
+					// Four properties change offline only: `DROP NOT FOR REPLICATION WITH (ONLINE = ON)` is not read, `ONLINE = OFF` is.
+					if (property.Kind is ColumnPropertyKind.RowGuidCol or ColumnPropertyKind.NotForReplication or ColumnPropertyKind.Persisted or ColumnPropertyKind.Hidden
+						&& property.Options.Any(static one => Plain(one.Name, "ONLINE") && one.Value is Expression.Reference { Name.Parts: [var on] } && Plain(on, "ON")))
+						throw Misplaced(property, "Options", $"with ONLINE = ON on {property.Kind}, which changes offline only");
+
 					Word(property.Add ? "ADD" : "DROP");
 					Word(property.Kind switch
 					{
@@ -145,6 +151,189 @@ public static partial class Sql2023Writer
 						PutMask(property, function);
 
 					PutOptions(property.Options);
+					return true;
+
+				// T-SQL: ALTER TABLE (Transact-SQL). A memory-optimized table's index, rebuilt with options and nothing else.
+				case AlterTableAction.AlterIndex alter:
+					if (alter.Action is not IndexAlteration.Rebuild { Partition: null, AllPartitions: false, Options.Count: > 0 })
+						throw Misplaced(alter, "Action", "other than a REBUILD with options and no partition, which is all ALTER TABLE reads");
+
+					Word("ALTER INDEX");
+					PutIdentifier(alter.Name);
+					PutIndexAlteration(alter.Action);
+					return true;
+
+				case AlterTableAction.DropIndex drop:
+					Word("DROP INDEX");
+					PutIdentifier(drop.Name);
+					return true;
+
+				case Statement.CreateIndex create:
+					PutCreateIndex(create);
+					return true;
+
+				// T-SQL: CREATE XML INDEX (Transact-SQL). A secondary index says what it is built over and which it is;
+				// a primary one says neither.
+				case Statement.CreateXmlIndex xml:
+					if (xml.Primary && xml.Using is not null)
+						throw Both(xml, "Primary", "Using");
+
+					if ((xml.Using is null) != (xml.For is null))
+						throw Misplaced(xml, "Using or For", "without the other, which a secondary index says together");
+
+					Word(xml.Primary ? "CREATE PRIMARY XML INDEX" : "CREATE XML INDEX");
+					PutIdentifier(xml.Name);
+					Word("ON");
+					PutName(xml.Table);
+					Open();
+					PutIdentifier(xml.Column);
+					Close();
+
+					if (xml.Using is { } over)
+					{
+						Word("USING XML INDEX");
+						PutIdentifier(over);
+						Word(xml.For switch
+						{
+							XmlIndexFor.Value    => "FOR VALUE",
+							XmlIndexFor.Path     => "FOR PATH",
+							XmlIndexFor.Property => "FOR PROPERTY",
+							_                    => throw NoText(xml.For!.Value),
+						});
+					}
+
+					PutOptions(xml.Options);
+					return true;
+
+				// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). One column, the grid, the options, and a filegroup alone.
+				case Statement.CreateSpatialIndex spatial:
+					if (spatial.Placements is not ([] or [{ Kind: PlacementKind.On, Columns: null }]))
+						throw Misplaced(spatial, "Placements", "other than one ON a filegroup");
+
+					Word("CREATE SPATIAL INDEX");
+					PutIdentifier(spatial.Name);
+					Word("ON");
+					PutName(spatial.Table);
+					Open();
+					PutIdentifier(spatial.Column);
+					Close();
+
+					if (spatial.Using is { } grid)
+						Word(grid switch
+						{
+							SpatialTessellation.GeometryGrid      => "USING GEOMETRY_GRID",
+							SpatialTessellation.GeographyGrid     => "USING GEOGRAPHY_GRID",
+							SpatialTessellation.GeometryAutoGrid  => "USING GEOMETRY_AUTO_GRID",
+							SpatialTessellation.GeographyAutoGrid => "USING GEOGRAPHY_AUTO_GRID",
+							_                                     => throw NoText(grid),
+						});
+
+					PutPlainOptions(spatial, spatial.Options, partitions: false);
+
+					foreach (var placement in spatial.Placements)
+						PutPlacement(placement);
+
+					return true;
+
+				// T-SQL: ALTER INDEX (Transact-SQL). One index or ALL, never both or neither.
+				case Statement.AlterIndex alter:
+					if (alter.All == (alter.Name is not null))
+						throw alter.All ? Both(alter, "All", "Name") : Empty(alter, "All", "Name");
+
+					if (alter.Name is { } name && Plain(name, "ALL"))
+						throw Misplaced(alter, "Name", "that is a plain ALL, which reads back as All");
+
+					Word("ALTER INDEX");
+
+					if (alter.All)
+						Word("ALL");
+					else
+						PutIdentifier(alter.Name!);
+
+					Word("ON");
+					PutName(alter.Table);
+					PutIndexAlteration(alter.Action);
+					return true;
+
+				case Statement.CreateFullTextIndex fullText:
+					PutCreateFullTextIndex(fullText);
+					return true;
+
+				case Statement.AlterFullTextIndex alter:
+					Word("ALTER FULLTEXT INDEX ON");
+					PutName(alter.Table);
+					PutFullTextAlteration(alter.Action);
+					return true;
+
+				// T-SQL: CREATE STATISTICS (Transact-SQL). The columns, the filter, and the options without brackets.
+				case Statement.CreateStatistics statistics:
+					if (statistics.Columns.Count == 0)
+						throw Empty(statistics, "Columns");
+
+					Word("CREATE STATISTICS");
+					PutIdentifier(statistics.Name);
+					Word("ON");
+					PutName(statistics.Table);
+					Open();
+					Each(statistics.Columns, PutIdentifier);
+					Close();
+
+					if (statistics.Where is { } where)
+					{
+						Word("WHERE");
+						PutExpression(where);
+					}
+
+					PutStatisticsOptions(statistics.Options);
+					return true;
+
+				// T-SQL: UPDATE STATISTICS (Transact-SQL). Names in brackets, or one without them.
+				case Statement.UpdateStatistics update:
+					if (update.NameUnbracketed && update.Names.Count != 1)
+						throw Misplaced(update, "NameUnbracketed", "with other than one name");
+
+					Word("UPDATE STATISTICS");
+					PutName(update.Table);
+
+					if (update.NameUnbracketed)
+						PutIdentifier(update.Names[0]);
+					else if (update.Names.Count > 0)
+					{
+						Open();
+						Each(update.Names, PutIdentifier);
+						Close();
+					}
+
+					PutStatisticsOptions(update.Options);
+					return true;
+
+				case Statement.CreateTableType type:
+					if (type.Elements.Count == 0)
+						throw Empty(type, "Elements");
+
+					Word("CREATE TYPE");
+					PutName(type.Name);
+					Word("AS TABLE");
+					PutElements(type.Elements);
+					PutOptions(type.Options);
+					return true;
+
+				case Statement.CreateAliasType alias:
+					Word("CREATE TYPE");
+					PutName(alias.Name);
+					Word("FROM");
+					PutType(alias.Base);
+
+					if (alias.Nullability is { } nullability)
+						Word(nullability == ColumnNullability.Null ? "NULL" : nullability == ColumnNullability.NotNull ? "NOT NULL" : throw NoText(nullability));
+
+					return true;
+
+				case Statement.CreateSynonym synonym:
+					Word("CREATE SYNONYM");
+					PutName(synonym.Name);
+					Word("FOR");
+					PutName(synonym.Target);
 					return true;
 
 				default:
@@ -471,7 +660,7 @@ public static partial class Sql2023Writer
 
 		/// <summary>
 		/// T-SQL: CREATE TABLE (Transact-SQL). <c>INDEX i [UNIQUE] [CLUSTERED | NONCLUSTERED] [COLUMNSTORE | HASH]
-		/// (…) [INCLUDE (…)] [WHERE …] [WITH (…)] [ON …]</c>, at the table or on a column.
+		/// (…) [ORDER (…)] [INCLUDE (…)] [WHERE …] [WITH (…)] [ON …] [FILESTREAM_ON …]</c>, at the table or on a column.
 		/// </summary>
 		void PutIndexDefinition(IndexDefinition index)
 		{
@@ -486,31 +675,7 @@ public static partial class Sql2023Writer
 			if (index.Storage is { } storage)
 				Word(storage == IndexStorage.Columnstore ? "COLUMNSTORE" : storage == IndexStorage.Hash ? "HASH" : throw NoText(storage));
 
-			if (index.Columns.Count > 0)
-			{
-				Open();
-				PutSorts(new OrderByClause(index.Columns));
-				Close();
-			}
-
-			if (index.Include.Count > 0)
-			{
-				Word("INCLUDE");
-				Open();
-				Each(index.Include, PutIdentifier);
-				Close();
-			}
-
-			if (index.Where is { } where)
-			{
-				Word("WHERE");
-				PutExpression(where);
-			}
-
-			PutOptions(index.Options);
-
-			if (index.On is { } on)
-				PutPlacement(on, PlacementKind.On);
+			PutIndexBody(index);
 		}
 
 		void PutClustering(IndexClustering? clustering)
@@ -650,6 +815,10 @@ public static partial class Sql2023Writer
 			if (constraint.ConstraintKeywordOmitted && constraint.Behavior is not null)
 				throw Misplaced(constraint, "Behavior", "with ConstraintKeywordOmitted, which reads back as a column dropped");
 
+			// `DROP s.c` does not read: a constraint without its word is named by one part.
+			if (constraint.ConstraintKeywordOmitted && constraint.Name.Parts.Count > 1)
+				throw Misplaced(constraint, "Name", "of more than one part with ConstraintKeywordOmitted");
+
 			if (!constraint.ConstraintKeywordOmitted)
 				Word("CONSTRAINT");
 			else if (constraint.IfExists)
@@ -747,6 +916,12 @@ public static partial class Sql2023Writer
 				PutExpression(value);
 			}
 
+			// `DATA_COMPRESSION = PAGE ON PARTITIONS (1)`: the partitions after the value, and no options of its own beside them.
+			if (option.Partitions is not null && option.Options.Count > 0)
+				throw Both(option, "Partitions", "Options");
+
+			PutRanges(option.Partitions);
+
 			if (option.Options.Count > 0)
 			{
 				Open();
@@ -797,6 +972,468 @@ public static partial class Sql2023Writer
 				Each(columns, PutIdentifier);
 				Close();
 			}
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE INDEX (Transact-SQL), CREATE COLUMNSTORE INDEX (Transact-SQL). A relational index, its keys
+		/// required and no order; or a columnstore one, its columns and order free and no UNIQUE, INCLUDE or
+		/// FILESTREAM_ON. A hash index is declared only at the table.
+		/// </summary>
+		void PutCreateIndex(Statement.CreateIndex create)
+		{
+			var index = create.Index;
+
+			switch (index.Storage)
+			{
+				case null:
+					if (index.Columns.Count == 0)
+						throw Empty(index, "Columns");
+
+					if (index.Order.Count > 0)
+						throw Misplaced(index, "Order", "on a relational index, which CREATE INDEX writes none for");
+
+					Word("CREATE");
+
+					if (index.Unique)
+						Word("UNIQUE");
+
+					PutClustering(index.Clustering);
+					Word("INDEX");
+					break;
+
+				case IndexStorage.Columnstore:
+					if (index.Unique || index.Include.Count > 0)
+						throw Misplaced(index, "Unique or Include", "on a columnstore index");
+
+					if (index.Placements.Any(static one => one.Kind == PlacementKind.FilestreamOn))
+						throw Misplaced(index, "Placements", "with FILESTREAM_ON on a columnstore index");
+
+					Word("CREATE");
+					PutClustering(index.Clustering);
+					Word("COLUMNSTORE INDEX");
+					break;
+
+				default:
+					throw Misplaced(index, "Storage", "HASH, which CREATE INDEX has no word for");
+			}
+
+			PutIdentifier(index.Name);
+			Word("ON");
+			PutName(create.Table);
+			PutIndexBody(index);
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE INDEX (Transact-SQL). What follows an index's header, at the table or in its own statement:
+		/// <c>(…) [ORDER (…)] [INCLUDE (…)] [WHERE …] [WITH (…)] [ON …] [FILESTREAM_ON …]</c>.
+		/// </summary>
+		void PutIndexBody(IndexDefinition index)
+		{
+			if (index.Columns.Count > 0)
+			{
+				Open();
+				PutSorts(new OrderByClause(index.Columns));
+				Close();
+			}
+
+			if (index.Order.Count > 0)
+			{
+				Word("ORDER");
+				Open();
+				Each(index.Order, PutIdentifier);
+				Close();
+			}
+
+			if (index.Include.Count > 0)
+			{
+				Word("INCLUDE");
+				Open();
+				Each(index.Include, PutIdentifier);
+				Close();
+			}
+
+			if (index.Where is { } where)
+			{
+				Word("WHERE");
+				PutExpression(where);
+			}
+
+			PutOptions(index.Options);
+
+			// ON before FILESTREAM_ON, each once, as the grammar reads them.
+			if (index.Placements is not ([] or [{ Kind: PlacementKind.On or PlacementKind.FilestreamOn }] or [{ Kind: PlacementKind.On }, { Kind: PlacementKind.FilestreamOn }]))
+				throw Misplaced(index, "Placements", "other than ON and FILESTREAM_ON, each once and in that order");
+
+			foreach (var placement in index.Placements)
+				PutPlacement(placement);
+		}
+
+		/// <summary>
+		/// T-SQL: ALTER INDEX (Transact-SQL). The action: a rebuild of one partition, of all said so, or of neither; a
+		/// reorganization; the options set; a resumable rebuild disabled, resumed, paused or abandoned.
+		/// </summary>
+		void PutIndexAlteration(IndexAlteration action)
+		{
+			switch (action)
+			{
+				case IndexAlteration.Rebuild rebuild:
+					if (rebuild.AllPartitions && rebuild.Partition is not null)
+						throw Both(rebuild, "AllPartitions", "Partition");
+
+					if (rebuild.Partition is Expression.Reference { Name.Parts: [{ Style: IdentifierStyle.Regular } word] } && word.Text.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+						throw Misplaced(rebuild, "Partition", "that is a plain ALL, which reads back as AllPartitions");
+
+					Word("REBUILD");
+
+					if (rebuild.AllPartitions)
+						Word("PARTITION = ALL");
+					else if (rebuild.Partition is { } partition)
+					{
+						Word("PARTITION =");
+						PutExpression(partition);
+					}
+
+					PutOptions(rebuild.Options);
+					break;
+
+				case IndexAlteration.Reorganize reorganize:
+					Word("REORGANIZE");
+
+					if (reorganize.Partition is { } part)
+					{
+						Word("PARTITION =");
+						PutExpression(part);
+					}
+
+					PutOptions(reorganize.Options);
+					break;
+
+				case IndexAlteration.Disable:
+					Word("DISABLE");
+					break;
+
+				case IndexAlteration.SetOptions set:
+					if (set.Options.Count == 0)
+						throw Empty(set, "Options");
+
+					Word("SET");
+					Open();
+					Each(set.Options, PutOption);
+					Close();
+					break;
+
+				case IndexAlteration.Resume resume:
+					Word("RESUME");
+					PutOptions(resume.Options);
+					break;
+
+				case IndexAlteration.Pause:
+					Word("PAUSE");
+					break;
+
+				case IndexAlteration.Abort:
+					Word("ABORT");
+					break;
+
+				default:
+					throw Unwritten(action);
+			}
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). The columns, the key index, the catalog alone or in brackets with
+		/// a filegroup, and the options, bracketed or not.
+		/// </summary>
+		void PutCreateFullTextIndex(Statement.CreateFullTextIndex index)
+		{
+			if (index.OptionsUnbracketed && index.Options.Count == 0)
+				throw Misplaced(index, "OptionsUnbracketed", "without Options");
+
+			Word("CREATE FULLTEXT INDEX ON");
+			PutName(index.Table);
+
+			if (index.Columns.Count > 0)
+			{
+				Open();
+				Each(index.Columns, PutFullTextColumn);
+				Close();
+			}
+
+			Word("KEY INDEX");
+			PutIdentifier(index.KeyIndex);
+
+			if (index.FileGroup is { } fileGroup)
+			{
+				Word("ON");
+				Open();
+
+				if (index.Catalog is { } catalog)
+				{
+					PutIdentifier(catalog);
+					Tight(",");
+				}
+
+				Word("FILEGROUP");
+				PutIdentifier(fileGroup);
+				Close();
+			}
+			else if (index.Catalog is { } catalog)
+			{
+				Word("ON");
+				PutIdentifier(catalog);
+			}
+
+			if (index.OptionsUnbracketed)
+			{
+				Word("WITH");
+				Each(index.Options, one => PutPlainOption(index, one, false));
+			}
+			else
+				PutPlainOptions(index, index.Options, partitions: false);
+		}
+
+		/// <summary>T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>c [TYPE COLUMN t] [LANGUAGE l] [STATISTICAL_SEMANTICS]</c>.</summary>
+		void PutFullTextColumn(FullTextIndexColumn column)
+		{
+			PutIdentifier(column.Column);
+
+			if (column.TypeColumn is { } type)
+			{
+				Word("TYPE COLUMN");
+				PutIdentifier(type);
+			}
+
+			if (column.Language is { } language)
+			{
+				Word("LANGUAGE");
+				PutExpression(language);
+			}
+
+			if (column.StatisticalSemantics)
+				Word("STATISTICAL_SEMANTICS");
+		}
+
+		/// <summary>
+		/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). One action. The only <c>WITH</c> the statement reads is
+		/// <c>WITH NO POPULATION</c>, which no <see cref="Option"/> of one name says, so an action with options is refused.
+		/// </summary>
+		void PutFullTextAlteration(FullTextAlteration action)
+		{
+			if (action.Options.Count > 0)
+				throw Misplaced(action, "Options", "where ALTER FULLTEXT INDEX reads only WITH NO POPULATION");
+
+			switch (action)
+			{
+				case FullTextAlteration.Enable:
+					Word("ENABLE");
+					break;
+
+				case FullTextAlteration.Disable:
+					Word("DISABLE");
+					break;
+
+				// MANUAL, AUTO or OFF, and no other word.
+				case FullTextAlteration.SetChangeTracking tracking:
+					if (tracking.Mode is not { Style: IdentifierStyle.Regular, Text: var mode }
+						|| !(mode.Equals("MANUAL", StringComparison.OrdinalIgnoreCase) || mode.Equals("AUTO", StringComparison.OrdinalIgnoreCase) || mode.Equals("OFF", StringComparison.OrdinalIgnoreCase)))
+						throw Misplaced(tracking, "Mode", "other than MANUAL, AUTO or OFF");
+
+					Word("SET CHANGE_TRACKING");
+					PutEquals(tracking.EqualsOmitted);
+					PutIdentifier(tracking.Mode);
+					break;
+
+				case FullTextAlteration.AddColumns add:
+					if (add.Columns.Count == 0)
+						throw Empty(add, "Columns");
+
+					Word("ADD");
+					Open();
+					Each(add.Columns, PutFullTextColumn);
+					Close();
+					break;
+
+				case FullTextAlteration.AlterColumn alter:
+					if (alter.Column is not { TypeColumn: null, Language: null, StatisticalSemantics: false })
+						throw Misplaced(alter, "Column", "with more than its name");
+
+					Word("ALTER COLUMN");
+					PutIdentifier(alter.Column.Column);
+					Word(alter.Add ? "ADD STATISTICAL_SEMANTICS" : "DROP STATISTICAL_SEMANTICS");
+					break;
+
+				case FullTextAlteration.DropColumns drop:
+					if (drop.Columns.Count == 0)
+						throw Empty(drop, "Columns");
+
+					Word("DROP");
+					Open();
+					Each(drop.Columns, PutIdentifier);
+					Close();
+					break;
+
+				// A kind is said only when a population is started, and then always.
+				case FullTextAlteration.Population population:
+					if ((population.Action == PopulationAction.Start) != (population.Kind is not null))
+						throw Misplaced(population, "Kind", population.Kind is null ? "missing from START" : "on other than START");
+
+					Word(population.Action switch
+					{
+						PopulationAction.Start  => "START",
+						PopulationAction.Stop   => "STOP",
+						PopulationAction.Pause  => "PAUSE",
+						PopulationAction.Resume => "RESUME",
+						_                       => throw NoText(population.Action),
+					});
+
+					if (population.Kind is { } kind)
+						Word(kind switch
+						{
+							PopulationKind.Full        => "FULL",
+							PopulationKind.Incremental => "INCREMENTAL",
+							PopulationKind.Update      => "UPDATE",
+							_                          => throw NoText(kind),
+						});
+
+					Word("POPULATION");
+					break;
+
+				case FullTextAlteration.SetStopList stopList:
+					if ((stopList.Name is not null ? 1 : 0) + (stopList.Off ? 1 : 0) + (stopList.System ? 1 : 0) != 1)
+						throw Misplaced(stopList, "Name, Off and System", "other than exactly one of them");
+
+					if (stopList.Name is { } list && Plain(list, "OFF", "SYSTEM"))
+						throw Misplaced(stopList, "Name", "that is a plain OFF or SYSTEM, which reads back as the word");
+
+					Word("SET STOPLIST");
+					PutEquals(stopList.EqualsOmitted);
+
+					if (stopList.Name is { } named)
+						PutIdentifier(named);
+					else
+						Word(stopList.Off ? "OFF" : "SYSTEM");
+
+					break;
+
+				case FullTextAlteration.SetSearchPropertyList propertyList:
+					if ((propertyList.Name is not null) == propertyList.Off)
+						throw propertyList.Off ? Both(propertyList, "Name", "Off") : Empty(propertyList, "Name", "Off");
+
+					if (propertyList.Name is { } property && Plain(property, "OFF"))
+						throw Misplaced(propertyList, "Name", "that is a plain OFF, which reads back as Off");
+
+					Word("SET SEARCH PROPERTY LIST");
+					PutEquals(propertyList.EqualsOmitted);
+
+					if (propertyList.Name is { } properties)
+						PutIdentifier(properties);
+					else
+						Word("OFF");
+
+					break;
+
+				default:
+					throw Unwritten(action);
+			}
+		}
+
+		void PutEquals(bool omitted)
+		{
+			if (!omitted)
+				Word("=");
+		}
+
+		/// <summary>Whether a name is one of the words given, written plain, where the grammar would read the word.</summary>
+		static bool Plain(Identifier name, params string[] words)
+		{
+			return name.Style == IdentifierStyle.Regular && words.Any(one => name.Text.Equals(one, StringComparison.OrdinalIgnoreCase));
+		}
+
+		/// <summary>
+		/// The <c>WITH (…)</c> of a statement whose options are a name and a value each: none has options of its own, an
+		/// order, or partitions where the statement reads none.
+		/// </summary>
+		void PutPlainOptions(ISqlNode owner, SqlList<Option> options, bool partitions)
+		{
+			if (options.Count == 0)
+				return;
+
+			Word("WITH");
+			Open();
+			Each(options, one => PutPlainOption(owner, one, partitions));
+			Close();
+		}
+
+		void PutPlainOption(ISqlNode owner, Option option, bool partitions)
+		{
+			if (option.Options.Count > 0 || !partitions && option.Partitions is not null)
+				throw Misplaced(owner, "Options", "with an option that has options or partitions of its own, which this statement does not read");
+
+			PutOption(option);
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE STATISTICS (Transact-SQL), UPDATE STATISTICS (Transact-SQL). <c>WITH FULLSCAN, SAMPLE 50 PERCENT,
+		/// …</c>: no brackets, and <c>SAMPLE</c> followed by its measured value with no <c>=</c>.
+		/// </summary>
+		void PutStatisticsOptions(SqlList<Option> options)
+		{
+			if (options.Count == 0)
+				return;
+
+			Word("WITH");
+			Each(options, option =>
+			{
+				if (option.Options.Count > 0 || option.Order is not null)
+					throw Misplaced(option, "Options or Order", "on a statistics option");
+
+				// SAMPLE n PERCENT and SAMPLE n ROWS, the one measured value statistics read, and SAMPLE has no other.
+				var sample = Plain(option.Name, "SAMPLE");
+
+				if (sample && !(option.Value is Expression.Measured { Unit: var unit } && Plain(unit, "PERCENT", "ROWS")))
+					throw Misplaced(option, "Value", "on SAMPLE other than a number of PERCENT or ROWS");
+
+				if (!sample && option.Value is Expression.Measured)
+					throw Misplaced(option, "Value", "measured, on an option other than SAMPLE");
+
+				if (sample)
+				{
+					PutIdentifier(option.Name);
+					PutExpression(option.Value!);
+					PutRanges(option.Partitions);
+				}
+				else
+					PutOption(option);
+			});
+		}
+
+		/// <summary>T-SQL: ALTER TABLE index_option (Transact-SQL). <c>ON PARTITIONS (1, 3 TO 5)</c>, where there are any.</summary>
+		void PutRanges(SqlList<PartitionRange>? partitions)
+		{
+			if (partitions is not { } ranges)
+				return;
+
+			if (ranges.Count == 0)
+				throw Empty(ranges, "Partitions");
+
+			Word("ON PARTITIONS");
+			Open();
+			PutRangeList(ranges);
+			Close();
+		}
+
+		void PutRangeList(SqlList<PartitionRange> partitions)
+		{
+			Each(partitions, partition =>
+			{
+				PutExpression(partition.From);
+
+				if (partition.To is { } to)
+				{
+					Word("TO");
+					PutExpression(to);
+				}
+			});
 		}
 	}
 }
