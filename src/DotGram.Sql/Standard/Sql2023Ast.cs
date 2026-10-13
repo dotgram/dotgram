@@ -1796,6 +1796,8 @@ public readonly record struct QualifiedName : ISqlNode
 	{
 		builder.Append("Parts = ");
 		builder.Append(Parts.ToString());
+		builder.Append(", Span = ");
+		builder.Append(Span.ToString());
 
 		return true;
 	}
