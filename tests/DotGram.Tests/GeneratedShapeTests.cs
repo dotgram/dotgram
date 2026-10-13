@@ -80,4 +80,42 @@ public sealed class GeneratedShapeTests
 
 		Assert.Equal(new object?[] { 2, 3 }, EmittedCode.Found(assembly, "Grammar", "FindStart", "12 ab 345"));
 	}
+
+	// ── A recovery the engine never runs ──────────────────────────────────────
+
+	/// <summary>
+	/// A rule that recovers and is reached only through a negative lookahead compiles. The
+	/// lookahead scans the rule rather than running it in states, so no recovering repetition is
+	/// written, and the local its search for a synchronization reads was declared and never read
+	/// (CS0219, a failed build under warnings as errors).
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Ways))]
+	public void A_recovery_reached_only_by_a_negative_lookahead_compiles(CarrierKind carrier, bool direct)
+	{
+		const string stop =
+			"""
+			Stop = 'a'+ recover ';'
+			Start : @int = ?!Stop & b: (any*) => @(b.Length)
+			parse Start
+			""";
+
+		var assembly = Compiled(stop, carrier, direct);
+
+		Assert.Equal(3, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "xyz").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "aaa").IsSuccess);
+
+		const string list =
+			"""
+			E = 'x'+
+			R = (E & ';')* recover ';' & '.'
+			Start = ?!R & E
+			parse Start
+			""";
+
+		assembly = Compiled(list, carrier, direct);
+
+		Assert.Equal("xx", EmittedCode.Match(assembly, "Grammar", "TryParseStart", "xx").Value);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "x;x;.").IsSuccess);
+	}
 }
