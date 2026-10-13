@@ -111,6 +111,30 @@ public sealed class ExampleTests
 		return path;
 	}
 
+	/// <summary>
+	/// Every C# file of the examples project is a demo a reader copies, and the README that
+	/// introduces them links each one; a grammar that is not a demo belongs under the tests
+	/// or the benchmarks instead.
+	/// </summary>
+	[Fact]
+	public void Every_example_file_is_listed_in_the_README()
+	{
+		var repository = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(ThisFile)))!;
+		var examples   = Path.Combine(repository, "examples");
+		var project    = Path.Combine(examples, "DotGram.Examples");
+		var readme     = File.ReadAllText(Path.Combine(examples, "README.md"));
+
+		var missing = Directory
+			.EnumerateFiles(project, "*.cs", SearchOption.AllDirectories)
+			.Select(path => Path.GetRelativePath(project, path).Replace('\\', '/'))
+			.Where(path => !path.StartsWith("obj/", StringComparison.Ordinal) && !path.StartsWith("bin/", StringComparison.Ordinal))
+			.Where(path => !readme.Contains($"(DotGram.Examples/{path})", StringComparison.Ordinal))
+			.OrderBy(static path => path, StringComparer.Ordinal)
+			.ToList();
+
+		Assert.True(missing.Count == 0, "Not linked from examples/README.md: " + string.Join(", ", missing));
+	}
+
 	[Theory]
 	[InlineData("https://example.com:8080", 8080)]
 	[InlineData("https://example.com", 443)]

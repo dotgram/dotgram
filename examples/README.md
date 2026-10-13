@@ -4,6 +4,13 @@ Whole, working parsers, meant to be copied. No test framework and no scaffolding
 each file is a grammar, the class it attaches to, and the code somebody would write
 against it. `DotGram.Tests` runs them; nothing here knows that.
 
+A file in `DotGram.Examples` is a demo a reader copies, and is linked below with what it
+teaches that no other example does (a test fails when one is not). A grammar written to
+exercise the generator or to time something belongs under `tests/` or `benchmarks/`: the
+hand-written parsers the tests and the stand hold the generated ones against are in
+[`tests/DotGram.Handwritten`](../tests/DotGram.Handwritten/README.md). A demo that needs a
+package beyond the generator is a project of its own, below.
+
 Read them in this order if you are reading rather than looking something up: a format,
 then a feed, then an expression language, then one of the larger ones.
 
@@ -11,14 +18,14 @@ then a feed, then an expression language, then one of the larger ones.
 
 | | |
 | --- | --- |
-| [`JsonExample.cs`](DotGram.Examples/Formats/JsonExample.cs) | JSON — recursive structure, and a rule that reads what it built into a type of its own |
+| [`JsonExample.cs`](DotGram.Examples/Formats/JsonExample.cs) | JSON — recursive structure, and a rule that reads what it built into a type of its own (the package for RFC 8259 is `DotGram.Web`: `JsonValue`) |
 | [`IniExample.cs`](DotGram.Examples/Formats/IniExample.cs) | an INI file, read into the shape a caller wants rather than into sections and keys |
 | [`TypedCsvExample.cs`](DotGram.Examples/Formats/TypedCsvExample.cs) | a CSV into records, with no `=>` anywhere: captures matched to a constructor by name |
-| [`UrlExample.cs`](DotGram.Examples/Formats/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
+| [`UrlExample.cs`](DotGram.Examples/Formats/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` (the package for RFC 3986 is `DotGram.Web`: `UriReference`) |
 | [`HttpHeadersExample.cs`](DotGram.Examples/Formats/HttpHeadersExample.cs) | header fields into a lookup, continuation lines and all |
 | [`FixedWidthExample.cs`](DotGram.Examples/Formats/FixedWidthExample.cs) | fields found by counting rather than by looking for a delimiter |
 | [`NetstringExample.cs`](DotGram.Examples/Formats/NetstringExample.cs) | netstrings — the one shape a grammar genuinely cannot express, and what to do about it |
-| [`FixExample.cs`](DotGram.Examples/Formats/FixExample.cs) | FIX messages, and the C# that checks what the grammar cannot |
+| [`FixExample.cs`](DotGram.Examples/Formats/FixExample.cs) | FIX messages, and the C# that checks what the grammar cannot (the FIX package is `DotGram.Finance`; this one shows how such a grammar is written) |
 | [`XmlExample.cs`](DotGram.Examples/Formats/XmlExample.cs) | XML, cut to elements and attributes — a closing tag checked against its opening one |
 | [`MarkdownExample.cs`](DotGram.Examples/Formats/MarkdownExample.cs) | block structure — headings, bullets, fenced code, paragraphs |
 | [`YamlExample.cs`](DotGram.Examples/Formats/YamlExample.cs) | nesting by indentation, to any depth |
@@ -36,6 +43,7 @@ Record-oriented input: four ways over one line-oriented format, then files that 
 | [`RecoveringFeedExample.cs`](DotGram.Examples/Feeds/RecoveringFeedExample.cs) | the same feed read past a malformed record — `recover`, and rejections arriving beside the records |
 | [`LoggingFeedExample.cs`](DotGram.Examples/Feeds/LoggingFeedExample.cs) | the same again with the rejections sent elsewhere — `recover` with no `=>`, and a `partial void` that vanishes when nobody implements it |
 | [`StreamingFeedExample.cs`](DotGram.Examples/Feeds/StreamingFeedExample.cs) | the same feed out of a `TextReader` — a result in parts, a window reused, and a trailer checked against records nobody held |
+| [`StockCountExample.cs`](DotGram.Examples/Feeds/StockCountExample.cs) | a stock count with a closing total — `recover eol` beside a closing line that begins the way an item does, and the limit of that when the last item has no line end |
 | [`PriceListExample.cs`](DotGram.Examples/Feeds/PriceListExample.cs) | a price list kept by hand, read lazily from a `TextReader` — `stream yield`, and a typo arriving in its place with its line and offset |
 | [`OrderSheetExample.cs`](DotGram.Examples/Feeds/OrderSheetExample.cs) | an order sheet — header lines, items and free-form remarks in one typed sequence, and a line that is none of them |
 | [`LogbookExample.cs`](DotGram.Examples/Feeds/LogbookExample.cs) | a maintenance logbook — entries as themselves, and a bad line reported through `OnRecovered` when it is read |
@@ -68,7 +76,7 @@ Record-oriented input: four ways over one line-oriented format, then files that 
 | [`ScopedExpressionExample.cs`](DotGram.Examples/Languages/ScopedExpressionExample.cs) | a language where a name must be declared before it is used — `context`, and what a `when` can do that a `=>` cannot |
 | [`CaseRegionExample.cs`](DotGram.Examples/Languages/CaseRegionExample.cs) | a region that changes what the same rule builds inside it — `state`, `with state`, and the nearest mark winning |
 
-## A feed into a database
+## Demos with packages of their own
 
 | | |
 | --- | --- |
