@@ -62,6 +62,14 @@ static class Trees
 		"Statement.SchemaDefinition.Tail",
 		"Statement.TableDefinition.Kind",
 		"Statement.AlterTable.Tail",
+		"Statement.StatisticsDefinition.Tail",
+		"Statement.UpdateStatistics.Tail",
+		"Statement.TypeDefinition.Tail",
+		"Statement.SynonymDefinition.Tail",
+		"Statement.FullTextIndexDefinition.Tail",
+		"Statement.AlterFullTextIndex.Tail",
+		"Statement.CreateIndex.Using",
+		"Clause.Option.Partitions",
 		"Clause.Dropped.Tail",
 		"TableReference.Joined.Hint",
 		"SetExpression.Transactions.IsolationLevel.Level",
@@ -97,6 +105,13 @@ static class Trees
 		"UNCOMMITTED", "UNION", "UNIQUE", "UNKNOWN", "USE", "USER", "VALUE", "VARBINARY", "VARCHAR", "VARYING", "VERSION",
 		"VIEWS", "W", "WEEK", "WEEKDAY", "WEEKS", "WITH", "WITHIN", "WITHOUT_ARRAY_WRAPPER", "WK", "WORK", "WRAPPER",
 		"WW", "XML", "XMLDATA", "XMLNAMESPACES", "XMLSCHEMA", "XSINIL", "Y", "YEAR", "YEARS", "YY", "YYYY", "ZONE",
+		// The words the definitions of indexes, statistics, types and full-text indexes write in their tails.
+		"ACTION", "ADD", "ALTER", "ALWAYS", "CASCADE", "CLUSTERED", "COLUMN", "COLUMNSTORE", "DELETE", "DROP",
+		"ENCRYPTED", "EXISTS", "FILEGROUP", "FILESTREAM", "FOREIGN", "GENERATED", "GEOGRAPHY_AUTO_GRID",
+		"GEOGRAPHY_GRID", "GEOMETRY_AUTO_GRID", "GEOMETRY_GRID", "HIDDEN", "IDENTITY", "INCLUDE", "INCREMENTAL", "INDEX",
+		"IS", "KEY", "LIKE", "LIST", "MANUAL", "MASKED", "NONCLUSTERED", "OR", "PARTITIONS", "PAUSE", "PERSISTED",
+		"POPULATION", "PRIMARY", "PROPERTY", "REFERENCES", "REPLICATION", "RESUME", "ROWGUIDCOL", "SEARCH", "SPARSE",
+		"STATISTICAL_SEMANTICS", "STOP", "STOPLIST", "SYSTEM", "UPDATE", "USING", "WHERE",
 	};
 
 	/// <summary>
@@ -291,6 +306,10 @@ static class Trees
 		{
 			return place >= 0 && place < tokens.Count ? tokens[place].Text.ToUpperInvariant() : null;
 		}
+
+		// The word a definition's tail opens with is its key word, a name after it with a hole in front or not: `FOR .t`.
+		if (at == 0 && member is "Statement.SynonymDefinition.Tail" or "Statement.StatisticsDefinition.Tail")
+			return true;
 
 		if (Text(at - 1) is "." or "COLLATE" || Text(at + 1) == ".")
 			return false;

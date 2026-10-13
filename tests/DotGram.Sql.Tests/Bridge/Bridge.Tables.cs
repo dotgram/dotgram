@@ -23,6 +23,9 @@ static partial class Bridge
 			"Statement.TableDefinition", "Statement.CreateTableAsSelect", "Statement.AlterTable", "Statement.ViewDefinition",
 			"Statement.CreateIndex", "Statement.AlterIndex", "Statement.StatisticsDefinition", "Statement.UpdateStatistics",
 			"Statement.FullTextIndexDefinition", "Statement.AlterFullTextIndex",
+			"Statement.TypeDefinition",
+			"Statement.SynonymDefinition",
+			"Statement.SequenceDefinition",
 		];
 
 		/// <summary>
@@ -41,6 +44,16 @@ static partial class Bridge
 				Statement.TableDefinition table              => CreateTable(table),
 				Statement.CreateTableAsSelect query          => CreateTableAsSelect(query),
 				Statement.AlterTable alter                   => AlterTable(alter),
+				Statement.CreateIndex index                  => CreateIndex(index),
+				Statement.AlterIndex alter                   => AlterIndex(alter),
+				Statement.FullTextIndexDefinition fullText   => CreateFullTextIndex(fullText),
+				Statement.AlterFullTextIndex fullText        => AlterFullTextIndex(fullText),
+				Statement.ViewDefinition view                => View(view),
+				Statement.StatisticsDefinition statistics    => CreateStatistics(statistics),
+				Statement.UpdateStatistics statistics        => UpdateStatistics(statistics),
+				Statement.TypeDefinition type                => CreateType(type),
+				Statement.SynonymDefinition synonym          => Synonym(synonym),
+				Statement.SequenceDefinition sequence        => Sequence(sequence),
 				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
 				_                       => null,
 			};
@@ -894,38 +907,32 @@ static partial class Bridge
 			return new Ast.Constraint.Connection(pairs.ToSqlList(), cascade);
 		}
 
-		/// <summary>An index written at the table or on a column.</summary>
+		/// <summary>
+		/// An index written at the table or on a column, or made by CREATE INDEX: its columnstore ORDER, and its ON and
+		/// FILESTREAM_ON in the order written. Options written without brackets are a gap.
+		/// </summary>
 		static Ast.IndexDefinition Index(Clause.ConstraintDefinition old)
 		{
-			if (old.Order is not null)
-				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index's ORDER, which IndexDefinition has no place for)");
-
 			if (old.Hash && old.Columnstore)
 				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index both COLUMNSTORE and HASH)");
 
-			if (!old.Bracketed || old.Check is not null || old.Referenced is not null || old.Enforced is not null || old.ForColumn is not null)
+			if (!old.Bracketed)
+				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index's options without brackets, which IndexDefinition has no flag for)");
+
+			if (old.Check is not null || old.Referenced is not null || old.Enforced is not null || old.ForColumn is not null)
 				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index with a constraint's parts)");
 
-			Ast.Placement? on = null;
-
-			foreach (var placement in old.Placements ?? [])
-			{
-				if (placement is Clause.Placement { Kind: var kind } one && kind.Equals("ON", StringComparison.OrdinalIgnoreCase) && on is null)
-					on = Placement(one);
-				else
-					throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index's FILESTREAM_ON, which IndexDefinition has no place for)");
-			}
-
-			return new Ast.IndexDefinition(Values.Part(old, old.Name ?? throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index with no name)")))
+			return new Ast.IndexDefinition(IndexName(old))
 			{
 				Unique     = old.Kind == "UNIQUE INDEX",
 				Clustering = Clustering(old, old.Clustering),
 				Storage    = old.Columnstore ? Ast.IndexStorage.Columnstore : old.Hash ? Ast.IndexStorage.Hash : null,
 				Columns    = Each(old.Columns, Sorted),
+				Order      = Values.Parts(old, old.Order),
 				Include    = Values.Parts(old, old.Include),
 				Where      = old.Filter is null ? null : Values.Of(old.Filter),
 				Options    = Each(old.Options ?? [], Option),
-				On         = on,
+				Placements = Each(old.Placements ?? [], Placement),
 			};
 		}
 
@@ -954,19 +961,16 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// One option of a <c>WITH (…)</c> (proposal 20): a name, a value, the options of its own. A key word it is set
-		/// to is a one-part reference, as every value here is what <see cref="Values.Of"/> makes of it; a value with
-		/// a unit is a measured one. A bracketed list of options after the name with no <c>=</c> is the option's own
-		/// list. What the record has no place for — the partitions after a compression, a run of words, a bracketed
-		/// list after <c>=</c> — is a gap.
+		/// One option of a <c>WITH (…)</c> (proposal 20): a name, a value, the options of its own, the partitions after
+		/// a compression. A key word it is set to is a one-part reference, as every value here is what
+		/// <see cref="Values.Of"/> makes of it; a value with a unit is a measured one. A bracketed list of options after
+		/// the name with no <c>=</c> is the option's own list. What the record has no place for — a run of words, a
+		/// bracketed list after <c>=</c> — is a gap.
 		/// </summary>
 		internal static Ast.Option Option(Clause old)
 		{
 			if (old is not Clause.Option(var name, var value, var options, var partitions, var bare))
 				throw BridgeGap.Open(old, $"inventory Clause.Option (an option that is a {NameOf(old)})");
-
-			if (partitions is not null)
-				throw BridgeGap.Open(old, "inventory Clause.Option (ON PARTITIONS, which Option has no place for)");
 
 			if (name.Any(char.IsWhiteSpace) || name.Contains('.') || name.Contains('('))
 				throw BridgeGap.Open(old, $"inventory Clause.Option (a name of several words, `{name}`)");
@@ -977,7 +981,10 @@ static partial class Bridge
 			if (!bare && value is null && options.Length > 0)
 				throw BridgeGap.Open(old, "inventory Clause.Option (a bracketed list after =)");
 
-			return new Ast.Option(Values.Part(old, name), value is null ? null : OptionValue(old, value), Each(options, Option));
+			return new Ast.Option(Values.Part(old, name), value is null ? null : OptionValue(old, value), Each(options, Option))
+			{
+				Partitions = partitions is null ? null : Ranges(old, partitions),
+			};
 		}
 
 		static Ast.Expression OptionValue(Clause owner, Expression value)
@@ -1018,6 +1025,7 @@ static partial class Bridge
 			{
 				["ADD"]                 => Added(old),
 				["ALTER", "COLUMN"]     => AlteredColumn(old),
+				["ALTER"]               => AlteredIndex(old),
 				["DROP"]                => Dropped(old),
 				["CHECK" or "NOCHECK"]  => CheckConstraints(old, Checked(old, words[0])),
 				["ENABLE" or "DISABLE"] => Enabled(old, words[0] == "ENABLE"),
@@ -1054,8 +1062,8 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// ADD: one column or one constraint is the standard's action, a period the standard's too, and two elements
-		/// or more T-SQL's. A default added <c>WITH VALUES</c>, a lone index, and the constraint the grammar reads with
+		/// ADD: one column or one constraint is the standard's action, a period the standard's too, and one index or
+		/// two elements or more T-SQL's. A default added <c>WITH VALUES</c>, and the constraint the grammar reads with
 		/// a <c>FOR</c> it then drops, are gaps.
 		/// </summary>
 		static Ast.AlterTableAction Added(Statement.AlterTable old)
@@ -1081,8 +1089,7 @@ static partial class Bridge
 				[Ast.TableElement.Column(var column)]                => new Ast.AlterTableAction.AddColumn(column),
 				[Ast.TableElement.TableConstraint(var constraint)]   => new Ast.AlterTableAction.AddConstraint(constraint),
 				[Ast.TableElement.Period(var period)]                => new Ast.AlterTableAction.AddPeriod(period, []),
-				[Ast.TableElement.Index]                             => throw BridgeGap.Open(old, "inventory Statement.AlterTable (one index added, which is neither the standard's action nor T-SQL's list)"),
-				{ Count: > 1 }                                       => new Ast.AlterTableAction.Add(elements),
+				[Ast.TableElement.Index] or { Count: > 1 }           => new Ast.AlterTableAction.Add(elements),
 				_                                                    => throw BridgeGap.Open(old, "inventory Statement.AlterTable (ADD of nothing)"),
 			};
 		}
@@ -1184,6 +1191,10 @@ static partial class Bridge
 		{
 			if (old.Options is { Length: > 0 } || old.Tail is not null)
 				throw BridgeGap.Open(old, "inventory Statement.AlterTable (DROP with options)");
+
+			// `DROP INDEX i`, a memory-optimized table's, alone: a DROP list holds columns and constraints.
+			if (old.Elements is [Clause.Dropped("INDEX", { } index, false, null)])
+				return new Ast.AlterTableAction.DropIndex(Values.Part(old, index));
 
 			var items = new List<Ast.AlterTableAction>();
 
@@ -1370,6 +1381,713 @@ static partial class Bridge
 			return read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(owner, $"inventory Statement.AlterTable (a value `{text.Trim()}`)");
+		}
+
+		// ── Indexes, full-text indexes, views, statistics, types, sequences, synonyms (task 5b) ────────────
+
+		/// <summary>
+		/// CREATE INDEX: a relational or columnstore index is the index a table declares; an XML index and a spatial one
+		/// are records of their own, their kind and what they are built over kept by the old tree as words. A selective
+		/// XML index, a JSON index and a vector index are gaps.
+		/// </summary>
+		static Ast.Statement CreateIndex(Statement.CreateIndex old)
+		{
+			if (old.Index is not Clause.ConstraintDefinition index)
+				throw BridgeGap.Open(old, "inventory Statement.CreateIndex (an index that is not one)");
+
+			var table = Values.Name(old, old.On);
+
+			switch (old.Kind?.ToUpperInvariant())
+			{
+				case null:
+					if (old.Using is not null)
+						throw BridgeGap.Open(old, "inventory Statement.CreateIndex (USING on a relational index)");
+
+					return new Ast.Statement.CreateIndex(table, Index(index));
+
+				case "PRIMARY XML" or "XML":
+					var xml = new Ast.Statement.CreateXmlIndex(table, IndexName(index), Column(index))
+					{
+						Primary = old.Kind.Equals("PRIMARY XML", StringComparison.OrdinalIgnoreCase),
+						Options = Each(index.Options ?? [], Option),
+					};
+
+					if (old.Using is null)
+						return xml;
+
+					// `USING XML INDEX p FOR PATH`; FOR a selective index's path in brackets is a gap.
+					var tokens = SqlTokens.Of(old.Using);
+
+					if (Words(old.Using) is not ["USING", "XML", "INDEX", _, "FOR", var kind] || tokens[3].Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited))
+						throw BridgeGap.Open(old, "inventory Statement.CreateIndex (a secondary XML index FOR a selective index's path)");
+
+					return xml with
+					{
+						Using = Values.Part(old, tokens[3].Text),
+						For   = kind switch
+						{
+							"VALUE"    => Ast.XmlIndexFor.Value,
+							"PATH"     => Ast.XmlIndexFor.Path,
+							"PROPERTY" => Ast.XmlIndexFor.Property,
+							_          => throw BridgeGap.Open(old, $"inventory Statement.CreateIndex (FOR {kind})"),
+						},
+					};
+
+				case "SPATIAL":
+					return new Ast.Statement.CreateSpatialIndex(table, IndexName(index), Column(index))
+					{
+						Using = old.Using is null ? null : Words(old.Using) switch
+						{
+							["USING", "GEOMETRY_GRID"]       => Ast.SpatialTessellation.GeometryGrid,
+							["USING", "GEOGRAPHY_GRID"]      => Ast.SpatialTessellation.GeographyGrid,
+							["USING", "GEOMETRY_AUTO_GRID"]  => Ast.SpatialTessellation.GeometryAutoGrid,
+							["USING", "GEOGRAPHY_AUTO_GRID"] => Ast.SpatialTessellation.GeographyAutoGrid,
+							_                                => throw BridgeGap.Open(old, $"inventory Statement.CreateIndex (a spatial index {old.Using})"),
+						},
+						Options    = Each(index.Options ?? [], Option),
+						Placements = Each(index.Placements ?? [], Placement),
+					};
+
+				default:
+					throw BridgeGap.Open(old, $"inventory Statement.CreateIndex ({old.Kind} INDEX, which no record holds)");
+			}
+		}
+
+		static Ast.Identifier IndexName(Clause.ConstraintDefinition old)
+		{
+			return Values.Part(old, old.Name ?? throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index with no name)"));
+		}
+
+		/// <summary>The one column an XML or a spatial index is over, bare.</summary>
+		static Ast.Identifier Column(Clause.ConstraintDefinition old)
+		{
+			return old.Columns is [Clause.SortSpecification(Expression.ColumnReference(var column), SqlOrder.Unspecified)]
+				? Values.Part(old, column)
+				: throw BridgeGap.Open(old, "inventory Statement.CreateIndex (an XML or spatial index over other than one column)");
+		}
+
+		/// <summary>ALTER INDEX: one index or ALL, and the action. A selective XML index's paths are a gap.</summary>
+		static Ast.Statement AlterIndex(Statement.AlterIndex old)
+		{
+			if (old.Paths is not null || old.Namespaces is not null)
+				throw BridgeGap.Open(old, "inventory Statement.AlterIndex (a selective XML index's paths)");
+
+			var all = old.Name == "ALL";
+
+			return new Ast.Statement.AlterIndex(Values.Name(old, old.On), IndexAlteration(old, old.Action, old.Partition, old.Options))
+			{
+				Name = all ? null : Values.Part(old, old.Name),
+				All  = all,
+			};
+		}
+
+		static Ast.IndexAlteration IndexAlteration(object owner, string action, Expression? partition, SqlList<Clause>? options)
+		{
+			var made = Each(options ?? [], Option);
+
+			if (partition is not null && action is not ("REBUILD" or "REORGANIZE"))
+				throw BridgeGap.Open(owner, $"inventory Statement.AlterIndex (a partition on {action})");
+
+			if (made.Count > 0 && action is "DISABLE" or "PAUSE" or "ABORT")
+				throw BridgeGap.Open(owner, $"inventory Statement.AlterIndex (options on {action})");
+
+			return action switch
+			{
+				"REBUILD" when partition is Expression.ColumnReference("ALL") => new Ast.IndexAlteration.Rebuild(null, true, made),
+				"REBUILD"    => new Ast.IndexAlteration.Rebuild(partition is null ? null : Values.Of(partition), false, made),
+				"REORGANIZE" => new Ast.IndexAlteration.Reorganize(partition is null ? null : Values.Of(partition), made),
+				"DISABLE"    => new Ast.IndexAlteration.Disable(),
+				"SET"        => new Ast.IndexAlteration.SetOptions(made),
+				"RESUME"     => new Ast.IndexAlteration.Resume(made),
+				"PAUSE"      => new Ast.IndexAlteration.Pause(),
+				"ABORT"      => new Ast.IndexAlteration.Abort(),
+				_            => throw BridgeGap.Open(owner, $"inventory Statement.AlterIndex ({action})"),
+			};
+		}
+
+		/// <summary>ALTER TABLE … ALTER INDEX i REBUILD WITH (…), which the old tree keeps as the action's tail.</summary>
+		static Ast.AlterTableAction AlteredIndex(Statement.AlterTable old)
+		{
+			var tail   = Tail(old);
+			var tokens = SqlTokens.Of(tail);
+			var with   = WithAt(tail);
+
+			if (tokens is not [{ Text: var word }, { Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited } name, { Text: var rebuild }, ..]
+				|| !word.Equals("INDEX", StringComparison.OrdinalIgnoreCase) || !rebuild.Equals("REBUILD", StringComparison.OrdinalIgnoreCase) || with < 0)
+				throw BridgeGap.Open(old, $"inventory Statement.AlterTable (ALTER {tail})");
+
+			return new Ast.AlterTableAction.AlterIndex(Values.Part(old, name.Text), new Ast.IndexAlteration.Rebuild(null, false, OptionsOf(old, tail[(with + "WITH".Length)..])));
+		}
+
+		/// <summary>
+		/// <c>ON PARTITIONS (1, 3 TO 5)</c>, which the old tree keeps as text, read again by TRUNCATE TABLE's list of
+		/// partitions.
+		/// </summary>
+		static SqlList<Ast.PartitionRange> Ranges(object owner, string text)
+		{
+			var words = Words(text);
+
+			if (words is not ["ON", "PARTITIONS", "(", ..])
+				throw BridgeGap.Open(owner, $"inventory Clause.Option (partitions `{text}`)");
+
+			var list = text[text.IndexOf('(')..];
+			var read = TransactSql.TransactSqlParser.TryParseSql("TRUNCATE TABLE t WITH (PARTITIONS " + list + ")");
+
+			return read is { IsSuccess: true, Value: [Statement.Truncate { Partitions: { } partitions }] }
+				? Each(partitions, one => one is Clause.PartitionRange(var from, var to)
+					? new Ast.PartitionRange(Values.Of(from), to is null ? null : Values.Of(to))
+					: throw BridgeGap.Open(owner, "inventory Clause.PartitionRange"))
+				: throw BridgeGap.Open(owner, $"inventory Clause.Option (partitions `{text}` the list does not read)");
+		}
+
+		/// <summary>
+		/// CREATE VIEW, ALTER VIEW, CREATE OR ALTER VIEW: the standard's view, with T-SQL's verb and attributes. A
+		/// materialized view, and a query with OPTION, are gaps.
+		/// </summary>
+		static Ast.Statement View(Statement.ViewDefinition old)
+		{
+			if (old.Materialized)
+				throw BridgeGap.Open(old, "inventory Statement.ViewDefinition (CREATE MATERIALIZED VIEW, Synapse's)");
+
+			if (StatementOf(old.Body) is not Ast.Statement.Select { Hints.Count: 0 } select)
+				throw BridgeGap.Open(old, "inventory Statement.ViewDefinition (a query with OPTION, which CreateView cannot hold)");
+
+			return new Ast.Statement.CreateView
+			{
+				Name          = Values.Name(old, old.Name),
+				Specification = new Ast.ViewSpecification.Regular(Values.Parts(old, old.Columns)),
+				Query         = select.Query,
+				CheckOption   = old.CheckOption ? Ast.CheckOption.Unqualified : null,
+				Verb          = old.Verb.ToUpperInvariant() switch
+				{
+					"CREATE"          => null,
+					"ALTER"           => Ast.DefinitionVerb.Alter,
+					"CREATE OR ALTER" => Ast.DefinitionVerb.CreateOrAlter,
+					_                 => throw BridgeGap.Open(old, $"inventory Statement.ViewDefinition (the verb {old.Verb})"),
+				},
+				Attributes    = Each(old.Options ?? [], one => one is Clause.Option { Name: var name, Value: null, Options.Length: 0, Partitions: null } ? name.ToUpperInvariant() switch
+				{
+					"ENCRYPTION"    => Ast.ViewAttribute.Encryption,
+					"SCHEMABINDING" => Ast.ViewAttribute.SchemaBinding,
+					"VIEW_METADATA" => Ast.ViewAttribute.ViewMetadata,
+					_               => throw BridgeGap.Open(old, $"inventory Statement.ViewDefinition (the attribute {name})"),
+				} : throw BridgeGap.Open(old, "inventory Statement.ViewDefinition (an attribute that is not one word)")),
+			};
+		}
+
+		/// <summary>
+		/// CREATE STATISTICS, which the old tree keeps as text after the name: the table, the columns, the filter and
+		/// the options.
+		/// </summary>
+		static Ast.Statement CreateStatistics(Statement.StatisticsDefinition old)
+		{
+			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.StatisticsDefinition (nothing after the name)");
+			var tokens = Located(tail);
+
+			if (tokens is not [{ Token.Text: var on }, ..] || !on.Equals("ON", StringComparison.OrdinalIgnoreCase))
+				throw BridgeGap.Open(old, $"inventory Statement.StatisticsDefinition ({tail})");
+
+			var open  = tokens.FindIndex(static one => one.Token.Text == "(");
+			var close = open < 0 ? -1 : Closing(tokens, open);
+
+			if (close < 0)
+				throw BridgeGap.Open(old, $"inventory Statement.StatisticsDefinition ({tail})");
+
+			var table   = Values.Name(old, tail[tokens[1].At..tokens[open].At].Trim());
+			var columns = Listed(tail[(tokens[open].At + 1)..tokens[close].At]).Select(one => Values.Part(old, one)).ToSqlList();
+			var rest    = tail[(tokens[close].At + 1)..];
+			var with    = TopLevel(rest, "WITH");
+			var head    = with < 0 ? rest : rest[..with];
+
+			Ast.Expression? where = null;
+
+			if (Words(head) is ["WHERE", ..])
+				where = Condition(old, head[(head.IndexOf("WHERE", StringComparison.OrdinalIgnoreCase) + "WHERE".Length)..]);
+			else if (Words(head).Length > 0)
+				throw BridgeGap.Open(old, $"inventory Statement.StatisticsDefinition ({tail})");
+
+			return new Ast.Statement.CreateStatistics(table, Values.Part(old, old.Name), columns)
+			{
+				Where   = where,
+				Options = with < 0 ? [] : StatisticsOptions(old, rest[(with + "WITH".Length)..]),
+			};
+		}
+
+		/// <summary>UPDATE STATISTICS, which the old tree keeps as text after the table: the names, and the options.</summary>
+		static Ast.Statement UpdateStatistics(Statement.UpdateStatistics old)
+		{
+			var tail = old.Tail ?? "";
+			var with = TopLevel(tail, "WITH");
+			var head = (with < 0 ? tail : tail[..with]).Trim();
+
+			SqlList<Ast.Identifier> names = [];
+			var unbracketed = false;
+
+			if (head.StartsWith('(') && head.EndsWith(')'))
+				names = Listed(head[1..^1]).Select(one => Values.Part(old, one)).ToSqlList();
+			else if (head.Length > 0)
+			{
+				names       = [Values.Part(old, head)];
+				unbracketed = true;
+			}
+
+			return new Ast.Statement.UpdateStatistics(Values.Name(old, old.Name))
+			{
+				Names           = names,
+				NameUnbracketed = unbracketed,
+				Options         = with < 0 ? [] : StatisticsOptions(old, tail[(with + "WITH".Length)..]),
+			};
+		}
+
+		/// <summary>
+		/// Statistics' options, as text: a word, a word <c>=</c> a value, <c>SAMPLE n PERCENT</c> or <c>ROWS</c> as a
+		/// measured value, and <c>RESAMPLE ON PARTITIONS (…)</c>.
+		/// </summary>
+		static SqlList<Ast.Option> StatisticsOptions(object owner, string text)
+		{
+			return Listed(text).Select(one =>
+			{
+				var tokens = SqlTokens.Of(one);
+				var words  = Words(one);
+
+				switch (words)
+				{
+					case [_] when tokens[0].Kind == SqlTokens.Kind.Word:
+						return new Ast.Option(new Ast.Identifier(tokens[0].Text), null, []);
+
+					case ["SAMPLE", _, "PERCENT" or "ROWS"] when tokens[1].Kind == SqlTokens.Kind.Number:
+						return new Ast.Option(new Ast.Identifier(tokens[0].Text), new Ast.Expression.Measured(ValueOf(owner, tokens[1].Text), new Ast.Identifier(tokens[2].Text)), []);
+
+					case ["RESAMPLE", "ON", "PARTITIONS", ..]:
+						return new Ast.Option(new Ast.Identifier(tokens[0].Text), null, []) { Partitions = Ranges(owner, one[one.IndexOf(tokens[1].Text, StringComparison.Ordinal)..]) };
+
+					// A key word a value is set to is a one-part reference, as every option's is.
+					case [_, "=", _, ..] when tokens[0].Kind == SqlTokens.Kind.Word:
+						var value = one[(one.IndexOf('=') + 1)..].Trim();
+
+						return new Ast.Option(new Ast.Identifier(tokens[0].Text), words is [_, _, _] && tokens[2].Kind == SqlTokens.Kind.Word
+							? Values.Of(new Expression.ColumnReference(tokens[2].Text))
+							: ValueOf(owner, value), []);
+
+					default:
+						throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (the option `{one.Trim()}`)");
+				}
+			}).ToSqlList();
+		}
+
+		/// <summary>A search condition kept as text, read again as a query's WHERE.</summary>
+		static Ast.Expression Condition(object owner, string text)
+		{
+			var read = TransactSql.TransactSqlParser.TryParseSql("SELECT 1 WHERE " + text.Trim());
+
+			return read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
+				? Values.Of(where)
+				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a condition `{text.Trim()}`)");
+		}
+
+		/// <summary>
+		/// CREATE TYPE, which the old tree keeps as text after the name: a type made of another, with its nullability,
+		/// or of a table, whose body is read again as a table's. A type of an assembly's class is a gap.
+		/// </summary>
+		static Ast.Statement CreateType(Statement.TypeDefinition old)
+		{
+			var tail  = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.TypeDefinition (nothing after the name)");
+			var words = Words(tail);
+			var name  = Values.Name(old, old.Name);
+
+			switch (words)
+			{
+				case ["FROM", ..]:
+					var type        = tail[(tail.IndexOf("FROM", StringComparison.OrdinalIgnoreCase) + "FROM".Length)..].Trim();
+					Ast.ColumnNullability? nullability = null;
+
+					if (words is [.., "NOT", "NULL"])
+					{
+						nullability = Ast.ColumnNullability.NotNull;
+						type        = Cut(type, 2);
+					}
+					else if (words is [.., "NULL"])
+					{
+						nullability = Ast.ColumnNullability.Null;
+						type        = Cut(type, 1);
+					}
+
+					return new Ast.Statement.CreateAliasType(name, Values.Type(old, type)) { Nullability = nullability };
+
+				case ["AS", "TABLE", "(", ..]:
+					var body = "CREATE TABLE t " + tail[(tail.IndexOf('('))..];
+					var read = TransactSql.TransactSqlParser.Located.TryParseSql(body);
+
+					if (read is not { IsSuccess: true, Value: [Statement.TableDefinition { External: false, Kind: null, Placements.Length: 0 } table] })
+						throw BridgeGap.Open(old, "inventory Statement.TypeDefinition (a table type's body that a table's does not read)");
+
+					return Inside(body, () => new Ast.Statement.CreateTableType(name, Elements(table.Elements)) { Options = Each(table.Options, Option) });
+
+				case ["EXTERNAL", "NAME", ..]:
+					throw BridgeGap.Open(old, "inventory Statement.TypeDefinition (a CLR type, EXTERNAL NAME)");
+
+				default:
+					throw BridgeGap.Open(old, $"inventory Statement.TypeDefinition ({tail})");
+			}
+		}
+
+		/// <summary>A text less its last tokens, which are words.</summary>
+		static string Cut(string text, int words)
+		{
+			var tokens = Located(text);
+
+			return text[..tokens[^words].At].Trim();
+		}
+
+		/// <summary>CREATE SYNONYM, which the old tree keeps as text after the name: <c>FOR</c> and the name stood for.</summary>
+		static Ast.Statement Synonym(Statement.SynonymDefinition old)
+		{
+			var tail = old.Tail ?? "";
+
+			if (Words(tail) is not ["FOR", ..])
+				throw BridgeGap.Open(old, $"inventory Statement.SynonymDefinition ({tail})");
+
+			return new Ast.Statement.CreateSynonym(Values.Name(old, old.Name), Values.Name(old, tail[(tail.IndexOf("FOR", StringComparison.OrdinalIgnoreCase) + "FOR".Length)..].Trim()));
+		}
+
+		/// <summary>
+		/// CREATE FULLTEXT INDEX, which the old tree keeps as text after the table: the columns, the key index, the
+		/// catalog and filegroup, and the options. The options are carried as every option is; a catalog alone in
+		/// brackets, and the filegroup before the catalog, are gaps.
+		/// </summary>
+		static Ast.Statement CreateFullTextIndex(Statement.FullTextIndexDefinition old)
+		{
+			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.FullTextIndexDefinition (nothing after the table)");
+			var tokens = Located(tail);
+			var at     = 0;
+
+			SqlList<Ast.FullTextIndexColumn> columns = [];
+
+			if (tokens is [{ Token.Text: "(" }, ..])
+			{
+				var close = Closing(tokens, 0);
+
+				columns = Listed(tail[1..tokens[close].At]).Select(one => FullTextColumn(old, one)).ToSqlList();
+				at      = close + 1;
+			}
+
+			if (!Is(tokens, at, "KEY") || !Is(tokens, at + 1, "INDEX") || at + 2 >= tokens.Count)
+				throw BridgeGap.Open(old, $"inventory Statement.FullTextIndexDefinition ({tail})");
+
+			var key = Values.Part(old, tokens[at + 2].Token.Text);
+
+			at += 3;
+
+			Ast.Identifier? catalog   = null;
+			Ast.Identifier? fileGroup = null;
+
+			if (Is(tokens, at, "ON"))
+			{
+				if (at + 1 < tokens.Count && tokens[at + 1].Token.Text == "(")
+				{
+					var close  = Closing(tokens, at + 1);
+					var places = Listed(tail[(tokens[at + 1].At + 1)..tokens[close].At]);
+
+					foreach (var place in places)
+					{
+						if (Words(place) is ["FILEGROUP", _] && fileGroup is null)
+							fileGroup = Values.Part(old, SqlTokens.Of(place)[1].Text);
+						else if (Words(place).Length == 1 && catalog is null && fileGroup is null)
+							catalog = Values.Part(old, place.Trim());
+						else
+							throw BridgeGap.Open(old, "inventory Statement.FullTextIndexDefinition (a catalog after its filegroup, or a place of other words)");
+					}
+
+					if (fileGroup is null)
+						throw BridgeGap.Open(old, "inventory Statement.FullTextIndexDefinition (ON (catalog) in brackets without a filegroup)");
+
+					at = close + 1;
+				}
+				else
+				{
+					catalog = Values.Part(old, tokens[at + 1].Token.Text);
+					at     += 2;
+				}
+			}
+
+			SqlList<Ast.Option> options = [];
+			var unbracketed = false;
+
+			if (Is(tokens, at, "WITH"))
+			{
+				var list = tail[(tokens[at].At + "WITH".Length)..].Trim();
+
+				unbracketed = !(list.StartsWith('(') && Closing(Located(list), 0) == Located(list).Count - 1);
+				options     = OptionsOf(old, unbracketed ? "(" + list + ")" : list);
+			}
+			else if (at < tokens.Count)
+				throw BridgeGap.Open(old, $"inventory Statement.FullTextIndexDefinition ({tail})");
+
+			return new Ast.Statement.CreateFullTextIndex(Values.Name(old, old.Name), columns, key)
+			{
+				Catalog            = catalog,
+				FileGroup          = fileGroup,
+				Options            = options,
+				OptionsUnbracketed = unbracketed,
+			};
+		}
+
+		/// <summary>One column of a full-text index, as text: the name, its type column, its language, its semantics.</summary>
+		static Ast.FullTextIndexColumn FullTextColumn(object owner, string text)
+		{
+			var tokens = Located(text);
+			var column = new Ast.FullTextIndexColumn(Values.Part(owner, tokens[0].Token.Text));
+			var at     = 1;
+
+			if (Is(tokens, at, "TYPE") && Is(tokens, at + 1, "COLUMN") && at + 2 < tokens.Count)
+			{
+				column = column with { TypeColumn = Values.Part(owner, tokens[at + 2].Token.Text) };
+				at    += 3;
+			}
+
+			var semantics = tokens.Count > at && Is(tokens, tokens.Count - 1, "STATISTICAL_SEMANTICS");
+			var end       = semantics ? tokens.Count - 1 : tokens.Count;
+
+			if (Is(tokens, at, "LANGUAGE") && at + 1 < end)
+			{
+				var language = text[tokens[at + 1].At..(end < tokens.Count ? tokens[end].At : text.Length)];
+
+				column = column with { Language = Words(language) is [_] && SqlTokens.Of(language)[0].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited
+					? Values.Of(new Expression.ColumnReference(language.Trim()))
+					: ValueOf(owner, language) };
+				at = end;
+			}
+
+			if (at != end)
+				throw BridgeGap.Open(owner, $"inventory Statement.FullTextIndexDefinition (a column `{text.Trim()}`)");
+
+			return column with { StatisticalSemantics = semantics };
+		}
+
+		/// <summary>
+		/// ALTER FULLTEXT INDEX, which the old tree keeps as text after the table: one action. <c>WITH NO
+		/// POPULATION</c>, which no option of one name says, is a gap.
+		/// </summary>
+		static Ast.Statement AlterFullTextIndex(Statement.AlterFullTextIndex old)
+		{
+			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.AlterFullTextIndex (nothing after the table)");
+			var tokens = Located(tail);
+			var words  = Words(tail);
+
+			if (words is [.., "WITH", "NO", "POPULATION"])
+				throw BridgeGap.Open(old, "inventory Statement.AlterFullTextIndex (WITH NO POPULATION, which no Option of one name says)");
+
+			Ast.Identifier Name(int at)
+			{
+				return Values.Part(old, tokens[at].Token.Text);
+			}
+
+			Ast.FullTextAlteration action = words switch
+			{
+				["ENABLE"]  => new Ast.FullTextAlteration.Enable(),
+				["DISABLE"] => new Ast.FullTextAlteration.Disable(),
+				["SET", "CHANGE_TRACKING", "=", _]                           => new Ast.FullTextAlteration.SetChangeTracking(Name(3)),
+				["SET", "CHANGE_TRACKING", _]                                => new Ast.FullTextAlteration.SetChangeTracking(Name(2)) { EqualsOmitted = true },
+				["SET", "STOPLIST", "=", _]                                  => StopList(old, tokens, 3, false),
+				["SET", "STOPLIST", _]                                       => StopList(old, tokens, 2, true),
+				["SET", "SEARCH", "PROPERTY", "LIST", "=", _]                => PropertyList(old, tokens, 5, false),
+				["SET", "SEARCH", "PROPERTY", "LIST", _]                     => PropertyList(old, tokens, 4, true),
+				["ADD", "(", .., ")"]                                        => new Ast.FullTextAlteration.AddColumns(Listed(tail[(tokens[1].At + 1)..tokens[^1].At]).Select(one => FullTextColumn(old, one)).ToSqlList()),
+				["ALTER", "COLUMN", _, "ADD" or "DROP", "STATISTICAL_SEMANTICS"] => new Ast.FullTextAlteration.AlterColumn(new Ast.FullTextIndexColumn(Name(2)), words[3] == "ADD"),
+				["DROP", "(", .., ")"]                                       => new Ast.FullTextAlteration.DropColumns(Listed(tail[(tokens[1].At + 1)..tokens[^1].At]).Select(one => Values.Part(old, one)).ToSqlList()),
+				["START", "FULL" or "INCREMENTAL" or "UPDATE", "POPULATION"] => new Ast.FullTextAlteration.Population(Ast.PopulationAction.Start, words[1] switch
+				{
+					"FULL"        => Ast.PopulationKind.Full,
+					"INCREMENTAL" => Ast.PopulationKind.Incremental,
+					_             => Ast.PopulationKind.Update,
+				}),
+				["STOP", "POPULATION"]   => new Ast.FullTextAlteration.Population(Ast.PopulationAction.Stop, null),
+				["PAUSE", "POPULATION"]  => new Ast.FullTextAlteration.Population(Ast.PopulationAction.Pause, null),
+				["RESUME", "POPULATION"] => new Ast.FullTextAlteration.Population(Ast.PopulationAction.Resume, null),
+				_                        => throw BridgeGap.Open(old, $"inventory Statement.AlterFullTextIndex ({tail})"),
+			};
+
+			return new Ast.Statement.AlterFullTextIndex(Values.Name(old, old.Name), action);
+		}
+
+		static Ast.FullTextAlteration StopList(object owner, List<(SqlTokens.Token Token, int At)> tokens, int at, bool omitted)
+		{
+			var word = tokens[at].Token;
+
+			return word.Kind == SqlTokens.Kind.Word && word.Text.Equals("OFF", StringComparison.OrdinalIgnoreCase) ? new Ast.FullTextAlteration.SetStopList(null, true, false) { EqualsOmitted = omitted }
+				: word.Kind == SqlTokens.Kind.Word && word.Text.Equals("SYSTEM", StringComparison.OrdinalIgnoreCase) ? new Ast.FullTextAlteration.SetStopList(null, false, true) { EqualsOmitted = omitted }
+				: new Ast.FullTextAlteration.SetStopList(Values.Part(owner, word.Text), false, false) { EqualsOmitted = omitted };
+		}
+
+		static Ast.FullTextAlteration PropertyList(object owner, List<(SqlTokens.Token Token, int At)> tokens, int at, bool omitted)
+		{
+			var word = tokens[at].Token;
+
+			return word.Kind == SqlTokens.Kind.Word && word.Text.Equals("OFF", StringComparison.OrdinalIgnoreCase)
+				? new Ast.FullTextAlteration.SetSearchPropertyList(null, true) { EqualsOmitted = omitted }
+				: new Ast.FullTextAlteration.SetSearchPropertyList(Values.Part(owner, word.Text), false) { EqualsOmitted = omitted };
+		}
+
+		// ── Text the old tree keeps, cut where its brackets and commas say ───────────────────────────────
+
+		/// <summary>The tokens of a text, each with where it starts in it.</summary>
+		static List<(SqlTokens.Token Token, int At)> Located(string text)
+		{
+			var located = new List<(SqlTokens.Token, int)>();
+			var at      = 0;
+
+			foreach (var token in SqlTokens.Of(text))
+			{
+				var found = text.IndexOf(token.Text, at, StringComparison.Ordinal);
+
+				located.Add((token, found));
+				at = found + token.Text.Length;
+			}
+
+			return located;
+		}
+
+		/// <summary>Whether the token at a position is the word given.</summary>
+		static bool Is(List<(SqlTokens.Token Token, int At)> tokens, int at, string word)
+		{
+			return at < tokens.Count && tokens[at].Token.Kind == SqlTokens.Kind.Word && tokens[at].Token.Text.Equals(word, StringComparison.OrdinalIgnoreCase);
+		}
+
+		/// <summary>The bracket that closes the one at a position, or -1.</summary>
+		static int Closing(List<(SqlTokens.Token Token, int At)> tokens, int open)
+		{
+			var depth = 0;
+
+			for (var at = open; at < tokens.Count; at++)
+			{
+				if (tokens[at].Token is { Kind: SqlTokens.Kind.Punctuation, Text: "(" })
+					depth++;
+				else if (tokens[at].Token is { Kind: SqlTokens.Kind.Punctuation, Text: ")" } && --depth == 0)
+					return at;
+			}
+
+			return -1;
+		}
+
+		/// <summary>Where a word stands outside every bracket, or -1.</summary>
+		static int TopLevel(string text, string word)
+		{
+			var depth = 0;
+
+			foreach (var (token, at) in Located(text))
+			{
+				if (token is { Kind: SqlTokens.Kind.Punctuation, Text: "(" })
+					depth++;
+				else if (token is { Kind: SqlTokens.Kind.Punctuation, Text: ")" })
+					depth--;
+				else if (depth == 0 && token.Kind == SqlTokens.Kind.Word && token.Text.Equals(word, StringComparison.OrdinalIgnoreCase))
+					return at;
+			}
+
+			return -1;
+		}
+
+		/// <summary>A text cut at its commas outside brackets, each piece trimmed.</summary>
+		static List<string> Listed(string text)
+		{
+			var pieces = new List<string>();
+			var depth  = 0;
+			var from   = 0;
+
+			foreach (var (token, at) in Located(text))
+			{
+				if (token is { Kind: SqlTokens.Kind.Punctuation, Text: "(" })
+					depth++;
+				else if (token is { Kind: SqlTokens.Kind.Punctuation, Text: ")" })
+					depth--;
+				else if (depth == 0 && token is { Kind: SqlTokens.Kind.Punctuation, Text: "," })
+				{
+					pieces.Add(text[from..at].Trim());
+					from = at + 1;
+				}
+			}
+
+			pieces.Add(text[from..].Trim());
+
+			return pieces;
+		}
+
+		/// <summary>
+		/// The words that open a sequence's option, after which a data type's text ends.
+		/// </summary>
+		static readonly string[] Openers = ["START", "INCREMENT", "MINVALUE", "MAXVALUE", "NO", "CYCLE", "CACHE", "RESTART"];
+
+		/// <summary>
+		/// <c>CREATE SEQUENCE</c> and <c>ALTER SEQUENCE</c>. The old tree keeps the options twice: as text, which
+		/// says <c>NO</c> and the type, and as nodes, which hold the values; the two are read side by side, in the
+		/// order written.
+		/// </summary>
+		static Ast.Statement Sequence(Statement.SequenceDefinition old)
+		{
+			var words   = old.Tail is { } tail ? Words(tail) : [];
+			var options = old.Options ?? [];
+			var made    = new List<Ast.SequenceOption>();
+			var at      = 0;
+
+			foreach (var option in options)
+			{
+				if (option is not Clause.Option(var name, var value, _, _, _))
+					throw BridgeGap.Open(old, "inventory Statement.SequenceDefinition (an option that is not one)");
+
+				var word = name.ToUpperInvariant();
+				bool no;
+
+				// Find the option's own word in the text, and whether NO stood before it.
+				while (at < words.Length && words[at] != word)
+					at++;
+
+				if (at >= words.Length)
+					throw BridgeGap.Lost(old, $"the sequence option {name} is not where the text has it");
+
+				no = at > 0 && words[at - 1] == "NO";
+				at++;
+
+				made.Add(word switch
+				{
+					"AS"        => new Ast.SequenceOption.DataTypeOption(Values.Type(old, TypeText(old.Tail!, word))),
+					"START"     => new Ast.SequenceOption.Start(Values.Of(value!)),
+					"INCREMENT" => new Ast.SequenceOption.Increment(Values.Of(value!)),
+					"MINVALUE"  => no ? new Ast.SequenceOption.Min(null, true) : new Ast.SequenceOption.Min(Values.Of(value!)),
+					"MAXVALUE"  => no ? new Ast.SequenceOption.Max(null, true) : new Ast.SequenceOption.Max(Values.Of(value!)),
+					"CYCLE"     => new Ast.SequenceOption.Cycle(!no),
+					"RESTART"   => new Ast.SequenceOption.Restart(value is null ? null : Values.Of(value)),
+					"CACHE"     => no ? new Ast.SequenceOption.NoCache() : new Ast.SequenceOption.Cache(value is null ? null : Values.Of(value)),
+					_           => throw BridgeGap.Open(old, $"inventory Statement.SequenceDefinition (the option {name})"),
+				});
+			}
+
+			var sequence = Values.Name(old, old.Name);
+
+			return old.Verb?.ToUpperInvariant() switch
+			{
+				"CREATE" => new Ast.Statement.CreateSequence { Name = sequence, Options = [.. made] },
+				"ALTER"  => new Ast.Statement.AlterSequence { Name = sequence, Options = [.. made] },
+				_        => throw BridgeGap.Open(old, $"inventory Statement.SequenceDefinition (the verb {old.Verb})"),
+			};
+		}
+
+		/// <summary>
+		/// The text of the type after <c>AS</c>: up to the word that opens the next option.
+		/// </summary>
+		static string TypeText(string tail, string word)
+		{
+			var start = tail.IndexOf(word, StringComparison.OrdinalIgnoreCase) + word.Length;
+			var end   = tail.Length;
+
+			foreach (var opener in Openers)
+			{
+				var at = tail.IndexOf(" " + opener, start, StringComparison.OrdinalIgnoreCase);
+
+				if (at >= 0 && at < end)
+					end = at;
+			}
+
+			return tail[start..end].Trim();
 		}
 	}
 }

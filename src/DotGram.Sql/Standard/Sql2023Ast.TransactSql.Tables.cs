@@ -223,8 +223,9 @@ public enum IndexClustering { Clustered, Nonclustered }
 public enum IndexStorage { Columnstore, Hash }
 
 /// <summary>
-/// T-SQL: CREATE TABLE (Transact-SQL). An index written inside a table or on a column: <c>INDEX i [UNIQUE]
-/// [CLUSTERED | NONCLUSTERED] [COLUMNSTORE | HASH] (a ASC, …) [INCLUDE (…)] [WHERE …] [WITH (…)] [ON …]</c>.
+/// T-SQL: CREATE TABLE (Transact-SQL), CREATE INDEX (Transact-SQL), CREATE COLUMNSTORE INDEX (Transact-SQL). An index
+/// written inside a table or on a column, <c>INDEX i [UNIQUE] [CLUSTERED | NONCLUSTERED] [COLUMNSTORE | HASH] (a ASC, …)
+/// [ORDER (…)] [INCLUDE (…)] [WHERE …] [WITH (…)] [ON …] [FILESTREAM_ON …]</c>, or made by a statement of its own.
 /// </summary>
 public sealed record IndexDefinition(Identifier Name) : ISqlNode
 {
@@ -244,13 +245,21 @@ public sealed record IndexDefinition(Identifier Name) : ISqlNode
 	/// <summary>The key's columns, each with the direction written; none for a column's own index.</summary>
 	public SqlList<SortItem> Columns { get; init; } = [];
 
+	/// <summary>
+	/// T-SQL: CREATE COLUMNSTORE INDEX (Transact-SQL). A columnstore index's <c>ORDER (a, b)</c>: the columns its
+	/// segments are sorted by.
+	/// </summary>
+	public SqlList<Identifier> Order { get; init; } = [];
+
 	public SqlList<Identifier> Include { get; init; } = [];
 
 	/// <summary>The filter, <c>WHERE …</c>.</summary>
 	public Expression? Where { get; init; }
 
 	public SqlList<Option> Options { get; init; } = [];
-	public Placement? On { get; init; }
+
+	/// <summary>T-SQL: CREATE INDEX (Transact-SQL). <c>ON</c> and <c>FILESTREAM_ON</c>, in the order written.</summary>
+	public SqlList<Placement> Placements { get; init; } = [];
 }
 
 public abstract partial record TableElement
@@ -287,9 +296,19 @@ public abstract partial record AlterTableAction
 
 	/// <summary>
 	/// T-SQL: ALTER TABLE (Transact-SQL). <c>ADD</c> with two elements or more, columns, constraints and indexes
-	/// together; one element added is the standard's <see cref="AddColumn"/> or <see cref="AddConstraint"/>.
+	/// together, or one index alone; one column or one constraint added is the standard's <see cref="AddColumn"/>
+	/// or <see cref="AddConstraint"/>.
 	/// </summary>
 	public sealed record Add(SqlList<TableElement> Elements) : AlterTableAction;
+
+	/// <summary>
+	/// T-SQL: ALTER TABLE (Transact-SQL). <c>ALTER INDEX i REBUILD WITH (…)</c>, an index of a memory-optimized table
+	/// changed.
+	/// </summary>
+	public sealed record AlterIndex(Identifier Name, IndexAlteration Action) : AlterTableAction;
+
+	/// <summary>T-SQL: ALTER TABLE (Transact-SQL). <c>DROP INDEX i</c>, an index of a memory-optimized table dropped.</summary>
+	public sealed record DropIndex(Identifier Name) : AlterTableAction;
 
 	/// <summary>
 	/// T-SQL: ALTER TABLE (Transact-SQL). <c>DROP</c> with two items or more, each a <see cref="DropColumn"/> or a
@@ -366,3 +385,322 @@ public enum ColumnNullability { Null, NotNull }
 
 /// <summary>T-SQL: ALTER TABLE (Transact-SQL). A column property that <c>ALTER COLUMN … ADD</c> and <c>DROP</c> change.</summary>
 public enum ColumnPropertyKind { RowGuidCol, Persisted, NotForReplication, Sparse, Hidden, Masked }
+
+// ── Indexes, full-text indexes, views, statistics, types, synonyms (task 5b) ─────────────────────────────────────────
+
+public abstract partial record Statement
+{
+	/// <summary>
+	/// T-SQL: CREATE INDEX (Transact-SQL), CREATE COLUMNSTORE INDEX (Transact-SQL). An index made on a table: a
+	/// relational one, <c>CREATE [UNIQUE] [CLUSTERED | NONCLUSTERED] INDEX i ON t (…)</c>, or a columnstore one,
+	/// <c>CREATE [CLUSTERED | NONCLUSTERED] COLUMNSTORE INDEX i ON t [(…)]</c>, which <see cref="IndexDefinition.Storage"/>
+	/// says. The same index a table declares inside itself.
+	/// </summary>
+	public sealed record CreateIndex(QualifiedName Table, IndexDefinition Index) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE XML INDEX (Transact-SQL). <c>CREATE [PRIMARY] XML INDEX i ON t (c) [USING XML INDEX p FOR
+	/// {VALUE | PATH | PROPERTY}] [WITH (…)]</c>: a primary index, or a secondary one built over a primary.
+	/// </summary>
+	public sealed record CreateXmlIndex(QualifiedName Table, Identifier Name, Identifier Column) : Statement
+	{
+		/// <summary>T-SQL: CREATE XML INDEX (Transact-SQL). <c>PRIMARY</c>.</summary>
+		public bool Primary { get; init; }
+
+		/// <summary>T-SQL: CREATE XML INDEX (Transact-SQL). The primary index a secondary one is built over.</summary>
+		public Identifier? Using { get; init; }
+
+		/// <summary>T-SQL: CREATE XML INDEX (Transact-SQL). Which secondary index it is, said after <see cref="Using"/>.</summary>
+		public XmlIndexFor? For { get; init; }
+
+		public SqlList<Option> Options { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). <c>CREATE SPATIAL INDEX i ON t (c) [USING GEOMETRY_GRID | …]
+	/// [WITH (…)] [ON fg]</c>.
+	/// </summary>
+	public sealed record CreateSpatialIndex(QualifiedName Table, Identifier Name, Identifier Column) : Statement
+	{
+		/// <summary>T-SQL: CREATE SPATIAL INDEX (Transact-SQL). The tessellation scheme, <c>USING …</c>.</summary>
+		public SpatialTessellation? Using { get; init; }
+
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE SPATIAL INDEX (Transact-SQL). <c>ON</c> a filegroup.</summary>
+		public SqlList<Placement> Placements { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER INDEX (Transact-SQL). <c>ALTER INDEX {i | ALL} ON t …</c>: one index, by <see cref="Name"/>, or all
+	/// of a table's, by <see cref="All"/>, and never both or neither.
+	/// </summary>
+	public sealed record AlterIndex(QualifiedName Table, IndexAlteration Action) : Statement
+	{
+		public Identifier? Name { get; init; }
+
+		/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>ALL</c>: every index of the table.</summary>
+		public bool All { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>CREATE FULLTEXT INDEX ON t [(c …, …)] KEY INDEX k [ON {catalog |
+	/// (catalog, FILEGROUP fg)}] [WITH …]</c>: the one index named by its table.
+	/// </summary>
+	public sealed record CreateFullTextIndex(QualifiedName Table, SqlList<FullTextIndexColumn> Columns, Identifier KeyIndex) : Statement
+	{
+		/// <summary>T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). The full-text catalog, <c>ON c</c>.</summary>
+		public Identifier? Catalog { get; init; }
+
+		/// <summary>T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>FILEGROUP fg</c>, in the brackets after <c>ON</c>.</summary>
+		public Identifier? FileGroup { get; init; }
+
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>
+		/// T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>WITH CHANGE_TRACKING = AUTO</c>: the options written without
+		/// their brackets, which the statement reads as well.
+		/// </summary>
+		[Spelling] public bool OptionsUnbracketed { get; init; }
+	}
+
+	/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>ALTER FULLTEXT INDEX ON t …</c>.</summary>
+	public sealed record AlterFullTextIndex(QualifiedName Table, FullTextAlteration Action) : Statement;
+
+	public partial record CreateView
+	{
+		/// <summary>
+		/// T-SQL: CREATE VIEW (Transact-SQL), ALTER VIEW (Transact-SQL). <c>ALTER</c> or <c>CREATE OR ALTER</c>; null for
+		/// the plain <c>CREATE</c>, the standard's, which the standard's parser builds and its tree tests print as no
+		/// member at all. <see cref="DefinitionVerb.Create"/> would be the same text, and is refused.
+		/// </summary>
+		public DefinitionVerb? Verb { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE VIEW (Transact-SQL). <c>WITH ENCRYPTION, SCHEMABINDING, VIEW_METADATA</c> before the
+		/// <c>AS</c>, in the order written.
+		/// </summary>
+		public SqlList<ViewAttribute> Attributes { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE STATISTICS (Transact-SQL). <c>CREATE STATISTICS s ON t (a, …) [WHERE …] [WITH …]</c>.
+	/// </summary>
+	public sealed record CreateStatistics(QualifiedName Table, Identifier Name, SqlList<Identifier> Columns) : Statement
+	{
+		/// <summary>T-SQL: CREATE STATISTICS (Transact-SQL). The filter, <c>WHERE …</c>.</summary>
+		public Expression? Where { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE STATISTICS (Transact-SQL). <c>WITH FULLSCAN, SAMPLE 50 PERCENT, …</c>, written without
+		/// brackets; <c>SAMPLE</c>'s value is a <see cref="Expression.Measured"/>.
+		/// </summary>
+		public SqlList<Option> Options { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: UPDATE STATISTICS (Transact-SQL). <c>UPDATE STATISTICS t [(s, …) | s] [WITH …]</c>.
+	/// </summary>
+	public sealed record UpdateStatistics(QualifiedName Table) : Statement
+	{
+		/// <summary>T-SQL: UPDATE STATISTICS (Transact-SQL). The statistics or indexes updated; none, all of them.</summary>
+		public SqlList<Identifier> Names { get; init; } = [];
+
+		/// <summary>
+		/// T-SQL: UPDATE STATISTICS (Transact-SQL). <c>UPDATE STATISTICS t s</c>: one name written without the
+		/// brackets, which the statement reads as well.
+		/// </summary>
+		[Spelling] public bool NameUnbracketed { get; init; }
+
+		/// <summary>
+		/// T-SQL: UPDATE STATISTICS (Transact-SQL). <c>WITH FULLSCAN, RESAMPLE ON PARTITIONS (1), …</c>, written
+		/// without brackets.
+		/// </summary>
+		public SqlList<Option> Options { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE TYPE (Transact-SQL). <c>CREATE TYPE t AS TABLE (…) [WITH (MEMORY_OPTIMIZED = ON)]</c>: a type
+	/// that is a table, its columns, constraints and indexes as a table's.
+	/// </summary>
+	public sealed record CreateTableType(QualifiedName Name, SqlList<TableElement> Elements) : Statement
+	{
+		public SqlList<Option> Options { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE TYPE (Transact-SQL). <c>CREATE TYPE t FROM int [NULL | NOT NULL]</c>: a type made of another.
+	/// </summary>
+	public sealed record CreateAliasType(QualifiedName Name, DataType Base) : Statement
+	{
+		/// <summary>T-SQL: CREATE TYPE (Transact-SQL). <c>NULL</c> or <c>NOT NULL</c> after the type.</summary>
+		public ColumnNullability? Nullability { get; init; }
+	}
+
+	/// <summary>T-SQL: CREATE SYNONYM (Transact-SQL). <c>CREATE SYNONYM s FOR t</c>: another name for an object.</summary>
+	public sealed record CreateSynonym(QualifiedName Name, QualifiedName Target) : Statement;
+}
+
+/// <summary>T-SQL: CREATE XML INDEX (Transact-SQL). Which secondary XML index: <c>FOR VALUE</c>, <c>PATH</c>, <c>PROPERTY</c>.</summary>
+public enum XmlIndexFor { Value, Path, Property }
+
+/// <summary>
+/// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). <c>GEOMETRY_GRID</c>, <c>GEOGRAPHY_GRID</c>, <c>GEOMETRY_AUTO_GRID</c>,
+/// <c>GEOGRAPHY_AUTO_GRID</c>.
+/// </summary>
+public enum SpatialTessellation { GeometryGrid, GeographyGrid, GeometryAutoGrid, GeographyAutoGrid }
+
+/// <summary>T-SQL: ALTER INDEX (Transact-SQL). What an <c>ALTER INDEX</c> does to the index.</summary>
+public abstract record IndexAlteration : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER INDEX (Transact-SQL). <c>REBUILD [PARTITION = n | PARTITION = ALL] [WITH (…)]</c>: one partition, all
+	/// of them said so, or neither written.
+	/// </summary>
+	public sealed record Rebuild(Expression? Partition, bool AllPartitions, SqlList<Option> Options) : IndexAlteration;
+
+	/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>REORGANIZE [PARTITION = n] [WITH (…)]</c>.</summary>
+	public sealed record Reorganize(Expression? Partition, SqlList<Option> Options) : IndexAlteration;
+
+	/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>DISABLE</c>.</summary>
+	public sealed record Disable : IndexAlteration;
+
+	/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>SET (ALLOW_ROW_LOCKS = ON, …)</c>.</summary>
+	public sealed record SetOptions(SqlList<Option> Options) : IndexAlteration;
+
+	/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>RESUME [WITH (…)]</c>, a resumable rebuild resumed.</summary>
+	public sealed record Resume(SqlList<Option> Options) : IndexAlteration;
+
+	/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>PAUSE</c>.</summary>
+	public sealed record Pause : IndexAlteration;
+
+	/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>ABORT</c>.</summary>
+	public sealed record Abort : IndexAlteration;
+}
+
+/// <summary>
+/// T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). One column of a full-text index: <c>c [TYPE COLUMN t] [LANGUAGE l]
+/// [STATISTICAL_SEMANTICS]</c>.
+/// </summary>
+public sealed record FullTextIndexColumn(Identifier Column) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>TYPE COLUMN t</c>: the column holding the document's type.</summary>
+	public Identifier? TypeColumn { get; init; }
+
+	/// <summary>T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>LANGUAGE l</c>: a name, a number or a string.</summary>
+	public Expression? Language { get; init; }
+
+	/// <summary>T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>STATISTICAL_SEMANTICS</c>.</summary>
+	public bool StatisticalSemantics { get; init; }
+}
+
+/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). What an <c>ALTER FULLTEXT INDEX</c> does.</summary>
+public abstract record FullTextAlteration : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>ENABLE</c>.</summary>
+	public sealed record Enable : FullTextAlteration;
+
+	/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>DISABLE</c>.</summary>
+	public sealed record Disable : FullTextAlteration;
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>SET CHANGE_TRACKING [=] {MANUAL | AUTO | OFF}</c>, the word as
+	/// written.
+	/// </summary>
+	public sealed record SetChangeTracking(Identifier Mode) : FullTextAlteration
+	{
+		/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>SET CHANGE_TRACKING AUTO</c>: the <c>=</c> left out.</summary>
+		[Spelling] public bool EqualsOmitted { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>ADD (c …, …) [WITH NO POPULATION]</c>: columns added to the index.
+	/// </summary>
+	public sealed record AddColumns(SqlList<FullTextIndexColumn> Columns) : FullTextAlteration;
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>ALTER COLUMN c {ADD | DROP} STATISTICAL_SEMANTICS</c>: the column
+	/// by its name alone.
+	/// </summary>
+	public sealed record AlterColumn(FullTextIndexColumn Column, bool Add) : FullTextAlteration;
+
+	/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>DROP (c, …)</c>: columns dropped from the index.</summary>
+	public sealed record DropColumns(SqlList<Identifier> Columns) : FullTextAlteration;
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>START {FULL | INCREMENTAL | UPDATE} POPULATION</c>, and <c>STOP</c>,
+	/// <c>PAUSE</c> and <c>RESUME POPULATION</c>, which say no kind.
+	/// </summary>
+	public sealed record Population(PopulationAction Action, PopulationKind? Kind) : FullTextAlteration;
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>SET STOPLIST [=] {OFF | SYSTEM | s}</c>: one of the three.
+	/// </summary>
+	public sealed record SetStopList(Identifier? Name, bool Off, bool System) : FullTextAlteration
+	{
+		/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>SET STOPLIST s</c>: the <c>=</c> left out.</summary>
+		[Spelling] public bool EqualsOmitted { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>SET SEARCH PROPERTY LIST [=] {OFF | p}</c>: one of the two.
+	/// </summary>
+	public sealed record SetSearchPropertyList(Identifier? Name, bool Off) : FullTextAlteration
+	{
+		/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>SET SEARCH PROPERTY LIST p</c>: the <c>=</c> left out.</summary>
+		[Spelling] public bool EqualsOmitted { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). The <c>WITH …</c> after the action, where the grammar reads one.
+	/// </summary>
+	public SqlList<Option> Options { get; init; } = [];
+}
+
+/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). What is done to a population.</summary>
+public enum PopulationAction { Start, Stop, Pause, Resume }
+
+/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). Which population is started.</summary>
+public enum PopulationKind { Full, Incremental, Update }
+
+/// <summary>
+/// T-SQL: CREATE VIEW (Transact-SQL), ALTER VIEW (Transact-SQL). The verb a definition opens with.
+/// </summary>
+public enum DefinitionVerb { Create, Alter, CreateOrAlter }
+
+/// <summary>T-SQL: CREATE VIEW (Transact-SQL). A view's attribute, <c>WITH ENCRYPTION</c> and its fellows.</summary>
+public enum ViewAttribute { Encryption, SchemaBinding, ViewMetadata }
+
+public abstract partial record SequenceOption
+{
+	/// <summary>T-SQL: CREATE SEQUENCE (Transact-SQL). <c>CACHE</c>, or <c>CACHE n</c>.</summary>
+	public sealed record Cache(Expression? Size) : SequenceOption;
+
+	/// <summary>T-SQL: CREATE SEQUENCE (Transact-SQL). <c>NO CACHE</c>.</summary>
+	public sealed record NoCache : SequenceOption;
+}

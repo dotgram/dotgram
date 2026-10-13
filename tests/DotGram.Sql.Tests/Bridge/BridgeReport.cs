@@ -151,6 +151,17 @@ static class BridgeReport
 		national string's `N` without case, and every other token — a name in brackets or quotes, a string, a
 		number, any other word — exactly. A statement that passes only so is converted, and counted per member.
 
+		## Definitions kept as text
+
+		The old tree keeps CREATE STATISTICS, UPDATE STATISTICS, CREATE TYPE, CREATE SYNONYM, CREATE and ALTER
+		FULLTEXT INDEX, a sequence and the action of ALTER TABLE … ALTER INDEX as a name and the text after it. The
+		bridge cuts that text at its brackets and its commas outside them, and reads each part again by the grammar's
+		own rule for it: a value as a select list's, a condition as a WHERE, a list of options as a table's, a list of
+		partitions as TRUNCATE TABLE's, a table type's body as a table's. Each such text is in the closed list above.
+
+		A view's verb is null for the plain CREATE, which is the standard's and what its parser builds; `ALTER` and
+		`CREATE OR ALTER` are values of it, and `DefinitionVerb.Create`, the same text as null, is refused.
+
 		## Checks for the grammar switch
 
 		Where the new tree reads a text differently from the old one, the T-SQL grammar has to build the new form
