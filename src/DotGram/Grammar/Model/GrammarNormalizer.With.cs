@@ -55,6 +55,8 @@ public sealed partial class GrammarNormalizer
 		var forward  = BuildCallGraph();
 		var calledBy = Reverse(forward);
 
+		_composeOnHeaders = sites.Count > 0;
+
 		var rewrites = new Dictionary<Node, (
 			IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets,
 			Dictionary<RuleSymbol, RuleSymbol> CloneMap,
@@ -109,6 +111,8 @@ public sealed partial class GrammarNormalizer
 		}
 
 		_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);
+
+		_composeOnHeaders = false;
 	}
 
 	/// <summary>
@@ -397,7 +401,9 @@ public sealed partial class GrammarNormalizer
 			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal(text) { IgnoreCase = ignoreCase },
 			Node.Guard    (var text, var at)                                        => new Node.Guard(text, at),
 			Node.External external                                                 => external with { },
-			Node.Sequence (var nodes)                                               => new Node.Sequence([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
+			// Flat again: an operand kept whole so that it could be found (`LowerSequence`) is
+			// spliced back into the sequence around it.
+			Node.Sequence (var nodes)                                               => new Node.Sequence([.. nodes.Select(child => SpliceWithSites(child, rewrites)).SelectMany(static child => child is Node.Sequence(var inner) ? inner : [child])]),
 			Node.Choice   (var nodes)                                               => ((Node.Choice)node).Rebuild([.. nodes.Select(child => SpliceWithSites(child, rewrites))]) with
 			{
 				Selection = ((Node.Choice)node).Selection is { } selected
@@ -481,6 +487,8 @@ public sealed partial class GrammarNormalizer
 
 		var dequeued = 0;
 
+		_composeOnHeaders = _siteClones.Count > 0;
+
 		while (pending.Count > 0)
 		{
 			var publication     = pending.Dequeue();
@@ -526,7 +534,8 @@ public sealed partial class GrammarNormalizer
 					: numbered);
 		}
 
-		_publications = remapped;
+		_composeOnHeaders = false;
+		_publications     = remapped;
 	}
 
 	/// <summary>

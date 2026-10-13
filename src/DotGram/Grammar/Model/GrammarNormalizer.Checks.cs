@@ -290,7 +290,7 @@ public sealed partial class GrammarNormalizer
 			{
 				Report(
 					UnbuiltConstruction,
-					$"A '=>' in '{rule.Name}' is not on an alternative of the rule. It builds the rule's " +
+					$"A '=>' in '{Shown(rule)}' is not on an alternative of the rule. It builds the rule's " +
 					"value, so it belongs at the end of one.",
 					rule.Declaration!.At);
 
@@ -300,7 +300,7 @@ public sealed partial class GrammarNormalizer
 		if (building > 0 && !declared)
 			Report(
 				UnbuiltConstruction,
-				$"'{rule.Name}' says how to build its value with '=>' but does not say what type that is. " +
+				$"'{Shown(rule)}' says how to build its value with '=>' but does not say what type that is. " +
 				"Declare one with ': @T'.",
 				rule.Declaration!.At);
 
@@ -318,7 +318,7 @@ public sealed partial class GrammarNormalizer
 		else if (declared && building > 0 && building < offered.Count)
 			Report(
 				UnbuiltConstruction,
-				$"'{rule.Name}' says how to build its value on {building} of its {offered.Count} " +
+				$"'{Shown(rule)}' says how to build its value on {building} of its {offered.Count} " +
 				"alternatives and not on the rest. Give every alternative a '=>', or none of " +
 				$"them and let the captures fill a constructor of '{_types[rule]}' (§7.3).",
 				rule.Declaration!.At);
@@ -326,13 +326,13 @@ public sealed partial class GrammarNormalizer
 		else if (declared && building < offered.Count)
 			Report(
 				UnbuiltConstruction,
-				$"'{rule.Name}' declares a type and does not say how to build it. Only ': @string' " +
+				$"'{Shown(rule)}' declares a type and does not say how to build it. Only ': @string' " +
 				"can be left to the shape of the rule — §4.1 case 4, the extent it matched. " +
 				(HasCapture(body)
 					? $"No constructor of '{_types[rule]}' has every parameter covered by a capture " +
 						"of this rule, which is what §7.3 matches against, so give every alternative " +
 						"a '=>'."
-					: $"Give every alternative a '=>', or declare '{rule.Name}' as ': @string'."),
+					: $"Give every alternative a '=>', or declare '{Shown(rule)}' as ': @string'."),
 				rule.Declaration!.At);
 	}
 
