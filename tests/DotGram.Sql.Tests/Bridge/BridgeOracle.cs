@@ -49,7 +49,7 @@ static class BridgeOracle
 		string? Reason = null, string? Written = null, string? Detail = null,
 		IReadOnlyList<string>? ByCase = null, IReadOnlyList<string>? Recovered = null,
 		IReadOnlyList<(string Record, string Reason)>? Gaps = null,
-		bool Standard = false, bool Shape = false, IReadOnlyList<string>? Dialects = null)
+		bool Standard = false, bool Shape = false, IReadOnlyList<string>? Dialects = null, IReadOnlyList<string>? Projected = null)
 	{
 		public bool Dialect => Dialects is { Count: > 0 };
 	}
@@ -80,10 +80,11 @@ static class BridgeOracle
 		var shape     = false;
 		string? detail = null;
 		List<string>? dialects = null;
+		var projected = new List<string>();
 
-		if (read && !made.Equals(standard.Value))
+		if (read && !made.Equals(standard.Value) && Projection(made, projected) is var compared && !compared.Equals(standard.Value))
 		{
-			var differences = Trees.Differences(made, standard.Value, old: false);
+			var differences = Trees.Differences(compared, standard.Value, old: false);
 
 			dialects = Meaning(differences, out var unexplained);
 			shape    = unexplained.Count > 0;
@@ -101,29 +102,145 @@ static class BridgeOracle
 			var status = thrown is NotSupportedException or ArgumentException or InvalidOperationException ? Status.Refused : Status.Crashed;
 
 			return new Outcome(root, root, status, text, Detail: $"{thrown.GetType().Name}: {thrown.Message}",
-				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
+				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects, Projected: projected);
 		}
 
 		var back = TransactSqlParser.TryParseSql(written);
 
 		if (!back.IsSuccess || back.Value!.Length != 1)
 			return new Outcome(root, root, Status.Unread, text, Written: written, Detail: detail,
-				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
+				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects, Projected: projected);
 
 		var byCase = new List<string>();
 
 		if (!back.Value[0].Equals(old) && Trees.Difference(old, back.Value[0], byCase: byCase) is { } difference)
 			return new Outcome(root, root, Status.Different, text, Written: written, Detail: difference,
-				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
+				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects, Projected: projected);
 
 		// The words the bridge read from the text are not in the old tree, so the old trees agreeing says nothing of
 		// them: the written text, read and carried again, has to give the same new tree.
 		if (Again(made, written) is { } lost)
 			return new Outcome(root, root, Status.Different, text, Written: written, Detail: "new tree: " + lost,
-				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
+				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects, Projected: projected);
 
 		return new Outcome(root, root, Status.Converted, text, Written: written, Detail: detail,
-			ByCase: byCase, Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects);
+			ByCase: byCase, Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects, Projected: projected);
+	}
+
+	public const string ProjectedColumn = "a T-SQL column's options as the standard's members";
+	public const string ProjectedKey    = "a key's T-SQL columns as the standard's names";
+
+	public static readonly string[] Projections = [ProjectedColumn, ProjectedKey];
+
+	/// <summary>
+	/// The bridge's tree as the standard's parser would hold the same text, where T-SQL keeps a thing its own way
+	/// and the standard another: the two projections the shape check makes before it compares, and the only
+	/// comparisons it makes that are not plain equality.
+	/// <list type="bullet">
+	/// <item>A column's options, in the order written, onto the standard's members: a <c>COLLATE</c> right after a
+	/// character type into the type, as the standard's grammar reads it there; then a <c>DEFAULT</c> into
+	/// <c>Generation</c>, as <c>GENERATED ALWAYS AS ROW START</c> and <c>ROW END</c> are; the constraints in order
+	/// into <c>Constraints</c>; a last <c>COLLATE</c> into <c>Collation</c>. Only where the options stand in that
+	/// order and each has its counterpart, which is when the standard's parser reads the column at all.</item>
+	/// <item>A PRIMARY KEY's or a UNIQUE's <c>Keys</c> onto its <c>Columns</c>, where each is a one-part name with
+	/// no direction and the key has no other T-SQL part.</item>
+	/// </list>
+	/// A column or a key the projection does not apply to is left as it is, and so differs, and the statement is
+	/// a shape mismatch. Each projection made is named in <paramref name="projected"/>.
+	/// </summary>
+	public static Ast.Statement Projection(Ast.Statement made, List<string> projected)
+	{
+		Ast.ColumnDefinition Column(Ast.ColumnDefinition column)
+		{
+			if (column.Options.Count == 0 || column.Generation is not null || column.Constraints.Count > 0 || column.Collation is not null)
+				return column;
+
+			var options = column.Options;
+			var type    = column.Type;
+			var at      = 0;
+
+			if (type is Ast.DataType.Character { Collation: null } character && options[0] is Ast.ColumnOption.Collation { Name: null } typed)
+			{
+				type = character with { Collation = typed.Value };
+				at++;
+			}
+
+			Ast.ColumnGeneration? generation = null;
+
+			if (at < options.Count && options[at] is { Name: null } first)
+			{
+				generation = first switch
+				{
+					Ast.ColumnOption.Default @default                                              => new Ast.ColumnGeneration.Default(@default.Value),
+					Ast.ColumnOption.GeneratedAlways { Kind: Ast.GeneratedAlwaysKind.RowStart } => new Ast.ColumnGeneration.RowStart(),
+					Ast.ColumnOption.GeneratedAlways { Kind: Ast.GeneratedAlwaysKind.RowEnd }   => new Ast.ColumnGeneration.RowEnd(),
+					_                                                                              => null,
+				};
+
+				if (generation is not null)
+					at++;
+			}
+
+			var constraints = new List<Ast.Constraint>();
+
+			for (; at < options.Count && options[at] is Ast.ColumnOption.Constraint { Name: null, Value: var constraint }; at++)
+				constraints.Add(Key(constraint));
+
+			Ast.CollationName? collation = null;
+
+			if (at == options.Count - 1 && options[at] is Ast.ColumnOption.Collation { Name: null } last)
+			{
+				collation = last.Value;
+				at++;
+			}
+
+			if (at < options.Count)
+				return column;
+
+			projected.Add(ProjectedColumn);
+
+			return column with { Type = type, Generation = generation, Constraints = constraints.ToSqlList(), Collation = collation, Options = [] };
+		}
+
+		Ast.Constraint Key(Ast.Constraint constraint)
+		{
+			if (constraint is not Ast.Constraint.Unique { Keys: { Count: > 0 } keys, Clustering: null, Options.Count: 0, OptionsUnbracketed: false, On: null, Columns.Count: 0 } unique
+				|| !keys.All(static one => one is { Direction: null, NullOrdering: null, Key: Ast.Expression.Reference { Name.Parts.Count: 1 } }))
+				return constraint;
+
+			projected.Add(ProjectedKey);
+
+			return unique with { Keys = null, Columns = keys.Select(static one => ((Ast.Expression.Reference)one.Key).Name.Parts[0]).ToSqlList() };
+		}
+
+		Ast.TableElement Element(Ast.TableElement element)
+		{
+			return element switch
+			{
+				Ast.TableElement.Column one          => one with { Definition = Column(one.Definition) },
+				Ast.TableElement.TableConstraint one => one with { Value = Key(one.Value) },
+				_                                    => element,
+			};
+		}
+
+		Ast.AlterTableAction Action(Ast.AlterTableAction action)
+		{
+			return action switch
+			{
+				Ast.AlterTableAction.AddColumn one     => one with { Column = Column(one.Column) },
+				Ast.AlterTableAction.AddConstraint one => one with { Constraint = Key(one.Constraint) },
+				Ast.AlterTableAction.Add one           => one with { Elements = one.Elements.Select(Element).ToSqlList() },
+				_                                      => action,
+			};
+		}
+
+		return made switch
+		{
+			Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements elements } table
+				=> table with { Contents = elements with { Items = elements.Items.Select(Element).ToSqlList() } },
+			Ast.Statement.AlterTable alter => alter with { Actions = alter.Actions.Select(Action).ToSqlList() },
+			_                              => made,
+		};
 	}
 
 	/// <summary>
@@ -198,7 +315,7 @@ static class BridgeOracle
 	}
 
 	/// <summary>
-	/// The ten constructs the two dialects read with different meanings. Each exempts one subtree of the
+	/// The twelve constructs the two dialects read with different meanings. Each exempts one subtree of the
 	/// bridge's tree, found by its construct and never by the statement's text:
 	/// <list type="bullet">
 	/// <item><c>TOP (n) a</c> is a row count in T-SQL, and the standard reads a call to <c>TOP</c> aliased <c>a</c>:
@@ -224,6 +341,10 @@ static class BridgeOracle
 	/// statement's <c>Hints</c>, and an <c>Alias</c> the standard reads the word OPTION as.</item>
 	/// <item><c>SELECT x = a</c> names a column in T-SQL, and compares two in the standard: a
 	/// <c>SelectColumn.ExpressionItem</c> that is <c>AliasFirst</c>.</item>
+	/// <item><c>UPDATE ONLY (t)</c> calls a function <c>ONLY</c> in T-SQL, and is the table <c>t</c> alone in the
+	/// standard: the statement's <c>Target</c>.</item>
+	/// <item><c>c t DEFAULT v COLLATE x</c> collates the default value in T-SQL, and the column in the standard: the
+	/// <c>ColumnDefinition</c> whose default is an <c>Expression.Collate</c>.</item>
 	/// </list>
 	/// A difference outside every exempted subtree is unexplained, and makes the statement a shape mismatch.
 	/// </summary>
@@ -261,8 +382,9 @@ static class BridgeOracle
 	public const string Option   = "FROM t OPTION (h): a hint in T-SQL, an alias in the standard";
 	public const string Named    = "SELECT x = a: an alias in T-SQL, a comparison in the standard";
 	public const string Only     = "UPDATE ONLY (t): a call to a function ONLY in T-SQL, the table t alone in the standard";
+	public const string Collated = "c t DEFAULT v COLLATE x: the default's collation in T-SQL, the column's in the standard";
 
-	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName, GroupAll, Into, Option, Named, Only];
+	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName, GroupAll, Into, Option, Named, Only, Collated];
 
 	/// <summary>
 	/// The pattern whose subtree a difference lies in, and the node at the subtree's root, or null.
@@ -282,6 +404,12 @@ static class BridgeOracle
 		if (difference.Path is [{ Node: Ast.Statement.Select { Hints.Count: > 0 } }, .., { Member: "Alias" } last]
 			&& difference.Right is Ast.Alias { Name.Text: var word } && word.Equals("OPTION", StringComparison.OrdinalIgnoreCase))
 			return (Option, last.Node);
+
+		// c t DEFAULT v COLLATE x: the column's default and collation, where T-SQL reads the collation as the default
+		// value's own and the standard as the column's.
+		foreach (var step in difference.Path)
+			if (step is { Node: Ast.ColumnDefinition { Generation: Ast.ColumnGeneration.Default { Value: Ast.Expression.Collate }, Collation: null } column, Member: "Generation" or "Collation" })
+				return (Collated, column);
 
 		// SELECT x = a: the column the alias comes first in, which the standard reads as a comparison.
 		if (difference.Path is [.., { Node: Ast.SelectColumn.ExpressionItem { AliasFirst: true } item, Member: "Expression" or "Alias" or "AliasFirst" }])
@@ -356,7 +484,7 @@ static class BridgeOracle
 			};
 		}
 
-		if (difference is { Left: Ast.DataType.Named { Name.Parts: [var stamp], Arguments.Count: 0 }, Right: Ast.DataType.DateTime { Kind: Ast.DateTimeTypeKind.Timestamp } })
+		if (difference is { Left: Ast.DataType.Named { Name.Parts: [var stamp], Arguments.Count: <= 1 }, Right: Ast.DataType.DateTime { Kind: Ast.DateTimeTypeKind.Timestamp } })
 			return Bridge.Values.Unquoted(stamp.Text).Equals("timestamp", StringComparison.OrdinalIgnoreCase);
 
 		if (difference.Right is not Ast.DataType.UserDefined { Name: var read })

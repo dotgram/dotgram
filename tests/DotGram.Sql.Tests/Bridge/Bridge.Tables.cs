@@ -38,6 +38,9 @@ static partial class Bridge
 			made = old switch
 			{
 				TableReference source when Owned(Owns, old) => Of(source),
+				Statement.TableDefinition table              => CreateTable(table),
+				Statement.CreateTableAsSelect query          => CreateTableAsSelect(query),
+				Statement.AlterTable alter                   => AlterTable(alter),
 				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
 				_                       => null,
 			};
@@ -244,8 +247,8 @@ static partial class Bridge
 
 		/// <summary>
 		/// A column's name and the text the old tree keeps after it — a type, perhaps a collation and a nullability,
-		/// or nothing where the type was left out — as the standard's column definition holds them: <c>NOT NULL</c> a
-		/// constraint, and an explicit <c>NULL</c> a gap, decided with CREATE TABLE's column options.
+		/// or nothing where the type was left out — as T-SQL's column holds them: the collation and the nullability
+		/// in its options, in the order written, <c>NOT NULL</c> a constraint and an explicit <c>NULL</c> its own.
 		/// </summary>
 		internal static Ast.ColumnDefinition TypedColumn(Clause old, string name, string? text)
 		{
@@ -253,17 +256,29 @@ static partial class Bridge
 				return new Ast.ColumnDefinition(Values.Part(old, name), null, null, [], null);
 
 			var words = Words(text);
-			var notNull = words is [.., "NOT", "NULL"];
+			Ast.ColumnOption? nullability = null;
 
-			if (!notNull && words is [.., "NULL"])
-				throw BridgeGap.Open(old, "inventory Clause.ColumnOption (an explicit NULL, decided with CREATE TABLE's column options)");
-
-			if (notNull)
-				text = text[..text.LastIndexOf("NOT", StringComparison.OrdinalIgnoreCase)].TrimEnd();
+			if (words is [.., "NOT", "NULL"])
+			{
+				nullability = new Ast.ColumnOption.Constraint(new Ast.Constraint.NotNull());
+				text        = text[..text.LastIndexOf("NOT", StringComparison.OrdinalIgnoreCase)].TrimEnd();
+			}
+			else if (words is [.., "NULL"])
+			{
+				nullability = new Ast.ColumnOption.Null();
+				text        = text[..text.LastIndexOf("NULL", StringComparison.OrdinalIgnoreCase)].TrimEnd();
+			}
 
 			var (type, collation) = Collated(old, text);
+			var options = new List<Ast.ColumnOption>();
 
-			return new Ast.ColumnDefinition(Values.Part(old, name), type, null, notNull ? [new Ast.Constraint.NotNull()] : [], collation);
+			if (collation is not null)
+				options.Add(new Ast.ColumnOption.Collation(collation));
+
+			if (nullability is not null)
+				options.Add(nullability);
+
+			return new Ast.ColumnDefinition(Values.Part(old, name), type, null, [], null) { Options = options.ToSqlList() };
 		}
 
 		/// <summary>
@@ -516,6 +531,844 @@ static partial class Bridge
 				Specification = specification,
 				Hint          = hint,
 			};
+		}
+
+		// ── CREATE TABLE, CREATE TABLE AS SELECT, ALTER TABLE (proposals 16, 17, 20) ────────────────
+
+		/// <summary>
+		/// A table declared: its name, its kind, its elements, placements and options. A temporary table is its name.
+		/// </summary>
+		static Ast.Statement CreateTable(Statement.TableDefinition old)
+		{
+			if (old.External)
+				throw BridgeGap.Open(old, "inventory Statement.TableDefinition (CREATE EXTERNAL TABLE, which another task owns)");
+
+			return new Ast.Statement.CreateTable
+			{
+				Name       = Values.Name(old, old.Name),
+				Contents   = new Ast.TableContents.Elements(Elements(old.Elements)),
+				Kind       = Kind(old, old.Kind),
+				Placements = Each(old.Placements, Placement),
+				Options    = Each(old.Options, Option),
+			};
+		}
+
+		static Ast.TableKind? Kind(object owner, string? kind)
+		{
+			return kind?.ToUpperInvariant() switch
+			{
+				null        => null,
+				"FILETABLE" => Ast.TableKind.FileTable,
+				"NODE"      => Ast.TableKind.Node,
+				"EDGE"      => Ast.TableKind.Edge,
+				_           => throw BridgeGap.Open(owner, $"inventory Statement.TableDefinition (AS {kind})"),
+			};
+		}
+
+		/// <summary>
+		/// A table made of a query, Synapse's: the column names, the options before the AS, and the query, which
+		/// writes no <c>WITH [NO] DATA</c>.
+		/// </summary>
+		static Ast.Statement CreateTableAsSelect(Statement.CreateTableAsSelect old)
+		{
+			if (old.External)
+				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (CREATE EXTERNAL TABLE AS SELECT, which another task owns)");
+
+			if (StatementOf(old.Body) is not Ast.Statement.Select { Hints.Count: 0 } select)
+				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold)");
+
+			return new Ast.Statement.CreateTable
+			{
+				Name     = Values.Name(old, old.Name),
+				Contents = new Ast.TableContents.AsQuery(Values.Parts(old, old.Columns), select.Query, null),
+				Options  = Each(old.Options, Option),
+			};
+		}
+
+		static SqlList<Ast.TableElement> Elements(SqlList<Clause> elements)
+		{
+			return Each(elements, Element);
+		}
+
+		/// <summary>One element of a table's body: a column, a constraint, an index, a period.</summary>
+		static Ast.TableElement Element(Clause old)
+		{
+			switch (old)
+			{
+				case Clause.ColumnDefinition column:
+					return new Ast.TableElement.Column(Column(column));
+
+				case Clause.ConstraintDefinition { Kind: "PERIOD FOR SYSTEM_TIME", Columns: [Clause.SortSpecification(Expression.ColumnReference(var begin), SqlOrder.Unspecified), Clause.SortSpecification(Expression.ColumnReference(var end), SqlOrder.Unspecified)], Name: null }:
+					return new Ast.TableElement.Period(new Ast.PeriodDefinition(Ast.PeriodKind.SystemTime, null, Values.Part(old, begin), Values.Part(old, end)));
+
+				case Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" } index:
+					return new Ast.TableElement.Index(Index(index));
+
+				case Clause.ConstraintDefinition constraint:
+					return new Ast.TableElement.TableConstraint(Constraint(constraint, table: true));
+
+				default:
+					throw BridgeGap.Open(old, $"inventory Statement.TableDefinition (an element {NameOf(old)})");
+			}
+		}
+
+		/// <summary>
+		/// A column as T-SQL declares it: its name, its type where it has one, and everything said about it after
+		/// that in <see cref="Ast.ColumnDefinition.Options"/>, in the order written; the standard's members empty.
+		/// </summary>
+		static Ast.ColumnDefinition Column(Clause.ColumnDefinition old)
+		{
+			var options = new List<Ast.ColumnOption>();
+
+			if (old.Computed is { } computed)
+				options.Add(new Ast.ColumnOption.Computed(Values.Of(computed)));
+
+			foreach (var one in old.Options)
+				options.AddRange(ColumnOptions(one));
+
+			return new Ast.ColumnDefinition(Values.Part(old, old.Name), old.Type is null ? null : Values.Type(old, old.Type), null, [], null)
+			{
+				Options = options.ToSqlList(),
+			};
+		}
+
+		/// <summary>
+		/// What one thing said about a column becomes: one option, or two where <c>HIDDEN</c> was written after
+		/// <c>GENERATED ALWAYS AS ROW START</c>, which the old tree keeps inside it.
+		/// </summary>
+		static IEnumerable<Ast.ColumnOption> ColumnOptions(Clause old)
+		{
+			switch (old)
+			{
+				case Clause.ColumnOption { Kind: var kind, ConstraintName: var name } option:
+					var words = kind.ToUpperInvariant();
+
+					if (name is not null && words is not ("NULL" or "NOT NULL"))
+						throw BridgeGap.Open(old, $"inventory Clause.ColumnOption (a name on {kind})");
+
+					if (words.StartsWith("GENERATED ALWAYS AS ", StringComparison.Ordinal))
+					{
+						yield return new Ast.ColumnOption.GeneratedAlways(words["GENERATED ALWAYS AS ".Length..] switch
+						{
+							"ROW START"             => Ast.GeneratedAlwaysKind.RowStart,
+							"ROW END"               => Ast.GeneratedAlwaysKind.RowEnd,
+							"TRANSACTION_ID START"  => Ast.GeneratedAlwaysKind.TransactionIdStart,
+							"TRANSACTION_ID END"    => Ast.GeneratedAlwaysKind.TransactionIdEnd,
+							"SEQUENCE_NUMBER START" => Ast.GeneratedAlwaysKind.SequenceNumberStart,
+							"SEQUENCE_NUMBER END"   => Ast.GeneratedAlwaysKind.SequenceNumberEnd,
+							_                       => throw BridgeGap.Open(old, $"inventory Clause.ColumnOption ({kind})"),
+						});
+
+						if (option.Options is [Clause.Option { Name: var hidden }] && hidden.Equals("HIDDEN", StringComparison.OrdinalIgnoreCase))
+							yield return new Ast.ColumnOption.Hidden();
+						else if (option.Options.Length > 0)
+							throw BridgeGap.Open(old, $"inventory Clause.ColumnOption ({kind} with more than HIDDEN after it)");
+
+						yield break;
+					}
+
+					yield return ColumnOption(option, words, name);
+					break;
+
+				case Clause.ConstraintDefinition { Kind: "DEFAULT", Check: { } value, ForColumn: null, Options: null or { Length: 0 } } @default:
+					yield return new Ast.ColumnOption.Default(Values.Of(value)) { Name = @default.Name is { } named ? Values.Part(old, named) : null };
+					break;
+
+				case Clause.ConstraintDefinition { Kind: "DEFAULT" }:
+					throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (a column's DEFAULT with FOR or WITH VALUES)");
+
+				case Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" } index:
+					yield return new Ast.ColumnOption.Index(Index(index));
+					break;
+
+				case Clause.ConstraintDefinition constraint:
+					yield return new Ast.ColumnOption.Constraint(Constraint(constraint, table: false));
+					break;
+
+				default:
+					throw BridgeGap.Open(old, $"inventory Clause.ColumnDefinition (an option {NameOf(old)})");
+			}
+		}
+
+		static Ast.ColumnOption ColumnOption(Clause.ColumnOption old, string words, string? name)
+		{
+			if (words is not ("IDENTITY" or "COLLATE") && old.Arguments.Length > 0 || words is not ("MASKED" or "ENCRYPTED") && old.Options.Length > 0)
+				throw BridgeGap.Open(old, $"inventory Clause.ColumnOption ({old.Kind} with arguments or options)");
+
+			switch (words)
+			{
+				case "FILESTREAM":
+					return new Ast.ColumnOption.Filestream();
+
+				case "SPARSE":
+					return new Ast.ColumnOption.Sparse();
+
+				case "ROWGUIDCOL":
+					return new Ast.ColumnOption.RowGuidCol();
+
+				case "PERSISTED":
+					return new Ast.ColumnOption.Persisted();
+
+				case "NOT FOR REPLICATION":
+					return new Ast.ColumnOption.NotForReplication();
+
+				case "NULL":
+					return new Ast.ColumnOption.Null { Name = name is null ? null : Values.Part(old, name) };
+
+				case "NOT NULL":
+					return new Ast.ColumnOption.Constraint(new Ast.Constraint.NotNull { Name = name is null ? null : Values.Name(old, name) });
+
+				case "COLLATE" when old.Arguments is [Expression.ColumnReference(var collation)]:
+					return new Ast.ColumnOption.Collation(new Ast.CollationName(Values.Name(old, collation)));
+
+				case "IDENTITY" when old.Arguments.Length <= 2:
+					return new Ast.ColumnOption.Identity(
+						old.Arguments.Length > 0 ? Values.Of(old.Arguments[0]) : null,
+						old.Arguments.Length > 1 ? Values.Of(old.Arguments[1]) : null);
+
+				case "MASKED" when old.Options is [Clause.Option { Name: var function, Value: { } value, Options.Length: 0, Partitions: null, Bare: false }]
+					&& function.Equals("FUNCTION", StringComparison.OrdinalIgnoreCase):
+					return new Ast.ColumnOption.Masked(Values.Of(value));
+
+				case "ENCRYPTED":
+					return new Ast.ColumnOption.Encrypted(Each(old.Options, Option));
+
+				default:
+					throw BridgeGap.Open(old, $"inventory Clause.ColumnOption ({old.Kind})");
+			}
+		}
+
+		/// <summary>
+		/// A constraint, at the table or on a column: a key with T-SQL's clustering, keys, options and placement; a
+		/// foreign key; a check; and at the table T-SQL's default for a column and a graph's connection.
+		/// </summary>
+		static Ast.Constraint Constraint(Clause.ConstraintDefinition old, bool table)
+		{
+			if (old.Hash || old.Columnstore || old.Order is not null || old.Include is not null || old.Filter is not null)
+				throw BridgeGap.Open(old, $"inventory Clause.ConstraintDefinition ({old.Kind} with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter)");
+
+			if (old.Kind is not ("PRIMARY KEY" or "UNIQUE") && (old.Clustering is not null || old.Placements is not null || !old.Bracketed
+				|| old.Options is { Length: > 0 } && old.Kind is not ("CHECK" or "CONNECTION")))
+				throw BridgeGap.Open(old, $"inventory Clause.ConstraintDefinition ({old.Kind} with a key's parts)");
+
+			Ast.Constraint made = old.Kind switch
+			{
+				"PRIMARY KEY" or "UNIQUE" => Key(old),
+				"FOREIGN KEY"             => new Ast.Constraint.ForeignKey(KeyNames(old), null, References(old)) { ForeignKeyWords = old.Columns.Length == 0 },
+				"REFERENCES"              => new Ast.Constraint.ForeignKey([], null, References(old)),
+				"CHECK"                   => Check(old),
+				"CONNECTION" when table   => Connection(old),
+				"DEFAULT" when table && old is { Check: { } value, ForColumn: { } column, Options: null or { Length: 0 } }
+					=> new Ast.Constraint.Default(Values.Of(value), Values.Part(old, column)),
+				_ => throw BridgeGap.Open(old, $"inventory Clause.ConstraintDefinition ({old.Kind}{(table ? " at the table" : " on a column")})"),
+			};
+
+			if (old.Enforced is { } enforced)
+			{
+				if (old.Kind is not ("PRIMARY KEY" or "UNIQUE" or "FOREIGN KEY" or "REFERENCES"))
+					throw BridgeGap.Open(old, $"inventory Clause.ConstraintDefinition (ENFORCED on {old.Kind})");
+
+				made = made with { Characteristics = new Ast.ConstraintCharacteristics(null, null, enforced) };
+			}
+
+			return made with { Name = old.Name is { } name ? Values.Name(old, name) : null };
+		}
+
+		/// <summary>
+		/// A PRIMARY KEY or a UNIQUE as T-SQL writes it: the keys with their directions in <c>Keys</c> whether a
+		/// direction was written or not, and the standard's <c>Columns</c> empty.
+		/// </summary>
+		static Ast.Constraint.Unique Key(Clause.ConstraintDefinition old)
+		{
+			Ast.Placement? on = old.Placements switch
+			{
+				null or []                                                       => null,
+				[Clause.Placement { Kind: var kind } one] when kind.Equals("ON", StringComparison.OrdinalIgnoreCase) => Placement(one),
+				_                                                                => throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (a key placed other than ON)"),
+			};
+
+			return new Ast.Constraint.Unique(old.Kind == "PRIMARY KEY" ? Ast.UniqueKind.PrimaryKey : Ast.UniqueKind.Unique, null, [])
+			{
+				Clustering         = Clustering(old, old.Clustering),
+				Keys               = old.Columns.Length == 0 ? null : Each(old.Columns, Sorted),
+				Options            = Each(old.Options ?? [], Option),
+				OptionsUnbracketed = !old.Bracketed,
+				On                 = on,
+			};
+		}
+
+		static Ast.IndexClustering? Clustering(object owner, string? clustering)
+		{
+			return clustering?.ToUpperInvariant() switch
+			{
+				null           => null,
+				"CLUSTERED"    => Ast.IndexClustering.Clustered,
+				"NONCLUSTERED" => Ast.IndexClustering.Nonclustered,
+				_              => throw BridgeGap.Open(owner, $"inventory Clause.ConstraintDefinition (clustering {clustering})"),
+			};
+		}
+
+		/// <summary>A key's or an index's column with the direction written, which may be a graph's own <c>$node_id</c>.</summary>
+		static Ast.SortItem Sorted(Clause old)
+		{
+			return old is Clause.SortSpecification sort
+				? Queries.Sort(sort)
+				: throw BridgeGap.Open(old, "inventory Clause.SortSpecification (a key's column)");
+		}
+
+		/// <summary>A foreign key's own columns, which T-SQL reads with a direction and which the standard names alone.</summary>
+		static SqlList<Ast.Identifier> KeyNames(Clause.ConstraintDefinition old)
+		{
+			return Each(old.Columns, one => one is Clause.SortSpecification(Expression.ColumnReference(var name), SqlOrder.Unspecified)
+				? Values.Part(old, name)
+				: throw BridgeGap.Open(one, "inventory Clause.ConstraintDefinition (a foreign key's column with a direction)"));
+		}
+
+		static Ast.ReferencesSpecification References(Clause.ConstraintDefinition old)
+		{
+			if (old.Referenced is not Clause.References(var table, var columns, var onDelete, var onUpdate, var replication) references)
+				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (a foreign key with no REFERENCES)");
+
+			// The old tree keeps the two actions and not their order, which the text has; a delete rule alone is first.
+			var deleteFirst = onDelete is not null && (onUpdate is null || Recover("ReferencesSpecification.DeleteRuleFirst", Spelled(references), static text =>
+			{
+				var words = string.Join(" ", Words(text));
+
+				return words.IndexOf("ON DELETE", StringComparison.Ordinal) < words.IndexOf("ON UPDATE", StringComparison.Ordinal);
+			}, false));
+
+			return new Ast.ReferencesSpecification(Values.Name(old, table), Values.Parts(old, columns), null, null, Action(old, onUpdate), Action(old, onDelete), deleteFirst)
+			{
+				NotForReplication = replication,
+			};
+		}
+
+		static Ast.ReferentialAction? Action(object owner, string? action)
+		{
+			return action switch
+			{
+				null          => null,
+				"CASCADE"     => Ast.ReferentialAction.Cascade,
+				"SET NULL"    => Ast.ReferentialAction.SetNull,
+				"SET DEFAULT" => Ast.ReferentialAction.SetDefault,
+				"NO ACTION"   => Ast.ReferentialAction.NoAction,
+				_             => throw BridgeGap.Open(owner, $"inventory Clause.References (ON … {action})"),
+			};
+		}
+
+		/// <summary>A check, and <c>NOT FOR REPLICATION</c>, which the old tree keeps as its one option.</summary>
+		static Ast.Constraint.Check Check(Clause.ConstraintDefinition old)
+		{
+			var replication = old.Options switch
+			{
+				null or []                                                                                  => false,
+				[Clause.Option { Name: var words }] when words.Equals("NOT FOR REPLICATION", StringComparison.OrdinalIgnoreCase) => true,
+				_                                                                                            => throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (a CHECK with options)"),
+			};
+
+			return new Ast.Constraint.Check(Values.Of(old.Check ?? throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (a CHECK with no condition)")))
+			{
+				NotForReplication = replication,
+			};
+		}
+
+		/// <summary>
+		/// A graph edge's <c>CONNECTION</c>: the pairs, and <c>ON DELETE CASCADE</c>, the one action the tree holds; the
+		/// old tree keeps the actions as options after the pairs.
+		/// </summary>
+		static Ast.Constraint.Connection Connection(Clause.ConstraintDefinition old)
+		{
+			var pairs   = new List<Ast.EdgeConnection>();
+			var cascade = false;
+
+			foreach (var one in old.Options ?? [])
+			{
+				if (one is Clause.Connection(var from, var to) && !cascade)
+					pairs.Add(new Ast.EdgeConnection(Values.Name(one, from), Values.Name(one, to)));
+				else if (one is Clause.Option { Name: "ON DELETE CASCADE" } && !cascade)
+					cascade = true;
+				else
+					throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (a CONNECTION action other than one ON DELETE CASCADE)");
+			}
+
+			return new Ast.Constraint.Connection(pairs.ToSqlList(), cascade);
+		}
+
+		/// <summary>An index written at the table or on a column.</summary>
+		static Ast.IndexDefinition Index(Clause.ConstraintDefinition old)
+		{
+			if (old.Order is not null)
+				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index's ORDER, which IndexDefinition has no place for)");
+
+			if (old.Hash && old.Columnstore)
+				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index both COLUMNSTORE and HASH)");
+
+			if (!old.Bracketed || old.Check is not null || old.Referenced is not null || old.Enforced is not null || old.ForColumn is not null)
+				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index with a constraint's parts)");
+
+			Ast.Placement? on = null;
+
+			foreach (var placement in old.Placements ?? [])
+			{
+				if (placement is Clause.Placement { Kind: var kind } one && kind.Equals("ON", StringComparison.OrdinalIgnoreCase) && on is null)
+					on = Placement(one);
+				else
+					throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index's FILESTREAM_ON, which IndexDefinition has no place for)");
+			}
+
+			return new Ast.IndexDefinition(Values.Part(old, old.Name ?? throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index with no name)")))
+			{
+				Unique     = old.Kind == "UNIQUE INDEX",
+				Clustering = Clustering(old, old.Clustering),
+				Storage    = old.Columnstore ? Ast.IndexStorage.Columnstore : old.Hash ? Ast.IndexStorage.Hash : null,
+				Columns    = Each(old.Columns, Sorted),
+				Include    = Values.Parts(old, old.Include),
+				Where      = old.Filter is null ? null : Values.Of(old.Filter),
+				Options    = Each(old.Options ?? [], Option),
+				On         = on,
+			};
+		}
+
+		/// <summary>
+		/// Where a table, a key or an index is put: the word, a filegroup, a quoted name, a string, or a scheme and
+		/// its column.
+		/// </summary>
+		static Ast.Placement Placement(Clause old)
+		{
+			if (old is not Clause.Placement(var kind, var target, var columns))
+				throw BridgeGap.Open(old, "inventory Clause.Placement");
+
+			var placed = kind.ToUpperInvariant() switch
+			{
+				"ON"            => Ast.PlacementKind.On,
+				"TEXTIMAGE_ON"  => Ast.PlacementKind.TextImageOn,
+				"FILESTREAM_ON" => Ast.PlacementKind.FilestreamOn,
+				_               => throw BridgeGap.Open(old, $"inventory Clause.Placement ({kind})"),
+			};
+
+			var named = target.StartsWith('\'')
+				? new Ast.Identifier(target[1..^1].Replace("''", "'"), Ast.IdentifierStyle.String)
+				: Values.Part(old, target);
+
+			return new Ast.Placement(placed, named, columns is null ? null : Values.Parts(old, columns));
+		}
+
+		/// <summary>
+		/// One option of a <c>WITH (…)</c> (proposal 20): a name, a value, the options of its own. A key word it is set
+		/// to is a one-part reference, as every value here is what <see cref="Values.Of"/> makes of it; a value with
+		/// a unit is a measured one. A bracketed list of options after the name with no <c>=</c> is the option's own
+		/// list. What the record has no place for — the partitions after a compression, a run of words, a bracketed
+		/// list after <c>=</c> — is a gap.
+		/// </summary>
+		internal static Ast.Option Option(Clause old)
+		{
+			if (old is not Clause.Option(var name, var value, var options, var partitions, var bare))
+				throw BridgeGap.Open(old, $"inventory Clause.Option (an option that is a {NameOf(old)})");
+
+			if (partitions is not null)
+				throw BridgeGap.Open(old, "inventory Clause.Option (ON PARTITIONS, which Option has no place for)");
+
+			if (name.Any(char.IsWhiteSpace) || name.Contains('.') || name.Contains('('))
+				throw BridgeGap.Open(old, $"inventory Clause.Option (a name of several words, `{name}`)");
+
+			if (bare && value is not null)
+				throw BridgeGap.Open(old, "inventory Clause.Option (a value written after the name with no =)");
+
+			if (!bare && value is null && options.Length > 0)
+				throw BridgeGap.Open(old, "inventory Clause.Option (a bracketed list after =)");
+
+			return new Ast.Option(Values.Part(old, name), value is null ? null : OptionValue(old, value), Each(options, Option));
+		}
+
+		static Ast.Expression OptionValue(Clause owner, Expression value)
+		{
+			switch (value)
+			{
+				case Expression.ColumnReference(var words) when words.Any(char.IsWhiteSpace) || words.StartsWith('('):
+					throw BridgeGap.Open(owner, $"inventory Clause.Option (a value that is a run of words or numbers, `{words}`)");
+
+				case Expression.RoutineInvocation { Name: "" }:
+					throw BridgeGap.Open(owner, "inventory Clause.Option (a bracketed list of values)");
+
+				case Expression.Measured(var measured, var unit):
+					return new Ast.Expression.Measured(Values.Of(measured), new Ast.Identifier(unit));
+
+				default:
+					return Values.Of(value);
+			}
+		}
+
+		/// <summary>
+		/// ALTER TABLE: one action a statement, as the old tree keeps it — the word, the elements, the options, and
+		/// the rest of the action as text, which is read again here.
+		/// </summary>
+		static Ast.Statement AlterTable(Statement.AlterTable old)
+		{
+			var words = Words(old.Action);
+			Ast.ConstraintCheck? check = null;
+
+			if (words is ["WITH", var mode, .. var rest])
+			{
+				check = Checked(old, mode);
+				words = rest;
+			}
+
+			var action = words switch
+			{
+				["ADD"]                 => Added(old),
+				["ALTER", "COLUMN"]     => AlteredColumn(old),
+				["DROP"]                => Dropped(old),
+				["CHECK" or "NOCHECK"]  => CheckConstraints(old, Checked(old, words[0])),
+				["ENABLE" or "DISABLE"] => Enabled(old, words[0] == "ENABLE"),
+				["SET"]                 => new Ast.AlterTableAction.SetOptions(OptionsOf(old, Tail(old))),
+				["REBUILD"]             => Rebuild(old),
+				["SWITCH"]              => Switch(old),
+				_                       => throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action})"),
+			};
+
+			if (check is not null && action is not (Ast.AlterTableAction.AddColumn or Ast.AlterTableAction.AddConstraint or Ast.AlterTableAction.Add or Ast.AlterTableAction.CheckConstraints))
+				throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action})");
+
+			return new Ast.Statement.AlterTable
+			{
+				Name    = Values.Name(old, old.Name),
+				Actions = [action],
+				Check   = check,
+			};
+		}
+
+		static Ast.ConstraintCheck Checked(object owner, string word)
+		{
+			return word switch
+			{
+				"CHECK"   => Ast.ConstraintCheck.Check,
+				"NOCHECK" => Ast.ConstraintCheck.NoCheck,
+				_         => throw BridgeGap.Open(owner, $"inventory Statement.AlterTable (WITH {word})"),
+			};
+		}
+
+		static string Tail(Statement.AlterTable old)
+		{
+			return old.Tail ?? throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action} with nothing after it)");
+		}
+
+		/// <summary>
+		/// ADD: one column or one constraint is the standard's action, a period the standard's too, and two elements
+		/// or more T-SQL's. A default added <c>WITH VALUES</c>, a lone index, and the constraint the grammar reads with
+		/// a <c>FOR</c> it then drops, are gaps.
+		/// </summary>
+		static Ast.AlterTableAction Added(Statement.AlterTable old)
+		{
+			if (old.Options is { Length: > 0 } || old.Tail is not null)
+				throw BridgeGap.Open(old, "inventory Statement.AlterTable (ADD with options)");
+
+			foreach (var element in old.Elements)
+			{
+				if (element is Clause.ConstraintDefinition { Kind: "DEFAULT", Options: { Length: > 0 } }
+					|| element is Clause.ColumnDefinition { Options: var options } && options.Any(static one => one is Clause.ConstraintDefinition { Kind: "DEFAULT", Options.Length: > 0 }))
+					throw BridgeGap.Open(element, "inventory Clause.ConstraintDefinition (a default added WITH VALUES)");
+			}
+
+			// `ADD CHECK (…) FOR c`: the grammar reads the FOR and keeps no trace of it, so the text alone says so.
+			if (old.Elements is [Clause.ConstraintDefinition { Kind: not "DEFAULT" }] && Spelled(old) is { } text && Words(text) is [.., not "NOT", "FOR", _])
+				throw BridgeGap.Open(old, "inventory Statement.AlterTable (a constraint added with a FOR the old tree drops)");
+
+			var elements = Elements(old.Elements);
+
+			return elements switch
+			{
+				[Ast.TableElement.Column(var column)]                => new Ast.AlterTableAction.AddColumn(column),
+				[Ast.TableElement.TableConstraint(var constraint)]   => new Ast.AlterTableAction.AddConstraint(constraint),
+				[Ast.TableElement.Period(var period)]                => new Ast.AlterTableAction.AddPeriod(period, []),
+				[Ast.TableElement.Index]                             => throw BridgeGap.Open(old, "inventory Statement.AlterTable (one index added, which is neither the standard's action nor T-SQL's list)"),
+				{ Count: > 1 }                                       => new Ast.AlterTableAction.Add(elements),
+				_                                                    => throw BridgeGap.Open(old, "inventory Statement.AlterTable (ADD of nothing)"),
+			};
+		}
+
+		/// <summary>
+		/// ALTER COLUMN: a type, with a collation and a nullability, written alone; or a property added or dropped.
+		/// </summary>
+		static Ast.AlterTableAction AlteredColumn(Statement.AlterTable old)
+		{
+			if (old.Elements is not [Clause.ColumnDefinition { Computed: null } column] || old.Tail is not null)
+				throw BridgeGap.Open(old, "inventory Statement.AlterTable (ALTER COLUMN of other than one column)");
+
+			var options = Each(old.Options ?? [], Option);
+
+			if (column.Type is null)
+			{
+				if (column.Options is not [Clause.ColumnOption { Kind: var flag, Arguments.Length: 0, Options.Length: 0, ConstraintName: null }])
+					throw BridgeGap.Open(old, "inventory Statement.AlterTable (ALTER COLUMN with neither a type nor one property)");
+
+				return new Ast.AlterTableAction.AlterColumn(Values.Part(old, column.Name), Property(old, flag, options), true);
+			}
+
+			Ast.CollationName? collation = null;
+			Ast.ColumnNullability? nullability = null;
+
+			for (var at = 0; at < column.Options.Length; at++)
+			{
+				switch (column.Options[at])
+				{
+					case Clause.ColumnOption { Kind: "COLLATE", Arguments: [Expression.ColumnReference(var name)], ConstraintName: null } when collation is null && nullability is null:
+						collation = new Ast.CollationName(Values.Name(old, name));
+						break;
+
+					case Clause.ColumnOption { Kind: "NULL" or "NOT NULL", ConstraintName: null } option when at == column.Options.Length - 1:
+						nullability = option.Kind == "NULL" ? Ast.ColumnNullability.Null : Ast.ColumnNullability.NotNull;
+						break;
+
+					default:
+						throw BridgeGap.Open(column.Options[at], "inventory Statement.AlterTable (ALTER COLUMN with more than a collation and a nullability)");
+				}
+			}
+
+			var type = new Ast.AlterColumnAction.SetDataType(Values.Type(old, column.Type))
+			{
+				SetDataTypeOmitted = true,
+				Collation          = collation,
+				Nullability        = nullability,
+				Options            = options,
+			};
+
+			return new Ast.AlterTableAction.AlterColumn(Values.Part(old, column.Name), type, true);
+		}
+
+		/// <summary>
+		/// <c>ADD ROWGUIDCOL</c>, <c>DROP PERSISTED</c>, <c>ADD MASKED WITH (FUNCTION = 'f()')</c>, <c>DROP MASKED</c>:
+		/// the words the old tree keeps as the option's kind, read again.
+		/// </summary>
+		static Ast.AlterColumnAction Property(Statement.AlterTable old, string flag, SqlList<Ast.Option> options)
+		{
+			var tokens = SqlTokens.Of(flag);
+			var words  = Words(flag);
+
+			var add = words[0] switch
+			{
+				"ADD"  => true,
+				"DROP" => false,
+				_      => throw BridgeGap.Open(old, $"inventory Statement.AlterTable (ALTER COLUMN {flag})"),
+			};
+
+			Ast.ColumnPropertyKind kind;
+			Ast.Expression? function = null;
+
+			switch (words[1..])
+			{
+				case ["ROWGUIDCOL"]: kind = Ast.ColumnPropertyKind.RowGuidCol; break;
+				case ["PERSISTED"]: kind = Ast.ColumnPropertyKind.Persisted; break;
+				case ["NOT", "FOR", "REPLICATION"]: kind = Ast.ColumnPropertyKind.NotForReplication; break;
+				case ["SPARSE"]: kind = Ast.ColumnPropertyKind.Sparse; break;
+				case ["HIDDEN"]: kind = Ast.ColumnPropertyKind.Hidden; break;
+				case ["MASKED"]: kind = Ast.ColumnPropertyKind.Masked; break;
+
+				case ["MASKED", "WITH", "(", "FUNCTION", "=", _, ")"] when tokens[6].Kind == SqlTokens.Kind.String:
+					kind     = Ast.ColumnPropertyKind.Masked;
+					function = Values.String(tokens[6].Text);
+					break;
+
+				default:
+					throw BridgeGap.Open(old, $"inventory Statement.AlterTable (ALTER COLUMN {flag})");
+			}
+
+			return new Ast.AlterColumnAction.Property(add, kind, function, options);
+		}
+
+		/// <summary>
+		/// DROP: one item is the standard's action, two or more T-SQL's list. An item without its word is of the kind
+		/// of the one before it, and a first one a constraint, as the grammar reads it.
+		/// </summary>
+		static Ast.AlterTableAction Dropped(Statement.AlterTable old)
+		{
+			if (old.Options is { Length: > 0 } || old.Tail is not null)
+				throw BridgeGap.Open(old, "inventory Statement.AlterTable (DROP with options)");
+
+			var items = new List<Ast.AlterTableAction>();
+
+			foreach (var element in old.Elements)
+			{
+				if (element is not Clause.Dropped(var kind, { } name, var exists, var tail))
+					throw BridgeGap.Open(element, "inventory Clause.Dropped (a period or an index, which no action holds)");
+
+				var column = kind == "COLUMN" || kind == "" && items.Count > 0 && items[^1] is Ast.AlterTableAction.DropColumn;
+
+				if (kind is not ("COLUMN" or "CONSTRAINT" or ""))
+					throw BridgeGap.Open(element, $"inventory Clause.Dropped ({kind})");
+
+				if (column)
+				{
+					if (tail is not null)
+						throw BridgeGap.Open(element, "inventory Clause.Dropped (a column dropped with options)");
+
+					items.Add(new Ast.AlterTableAction.DropColumn(Values.Part(element, name), null, kind == "COLUMN") { IfExists = exists });
+				}
+				else
+					items.Add(new Ast.AlterTableAction.DropConstraint(new Ast.QualifiedName([Values.Part(element, name)]), null)
+					{
+						IfExists                 = exists,
+						Options                  = tail is null ? [] : OptionsOf(element, tail.TrimStart()["WITH".Length..]),
+						ConstraintKeywordOmitted = kind == "",
+					});
+			}
+
+			return items.Count == 1 ? items[0] : new Ast.AlterTableAction.Drop(items.ToSqlList());
+		}
+
+		/// <summary><c>CHECK CONSTRAINT ALL</c>, <c>NOCHECK CONSTRAINT a, b</c>: the names after the word, or ALL.</summary>
+		static Ast.AlterTableAction CheckConstraints(Statement.AlterTable old, Ast.ConstraintCheck check)
+		{
+			var (all, names) = NamesOrAll(old, Tail(old), "CONSTRAINT");
+
+			return new Ast.AlterTableAction.CheckConstraints(check, all, names);
+		}
+
+		/// <summary>ENABLE and DISABLE: of triggers, or of change tracking; a file table's namespace is a gap.</summary>
+		static Ast.AlterTableAction Enabled(Statement.AlterTable old, bool enable)
+		{
+			var tail  = Tail(old);
+			var words = Words(tail);
+
+			if (words is ["TRIGGER", ..])
+			{
+				var (all, names) = NamesOrAll(old, tail, "TRIGGER");
+
+				return new Ast.AlterTableAction.Triggers(enable, all, names);
+			}
+
+			if (words is ["CHANGE_TRACKING"])
+				return new Ast.AlterTableAction.ChangeTracking(enable, []);
+
+			if (words is ["CHANGE_TRACKING", "WITH", "(", ..])
+				return new Ast.AlterTableAction.ChangeTracking(enable, OptionsOf(old, tail[(tail.IndexOf("WITH", StringComparison.OrdinalIgnoreCase) + "WITH".Length)..]));
+
+			throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action} {words[0]})");
+		}
+
+		/// <summary>The word, then ALL or the names separated by commas.</summary>
+		static (bool All, SqlList<Ast.Identifier> Names) NamesOrAll(Statement.AlterTable old, string tail, string word)
+		{
+			var tokens = SqlTokens.Of(tail);
+
+			if (tokens is not [{ Kind: SqlTokens.Kind.Word } first, ..] || !first.Text.Equals(word, StringComparison.OrdinalIgnoreCase))
+				throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action} {tail})");
+
+			if (tokens is [_, { Kind: SqlTokens.Kind.Word, Text: var all }] && all.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+				return (true, []);
+
+			var names = new List<Ast.Identifier>();
+
+			for (var at = 1; at < tokens.Count; at += 2)
+			{
+				if (tokens[at].Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited) || at + 1 < tokens.Count && tokens[at + 1].Text != ",")
+					throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action} {tail})");
+
+				names.Add(Values.Part(old, tokens[at].Text));
+			}
+
+			return (false, names.ToSqlList());
+		}
+
+		/// <summary>REBUILD: <c>PARTITION = n</c>, <c>PARTITION = ALL</c> or neither, and the options.</summary>
+		static Ast.AlterTableAction Rebuild(Statement.AlterTable old)
+		{
+			var tail = old.Tail ?? "";
+			var with = WithAt(tail);
+			var head = with < 0 ? tail : tail[..with];
+
+			Ast.Expression? partition = null;
+			var all = false;
+			var words = Words(head);
+
+			if (words is ["PARTITION", "=", "ALL"])
+				all = true;
+			else if (words is ["PARTITION", "=", ..])
+				partition = ValueOf(old, head[(head.IndexOf('=') + 1)..]);
+			else if (words.Length > 0)
+				throw BridgeGap.Open(old, $"inventory Statement.AlterTable (REBUILD {tail})");
+
+			return new Ast.AlterTableAction.Rebuild(partition, all, with < 0 ? [] : OptionsOf(old, tail[(with + "WITH".Length)..]));
+		}
+
+		/// <summary>SWITCH: the partition switched, the table and its partition, and the options.</summary>
+		static Ast.AlterTableAction Switch(Statement.AlterTable old)
+		{
+			var tail = Tail(old);
+			var with = WithAt(tail);
+			var head = with < 0 ? tail : tail[..with];
+
+			var tokens = SqlTokens.Of(head);
+			var to     = tokens.FindIndex(static one => one.Kind == SqlTokens.Kind.Word && one.Text.Equals("TO", StringComparison.OrdinalIgnoreCase));
+
+			if (to < 0 || to + 1 >= tokens.Count)
+				throw BridgeGap.Open(old, $"inventory Statement.AlterTable (SWITCH {tail})");
+
+			Ast.Expression? Partition(IReadOnlyList<SqlTokens.Token> part)
+			{
+				if (part.Count == 0)
+					return null;
+
+				if (part[0].Kind != SqlTokens.Kind.Word || !part[0].Text.Equals("PARTITION", StringComparison.OrdinalIgnoreCase) || part.Count < 2)
+					throw BridgeGap.Open(old, $"inventory Statement.AlterTable (SWITCH {tail})");
+
+				return ValueOf(old, string.Join(" ", part.Skip(1).Select(static one => one.Text)));
+			}
+
+			// The table is a name of one or more parts, dots between; what follows it is its partition.
+			var end = to + 1;
+
+			while (end + 2 < tokens.Count + 1 && end + 1 < tokens.Count && tokens[end + 1].Text == ".")
+				end += 2;
+
+			var target = string.Concat(tokens.Skip(to + 1).Take(end - to).Select(static one => one.Text));
+
+			return new Ast.AlterTableAction.Switch(
+				Partition(tokens.Take(to).ToList()),
+				Values.Name(old, target),
+				Partition(tokens.Skip(end + 1).ToList()),
+				with < 0 ? [] : OptionsOf(old, tail[(with + "WITH".Length)..]));
+		}
+
+		/// <summary>Where the word WITH begins a tail's options, or -1.</summary>
+		static int WithAt(string tail)
+		{
+			var words = SqlTokens.Of(tail);
+			var at    = 0;
+
+			foreach (var token in words)
+			{
+				var found = tail.IndexOf(token.Text, at, StringComparison.Ordinal);
+
+				if (token.Kind == SqlTokens.Kind.Word && token.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase))
+					return found;
+
+				at = found + token.Text.Length;
+			}
+
+			return -1;
+		}
+
+		/// <summary>
+		/// A bracketed list of options kept as text, read again by the grammar's own option list — the one a table
+		/// made of a query is written with — and carried as every option is.
+		/// </summary>
+		static SqlList<Ast.Option> OptionsOf(object owner, string text)
+		{
+			var read = TransactSql.TransactSqlParser.TryParseSql("CREATE TABLE t (a) WITH " + text.Trim() + " AS SELECT 1");
+
+			return read is { IsSuccess: true, Value: [Statement.CreateTableAsSelect { Options: var options }] }
+				? Each(options, Option)
+				: throw BridgeGap.Open(owner, $"inventory Statement.AlterTable (options `{text.Trim()}` the option list does not read)");
+		}
+
+		/// <summary>A value kept as text, read again as a select list's one value.</summary>
+		static Ast.Expression ValueOf(object owner, string text)
+		{
+			var read = TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim());
+
+			return read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+				? Values.Of(value)
+				: throw BridgeGap.Open(owner, $"inventory Statement.AlterTable (a value `{text.Trim()}`)");
 		}
 	}
 }
