@@ -1636,13 +1636,30 @@ for `with` when the substitution belongs to one place a rule is used; reach for 
 header once more than one call needs the same rebinding, or the substitution is worth
 a name of its own.
 
-A `with` expression and a namespace header apply in one order. A `with` whose operand
-calls, at any depth, into a namespace with a header from outside it applies on top of that
-header, as a publication's own `with` does: with `namespace Ns with (B = D) { E = B }`,
-`Ns.E with (D = Y)` reads `Y`, and `Ns.E with (B = Y)` reads `D`, since inside `Ns` nothing
-calls `B` any more. A `with` that a header reaches applies first, and the header on top of
-it. A header that reaches a `with` whose operand calls back into the same namespace from
-outside has no order, and is refused (`GRAM4017`).
+**How substitutions stack.** Where several reach one call, the one written closer to where
+the reading starts applies on top of the others, and rebinds what they put in place: an
+outer `with` over an inner one, a `with` or a caller's namespace header over the header of a
+namespace it calls into from outside, and a publication's `with` over everything. So
+`(X with (D = Y)) with (Y = P)` means `X with (D = Y, Y = P)`, and reads `P`. A binding of a
+name a lower substitution already replaced does nothing, since nothing calls that name any
+more; a nested namespace header is the one exception, and replaces an inherited binding of
+the same name, as the header rule above says:
+
+```dotgram
+namespace Ns with (B = D) { E = B }
+R = Ns.E with (B = Y)                           // reads D: inside Ns, B is already D
+
+namespace O with (B = D) { namespace M with (B = C) { F = B } }
+S = O.M.F                                       // reads C: M replaces the binding it inherits
+```
+
+A nested header otherwise resolves with what it inherits, as one header would:
+`namespace O with (B = D) { namespace M with (D = C) { … } }` sends `B` on to `C`. A
+substitution that loops once stacked, `(X with (D = Y)) with (Y = D)`, is refused like a
+header that loops (`GRAM3011`). Where two of them each need the other applied first — a
+header that reaches a `with` calling back into its namespace from outside, or two headers
+each reaching a rule the other rebinds — there is no order, and the grammar is refused
+(`GRAM4017`).
 
 A `parse`/`find` directive (§6) may carry the same header directly, rather than being
 wrapped in a `namespace Name with (...)` block just to reach it:
@@ -1652,10 +1669,8 @@ parse Number with (Point = Comma) as Evaluate
 ```
 
 is `parse`'s own equivalent of `Number with (Point = Comma)` above — one directive, no
-block, no name for the substitution beyond the publication's own. A publication's own
-`with` is the more locally written of the two extents, so it composes on top of an
-enclosing `namespace Name with (...)`'s own rebinding of the same rule rather than instead
-of it.
+block, no name for the substitution beyond the publication's own. Like any other, it
+stacks on top of the headers of what it reaches rather than instead of them.
 
 **A publication named in an action means it under the same substitution.** An action that
 reads a piece of the input again calls a publication by its name — `TryParseHole(…)` — and

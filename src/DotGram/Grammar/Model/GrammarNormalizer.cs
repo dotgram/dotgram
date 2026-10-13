@@ -50,6 +50,12 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string CircularWith        = "GRAM4017";
 
+	/// <summary>
+	/// A <c>with</c> expression inside an instance of a parameterized rule made only while
+	/// another substitution was specialized, after every <c>with</c> was put in order.
+	/// </summary>
+	public const string LateWith            = "GRAM4036";
+
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
 
@@ -174,6 +180,7 @@ public sealed partial class GrammarNormalizer
 		// did to the rule it publishes.
 		normalizer.SpecializeWithSitesAndNamespaces();
 		normalizer.SpecializePublicationWith();
+		normalizer.RefuseLateWith();
 
 		// After all three substitutions, so that what a condition reads is what this parser
 		// will be, and before anything rewrites the shape of a rule.
