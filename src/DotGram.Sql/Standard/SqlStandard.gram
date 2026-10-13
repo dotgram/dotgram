@@ -122,8 +122,16 @@ namespace Lexical
 	CharacterStringRest     = QuotedRest(CharacterRepresentation)
 	CharacterRepresentation = [^ '\''] | "''"
 	QuotedParts(part)       = '\'' & QuotedRest(part)
-	QuotedRest(part)        = part* & '\'' & (Separator & '\'' & part* & '\'')*
+	QuotedRest(part)        = part* & '\'' & (PartSeparator & '\'' & part* & '\'')*
 	Introducer              = '_'
+
+	// The separator between a literal's parts. A kind is a regular pattern, which matches what lets the
+	// whole match rather than what a scanner would take: a simple comment free to stop short of its line's
+	// end let `'a' --c 'b'` read as one literal, the comment's `'b'` serving as the second part. Between
+	// parts a simple comment runs to a line break, as §5.2's <simple comment> does; a comment that no line
+	// break ends is not followed by a part, and the literal ends before it.
+	PartSeparator = (LineComment | BracketedComment | Whitespace)+
+	LineComment   = "--" & [^ '\n' | '\r' | '\u0085' | ' ' | ' ']* & ['\n' | '\r' | '\u0085' | ' ' | ' ']
 
 	// <character set name> as it stands after an introducer: a schema's name, and a catalog's
 	// before it, and then an <SQL language identifier>. Said as a run, since a name the chain

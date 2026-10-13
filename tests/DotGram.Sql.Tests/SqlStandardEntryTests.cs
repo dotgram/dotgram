@@ -14,6 +14,7 @@ namespace DotGram.Sql.Tests;
 // Inside the namespace, where it is asked before DotGram.Sql's own Expression and Statement — the tree
 // T-SQL builds, which a using directive above the namespace would lose to.
 using Expression = DotGram.Sql.Ast.Expression;
+using Query = DotGram.Sql.Ast.Query;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
@@ -299,6 +300,54 @@ public sealed class SqlStandardEntryTests
 	public void A_path_method_whose_precision_does_not_fit_is_refused(string input, bool reads)
 	{
 		Assert.Equal(reads, SqlStandardParser.TryParseExpression(input).IsSuccess);
+	}
+
+	// ── A comment beside a literal ─────────────────────────────────────────────
+
+	/// <summary>
+	/// A string literal's parts may be divided by a separator, a comment among them, and a simple comment
+	/// runs to the end of its line: `'a' --c 'b'` is the literal `'a'` and a comment, not one literal, and
+	/// `--` inside the quotes is text. A delimited identifier has no parts and reads the same way.
+	/// </summary>
+	[Theory]
+	[InlineData("'a--b'", "'a--b'")]
+	[InlineData("'a' --c 'b'", "'a'")]
+	[InlineData("'a' -- c\n'b'", "'a' -- c\n'b'")]
+	[InlineData("'a' -- c\r\n  'b' 'c'", "'a' -- c\r\n  'b' 'c'")]
+	[InlineData("'a' /* c */ 'b'", "'a' /* c */ 'b'")]
+	[InlineData("'a' /* 'c' */ 'b'", "'a' /* 'c' */ 'b'")]
+	[InlineData("'a' --c 'b'\n'd'", "'a' --c 'b'\n'd'")]
+	[InlineData("'it''s' --c 'b'", "'it''s'")]
+	[InlineData("N'a' --c 'b'", "'a'")]
+	public void A_literal_ends_before_a_comment_no_line_break_ends(string input, string text)
+	{
+		var value = SqlStandardParser.ParseValue(input);
+
+		Assert.Equal(text, ((LiteralValue.String)value).Text);
+		Assert.Equal(text, ((LiteralValue.String)((Expression.Literal)SqlStandardParser.ParseExpression(input)).Value).Text);
+	}
+
+	[Theory]
+	[InlineData("SELECT 'a--b' FROM t", "'a--b'")]
+	[InlineData("SELECT 'a' --c 'b'\nFROM t", "'a'")]
+	[InlineData("SELECT 'a' -- c\n'b' FROM t", "'a' -- c\n'b'")]
+	public void A_statement_reads_the_literal_and_the_comment_apart(string input, string text)
+	{
+		var select = (Statement.Select)SqlStandardParser.ParseStatement(input);
+		var column = (SelectColumn.ExpressionItem)((Query.Select)select.Query).Columns[0];
+
+		Assert.Equal(text, ((LiteralValue.String)((Expression.Literal)column.Expression).Value).Text);
+	}
+
+	[Theory]
+	[InlineData("SELECT \"a--b\" FROM t", "\"a--b\"")]
+	[InlineData("SELECT \"a\" --c \"b\"\nFROM t", "\"a\"")]
+	public void A_delimited_identifier_reads_the_same_way(string input, string text)
+	{
+		var select = (Statement.Select)SqlStandardParser.ParseStatement(input);
+		var column = (SelectColumn.ExpressionItem)((Query.Select)select.Query).Columns[0];
+
+		Assert.Equal(text, ((Expression.Reference)column.Expression).Name.Parts[0].Text);
 	}
 
 	/// <summary>A refusal inside the second statement is said where it is, not where the second statement begins.</summary>
