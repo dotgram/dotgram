@@ -51,8 +51,12 @@ public sealed class Sql92TreeTests
 	/// </summary>
 	static readonly Dictionary<(Level Level, string Text), string> Differences = new()
 	{
+		[(Level.SearchCondition, "a = ANY ((SELECT b FROM t))")] = AnyIsBoth,
+		[(Level.SearchCondition, "a = SOME ((SELECT b FROM t))")] = AnyIsBoth,
 		[(Level.ValueExpression, "CAST(a AS BIT)")] = "BIT is SQL-92's bit string type, which SQL:2003 removed; SQL:2023 reads the word as a user-defined type's name",
 	};
+
+	const string AnyIsBoth = "both readings are their language's own: SQL-92 has only the quantified comparison of a bracketed query, and SQL:2003 added ANY and SOME as aggregates, which SQL:2023 reads a bracketed subquery after as a call";
 
 	/// <summary>
 	/// What SQL-92 reads and SQL:2023 refuses, and why: each a word SQL:2023 reserves and SQL-92 does
@@ -61,15 +65,8 @@ public sealed class Sql92TreeTests
 	/// </summary>
 	static readonly Dictionary<string, string> ReadBySql92Alone = new(StringComparer.Ordinal)
 	{
-		["year > month"] = "YEAR and MONTH are reserved words in SQL:2023 and names in SQL-92",
-		["RETURN"] = "RETURN is a reserved word in SQL:2023 and a name in SQL-92",
-		["ROLLBACK"] = "ROLLBACK is a reserved word in SQL:2023 and a name in SQL-92",
-		["SELECT - -1 FROM t"] = "a factor of SQL:2023 has one sign, and SQL-92's tower signs a signed value",
-		["SELECT c1 FROM t1 WITH (NOLOCK)"] = WithIsAName,
-		["SELECT * FROM t WITH (NOLOCK)"] = WithIsAName,
-		["SELECT * FROM MemoryOptimizedTable WITH (SNAPSHOT)"] = WithIsAName,
-		["SELECT * FROM t WITH (FORCESCAN) WHERE c1 = 0 AND c3 = 100"] = WithIsAName,
-		["SELECT * FROM t WITH (FORCESEEK) WHERE c1 = 0 AND c3 = 100"] = WithIsAName,
+		["RETURN"] = "RETURN is a reserved word in SQL:2023 and not in SQL-92's §5.2, so a name there",
+		["SELECT - -1 FROM t"] = "a <factor> has one sign in SQL:2023 and in SQL-92 (§6.12) alike; this grammar's tower lets a sign stand before a signed value",
 		["CAST(a AS BIT VARYING(8))"] = Removed,
 		["CAST(a AS BIT /* x */ VARYING)"] = Removed,
 		["B'0101'"] = Removed,
@@ -79,8 +76,6 @@ public sealed class Sql92TreeTests
 	};
 
 	const string Removed = "SQL-92's bit string type, bit string literal and union join, which SQL:2003 removed, are SQL-92's own records";
-
-	const string WithIsAName = "WITH is a reserved word in SQL:2023; SQL-92 reads T-SQL's table hint as a correlation name WITH and its columns";
 
 	/// <summary>Every text both read, at every level both read it, is the same tree.</summary>
 	[Fact]
@@ -169,6 +164,38 @@ public sealed class Sql92TreeTests
 	public void What_SQL92_does_not_say_is_refused(string text)
 	{
 		Assert.False(Sql92Parser.TryParseValueExpression(text).IsSuccess, text);
+		Assert.False(Sql92Parser.TryParseSelect("SELECT " + text + " FROM t").IsSuccess, text);
+	}
+
+	/// <summary>
+	/// What only SQL-92 reads is built as SQL-92's own records, pinned here: the shape check cannot see them,
+	/// and the writer's round trip agrees with itself whatever they are.
+	/// </summary>
+	[Fact]
+	public void SQL92s_own_constructs_build_their_records()
+	{
+		Assert.Equal(
+			new Ast.Expression.Cast(Column("a"), new Ast.DataType.BitString(Ast.BitStringTypeKind.BitVarying, 8)),
+			Sql92Parser.ParseValueExpression("CAST(a AS BIT VARYING(8))"));
+		Assert.Equal(
+			new Ast.Expression.Cast(Column("a"), new Ast.DataType.BitString(Ast.BitStringTypeKind.Bit)),
+			Sql92Parser.ParseValueExpression("CAST(a AS BIT)"));
+		Assert.Equal(
+			new Ast.Expression.Literal(new Ast.LiteralValue.BitString("'0101'")),
+			Sql92Parser.ParseValueExpression("B'0101'"));
+
+		var select = Assert.IsType<Ast.Query.Select>(Sql92Parser.ParseQuery("SELECT a FROM t UNION JOIN u"));
+		var join   = Assert.IsType<Ast.TableSource.Join>(Assert.Single(select.From!.Sources));
+
+		Assert.Equal(Ast.JoinKind.Union, join.Kind);
+		Assert.Null(join.Specification);
+		Assert.False(join.Natural);
+		Assert.False(join.OuterKeyword);
+	}
+
+	static Ast.Expression Column(string name)
+	{
+		return new Ast.Expression.Reference(new Ast.QualifiedName([new Ast.Identifier(name)]));
 	}
 
 	/// <summary>
@@ -344,8 +371,19 @@ public sealed class Sql92TreeTests
 		"CAST(a AS BIT)", "CAST(a AS BIT VARYING(8))", "CAST(a AS BIT /* x */ VARYING)", "B'0101'", "B''",
 		"SELECT a FROM t UNION JOIN u", "SELECT a FROM t UNION JOIN u UNION JOIN v",
 
-		// The largest number the tree holds.
+		// The largest number the tree holds, and a precision that is a literal and keeps its digits.
 		"CAST(a AS CHAR(2147483647))", "CAST(a AS NUMERIC(2147483647, 0))", "INTERVAL '1' DAY(2147483647)",
+		"SELECT CAST(a AS VARCHAR(2147483647)) FROM t", "CURRENT_TIME(2147483648)", "CURRENT_TIMESTAMP(99999999999999999999999999)",
+
+		// An interval primary (§6.14): a field's word after a value is its qualifier, not a name for it.
+		"SELECT b DAY FROM t", "SELECT b YEAR TO MONTH FROM t", "(a - b) DAY TO SECOND", "a HOUR(2) > b",
+
+		// A quantified comparison whose query is in brackets of its own, which SQL:2023 reads otherwise.
+		"a = ANY ((SELECT b FROM t))", "a = SOME ((SELECT b FROM t))",
+
+		// An ORDER BY after brackets is the outer query's, not the bracketed one's.
+		"(SELECT a FROM t) ORDER BY a", "((SELECT a FROM t) UNION SELECT b FROM u) ORDER BY 1",
+		"(SELECT a FROM t UNION SELECT b FROM u) ORDER BY 1",
 	];
 
 	/// <summary>The SQL-92 rows of the stand (benchmarks/DotGram.Benchmarks/Stand.cs) that read.</summary>

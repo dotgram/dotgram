@@ -248,14 +248,16 @@ public sealed class Sql92ParserTests
 	/// </summary>
 	/// <remarks>
 	/// §5.2 is a list of what an identifier may <em>not</em> be, and everything outside it is
-	/// fair game — <c>zone</c> is a word of SQL-92, from <c>WITH TIME ZONE</c>, and a column
-	/// may be called it. This is the case that the split got wrong first: over tokens the
-	/// word arrives as its own kind and never reaches the identifier rule unless the kind
-	/// says it is one too.
+	/// fair game: <c>name</c> is a name, where <c>names</c> is a reserved word of the statement
+	/// level. <c>zone</c>, <c>year</c> and <c>month</c> are reserved too, though a column was once
+	/// let be called them here — the case the split got wrong first, over tokens, where the word
+	/// arrives as its own kind.
 	/// </remarks>
 	[Theory]
-	[InlineData("zone = 1",       true)]
-	[InlineData("year > month",   true)]
+	[InlineData("name = 1",       true)]
+	[InlineData("names = 1",      false)]
+	[InlineData("zone = 1",       false)]
+	[InlineData("year > month",   false)]
 	[InlineData("having = 1",     false)]
 	[InlineData("select = 1",     false)]
 	[InlineData("\"select\" = 1", true)]
