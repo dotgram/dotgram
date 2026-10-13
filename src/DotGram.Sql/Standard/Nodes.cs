@@ -760,6 +760,22 @@ static class Nodes
 		return primary;
 	}
 
+	/// <summary>
+	/// Whether an item method's precision and scale, which the path language holds as <c>int</c>s, fit; the
+	/// SQL accessor keeps them as the literals they were written as, and is not asked.
+	/// </summary>
+	public static bool FitsMethod(Expression? method)
+	{
+		if (method is not Expression.Member { Arguments: { } arguments })
+			return true;
+
+		foreach (var argument in arguments)
+			if (argument.Value is Expression.Literal { Value: LiteralValue.Numeric number } && !Fits(number.Text))
+				return false;
+
+		return true;
+	}
+
 	/// <summary>An item method in the path language, from the method the SQL accessor reads it as.</summary>
 	public static JsonMethod PathMethod(Expression method)
 	{
@@ -1603,27 +1619,85 @@ static class Nodes
 
 	// ── Numbers inside a production ────────────────────────────────────────────
 
-	/// <summary>An unsigned integer as the BNF writes one — in any radix, with underscores — or null.</summary>
+	/// <summary>
+	/// An unsigned integer as the BNF writes one — in any radix, with underscores — or null. Asked only
+	/// where <see cref="Fits(string?)"/> was asked first: a record holds the number as an <c>int</c>, and the
+	/// grammar refuses one that does not fit rather than cut it to what does.
+	/// </summary>
 	public static int? Integer(string? text)
 	{
-		return text is null ? null : (int)Long(text);
+		if (text is null)
+			return null;
+
+		if (TryLong(text, out var value) && value <= int.MaxValue)
+			return (int)value;
+
+		throw new ArgumentOutOfRangeException(nameof(text), text, "A number the grammar refuses before a record takes it.");
+	}
+
+	/// <summary>Whether a number written where a record holds an <c>int</c> fits one; nothing written fits.</summary>
+	public static bool Fits(string? text)
+	{
+		return text is null || TryLong(text, out var value) && value <= int.MaxValue;
+	}
+
+	/// <summary>Whether a number written where a record holds a <c>long</c> fits one; nothing written fits.</summary>
+	public static bool FitsLong(string? text)
+	{
+		return text is null || TryLong(text, out _);
+	}
+
+	/// <summary>Whether a length written as one token with its multiplier, `2K`, fits a <c>long</c>.</summary>
+	public static bool FitsSize(string? token)
+	{
+		return token is null || TryLong(token.Substring(0, token.Length - 1), out _);
 	}
 
 	static long Long(string text)
 	{
-		text = text.Replace("_", "");
+		if (TryLong(text, out var value))
+			return value;
+
+		throw new ArgumentOutOfRangeException(nameof(text), text, "A number the grammar refuses before a record takes it.");
+	}
+
+	/// <summary>
+	/// The value of an unsigned integer in any of the BNF's radixes, its underscores skipped, or false
+	/// where it is beyond a <c>long</c>. The digits are the radix's own: the lexical rules let no other through.
+	/// </summary>
+	static bool TryLong(string text, out long value)
+	{
+		var radix = 10;
+		var at    = 0;
 
 		if (text.Length > 2 && text[0] == '0')
 		{
 			switch (text[1] | 0x20)
 			{
-				case 'x': return Convert.ToInt64(text.Substring(2), 16);
-				case 'o': return Convert.ToInt64(text.Substring(2), 8);
-				case 'b': return Convert.ToInt64(text.Substring(2), 2);
+				case 'x': radix = 16; at = 2; break;
+				case 'o': radix = 8;  at = 2; break;
+				case 'b': radix = 2;  at = 2; break;
 			}
 		}
 
-		return long.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
+		value = 0;
+
+		for (; at < text.Length; at++)
+		{
+			var ch = text[at];
+
+			if (ch == '_')
+				continue;
+
+			var digit = ch <= '9' ? ch - '0' : (ch | 0x20) - 'a' + 10;
+
+			if (value > (long.MaxValue - digit) / radix)
+				return false;
+
+			value = value * radix + digit;
+		}
+
+		return true;
 	}
 
 	// ── §10.1 Interval qualifier ───────────────────────────────────────────────
