@@ -359,7 +359,8 @@ public sealed class Sql92TreeTests
 		"SELECT a FROM t NATURAL JOIN u", "SELECT a FROM t FULL OUTER JOIN u ON 1 = 1", "SELECT a FROM t NATURAL LEFT JOIN u",
 		"SELECT a FROM t CROSS JOIN u CROSS JOIN v", "SELECT a FROM (t CROSS JOIN u) JOIN v ON 1 = 1",
 		"SELECT a FROM t ORDER BY a COLLATE x ASC, 1 DESC", "SELECT a AS \"x y\" FROM t", "SELECT t.a, u.* FROM t, u",
-		"SELECT s.t.* FROM s.t", "SELECT a FROM t WHERE a IN (SELECT b FROM u WHERE b = t.a)",
+		"SELECT s.t.* FROM s.t", "SELECT \"x\"\"y\".* FROM t", "SELECT s /* . t */ . \"a.b\" -- c\n . * FROM t",
+		"SELECT a.b, a.*, a.b.c FROM t", "SELECT a FROM t WHERE a IN (SELECT b FROM u WHERE b = t.a)",
 		"SELECT (SELECT b FROM u) AS c FROM t", "SELECT CASE WHEN a = 1 THEN b END FROM t",
 
 		// Words read as one capture, with comments between them.
