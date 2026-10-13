@@ -1295,7 +1295,7 @@ public static partial class Sql2023Writer
 		{
 			Word(table.Primitive ? "JSON_TABLE_PRIMITIVE" : "JSON_TABLE");
 			Call();
-			PutCommon(table.Common);
+			PutCommon(table.Common, standard: true);
 			Word("COLUMNS");
 			Open();
 			Each(table.Columns, PutJsonColumn);
