@@ -225,7 +225,11 @@ ValueExpression : @Expression
     // compared rather than what it is, and is kept all the same, as in a GROUP BY. Written on
     // the primary rather than as a strength of its own because that is where the
     // standard puts it, and nothing binds tighter than a primary anyway.
-    | p: ValueExpressionPrimary & how: Collate? => @(how is null ? p : new Expression.Collate(p, how))
+    //
+    // §6.14 <interval primary> is a primary and an interval qualifier, written on the primary
+    // for the same reason; a primary takes one or the other.
+    | p: ValueExpressionPrimary & (q: IntervalQualifier | how: Collate)?
+        => @(q is not null ? new Expression.IntervalQualified(p, q) : how is not null ? new Expression.Collate(p, how) : p)
 
 // §6.11 <value expression primary>, in the standard's order, plus the value functions
 // §6.16 through §6.18 fold into <numeric primary>, <string value expression> and
@@ -536,29 +540,51 @@ SortKey : @Expression
 
 // ── §5.2 Reserved words ────────────────────────────────────────────────────
 //
-// What an identifier may not be. The standard's list is long and most of it belongs
-// to the statement level; what is here is the part this layer can be confused by —
-// a word that begins or continues an expression or a predicate, the functions
-// included: with them reserved, a name and a function begin with different tokens,
-// and the choice of a primary is decided by its first token without a way back.
-Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "ASC"i | "AVG"i | "BETWEEN"i | name: "BIT_LENGTH"i
-         | "BOTH"i | "BY"i
-         | "CASE"i | name: "CAST"i | name: "CHAR_LENGTH"i | name: "CHARACTER_LENGTH"i | name: "COALESCE"i
-         | "COLLATE"i | name: "CONVERT"i | "CORRESPONDING"i | "COUNT"i | "CROSS"i | name: "CURRENT_DATE"i
-         | name: "CURRENT_TIME"i | name: "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
-         | "DEFAULT"i | "DESC"i | "DISTINCT"i | "ELSE"i | "END"i | "ESCAPE"i | "EXCEPT"i | "EXISTS"i
-         | name: "EXTRACT"i | "FALSE"i | "FOR"i | "FROM"i | "FULL"i | "GROUP"i | "HAVING"i
-         | "IN"i | "INNER"i | "INTERSECT"i | "INTERVAL"i | "IS"i | "JOIN"i
-         | "LEADING"i | "LEFT"i | "LIKE"i | name: "LOWER"i
-         | "MATCH"i | "MAX"i | "MIN"i
-         | "NATURAL"i | "NOT"i | "NULL"i | name: "NULLIF"i | name: "OCTET_LENGTH"i | "ON"i | "OR"i
-         | "ORDER"i | "OUTER"i
-         | "OVERLAPS"i
-         | "PARTIAL"i | name: "POSITION"i | "RIGHT"i | "SELECT"i | "SESSION_USER"i | "SOME"i
-         | name: "SUBSTRING"i | "SUM"i | "SYSTEM_USER"i | "TABLE"i
-         | "THEN"i | "TRAILING"i | name: "TRANSLATE"i | name: "TRIM"i | "TRUE"i | "UNION"i
-         | "UNIQUE"i | "UNKNOWN"i
-         | name: "UPPER"i | "USER"i | "USING"i | "VALUE"i | "VALUES"i | "WHEN"i | "WHERE"i)
+// What an identifier may not be: §5.2's <reserved word>, the whole list, as SQL-92 has it.
+// The words of the statement level are reserved too, though this grammar reads no
+// statement but a query: a name SQL-92 refuses is refused here, so `year > month` is not
+// a search condition and `b DAY` is an interval primary (§6.14) rather than a column with
+// an alias. END-EXEC is left out: a name has no hyphen, so no name could be spelled as it.
+Reserved = ("ABSOLUTE"i | "ACTION"i | "ADD"i | "ALL"i | "ALLOCATE"i | "ALTER"i | "AND"i | "ANY"i
+         | "ARE"i | "AS"i | "ASC"i | "ASSERTION"i | "AT"i | "AUTHORIZATION"i | "AVG"i
+         | "BEGIN"i | "BETWEEN"i | "BIT"i | "BIT_LENGTH"i | "BOTH"i | "BY"i
+         | "CASCADE"i | "CASCADED"i | "CASE"i | "CAST"i | "CATALOG"i | "CHAR"i | "CHARACTER"i | "CHAR_LENGTH"i
+         | "CHARACTER_LENGTH"i | "CHECK"i | "CLOSE"i | "COALESCE"i | "COLLATE"i | "COLLATION"i | "COLUMN"i | "COMMIT"i
+         | "CONNECT"i | "CONNECTION"i | "CONSTRAINT"i | "CONSTRAINTS"i | "CONTINUE"i | "CONVERT"i | "CORRESPONDING"i | "COUNT"i
+         | "CREATE"i | "CROSS"i | "CURRENT"i | "CURRENT_DATE"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "CURRENT_USER"i | "CURSOR"i
+         | "DATE"i | "DAY"i | "DEALLOCATE"i | "DEC"i | "DECIMAL"i | "DECLARE"i | "DEFAULT"i | "DEFERRABLE"i
+         | "DEFERRED"i | "DELETE"i | "DESC"i | "DESCRIBE"i | "DESCRIPTOR"i | "DIAGNOSTICS"i | "DISCONNECT"i | "DISTINCT"i
+         | "DOMAIN"i | "DOUBLE"i | "DROP"i
+         | "ELSE"i | "END"i | "ESCAPE"i | "EXCEPT"i | "EXCEPTION"i | "EXEC"i | "EXECUTE"i | "EXISTS"i
+         | "EXTERNAL"i | "EXTRACT"i
+         | "FALSE"i | "FETCH"i | "FIRST"i | "FLOAT"i | "FOR"i | "FOREIGN"i | "FOUND"i | "FROM"i
+         | "FULL"i
+         | "GET"i | "GLOBAL"i | "GO"i | "GOTO"i | "GRANT"i | "GROUP"i
+         | "HAVING"i | "HOUR"i
+         | "IDENTITY"i | "IMMEDIATE"i | "IN"i | "INDICATOR"i | "INITIALLY"i | "INNER"i | "INPUT"i | "INSENSITIVE"i
+         | "INSERT"i | "INT"i | "INTEGER"i | "INTERSECT"i | "INTERVAL"i | "INTO"i | "IS"i | "ISOLATION"i
+         | "JOIN"i
+         | "KEY"i
+         | "LANGUAGE"i | "LAST"i | "LEADING"i | "LEFT"i | "LEVEL"i | "LIKE"i | "LOCAL"i | "LOWER"i
+         | "MATCH"i | "MAX"i | "MIN"i | "MINUTE"i | "MODULE"i | "MONTH"i
+         | "NAMES"i | "NATIONAL"i | "NATURAL"i | "NCHAR"i | "NEXT"i | "NO"i | "NOT"i | "NULL"i
+         | "NULLIF"i | "NUMERIC"i
+         | "OCTET_LENGTH"i | "OF"i | "ON"i | "ONLY"i | "OPEN"i | "OPTION"i | "OR"i | "ORDER"i
+         | "OUTER"i | "OUTPUT"i | "OVERLAPS"i
+         | "PAD"i | "PARTIAL"i | "POSITION"i | "PRECISION"i | "PREPARE"i | "PRESERVE"i | "PRIMARY"i | "PRIOR"i
+         | "PRIVILEGES"i | "PROCEDURE"i | "PUBLIC"i
+         | "READ"i | "REAL"i | "REFERENCES"i | "RELATIVE"i | "RESTRICT"i | "REVOKE"i | "RIGHT"i | "ROLLBACK"i
+         | "ROWS"i
+         | "SCHEMA"i | "SCROLL"i | "SECOND"i | "SECTION"i | "SELECT"i | "SESSION"i | "SESSION_USER"i | "SET"i
+         | "SIZE"i | "SMALLINT"i | "SOME"i | "SPACE"i | "SQL"i | "SQLCODE"i | "SQLERROR"i | "SQLSTATE"i
+         | "SUBSTRING"i | "SUM"i | "SYSTEM_USER"i
+         | "TABLE"i | "TEMPORARY"i | "THEN"i | "TIME"i | "TIMESTAMP"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i | "TO"i
+         | "TRAILING"i | "TRANSACTION"i | "TRANSLATE"i | "TRANSLATION"i | "TRIM"i | "TRUE"i
+         | "UNION"i | "UNIQUE"i | "UNKNOWN"i | "UPDATE"i | "UPPER"i | "USAGE"i | "USER"i | "USING"i
+         | "VALUE"i | "VALUES"i | "VARCHAR"i | "VARYING"i | "VIEW"i
+         | "WHEN"i | "WHENEVER"i | "WHERE"i | "WITH"i | "WORK"i | "WRITE"i
+         | "YEAR"i
+         | "ZONE"i)
 
 parse DirectSelect as ParseSelect
 parse QueryExpression as ParseQuery
