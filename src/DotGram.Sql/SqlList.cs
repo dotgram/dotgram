@@ -32,32 +32,71 @@ namespace DotGram.Sql;
 [CollectionBuilder(typeof(SqlList), nameof(SqlList.Create))]
 public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 {
-	readonly T[]? _items;
+	// Null is the empty list; a T[] is the elements; anything else is the one element of a list of
+	// one, held without an array (only where T is a reference type that no T[] can be).
+	readonly object? _items;
+
+	static readonly bool Inline = !typeof(T).IsValueType && !typeof(T).IsAssignableFrom(typeof(T[]));
 
 	/// <summary>Takes the array as it is; the caller hands it over and keeps no other reference.</summary>
 	internal SqlList(T[]? items)
 	{
-		_items = items;
+		_items = Inline && items is { Length: 1 } ? items[0] : items;
 	}
 
-	T[] Items => _items ?? Array.Empty<T>();
+	SqlList(object? one, bool _)
+	{
+		_items = one;
+	}
+
+	internal static SqlList<T> One(T item)
+	{
+		return Inline && item is not null ? new SqlList<T>(item, false) : new SqlList<T>([item]);
+	}
+
+	T[] Items => _items is null ? Array.Empty<T>() : _items as T[] ?? [(T)_items];
 
 	/// <summary>How many elements the list holds.</summary>
-	public int Count => _items?.Length ?? 0;
+	public int Count => _items is null ? 0 : _items is T[] items ? items.Length : 1;
 
 	/// <summary>How many elements the list holds, under the name an array gives it.</summary>
-	public int Length => _items?.Length ?? 0;
+	public int Length => Count;
 
 	/// <summary>Whether the list holds nothing.</summary>
-	public bool IsEmpty => Length == 0;
+	public bool IsEmpty => _items is null || _items is T[] { Length: 0 };
 
 	/// <summary>The element at <paramref name="index"/>.</summary>
-	public T this[int index] => Items[index];
+	public T this[int index]
+	{
+		get
+		{
+			if (_items is T[] items)
+				return items[index];
+
+			if (_items is null || index != 0)
+				throw new IndexOutOfRangeException();
+
+			return (T)_items;
+		}
+	}
 
 	/// <summary>The elements as a span, without a copy.</summary>
+#if NET
+	[System.Diagnostics.CodeAnalysis.UnscopedRef]
+#endif
 	public ReadOnlySpan<T> AsSpan()
 	{
-		return Items;
+		if (_items is null)
+			return default;
+
+		if (_items is T[] items)
+			return items;
+
+#if NET
+		return System.Runtime.InteropServices.MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<object, T>(ref Unsafe.AsRef(in _items)), 1);
+#else
+		return new[] { (T)_items };
+#endif
 	}
 
 	/// <summary>A part of the list, as a list of its own; what a list pattern's <c>..</c> reads.</summary>
@@ -106,11 +145,11 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// </remarks>
 	public bool Equals(SqlList<T> other)
 	{
-		var mine   = Items;
-		var theirs = other.Items;
-
-		if (ReferenceEquals(mine, theirs))
+		if (ReferenceEquals(_items, other._items))
 			return true;
+
+		var mine   = AsSpan();
+		var theirs = other.AsSpan();
 
 		if (mine.Length != theirs.Length)
 			return false;
@@ -140,7 +179,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// </remarks>
 	public override int GetHashCode()
 	{
-		var items    = Items;
+		var items    = AsSpan();
 		var comparer = EqualityComparer<T>.Default;
 		var hash     = SqlHash.Start(items.Length);
 
@@ -169,7 +208,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// <summary>Walks the elements in order, without allocating.</summary>
 	public Enumerator GetEnumerator()
 	{
-		return new Enumerator(Items);
+		return new Enumerator(this);
 	}
 
 	IEnumerator<T> IEnumerable<T>.GetEnumerator()
@@ -185,22 +224,24 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// <summary>What <c>foreach</c> over a <see cref="SqlList{T}"/> walks with.</summary>
 	public struct Enumerator
 	{
-		readonly T[] _items;
-		int          _at;
+		readonly SqlList<T> _list;
+		readonly int        _count;
+		int                 _at;
 
-		internal Enumerator(T[] items)
+		internal Enumerator(SqlList<T> list)
 		{
-			_items = items;
+			_list  = list;
+			_count = list.Count;
 			_at    = -1;
 		}
 
 		/// <summary>The element the walk stands on.</summary>
-		public readonly T Current => _items[_at];
+		public readonly T Current => _list[_at];
 
 		/// <summary>Steps to the next element; false past the last.</summary>
 		public bool MoveNext()
 		{
-			return ++_at < _items.Length;
+			return ++_at < _count;
 		}
 	}
 }
@@ -216,7 +257,7 @@ public static class SqlList
 	/// </summary>
 	public static SqlList<T> Create<T>(ReadOnlySpan<T> items)
 	{
-		return items.IsEmpty ? default : new SqlList<T>(items.ToArray());
+		return items.IsEmpty ? default : items.Length == 1 ? SqlList<T>.One(items[0]) : new SqlList<T>(items.ToArray());
 	}
 
 	/// <summary>A list of a copy of <paramref name="items"/>, in their order.</summary>
