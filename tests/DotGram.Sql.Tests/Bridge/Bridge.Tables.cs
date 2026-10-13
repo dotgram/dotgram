@@ -1852,7 +1852,9 @@ static partial class Bridge
 			{
 				var language = text[tokens[at + 1].At..(end < tokens.Count ? tokens[end].At : text.Length)];
 
-				column = column with { Language = Words(language) is [_] && SqlTokens.Of(language)[0].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited
+				// A lone word is a name, unless it is a key word the grammar's ValueExpression reads as a literal: NULL.
+				column = column with { Language = Words(language) is [var word] && !word.Equals("NULL", StringComparison.OrdinalIgnoreCase)
+					&& SqlTokens.Of(language)[0].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited
 					? Values.Of(new Expression.ColumnReference(language.Trim()))
 					: ValueOf(owner, language) };
 				at = end;

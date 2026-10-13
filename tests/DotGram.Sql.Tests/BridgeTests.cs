@@ -587,6 +587,12 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("CREATE FULLTEXT INDEX ON t (a TYPE COLUMN b LANGUAGE 1033 STATISTICAL_SEMANTICS) KEY INDEX ix ON (cat, FILEGROUP fg) WITH (CHANGE_TRACKING = AUTO, STOPLIST = SYSTEM)",  "Full-text index")]
 	[InlineData("CREATE FULLTEXT INDEX ON t (c) KEY INDEX pk ON cat WITH CHANGE_TRACKING = AUTO",                                                                                         "Full-text options unbracketed")]
 	[InlineData("ALTER FULLTEXT INDEX ON t SET STOPLIST = s",                                                                                                                             "Stoplist named")]
+	[InlineData("ALTER FULLTEXT INDEX ON t SET STOPLIST SYSTEM",                                                                                                                            "Stoplist system")]
+	[InlineData("ALTER FULLTEXT INDEX ON t SET STOPLIST = OFF",                                                                                                                             "Stoplist off")]
+	[InlineData("ALTER FULLTEXT INDEX ON t SET SEARCH PROPERTY LIST OFF",                                                                                                                   "Search property list off")]
+	[InlineData("ALTER FULLTEXT INDEX ON t SET SEARCH PROPERTY LIST = p",                                                                                                                   "Search property list named")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (a LANGUAGE NULL) KEY INDEX ix",                                                                                                                "Full-text language null")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (a LANGUAGE English) KEY INDEX ix",                                                                                                             "Full-text language word")]
 	[InlineData("ALTER FULLTEXT INDEX ON t SET CHANGE_TRACKING MANUAL",                                                                                                                   "Change tracking without =")]
 	[InlineData("ALTER FULLTEXT INDEX ON t START FULL POPULATION",                                                                                                                        "Population")]
 	[InlineData("ALTER FULLTEXT INDEX ON t ALTER COLUMN c ADD STATISTICAL_SEMANTICS",                                                                                                     "Full-text column altered")]
@@ -635,6 +641,12 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Full-text options unbracketed" => made is Ast.Statement.CreateFullTextIndex { Catalog.Text: "cat", FileGroup: null, OptionsUnbracketed: true } index
 				&& index.Options.SequenceEqual([Word("CHANGE_TRACKING", "AUTO")]),
 			"Stoplist named" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetStopList { Name.Text: "s", Off: false, System: false, EqualsOmitted: false } },
+			"Stoplist system" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetStopList { Name: null, Off: false, System: true, EqualsOmitted: true } },
+			"Stoplist off" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetStopList { Name: null, Off: true, System: false, EqualsOmitted: false } },
+			"Search property list off" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetSearchPropertyList { Name: null, Off: true, EqualsOmitted: true } },
+			"Search property list named" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetSearchPropertyList { Name.Text: "p", Off: false, EqualsOmitted: false } },
+			"Full-text language null" => made is Ast.Statement.CreateFullTextIndex { Columns: [{ Language: Ast.Expression.Literal { Value: Ast.LiteralValue.Null } }] },
+			"Full-text language word" => made is Ast.Statement.CreateFullTextIndex { Columns: [{ Language: Ast.Expression.Reference { Name.Parts: [{ Text: "English" }] } }] },
 			"Change tracking without =" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetChangeTracking { Mode.Text: "MANUAL", EqualsOmitted: true } },
 			"Population" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.Population { Action: Ast.PopulationAction.Start, Kind: Ast.PopulationKind.Full } },
 			"Full-text column altered" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.AlterColumn { Add: true, Column.Column.Text: "c" } },

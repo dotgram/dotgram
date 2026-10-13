@@ -228,7 +228,8 @@ public static partial class Sql2023Writer
 							_                                     => throw NoText(grid),
 						});
 
-					PutPlainOptions(spatial, spatial.Options, partitions: false);
+					CheckSpatialOptions(spatial);
+					PutOptions(spatial.Options);
 
 					foreach (var placement in spatial.Placements)
 						PutPlacement(placement);
@@ -284,7 +285,7 @@ public static partial class Sql2023Writer
 						PutExpression(where);
 					}
 
-					PutStatisticsOptions(statistics.Options);
+					PutStatisticsOptions(statistics.Options, update: false);
 					return true;
 
 				// T-SQL: UPDATE STATISTICS (Transact-SQL). Names in brackets, or one without them.
@@ -304,12 +305,20 @@ public static partial class Sql2023Writer
 						Close();
 					}
 
-					PutStatisticsOptions(update.Options);
+					PutStatisticsOptions(update.Options, update: true);
 					return true;
 
 				case Statement.CreateTableType type:
 					if (type.Elements.Count == 0)
 						throw Empty(type, "Elements");
+
+					CheckTypeName(type, type.Name);
+					CheckTableTyped(type);
+
+					// The one option a table type reads: MEMORY_OPTIMIZED = ON or OFF, once.
+					if (type.Options.Count > 1 || type.Options.Any(static one => !(Plain(one.Name, "MEMORY_OPTIMIZED") && IsWord(one.Value, "ON", "OFF")
+						&& one.Options.Count == 0 && one.Order is null && one.Partitions is null)))
+						throw Misplaced(type, "Options", "other than one MEMORY_OPTIMIZED = ON or OFF, the only option a table type reads");
 
 					Word("CREATE TYPE");
 					PutName(type.Name);
@@ -319,6 +328,7 @@ public static partial class Sql2023Writer
 					return true;
 
 				case Statement.CreateAliasType alias:
+					CheckTypeName(alias, alias.Name);
 					Word("CREATE TYPE");
 					PutName(alias.Name);
 					Word("FROM");
@@ -917,6 +927,10 @@ public static partial class Sql2023Writer
 			}
 
 			// `DATA_COMPRESSION = PAGE ON PARTITIONS (1)`: the partitions after the value, and no options of its own beside them.
+			// Only the two compressions read ON PARTITIONS in a WITH list (RESAMPLE does in UPDATE STATISTICS, which writes it itself).
+			if (option.Partitions is not null && !(option.Value is not null && Plain(option.Name, "DATA_COMPRESSION", "XML_COMPRESSION")))
+				throw Misplaced(option, "Partitions", "on an option other than DATA_COMPRESSION or XML_COMPRESSION with a value, the only ones that read ON PARTITIONS");
+
 			if (option.Partitions is not null && option.Options.Count > 0)
 				throw Both(option, "Partitions", "Options");
 
@@ -1029,6 +1043,10 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutIndexBody(IndexDefinition index)
 		{
+			// A key is a column of one part, with a direction at most: IndexColumn reads no more.
+			if (index.Columns.Any(static key => key.NullOrdering is not null || !IsName(key.Key)))
+				throw Misplaced(index, "Columns", "that are not columns of one part, or have a null ordering, which an index key does not read");
+
 			if (index.Columns.Count > 0)
 			{
 				Open();
@@ -1149,6 +1167,7 @@ public static partial class Sql2023Writer
 			if (index.OptionsUnbracketed && index.Options.Count == 0)
 				throw Misplaced(index, "OptionsUnbracketed", "without Options");
 
+			CheckFullTextOptions(index);
 			Word("CREATE FULLTEXT INDEX ON");
 			PutName(index.Table);
 
@@ -1186,10 +1205,162 @@ public static partial class Sql2023Writer
 			if (index.OptionsUnbracketed)
 			{
 				Word("WITH");
-				Each(index.Options, one => PutPlainOption(index, one, false));
+				Each(index.Options, PutOption);
 			}
 			else
-				PutPlainOptions(index, index.Options, partitions: false);
+				PutOptions(index.Options);
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). The grammar's FullTextOptions: CHANGE_TRACKING with MANUAL, AUTO or
+		/// OFF, and STOPLIST with OFF, SYSTEM or a name of one part, each at most once and each with its value.
+		/// </summary>
+		static void CheckFullTextOptions(Statement.CreateFullTextIndex index)
+		{
+			foreach (var option in index.Options)
+			{
+				var read = option.Options.Count == 0 && option.Order is null && option.Partitions is null
+					&& (Plain(option.Name, "CHANGE_TRACKING") && IsWord(option.Value, "MANUAL", "AUTO", "OFF")
+						|| Plain(option.Name, "STOPLIST") && IsName(option.Value));
+
+				if (!read)
+					throw Misplaced(index, "Options", "other than CHANGE_TRACKING = MANUAL, AUTO or OFF, and STOPLIST = OFF, SYSTEM or a name of one part, the only ones the statement reads");
+			}
+
+			if (index.Options.Select(static one => one.Name.Text.ToUpperInvariant()).Distinct().Count() < index.Options.Count)
+				throw Misplaced(index, "Options", "that repeat a name, which the statement reads once each");
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). The grammar's SpatialValue: a number, a string, a binary string,
+		/// NULL, ON, OFF or a name of one part, set to a name with an equals sign; nothing of an expression.
+		/// </summary>
+		static void CheckSpatialOptions(Statement.CreateSpatialIndex index)
+		{
+			foreach (var option in index.Options)
+			{
+				if (option.Options.Count > 0 || option.Order is not null || option.Partitions is not null || !SpatialAtom(option.Value))
+					throw Misplaced(index, "Options", "set to other than a number, a string, a binary string, NULL, ON, OFF or a name of one part, the values a spatial option reads");
+			}
+		}
+
+		static bool SpatialAtom(Expression? value)
+		{
+			return value switch
+			{
+				Expression.Unary { Operator: UnaryOperator.Minus, Operand: Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money } } } => true,
+				Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money } } => true,
+				Expression.Literal { Value: LiteralValue.Null } => true,
+				Expression.Literal { Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } } => true,
+				Expression.Literal { Value: LiteralValue.Binary { ZeroX: true } } => true,
+				_ => IsName(value),
+			};
+		}
+
+		/// <summary>The value is a name of one part, written as a name: the grammar's word after an equals sign.</summary>
+		static bool IsName(Expression? value)
+		{
+			return value is Expression.Reference { Name.Parts: [{ Text.Length: > 0, Style: not (IdentifierStyle.String or IdentifierStyle.NationalString) }] };
+		}
+
+		/// <summary>The value is one of the words given, written plain and alone.</summary>
+		static bool IsWord(Expression? value, params string[] words)
+		{
+			return value is Expression.Reference { Name.Parts: [var part] } && Plain(part, words);
+		}
+
+		/// <summary>T-SQL: CREATE TYPE (Transact-SQL). A type's name has no empty part, as a synonym's may.</summary>
+		static void CheckTypeName(ISqlNode owner, QualifiedName name)
+		{
+			if (name.Parts.Any(static part => part.Text.Length == 0))
+				throw Misplaced(owner, "Name", "with an empty part, which a type's name is not read with");
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE TYPE (Transact-SQL). What a table type's body may hold, after <c>Syntax.TableTyped</c>: no name
+		/// for a constraint, no foreign key, no SPARSE, FILESTREAM, ENCRYPTED or NOT FOR REPLICATION, only the options a
+		/// key may be told, and a stored column wherever there is a computed one.
+		/// </summary>
+		static void CheckTableTyped(Statement.CreateTableType type)
+		{
+			var computed = false;
+			var stored   = false;
+
+			foreach (var element in type.Elements)
+			{
+				switch (element)
+				{
+					case TableElement.Column column:
+						var isComputed = column.Definition.Options.Any(static one => one is ColumnOption.Computed);
+
+						computed |= isComputed;
+						stored   |= !isComputed;
+
+						foreach (var option in column.Definition.Options)
+							CheckTypedOption(type, option);
+
+						foreach (var constraint in column.Definition.Constraints)
+							CheckTypedConstraint(type, constraint);
+
+						break;
+
+					case TableElement.TableConstraint constraint:
+						CheckTypedConstraint(type, constraint.Value);
+						break;
+
+					case TableElement.Index index:
+						CheckTypedKey(type, index.Definition.Options, bracketed: true);
+						break;
+				}
+			}
+
+			if (computed && !stored)
+				throw Misplaced(type, "Elements", "that are computed columns alone, where a table type needs a stored column");
+		}
+
+		static void CheckTypedOption(Statement.CreateTableType type, ColumnOption option)
+		{
+			if (option.Name is not null)
+				throw Misplaced(type, "Elements", "with a named constraint, which a table type does not read");
+
+			switch (option)
+			{
+				case ColumnOption.Sparse or ColumnOption.Filestream or ColumnOption.Encrypted or ColumnOption.NotForReplication:
+					throw Misplaced(type, "Elements", "with a column that is SPARSE, FILESTREAM, ENCRYPTED or NOT FOR REPLICATION, which a table type does not read");
+
+				case ColumnOption.Constraint constraint:
+					CheckTypedConstraint(type, constraint.Value);
+					break;
+
+				case ColumnOption.Index index:
+					CheckTypedKey(type, index.Definition.Options, bracketed: true);
+					break;
+			}
+		}
+
+		static void CheckTypedConstraint(Statement.CreateTableType type, Constraint constraint)
+		{
+			if (constraint.Name is not null)
+				throw Misplaced(type, "Elements", "with a named constraint, which a table type does not read");
+
+			switch (constraint)
+			{
+				case Constraint.ForeignKey:
+					throw Misplaced(type, "Elements", "with a foreign key, which a table type does not read");
+
+				case Constraint.Unique unique:
+					CheckTypedKey(type, unique.Options, !unique.OptionsUnbracketed);
+					break;
+			}
+		}
+
+		/// <summary>A key or an index of a table type is told IGNORE_DUP_KEY and BUCKET_COUNT in brackets, SORTED_DATA and SORTED_DATA_REORG out of them.</summary>
+		static void CheckTypedKey(Statement.CreateTableType type, SqlList<Option> options, bool bracketed)
+		{
+			var words = bracketed ? new[] { "IGNORE_DUP_KEY", "BUCKET_COUNT" } : new[] { "SORTED_DATA", "SORTED_DATA_REORG" };
+
+			if (options.Any(one => !Plain(one.Name, words)))
+				throw Misplaced(type, "Elements", "with a key told options a table type does not read");
 		}
 
 		/// <summary>T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>c [TYPE COLUMN t] [LANGUAGE l] [STATISTICAL_SEMANTICS]</c>.</summary>
@@ -1350,61 +1521,77 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// The <c>WITH (…)</c> of a statement whose options are a name and a value each: none has options of its own, an
-		/// order, or partitions where the statement reads none.
-		/// </summary>
-		void PutPlainOptions(ISqlNode owner, SqlList<Option> options, bool partitions)
-		{
-			if (options.Count == 0)
-				return;
-
-			Word("WITH");
-			Open();
-			Each(options, one => PutPlainOption(owner, one, partitions));
-			Close();
-		}
-
-		void PutPlainOption(ISqlNode owner, Option option, bool partitions)
-		{
-			if (option.Options.Count > 0 || !partitions && option.Partitions is not null)
-				throw Misplaced(owner, "Options", "with an option that has options or partitions of its own, which this statement does not read");
-
-			PutOption(option);
-		}
-
-		/// <summary>
 		/// T-SQL: CREATE STATISTICS (Transact-SQL), UPDATE STATISTICS (Transact-SQL). <c>WITH FULLSCAN, SAMPLE 50 PERCENT,
-		/// …</c>: no brackets, and <c>SAMPLE</c> followed by its measured value with no <c>=</c>.
+		/// …</c>: no brackets, <c>SAMPLE</c> followed by its measured value with no <c>=</c>, and the options the
+		/// grammar lists for the statement: <c>RESAMPLE</c>, <c>ALL</c>, <c>COLUMNS</c>, <c>INDEX</c>, <c>ROWCOUNT</c> and
+		/// <c>PAGECOUNT</c> only in UPDATE STATISTICS, and <c>ON PARTITIONS</c> only on <c>RESAMPLE</c>.
 		/// </summary>
-		void PutStatisticsOptions(SqlList<Option> options)
+		void PutStatisticsOptions(SqlList<Option> options, bool update)
 		{
 			if (options.Count == 0)
 				return;
 
-			Word("WITH");
-			Each(options, option =>
+			var scanned   = false;
+			var persisted = false;
+
+			foreach (var option in options)
 			{
 				if (option.Options.Count > 0 || option.Order is not null)
 					throw Misplaced(option, "Options or Order", "on a statistics option");
 
+				var name  = option.Name.Style == IdentifierStyle.Regular ? option.Name.Text.ToUpperInvariant() : "";
+				var value = option.Value;
+
 				// SAMPLE n PERCENT and SAMPLE n ROWS, the one measured value statistics read, and SAMPLE has no other.
-				var sample = Plain(option.Name, "SAMPLE");
+				var read = name switch
+				{
+					"FULLSCAN" or "NORECOMPUTE"                                 => value is null,
+					"SAMPLE"                                                    => value is Expression.Measured { Value: var size, Unit: var unit } && IsNumber(size) && Plain(unit, "PERCENT", "ROWS"),
+					"PERSIST_SAMPLE_PERCENT" or "INCREMENTAL" or "AUTO_DROP"    => IsWord(value, "ON", "OFF"),
+					"MAXDOP"                                                    => IsNumber(value),
+					"STATS_STREAM"                                              => value is Expression.Literal { Value: LiteralValue.Binary { ZeroX: true } },
+					"RESAMPLE" or "ALL" or "COLUMNS" or "INDEX"                 => update && value is null,
+					"ROWCOUNT" or "PAGECOUNT"                                   => update && IsNumber(value),
+					_                                                           => false,
+				};
 
-				if (sample && !(option.Value is Expression.Measured { Unit: var unit } && Plain(unit, "PERCENT", "ROWS")))
-					throw Misplaced(option, "Value", "on SAMPLE other than a number of PERCENT or ROWS");
+				if (!read)
+					throw Misplaced(option, "Name or Value", (update ? "that UPDATE STATISTICS" : "that CREATE STATISTICS") + " does not read, or in a form the option does not read");
 
-				if (!sample && option.Value is Expression.Measured)
-					throw Misplaced(option, "Value", "measured, on an option other than SAMPLE");
+				if (option.Partitions is not null && name != "RESAMPLE")
+					throw Misplaced(option, "Partitions", "on an option other than RESAMPLE, the only one of statistics that reads ON PARTITIONS");
 
-				if (sample)
+				scanned   |= name is "FULLSCAN" or "SAMPLE" or "RESAMPLE";
+				persisted |= name == "PERSIST_SAMPLE_PERCENT";
+			}
+
+			// A sample kept is kept from a scan.
+			if (persisted && !scanned)
+				throw Misplaced(options[0], "Name", "PERSIST_SAMPLE_PERCENT without FULLSCAN, SAMPLE or RESAMPLE in the same list, which is not read");
+
+			Word("WITH");
+			Each(options, option =>
+			{
+				if (Plain(option.Name, "SAMPLE"))
 				{
 					PutIdentifier(option.Name);
 					PutExpression(option.Value!);
+				}
+				else if (Plain(option.Name, "RESAMPLE"))
+				{
+					PutIdentifier(option.Name);
 					PutRanges(option.Partitions);
 				}
 				else
 					PutOption(option);
 			});
+		}
+
+		/// <summary>An unsigned number written as one: the grammar's Number, with a point or an exponent or without.</summary>
+		static bool IsNumber(Expression? value)
+		{
+			return value is Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate, Text: { Length: > 0 } text } }
+				&& (char.IsDigit(text[0]) || text[0] == '.');
 		}
 
 		/// <summary>T-SQL: ALTER TABLE index_option (Transact-SQL). <c>ON PARTITIONS (1, 3 TO 5)</c>, where there are any.</summary>
