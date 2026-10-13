@@ -479,7 +479,10 @@ public sealed partial class GrammarNormalizer
 		var lowered = Lower(operand, ns);
 
 		if (_model.WithBindings.TryGetValue(expression, out var targets) && targets.Count > 0)
+		{
 			_pendingWith.Add(new WithSite(_currentRule!, lowered, targets, "With" + (++_withCounter), expression.At));
+			_withRoots.Add(lowered);
+		}
 
 		return lowered;
 	}
@@ -1223,7 +1226,7 @@ public sealed partial class GrammarNormalizer
 			nodes.Add(lowered);
 		}
 
-		return Flatten(MergeLiterals(nodes));
+		return Flatten(MergeLiterals(nodes), _withRoots);
 	}
 
 	/// <summary>
@@ -1252,7 +1255,7 @@ public sealed partial class GrammarNormalizer
 			nodes.Add(Lower(operand, ns));
 		}
 
-		return Flatten(nodes);
+		return Flatten(nodes, _withRoots);
 	}
 
 	/// <summary>Whether a node is a bare application of the namespace's own trivia.</summary>
@@ -1500,13 +1503,19 @@ public sealed partial class GrammarNormalizer
 		return merged;
 	}
 
-	static Node Flatten(List<Node> nodes)
+	/// <remarks>
+	/// A sequence that is the operand of a <c>with</c> is kept whole: the <c>with</c> finds its
+	/// operand by that node, and spread into the sequence around it there was nothing left to
+	/// find, so <c>(A &amp; B) with (A = C) &amp; D</c> read <c>A</c>. The splice flattens it once
+	/// the <c>with</c> is applied.
+	/// </remarks>
+	static Node Flatten(List<Node> nodes, HashSet<Node> kept)
 	{
 		var flat = new List<Node>();
 
 		foreach (var node in nodes)
 		{
-			if (node is Node.Sequence(var nested))
+			if (node is Node.Sequence(var nested) && !kept.Contains(node))
 				flat.AddRange(nested);
 			else
 				flat.Add(node);
@@ -1514,6 +1523,9 @@ public sealed partial class GrammarNormalizer
 
 		return flat.Count == 1 ? flat[0] : new Node.Sequence(flat);
 	}
+
+	/// <summary>Every <c>with</c> operand's lowered root (<see cref="Flatten"/>).</summary>
+	readonly HashSet<Node> _withRoots = new(NodeIdentity.Instance);
 
 	Node LowerChoice(IReadOnlyList<Expr> alternatives, GrammarNamespace ns)
 	{

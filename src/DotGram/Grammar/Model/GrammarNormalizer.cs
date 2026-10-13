@@ -50,7 +50,6 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string CircularWith        = "GRAM4017";
 
-
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
 
@@ -436,7 +435,12 @@ public sealed partial class GrammarNormalizer
 
 	void Report(string id, string message, Location at)
 	{
-		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
+		var diagnostic = new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error);
+
+		// Once: a rule and the copies a specialization made of it say the same thing at the
+		// same place, and the author wrote it once.
+		if (!_diagnostics.Contains(diagnostic))
+			_diagnostics.Add(diagnostic);
 	}
 
 	/// <summary>The same, for a grammar that is correct and will be slower than it reads.</summary>

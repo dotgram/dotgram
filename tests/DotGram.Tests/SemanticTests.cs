@@ -1064,6 +1064,13 @@ public sealed class SemanticTests
 			(ZQ + "Y = 'y'\n" + EG + "W = Ns.G with (Z = Q)\nnamespace N1 with (Q = Y) { K = W }\nR = N1.K", "dy", "dq"),
 			// An instance a `with` rebuilds passes what the original passed: the specialization.
 			("Y = 'y'\nL(x) = x\nF(x) = x & '!'\nnamespace Ns with (B = D) { E = B }\nR = L(Ns.E) with (L = F, D = Y)", "y!", "d!"),
+			// A `with` on a bracketed sequence inside a larger one, on either side of it.
+			("A = 'a'\nC = 'c'\nR = (A & B) with (A = C) & D", "cbd", "abd"),
+			("A = 'a'\nC = 'c'\nR = ((A & B) with (A = C)) & D", "cbd", "abd"),
+			("A = 'a'\nC = 'c'\nR = D & (A & B) with (A = C)", "dcb", "dab"),
+			("Y = 'y'\nZ = 'z'\nP = 'p'\nnamespace Ns with (B = D) { E = B  G = Z }\nR = (Ns.E & Ns.G) with (D = Y, Z = P) & D", "ypd", "dzd"),
+			// A parameterized replacement taken from a namespace is read as that namespace makes it.
+			("Y = 'y'\nZ = 'z'\nL(x) = x\nnamespace Ns with (B = D) { F(x) = x & B }\nU = B\nparse U\nR = L(Z) with (L = Ns.F, D = Y)", "zy", "zb"),
 			// A header's replacement that is another namespace's rule is read as that namespace makes it.
 			("C = 'c'\nY = 'y'\nnamespace Ns1 with (B = Ns2.F) { E = B }\nnamespace Ns2 with (C = D) { F = C }\nR = Ns1.E with (D = Y)", "y", "d"),
 		];
@@ -1508,6 +1515,168 @@ public sealed class SemanticTests
 		Assert.Contains("'int'", refusal.Message, StringComparison.Ordinal);
 		Assert.Contains("'string'", refusal.Message, StringComparison.Ordinal);
 		Assert.Contains("Declare 'F' as ':", refusal.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A header's own GRAM4014 check asks after the readers of copies of the rule it replaces
+	/// among the rules it cloned, as a <c>with</c>'s does.
+	/// </summary>
+	[Fact]
+	public void A_header_that_changes_a_type_a_copy_is_read_as_is_refused()
+	{
+		var result = CompileResolved(
+			"""
+			D  : @int    = 'd' => @(1)
+			Vs : @string = 'v' => @("v")
+			E  : D = D
+			W  : @int = x: E => @(x)
+
+			namespace M with (D = Vs)
+			{
+				K : @int = x: W => @(x)
+			}
+
+			parse M.K as ParseStart
+			""");
+
+		var refusal = Assert.Single(result.Diagnostics, one => one.Id == GrammarNormalizer.IncompatibleRebinding);
+
+		Assert.Contains("'W' reads 'E'", refusal.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A parameterized replacement from a namespace keeps the header in a publication's
+	/// <c>with</c> too.
+	/// </summary>
+	[Fact]
+	public void A_publications_parameterized_replacement_from_a_namespace_keeps_its_header()
+	{
+		var result = Compile(
+			"""
+			B = 'b'
+			D = 'd'
+			Y = 'y'
+			Z = 'z'
+			L(x) = x
+
+			namespace Ns with (B = D)
+			{
+				F(x) = x & B
+			}
+
+			R = L(Z)
+			parse R with (L = Ns.F, D = Y) as ParseStart
+			""");
+
+		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "zy").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "zb").IsSuccess);
+	}
+
+	/// <summary>
+	/// An instance a header rebuilt keeps the header's arguments when a publication's
+	/// <c>with</c> rebuilds it again, as a <c>with</c> expression's does.
+	/// </summary>
+	[Theory]
+	[InlineData("R = Ns.E\nparse R with (F = G) as ParseStart")]
+	[InlineData("R = Ns.E with (F = G)\nparse R as ParseStart")]
+	public void A_rebuilt_instance_keeps_the_arguments_its_header_made(string rule)
+	{
+		var result = Compile(
+			"""
+			B = 'b'
+			D = 'd'
+			L(x) = 'l' & x
+			F(x) = 'f' & x
+			G(x) = 'g' & x
+
+			namespace Ns with (L = F, B = D)
+			{
+				E = L(B)
+			}
+
+			""" + rule);
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "gd").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "gb").IsSuccess);
+	}
+
+	/// <summary>
+	/// A cycle through two namespaces names, for each <c>with</c>, the namespace it calls into.
+	/// </summary>
+	[Fact]
+	public void A_cycle_through_two_namespaces_names_the_namespace_each_with_calls_into()
+	{
+		var diagnostics = Compile(
+			"""
+			B = 'b'
+			D = 'd'
+			Z = 'z'
+			Q = 'q'
+			Y = 'y'
+
+			namespace N1 with (B = D) { E1 = '[' & G1 & ']' | B }
+			namespace N2 with (Z = Q) { E2 = '<' & N1.E1 & '>' | Z }
+
+			G1 = N2.E2 with (Y = B)
+			R = N1.E1
+			parse R
+			""").Diagnostics.Where(one => one.Id == GrammarNormalizer.CircularWith).ToList();
+
+		Assert.NotEmpty(diagnostics);
+
+		foreach (var cycle in diagnostics)
+			Assert.True(
+				cycle.Message.StartsWith("'G1'", StringComparison.Ordinal)
+					? cycle.Message.Contains("namespace 'N2'", StringComparison.Ordinal)
+					: cycle.Message.Contains("namespace 'N1'", StringComparison.Ordinal),
+				cycle.Message);
+	}
+
+	/// <summary>
+	/// Diagnostics about a rule a specialization made name the rule the author wrote: an
+	/// instance as the call that made it, a copy as the rule it copies.
+	/// </summary>
+	[Fact]
+	public void A_refusal_names_an_instance_as_the_call_that_made_it()
+	{
+		var result = CompileResolved(
+			"""
+			B : @int    = 'b' => @(1)
+			D : @string = 'd' => @("d")
+			E(x) : B = B & x
+			R : @int = y: E('!') => @(y.GetHashCode())
+
+			parse R
+			parse R with (B = D) as Swapped
+			""");
+
+		var refusal = Assert.Single(result.Diagnostics, one => one.Id == GrammarNormalizer.IncompatibleRebinding);
+
+		Assert.Contains("'E('!')'", refusal.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_construction_refusal_does_not_name_a_copy()
+	{
+		var diagnostics = Compile(
+			"""
+			A = 'a'
+			C = 'c'
+			X : @int = A
+			R = X with (A = C)
+			parse R
+			""").Diagnostics;
+
+		Assert.Contains(diagnostics, one => one.Id == GrammarNormalizer.UnbuiltConstruction);
+		Assert.DoesNotContain(diagnostics, one => one.Message.Contains("_With", StringComparison.Ordinal));
 	}
 
 	static string WithAndHeader(string rule, string publish = "parse R as ParseStart")

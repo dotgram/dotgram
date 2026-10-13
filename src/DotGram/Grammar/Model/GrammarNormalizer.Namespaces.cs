@@ -82,6 +82,8 @@ public sealed partial class GrammarNormalizer
 		var order = InOneOrder(groups, sites, graph) ?? [.. sites];
 		var remap = new Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>>();
 
+		_siteClones = remap;
+
 		Dictionary<RuleSymbol, List<RuleSymbol>>? forward  = null;
 		Dictionary<RuleSymbol, List<RuleSymbol>>? calledBy = null;
 
@@ -436,12 +438,16 @@ public sealed partial class GrammarNormalizer
 				{
 					refused = true;
 
+					// The namespace this `with` itself calls into, on the way round: not always the
+					// one whose header reaches it.
+					var into = needs[group].OfType<GrammarNamespace>().FirstOrDefault(one => one == site || Reaches(one, site)) ?? site;
+
 					Report(
 						CircularWith,
-						$"'{group.Key.Name}' holds a 'with' that calls into namespace '{site.Name}' from " +
-						$"outside it, and the namespace's header reaches '{group.Key.Name}', so neither can " +
-						$"be specialized against the other already specialized. Write the rebinding inside " +
-						$"the namespace, or on a publication ('parse … with (…)').",
+						$"'{group.Key.Name}' holds a 'with' that calls into namespace '{into.Name}' from " +
+						$"outside it, and the header of namespace '{site.Name}' reaches '{group.Key.Name}', so " +
+						$"neither can be specialized against the other already specialized. Write the " +
+						$"rebinding inside the namespace, or on a publication ('parse … with (…)').",
 						group.First().At);
 				}
 
@@ -623,9 +629,53 @@ public sealed partial class GrammarNormalizer
 
 		if (_origins.TryGetValue(called, out var origin) &&
 			targets.TryGetValue(origin.Origin, out var bound))
-			return ((Node.Call)Instantiate(bound, origin.Passed, origin.Counts, origin.Values)).Rule;
+			return UnderHeader(((Node.Call)Instantiate(bound, origin.Passed, origin.Counts, origin.Values)).Rule);
 
 		return null;
+	}
+
+	/// <summary>
+	/// Whether a replacement instantiated now is read through its namespace's header: while a
+	/// <c>with</c> or a publication's <c>with</c> is specialized, on top of the headers.
+	/// </summary>
+	bool _composeOnHeaders;
+
+	/// <summary>
+	/// A parameterized replacement's instance as its namespace makes it, where that namespace
+	/// has a header already specialized: <c>L(Z) with (L = Ns.F)</c> reads <c>Ns</c>'s
+	/// <c>F(Z)</c>, as a call to <c>Ns.F(Z)</c> from anywhere does (§5.1).
+	/// </summary>
+	RuleSymbol UnderHeader(RuleSymbol instance)
+	{
+		if (!_composeOnHeaders || NearestSite(instance.Namespace) is not { } site ||
+			!_siteClones.TryGetValue(site, out var made))
+			return instance;
+
+		if (made.TryGetValue(instance, out var known))
+			return known;
+
+		var forward   = BuildCallGraph();
+		var reachable = ReachableFromSeed([instance], forward, site.Rebindings);
+		var affected  = AffectedSet(BoundCalls(site.Rebindings), Reverse(forward), reachable);
+
+		if (!affected.Contains(instance))
+			return instance;
+
+		if (made is not Dictionary<RuleSymbol, RuleSymbol> map || ReferenceEquals(made, EmptyClones))
+			_siteClones[site] = map = made.ToDictionary(static pair => pair.Key, static pair => pair.Value);
+
+		CloneAffected(affected, site.Rebindings, site.Name, map);
+
+		var clone = map[instance];
+
+		if (_origins.TryGetValue(instance, out var origin) && !_origins.ContainsKey(clone))
+			_origins[clone] = (
+				origin.Origin,
+				[.. origin.Passed.Select(one => one is null ? null : CloneAndRewrite(one, site.Rebindings, map, site.Name))],
+				origin.Counts,
+				origin.Values);
+
+		return clone;
 	}
 
 	/// <summary>
@@ -1021,8 +1071,8 @@ public sealed partial class GrammarNormalizer
 		string siteName)
 	{
 		var origin      = _origins[instance];
-		var replacement = ((Node.Call)Instantiate(
-			targets[origin.Origin], origin.Passed, origin.Counts, origin.Values)).Rule;
+		var replacement = UnderHeader(((Node.Call)Instantiate(
+			targets[origin.Origin], origin.Passed, origin.Counts, origin.Values)).Rule);
 
 		if (cloneMap.TryGetValue(replacement, out var existing))
 			return existing;
@@ -1045,7 +1095,16 @@ public sealed partial class GrammarNormalizer
 		if (_types.TryGetValue(replacement, out var type))
 			_types[clone] = type;
 
-		_origins[clone] = _origins[replacement];
+		// The arguments this clone reads are its arguments rewritten the same way: a later
+		// `with` that rebuilds it again passes those, not the ones as written (`E = L(B)` under
+		// `with (L = F, B = D)` passes `D`).
+		var rebuilt = _origins[replacement];
+
+		_origins[clone] = (
+			rebuilt.Origin,
+			[.. rebuilt.Passed.Select(one => one is null ? null : CloneAndRewrite(one, targets, cloneMap, siteName))],
+			rebuilt.Counts,
+			rebuilt.Values);
 
 		return clone;
 	}
@@ -1233,12 +1292,16 @@ public sealed partial class GrammarNormalizer
 		// not is what a call from here to `Ns.E` now reads, `Ns`'s clone.
 		_siteClones.TryGetValue(ns, out var cloned);
 
+		// Readers of a copy are asked after among this header's own clones: those read what the
+		// header made, and a fixed type among them expects the replaced rule's.
+		var readers = cloned is null ? [] : new HashSet<RuleSymbol>(cloned.Values);
+
 		foreach (var binding in ns.OwnRebindings)
 			CheckReplacement(
 				binding,
 				binding.Left,
 				cloned is not null && cloned.ContainsKey(binding.Right) ? binding.Right : Declared(binding.Right),
-				readers: null);
+				readers);
 
 		foreach (var nested in ns.Nested)
 			CheckRebindingReplacements(nested);
@@ -1262,7 +1325,7 @@ public sealed partial class GrammarNormalizer
 	/// header, whose check asks only who reads the rule itself — the copies of its rules are its
 	/// own specialization, already of the replacement's type.
 	/// </remarks>
-	void CheckReplacement(ResolvedRebinding binding, RuleSymbol left, RuleSymbol right, IReadOnlyCollection<RuleSymbol>? readers)
+	void CheckReplacement(ResolvedRebinding binding, RuleSymbol left, RuleSymbol right, IReadOnlyCollection<RuleSymbol> readers)
 	{
 		// A parameterized rule has no lowered body of its own, so `_types` never carries
 		// the base symbol — its declared type stands in where that type is a concrete C#
@@ -1298,9 +1361,9 @@ public sealed partial class GrammarNormalizer
 		if (_misread is ({ } reader, { } read, var wants, { } finds))
 			Report(
 				IncompatibleRebinding,
-				$"'{binding.Right}' cannot replace '{binding.Left}': '{Written(reader).Name}' reads " +
-				$"'{Written(read).Name}' expecting '{wants ?? expected}', and with the replacement it is " +
-				$"'{finds}'. Declare '{Written(reader).Name}' as ': {Written(read).Name}' so that its type " +
+				$"'{binding.Right}' cannot replace '{binding.Left}': '{Shown(reader)}' reads " +
+				$"'{Shown(read)}' expecting '{wants ?? expected}', and with the replacement it is " +
+				$"'{finds}'. Declare '{Shown(reader)}' as ': {Shown(read)}' so that its type " +
 				$"follows the rule it reads (§4.1), or replace '{binding.Left}' with a rule whose result " +
 				$"converts to '{expected}'.",
 				binding.At);
@@ -1318,6 +1381,23 @@ public sealed partial class GrammarNormalizer
 	/// (null: the replaced rule's own) and the type it would be handed.
 	/// </summary>
 	(RuleSymbol Reader, RuleSymbol Read, string? Wants, string Finds)? _misread;
+
+	/// <summary>
+	/// A rule as the author wrote it: a copy by the rule it copies, an instance of a
+	/// parameterized rule as the call that made it (<c>E('!')</c>).
+	/// </summary>
+	internal string Shown(RuleSymbol rule)
+	{
+		rule = Written(rule);
+
+		if (!_origins.TryGetValue(rule, out var origin))
+			return rule.Name;
+
+		var arguments = origin.Passed.Select((one, i) =>
+			one?.ToString() ?? origin.Values[i] ?? (origin.Counts[i] is { } count ? Text(count) : "?"));
+
+		return Written(origin.Origin).Name + "(" + string.Join(", ", arguments) + ")";
+	}
 
 	/// <summary>The rule the author wrote that <paramref name="rule"/> is, or is a copy of.</summary>
 	RuleSymbol Written(RuleSymbol rule)
@@ -1358,42 +1438,9 @@ public sealed partial class GrammarNormalizer
 	/// type, or into a sequence, or hands it to a constructor, is expecting something
 	/// particular, and then the check stands.
 	/// </remarks>
-	bool Follows(RuleSymbol replaced, IReadOnlyCollection<RuleSymbol>? readers, string actual)
+	bool Follows(RuleSymbol replaced, IReadOnlyCollection<RuleSymbol> readers, string actual)
 	{
-		return readers is not null ? Follows(replaced, true, [], readers, actual) : FollowsHere(replaced, actual);
-	}
-
-	/// <summary>The same, asked only of the captures of the rule itself and of its site's clone.</summary>
-	bool FollowsHere(RuleSymbol replaced, string actual)
-	{
-		var read = false;
-
-		_declaredClones.TryGetValue(replaced, out var clone);
-
-		foreach (var rule in _rules)
-		{
-			if (!_bodies.TryGetValue(rule, out var body))
-				continue;
-
-			foreach (var node in NodeWalk.Descendants(body))
-			{
-				if (node is not Node.Capture(_, Node.Call(var called, _)) ||
-					!ReferenceEquals(called, replaced) && (clone is null || !ReferenceEquals(called, clone)))
-					continue;
-
-				if (!_produces.TryGetValue(rule, out var produces) ||
-					!ReferenceEquals(produces.Produces, called))
-				{
-					_misread = (rule, called, null, actual);
-
-					return false;
-				}
-
-				read = true;
-			}
-		}
-
-		return read;
+		return Follows(replaced, true, [], readers, actual);
 	}
 
 	/// <summary>
