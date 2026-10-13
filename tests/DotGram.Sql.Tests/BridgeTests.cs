@@ -564,6 +564,108 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// Which record the bridge builds for the indexes, full-text indexes, views, statistics, types, sequences and
+	/// synonyms, where another record writes the same text, and that each converts.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE INDEX i ON t (a)",                                                                                                                                                "Create index")]
+	[InlineData("CREATE CLUSTERED COLUMNSTORE INDEX i ON t ORDER (a, b)",                                                                                                                 "Columnstore order")]
+	[InlineData("CREATE INDEX i ON t (a) ON fg FILESTREAM_ON fs",                                                                                                                         "Index placements")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1, 3 TO 5))",                                                                                       "Option partitions")]
+	[InlineData("CREATE TABLE t (a INT, INDEX i CLUSTERED COLUMNSTORE ORDER (a))",                                                                                                        "Inline index order")]
+	[InlineData("CREATE PRIMARY XML INDEX i ON t (c)",                                                                                                                                    "Primary XML index")]
+	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH WITH (MAXDOP = 1)",                                                                                               "Secondary XML index")]
+	[InlineData("CREATE SPATIAL INDEX s ON t (c) USING GEOGRAPHY_AUTO_GRID WITH (DATA_COMPRESSION = PAGE) ON fg",                                                                         "Spatial index")]
+	[InlineData("ALTER INDEX ALL ON t REBUILD PARTITION = ALL",                                                                                                                           "Alter all indexes")]
+	[InlineData("ALTER INDEX i ON t REORGANIZE PARTITION = 2 WITH (LOB_COMPACTION = ON)",                                                                                                 "Reorganize")]
+	[InlineData("ALTER INDEX i ON t SET (ALLOW_ROW_LOCKS = ON)",                                                                                                                          "Index set")]
+	[InlineData("ALTER INDEX i ON t RESUME",                                                                                                                                              "Resume")]
+	[InlineData("ALTER TABLE t ADD INDEX i (a)",                                                                                                                                          "Add one index")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT c UNIQUE (a)",                                                                                                                              "Add one constraint")]
+	[InlineData("ALTER TABLE t ALTER INDEX i REBUILD WITH (BUCKET_COUNT = 8)",                                                                                                            "Alter table alter index")]
+	[InlineData("ALTER TABLE t DROP INDEX i",                                                                                                                                             "Alter table drop index")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (a TYPE COLUMN b LANGUAGE 1033 STATISTICAL_SEMANTICS) KEY INDEX ix ON (cat, FILEGROUP fg) WITH (CHANGE_TRACKING = AUTO, STOPLIST = SYSTEM)",  "Full-text index")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (c) KEY INDEX pk ON cat WITH CHANGE_TRACKING = AUTO",                                                                                         "Full-text options unbracketed")]
+	[InlineData("ALTER FULLTEXT INDEX ON t SET STOPLIST = s",                                                                                                                             "Stoplist named")]
+	[InlineData("ALTER FULLTEXT INDEX ON t SET CHANGE_TRACKING MANUAL",                                                                                                                   "Change tracking without =")]
+	[InlineData("ALTER FULLTEXT INDEX ON t START FULL POPULATION",                                                                                                                        "Population")]
+	[InlineData("ALTER FULLTEXT INDEX ON t ALTER COLUMN c ADD STATISTICAL_SEMANTICS",                                                                                                     "Full-text column altered")]
+	[InlineData("CREATE OR ALTER VIEW v WITH SCHEMABINDING, VIEW_METADATA AS SELECT a FROM t WITH CHECK OPTION",                                                                          "View verb and attributes")]
+	[InlineData("CREATE VIEW v AS SELECT a FROM t",                                                                                                                                       "Plain view")]
+	[InlineData("CREATE STATISTICS s ON t (a) WHERE a > 5 WITH SAMPLE 12 ROWS, NORECOMPUTE",                                                                                              "Statistics")]
+	[InlineData("UPDATE STATISTICS t ix WITH FULLSCAN",                                                                                                                                   "Update statistics unbracketed")]
+	[InlineData("UPDATE STATISTICS t WITH RESAMPLE ON PARTITIONS (1, 3 TO 5)",                                                                                                            "Resample partitions")]
+	[InlineData("CREATE TYPE t FROM varchar(10) NOT NULL",                                                                                                                                "Alias type")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT PRIMARY KEY) WITH (MEMORY_OPTIMIZED = ON)",                                                                                                "Table type")]
+	[InlineData("CREATE SEQUENCE s CACHE 10 NO CYCLE",                                                                                                                                    "Sequence cache")]
+	[InlineData("CREATE SEQUENCE s NO CACHE",                                                                                                                                             "Sequence no cache")]
+	[InlineData("CREATE SYNONYM s FOR srv.db.dbo.t",                                                                                                                                      "Synonym")]
+	public void The_bridge_builds_the_definition_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		static Ast.Option Word(string name, string value)
+		{
+			return new Ast.Option(new Ast.Identifier(name), new Ast.Expression.Reference(new Ast.QualifiedName([new Ast.Identifier(value)])), []);
+		}
+
+		var holds = expected switch
+		{
+			"Create index" => made is Ast.Statement.CreateIndex { Index: { Storage: null, Columns.Count: 1, Placements.Count: 0, Order.Count: 0 } },
+			"Columnstore order" => made is Ast.Statement.CreateIndex { Index: { Storage: Ast.IndexStorage.Columnstore, Clustering: Ast.IndexClustering.Clustered, Columns.Count: 0, Order: [{ Text: "a" }, { Text: "b" }] } },
+			"Index placements" => made is Ast.Statement.CreateIndex { Index.Placements: [{ Kind: Ast.PlacementKind.On }, { Kind: Ast.PlacementKind.FilestreamOn }] },
+			"Option partitions" => made is Ast.Statement.CreateIndex { Index.Options: [{ Name.Text: "DATA_COMPRESSION", Partitions: [{ To: null }, { To: not null }] }] },
+			"Inline index order" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [_, Ast.TableElement.Index { Definition: { Storage: Ast.IndexStorage.Columnstore, Order: [{ Text: "a" }] } }] } },
+			"Primary XML index" => made is Ast.Statement.CreateXmlIndex { Primary: true, Using: null, For: null, Column.Text: "c" },
+			"Secondary XML index" => made is Ast.Statement.CreateXmlIndex { Primary: false, Using.Text: "p", For: Ast.XmlIndexFor.Path, Options.Count: 1 },
+			"Spatial index" => made is Ast.Statement.CreateSpatialIndex { Using: Ast.SpatialTessellation.GeographyAutoGrid, Options.Count: 1, Placements: [{ Kind: Ast.PlacementKind.On }] },
+			"Alter all indexes" => made is Ast.Statement.AlterIndex { All: true, Name: null, Action: Ast.IndexAlteration.Rebuild { AllPartitions: true, Partition: null } },
+			"Reorganize" => made is Ast.Statement.AlterIndex { Name.Text: "i", Action: Ast.IndexAlteration.Reorganize { Partition: Ast.Expression.Literal, Options.Count: 1 } },
+			"Index set" => made is Ast.Statement.AlterIndex { Action: Ast.IndexAlteration.SetOptions { Options.Count: 1 } },
+			"Resume" => made is Ast.Statement.AlterIndex { Action: Ast.IndexAlteration.Resume { Options.Count: 0 } },
+			"Add one index" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Add { Elements: [Ast.TableElement.Index] }] },
+			"Add one constraint" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.AddConstraint] },
+			"Alter table alter index" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.AlterIndex { Name.Text: "i", Action: Ast.IndexAlteration.Rebuild { Options.Count: 1 } }] },
+			"Alter table drop index" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.DropIndex { Name.Text: "i" }] },
+			"Full-text index" => made is Ast.Statement.CreateFullTextIndex
+			{
+				Columns: [{ TypeColumn.Text: "b", Language: Ast.Expression.Literal, StatisticalSemantics: true }], KeyIndex.Text: "ix",
+				Catalog.Text: "cat", FileGroup.Text: "fg", Options.Count: 2, OptionsUnbracketed: false,
+			},
+			"Full-text options unbracketed" => made is Ast.Statement.CreateFullTextIndex { Catalog.Text: "cat", FileGroup: null, OptionsUnbracketed: true } index
+				&& index.Options.SequenceEqual([Word("CHANGE_TRACKING", "AUTO")]),
+			"Stoplist named" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetStopList { Name.Text: "s", Off: false, System: false, EqualsOmitted: false } },
+			"Change tracking without =" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetChangeTracking { Mode.Text: "MANUAL", EqualsOmitted: true } },
+			"Population" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.Population { Action: Ast.PopulationAction.Start, Kind: Ast.PopulationKind.Full } },
+			"Full-text column altered" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.AlterColumn { Add: true, Column.Column.Text: "c" } },
+			"View verb and attributes" => made is Ast.Statement.CreateView
+			{
+				Verb: Ast.DefinitionVerb.CreateOrAlter, Attributes: [Ast.ViewAttribute.SchemaBinding, Ast.ViewAttribute.ViewMetadata], CheckOption: Ast.CheckOption.Unqualified,
+			},
+			"Plain view" => made is Ast.Statement.CreateView { Verb: null, Attributes.Count: 0, Specification: Ast.ViewSpecification.Regular { Columns.Count: 0 } },
+			"Statistics" => made is Ast.Statement.CreateStatistics
+			{
+				Columns: [{ Text: "a" }], Where: not null,
+				Options: [{ Name.Text: "SAMPLE", Value: Ast.Expression.Measured { Unit.Text: "ROWS" } }, { Name.Text: "NORECOMPUTE", Value: null }],
+			},
+			"Update statistics unbracketed" => made is Ast.Statement.UpdateStatistics { Names: [{ Text: "ix" }], NameUnbracketed: true, Options: [{ Name.Text: "FULLSCAN" }] },
+			"Resample partitions" => made is Ast.Statement.UpdateStatistics { Names.Count: 0, Options: [{ Name.Text: "RESAMPLE", Value: null, Partitions.Count: 2 }] },
+			"Alias type" => made is Ast.Statement.CreateAliasType { Base: Ast.DataType.Character, Nullability: Ast.ColumnNullability.NotNull },
+			"Table type" => made is Ast.Statement.CreateTableType { Elements.Count: 1, Options: [{ Name.Text: "MEMORY_OPTIMIZED" }] },
+			"Sequence cache" => made is Ast.Statement.CreateSequence { Options: [Ast.SequenceOption.Cache { Size: Ast.Expression.Literal }, Ast.SequenceOption.Cycle { Value: false }] },
+			"Sequence no cache" => made is Ast.Statement.CreateSequence { Options: [Ast.SequenceOption.NoCache] },
+			"Synonym" => made is Ast.Statement.CreateSynonym { Target.Parts.Count: 4 },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	/// <summary>
 	/// The shape check projects a T-SQL column's options and a key's columns onto the standard's members, once, in
 	/// the oracle: a column both parsers read compares equal so, and one option wrong, or one with no counterpart,
 	/// leaves it a shape mismatch.
