@@ -1650,7 +1650,8 @@ sealed partial class Machine
 
 			// A reading that begins where it is told says where the value began, which is where
 			// the trivia it started on ended: the entry writes it between the two.
-			if (!ends && _graph.Trivia.ContainsKey(rule) && !OverKinds)
+			// Where nothing reads it there is no field to write it into (CSharpEmitter.RecordsBegan).
+			if (!ends && _graph.Trivia.ContainsKey(rule) && CSharpEmitter.RecordsBegan(_graph, OverKinds))
 				reader.MarkLead("failure.Began = p;");
 
 			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
