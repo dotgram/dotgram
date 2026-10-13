@@ -56,7 +56,22 @@ static class BridgeReport
 
 		## The shape check, and the dialects' different meanings
 
-		Every place the two trees differ is collected. A difference inside one of ten subtrees, found by its
+		Before the two trees are compared, the bridge's is projected where T-SQL holds a thing its own way and the
+		standard another (`BridgeOracle.Projection`, written once there), and these two projections are the only
+		comparisons that are not plain equality:
+
+		- A T-SQL column's options, in the order written, onto the standard's members: a `COLLATE` right after a
+		  character type into the type, as the standard's grammar reads it there; then a `DEFAULT` into `Generation`,
+		  as `GENERATED ALWAYS AS ROW START` and `ROW END` are; the constraints in order into `Constraints`; a last
+		  `COLLATE` into `Collation`. Only where the options stand in that order and each has its counterpart there.
+		- A PRIMARY KEY's or a UNIQUE's `Keys` onto its `Columns`, where each is a one-part name with no direction and
+		  the key has no other T-SQL part.
+
+		A column or a key the projection does not apply to is left as it is, so that it differs, and a projected
+		column with one option wrong still differs: either is a shape mismatch. Each projection made is counted
+		(`Projected`).
+
+		Every place the two trees differ is then collected. A difference inside one of twelve subtrees, found by its
 		construct and never by the statement's text, is the two dialects reading the text with different meanings,
 		and is exempted (`BridgeOracle.Meaning`); any other difference makes the statement a **shape** mismatch.
 
@@ -73,7 +88,7 @@ static class BridgeReport
 		- `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A system
 		  type with no arguments — a `DataType.Named` of one part, or `sys` and a name, on the list of system types, a
 		  standard record written as a name (`WrittenName`), or an `nvarchar` with no length — where the standard has
-		  a user-defined type of the same name, or, for `timestamp`, its own TIMESTAMP.
+		  a user-defined type of the same name, or, for `timestamp` with or without a length, its own TIMESTAMP.
 		- `GROUP BY ALL a`: the empty groups kept in T-SQL, the quantifier that changes nothing in the standard. The
 		  `Quantifier` and `AllKeyword` of a `GroupByClause` that is `AllKeyword`.
 		- `SELECT a INTO t`: a new table in T-SQL, a target in the standard. A `Query.Select`'s `IntoTable` with no
@@ -85,6 +100,8 @@ static class BridgeReport
 		- `UPDATE ONLY (t)`, `DELETE FROM ONLY (t)`: a call to a function `ONLY` in T-SQL, the table `t` alone in the
 		  standard. The statement's `Target`, a `TableSource.Function` of the one-part name `ONLY`. The standard's
 		  `INSERT` reads no `ONLY`, and the writer refuses it there.
+		- `c t DEFAULT v COLLATE x`: the default value's collation in T-SQL, the column's in the standard. The
+		  `ColumnDefinition` whose default is an `Expression.Collate`, its `Generation` and `Collation`.
 
 		## Words read from the text
 
@@ -104,6 +121,8 @@ static class BridgeReport
 		- `Statement.DropRoutine.Proc`: `PROC` against `PROCEDURE`.
 		- `Statement.SetTransaction.Tran`: `TRAN` against `TRANSACTION`.
 		- `Statement.Delete.FromOmitted`: `DELETE t` against `DELETE FROM t`.
+		- `ReferencesSpecification.DeleteRuleFirst`: `ON DELETE … ON UPDATE …` against the other order, where both
+		  are written; a delete rule alone is first, as the standard's parser has it.
 
 		## Prefixed pivot and unpivot names
 
@@ -145,7 +164,8 @@ static class BridgeReport
 		`converted/gap/refused/crashed/unread/different/shape`: a statement is counted under the record its first gap
 		names, or else under its own root. `Bridge/Baseline.Counters.txt` holds the debts: per member, how many
 		statements passed only with key words' case aside (`ByCase`) and how many readings came from the text
-		(`Recovered`); per pattern, how many subtrees it exempted (`Meaning`). `BridgeTests` fails where `converted`
+		(`Recovered`); per pattern, how many subtrees it exempted (`Meaning`); per projection, how many columns and
+		keys the shape check projected (`Projected`). `BridgeTests` fails where `converted`
 		falls or anything else rises, where a statement fails the round trip and is not one of its `Expected`, and
 		prints a gain without failing. A plain run writes nothing.
 

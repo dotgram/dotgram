@@ -147,6 +147,7 @@ static partial class Bridge
 		"Statement.DropRoutine.Proc",
 		"Statement.SetTransaction.Tran",
 		"Statement.Delete.FromOmitted",
+		"ReferencesSpecification.DeleteRuleFirst",
 	];
 
 	/// <summary>

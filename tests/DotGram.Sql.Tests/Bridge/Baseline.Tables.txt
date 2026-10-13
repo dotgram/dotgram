@@ -4,25 +4,25 @@
 # where `converted` falls or any of the last five rises, and prints a gain; this file is rewritten
 # deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
 
-Clause.ColumnDefinition = 0/1/0/0/0/0/0
-Clause.ColumnOption = 0/0/0/0/0/0/0
+Clause.ColumnDefinition = 0/110/0/0/0/0/0
+Clause.ColumnOption = 0/103/0/0/0/0/0
 Clause.Connection = 0/0/0/0/0/0/0
-Clause.ConstraintDefinition = 0/0/0/0/0/0/0
-Clause.Dropped = 0/0/0/0/0/0/0
-Clause.JsonColumn = 0/4/0/0/0/0/0
-Clause.Option = 0/12/0/0/0/0/0
+Clause.ConstraintDefinition = 0/13/0/0/0/0/0
+Clause.Dropped = 0/4/0/0/0/0/0
+Clause.JsonColumn = 0/1/0/0/0/0/0
+Clause.Option = 0/67/0/0/0/0/0
 Clause.Placement = 0/0/0/0/0/0/0
 Clause.References = 0/0/0/0/0/0/0
 Clause.SystemTime = 0/0/0/0/0/0/0
 Clause.TableSample = 0/0/0/0/0/0/0
 Statement.AlterFullTextIndex = 0/92/0/0/0/0/0
 Statement.AlterIndex = 0/148/0/0/0/0/0
-Statement.AlterTable = 0/644/0/0/0/0/0
+Statement.AlterTable = 491/42/0/0/0/0/0
 Statement.CreateIndex = 0/495/0/0/0/0/0
-Statement.CreateTableAsSelect = 0/64/0/0/0/0/0
+Statement.CreateTableAsSelect = 22/29/0/0/0/0/0
 Statement.FullTextIndexDefinition = 0/99/0/0/0/0/0
 Statement.StatisticsDefinition = 0/43/0/0/0/0/0
-Statement.TableDefinition = 0/1829/0/0/0/0/0
+Statement.TableDefinition = 1587/79/0/0/0/0/0
 Statement.UpdateStatistics = 0/41/0/0/0/0/0
 Statement.ViewDefinition = 0/84/0/0/0/0/0
 TableReference.Derived = 0/0/0/0/0/0/0

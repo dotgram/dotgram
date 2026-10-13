@@ -390,7 +390,12 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			},
 			"InsertBulk"                  => made is Ast.Statement.InsertBulk
 			{
-				Columns: [{ Type: not null, Constraints: [Ast.Constraint.NotNull] }, { Collation: not null, Constraints.Count: 0 }, { Type: null }],
+				Columns:
+				[
+					{ Type: not null, Options: [Ast.ColumnOption.Constraint { Value: Ast.Constraint.NotNull }], Constraints.Count: 0 },
+					{ Options: [Ast.ColumnOption.Collation], Collation: null },
+					{ Type: null, Options.Count: 0 },
+				],
 				Options.Count: 1,
 			},
 			"Truncate partitions"         => made is Ast.Statement.TruncateTable { Partitions: [{ To: null }, { To: not null }] },
@@ -413,6 +418,175 @@ public sealed class BridgeTests(ITestOutputHelper output)
 		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	/// <summary>
+	/// Which record and member the bridge builds for the table statements' T-SQL parts, the DROP list grouped by its
+	/// words both ways, and that each converts.
+	/// </summary>
+	[Theory]
+	[InlineData("ALTER TABLE t DROP COLUMN a, b, CONSTRAINT c, d", "Drop columns then constraints")]
+	[InlineData("ALTER TABLE t DROP c, d, COLUMN a", "Drop constraints first without the word")]
+	[InlineData("ALTER TABLE t DROP CONSTRAINT IF EXISTS c WITH (ONLINE = ON)", "DropConstraint options")]
+	[InlineData("CREATE TABLE t (c INT GENERATED ALWAYS AS ROW START HIDDEN NOT NULL)", "Generated then hidden")]
+	[InlineData("CREATE TABLE t (c INT CONSTRAINT d DEFAULT 1 NULL)", "Named default and NULL")]
+	[InlineData("CREATE TABLE t (b INT, c AS b + 1 PERSISTED)", "Computed")]
+	[InlineData("CREATE TABLE t (a INT, CONSTRAINT p PRIMARY KEY CLUSTERED (a DESC) WITH (FILLFACTOR = 80) ON [PRIMARY])", "Key")]
+	[InlineData("CREATE TABLE t (a INT PRIMARY KEY WITH FILLFACTOR = 80)", "Key unbracketed")]
+	[InlineData("CREATE TABLE t (a INT, b INT, INDEX i UNIQUE NONCLUSTERED (a) INCLUDE (b) WHERE a > 1)", "Index")]
+	[InlineData("CREATE TABLE t (a INT) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.h))", "System versioning option")]
+	[InlineData("CREATE TABLE t (a INT) AS NODE", "Node")]
+	[InlineData("CREATE TABLE t (a, b) AS SELECT 1, 2", "Table of a query")]
+	[InlineData("CREATE TABLE e (a INT, CONSTRAINT c CONNECTION (n1 TO n2) ON DELETE CASCADE) AS EDGE", "Connection")]
+	[InlineData("CREATE TABLE t (a INT, CONSTRAINT d DEFAULT 1 FOR a)", "Table default")]
+	[InlineData("CREATE TABLE t (a INT FOREIGN KEY REFERENCES u (b) NOT FOR REPLICATION)", "Column foreign key")]
+	[InlineData("ALTER TABLE t WITH NOCHECK ADD CONSTRAINT c CHECK (a > 1)", "Nocheck add")]
+	[InlineData("ALTER TABLE t ADD a INT, b INT", "Add list")]
+	[InlineData("ALTER TABLE t ALTER COLUMN a VARCHAR(10) COLLATE Latin1_General_BIN NOT NULL", "Alter column type")]
+	[InlineData("ALTER TABLE t ALTER COLUMN a ADD MASKED WITH (FUNCTION = 'default()')", "Alter column property")]
+	[InlineData("ALTER TABLE t SWITCH PARTITION 1 TO dbo.u PARTITION 2", "Switch")]
+	[InlineData("ALTER TABLE t NOCHECK CONSTRAINT ALL", "Check constraints")]
+	[InlineData("ALTER TABLE t ENABLE TRIGGER a, b", "Triggers")]
+	[InlineData("ALTER TABLE t SET (LOCK_ESCALATION = AUTO)", "Set options")]
+	[InlineData("ALTER TABLE t REBUILD PARTITION = ALL", "Rebuild")]
+	[InlineData("INSERT BULK t (a INT NULL)", "Insert bulk explicit null")]
+	public void The_bridge_builds_the_table_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		static SqlList<Ast.TableElement> Elements(Ast.Statement made)
+		{
+			return made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements elements } ? elements.Items : [];
+		}
+
+		static Ast.ColumnDefinition[] Columns(Ast.Statement made)
+		{
+			return [.. Elements(made).OfType<Ast.TableElement.Column>().Select(static one => one.Definition)];
+		}
+
+		var holds = expected switch
+		{
+			"Drop columns then constraints" => made is Ast.Statement.AlterTable
+			{
+				Actions:
+				[
+					Ast.AlterTableAction.Drop
+					{
+						Items:
+						[
+							Ast.AlterTableAction.DropColumn { Column.Text: "a", ColumnKeyword: true, Behavior: null },
+							Ast.AlterTableAction.DropColumn { Column.Text: "b", ColumnKeyword: false },
+							Ast.AlterTableAction.DropConstraint { Name.Parts: [{ Text: "c" }], ConstraintKeywordOmitted: false },
+							Ast.AlterTableAction.DropConstraint { Name.Parts: [{ Text: "d" }], ConstraintKeywordOmitted: true },
+						],
+					},
+				],
+			},
+			"Drop constraints first without the word" => made is Ast.Statement.AlterTable
+			{
+				Actions:
+				[
+					Ast.AlterTableAction.Drop
+					{
+						Items:
+						[
+							Ast.AlterTableAction.DropConstraint { Name.Parts: [{ Text: "c" }], ConstraintKeywordOmitted: true },
+							Ast.AlterTableAction.DropConstraint { Name.Parts: [{ Text: "d" }], ConstraintKeywordOmitted: true },
+							Ast.AlterTableAction.DropColumn { Column.Text: "a", ColumnKeyword: true },
+						],
+					},
+				],
+			},
+			"DropConstraint options" => made is Ast.Statement.AlterTable
+			{
+				Actions: [Ast.AlterTableAction.DropConstraint { IfExists: true, Behavior: null, Options: [{ Name.Text: "ONLINE", Value: Ast.Expression.Reference { Name.Parts: [{ Text: "ON" }] } }] }],
+			},
+			"Generated then hidden" => Columns(made) is [{ Options: [Ast.ColumnOption.GeneratedAlways { Kind: Ast.GeneratedAlwaysKind.RowStart }, Ast.ColumnOption.Hidden, Ast.ColumnOption.Constraint { Value: Ast.Constraint.NotNull }], Generation: null, Constraints.Count: 0 }],
+			"Named default and NULL" => Columns(made) is [{ Options: [Ast.ColumnOption.Default { Name.Text: "d" }, Ast.ColumnOption.Null { Name: null }] }],
+			"Computed" => Columns(made) is [_, { Type: null, Options: [Ast.ColumnOption.Computed, Ast.ColumnOption.Persisted] }],
+			"Key" => Elements(made) is [_, Ast.TableElement.TableConstraint
+			{
+				Value: Ast.Constraint.Unique
+				{
+					Kind: Ast.UniqueKind.PrimaryKey, Columns.Count: 0, Clustering: Ast.IndexClustering.Clustered,
+					Keys: [{ Direction: Ast.SortDirection.Desc }], Options: [{ Name.Text: "FILLFACTOR" }], OptionsUnbracketed: false,
+					On: { Kind: Ast.PlacementKind.On, Target.Text: "[PRIMARY]" }, Name.Parts: [{ Text: "p" }],
+				},
+			}],
+			"Key unbracketed" => Columns(made) is [{ Options: [Ast.ColumnOption.Constraint { Value: Ast.Constraint.Unique { Keys: null, OptionsUnbracketed: true, Options.Count: 1 } }] }],
+			"Index" => Elements(made) is [_, _, Ast.TableElement.Index { Definition: { Unique: true, Clustering: Ast.IndexClustering.Nonclustered, Storage: null, Columns.Count: 1, Include: [{ Text: "b" }], Where: not null } }],
+			"System versioning option" => made is Ast.Statement.CreateTable
+			{
+				SystemVersioning: false,
+				Options: [{ Name.Text: "SYSTEM_VERSIONING", Value: Ast.Expression.Reference, Options: [{ Name.Text: "HISTORY_TABLE", Value: Ast.Expression.Reference { Name.Parts.Count: 2 } }] }],
+			},
+			"Node" => made is Ast.Statement.CreateTable { Kind: Ast.TableKind.Node, Placements.Count: 0 },
+			"Table of a query" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.AsQuery { Data: null, Columns.Count: 2 }, Options.Count: 0 },
+			"Connection" => Elements(made) is [_, Ast.TableElement.TableConstraint { Value: Ast.Constraint.Connection { Connections.Count: 1, OnDeleteCascade: true } }],
+			"Table default" => Elements(made) is [_, Ast.TableElement.TableConstraint { Value: Ast.Constraint.Default { Column.Text: "a", Name.Parts: [{ Text: "d" }] } }],
+			"Column foreign key" => Columns(made) is [{ Options: [Ast.ColumnOption.Constraint { Value: Ast.Constraint.ForeignKey { ForeignKeyWords: true, Columns.Count: 0, References.NotForReplication: true } }] }],
+			"Nocheck add" => made is Ast.Statement.AlterTable { Check: Ast.ConstraintCheck.NoCheck, Actions: [Ast.AlterTableAction.AddConstraint { Constraint: Ast.Constraint.Check }] },
+			"Add list" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Add { Elements.Count: 2 }] },
+			"Alter column type" => made is Ast.Statement.AlterTable
+			{
+				Actions: [Ast.AlterTableAction.AlterColumn { ColumnKeyword: true, Action: Ast.AlterColumnAction.SetDataType { SetDataTypeOmitted: true, Collation: not null, Nullability: Ast.ColumnNullability.NotNull } }],
+			},
+			"Alter column property" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.AlterColumn { Action: Ast.AlterColumnAction.Property { Add: true, Kind: Ast.ColumnPropertyKind.Masked, MaskFunction: Ast.Expression.Literal } }] },
+			"Switch" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Switch { Partition: not null, Target.Parts.Count: 2, TargetPartition: not null, Options.Count: 0 }] },
+			"Check constraints" => made is Ast.Statement.AlterTable { Check: null, Actions: [Ast.AlterTableAction.CheckConstraints { Check: Ast.ConstraintCheck.NoCheck, All: true, Names.Count: 0 }] },
+			"Triggers" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Triggers { Enable: true, All: false, Names.Count: 2 }] },
+			"Set options" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.SetOptions { Options: [{ Name.Text: "LOCK_ESCALATION" }] }] },
+			"Rebuild" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Rebuild { All: true, Partition: null }] },
+			"Insert bulk explicit null" => made is Ast.Statement.InsertBulk { Columns: [{ Options: [Ast.ColumnOption.Null], Constraints.Count: 0 }] },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	/// <summary>
+	/// The shape check projects a T-SQL column's options and a key's columns onto the standard's members, once, in
+	/// the oracle: a column both parsers read compares equal so, and one option wrong, or one with no counterpart,
+	/// leaves it a shape mismatch.
+	/// </summary>
+	[Fact]
+	public void The_shape_check_projects_columns_and_keys_and_no_more()
+	{
+		const string text = "CREATE TABLE t (a INT DEFAULT 1 NOT NULL, PRIMARY KEY (a))";
+
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.Equal(BridgeOracle.Status.Converted, outcome.Status);
+		Assert.True(outcome.Standard);
+		Assert.False(outcome.Shape);
+		Assert.Equal([BridgeOracle.ProjectedColumn, BridgeOracle.ProjectedKey], outcome.Projected);
+
+		var standard = SqlStandardParser.ParseStatement(text);
+		var made     = (Ast.Statement.CreateTable)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var items    = ((Ast.TableContents.Elements)made.Contents).Items;
+		var column   = ((Ast.TableElement.Column)items[0]).Definition;
+
+		Ast.Statement With(params Ast.ColumnOption[] options)
+		{
+			return made with { Contents = new Ast.TableContents.Elements([new Ast.TableElement.Column(column with { Options = [.. options] }), items[1]]) };
+		}
+
+		var one  = new Ast.Expression.Literal(new Ast.LiteralValue.Numeric("1", Ast.NumericLiteralKind.DecimalInteger));
+		var two  = new Ast.Expression.Literal(new Ast.LiteralValue.Numeric("2", Ast.NumericLiteralKind.DecimalInteger));
+		var keep = new Ast.ColumnOption.Constraint(new Ast.Constraint.NotNull());
+
+		foreach (var wrong in new[] { With(new Ast.ColumnOption.Default(two), keep), With(new Ast.ColumnOption.Default(one), keep, new Ast.ColumnOption.Sparse()) })
+		{
+			var projected = BridgeOracle.Projection(wrong, []);
+
+			Assert.NotEqual(standard, projected);
+			BridgeOracle.Meaning(Trees.Differences(projected, standard, old: false), out var unexplained);
+			Assert.NotEmpty(unexplained);
+		}
 	}
 
 	/// <summary>
@@ -906,6 +1080,9 @@ public sealed class BridgeTests(ITestOutputHelper output)
 		foreach (var pattern in BridgeOracle.Patterns)
 			counters["Meaning " + pattern] = 0;
 
+		foreach (var projection in BridgeOracle.Projections)
+			counters["Projected " + projection] = 0;
+
 		foreach (var one in outcomes)
 		{
 			foreach (var member in one.ByCase ?? [])
@@ -916,6 +1093,9 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 			foreach (var pattern in one.Dialects ?? [])
 				counters["Meaning " + pattern]++;
+
+			foreach (var projection in one.Projected ?? [])
+				counters["Projected " + projection]++;
 		}
 
 		return counters;

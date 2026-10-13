@@ -790,7 +790,7 @@ static partial class Bridge
 				: throw BridgeGap.Open(one, "inventory Clause.SortSpecification")));
 		}
 
-		static Ast.SortItem Sort(Clause.SortSpecification old)
+		internal static Ast.SortItem Sort(Clause.SortSpecification old)
 		{
 			Ast.SortDirection? direction = old.Order switch
 			{
