@@ -287,6 +287,20 @@ public sealed class SqlStandardEntryTests
 		Assert.Equal(new LargeObjectSize(long.MaxValue, 'K'), ((DataType.Binary)SqlStandardParser.ParseDataType("BLOB(9223372036854775807K)")).LargeObject);
 	}
 
+	/// <summary>A row pattern quantifier's bounds and a procedure's number of result sets are <c>int</c>s too.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A{2147483647}) DEFINE A AS a > 0)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A{2147483648}) DEFINE A AS a > 0)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A{1,2147483647}) DEFINE A AS a > 0)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A{1,2147483648}) DEFINE A AS a > 0)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A{2147483648,}) DEFINE A AS a > 0)", false)]
+	[InlineData("CREATE PROCEDURE p() DYNAMIC RESULT SETS 2147483647 EXTERNAL", true)]
+	[InlineData("CREATE PROCEDURE p() DYNAMIC RESULT SETS 2147483648 EXTERNAL", false)]
+	public void A_quantifier_or_a_result_set_count_that_does_not_fit_is_refused(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseStatement(input).IsSuccess);
+	}
+
 	/// <summary>
 	/// An item method in the path language holds its precision as an <c>int</c>; the same method read as a
 	/// step of an SQL accessor keeps the literal as written, and takes any number.

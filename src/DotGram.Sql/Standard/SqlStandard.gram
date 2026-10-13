@@ -1346,8 +1346,8 @@ RowPatternQuantifier : @RowPatternQuantifier
 	= '*' & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.ZeroOrMore, Reluctant: r is not null))
 	| '+' & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.OneOrMore, Reluctant: r is not null))
 	| PatternQuestionMark & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.ZeroOrOne, Reluctant: r is not null))
-	| '{' & min: UnsignedInteger? & ',' & max: UnsignedInteger? & '}' & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.Range, Nodes.Integer(min), Nodes.Integer(max), r is not null))
-	| '{' & exact: UnsignedInteger & '}' => @(new RowPatternQuantifier(RowPatternQuantifierKind.Exact, Nodes.Integer(exact), Nodes.Integer(exact)))
+	| '{' & min: UnsignedInteger? & ',' & max: UnsignedInteger? & '}' & when @(Nodes.Fits(min) && Nodes.Fits(max)) & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.Range, Nodes.Integer(min), Nodes.Integer(max), r is not null))
+	| '{' & exact: UnsignedInteger & '}' & when @(Nodes.Fits(exact)) => @(new RowPatternQuantifier(RowPatternQuantifierKind.Exact, Nodes.Integer(exact), Nodes.Integer(exact)))
 
 RowPatternSubsetClause : @Sql.SqlList<RowPatternSubset> = "SUBSET"i & first: RowPatternSubsetItem & (',' & rest: RowPatternSubsetItem)* => @(Nodes.List(first, rest))
 RowPatternSubsetItem   : @RowPatternSubset = n: Identifier & '=' & '(' & first: Identifier & (',' & rest: Identifier)* & ')' => @(new RowPatternSubset(n, Nodes.List(first, rest)))
@@ -2062,7 +2062,7 @@ SQLDataAccessIndication          : @SqlDataAccess = "NO"i & "SQL"i => @(SqlDataA
                                                   | "MODIFIES"i & "SQL"i & "DATA"i => @(SqlDataAccess.ModifiesSqlData)
 NullCallClause                   : @NullCallMode = "RETURNS"i & "NULL"i & "ON"i & "NULL"i & "INPUT"i => @(NullCallMode.ReturnsNullOnNullInput)
                                                  | "CALLED"i & "ON"i & "NULL"i & "INPUT"i => @(NullCallMode.CalledOnNullInput)
-ReturnedResultSetsCharacteristic : @int = "DYNAMIC"i & "RESULT"i & "SETS"i & n: UnsignedInteger => @(Nodes.Integer(n)!.Value)
+ReturnedResultSetsCharacteristic : @int = "DYNAMIC"i & "RESULT"i & "SETS"i & n: UnsignedInteger & when @(Nodes.Fits(n)) => @(Nodes.Integer(n)!.Value)
 
 // <routine body>: a statement, with the rights it runs with, or a reference to an external body, or a
 // polymorphic table function's component procedures.
