@@ -143,6 +143,31 @@ public sealed class Sql2023WriterCoverageTests
 		return new Statement.CreateIndex(T, index.Storage is null && index.Columns.Count == 0 ? index with { Columns = [new SortItem(A)] } : index);
 	}
 
+	static Statement.CreateStatistics StatsWith(params Option[] options)
+	{
+		return new Statement.CreateStatistics(T, new Identifier("s"), [C]) { Options = [.. options] };
+	}
+
+	static Statement.UpdateStatistics UpdateWith(params Option[] options)
+	{
+		return new Statement.UpdateStatistics(T) { Options = [.. options] };
+	}
+
+	static Statement.CreateFullTextIndex TextWith(params Option[] options)
+	{
+		return new Statement.CreateFullTextIndex(T, [], I) { Options = [.. options] };
+	}
+
+	static Statement.CreateSpatialIndex SpatialWith(params Option[] options)
+	{
+		return new Statement.CreateSpatialIndex(T, I, C) { Options = [.. options] };
+	}
+
+	static Statement.CreateSequence SequenceWith(params SequenceOption[] options)
+	{
+		return new Statement.CreateSequence { Name = T, Options = [.. options] };
+	}
+
 	/// <summary><c>ALTER FULLTEXT INDEX ON t</c> and the action given.</summary>
 	static Statement.AlterFullTextIndex FullText(FullTextAlteration action)
 	{
@@ -1156,6 +1181,52 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("an unbracketed statistics name that is two")]
 	[InlineData("an unbracketed statistics name that is none")]
 	[InlineData("a table type with no element")]
+	[InlineData("partitions on an option other than a compression")]
+	[InlineData("partitions on an option with no value")]
+	[InlineData("partitions on a BULK INSERT option")]
+	[InlineData("partitions on an INSERT BULK option")]
+	[InlineData("partitions on an OPENROWSET BULK option")]
+	[InlineData("partitions on SAMPLE")]
+	[InlineData("partitions on a statistics option other than RESAMPLE")]
+	[InlineData("RESAMPLE in CREATE STATISTICS")]
+	[InlineData("ROWCOUNT in CREATE STATISTICS")]
+	[InlineData("a statistics option outside the list")]
+	[InlineData("a statistics option set to a name")]
+	[InlineData("a statistics switch set to a number")]
+	[InlineData("STATS_STREAM set to a number")]
+	[InlineData("a SAMPLE of a name")]
+	[InlineData("a SAMPLE of a signed number")]
+	[InlineData("PERSIST_SAMPLE_PERCENT without a scan")]
+	[InlineData("a table type with an option other than MEMORY_OPTIMIZED")]
+	[InlineData("a table type with two options")]
+	[InlineData("a table type option with partitions")]
+	[InlineData("a table type with a SPARSE column")]
+	[InlineData("a table type with a named constraint")]
+	[InlineData("a table type with a foreign key")]
+	[InlineData("a table type with a computed column alone")]
+	[InlineData("a table type with a key told FILLFACTOR")]
+	[InlineData("a table type named with an empty part")]
+	[InlineData("an alias type named with an empty part")]
+	[InlineData("a full-text option outside the list")]
+	[InlineData("a full-text option with no value")]
+	[InlineData("a full-text option written twice")]
+	[InlineData("CHANGE_TRACKING set to ON")]
+	[InlineData("a STOPLIST of two parts")]
+	[InlineData("a STOPLIST set to a number")]
+	[InlineData("a spatial option set to an expression")]
+	[InlineData("a spatial option set to a variable")]
+	[InlineData("a spatial option set to a name of two parts")]
+	[InlineData("a spatial option with no value")]
+	[InlineData("a cache set to a name")]
+	[InlineData("a cache set to a signed number")]
+	[InlineData("a cache set to a number with an exponent")]
+	[InlineData("CACHE beside NO CACHE")]
+	[InlineData("MINVALUE twice")]
+	[InlineData("an identity option of one group twice")]
+	[InlineData("an index key that is a number")]
+	[InlineData("an index key with a null ordering")]
+	[InlineData("an index key of two parts")]
+	[InlineData("an inline index key that is a number")]
 	[InlineData("a view's Verb Create")]
 	[InlineData("a view's Verb beside RECURSIVE")]
 	[InlineData("a view's attributes beside a LOCAL check option")]
@@ -1418,6 +1489,52 @@ public sealed class Sql2023WriterCoverageTests
 			"an unbracketed statistics name that is two" => new Statement.UpdateStatistics(T) { Names = [new Identifier("s"), new Identifier("r")], NameUnbracketed = true },
 			"an unbracketed statistics name that is none" => new Statement.UpdateStatistics(T) { NameUnbracketed = true },
 			"a table type with no element" => new Statement.CreateTableType(T, []),
+			"partitions on an option other than a compression" => Altered(new AlterTableAction.Rebuild(null, false, [Set("PAD_INDEX", "ON") with { Partitions = [new PartitionRange(Two, null)] }])),
+			"partitions on an option with no value" => Altered(new AlterTableAction.Rebuild(null, false, [Flag("DATA_COMPRESSION") with { Partitions = [new PartitionRange(Two, null)] }])),
+			"partitions on a BULK INSERT option" => new Statement.BulkInsert(T, Str, [Flag("TABLOCK") with { Partitions = [new PartitionRange(Two, null)] }]),
+			"partitions on an INSERT BULK option" => new Statement.InsertBulk(T, [new ColumnDefinition(new Identifier("a"), null, null, [], null)], [Flag("TABLOCK") with { Partitions = [new PartitionRange(Two, null)] }]),
+			"partitions on an OPENROWSET BULK option" => Joined(new TableSource.OpenRowsetBulk(Str, [Flag("SINGLE_BLOB") with { Partitions = [new PartitionRange(Two, null)] }], null)),
+			"partitions on SAMPLE" => UpdateWith(new Option(new Identifier("SAMPLE"), new Expression.Measured(Two, new Identifier("PERCENT")), []) { Partitions = [new PartitionRange(Two, null)] }),
+			"partitions on a statistics option other than RESAMPLE" => UpdateWith(Set("INCREMENTAL", "ON") with { Partitions = [new PartitionRange(Two, null)] }),
+			"RESAMPLE in CREATE STATISTICS" => StatsWith(Flag("RESAMPLE")),
+			"ROWCOUNT in CREATE STATISTICS" => StatsWith(new Option(new Identifier("ROWCOUNT"), Two, [])),
+			"a statistics option outside the list" => UpdateWith(Set("X", "ON")),
+			"a statistics option set to a name" => UpdateWith(Set("MAXDOP", "PRIMARY")),
+			"a statistics switch set to a number" => StatsWith(new Option(new Identifier("INCREMENTAL"), Two, [])),
+			"STATS_STREAM set to a number" => StatsWith(new Option(new Identifier("STATS_STREAM"), Two, [])),
+			"a SAMPLE of a name" => UpdateWith(new Option(new Identifier("SAMPLE"), new Expression.Measured(A, new Identifier("ROWS")), [])),
+			"a SAMPLE of a signed number" => UpdateWith(new Option(new Identifier("SAMPLE"), new Expression.Measured(Number("-5"), new Identifier("PERCENT")), [])),
+			"PERSIST_SAMPLE_PERCENT without a scan" => StatsWith(Set("PERSIST_SAMPLE_PERCENT", "ON"), Flag("NORECOMPUTE")),
+			"a table type with an option other than MEMORY_OPTIMIZED" => new Statement.CreateTableType(T, [IntColumn()]) { Options = [Set("DATA_COMPRESSION", "PAGE")] },
+			"a table type with two options" => new Statement.CreateTableType(T, [IntColumn()]) { Options = [Set("MEMORY_OPTIMIZED", "ON"), Set("MEMORY_OPTIMIZED", "OFF")] },
+			"a table type option with partitions" => new Statement.CreateTableType(T, [IntColumn()]) { Options = [Set("MEMORY_OPTIMIZED", "ON") with { Partitions = [new PartitionRange(Two, null)] }] },
+			"a table type with a SPARSE column" => new Statement.CreateTableType(T, [IntColumn(new ColumnOption.Sparse())]),
+			"a table type with a named constraint" => new Statement.CreateTableType(T, [IntColumn(), new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Name = U, Keys = [new SortItem(A)] })]),
+			"a table type with a foreign key" => new Statement.CreateTableType(T, [IntColumn(), new TableElement.TableConstraint(new Constraint.ForeignKey([new Identifier("a")], null, new ReferencesSpecification(U, [], null, null, null, null)))]),
+			"a table type with a computed column alone" => new Statement.CreateTableType(T, [new TableElement.Column(new ColumnDefinition(new Identifier("c"), null, null, [], null) { Options = [new ColumnOption.Computed(A)] })]),
+			"a table type with a key told FILLFACTOR" => new Statement.CreateTableType(T, [IntColumn(), new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [Flag("FILLFACTOR")] })]),
+			"a table type named with an empty part" => new Statement.CreateTableType(new QualifiedName([new Identifier(""), new Identifier("t")]), [IntColumn()]),
+			"an alias type named with an empty part" => new Statement.CreateAliasType(new QualifiedName([new Identifier(""), new Identifier("t")]), new DataType.Numeric(NumericTypeKind.Int)),
+			"a full-text option outside the list" => TextWith(Set("X", "ON")),
+			"a full-text option with no value" => TextWith(Flag("CHANGE_TRACKING")),
+			"a full-text option written twice" => TextWith(Set("CHANGE_TRACKING", "AUTO"), Set("change_tracking", "OFF")),
+			"CHANGE_TRACKING set to ON" => TextWith(Set("CHANGE_TRACKING", "ON")),
+			"a STOPLIST of two parts" => TextWith(new Option(new Identifier("STOPLIST"), new Expression.Reference(new QualifiedName([new Identifier("a"), new Identifier("b")])), [])),
+			"a STOPLIST set to a number" => TextWith(new Option(new Identifier("STOPLIST"), Two, [])),
+			"a spatial option set to an expression" => SpatialWith(new Option(new Identifier("CELLS_PER_OBJECT"), new Expression.Binary(A, BinaryOperator.Add, Two), [])),
+			"a spatial option set to a variable" => SpatialWith(new Option(new Identifier("CELLS_PER_OBJECT"), P, [])),
+			"a spatial option set to a name of two parts" => SpatialWith(new Option(new Identifier("CELLS_PER_OBJECT"), new Expression.Reference(new QualifiedName([new Identifier("a"), new Identifier("b")])), [])),
+			"a spatial option with no value" => SpatialWith(Flag("CELLS_PER_OBJECT")),
+			"a cache set to a name" => SequenceWith(new SequenceOption.Cache(A)),
+			"a cache set to a signed number" => SequenceWith(new SequenceOption.Cache(Number("-5"))),
+			"a cache set to a number with an exponent" => SequenceWith(new SequenceOption.Cache(Number("1e3", NumericLiteralKind.Approximate))),
+			"CACHE beside NO CACHE" => SequenceWith(new SequenceOption.Cache(Two), new SequenceOption.NoCache()),
+			"MINVALUE twice" => SequenceWith(new SequenceOption.Min(Two), new SequenceOption.Min(null, true)),
+			"an identity option of one group twice" => Altered(new AlterTableAction.AlterColumn(C, new AlterColumnAction.IdentityOptions([new SequenceOption.Increment(Two), new SequenceOption.Increment(Two)]), true)),
+			"an index key that is a number" => Created(new IndexDefinition(I) { Columns = [new SortItem(Two)] }),
+			"an index key with a null ordering" => Created(new IndexDefinition(I) { Columns = [new SortItem(A, null, NullOrdering.First)] }),
+			"an index key of two parts" => Created(new IndexDefinition(I) { Columns = [new SortItem(new Expression.Reference(new QualifiedName([new Identifier("a"), new Identifier("b")])))] }),
+			"an inline index key that is a number" => Tabled(null, Indexed(new IndexDefinition(I) { Columns = [new SortItem(Two)] })),
 			"a view's Verb Create" => Viewed() with { Verb = DefinitionVerb.Create },
 			"a view's Verb beside RECURSIVE" => Viewed() with { Verb = DefinitionVerb.Alter, Recursive = true },
 			"a view's attributes beside a LOCAL check option" => Viewed() with { Attributes = [ViewAttribute.SchemaBinding], CheckOption = CheckOption.Local },
