@@ -71,6 +71,11 @@ static class BridgeReport
 		column with one option wrong still differs: either is a shape mismatch. Each projection made is counted
 		(`Projected`).
 
+		The projection makes the standard's form out of T-SQL's, so the bridge must have built T-SQL's: before
+		anything is compared the oracle asks every column of the bridge's tree for empty `Generation`, `Constraints`
+		and `Collation` and no collation inside its type, and every PRIMARY KEY and UNIQUE for empty `Columns`
+		(`BridgeOracle.Unprojected`). A tree in the standard's form there is counted **different**.
+
 		Every place the two trees differ is then collected. A difference inside one of twelve subtrees, found by its
 		construct and never by the statement's text, is the two dialects reading the text with different meanings,
 		and is exempted (`BridgeOracle.Meaning`); any other difference makes the statement a **shape** mismatch.
@@ -101,7 +106,9 @@ static class BridgeReport
 		  standard. The statement's `Target`, a `TableSource.Function` of the one-part name `ONLY`. The standard's
 		  `INSERT` reads no `ONLY`, and the writer refuses it there.
 		- `c t DEFAULT v COLLATE x`: the default value's collation in T-SQL, the column's in the standard. The
-		  `ColumnDefinition` whose default is an `Expression.Collate`, its `Generation` and `Collation`.
+		  `ColumnDefinition` whose default is an `Expression.Collate`: the default's value against the standard's,
+		  which must be the collated value, and the column's `Collation`, which must be the value's collation. Only
+		  both together are exempted; either alone is a shape mismatch.
 
 		## Words read from the text
 

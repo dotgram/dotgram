@@ -88,6 +88,9 @@ public static partial class Sql2023Writer
 					if (rebuild.All && rebuild.Partition is not null)
 						throw Both(rebuild, "All", "Partition");
 
+					if (rebuild.Partition is Expression.Reference { Name.Parts: [{ Style: IdentifierStyle.Regular } word] } && word.Text.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+						throw Misplaced(rebuild, "Partition", "that is a plain ALL, which reads back as All");
+
 					Word("REBUILD");
 
 					if (rebuild.All)
@@ -226,6 +229,11 @@ public static partial class Sql2023Writer
 			if (column.Generation is not null || column.Constraints.Count > 0 || column.Collation is not null)
 				throw Misplaced(column, "Options", "beside the standard's Generation, Constraints or Collation");
 
+			// A collation is an option of a T-SQL column, and one in its type as well would be a second.
+			if (column.Type is DataType.Character { Collation: not null })
+				throw Misplaced(column, "Options", "beside a type with a collation of its own");
+
+			Tailed(column);
 			PutIdentifier(column.Name);
 
 			for (var at = 0; at < column.Options.Count; at++)
@@ -237,6 +245,9 @@ public static partial class Sql2023Writer
 				{
 					if (at > 0 || column.Type is not null)
 						throw Misplaced(computed, "Computed", "after another option or beside a type");
+
+					if (computed.Name is not null)
+						throw Misplaced(computed, "Name", "on an option other than DEFAULT or NULL");
 
 					Word("AS");
 					PutExpression(computed.Value);
@@ -250,6 +261,75 @@ public static partial class Sql2023Writer
 			}
 
 			return true;
+		}
+
+		/// <summary>
+		/// T-SQL: column_definition (Transact-SQL). A column's options in the order the engine reads them, which is
+		/// the only order the text reads back in. A typed column's begin with its storage: a collation, then a
+		/// generation and its <c>HIDDEN</c>, or <c>FILESTREAM</c> and <c>SPARSE</c>, each once and in either order,
+		/// then a mask or an encryption, not after <c>FILESTREAM</c>. A computed column's begin with
+		/// <c>PERSISTED</c>. A free list follows, in any order: a default, an identity, a nullability,
+		/// <c>ROWGUIDCOL</c>, the constraints and an index, with <c>NOT FOR REPLICATION</c> directly after an
+		/// identity. A column with neither type nor value has the free list alone, and <c>FILESTREAM</c>,
+		/// <c>SPARSE</c> and <c>PERSISTED</c> in it.
+		/// </summary>
+		static void Tailed(ColumnDefinition column)
+		{
+			var options = column.Options;
+			var at      = 0;
+
+			if (options[0] is ColumnOption.Computed)
+			{
+				at++;
+
+				if (at < options.Count && options[at] is ColumnOption.Persisted)
+					at++;
+			}
+			else if (column.Type is not null)
+			{
+				if (options[at] is ColumnOption.Collation)
+					at++;
+
+				if (at < options.Count && options[at] is ColumnOption.GeneratedAlways)
+				{
+					at++;
+
+					if (at < options.Count && options[at] is ColumnOption.Hidden)
+						at++;
+				}
+				else
+				{
+					var filestream = false;
+					var sparse     = false;
+
+					for (; at < options.Count; at++)
+					{
+						if (!filestream && options[at] is ColumnOption.Filestream)
+							filestream = true;
+						else if (!sparse && options[at] is ColumnOption.Sparse)
+							sparse = true;
+						else
+							break;
+					}
+
+					if (at < options.Count && (options[at] is ColumnOption.Masked || !filestream && options[at] is ColumnOption.Encrypted))
+						at++;
+				}
+			}
+
+			var untyped = column.Type is null && options[0] is not ColumnOption.Computed;
+
+			for (; at < options.Count; at++)
+			{
+				var option = options[at];
+
+				if (option is ColumnOption.Collation or ColumnOption.GeneratedAlways or ColumnOption.Hidden or ColumnOption.Masked or ColumnOption.Encrypted or ColumnOption.Computed
+					|| !untyped && option is ColumnOption.Filestream or ColumnOption.Sparse or ColumnOption.Persisted)
+					throw Misplaced(option, option.GetType().Name, "where the column's options read back in another order");
+
+				if (option is ColumnOption.NotForReplication && (untyped || at == 0 || options[at - 1] is not ColumnOption.Identity))
+					throw Misplaced(option, "NotForReplication", "not directly after an Identity, or on a column with no type");
+			}
 		}
 
 		void PutColumnOption(ColumnOption option)
@@ -455,6 +535,12 @@ public static partial class Sql2023Writer
 			if (unique.OptionsUnbracketed && unique.Options.Count == 0)
 				throw Misplaced(unique, "OptionsUnbracketed", "without Options");
 
+			// Without brackets a key reads two options at most, each once: FILLFACTOR with its value, and
+			// SORTED_DATA or SORTED_DATA_REORG alone.
+			if (unique.OptionsUnbracketed && (unique.Options.Count > 2 || unique.Options.Any(static one => !Unbracketed(one))
+				|| unique.Options.Count == 2 && unique.Options[0].Name.Text.Equals(unique.Options[1].Name.Text, StringComparison.OrdinalIgnoreCase)))
+				throw Misplaced(unique, "OptionsUnbracketed", "with options other than one FILLFACTOR and one SORTED_DATA");
+
 			Word(unique.Kind == UniqueKind.Unique ? "UNIQUE" : "PRIMARY KEY");
 			PutClustering(unique.Clustering);
 
@@ -485,6 +571,19 @@ public static partial class Sql2023Writer
 			return true;
 		}
 
+		/// <summary>T-SQL: table_constraint (Transact-SQL). An option a key may write without brackets.</summary>
+		static bool Unbracketed(Option option)
+		{
+			if (option is not { Order: null, Options.Count: 0, Name.Style: IdentifierStyle.Regular })
+				return false;
+
+			var name = option.Name.Text;
+
+			return name.Equals("FILLFACTOR", StringComparison.OrdinalIgnoreCase)
+				? option.Value is not null
+				: option.Value is null && (name.Equals("SORTED_DATA", StringComparison.OrdinalIgnoreCase) || name.Equals("SORTED_DATA_REORG", StringComparison.OrdinalIgnoreCase));
+		}
+
 		/// <summary>
 		/// T-SQL: ALTER TABLE (Transact-SQL). A DROP of several items, grouped by their words: an item without one is
 		/// of the kind before it, and one first in the list is a constraint.
@@ -500,6 +599,10 @@ public static partial class Sql2023Writer
 
 			Each(drop.Items, item =>
 			{
+				// `DROP COLUMN a CASCADE, b` is not read, and a behavior has no place in a list.
+				if (item is AlterTableAction.DropColumn { Behavior: not null } or AlterTableAction.DropConstraint { Behavior: not null })
+					throw Misplaced(item, "Behavior", "on an item of a DROP list");
+
 				switch (item)
 				{
 					case AlterTableAction.DropColumn column:
@@ -543,6 +646,10 @@ public static partial class Sql2023Writer
 		/// <summary>T-SQL: ALTER TABLE (Transact-SQL). A constraint dropped: the word, IF EXISTS, the name, the options.</summary>
 		void PutDroppedConstraint(AlterTableAction.DropConstraint constraint)
 		{
+			// `DROP c CASCADE` is the standard's column dropped.
+			if (constraint.ConstraintKeywordOmitted && constraint.Behavior is not null)
+				throw Misplaced(constraint, "Behavior", "with ConstraintKeywordOmitted, which reads back as a column dropped");
+
 			if (!constraint.ConstraintKeywordOmitted)
 				Word("CONSTRAINT");
 			else if (constraint.IfExists)
@@ -569,6 +676,9 @@ public static partial class Sql2023Writer
 		{
 			if (all == (names.Count > 0))
 				throw all ? Both(owner, "All", "Names") : Empty(owner, "All", "Names");
+
+			if (names.Any(static one => one is { Style: IdentifierStyle.Regular } && one.Text.Equals("ALL", StringComparison.OrdinalIgnoreCase)))
+				throw Misplaced(owner, "Names", "with a plain ALL, which reads back as All");
 
 			if (all)
 				Word("ALL");
@@ -679,6 +789,9 @@ public static partial class Sql2023Writer
 
 				if (placement.Kind == PlacementKind.TextImageOn)
 					throw Misplaced(placement, "Columns", "on TEXTIMAGE_ON, which takes a filegroup alone");
+
+				if (placement.Target is { Style: IdentifierStyle.Regular } target && target.Text.Equals("DEFAULT", StringComparison.OrdinalIgnoreCase))
+					throw Misplaced(placement, "Columns", "on the DEFAULT filegroup, which is not a partition scheme");
 
 				Open();
 				Each(columns, PutIdentifier);
