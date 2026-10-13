@@ -96,10 +96,20 @@ BooleanPrimary : @Expression
 // left operand are gathered: <row value constructor> opens six of the nine, and
 // reading it once for all of them is what §4.3's folding is for. The three that do
 // not — EXISTS, UNIQUE and the LIKE whose operand is narrower — stand on their own.
+//
+// §8.2 <comparison predicate> and §8.8 <quantified comparison predicate> share their
+// operator, and differ only in what stands on the right: the operator is read once and
+// what may follow it is the choice — the same grammar written the way GRAM4016 asks for,
+// and a row on the right is not cheap to read twice. They are read here rather than as a
+// tail, so that a comparison is built once, with both its operands, where a tail built it
+// without its left operand and then copied it twice to fill it in: the most common
+// predicate, and a third of what a search condition allocated.
 Predicate : @Expression
     = "EXISTS"i                & q:    TableSubquery => @(new Expression.Exists(q))
     | "UNIQUE"i                & q:    TableSubquery => @(new Expression.Unique(null, q))
-    | row: RowValueConstructor & tail: PredicateTail => @(Nodes.Predicated(row, tail))
+    | row: RowValueConstructor
+      & ( op: CompOp & ( some: Quantifier & sub: TableSubquery | right: RowValueConstructor ) | tail: PredicateTail )
+        => @(op is null ? Nodes.Predicated(row, tail!) : Nodes.Compared(row, op, some, sub, right))
 
 // What may follow a row on the left of a predicate. One rule so that the row is read
 // once: written as six alternatives of <predicate> each beginning with <row value
@@ -108,22 +118,12 @@ Predicate : @Expression
 //
 // Every alternative leaves its left operand null and `Nodes.Predicated` fills it in, so a
 // predicate is one record whichever way it was written, and its operands are named
-// rather than numbered.
+// rather than numbered. The comparisons are read beside it, in `Predicate`.
 PredicateTail : @Expression
-          // §8.2 <comparison predicate> and §8.8 <quantified comparison predicate>
-          // share their operator, and differ only in what stands on the right.
-          // The two comparison forms share their operator, so it is read once and
-          // what may follow it is the choice — which is the same grammar written the
-          // way GRAM4016 asks for, and a row on the right is not cheap to read twice.
-          = op: CompOp & ( some: Quantifier & sub: TableSubquery | right: RowValueConstructor ) =>
-              @(Nodes.Compared(some is null
-                 ? new Expression.Comparison(null!, default, right!)
-                 : new Expression.QuantifiedComparison(null!, default, Nodes.Quantified(some), sub!), op))
-
           // §8.3 to §8.5, the three a `NOT` may stand in front of. The `NOT` is read once and
           // the word after it says which: written three times, a `NOT` in front of `IN` was
           // read by the first, which found no `BETWEEN` and gave it back.
-          | negated: "NOT"i? & p: NegatablePredicate => @(Nodes.Negated(p, negated is not null))
+          = negated: "NOT"i? & p: NegatablePredicate => @(Nodes.Negated(p, negated is not null))
 
           // §8.6 <null predicate>
           | "IS"i & negated: "NOT"i? & "NULL"i => @(new Expression.IsNull(null!, negated is not null))
@@ -463,8 +463,15 @@ SelectList : @Sql.SqlList<SelectColumn>
     | first: SelectSublist & (',' & rest: SelectSublist)* => @(Nodes.List(first, rest))
 
 SelectSublist : @SelectColumn
-    = qualifier: QualifiedName & '.' & '*'   => @(new SelectColumn.QualifiedAll(new Expression.Reference(qualifier)))
+    = qualifier: QualifiedNameText & '.' & '*' => @(new SelectColumn.QualifiedAll(new Expression.Reference(Nodes.NameOf(qualifier))))
     | v: ValueExpression & name: AsClause?   => @(Nodes.Selected(v, name ?? Nodes.Unnamed))
+
+// The name in front of a qualified asterisk, read as text and made a name only once the
+// `.*` after it is found: it is also the first thing a value expression reads, and built
+// for an alternative that then found no `.*`, it was built for nothing — every name of
+// every select list, twice. `NameWord` is `Identifier` without its record.
+QualifiedNameText = NameWord & ('.' & NameWord)*
+NameWord          = ?!Reserved & RegularIdentifier | DelimitedIdentifier
 
 AsClause : @Nodes.Fields = w: ("AS"i? & t: Identifier) => @(new Nodes.Fields(t, Nodes.Worded(w, t), null))
 

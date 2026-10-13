@@ -337,7 +337,26 @@ static class Nodes
 	/// <summary>A comparison's tail with the operator written: the node waits for the left side.</summary>
 	public static Towers.Tail Compared(Towers.Tail tail, string op)
 	{
-		var compared = op switch
+		return tail with { Operator = ComparisonOf(op) };
+	}
+
+	/// <summary>
+	/// A comparison, or a quantified one where a quantifier was written, built once with its operands
+	/// and its operator (SqlStandard92.gram's <c>Predicate</c>).
+	/// </summary>
+	public static Expression Compared(Expression left, string op, string? some, Query? sub, Expression? right)
+	{
+		var compared = ComparisonOf(op);
+
+		return some is null
+			? new Expression.Comparison(left, compared, right!)
+			: new Expression.QuantifiedComparison(left, compared, Quantified(some), sub!);
+	}
+
+	/// <summary>The operator of a comparison, from the longer spellings to the single characters.</summary>
+	static ComparisonOperator ComparisonOf(string op)
+	{
+		return op switch
 		{
 			"<>" => ComparisonOperator.NotEqual,
 			"<=" => ComparisonOperator.LessOrEqual,
@@ -346,8 +365,6 @@ static class Nodes
 			"<"  => ComparisonOperator.Less,
 			_    => ComparisonOperator.Greater,
 		};
-
-		return tail with { Operator = compared };
 	}
 
 	public static Ast.Quantifier Quantified(string word)
@@ -1887,6 +1904,64 @@ static class Nodes
 		return value is Expression.Subquery subquery
 			? new Expression.Subquery(new Query.Parenthesized(subquery.Query))
 			: new Expression.Parenthesized(value);
+	}
+
+	/// <summary>
+	/// A qualified name from the text it was read from: its parts, each a regular name or a delimited one with
+	/// its quotes, and the periods between them, with whatever spacing and comments the grammar's trivia let
+	/// stand there skipped.
+	/// </summary>
+	/// <remarks>
+	/// For a text the grammar read as <c>NameWord &amp; ('.' &amp; NameWord)*</c>, so every part is there and well
+	/// formed; on any other text it still answers, with what it found, rather than throw.
+	/// </remarks>
+	public static QualifiedName NameOf(string text)
+	{
+		var parts = new List<Identifier>(2);
+		var at    = 0;
+
+		while (at < text.Length)
+		{
+			var c = text[at];
+
+			if (c == '-' && at + 1 < text.Length && text[at + 1] == '-')
+			{
+				var end = text.IndexOfAny(['\r', '\n'], at);
+
+				at = end < 0 ? text.Length : end;
+			}
+			else if (c == '/' && at + 1 < text.Length && text[at + 1] == '*')
+			{
+				var end = text.IndexOf("*/", at + 2, StringComparison.Ordinal);
+
+				at = end < 0 ? text.Length : end + 2;
+			}
+			else if (c == '"')
+			{
+				var end = at + 1;
+
+				while (end < text.Length && (text[end] != '"' || end + 1 < text.Length && text[end + 1] == '"'))
+					end += text[end] == '"' ? 2 : 1;
+
+				end = Math.Min(end + 1, text.Length);
+				parts.Add(new Identifier(text.Substring(at, end - at), IdentifierStyle.Delimited));
+				at = end;
+			}
+			else if (char.IsLetterOrDigit(c) || c == '_' || char.IsSurrogate(c))
+			{
+				var end = at + 1;
+
+				while (end < text.Length && (char.IsLetterOrDigit(text[end]) || text[end] == '_' || char.IsSurrogate(text[end])))
+					end++;
+
+				parts.Add(new Identifier(text.Substring(at, end - at)));
+				at = end;
+			}
+			else
+				at++;
+		}
+
+		return new QualifiedName(SqlList.From(parts));
 	}
 
 	/// <summary>A select sublist's expression with no name after it.</summary>
