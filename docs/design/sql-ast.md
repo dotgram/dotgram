@@ -249,3 +249,16 @@ must fit it.
   reference already had none.
 - `TransformGroupForType`: a transform group specification's groups were a list of tuples, which no
   location can be attached to (requirement 8); each `<group specification>` is a record of its own.
+
+**A name is a value of its parts** (2026-10-13). `QualifiedName` was a record of a list of identifiers,
+four objects for a name of one part: the reference holding it, the record, the list's array and the
+identifier. On a text of names that was most of what a reading allocated. It is a `readonly record struct`
+of its first `Identifier` and an array of the others, so a one-part name is its identifier alone.
+`Identifier` stays a record class: as a value too it read slower, every name copied through the reader.
+
+- A name stores no span (requirement 8 is met through its parts): its `Span` runs from its first part's
+  start to its last part's end where both are known. So every part is a rule's value, which a located
+  reading offers its range to — `MODULE` and the SQL language identifier closing a character set's name
+  among them, which were made from words inside helpers.
+- An optional name is `QualifiedName?`, a `Nullable`. `default(QualifiedName)` is no name: nothing
+  builds one, and the writer and the walker refuse it.
