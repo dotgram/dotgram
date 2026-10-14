@@ -355,14 +355,14 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 
 	// §4.2.1.2. An item is followed by spaces or by the closing bracket, and nothing else.
 	SfInnerList : @InnerList
-		= '(' & ' '* & items: InnerMember* & ')' & parameters: SfParameters
+		= '(' & ' '* & { items: InnerMember* } & ')' & parameters: SfParameters
 		=> @(new InnerList(items, parameters))
 
 	InnerMember : @Item = item: SfItem & (' '+ | ?=')') => @(item)
 
 	// ── Parameters (§3.1.2, §4.2.3.2) ────────────────────────────────────────────
 
-	SfParameters : @OrderedMap<BareItem> = parameters: Parameter* => @(Rfc9651.Map(parameters))
+	SfParameters : @OrderedMap<BareItem> = { parameters: Parameter* } => @(Rfc9651.Map(parameters))
 
 	// A key alone is a true Boolean.
 	Parameter : @KeyValuePair<string, BareItem> = ';' & ' '* & key: Key & ('=' & value: SfBareItem)?
