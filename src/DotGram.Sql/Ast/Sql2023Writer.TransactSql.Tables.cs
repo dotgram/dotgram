@@ -658,7 +658,7 @@ public static partial class Sql2023Writer
 		/// <summary>T-SQL: column_definition (Transact-SQL). <c>WITH (FUNCTION = 'f()')</c>: a mask is a function named in a string.</summary>
 		void PutMask(ISqlNode owner, Expression function)
 		{
-			if (function is not Expression.Literal { Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } })
+			if (function is not LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null })
 				throw Misplaced(owner, "Function", "that is not a string, which is all a mask names its function in");
 
 			Word("WITH");
@@ -1248,10 +1248,10 @@ public static partial class Sql2023Writer
 		{
 			return value switch
 			{
-				Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money } } => true,
-				Expression.Literal { Value: LiteralValue.Null } => true,
-				Expression.Literal { Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } } => true,
-				Expression.Literal { Value: LiteralValue.Binary { ZeroX: true } } => true,
+				LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money } => true,
+				LiteralValue.Null => true,
+				LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } => true,
+				LiteralValue.Binary { ZeroX: true } => true,
 				_ => IsName(value) && !IsWord(value, "NULL"),
 			};
 		}
@@ -1554,7 +1554,7 @@ public static partial class Sql2023Writer
 					"SAMPLE"                                                    => value is Expression.Measured { Value: var size, Unit: var unit } && IsNumber(size) && Plain(unit, "PERCENT", "ROWS"),
 					"PERSIST_SAMPLE_PERCENT" or "INCREMENTAL" or "AUTO_DROP"    => IsWord(value, "ON", "OFF"),
 					"MAXDOP"                                                    => IsNumber(value),
-					"STATS_STREAM"                                              => value is Expression.Literal { Value: LiteralValue.Binary { ZeroX: true } },
+					"STATS_STREAM"                                              => value is LiteralValue.Binary { ZeroX: true },
 					"RESAMPLE" or "ALL" or "COLUMNS" or "INDEX"                 => update && value is null,
 					"ROWCOUNT" or "PAGECOUNT"                                   => update && IsNumber(value),
 					_                                                           => false,
@@ -1595,7 +1595,7 @@ public static partial class Sql2023Writer
 		/// <summary>An unsigned number written as one: the grammar's Number, with a point or an exponent or without.</summary>
 		static bool IsNumber(Expression? value)
 		{
-			return value is Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate, Text: { Length: > 0 } text } }
+			return value is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate, Text: { Length: > 0 } text }
 				&& (char.IsDigit(text[0]) || text[0] == '.');
 		}
 

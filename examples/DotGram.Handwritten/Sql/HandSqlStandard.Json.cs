@@ -141,7 +141,7 @@ partial class HandSqlStandard
 		}
 
 		// The path is a character string literal, a value as any other is.
-		var path = new Expression.Literal(StringLiteral(ref cursor, StringLiteralKind.Character));
+		var path = StringLiteral(ref cursor, StringLiteralKind.Character);
 
 		Identifier? name = null;
 
@@ -845,10 +845,10 @@ partial class HandSqlStandard
 		var arguments = new List<Argument>();
 
 		if (first is not null)
-			arguments.Add(new Argument(new Expression.Literal(NumericLiteral(first))));
+			arguments.Add(new Argument(NumericLiteral(first)));
 
 		if (second is not null)
-			arguments.Add(new Argument(new Expression.Literal(NumericLiteral(second))));
+			arguments.Add(new Argument(NumericLiteral(second)));
 
 		return new Expression.Member(null!, MemberAccessKind.Dot, new Identifier(word), Sql.SqlList.From(arguments));
 	}
@@ -878,7 +878,7 @@ partial class HandSqlStandard
 
 		int? Number(int at)
 		{
-			return arguments.Count > at ? (int)Long(((LiteralValue.Numeric)((Expression.Literal)arguments[at].Value).Value).Text.AsSpan()) : null;
+			return arguments.Count > at ? (int)Long(((LiteralValue.Numeric)arguments[at].Value).Text.AsSpan()) : null;
 		}
 
 		return member.Name.Text.ToUpperInvariant() switch

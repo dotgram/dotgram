@@ -674,7 +674,7 @@ public sealed class SqlStandardTreeTests
 			Identifier identifier => identifier.Text,
 			QualifiedName name => string.Join(".", name.Parts.Select(one => one.Text)),
 			Ast.Expression.Reference named => Show(named.Name),
-			Ast.Expression.Literal literal => literal.Value switch
+			Ast.LiteralValue literal => literal switch
 			{
 				LiteralValue.Numeric number => number.Text,
 				LiteralValue.String text => text.Text,

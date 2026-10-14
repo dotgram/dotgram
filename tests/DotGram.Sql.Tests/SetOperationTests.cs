@@ -417,7 +417,7 @@ public sealed class SetOperationTests
 	[Fact]
 	public void TOP_is_written_on_a_query_and_on_the_data_change_statements()
 	{
-		var top = new TopClause(new Expression.Literal(new LiteralValue.Numeric("10", NumericLiteralKind.DecimalInteger)), Parentheses: true, Percent: true, With: null);
+		var top = new TopClause(new LiteralValue.Numeric("10", NumericLiteralKind.DecimalInteger), Parentheses: true, Percent: true, With: null);
 		var t   = new TableSource.Named(Name("t"));
 
 		Assert.Equal(
@@ -436,7 +436,7 @@ public sealed class SetOperationTests
 			{
 				Top = top,
 				Target = t,
-				Assignments = [new Assignment([new AssignmentTarget(Name("x"))], new Expression.Literal(new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)))],
+				Assignments = [new Assignment([new AssignmentTarget(Name("x"))], new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger))],
 			}).TrimEnd(';', ' '));
 		Assert.StartsWith("INSERT TOP (10) PERCENT INTO t", Sql2023Writer.Write(new Statement.Insert { Top = top, Target = t }), StringComparison.Ordinal);
 	}

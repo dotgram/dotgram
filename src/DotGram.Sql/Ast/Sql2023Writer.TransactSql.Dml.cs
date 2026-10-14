@@ -16,7 +16,7 @@ public static partial class Sql2023Writer
 			{
 				// T-SQL: BULK INSERT (Transact-SQL). A file, a string or a name: the grammar's BulkFile reads no other.
 				case Statement.BulkInsert bulk:
-					if (bulk.File is not (Expression.Reference or Expression.Literal { Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } }))
+					if (bulk.File is not (Expression.Reference or LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null }))
 						throw Misplaced(bulk, "File", "that is neither a string nor a name, which is all BULK INSERT reads after FROM");
 
 					Word("BULK INSERT");
@@ -271,7 +271,7 @@ public static partial class Sql2023Writer
 		/// <summary>An unsigned number with no exponent, and with no point where <paramref name="decimals"/> is false.</summary>
 		static bool IsUnsigned(Expression? value, bool decimals)
 		{
-			return value is Expression.Literal { Value: LiteralValue.Numeric { Kind: var kind, Text: var text } }
+			return value is LiteralValue.Numeric { Kind: var kind, Text: var text }
 				&& (kind == NumericLiteralKind.DecimalInteger || decimals && kind == NumericLiteralKind.Decimal)
 				&& text.Length > 0 && (char.IsDigit(text[0]) || text[0] == '.');
 		}
@@ -279,7 +279,7 @@ public static partial class Sql2023Writer
 		/// <summary>What a string written out holds, lower-cased, or null for a value that is no such string.</summary>
 		static string? BulkString(Expression? value)
 		{
-			return value is Expression.Literal { Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null, Text: var text } }
+			return value is LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null, Text: var text }
 				? text.Substring(1, text.Length - 2).ToLowerInvariant()
 				: null;
 		}
@@ -305,11 +305,11 @@ public static partial class Sql2023Writer
 			var form = value switch
 			{
 				Expression.Variable variable when !variable.Name.Text.StartsWith("@@", StringComparison.Ordinal) => TextForms.Variable,
-				Expression.Literal { Value: LiteralValue.Binary { ZeroX: true } } => TextForms.Binary,
-				Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal, Text: var text } }
+				LiteralValue.Binary { ZeroX: true } => TextForms.Binary,
+				LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal, Text: var text }
 					=> text.StartsWith("-", StringComparison.Ordinal) ? TextForms.Number | TextForms.Negative : TextForms.Number,
-				Expression.Literal { Value: LiteralValue.Null } => TextForms.Null,
-				Expression.Literal { Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } } => TextForms.String,
+				LiteralValue.Null => TextForms.Null,
+				LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } => TextForms.String,
 				_ => (TextForms)0,
 			};
 
@@ -325,7 +325,7 @@ public static partial class Sql2023Writer
 			if (stamp is null)
 				return;
 
-			if (stamp is not Expression.Literal { Value: LiteralValue.Binary { ZeroX: true } })
+			if (stamp is not LiteralValue.Binary { ZeroX: true })
 				throw Misplaced(statement, "Timestamp", "that is not a 0x string, which is all TIMESTAMP = reads");
 
 			Word("TIMESTAMP");

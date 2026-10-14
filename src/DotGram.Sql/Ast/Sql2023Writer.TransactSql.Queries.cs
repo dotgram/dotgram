@@ -704,7 +704,7 @@ public static partial class Sql2023Writer
 		/// <summary>Whether a value is one string literal, all that the grammar reads in some places.</summary>
 		static bool StringLiteral(Expression value)
 		{
-			return value is Expression.Literal { Value: LiteralValue.String };
+			return value is LiteralValue.String;
 		}
 
 		void PutQueryHint(QueryHint hint)

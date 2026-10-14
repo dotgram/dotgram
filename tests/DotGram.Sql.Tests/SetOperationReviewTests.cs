@@ -40,7 +40,7 @@ public sealed class SetOperationReviewTests
 
 	static Expression Number(int value)
 	{
-		return new Expression.Literal(new LiteralValue.Numeric(value.ToString(System.Globalization.CultureInfo.InvariantCulture), NumericLiteralKind.DecimalInteger));
+		return new LiteralValue.Numeric(value.ToString(System.Globalization.CultureInfo.InvariantCulture), NumericLiteralKind.DecimalInteger);
 	}
 
 	// ── Text round trips ───────────────────────────────────────────────────────
