@@ -214,6 +214,9 @@ public sealed class TerminalInventory
 		/// <summary>The beginning, where it is one fixed spelling; what a longer token is asked to start with.</summary>
 		public string? Beginning { get; init; }
 
+		/// <summary>Whether <see cref="Beginning"/> is a literal that ignores case, and is asked for so.</summary>
+		public bool BeginningFolds { get; init; }
+
 		/// <summary>
 		/// The kinds a longer token than the beginning can be, where it starts with the
 		/// beginning, each with the kind that is both it and this terminal.
@@ -1012,6 +1015,7 @@ public sealed class TerminalInventory
 				{
 					Counted   = pair,
 					Beginning = (prefix as Node.Literal)?.Text,
+					BeginningFolds = prefix is Node.Literal { IgnoreCase: true },
 					Extended  = [.. extended.Select(static one => (one, 0))],
 				});
 			}
@@ -1267,11 +1271,9 @@ public sealed class TerminalInventory
 			if ((last is Node.Capture(_, var captured) ? captured : last) is Node.Call(var nested, _) &&
 				NestedPair.Is(nested) && NestedPair.Of(nested, graph) is { } pair)
 			{
-				Node open = new Node.Literal(pair.Open) { IgnoreCase = pair.OpenFolds };
+				var open = new Node.Literal(pair.Open) { IgnoreCase = pair.OpenFolds };
 
-				found = body is Node.Sequence({ Count: >= 2 } before)
-					? (new Node.Sequence([.. before.Take(before.Count - 1), open]), last, pair)
-					: (open, last, pair);
+				found = (Before(body is Node.Sequence({ Count: >= 2 } before) ? before.Take(before.Count - 1) : [], open), last, pair);
 			}
 			else if (body is Node.Sequence(var parts) && parts.Count >= 2 &&
 				(parts[parts.Count - 1] is Node.Capture(_, var held) ? held : parts[parts.Count - 1]) is var tail &&
@@ -1286,6 +1288,25 @@ public sealed class TerminalInventory
 		}
 
 		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail, NestedPair.Delimiters? Counted)?> _tails = [];
+
+		/// <summary>
+		/// What stands before Std.Nested's <c>open</c>, and the <c>open</c>: one literal where a
+		/// literal read alike stands right before it, so that <c>'#' &amp; Std.Nested("(", ")")</c>
+		/// begins with the one spelling <c>#(</c> a longer token is asked to start with.
+		/// </summary>
+		static Node Before(IEnumerable<Node> leading, Node.Literal open)
+		{
+			var parts = leading.ToList();
+
+			if (parts.Count > 0 && parts[parts.Count - 1] is Node.Literal last && last.IgnoreCase == open.IgnoreCase)
+			{
+				parts[parts.Count - 1] = new Node.Literal(last.Text + open.Text) { IgnoreCase = open.IgnoreCase };
+			}
+			else
+				parts.Add(open);
+
+			return parts.Count == 1 ? parts[0] : new Node.Sequence(parts);
+		}
 
 		/// <summary>
 		/// The kinds the automaton can accept further on from a state that accepts only
