@@ -737,7 +737,7 @@ partial class HandSqlStandard
 
 					if (cursor.Take(SqlTokenKind.RightParen))
 					{
-						value = new Expression.Normalize(text, form, length.LargeObject is null ? null : new Expression.Literal(NumericLiteral(length.LargeObject.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))))
+						value = new Expression.Normalize(text, form, length.LargeObject is null ? null : NumericLiteral(length.LargeObject.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)))
 						{
 							MaxLengthMultiplier = length.LargeObject?.Multiplier,
 							MaxLengthUnit       = length.Unit,
@@ -994,7 +994,7 @@ partial class HandSqlStandard
 
 				var precision = Length(ref cursor);
 
-				value = new Expression.Current(kind, null, precision is null ? null : new Expression.Literal(new LiteralValue.Numeric(precision.Value.ToString(System.Globalization.CultureInfo.InvariantCulture), NumericLiteralKind.DecimalInteger)));
+				value = new Expression.Current(kind, null, precision is null ? null : new LiteralValue.Numeric(precision.Value.ToString(System.Globalization.CultureInfo.InvariantCulture), NumericLiteralKind.DecimalInteger));
 
 				return true;
 			}
@@ -1108,7 +1108,7 @@ partial class HandSqlStandard
 							return false;
 						}
 
-						offset = new Expression.Literal(NumericLiteral(cursor.TextOf(cursor.Token)));
+						offset = NumericLiteral(cursor.TextOf(cursor.Token));
 
 						cursor.Take();
 
@@ -1589,7 +1589,7 @@ partial class HandSqlStandard
 
 						if (cursor.Take(SqlTokenKind.RightParen) && WithinGroupSpecification(ref cursor, out var within))
 						{
-							value = Called("LISTAGG", listed, new Expression.Literal(separator)) with
+							value = Called("LISTAGG", listed, separator) with
 							{
 								Quantifier  = quantifier,
 								Overflow    = overflow,
@@ -1713,7 +1713,7 @@ partial class HandSqlStandard
 				var with = cursor.Take(SqlWord.With);
 
 				if ((with || cursor.Take(SqlWord.Without)) && cursor.Take(SqlWord.Count))
-					return new ListaggOverflow(true, filler is null ? null : new Expression.Literal(filler), with);
+					return new ListaggOverflow(true, filler is null ? null : filler, with);
 			}
 		}
 

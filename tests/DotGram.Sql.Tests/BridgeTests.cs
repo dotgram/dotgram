@@ -363,7 +363,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 						Variable.Name.Text: "@v",
 						Targets: [{ Name.Parts: [{ Text: "c" }], Index: null, MutationPath: null }],
 						Operator: Ast.AssignmentOperator.Assign,
-						Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Numeric { Text: "1" } },
+						Value: Ast.LiteralValue.Numeric { Text: "1" },
 					},
 				],
 			},
@@ -385,7 +385,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			},
 			"BulkInsert"                  => made is Ast.Statement.BulkInsert
 			{
-				File: Ast.Expression.Literal,
+				File: Ast.LiteralValue,
 				Options: [{ Name.Text: "ORDER", Value: null, Order: { Unique: false, Columns.Count: 2 } }, { Name.Text: "TABLOCK", Value: null }, { Value: not null }],
 			},
 			"InsertBulk"                  => made is Ast.Statement.InsertBulk
@@ -400,10 +400,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			},
 			"Truncate partitions"         => made is Ast.Statement.TruncateTable { Partitions: [{ To: null }, { To: not null }] },
 			"ReadText"                    => made is Ast.Statement.ReadText { HoldLock: true, Column.Parts.Count: 2, Pointer: Ast.Expression.Variable },
-			"WriteText"                   => made is Ast.Statement.WriteText { Bulk: true, Log: true, Data: null, Timestamp: Ast.Expression.Literal { Value: Ast.LiteralValue.Binary { ZeroX: true } } },
+			"WriteText"                   => made is Ast.Statement.WriteText { Bulk: true, Log: true, Data: null, Timestamp: Ast.LiteralValue.Binary { ZeroX: true } },
 			"UpdateText source"           => made is Ast.Statement.UpdateText
 			{
-				Offset: Ast.Expression.Literal { Value: Ast.LiteralValue.Null }, Log: true, Data: null, Source.Parts.Count: 2, SourcePointer: Ast.Expression.Variable,
+				Offset: Ast.LiteralValue.Null, Log: true, Data: null, Source.Parts.Count: 2, SourcePointer: Ast.Expression.Variable,
 			},
 			"Assignment plain"            => made is Ast.Statement.Update { Assignments: [{ Variable: null, Operator: Ast.AssignmentOperator.Assign, Targets.Count: 1 }] },
 			_                             => made is Ast.Statement.Merge
@@ -537,7 +537,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			{
 				Actions: [Ast.AlterTableAction.AlterColumn { ColumnKeyword: true, Action: Ast.AlterColumnAction.SetDataType { SetDataTypeOmitted: true, Collation: not null, Nullability: Ast.ColumnNullability.NotNull } }],
 			},
-			"Alter column property" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.AlterColumn { Action: Ast.AlterColumnAction.Property { Add: true, Kind: Ast.ColumnPropertyKind.Masked, MaskFunction: Ast.Expression.Literal } }] },
+			"Alter column property" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.AlterColumn { Action: Ast.AlterColumnAction.Property { Add: true, Kind: Ast.ColumnPropertyKind.Masked, MaskFunction: Ast.LiteralValue } }] },
 			"Switch" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Switch { Partition: not null, Target.Parts.Count: 2, TargetPartition: not null, Options.Count: 0 }] },
 			"Check constraints" => made is Ast.Statement.AlterTable { Check: null, Actions: [Ast.AlterTableAction.CheckConstraints { Check: Ast.ConstraintCheck.NoCheck, All: true, Names.Count: 0 }] },
 			"Triggers" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Triggers { Enable: true, All: false, Names.Count: 2 }] },
@@ -545,7 +545,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Rebuild" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Rebuild { All: true, Partition: null }] },
 			"Triggers all" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Triggers { Enable: true, All: true, Names.Count: 0 }] },
 			"Lone not null" => Columns(made) is [{ Options: [Ast.ColumnOption.Constraint { Value: Ast.Constraint.NotNull }], Generation: null, Constraints.Count: 0, Collation: null }],
-			"Default collated" => Columns(made) is [{ Options: [Ast.ColumnOption.Default { Value: Ast.Expression.Collate { Value: Ast.Expression.Literal } }], Generation: null, Collation: null, Type: Ast.DataType.Character { Collation: null } }],
+			"Default collated" => Columns(made) is [{ Options: [Ast.ColumnOption.Default { Value: Ast.Expression.Collate { Value: Ast.LiteralValue } }], Generation: null, Collation: null, Type: Ast.DataType.Character { Collation: null } }],
 			"Type collated" => Columns(made) is [{ Options: [Ast.ColumnOption.Collation], Collation: null, Type: Ast.DataType.Character { Collation: null } }],
 			"Plain key" => Elements(made) is [_, Ast.TableElement.TableConstraint { Value: Ast.Constraint.Unique { Kind: Ast.UniqueKind.PrimaryKey, Columns.Count: 0, Keys: [{ Direction: null, Key: Ast.Expression.Reference }], Clustering: null } }],
 			"Option a bracketed name with a blank" => made is Ast.Statement.CreateTable
@@ -626,7 +626,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Secondary XML index" => made is Ast.Statement.CreateXmlIndex { Primary: false, Using.Text: "p", For: Ast.XmlIndexFor.Path, Options.Count: 1 },
 			"Spatial index" => made is Ast.Statement.CreateSpatialIndex { Using: Ast.SpatialTessellation.GeographyAutoGrid, Options.Count: 1, Placements: [{ Kind: Ast.PlacementKind.On }] },
 			"Alter all indexes" => made is Ast.Statement.AlterIndex { All: true, Name: null, Action: Ast.IndexAlteration.Rebuild { AllPartitions: true, Partition: null } },
-			"Reorganize" => made is Ast.Statement.AlterIndex { Name.Text: "i", Action: Ast.IndexAlteration.Reorganize { Partition: Ast.Expression.Literal, Options.Count: 1 } },
+			"Reorganize" => made is Ast.Statement.AlterIndex { Name.Text: "i", Action: Ast.IndexAlteration.Reorganize { Partition: Ast.LiteralValue, Options.Count: 1 } },
 			"Index set" => made is Ast.Statement.AlterIndex { Action: Ast.IndexAlteration.SetOptions { Options.Count: 1 } },
 			"Resume" => made is Ast.Statement.AlterIndex { Action: Ast.IndexAlteration.Resume { Options.Count: 0 } },
 			"Add one index" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Add { Elements: [Ast.TableElement.Index] }] },
@@ -635,7 +635,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Alter table drop index" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.DropIndex { Name.Text: "i" }] },
 			"Full-text index" => made is Ast.Statement.CreateFullTextIndex
 			{
-				Columns: [{ TypeColumn.Text: "b", Language: Ast.Expression.Literal, StatisticalSemantics: true }], KeyIndex.Text: "ix",
+				Columns: [{ TypeColumn.Text: "b", Language: Ast.LiteralValue, StatisticalSemantics: true }], KeyIndex.Text: "ix",
 				Catalog.Text: "cat", FileGroup.Text: "fg", Options.Count: 2, OptionsUnbracketed: false,
 			},
 			"Full-text options unbracketed" => made is Ast.Statement.CreateFullTextIndex { Catalog.Text: "cat", FileGroup: null, OptionsUnbracketed: true } index
@@ -645,7 +645,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Stoplist off" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetStopList { Name: null, Off: true, System: false, EqualsOmitted: false } },
 			"Search property list off" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetSearchPropertyList { Name: null, Off: true, EqualsOmitted: true } },
 			"Search property list named" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetSearchPropertyList { Name.Text: "p", Off: false, EqualsOmitted: false } },
-			"Full-text language null" => made is Ast.Statement.CreateFullTextIndex { Columns: [{ Language: Ast.Expression.Literal { Value: Ast.LiteralValue.Null } }] },
+			"Full-text language null" => made is Ast.Statement.CreateFullTextIndex { Columns: [{ Language: Ast.LiteralValue.Null }] },
 			"Full-text language word" => made is Ast.Statement.CreateFullTextIndex { Columns: [{ Language: Ast.Expression.Reference { Name.Parts: [{ Text: "English" }] } }] },
 			"Change tracking without =" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.SetChangeTracking { Mode.Text: "MANUAL", EqualsOmitted: true } },
 			"Population" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.Population { Action: Ast.PopulationAction.Start, Kind: Ast.PopulationKind.Full } },
@@ -664,7 +664,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Resample partitions" => made is Ast.Statement.UpdateStatistics { Names.Count: 0, Options: [{ Name.Text: "RESAMPLE", Value: null, Partitions.Count: 2 }] },
 			"Alias type" => made is Ast.Statement.CreateAliasType { Base: Ast.DataType.Character, Nullability: Ast.ColumnNullability.NotNull },
 			"Table type" => made is Ast.Statement.CreateTableType { Elements.Count: 1, Options: [{ Name.Text: "MEMORY_OPTIMIZED" }] },
-			"Sequence cache" => made is Ast.Statement.CreateSequence { Options: [Ast.SequenceOption.Cache { Size: Ast.Expression.Literal }, Ast.SequenceOption.Cycle { Value: false }] },
+			"Sequence cache" => made is Ast.Statement.CreateSequence { Options: [Ast.SequenceOption.Cache { Size: Ast.LiteralValue }, Ast.SequenceOption.Cycle { Value: false }] },
 			"Sequence no cache" => made is Ast.Statement.CreateSequence { Options: [Ast.SequenceOption.NoCache] },
 			"Synonym" => made is Ast.Statement.CreateSynonym { Target.Parts.Count: 4 },
 			_ => false,
@@ -704,8 +704,8 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			return made with { Contents = new Ast.TableContents.Elements([new Ast.TableElement.Column(column with { Options = [.. options] }), items[1]]) };
 		}
 
-		var one  = new Ast.Expression.Literal(new Ast.LiteralValue.Numeric("1", Ast.NumericLiteralKind.DecimalInteger));
-		var two  = new Ast.Expression.Literal(new Ast.LiteralValue.Numeric("2", Ast.NumericLiteralKind.DecimalInteger));
+		var one  = new Ast.LiteralValue.Numeric("1", Ast.NumericLiteralKind.DecimalInteger);
+		var two  = new Ast.LiteralValue.Numeric("2", Ast.NumericLiteralKind.DecimalInteger);
 		var keep = new Ast.ColumnOption.Constraint(new Ast.Constraint.NotNull());
 
 		foreach (var wrong in new[] { With(new Ast.ColumnOption.Default(two), keep), With(new Ast.ColumnOption.Default(one), keep, new Ast.ColumnOption.Sparse()) })
@@ -880,9 +880,9 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Expression.DatePart { Kind = Day, Spelling = Abbreviation }" =>
 				value is Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.DatePart { Kind: Ast.DatePartKind.Day, Spelling: Ast.DatePartSpelling.Abbreviation } }, ..] },
 			"Expression.Convert { Style = 112 }" =>
-				value is Ast.Expression.Convert { Style: Ast.Expression.Literal { Value: Ast.LiteralValue.Numeric { Text: "112" } }, Try: false },
+				value is Ast.Expression.Convert { Style: Ast.LiteralValue.Numeric { Text: "112" }, Try: false },
 			"Expression.Parse { Try, Culture = 'en-US' }" =>
-				value is Ast.Expression.Parse { Try: true, Culture: Ast.Expression.Literal { Value: Ast.LiteralValue.String { Text: "'en-US'" } } },
+				value is Ast.Expression.Parse { Try: true, Culture: Ast.LiteralValue.String { Text: "'en-US'" } },
 			"Expression.Cast { Try }" =>
 				value is Ast.Expression.Cast { Try: true },
 			"DataType.Numeric { Int }" =>
@@ -906,7 +906,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"DataType.Xml { Content, s }" =>
 				Target(value) is Ast.DataType.Xml { Modifier: Ast.XmlTypeModifier.Content, Schema.Parts: [{ Text: "s" }] },
 			"LiteralValue.Binary { 0A, ZeroX }" =>
-				value is Ast.Expression.Literal { Value: Ast.LiteralValue.Binary { Text: "0A", ZeroX: true } },
+				value is Ast.LiteralValue.Binary { Text: "0A", ZeroX: true },
 			"Expression.NextValue { Over }" =>
 				value is Ast.Expression.NextValue { Over.OrderBy.Items.Count: 1 },
 			"WindowFrame { Rows, 2 Preceding }" =>
@@ -916,7 +916,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Expression.JsonObject" =>
 				value is Ast.Expression.JsonObject
 				{
-					Members: [{ Syntax: Ast.JsonMemberSyntax.Colon }, { Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Null } }],
+					Members: [{ Syntax: Ast.JsonMemberSyntax.Colon }, { Value: Ast.LiteralValue.Null }],
 					Nulls: Ast.JsonNullHandling.AbsentOnNull, Output.Type: Ast.DataType.Json,
 				},
 			"Expression.JsonObject { }" =>
@@ -934,7 +934,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Expression.JsonQuery { no path }" =>
 				value is Ast.Expression.JsonQuery { Common.Path: null, Wrapper: null },
 			"Expression.JsonQuery { WithArray }" =>
-				value is Ast.Expression.JsonQuery { Common.Path: Ast.Expression.Literal, Wrapper: Ast.JsonWrapperBehavior.WithArray },
+				value is Ast.Expression.JsonQuery { Common.Path: Ast.LiteralValue, Wrapper: Ast.JsonWrapperBehavior.WithArray },
 			"Expression.Invocation ISJSON" =>
 				value is Ast.Expression.Invocation { Name.Parts: [{ Text: "ISJSON" }] },
 			_ =>
@@ -1012,9 +1012,9 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			{
 				Variables:
 				[
-					{ Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Binary { ZeroX: true } } },
-					{ Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Approximate } } },
-					{ Value: Ast.Expression.Literal { Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Decimal } } },
+					{ Value: Ast.LiteralValue.Binary { ZeroX: true } },
+					{ Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Approximate } },
+					{ Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Decimal } },
 				],
 			}],
 			"Pivot.Column qualified"                => source is Ast.TableSource.Pivot { Column.Parts.Count: 2, Values: [{ Parts.Count: 1 }] },
@@ -1046,7 +1046,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"TableSource.Subquery.ForPath"          => source is Ast.TableSource.Subquery { ForPath: true, Alias.Name.Text: "e" },
 			"SampleClause.MethodOmitted"            => source is Ast.TableSource.Named { Sample: { MethodOmitted: true, Unit: null } },
 			"TableSource.OpenRowset.ProviderString" => source is Ast.TableSource.OpenRowset { ProviderString: not null, Login: null },
-			"ForClause.Xml.ElementName"             => select.For is Ast.ForClause.Xml { Mode: Ast.XmlMode.Path, ElementName: Ast.Expression.Literal, Directives: [] },
+			"ForClause.Xml.ElementName"             => select.For is Ast.ForClause.Xml { Mode: Ast.XmlMode.Path, ElementName: Ast.LiteralValue, Directives: [] },
 			"ForDirective"                          => select.For is Ast.ForClause.Xml
 			{
 				Mode: Ast.XmlMode.Auto, ElementName: not null,

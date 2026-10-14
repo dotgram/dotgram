@@ -275,7 +275,7 @@ static partial class Bridge
 
 		static Ast.Expression Value(Ast.LiteralValue value)
 		{
-			return new Ast.Expression.Literal(value);
+			return value;
 		}
 
 		/// <summary>

@@ -812,7 +812,7 @@ partial class HandSqlStandard
 			return null;
 
 		if (Literal(ref cursor, out var literal))
-			return new Expression.Literal(literal);
+			return literal;
 
 		if (DatetimeValueFunction(ref cursor, out var function))
 			return function;

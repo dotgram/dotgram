@@ -84,7 +84,7 @@ static class Nodes
 
 	public static Expression Null()
 	{
-		return new Expression.Literal(new LiteralValue.Null());
+		return new LiteralValue.Null();
 	}
 
 	/// <summary>
@@ -178,10 +178,10 @@ static class Nodes
 		var arguments = new List<Argument>();
 
 		if (first is not null)
-			arguments.Add(new Argument(new Expression.Literal(NumericLiteral(first))));
+			arguments.Add(new Argument(NumericLiteral(first)));
 
 		if (second is not null)
-			arguments.Add(new Argument(new Expression.Literal(NumericLiteral(second))));
+			arguments.Add(new Argument(NumericLiteral(second)));
 
 		return new Expression.Member(null!, MemberAccessKind.Dot, new Identifier(word), SqlList.From(arguments));
 	}
@@ -533,7 +533,7 @@ static class Nodes
 	{
 		var size = length?.LargeObject;
 
-		return new Expression.Normalize(value, Form(form), size is null ? null : new Expression.Literal(NumericLiteral(size.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))))
+		return new Expression.Normalize(value, Form(form), size is null ? null : NumericLiteral(size.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)))
 		{
 			MaxLengthMultiplier = size?.Multiplier,
 			MaxLengthUnit       = length?.Unit,
@@ -593,7 +593,7 @@ static class Nodes
 				_ => CurrentValue.LocalTime,
 			},
 			null,
-			precision is null ? null : new Expression.Literal(NumericLiteral(precision)));
+			precision is null ? null : NumericLiteral(precision));
 	}
 
 	// ── §6.10 Window functions, §10.9 Aggregates ───────────────────────────────
@@ -668,7 +668,7 @@ static class Nodes
 	/// <summary>`ON OVERFLOW TRUNCATE`: the filler where one was written, and `WITH COUNT` or `WITHOUT COUNT`.</summary>
 	public static ListaggOverflow Truncated(string? filler, string count)
 	{
-		return new(true, filler is null ? null : new Expression.Literal(StringLiteral(filler, StringLiteralKind.Character)), count.Length == 4);
+		return new(true, filler is null ? null : StringLiteral(filler, StringLiteralKind.Character), count.Length == 4);
 	}
 
 	// ── JSON ───────────────────────────────────────────────────────────────────
@@ -782,7 +782,7 @@ static class Nodes
 			return true;
 
 		foreach (var argument in arguments)
-			if (argument.Value is Expression.Literal { Value: LiteralValue.Numeric number } && !Fits(number.Text))
+			if (argument.Value is LiteralValue.Numeric number && !Fits(number.Text))
 				return false;
 
 		return true;
@@ -795,12 +795,12 @@ static class Nodes
 		var arguments = member.Arguments ?? [];
 		int? First()
 		{
-			return arguments.Count > 0 ? Integer(((LiteralValue.Numeric)((Expression.Literal)arguments[0].Value).Value).Text) : null;
+			return arguments.Count > 0 ? Integer(((LiteralValue.Numeric)arguments[0].Value).Text) : null;
 		}
 
 		int? Second()
 		{
-			return arguments.Count > 1 ? Integer(((LiteralValue.Numeric)((Expression.Literal)arguments[1].Value).Value).Text) : null;
+			return arguments.Count > 1 ? Integer(((LiteralValue.Numeric)arguments[1].Value).Text) : null;
 		}
 
 		return member.Name.Text.ToUpperInvariant() switch
@@ -1091,11 +1091,6 @@ static class Nodes
 			first is null || second is null
 				? []
 				: [new AlterTableAction.AddColumn(first, firstKeyword is not null), new AlterTableAction.AddColumn(second, secondKeyword is not null)]);
-	}
-
-	public static Expression? LiteralOrNull(LiteralValue? value)
-	{
-		return value is null ? null : new Expression.Literal(value);
 	}
 
 	/// <summary>`WITH [CASCADED | LOCAL] CHECK OPTION`, where it was written.</summary>

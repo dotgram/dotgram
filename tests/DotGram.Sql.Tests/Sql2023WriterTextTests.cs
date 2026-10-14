@@ -34,7 +34,7 @@ public sealed class Sql2023WriterTextTests
 
 	static Expression Number(string text)
 	{
-		return new Expression.Literal(new LiteralValue.Numeric(text, NumericLiteralKind.Decimal));
+		return new LiteralValue.Numeric(text, NumericLiteralKind.Decimal);
 	}
 
 	static Expression Minus(Expression operand)
@@ -79,7 +79,7 @@ public sealed class Sql2023WriterTextTests
 	public void A_return_of_NULL_writes_it()
 	{
 		Assert.Equal("RETURN NULL", Sql2023Writer.Write(new Statement.Return { NullKeyword = true }));
-		Assert.Equal("RETURN NULL", Sql2023Writer.Write(new Statement.Return { Value = new Expression.Literal(new LiteralValue.Null()) }));
+		Assert.Equal("RETURN NULL", Sql2023Writer.Write(new Statement.Return { Value = new LiteralValue.Null() }));
 		Assert.Equal("RETURN a", Sql2023Writer.Write(new Statement.Return { Value = A }));
 	}
 

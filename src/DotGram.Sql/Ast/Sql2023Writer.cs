@@ -58,7 +58,6 @@ public static partial class Sql2023Writer
 				case Expression expression: PutExpression(expression); break;
 				case TableSource source:    PutSource(source); break;
 				case DataType type:         PutType(type); break;
-				case LiteralValue literal:  PutLiteral(literal); break;
 				case QualifiedName name:    PutName(name); break;
 				case Identifier identifier: PutIdentifier(identifier); break;
 				case Query query:           PutQuery(query); break;
@@ -668,8 +667,8 @@ public static partial class Sql2023Writer
 
 			switch (expression)
 			{
-				case Expression.Literal literal:
-					PutLiteral(literal.Value);
+				case LiteralValue literal:
+					PutLiteral(literal);
 					break;
 
 				case Expression.Reference reference:
@@ -1903,7 +1902,7 @@ public static partial class Sql2023Writer
 		void PutCommon(JsonApiCommon common, bool standard = false)
 		{
 			if ((standard || common.PathName is not null || common.Passing.Count > 0 || common.ContextFormat is not null)
-				&& common.Path is not (null or Expression.Literal { Value: LiteralValue.String { Kind: StringLiteralKind.Character } }))
+				&& common.Path is not (null or LiteralValue.String { Kind: StringLiteralKind.Character }))
 				throw Misplaced(common, "Path", "that is not a character string, beside what only the standard's JSON functions write");
 
 			PutExpression(common.Context);

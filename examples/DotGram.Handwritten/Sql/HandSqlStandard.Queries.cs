@@ -1252,7 +1252,7 @@ partial class HandSqlStandard
 	{
 		if (UnsignedLiteral(ref cursor, out var literal))
 		{
-			value = new Expression.Literal(literal);
+			value = literal;
 
 			return true;
 		}
@@ -1277,7 +1277,7 @@ partial class HandSqlStandard
 	{
 		if (Literal(ref cursor, out var literal))
 		{
-			value = new Expression.Literal(literal);
+			value = literal;
 
 			return true;
 		}
