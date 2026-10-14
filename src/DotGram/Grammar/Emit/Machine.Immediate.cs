@@ -201,6 +201,17 @@ sealed partial class Machine
 	/// go out of scope.
 	/// </para>
 	/// <para>
+	/// What a construction throws is not let out of an abandoned reading either. The call
+	/// stands in a <c>try</c>: on a throw the register is left default and the exception is
+	/// held in the reader (<c>Faulted_DotGram</c>), and the reading goes on. The held exception
+	/// is thrown where the tape would have built the value it came from — at acceptance
+	/// (<see cref="BuildRoot"/>) and where a guard asks for a value it was raised under
+	/// (<see cref="GuardAsks"/>) — and is put back with the marks wherever a reading is given up
+	/// (<see cref="MarkRecords"/>, <see cref="UnwindRecords"/>), so one raised in a reading the
+	/// parse abandons or refuses never escapes a publication (§7.5). The first construction to
+	/// throw is the one kept: the tape builds in the same order and would have thrown it first.
+	/// </para>
+	/// <para>
 	/// A guard costs nothing extra here: what it asks for has been built already.
 	/// </para>
 	/// <para>
@@ -302,6 +313,12 @@ sealed partial class Machine
 				if (Unbuilding)
 					yield return ("int", "unbuilt");
 
+				// The exception a construction threw, held until the reading it was raised in
+				// stands or is given up (the class remarks). A field for the reason the registers
+				// are: every mark copies it, and every construction may write it.
+				if (Holds)
+					yield return ("global::System.Exception?", "fault");
+
 				// What a loop that reads the attempt that stood once more puts back afterwards:
 				// the failure as it was before, and how many ties it held (Stood_DotGram). One
 				// of each: a replay follows the ways an attempt decided and fails nowhere, so
@@ -337,6 +354,28 @@ sealed partial class Machine
 		bool? _unbuilding;
 
 		/// <summary>
+		/// Whether some rule of this machine builds a value, so that a construction can run and
+		/// throw: what the reader holds a thrown exception for (the class remarks).
+		/// </summary>
+		/// <remarks>
+		/// A machine that builds nothing — no rule valued, or every valued rule an extent, whose
+		/// value is two positions — carries no fault field, no copy at the marks and no
+		/// <c>try</c>, and its output is what it was.
+		/// </remarks>
+		internal bool Holds => _holds ??= machine._rules.Any(rule => machine.Valued(rule) && !machine.IsExtent(rule));
+
+		bool? _holds;
+
+		/// <summary>
+		/// Whether the construction just written moved the fold's value so far inside its own
+		/// statement, so that <see cref="Accumulated"/> has nothing left to say for it.
+		/// </summary>
+		bool _folded;
+
+		const string NoInlining =
+			"[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
+
+		/// <summary>
 		/// What was kept of the demand report, forgotten: the readers were settled, and the report
 		/// is asked again with the rules that give back (<see cref="Machine.Demands"/>).
 		/// </summary>
@@ -363,9 +402,6 @@ sealed partial class Machine
 		/// </remarks>
 		static void ReplayMethods(Writer file)
 		{
-			const string NoInlining =
-				"[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
-
 			file.Line("/// <summary>An attempt stood after this loop gave a way back twice: read unbuilt, it is read once more to be built (3), with the failure kept to be put back; or the reading that built it stood, and the failure is put back (0).</summary>");
 			file.Line(NoInlining);
 
@@ -434,6 +470,41 @@ sealed partial class Machine
 		}
 
 		/// <summary>
+		/// The two ends of a held exception, off the hot path: a construction threw and the
+		/// reading goes on with its register left default (<see cref="Held"/>); the held exception
+		/// is thrown where the tape would have built the value it came from — at acceptance
+		/// (<see cref="BuildRoot"/>) and before a guard that asks for a value it was raised under
+		/// (<see cref="GuardAsks"/>).
+		/// </summary>
+		/// <remarks>
+		/// The first construction to throw, in reading order, is the one kept: the tape's walk
+		/// builds in the same order, would have thrown that one and never reached the next —
+		/// which, handed the default the first left, may throw something of its own. Rethrown
+		/// through <c>ExceptionDispatchInfo</c>: the same object, its own trace kept and the
+		/// rethrow appended, so the type and the message are what the tape would have thrown.
+		/// </remarks>
+		static void HoldMethods(Writer file)
+		{
+			file.Line("/// <summary>A construction threw: the exception is held and the reading goes on; the first of several is the one kept.</summary>");
+			file.Line(NoInlining);
+
+			using (file.Block("void Faulted_DotGram(global::System.Exception thrown)"))
+			{
+				file.Line("if (fault == null)");
+				file.Then("fault = thrown;");
+			}
+
+			file.Line();
+			file.Line("/// <summary>The held exception, thrown where the tape would have built the value it came from.</summary>");
+			file.Line(NoInlining);
+
+			using (file.Block("internal void Thrown_DotGram()"))
+				file.Line("global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(fault!).Throw();");
+
+			file.Line();
+		}
+
+		/// <summary>
 		/// <summary>
 		/// A call nobody asks the value of is read with the count raised; one a guard or a
 		/// <c>with state</c> asks for is read with it at zero, where the rule it stands in
@@ -485,18 +556,59 @@ sealed partial class Machine
 		/// <remarks>
 		/// Nothing is written down that an abandoned reading could leave behind — except how
 		/// deep the marks stand, which is a stack the reader pushes on and a failed attempt
-		/// left standing. Taken and put back wherever the tape takes and puts back its log,
-		/// which is every place a reading may be abandoned.
+		/// left standing, and the exception a construction threw, which a failed attempt may
+		/// have raised. Taken and put back wherever the tape takes and puts back its log, which
+		/// is every place a reading may be abandoned: an exception held since the mark is one
+		/// from the reading given up, and goes with it.
 		/// </remarks>
 		public override IEnumerable<string> MarkRecords(string name)
 		{
-			return Marks ? [$"var {name} = marked;"] : [];
+			if (Marks)
+				yield return $"var {name} = marked;";
+
+			if (Holds)
+				yield return $"var {name}f = fault;";
 		}
 
-		/// <remarks>Only what <see cref="MarkRecords"/> declared: without marks, a part is handed none.</remarks>
-		public override IReadOnlyList<string> RecordMarks(string name)
+		/// <remarks>Only what <see cref="MarkRecords"/> declared: without marks and nothing to hold, a part is handed none.</remarks>
+		public override IReadOnlyList<(string Type, string Name)> RecordMarks(string name)
 		{
-			return Marks ? [name] : [];
+			var marks = new List<(string Type, string Name)>();
+
+			if (Marks)
+				marks.Add(("int", name));
+
+			if (Holds)
+				marks.Add(("global::System.Exception?", name + "f"));
+
+			return marks;
+		}
+
+		/// <remarks>
+		/// The exception held when the rule began is read by <see cref="GuardAsks"/> alone, so it is
+		/// taken only where a guard of the rule names a built value: taken for every guarded rule it
+		/// was a local nothing read, and in a rule read in parts a parameter nothing read.
+		/// </remarks>
+		public override IEnumerable<string> GuardMarkRecords(string name, bool asksValues)
+		{
+			if (Marks)
+				yield return $"var {name} = marked;";
+
+			if (Holds && asksValues)
+				yield return $"var {name}f = fault;";
+		}
+
+		public override IReadOnlyList<(string Type, string Name)> GuardMarks(string name, bool asksValues)
+		{
+			var marks = new List<(string Type, string Name)>();
+
+			if (Marks)
+				marks.Add(("int", name));
+
+			if (Holds && asksValues)
+				marks.Add(("global::System.Exception?", name + "f"));
+
+			return marks;
 		}
 
 		/// <remarks>A failed turn has pushed onto the stacks; the mark is where they stood.</remarks>
@@ -511,7 +623,35 @@ sealed partial class Machine
 
 		public override IEnumerable<string> UnwindRecords(string name)
 		{
-			return Marks ? [$"marked = {name};"] : [];
+			if (Marks)
+				yield return $"marked = {name};";
+
+			if (Holds)
+				yield return $"fault = {name}f;";
+		}
+
+		/// <remarks>
+		/// The tape builds what a guard names, and a construction under it that throws, throws
+		/// there. Here the value is built already and its exception held, so it is thrown before
+		/// the guard is asked: for a value one local holds, where the flag beside that local says
+		/// building it threw (written where the value was captured: the held exception changed
+		/// while it was read); for the fold's value so far or a sequence, which no one local
+		/// holds, where any exception is held since the rule began — which is one under a value
+		/// of this rule's reading so far, every failed alternative and turn having put back what
+		/// it raised, and so wider than the tape by the values the guard does not name. Never
+		/// narrower: a guard is never handed the default a thrower left.
+		/// </remarks>
+		public override string GuardAsks(string mark, IReadOnlyList<string> flags, bool wider)
+		{
+			if (!Holds)
+				return "";
+
+			var asked = new List<string>(flags);
+
+			if (wider)
+				asked.Add($"fault != {mark}f");
+
+			return $"if (fault != null && ({string.Join(" || ", asked)})) Thrown_DotGram();";
 		}
 
 		/// <summary>
@@ -615,6 +755,7 @@ sealed partial class Machine
 			_puts.Clear();
 			_drops.Clear();
 			_accumulated = false;
+			_folded      = false;
 
 			return "";
 		}
@@ -653,6 +794,14 @@ sealed partial class Machine
 
 		public override string Accumulated(RuleSymbol owner)
 		{
+			// Moved inside the construction's own statement already (Held).
+			if (_folded)
+			{
+				_folded = false;
+
+				return "";
+			}
+
 			return Builds(owner) ? base.Accumulated(owner) : "";
 		}
 
@@ -706,15 +855,40 @@ sealed partial class Machine
 		/// </summary>
 		public override string End(string gatheredFrom)
 		{
-			var rule  = _rule ?? throw new InvalidOperationException("A record ended that never began.");
-			var built = Built(rule);
+			var rule    = _rule ?? throw new InvalidOperationException("A record ended that never began.");
+			var unbuilt = Unbuilding && machine.Demands.ReadUnbuilt(rule);
+			var built   = Held(Built(rule), rule, folding: !unbuilt);
 
-			if (!Unbuilding || !machine.Demands.ReadUnbuilt(rule) || built.Length == 0)
+			if (!unbuilt || built.Length == 0)
 				return built;
 
 			return _drops.Count == 0
 				? "if (unbuilt == 0) " + built
 				: "if (unbuilt == 0) " + built + " else { " + string.Join(" ", _drops) + " }";
+		}
+
+		/// <summary>
+		/// A construction's statement with its exception held: the assignment inside a
+		/// <c>try</c>, and on a throw the register left default and the exception kept
+		/// (<see cref="HoldMethods"/>). An extent is two positions and throws nothing.
+		/// </summary>
+		/// <param name="folding">
+		/// Whether a folding rule's value so far may move inside the statement, so that the turn
+		/// stays the one assignment it was (<see cref="Accumulated"/> then says nothing). Not
+		/// where the statement is wrapped for a reading that may be unbuilt: there the value so
+		/// far moves after it, as it did, whether the construction ran or not.
+		/// </param>
+		string Held(string built, RuleSymbol rule, bool folding)
+		{
+			if (!Holds || built.Length == 0 || machine.IsExtent(rule))
+				return built;
+
+			var into = Register(machine._results.QualifiedOf(rule)!);
+			var fold = folding && Builds(rule) && machine._graph.Folds.ContainsKey(rule) ? "fold = " : "";
+
+			_folded = fold.Length > 0;
+
+			return $"try {{ {fold}{built} }} catch (global::System.Exception thrown) {{ {fold}{into} = default!; Faulted_DotGram(thrown); }}";
 		}
 
 		string Built(RuleSymbol rule)
@@ -814,6 +988,9 @@ sealed partial class Machine
 				if (machine.Replays)
 					ReplayMethods(file);
 
+				if (Holds)
+					HoldMethods(file);
+
 				if (machine._directRules is not { } rules ||
 					!rules.Any(rule => machine.DirectMembers(rule).Exists(static one => one.Shape == MemberShape.Pieces)))
 				{
@@ -874,10 +1051,15 @@ sealed partial class Machine
 
 			var arguments = string.Join(", ", plan.Recovery.Asks.Select(name =>
 				machine.RecoverySupplied(name, plan, "located", "expecting")));
+			// The `recover` factory is the author's construction as any `=>` is, and what it
+			// throws is held the same way (Held).
+			var made      = $"{Last(element)} = {plan.Method}({arguments});";
+			if (Holds)
+				made = $"try {{ {made} }} catch (global::System.Exception thrown) {{ {Last(element)} = default!; Faulted_DotGram(thrown); }}";
 			// A yield's step keeps its element as the item it hands out, gathering nothing.
 			var built     = (WordsOnce(plan.Recovery, "expecting") is { } once ? once + " " : "") + (plan.Recovery.YieldStep
-				? $"{Last(element)} = {plan.Method}({arguments});"
-				: $"{Last(element)} = {plan.Method}({arguments}); {PushRecord(slot, element)}");
+				? made
+				: $"{made} {PushRecord(slot, element)}");
 
 			yield return Unbuilding ? $"if (unbuilt == 0) {{ {built} }}" : built;
 		}
@@ -936,9 +1118,17 @@ sealed partial class Machine
 				yield return "ImmediateValues.Return(values);";
 		}
 
-		/// <remarks>Read off the reader, which is what the register is a field of.</remarks>
+		/// <remarks>
+		/// Read off the reader, which is what the register is a field of. An exception held at
+		/// this point is one from the reading that stands, and is thrown here, where the tape
+		/// would have thrown it building the answer — from a <c>Try</c> publication as from any
+		/// other (§7.5).
+		/// </remarks>
 		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
 		{
+			if (Holds)
+				yield return "if (reader.fault != null) reader.Thrown_DotGram();";
+
 			yield return $"value = reader.{Register(type)};";
 		}
 

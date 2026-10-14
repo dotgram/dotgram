@@ -38,8 +38,10 @@ namespace DotGram.Examples.Languages;
 // number's text is read with the trivia the grammar skips inside it, so `0 .75` is a reading
 // of `Number` that `decimal.Parse` refuses. A grammar that names no carrier is carried as
 // Immediate, which runs a construction as soon as its alternative is read: in
-// `cpu=0 .75 mem=2048` that reading is built, and throws, before the parse refuses the text.
-// On the tape every construction waits until the parse has accepted.
+// `cpu=0 .75 mem=2048` that reading is built, and throws, before the parse refuses the text —
+// the exception is held and dropped with the refused reading (docs/syntax.md §7.5), so the
+// answer is the refusal either way. On the tape every construction waits until the parse has
+// accepted, and `decimal.Parse` never runs for a text that is refused.
 
 [Gram("""
 	@using DotGram.Examples.Languages;

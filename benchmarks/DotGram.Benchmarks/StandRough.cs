@@ -27,6 +27,8 @@ static partial class Stand
 			Row("MetricsLine.Read, quoted", "MetricsLine", "Read", "name=\"a \"\"quoted\"\" value\" other=\"b\" third=\"c d e\""),
 			Row("FilterFile.ParseFilter", "FilterFile", "ParseFilter", "age > 18 and score = 100 and name = \"Bob\""),
 			Row("Filters.ParseFilter", "Filters", "ParseFilter", "name = \"Bob\" and ci(city = \"berlin\")"),
+			Row("Filter.ParseFilter", "Filter", "ParseFilter", "Price < 1 OR Price > 10 AND Country = 'UK'"),
+			Row("Filter.ParseFilter, refused", "Filter", "TryParseFilter", "Price < 1 OR Price > 10 AND Country = 'UK"),
 			Row("Lexemes.ParseQuoted", "Lexemes", "ParseQuoted", "\"a \"\"quoted\"\" text\""),
 			Row("Lexemes.ParseQuoted, long", "Lexemes", "ParseQuoted", quoted),
 			Row("SettingsFile.ParseSettings", "SettingsFile", "ParseSettings", "name = \"a b\"\nport = 8080\nmode = fast\n"),
@@ -39,6 +41,7 @@ static partial class Stand
 		foreach (var (name, type, method, text) in new[]
 		{
 			("Calculator.EvaluateInt", "Calculator", "EvaluateInt", sum),
+			("Calculator.EvaluateInt, refused", "Calculator", "TryEvaluateInt", sum + " +"),
 			("Calculator.BuildTree", "Calculator", "BuildTree", sum),
 			("ArithmeticTree.Read", "ArithmeticTree", "Read", sum),
 			("ClampedExample.Read", "ClampedExample", "Read", "clamp(x + 1, 0, 10) + (x + 2) + clamp(3, x, 9)"),
@@ -63,8 +66,8 @@ static partial class Stand
 			return (name, before.Example(type, method, text), after.Example(type, method, text));
 		}
 
-		Console.WriteLine("| entry point | before us (min, median) | after us (min, median) | after / before, min | after / before, median |");
-		Console.WriteLine("| --- | ---: | ---: | ---: | ---: |");
+		Console.WriteLine("| entry point | before us (min, median) | after us (min, median) | after / before, min | after / before, median | before B | after B |");
+		Console.WriteLine("| --- | ---: | ---: | ---: | ---: | ---: | ---: |");
 
 		foreach (var (name, b, a) in rows)
 		{
@@ -86,6 +89,24 @@ static partial class Stand
 
 				while (warm.Elapsed < TimeSpan.FromSeconds(2))
 					call();
+			}
+
+			// What one call allocates once the pools are warm. Through reflection on both sides
+			// alike (the arguments array and the boxed answer), so a side's figure is a few dozen
+			// bytes above the parse's own, and the difference between the sides is the parse's.
+			var bytes = new long[2];
+
+			for (var k = 0; k < 2; k++)
+			{
+				var call = k == 0 ? b : a;
+
+				call();
+
+				var allocated = GC.GetAllocatedBytesForCurrentThread();
+
+				call();
+
+				bytes[k] = GC.GetAllocatedBytesForCurrentThread() - allocated;
 			}
 
 			var probe = Stopwatch.StartNew();
@@ -119,7 +140,7 @@ static partial class Stand
 			var y = rounds[1].Order().ToList();
 
 			Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-				$"| {name} | {x[0]:F3}, {x[7]:F3} | {y[0]:F3}, {y[7]:F3} | {y[0] / x[0]:F3} | {y[7] / x[7]:F3} |"));
+				$"| {name} | {x[0]:F3}, {x[7]:F3} | {y[0]:F3}, {y[7]:F3} | {y[0] / x[0]:F3} | {y[7] / x[7]:F3} | {bytes[0]} | {bytes[1]} |"));
 		}
 	}
 }
