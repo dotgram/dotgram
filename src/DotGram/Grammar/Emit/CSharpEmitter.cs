@@ -3018,7 +3018,11 @@ file.Line("return spare;");
 					foreach (var (longer, union) in continuation.Extended)
 					{
 						var beginning = continuation.Beginning!;
-						var begins    = beginning.Length == 1
+						var begins    = continuation.BeginningFolds
+							// Folded as the automaton folded it, which read the beginning this way.
+							? $"text.Length - p >= {beginning.Length} && " +
+								$"!({FoldedDiffers($"text.Slice(p, {beginning.Length})", beginning, $"begun{continued}_{longer}")})"
+							: beginning.Length == 1
 							? $"text[p] == {Char(beginning[0])}"
 							: $"global::System.MemoryExtensions.StartsWith(text.Slice(p), global::System.MemoryExtensions.AsSpan({Quoted(beginning)}))";
 
