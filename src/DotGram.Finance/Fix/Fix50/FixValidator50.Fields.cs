@@ -4504,7 +4504,7 @@ partial class FixValidator50
 
 	static bool ValidateExecInst(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or
 				"C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or "M" or "N" or "O" or "P" or
 				"Q" or "R" or "S" or "T" or "U" or "V" or "W" or "X" or "Y" or "Z" or "a" or "b" or "c" or "d" or
@@ -6390,7 +6390,7 @@ partial class FixValidator50
 
 	static bool ValidateQuoteCondition(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "A" or "B" or "C" or "D" or
 				"E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or "M" or "N" or "O" or "P" or "Q" or "R" or
 				"S" or "T" or "U" or "V" or "W" or "X" or "Y" or "Z" or "a" or "b" or "c" or "d" or "e" or "f" or
@@ -6407,7 +6407,7 @@ partial class FixValidator50
 
 	static bool ValidateTradeCondition(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "A" or "AA" or "AB" or "AC" or "AD" or "AE" or
 				"AF" or "AG" or "AH" or "AI" or "AJ" or "AK" or "AL" or "AM" or "AN" or "AO" or "AP" or "AQ" or
 				"AR" or "AS" or "AT" or "AV" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or
@@ -6490,7 +6490,7 @@ partial class FixValidator50
 
 	static bool ValidateOpenCloseSettlFlag(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "5"))
 			{
 				Invalid(message, field);
@@ -6535,7 +6535,7 @@ partial class FixValidator50
 
 	static bool ValidateFinancialStatus(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("1" or "2" or "3"))
 			{
 				Invalid(message, field);
@@ -6548,7 +6548,7 @@ partial class FixValidator50
 
 	static bool ValidateCorporateAction(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or
 				"M" or "N" or "O" or "P" or "Q" or "R" or "S" or "T" or "U" or "V" or "W"))
 			{
@@ -8471,7 +8471,7 @@ partial class FixValidator50
 
 	static bool ValidateOrderRestrictions(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or "C" or
 				"D" or "E" or "F"))
 			{
@@ -8618,7 +8618,7 @@ partial class FixValidator50
 
 	static bool ValidateScope(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("1" or "2" or "3"))
 			{
 				Invalid(message, field);
@@ -12681,7 +12681,7 @@ partial class FixValidator50
 
 	static bool ValidateCustOrderHandlingInst(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("ADD" or "AON" or "CNH" or "DIR" or "E.W" or "FOK" or "IO" or "IOC" or "LOC" or
 				"LOO" or "MAC" or "MAO" or "MOC" or "MOO" or "MQT" or "NH" or "OVD" or "PEG" or "RSV" or "S.W" or
 				"SCL" or "TMO" or "TS" or "WRK"))
@@ -12724,7 +12724,7 @@ partial class FixValidator50
 
 	static bool ValidateDeskOrderHandlingInst(Fix50Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("ADD" or "AON" or "CNH" or "DIR" or "E.W" or "FOK" or "IO" or "IOC" or "LOC" or
 				"LOO" or "MAC" or "MAO" or "MOC" or "MOO" or "MQT" or "NH" or "OVD" or "PEG" or "RSV" or "S.W" or
 				"SCL" or "TMO" or "TS" or "WRK"))

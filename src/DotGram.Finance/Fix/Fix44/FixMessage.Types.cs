@@ -10,7 +10,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Advertisement, MsgType 7.</summary>
 	public sealed partial class Advertisement : FixMessage, IInstrument
 	{
-		internal Advertisement(List<FixField> fields) : base("7", fields)
+		internal Advertisement(FixList<FixField> fields) : base("7", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -26,7 +26,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -74,7 +74,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -105,7 +105,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -145,7 +145,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -455,7 +455,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -495,7 +495,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -848,7 +848,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -908,7 +908,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -1019,7 +1019,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -1031,13 +1031,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.Advertisement.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.Advertisement.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.Advertisement.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.Advertisement.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX AdvSide, tag 4, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? AdvSide { get; internal set; }
@@ -1100,7 +1100,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -1233,7 +1233,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -1362,7 +1362,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -1375,7 +1375,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AllocationInstruction, MsgType J.</summary>
 	public sealed partial class AllocationInstruction : FixMessage, IFinancingDetails, IInstrument, IInstrumentExtension, IParties, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal AllocationInstruction(List<FixField> fields) : base("J", fields)
+		internal AllocationInstruction(FixList<FixField> fields) : base("J", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -1395,7 +1395,7 @@ public abstract partial class FixMessage
 					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
 						if (NoOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
-						(NoOrdersGroups ??= []).Add(new () { ClOrdID = (FixField.Text)field });
+						(NoOrdersGroups ??= new()).Add(new () { ClOrdID = (FixField.Text)field });
 						break;
 					case FixTag.OrderID:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
@@ -1443,7 +1443,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoNested2PartyIDsGroups is null && NoOrdersGroups![^1].NoNested2PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartyIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoNested2PartyIDsGroups ??= []).Add(new () { Nested2PartyID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoNested2PartyIDsGroups ??= new()).Add(new () { Nested2PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartyIDSource:
@@ -1476,7 +1476,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups is null && NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartySubIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= []).Add(new () { Nested2PartySubID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= new()).Add(new () { Nested2PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartySubIDType:
@@ -1514,7 +1514,7 @@ public abstract partial class FixMessage
 					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
 					case FixTag.LastQty:
 						if (NoExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
-						(NoExecsGroups ??= []).Add(new () { LastQty = (FixField.Decimal)field });
+						(NoExecsGroups ??= new()).Add(new () { LastQty = (FixField.Decimal)field });
 						break;
 					case FixTag.ExecID:
 						if (NoExecsGroups is null || NoExecsGroups.Count == 0)
@@ -1567,7 +1567,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -1615,7 +1615,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -1648,7 +1648,7 @@ public abstract partial class FixMessage
 					case FixTag.NoInstrAttrib: if (NoInstrAttrib is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoInstrAttrib = (FixField.Integer)field; break;
 					case FixTag.InstrAttribType:
 						if (NoInstrAttribGroups is null && NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-						(NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+						(NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						break;
 					case FixTag.InstrAttribValue:
 						if (NoInstrAttribGroups is null || NoInstrAttribGroups.Count == 0)
@@ -1670,7 +1670,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -1710,7 +1710,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -2063,7 +2063,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -2077,7 +2077,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -2117,7 +2117,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -2446,7 +2446,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -2478,7 +2478,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -2515,7 +2515,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -2536,7 +2536,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						break;
 					case FixTag.AllocAcctIDSource:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -2600,7 +2600,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNestedPartyIDsGroups is null && NoAllocsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -2633,7 +2633,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -2810,7 +2810,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoMiscFeesGroups is null && NoAllocsGroups![^1].NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+							(NoAllocsGroups![^1].NoMiscFeesGroups ??= new()).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
 						}
 						break;
 					case FixTag.MiscFeeCurr:
@@ -2851,7 +2851,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoClearingInstructionsGroups is null && NoAllocsGroups![^1].NoClearingInstructions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoClearingInstructions, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoClearingInstructionsGroups ??= []).Add(new () { ClearingInstruction = (FixField.Integer)field });
+							(NoAllocsGroups![^1].NoClearingInstructionsGroups ??= new()).Add(new () { ClearingInstruction = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.AllocSettlInstType:
@@ -2908,7 +2908,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoDlvyInstGroups is null && NoAllocsGroups![^1].NoDlvyInst is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoDlvyInst, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoDlvyInstGroups ??= []).Add(new () { SettlInstSource = (FixField.Character)field });
+							(NoAllocsGroups![^1].NoDlvyInstGroups ??= new()).Add(new () { SettlInstSource = (FixField.Character)field });
 						}
 						break;
 					case FixTag.DlvyInstType:
@@ -2933,7 +2933,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups is null && NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartyIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= []).Add(new () { SettlPartyID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= new()).Add(new () { SettlPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartyIDSource:
@@ -2966,7 +2966,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups is null && NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartySubIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= []).Add(new () { SettlPartySubID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= new()).Add(new () { SettlPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartySubIDType:
@@ -3024,13 +3024,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoOrders { get; internal set; }
 
 		/// <summary>The entries counted by NoOrders, tag 73; null when the group is absent.</summary>
-		public List<FixMessage.AllocationInstruction.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
+		public FixList<FixMessage.AllocationInstruction.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
 
 		/// <summary>The FIX NoExecs, tag 124, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoExecs { get; internal set; }
 
 		/// <summary>The entries counted by NoExecs, tag 124; null when the group is absent.</summary>
-		public List<FixMessage.AllocationInstruction.NoExecsGroup>? NoExecsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationInstruction.NoExecsGroup>? NoExecsGroups { get; internal set; }
 
 		/// <summary>The FIX PreviouslyReported, tag 570, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public FixField.Boolean? PreviouslyReported { get; internal set; }
@@ -3060,7 +3060,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -3171,7 +3171,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -3189,7 +3189,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-		public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+		public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 		/// <summary>The FIX AgreementDesc, tag 913, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? AgreementDesc { get; internal set; }
@@ -3222,13 +3222,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.AllocationInstruction.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationInstruction.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.AllocationInstruction.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationInstruction.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX Quantity, tag 53, wire type <c>Qty</c>; null when the field is absent.</summary>
 		public FixField.Decimal? Quantity { get; internal set; }
@@ -3291,7 +3291,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradeDate, tag 75, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? TradeDate { get; internal set; }
@@ -3366,7 +3366,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX YieldType, tag 235, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? YieldType { get; internal set; }
@@ -3396,7 +3396,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAllocs { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-		public List<FixMessage.AllocationInstruction.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationInstruction.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
 		public sealed class NoOrdersGroup : INestedParties2
@@ -3420,7 +3420,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNested2PartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-			public List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
+			public FixList<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? OrderQty { get; internal set; }
@@ -3473,7 +3473,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -3602,7 +3602,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -3624,7 +3624,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -3766,7 +3766,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX NotifyBrokerOfCredit, tag 208, wire type <c>Boolean</c>; null when the field is absent.</summary>
 			public FixField.Boolean? NotifyBrokerOfCredit { get; internal set; }
@@ -3829,13 +3829,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoMiscFees { get; internal set; }
 
 			/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
-			public List<FixMessage.AllocationInstruction.NoAllocsGroup.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
+			public FixList<FixMessage.AllocationInstruction.NoAllocsGroup.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
 
 			/// <summary>The FIX NoClearingInstructions, tag 576, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoClearingInstructions { get; internal set; }
 
 			/// <summary>The entries counted by NoClearingInstructions, tag 576; null when the group is absent.</summary>
-			public List<FixMessage.AllocationInstruction.NoAllocsGroup.NoClearingInstructionsGroup>? NoClearingInstructionsGroups { get; internal set; }
+			public FixList<FixMessage.AllocationInstruction.NoAllocsGroup.NoClearingInstructionsGroup>? NoClearingInstructionsGroups { get; internal set; }
 
 			/// <summary>The FIX AllocSettlInstType, tag 780, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? AllocSettlInstType { get; internal set; }
@@ -3856,7 +3856,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoDlvyInst { get; internal set; }
 
 			/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
-			public List<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
+			public FixList<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoMiscFees, tag 136.</summary>
 			public sealed class NoMiscFeesGroup
@@ -3892,7 +3892,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AllocationInstructionAck, MsgType P.</summary>
 	public sealed partial class AllocationInstructionAck : FixMessage, IParties
 	{
-		internal AllocationInstructionAck(List<FixField> fields) : base("P", fields)
+		internal AllocationInstructionAck(FixList<FixField> fields) : base("P", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -3902,7 +3902,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -3934,7 +3934,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -3961,7 +3961,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						break;
 					case FixTag.AllocAcctIDSource:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -4036,7 +4036,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX SecondaryAllocID, tag 793, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? SecondaryAllocID { get; internal set; }
@@ -4081,7 +4081,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAllocs { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-		public List<FixMessage.AllocationInstructionAck.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationInstructionAck.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
 		public sealed class NoAllocsGroup
@@ -4121,7 +4121,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AllocationReport, MsgType AS.</summary>
 	public sealed partial class AllocationReport : FixMessage, IFinancingDetails, IInstrument, IInstrumentExtension, IParties, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal AllocationReport(List<FixField> fields) : base("AS", fields)
+		internal AllocationReport(FixList<FixField> fields) : base("AS", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -4145,7 +4145,7 @@ public abstract partial class FixMessage
 					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
 						if (NoOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
-						(NoOrdersGroups ??= []).Add(new () { ClOrdID = (FixField.Text)field });
+						(NoOrdersGroups ??= new()).Add(new () { ClOrdID = (FixField.Text)field });
 						break;
 					case FixTag.OrderID:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
@@ -4193,7 +4193,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoNested2PartyIDsGroups is null && NoOrdersGroups![^1].NoNested2PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartyIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoNested2PartyIDsGroups ??= []).Add(new () { Nested2PartyID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoNested2PartyIDsGroups ??= new()).Add(new () { Nested2PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartyIDSource:
@@ -4226,7 +4226,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups is null && NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartySubIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= []).Add(new () { Nested2PartySubID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= new()).Add(new () { Nested2PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartySubIDType:
@@ -4264,7 +4264,7 @@ public abstract partial class FixMessage
 					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
 					case FixTag.LastQty:
 						if (NoExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
-						(NoExecsGroups ??= []).Add(new () { LastQty = (FixField.Decimal)field });
+						(NoExecsGroups ??= new()).Add(new () { LastQty = (FixField.Decimal)field });
 						break;
 					case FixTag.ExecID:
 						if (NoExecsGroups is null || NoExecsGroups.Count == 0)
@@ -4317,7 +4317,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -4365,7 +4365,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -4398,7 +4398,7 @@ public abstract partial class FixMessage
 					case FixTag.NoInstrAttrib: if (NoInstrAttrib is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoInstrAttrib = (FixField.Integer)field; break;
 					case FixTag.InstrAttribType:
 						if (NoInstrAttribGroups is null && NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-						(NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+						(NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						break;
 					case FixTag.InstrAttribValue:
 						if (NoInstrAttribGroups is null || NoInstrAttribGroups.Count == 0)
@@ -4420,7 +4420,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -4460,7 +4460,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -4813,7 +4813,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -4827,7 +4827,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -4867,7 +4867,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -5196,7 +5196,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -5228,7 +5228,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -5265,7 +5265,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -5286,7 +5286,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						break;
 					case FixTag.AllocAcctIDSource:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -5350,7 +5350,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNestedPartyIDsGroups is null && NoAllocsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -5383,7 +5383,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -5560,7 +5560,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoMiscFeesGroups is null && NoAllocsGroups![^1].NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+							(NoAllocsGroups![^1].NoMiscFeesGroups ??= new()).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
 						}
 						break;
 					case FixTag.MiscFeeCurr:
@@ -5601,7 +5601,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoClearingInstructionsGroups is null && NoAllocsGroups![^1].NoClearingInstructions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoClearingInstructions, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoClearingInstructionsGroups ??= []).Add(new () { ClearingInstruction = (FixField.Integer)field });
+							(NoAllocsGroups![^1].NoClearingInstructionsGroups ??= new()).Add(new () { ClearingInstruction = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.AllocSettlInstType:
@@ -5658,7 +5658,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoDlvyInstGroups is null && NoAllocsGroups![^1].NoDlvyInst is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoDlvyInst, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoDlvyInstGroups ??= []).Add(new () { SettlInstSource = (FixField.Character)field });
+							(NoAllocsGroups![^1].NoDlvyInstGroups ??= new()).Add(new () { SettlInstSource = (FixField.Character)field });
 						}
 						break;
 					case FixTag.DlvyInstType:
@@ -5683,7 +5683,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups is null && NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartyIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= []).Add(new () { SettlPartyID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= new()).Add(new () { SettlPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartyIDSource:
@@ -5716,7 +5716,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups is null && NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartySubIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= []).Add(new () { SettlPartySubID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= new()).Add(new () { SettlPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartySubIDType:
@@ -5786,13 +5786,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoOrders { get; internal set; }
 
 		/// <summary>The entries counted by NoOrders, tag 73; null when the group is absent.</summary>
-		public List<FixMessage.AllocationReport.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
+		public FixList<FixMessage.AllocationReport.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
 
 		/// <summary>The FIX NoExecs, tag 124, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoExecs { get; internal set; }
 
 		/// <summary>The entries counted by NoExecs, tag 124; null when the group is absent.</summary>
-		public List<FixMessage.AllocationReport.NoExecsGroup>? NoExecsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationReport.NoExecsGroup>? NoExecsGroups { get; internal set; }
 
 		/// <summary>The FIX PreviouslyReported, tag 570, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public FixField.Boolean? PreviouslyReported { get; internal set; }
@@ -5822,7 +5822,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -5933,7 +5933,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -5951,7 +5951,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-		public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+		public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 		/// <summary>The FIX AgreementDesc, tag 913, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? AgreementDesc { get; internal set; }
@@ -5984,13 +5984,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.AllocationReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.AllocationReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX Quantity, tag 53, wire type <c>Qty</c>; null when the field is absent.</summary>
 		public FixField.Decimal? Quantity { get; internal set; }
@@ -6053,7 +6053,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradeDate, tag 75, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? TradeDate { get; internal set; }
@@ -6128,7 +6128,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX YieldType, tag 235, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? YieldType { get; internal set; }
@@ -6158,7 +6158,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAllocs { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-		public List<FixMessage.AllocationReport.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationReport.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
 		public sealed class NoOrdersGroup : INestedParties2
@@ -6182,7 +6182,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNested2PartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-			public List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
+			public FixList<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? OrderQty { get; internal set; }
@@ -6235,7 +6235,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -6364,7 +6364,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -6386,7 +6386,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -6528,7 +6528,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX NotifyBrokerOfCredit, tag 208, wire type <c>Boolean</c>; null when the field is absent.</summary>
 			public FixField.Boolean? NotifyBrokerOfCredit { get; internal set; }
@@ -6591,13 +6591,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoMiscFees { get; internal set; }
 
 			/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
-			public List<FixMessage.AllocationReport.NoAllocsGroup.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
+			public FixList<FixMessage.AllocationReport.NoAllocsGroup.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
 
 			/// <summary>The FIX NoClearingInstructions, tag 576, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoClearingInstructions { get; internal set; }
 
 			/// <summary>The entries counted by NoClearingInstructions, tag 576; null when the group is absent.</summary>
-			public List<FixMessage.AllocationReport.NoAllocsGroup.NoClearingInstructionsGroup>? NoClearingInstructionsGroups { get; internal set; }
+			public FixList<FixMessage.AllocationReport.NoAllocsGroup.NoClearingInstructionsGroup>? NoClearingInstructionsGroups { get; internal set; }
 
 			/// <summary>The FIX AllocSettlInstType, tag 780, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? AllocSettlInstType { get; internal set; }
@@ -6618,7 +6618,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoDlvyInst { get; internal set; }
 
 			/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
-			public List<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
+			public FixList<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoMiscFees, tag 136.</summary>
 			public sealed class NoMiscFeesGroup
@@ -6654,7 +6654,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AllocationReportAck, MsgType AT.</summary>
 	public sealed partial class AllocationReportAck : FixMessage, IParties
 	{
-		internal AllocationReportAck(List<FixField> fields) : base("AT", fields)
+		internal AllocationReportAck(FixList<FixField> fields) : base("AT", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -6665,7 +6665,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -6697,7 +6697,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -6724,7 +6724,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						break;
 					case FixTag.AllocAcctIDSource:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -6802,7 +6802,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX SecondaryAllocID, tag 793, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? SecondaryAllocID { get; internal set; }
@@ -6847,7 +6847,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAllocs { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-		public List<FixMessage.AllocationReportAck.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+		public FixList<FixMessage.AllocationReportAck.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
 		public sealed class NoAllocsGroup
@@ -6887,7 +6887,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 AssignmentReport, MsgType AW.</summary>
 	public sealed partial class AssignmentReport : FixMessage, IInstrument, IParties, IPositionAmountData, IPositionQty
 	{
-		internal AssignmentReport(List<FixField> fields) : base("AW", fields)
+		internal AssignmentReport(FixList<FixField> fields) : base("AW", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -6899,7 +6899,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -6931,7 +6931,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -6951,7 +6951,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -6999,7 +6999,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -7031,7 +7031,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -7071,7 +7071,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -7381,7 +7381,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -7421,7 +7421,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -7774,7 +7774,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -7788,7 +7788,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPositions: if (NoPositions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPositions = (FixField.Integer)field; break;
 					case FixTag.PosType:
 						if (NoPositionsGroups is null && NoPositions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPositions, field.Position, field, -1));
-						(NoPositionsGroups ??= []).Add(new () { PosType = (FixField.Text)field });
+						(NoPositionsGroups ??= new()).Add(new () { PosType = (FixField.Text)field });
 						break;
 					case FixTag.LongQty:
 						if (NoPositionsGroups is null || NoPositionsGroups.Count == 0)
@@ -7828,7 +7828,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPositionsGroups![^1].NoNestedPartyIDsGroups is null && NoPositionsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoPositionsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoPositionsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -7861,7 +7861,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -7875,7 +7875,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPosAmt: if (NoPosAmt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPosAmt = (FixField.Integer)field; break;
 					case FixTag.PosAmtType:
 						if (NoPosAmtGroups is null && NoPosAmt is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPosAmt, field.Position, field, -1));
-						(NoPosAmtGroups ??= []).Add(new () { PosAmtType = (FixField.Text)field });
+						(NoPosAmtGroups ??= new()).Add(new () { PosAmtType = (FixField.Text)field });
 						break;
 					case FixTag.PosAmt:
 						if (NoPosAmtGroups is null || NoPosAmtGroups.Count == 0)
@@ -7923,7 +7923,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -7947,7 +7947,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -8058,7 +8058,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -8073,25 +8073,25 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.AssignmentReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.AssignmentReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.AssignmentReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.AssignmentReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoPositions, tag 702, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoPositions { get; internal set; }
 
 		/// <summary>The entries counted by NoPositions, tag 702; null when the group is absent.</summary>
-		public List<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; internal set; }
+		public FixList<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; internal set; }
 
 		/// <summary>The FIX NoPosAmt, tag 753, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoPosAmt { get; internal set; }
 
 		/// <summary>The entries counted by NoPosAmt, tag 753; null when the group is absent.</summary>
-		public List<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; internal set; }
+		public FixList<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; internal set; }
 
 		/// <summary>The FIX ThresholdAmount, tag 834, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
 		public FixField.Decimal? ThresholdAmount { get; internal set; }
@@ -8157,7 +8157,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -8290,7 +8290,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -8419,7 +8419,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -8432,7 +8432,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 BidRequest, MsgType k.</summary>
 	public sealed partial class BidRequest : FixMessage
 	{
-		internal BidRequest(List<FixField> fields) : base("k", fields)
+		internal BidRequest(FixList<FixField> fields) : base("k", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -8451,7 +8451,7 @@ public abstract partial class FixMessage
 					case FixTag.NoBidDescriptors: if (NoBidDescriptors is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoBidDescriptors = (FixField.Integer)field; break;
 					case FixTag.BidDescriptorType:
 						if (NoBidDescriptorsGroups is null && NoBidDescriptors is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoBidDescriptors, field.Position, field, -1));
-						(NoBidDescriptorsGroups ??= []).Add(new () { BidDescriptorType = (FixField.Integer)field });
+						(NoBidDescriptorsGroups ??= new()).Add(new () { BidDescriptorType = (FixField.Integer)field });
 						break;
 					case FixTag.BidDescriptor:
 						if (NoBidDescriptorsGroups is null || NoBidDescriptorsGroups.Count == 0)
@@ -8536,7 +8536,7 @@ public abstract partial class FixMessage
 					case FixTag.NoBidComponents: if (NoBidComponents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoBidComponents = (FixField.Integer)field; break;
 					case FixTag.ListID:
 						if (NoBidComponentsGroups is null && NoBidComponents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoBidComponents, field.Position, field, -1));
-						(NoBidComponentsGroups ??= []).Add(new () { ListID = (FixField.Text)field });
+						(NoBidComponentsGroups ??= new()).Add(new () { ListID = (FixField.Text)field });
 						break;
 					case FixTag.Side:
 						if (NoBidComponentsGroups is null || NoBidComponentsGroups.Count == 0)
@@ -8663,13 +8663,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoBidDescriptors { get; internal set; }
 
 		/// <summary>The entries counted by NoBidDescriptors, tag 398; null when the group is absent.</summary>
-		public List<FixMessage.BidRequest.NoBidDescriptorsGroup>? NoBidDescriptorsGroups { get; internal set; }
+		public FixList<FixMessage.BidRequest.NoBidDescriptorsGroup>? NoBidDescriptorsGroups { get; internal set; }
 
 		/// <summary>The FIX NoBidComponents, tag 420, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoBidComponents { get; internal set; }
 
 		/// <summary>The entries counted by NoBidComponents, tag 420; null when the group is absent.</summary>
-		public List<FixMessage.BidRequest.NoBidComponentsGroup>? NoBidComponentsGroups { get; internal set; }
+		public FixList<FixMessage.BidRequest.NoBidComponentsGroup>? NoBidComponentsGroups { get; internal set; }
 
 		/// <summary>The FIX LiquidityIndType, tag 409, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? LiquidityIndType { get; internal set; }
@@ -8800,7 +8800,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 BidResponse, MsgType l.</summary>
 	public sealed partial class BidResponse : FixMessage
 	{
-		internal BidResponse(List<FixField> fields) : base("l", fields)
+		internal BidResponse(FixList<FixField> fields) : base("l", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -8811,7 +8811,7 @@ public abstract partial class FixMessage
 					case FixTag.NoBidComponents: if (NoBidComponents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoBidComponents = (FixField.Integer)field; break;
 					case FixTag.Commission:
 						if (NoBidComponentsGroups is null && NoBidComponents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoBidComponents, field.Position, field, -1));
-						(NoBidComponentsGroups ??= []).Add(new () { Commission = (FixField.Decimal)field });
+						(NoBidComponentsGroups ??= new()).Add(new () { Commission = (FixField.Decimal)field });
 						break;
 					case FixTag.CommType:
 						if (NoBidComponentsGroups is null || NoBidComponentsGroups.Count == 0)
@@ -8969,7 +8969,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoBidComponents { get; internal set; }
 
 		/// <summary>The entries counted by NoBidComponents, tag 420; null when the group is absent.</summary>
-		public List<FixMessage.BidResponse.NoBidComponentsGroup>? NoBidComponentsGroups { get; internal set; }
+		public FixList<FixMessage.BidResponse.NoBidComponentsGroup>? NoBidComponentsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoBidComponents, tag 420.</summary>
 		public sealed class NoBidComponentsGroup : ICommissionData
@@ -9039,7 +9039,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 BusinessMessageReject, MsgType j.</summary>
 	public sealed partial class BusinessMessageReject : FixMessage
 	{
-		internal BusinessMessageReject(List<FixField> fields) : base("j", fields)
+		internal BusinessMessageReject(FixList<FixField> fields) : base("j", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -9093,7 +9093,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralAssignment, MsgType AY.</summary>
 	public sealed partial class CollateralAssignment : FixMessage, IFinancingDetails, IInstrument, IParties, ISettlInstructionsData, ISpreadOrBenchmarkCurveData, IStipulations, ITrdRegTimestamps
 	{
-		internal CollateralAssignment(List<FixField> fields) : base("AY", fields)
+		internal CollateralAssignment(FixList<FixField> fields) : base("AY", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -9109,7 +9109,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -9141,7 +9141,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -9161,12 +9161,12 @@ public abstract partial class FixMessage
 					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
 					case FixTag.ExecID:
 						if (NoExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
-						(NoExecsGroups ??= []).Add(new () { ExecID = (FixField.Text)field });
+						(NoExecsGroups ??= new()).Add(new () { ExecID = (FixField.Text)field });
 						break;
 					case FixTag.NoTrades: if (NoTrades is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrades = (FixField.Integer)field; break;
 					case FixTag.TradeReportID:
 						if (NoTradesGroups is null && NoTrades is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrades, field.Position, field, -1));
-						(NoTradesGroups ??= []).Add(new () { TradeReportID = (FixField.Text)field });
+						(NoTradesGroups ??= new()).Add(new () { TradeReportID = (FixField.Text)field });
 						break;
 					case FixTag.SecondaryTradeReportID:
 						if (NoTradesGroups is null || NoTradesGroups.Count == 0)
@@ -9183,7 +9183,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -9231,7 +9231,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -9275,7 +9275,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -9315,7 +9315,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -9625,7 +9625,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -9665,7 +9665,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -10018,7 +10018,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -10043,7 +10043,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTrdRegTimestamps: if (NoTrdRegTimestamps is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrdRegTimestamps = (FixField.Integer)field; break;
 					case FixTag.TrdRegTimestamp:
 						if (NoTrdRegTimestampsGroups is null && NoTrdRegTimestamps is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrdRegTimestamps, field.Position, field, -1));
-						(NoTrdRegTimestampsGroups ??= []).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
+						(NoTrdRegTimestampsGroups ??= new()).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
 						break;
 					case FixTag.TrdRegTimestampType:
 						if (NoTrdRegTimestampsGroups is null || NoTrdRegTimestampsGroups.Count == 0)
@@ -10065,7 +10065,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMiscFees: if (NoMiscFees is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMiscFees = (FixField.Integer)field; break;
 					case FixTag.MiscFeeAmt:
 						if (NoMiscFeesGroups is null && NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-						(NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+						(NoMiscFeesGroups ??= new()).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
 						break;
 					case FixTag.MiscFeeCurr:
 						if (NoMiscFeesGroups is null || NoMiscFeesGroups.Count == 0)
@@ -10108,7 +10108,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -10125,7 +10125,7 @@ public abstract partial class FixMessage
 					case FixTag.NoDlvyInst: if (NoDlvyInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoDlvyInst = (FixField.Integer)field; break;
 					case FixTag.SettlInstSource:
 						if (NoDlvyInstGroups is null && NoDlvyInst is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoDlvyInst, field.Position, field, -1));
-						(NoDlvyInstGroups ??= []).Add(new () { SettlInstSource = (FixField.Character)field });
+						(NoDlvyInstGroups ??= new()).Add(new () { SettlInstSource = (FixField.Character)field });
 						break;
 					case FixTag.DlvyInstType:
 						if (NoDlvyInstGroups is null || NoDlvyInstGroups.Count == 0)
@@ -10149,7 +10149,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoDlvyInstGroups![^1].NoSettlPartyIDsGroups is null && NoDlvyInstGroups![^1].NoSettlPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartyIDs, field.Position, field, -1));
-							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= []).Add(new () { SettlPartyID = (FixField.Text)field });
+							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= new()).Add(new () { SettlPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartyIDSource:
@@ -10182,7 +10182,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups is null && NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartySubIDs, field.Position, field, -1));
-							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= []).Add(new () { SettlPartySubID = (FixField.Text)field });
+							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= new()).Add(new () { SettlPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartySubIDType:
@@ -10236,7 +10236,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -10260,13 +10260,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoExecs { get; internal set; }
 
 		/// <summary>The entries counted by NoExecs, tag 124; null when the group is absent.</summary>
-		public List<FixMessage.CollateralAssignment.NoExecsGroup>? NoExecsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralAssignment.NoExecsGroup>? NoExecsGroups { get; internal set; }
 
 		/// <summary>The FIX NoTrades, tag 897, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTrades { get; internal set; }
 
 		/// <summary>The entries counted by NoTrades, tag 897; null when the group is absent.</summary>
-		public List<FixMessage.CollateralAssignment.NoTradesGroup>? NoTradesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralAssignment.NoTradesGroup>? NoTradesGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -10284,7 +10284,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -10395,7 +10395,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -10446,13 +10446,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.CollateralAssignment.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralAssignment.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.CollateralAssignment.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralAssignment.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX MarginExcess, tag 899, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public FixField.Decimal? MarginExcess { get; internal set; }
@@ -10467,7 +10467,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTrdRegTimestamps { get; internal set; }
 
 		/// <summary>The entries counted by NoTrdRegTimestamps, tag 768; null when the group is absent.</summary>
-		public List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
+		public FixList<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -10476,7 +10476,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoMiscFees { get; internal set; }
 
 		/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
-		public List<FixMessage.CollateralAssignment.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralAssignment.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
 
 		/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
 		public FixField.Decimal? Price { get; internal set; }
@@ -10524,7 +10524,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlDeliveryType, tag 172, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? SettlDeliveryType { get; internal set; }
@@ -10542,7 +10542,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoDlvyInst { get; internal set; }
 
 		/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
-		public List<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
+		public FixList<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TradingSessionID { get; internal set; }
@@ -10604,7 +10604,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -10737,7 +10737,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -10866,7 +10866,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 			/// <summary>The FIX CollAction, tag 944, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? CollAction { get; internal set; }
@@ -10898,7 +10898,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralInquiry, MsgType BB.</summary>
 	public sealed partial class CollateralInquiry : FixMessage, IFinancingDetails, IInstrument, IParties, ISettlInstructionsData, ISpreadOrBenchmarkCurveData, IStipulations, ITrdRegTimestamps
 	{
-		internal CollateralInquiry(List<FixField> fields) : base("BB", fields)
+		internal CollateralInquiry(FixList<FixField> fields) : base("BB", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -10908,7 +10908,7 @@ public abstract partial class FixMessage
 					case FixTag.NoCollInquiryQualifier: if (NoCollInquiryQualifier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoCollInquiryQualifier = (FixField.Integer)field; break;
 					case FixTag.CollInquiryQualifier:
 						if (NoCollInquiryQualifierGroups is null && NoCollInquiryQualifier is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoCollInquiryQualifier, field.Position, field, -1));
-						(NoCollInquiryQualifierGroups ??= []).Add(new () { CollInquiryQualifier = (FixField.Integer)field });
+						(NoCollInquiryQualifierGroups ??= new()).Add(new () { CollInquiryQualifier = (FixField.Integer)field });
 						break;
 					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SubscriptionRequestType = (FixField.Character)field; break;
 					case FixTag.ResponseTransportType: if (ResponseTransportType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ResponseTransportType = (FixField.Integer)field; break;
@@ -10916,7 +10916,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -10948,7 +10948,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -10968,12 +10968,12 @@ public abstract partial class FixMessage
 					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
 					case FixTag.ExecID:
 						if (NoExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
-						(NoExecsGroups ??= []).Add(new () { ExecID = (FixField.Text)field });
+						(NoExecsGroups ??= new()).Add(new () { ExecID = (FixField.Text)field });
 						break;
 					case FixTag.NoTrades: if (NoTrades is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrades = (FixField.Integer)field; break;
 					case FixTag.TradeReportID:
 						if (NoTradesGroups is null && NoTrades is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrades, field.Position, field, -1));
-						(NoTradesGroups ??= []).Add(new () { TradeReportID = (FixField.Text)field });
+						(NoTradesGroups ??= new()).Add(new () { TradeReportID = (FixField.Text)field });
 						break;
 					case FixTag.SecondaryTradeReportID:
 						if (NoTradesGroups is null || NoTradesGroups.Count == 0)
@@ -10990,7 +10990,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -11038,7 +11038,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -11082,7 +11082,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -11122,7 +11122,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -11432,7 +11432,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -11472,7 +11472,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -11825,7 +11825,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -11842,7 +11842,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTrdRegTimestamps: if (NoTrdRegTimestamps is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrdRegTimestamps = (FixField.Integer)field; break;
 					case FixTag.TrdRegTimestamp:
 						if (NoTrdRegTimestampsGroups is null && NoTrdRegTimestamps is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrdRegTimestamps, field.Position, field, -1));
-						(NoTrdRegTimestampsGroups ??= []).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
+						(NoTrdRegTimestampsGroups ??= new()).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
 						break;
 					case FixTag.TrdRegTimestampType:
 						if (NoTrdRegTimestampsGroups is null || NoTrdRegTimestampsGroups.Count == 0)
@@ -11878,7 +11878,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -11895,7 +11895,7 @@ public abstract partial class FixMessage
 					case FixTag.NoDlvyInst: if (NoDlvyInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoDlvyInst = (FixField.Integer)field; break;
 					case FixTag.SettlInstSource:
 						if (NoDlvyInstGroups is null && NoDlvyInst is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoDlvyInst, field.Position, field, -1));
-						(NoDlvyInstGroups ??= []).Add(new () { SettlInstSource = (FixField.Character)field });
+						(NoDlvyInstGroups ??= new()).Add(new () { SettlInstSource = (FixField.Character)field });
 						break;
 					case FixTag.DlvyInstType:
 						if (NoDlvyInstGroups is null || NoDlvyInstGroups.Count == 0)
@@ -11919,7 +11919,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoDlvyInstGroups![^1].NoSettlPartyIDsGroups is null && NoDlvyInstGroups![^1].NoSettlPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartyIDs, field.Position, field, -1));
-							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= []).Add(new () { SettlPartyID = (FixField.Text)field });
+							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= new()).Add(new () { SettlPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartyIDSource:
@@ -11952,7 +11952,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups is null && NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartySubIDs, field.Position, field, -1));
-							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= []).Add(new () { SettlPartySubID = (FixField.Text)field });
+							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= new()).Add(new () { SettlPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartySubIDType:
@@ -11988,7 +11988,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoCollInquiryQualifier { get; internal set; }
 
 		/// <summary>The entries counted by NoCollInquiryQualifier, tag 938; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiry.NoCollInquiryQualifierGroup>? NoCollInquiryQualifierGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiry.NoCollInquiryQualifierGroup>? NoCollInquiryQualifierGroups { get; internal set; }
 
 		/// <summary>The FIX SubscriptionRequestType, tag 263, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SubscriptionRequestType { get; internal set; }
@@ -12003,7 +12003,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -12027,13 +12027,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoExecs { get; internal set; }
 
 		/// <summary>The entries counted by NoExecs, tag 124; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiry.NoExecsGroup>? NoExecsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiry.NoExecsGroup>? NoExecsGroups { get; internal set; }
 
 		/// <summary>The FIX NoTrades, tag 897, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTrades { get; internal set; }
 
 		/// <summary>The entries counted by NoTrades, tag 897; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiry.NoTradesGroup>? NoTradesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiry.NoTradesGroup>? NoTradesGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -12051,7 +12051,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -12162,7 +12162,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -12213,13 +12213,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiry.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiry.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiry.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiry.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX MarginExcess, tag 899, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public FixField.Decimal? MarginExcess { get; internal set; }
@@ -12234,7 +12234,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTrdRegTimestamps { get; internal set; }
 
 		/// <summary>The entries counted by NoTrdRegTimestamps, tag 768; null when the group is absent.</summary>
-		public List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
+		public FixList<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -12285,7 +12285,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlDeliveryType, tag 172, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? SettlDeliveryType { get; internal set; }
@@ -12303,7 +12303,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoDlvyInst { get; internal set; }
 
 		/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
-		public List<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
+		public FixList<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TradingSessionID { get; internal set; }
@@ -12372,7 +12372,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -12505,7 +12505,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -12634,7 +12634,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -12647,7 +12647,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralInquiryAck, MsgType BG.</summary>
 	public sealed partial class CollateralInquiryAck : FixMessage, IFinancingDetails, IInstrument, IParties
 	{
-		internal CollateralInquiryAck(List<FixField> fields) : base("BG", fields)
+		internal CollateralInquiryAck(FixList<FixField> fields) : base("BG", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -12659,13 +12659,13 @@ public abstract partial class FixMessage
 					case FixTag.NoCollInquiryQualifier: if (NoCollInquiryQualifier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoCollInquiryQualifier = (FixField.Integer)field; break;
 					case FixTag.CollInquiryQualifier:
 						if (NoCollInquiryQualifierGroups is null && NoCollInquiryQualifier is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoCollInquiryQualifier, field.Position, field, -1));
-						(NoCollInquiryQualifierGroups ??= []).Add(new () { CollInquiryQualifier = (FixField.Integer)field });
+						(NoCollInquiryQualifierGroups ??= new()).Add(new () { CollInquiryQualifier = (FixField.Integer)field });
 						break;
 					case FixTag.TotNumReports: if (TotNumReports is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TotNumReports = (FixField.Integer)field; break;
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -12697,7 +12697,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -12717,12 +12717,12 @@ public abstract partial class FixMessage
 					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
 					case FixTag.ExecID:
 						if (NoExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
-						(NoExecsGroups ??= []).Add(new () { ExecID = (FixField.Text)field });
+						(NoExecsGroups ??= new()).Add(new () { ExecID = (FixField.Text)field });
 						break;
 					case FixTag.NoTrades: if (NoTrades is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrades = (FixField.Integer)field; break;
 					case FixTag.TradeReportID:
 						if (NoTradesGroups is null && NoTrades is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrades, field.Position, field, -1));
-						(NoTradesGroups ??= []).Add(new () { TradeReportID = (FixField.Text)field });
+						(NoTradesGroups ??= new()).Add(new () { TradeReportID = (FixField.Text)field });
 						break;
 					case FixTag.SecondaryTradeReportID:
 						if (NoTradesGroups is null || NoTradesGroups.Count == 0)
@@ -12739,7 +12739,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -12787,7 +12787,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -12831,7 +12831,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -12871,7 +12871,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -13181,7 +13181,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -13221,7 +13221,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -13574,7 +13574,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -13618,7 +13618,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoCollInquiryQualifier { get; internal set; }
 
 		/// <summary>The entries counted by NoCollInquiryQualifier, tag 938; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiryAck.NoCollInquiryQualifierGroup>? NoCollInquiryQualifierGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiryAck.NoCollInquiryQualifierGroup>? NoCollInquiryQualifierGroups { get; internal set; }
 
 		/// <summary>The FIX TotNumReports, tag 911, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? TotNumReports { get; internal set; }
@@ -13627,7 +13627,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -13651,13 +13651,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoExecs { get; internal set; }
 
 		/// <summary>The entries counted by NoExecs, tag 124; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiryAck.NoExecsGroup>? NoExecsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiryAck.NoExecsGroup>? NoExecsGroups { get; internal set; }
 
 		/// <summary>The FIX NoTrades, tag 897, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTrades { get; internal set; }
 
 		/// <summary>The entries counted by NoTrades, tag 897; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiryAck.NoTradesGroup>? NoTradesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiryAck.NoTradesGroup>? NoTradesGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -13675,7 +13675,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -13786,7 +13786,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -13837,13 +13837,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiryAck.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiryAck.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.CollateralInquiryAck.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralInquiryAck.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TradingSessionID { get; internal set; }
@@ -13918,7 +13918,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -14051,7 +14051,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -14180,7 +14180,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -14193,7 +14193,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralReport, MsgType BA.</summary>
 	public sealed partial class CollateralReport : FixMessage, IFinancingDetails, IInstrument, IParties, ISettlInstructionsData, ISpreadOrBenchmarkCurveData, IStipulations, ITrdRegTimestamps
 	{
-		internal CollateralReport(List<FixField> fields) : base("BA", fields)
+		internal CollateralReport(FixList<FixField> fields) : base("BA", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -14207,7 +14207,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -14239,7 +14239,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -14259,12 +14259,12 @@ public abstract partial class FixMessage
 					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
 					case FixTag.ExecID:
 						if (NoExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
-						(NoExecsGroups ??= []).Add(new () { ExecID = (FixField.Text)field });
+						(NoExecsGroups ??= new()).Add(new () { ExecID = (FixField.Text)field });
 						break;
 					case FixTag.NoTrades: if (NoTrades is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrades = (FixField.Integer)field; break;
 					case FixTag.TradeReportID:
 						if (NoTradesGroups is null && NoTrades is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrades, field.Position, field, -1));
-						(NoTradesGroups ??= []).Add(new () { TradeReportID = (FixField.Text)field });
+						(NoTradesGroups ??= new()).Add(new () { TradeReportID = (FixField.Text)field });
 						break;
 					case FixTag.SecondaryTradeReportID:
 						if (NoTradesGroups is null || NoTradesGroups.Count == 0)
@@ -14281,7 +14281,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -14329,7 +14329,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -14373,7 +14373,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -14413,7 +14413,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -14723,7 +14723,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -14763,7 +14763,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -15116,7 +15116,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -15133,7 +15133,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTrdRegTimestamps: if (NoTrdRegTimestamps is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrdRegTimestamps = (FixField.Integer)field; break;
 					case FixTag.TrdRegTimestamp:
 						if (NoTrdRegTimestampsGroups is null && NoTrdRegTimestamps is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrdRegTimestamps, field.Position, field, -1));
-						(NoTrdRegTimestampsGroups ??= []).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
+						(NoTrdRegTimestampsGroups ??= new()).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
 						break;
 					case FixTag.TrdRegTimestampType:
 						if (NoTrdRegTimestampsGroups is null || NoTrdRegTimestampsGroups.Count == 0)
@@ -15155,7 +15155,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMiscFees: if (NoMiscFees is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMiscFees = (FixField.Integer)field; break;
 					case FixTag.MiscFeeAmt:
 						if (NoMiscFeesGroups is null && NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-						(NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+						(NoMiscFeesGroups ??= new()).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
 						break;
 					case FixTag.MiscFeeCurr:
 						if (NoMiscFeesGroups is null || NoMiscFeesGroups.Count == 0)
@@ -15198,7 +15198,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -15215,7 +15215,7 @@ public abstract partial class FixMessage
 					case FixTag.NoDlvyInst: if (NoDlvyInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoDlvyInst = (FixField.Integer)field; break;
 					case FixTag.SettlInstSource:
 						if (NoDlvyInstGroups is null && NoDlvyInst is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoDlvyInst, field.Position, field, -1));
-						(NoDlvyInstGroups ??= []).Add(new () { SettlInstSource = (FixField.Character)field });
+						(NoDlvyInstGroups ??= new()).Add(new () { SettlInstSource = (FixField.Character)field });
 						break;
 					case FixTag.DlvyInstType:
 						if (NoDlvyInstGroups is null || NoDlvyInstGroups.Count == 0)
@@ -15239,7 +15239,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoDlvyInstGroups![^1].NoSettlPartyIDsGroups is null && NoDlvyInstGroups![^1].NoSettlPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartyIDs, field.Position, field, -1));
-							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= []).Add(new () { SettlPartyID = (FixField.Text)field });
+							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= new()).Add(new () { SettlPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartyIDSource:
@@ -15272,7 +15272,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups is null && NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartySubIDs, field.Position, field, -1));
-							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= []).Add(new () { SettlPartySubID = (FixField.Text)field });
+							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= new()).Add(new () { SettlPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartySubIDType:
@@ -15320,7 +15320,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -15344,13 +15344,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoExecs { get; internal set; }
 
 		/// <summary>The entries counted by NoExecs, tag 124; null when the group is absent.</summary>
-		public List<FixMessage.CollateralReport.NoExecsGroup>? NoExecsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralReport.NoExecsGroup>? NoExecsGroups { get; internal set; }
 
 		/// <summary>The FIX NoTrades, tag 897, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTrades { get; internal set; }
 
 		/// <summary>The entries counted by NoTrades, tag 897; null when the group is absent.</summary>
-		public List<FixMessage.CollateralReport.NoTradesGroup>? NoTradesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralReport.NoTradesGroup>? NoTradesGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -15368,7 +15368,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -15479,7 +15479,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -15530,13 +15530,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.CollateralReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.CollateralReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX MarginExcess, tag 899, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public FixField.Decimal? MarginExcess { get; internal set; }
@@ -15551,7 +15551,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTrdRegTimestamps { get; internal set; }
 
 		/// <summary>The entries counted by NoTrdRegTimestamps, tag 768; null when the group is absent.</summary>
-		public List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
+		public FixList<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -15560,7 +15560,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoMiscFees { get; internal set; }
 
 		/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
-		public List<FixMessage.CollateralReport.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralReport.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
 
 		/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
 		public FixField.Decimal? Price { get; internal set; }
@@ -15608,7 +15608,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlDeliveryType, tag 172, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? SettlDeliveryType { get; internal set; }
@@ -15626,7 +15626,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoDlvyInst { get; internal set; }
 
 		/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
-		public List<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
+		public FixList<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TradingSessionID { get; internal set; }
@@ -15688,7 +15688,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -15821,7 +15821,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -15950,7 +15950,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoMiscFees, tag 136.</summary>
@@ -15979,7 +15979,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralRequest, MsgType AX.</summary>
 	public sealed partial class CollateralRequest : FixMessage, IFinancingDetails, IInstrument, IParties, ISpreadOrBenchmarkCurveData, IStipulations, ITrdRegTimestamps
 	{
-		internal CollateralRequest(List<FixField> fields) : base("AX", fields)
+		internal CollateralRequest(FixList<FixField> fields) : base("AX", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -15992,7 +15992,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -16024,7 +16024,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -16044,12 +16044,12 @@ public abstract partial class FixMessage
 					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
 					case FixTag.ExecID:
 						if (NoExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
-						(NoExecsGroups ??= []).Add(new () { ExecID = (FixField.Text)field });
+						(NoExecsGroups ??= new()).Add(new () { ExecID = (FixField.Text)field });
 						break;
 					case FixTag.NoTrades: if (NoTrades is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrades = (FixField.Integer)field; break;
 					case FixTag.TradeReportID:
 						if (NoTradesGroups is null && NoTrades is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrades, field.Position, field, -1));
-						(NoTradesGroups ??= []).Add(new () { TradeReportID = (FixField.Text)field });
+						(NoTradesGroups ??= new()).Add(new () { TradeReportID = (FixField.Text)field });
 						break;
 					case FixTag.SecondaryTradeReportID:
 						if (NoTradesGroups is null || NoTradesGroups.Count == 0)
@@ -16066,7 +16066,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -16114,7 +16114,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -16158,7 +16158,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -16198,7 +16198,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -16508,7 +16508,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -16548,7 +16548,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -16901,7 +16901,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -16926,7 +16926,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTrdRegTimestamps: if (NoTrdRegTimestamps is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrdRegTimestamps = (FixField.Integer)field; break;
 					case FixTag.TrdRegTimestamp:
 						if (NoTrdRegTimestampsGroups is null && NoTrdRegTimestamps is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrdRegTimestamps, field.Position, field, -1));
-						(NoTrdRegTimestampsGroups ??= []).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
+						(NoTrdRegTimestampsGroups ??= new()).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
 						break;
 					case FixTag.TrdRegTimestampType:
 						if (NoTrdRegTimestampsGroups is null || NoTrdRegTimestampsGroups.Count == 0)
@@ -16948,7 +16948,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMiscFees: if (NoMiscFees is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMiscFees = (FixField.Integer)field; break;
 					case FixTag.MiscFeeAmt:
 						if (NoMiscFeesGroups is null && NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-						(NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+						(NoMiscFeesGroups ??= new()).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
 						break;
 					case FixTag.MiscFeeCurr:
 						if (NoMiscFeesGroups is null || NoMiscFeesGroups.Count == 0)
@@ -16991,7 +16991,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -17035,7 +17035,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -17059,13 +17059,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoExecs { get; internal set; }
 
 		/// <summary>The entries counted by NoExecs, tag 124; null when the group is absent.</summary>
-		public List<FixMessage.CollateralRequest.NoExecsGroup>? NoExecsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralRequest.NoExecsGroup>? NoExecsGroups { get; internal set; }
 
 		/// <summary>The FIX NoTrades, tag 897, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTrades { get; internal set; }
 
 		/// <summary>The entries counted by NoTrades, tag 897; null when the group is absent.</summary>
-		public List<FixMessage.CollateralRequest.NoTradesGroup>? NoTradesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralRequest.NoTradesGroup>? NoTradesGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -17083,7 +17083,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -17194,7 +17194,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -17245,13 +17245,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.CollateralRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.CollateralRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX MarginExcess, tag 899, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public FixField.Decimal? MarginExcess { get; internal set; }
@@ -17266,7 +17266,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTrdRegTimestamps { get; internal set; }
 
 		/// <summary>The entries counted by NoTrdRegTimestamps, tag 768; null when the group is absent.</summary>
-		public List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
+		public FixList<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -17275,7 +17275,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoMiscFees { get; internal set; }
 
 		/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
-		public List<FixMessage.CollateralRequest.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralRequest.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
 
 		/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
 		public FixField.Decimal? Price { get; internal set; }
@@ -17323,7 +17323,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TradingSessionID { get; internal set; }
@@ -17385,7 +17385,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -17518,7 +17518,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -17647,7 +17647,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 			/// <summary>The FIX CollAction, tag 944, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? CollAction { get; internal set; }
@@ -17679,7 +17679,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CollateralResponse, MsgType AZ.</summary>
 	public sealed partial class CollateralResponse : FixMessage, IFinancingDetails, IInstrument, IParties, ISpreadOrBenchmarkCurveData, IStipulations, ITrdRegTimestamps
 	{
-		internal CollateralResponse(List<FixField> fields) : base("AZ", fields)
+		internal CollateralResponse(FixList<FixField> fields) : base("AZ", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -17696,7 +17696,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -17728,7 +17728,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -17748,12 +17748,12 @@ public abstract partial class FixMessage
 					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
 					case FixTag.ExecID:
 						if (NoExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
-						(NoExecsGroups ??= []).Add(new () { ExecID = (FixField.Text)field });
+						(NoExecsGroups ??= new()).Add(new () { ExecID = (FixField.Text)field });
 						break;
 					case FixTag.NoTrades: if (NoTrades is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrades = (FixField.Integer)field; break;
 					case FixTag.TradeReportID:
 						if (NoTradesGroups is null && NoTrades is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrades, field.Position, field, -1));
-						(NoTradesGroups ??= []).Add(new () { TradeReportID = (FixField.Text)field });
+						(NoTradesGroups ??= new()).Add(new () { TradeReportID = (FixField.Text)field });
 						break;
 					case FixTag.SecondaryTradeReportID:
 						if (NoTradesGroups is null || NoTradesGroups.Count == 0)
@@ -17770,7 +17770,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -17818,7 +17818,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -17862,7 +17862,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -17902,7 +17902,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -18212,7 +18212,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -18252,7 +18252,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -18605,7 +18605,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -18630,7 +18630,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTrdRegTimestamps: if (NoTrdRegTimestamps is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrdRegTimestamps = (FixField.Integer)field; break;
 					case FixTag.TrdRegTimestamp:
 						if (NoTrdRegTimestampsGroups is null && NoTrdRegTimestamps is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrdRegTimestamps, field.Position, field, -1));
-						(NoTrdRegTimestampsGroups ??= []).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
+						(NoTrdRegTimestampsGroups ??= new()).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
 						break;
 					case FixTag.TrdRegTimestampType:
 						if (NoTrdRegTimestampsGroups is null || NoTrdRegTimestampsGroups.Count == 0)
@@ -18652,7 +18652,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMiscFees: if (NoMiscFees is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMiscFees = (FixField.Integer)field; break;
 					case FixTag.MiscFeeAmt:
 						if (NoMiscFeesGroups is null && NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-						(NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+						(NoMiscFeesGroups ??= new()).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
 						break;
 					case FixTag.MiscFeeCurr:
 						if (NoMiscFeesGroups is null || NoMiscFeesGroups.Count == 0)
@@ -18695,7 +18695,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -18746,7 +18746,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -18770,13 +18770,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoExecs { get; internal set; }
 
 		/// <summary>The entries counted by NoExecs, tag 124; null when the group is absent.</summary>
-		public List<FixMessage.CollateralResponse.NoExecsGroup>? NoExecsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralResponse.NoExecsGroup>? NoExecsGroups { get; internal set; }
 
 		/// <summary>The FIX NoTrades, tag 897, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTrades { get; internal set; }
 
 		/// <summary>The entries counted by NoTrades, tag 897; null when the group is absent.</summary>
-		public List<FixMessage.CollateralResponse.NoTradesGroup>? NoTradesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralResponse.NoTradesGroup>? NoTradesGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -18794,7 +18794,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -18905,7 +18905,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -18956,13 +18956,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.CollateralResponse.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralResponse.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.CollateralResponse.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.CollateralResponse.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX MarginExcess, tag 899, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public FixField.Decimal? MarginExcess { get; internal set; }
@@ -18977,7 +18977,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTrdRegTimestamps { get; internal set; }
 
 		/// <summary>The entries counted by NoTrdRegTimestamps, tag 768; null when the group is absent.</summary>
-		public List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
+		public FixList<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -18986,7 +18986,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoMiscFees { get; internal set; }
 
 		/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
-		public List<FixMessage.CollateralResponse.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
+		public FixList<FixMessage.CollateralResponse.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
 
 		/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
 		public FixField.Decimal? Price { get; internal set; }
@@ -19034,7 +19034,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Text { get; internal set; }
@@ -19081,7 +19081,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -19214,7 +19214,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -19343,7 +19343,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 			/// <summary>The FIX CollAction, tag 944, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? CollAction { get; internal set; }
@@ -19375,7 +19375,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Confirmation, MsgType AK.</summary>
 	public sealed partial class Confirmation : FixMessage, ICommissionData, IFinancingDetails, IInstrument, IInstrumentExtension, IParties, ISettlInstructionsData, ISpreadOrBenchmarkCurveData, IStipulations, ITrdRegTimestamps, IYieldData
 	{
-		internal Confirmation(List<FixField> fields) : base("AK", fields)
+		internal Confirmation(FixList<FixField> fields) : base("AK", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -19392,7 +19392,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -19424,7 +19424,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -19438,7 +19438,7 @@ public abstract partial class FixMessage
 					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
 						if (NoOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
-						(NoOrdersGroups ??= []).Add(new () { ClOrdID = (FixField.Text)field });
+						(NoOrdersGroups ??= new()).Add(new () { ClOrdID = (FixField.Text)field });
 						break;
 					case FixTag.OrderID:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
@@ -19486,7 +19486,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoNested2PartyIDsGroups is null && NoOrdersGroups![^1].NoNested2PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartyIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoNested2PartyIDsGroups ??= []).Add(new () { Nested2PartyID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoNested2PartyIDsGroups ??= new()).Add(new () { Nested2PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartyIDSource:
@@ -19519,7 +19519,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups is null && NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartySubIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= []).Add(new () { Nested2PartySubID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= new()).Add(new () { Nested2PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartySubIDType:
@@ -19562,7 +19562,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTrdRegTimestamps: if (NoTrdRegTimestamps is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrdRegTimestamps = (FixField.Integer)field; break;
 					case FixTag.TrdRegTimestamp:
 						if (NoTrdRegTimestampsGroups is null && NoTrdRegTimestamps is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrdRegTimestamps, field.Position, field, -1));
-						(NoTrdRegTimestampsGroups ??= []).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
+						(NoTrdRegTimestampsGroups ??= new()).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
 						break;
 					case FixTag.TrdRegTimestampType:
 						if (NoTrdRegTimestampsGroups is null || NoTrdRegTimestampsGroups.Count == 0)
@@ -19587,7 +19587,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -19635,7 +19635,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -19668,7 +19668,7 @@ public abstract partial class FixMessage
 					case FixTag.NoInstrAttrib: if (NoInstrAttrib is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoInstrAttrib = (FixField.Integer)field; break;
 					case FixTag.InstrAttribType:
 						if (NoInstrAttribGroups is null && NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-						(NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+						(NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						break;
 					case FixTag.InstrAttribValue:
 						if (NoInstrAttribGroups is null || NoInstrAttribGroups.Count == 0)
@@ -19690,7 +19690,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -19730,7 +19730,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -20083,7 +20083,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -20097,7 +20097,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -20137,7 +20137,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -20458,7 +20458,7 @@ public abstract partial class FixMessage
 					case FixTag.NoCapacities: if (NoCapacities is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoCapacities = (FixField.Integer)field; break;
 					case FixTag.OrderCapacity:
 						if (NoCapacitiesGroups is null && NoCapacities is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoCapacities, field.Position, field, -1));
-						(NoCapacitiesGroups ??= []).Add(new () { OrderCapacity = (FixField.Character)field });
+						(NoCapacitiesGroups ??= new()).Add(new () { OrderCapacity = (FixField.Character)field });
 						break;
 					case FixTag.OrderRestrictions:
 						if (NoCapacitiesGroups is null || NoCapacitiesGroups.Count == 0)
@@ -20522,7 +20522,7 @@ public abstract partial class FixMessage
 					case FixTag.NoDlvyInst: if (NoDlvyInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoDlvyInst = (FixField.Integer)field; break;
 					case FixTag.SettlInstSource:
 						if (NoDlvyInstGroups is null && NoDlvyInst is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoDlvyInst, field.Position, field, -1));
-						(NoDlvyInstGroups ??= []).Add(new () { SettlInstSource = (FixField.Character)field });
+						(NoDlvyInstGroups ??= new()).Add(new () { SettlInstSource = (FixField.Character)field });
 						break;
 					case FixTag.DlvyInstType:
 						if (NoDlvyInstGroups is null || NoDlvyInstGroups.Count == 0)
@@ -20546,7 +20546,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoDlvyInstGroups![^1].NoSettlPartyIDsGroups is null && NoDlvyInstGroups![^1].NoSettlPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartyIDs, field.Position, field, -1));
-							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= []).Add(new () { SettlPartyID = (FixField.Text)field });
+							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= new()).Add(new () { SettlPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartyIDSource:
@@ -20579,7 +20579,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups is null && NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartySubIDs, field.Position, field, -1));
-							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= []).Add(new () { SettlPartySubID = (FixField.Text)field });
+							(NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= new()).Add(new () { SettlPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartySubIDType:
@@ -20598,7 +20598,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -20611,7 +20611,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMiscFees: if (NoMiscFees is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMiscFees = (FixField.Integer)field; break;
 					case FixTag.MiscFeeAmt:
 						if (NoMiscFeesGroups is null && NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-						(NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+						(NoMiscFeesGroups ??= new()).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
 						break;
 					case FixTag.MiscFeeCurr:
 						if (NoMiscFeesGroups is null || NoMiscFeesGroups.Count == 0)
@@ -20675,13 +20675,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX NoOrders, tag 73, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoOrders { get; internal set; }
 
 		/// <summary>The entries counted by NoOrders, tag 73; null when the group is absent.</summary>
-		public List<FixMessage.Confirmation.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
+		public FixList<FixMessage.Confirmation.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
 
 		/// <summary>The FIX AllocID, tag 70, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? AllocID { get; internal set; }
@@ -20702,7 +20702,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTrdRegTimestamps { get; internal set; }
 
 		/// <summary>The entries counted by NoTrdRegTimestamps, tag 768; null when the group is absent.</summary>
-		public List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
+		public FixList<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -20720,7 +20720,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -20831,7 +20831,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -20849,7 +20849,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-		public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+		public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 		/// <summary>The FIX AgreementDesc, tag 913, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? AgreementDesc { get; internal set; }
@@ -20882,13 +20882,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.Confirmation.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.Confirmation.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.Confirmation.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.Confirmation.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX YieldType, tag 235, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? YieldType { get; internal set; }
@@ -20927,7 +20927,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoCapacities { get; internal set; }
 
 		/// <summary>The entries counted by NoCapacities, tag 862; null when the group is absent.</summary>
-		public List<FixMessage.Confirmation.NoCapacitiesGroup>? NoCapacitiesGroups { get; internal set; }
+		public FixList<FixMessage.Confirmation.NoCapacitiesGroup>? NoCapacitiesGroups { get; internal set; }
 
 		/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? AllocAccount { get; internal set; }
@@ -21062,7 +21062,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoDlvyInst { get; internal set; }
 
 		/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
-		public List<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
+		public FixList<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
 
 		/// <summary>The FIX Commission, tag 12, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public FixField.Decimal? Commission { get; internal set; }
@@ -21083,13 +21083,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX NoMiscFees, tag 136, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoMiscFees { get; internal set; }
 
 		/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
-		public List<FixMessage.Confirmation.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
+		public FixList<FixMessage.Confirmation.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
 		public sealed class NoOrdersGroup : INestedParties2
@@ -21113,7 +21113,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNested2PartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-			public List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
+			public FixList<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? OrderQty { get; internal set; }
@@ -21144,7 +21144,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -21273,7 +21273,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -21295,7 +21295,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -21448,7 +21448,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ConfirmationAck, MsgType AU.</summary>
 	public sealed partial class ConfirmationAck : FixMessage
 	{
-		internal ConfirmationAck(List<FixField> fields) : base("AU", fields)
+		internal ConfirmationAck(FixList<FixField> fields) : base("AU", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -21510,7 +21510,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ConfirmationRequest, MsgType BH.</summary>
 	public sealed partial class ConfirmationRequest : FixMessage
 	{
-		internal ConfirmationRequest(List<FixField> fields) : base("BH", fields)
+		internal ConfirmationRequest(FixList<FixField> fields) : base("BH", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -21521,7 +21521,7 @@ public abstract partial class FixMessage
 					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
 						if (NoOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
-						(NoOrdersGroups ??= []).Add(new () { ClOrdID = (FixField.Text)field });
+						(NoOrdersGroups ??= new()).Add(new () { ClOrdID = (FixField.Text)field });
 						break;
 					case FixTag.OrderID:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
@@ -21569,7 +21569,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoNested2PartyIDsGroups is null && NoOrdersGroups![^1].NoNested2PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartyIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoNested2PartyIDsGroups ??= []).Add(new () { Nested2PartyID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoNested2PartyIDsGroups ??= new()).Add(new () { Nested2PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartyIDSource:
@@ -21602,7 +21602,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups is null && NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartySubIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= []).Add(new () { Nested2PartySubID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= new()).Add(new () { Nested2PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartySubIDType:
@@ -21667,7 +21667,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoOrders { get; internal set; }
 
 		/// <summary>The entries counted by NoOrders, tag 73; null when the group is absent.</summary>
-		public List<FixMessage.ConfirmationRequest.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
+		public FixList<FixMessage.ConfirmationRequest.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
 
 		/// <summary>The FIX AllocID, tag 70, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? AllocID { get; internal set; }
@@ -21721,7 +21721,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNested2PartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-			public List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
+			public FixList<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? OrderQty { get; internal set; }
@@ -21743,7 +21743,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CrossOrderCancelReplaceRequest, MsgType t.</summary>
 	public sealed partial class CrossOrderCancelReplaceRequest : FixMessage, IDiscretionInstructions, IInstrument, IPegInstructions, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal CrossOrderCancelReplaceRequest(List<FixField> fields) : base("t", fields)
+		internal CrossOrderCancelReplaceRequest(FixList<FixField> fields) : base("t", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -21757,7 +21757,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSides: if (NoSides is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSides = (FixField.Integer)field; break;
 					case FixTag.Side:
 						if (NoSidesGroups is null && NoSides is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSides, field.Position, field, -1));
-						(NoSidesGroups ??= []).Add(new () { Side = (FixField.Character)field });
+						(NoSidesGroups ??= new()).Add(new () { Side = (FixField.Character)field });
 						break;
 					case FixTag.ClOrdID:
 						if (NoSidesGroups is null || NoSidesGroups.Count == 0)
@@ -21797,7 +21797,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoPartyIDsGroups is null && NoSidesGroups![^1].NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartyIDSource:
@@ -21830,7 +21830,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -21927,7 +21927,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoAllocsGroups is null && NoSidesGroups![^1].NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+							(NoSidesGroups![^1].NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						}
 						break;
 					case FixTag.AllocAcctIDSource:
@@ -21968,7 +21968,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups is null && NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -22001,7 +22001,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -22227,7 +22227,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -22275,7 +22275,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -22306,7 +22306,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -22346,7 +22346,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -22699,7 +22699,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -22713,7 +22713,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -22753,7 +22753,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -23070,7 +23070,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -23087,7 +23087,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -23174,7 +23174,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSides { get; internal set; }
 
 		/// <summary>The entries counted by NoSides, tag 552; null when the group is absent.</summary>
-		public List<FixMessage.CrossOrderCancelReplaceRequest.NoSidesGroup>? NoSidesGroups { get; internal set; }
+		public FixList<FixMessage.CrossOrderCancelReplaceRequest.NoSidesGroup>? NoSidesGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -23192,7 +23192,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -23303,7 +23303,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -23315,13 +23315,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.CrossOrderCancelReplaceRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.CrossOrderCancelReplaceRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.CrossOrderCancelReplaceRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.CrossOrderCancelReplaceRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlType, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SettlType { get; internal set; }
@@ -23348,7 +23348,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.CrossOrderCancelReplaceRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.CrossOrderCancelReplaceRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? ProcessCode { get; internal set; }
@@ -23366,7 +23366,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX OrdType, tag 40, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? OrdType { get; internal set; }
@@ -23531,7 +23531,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-			public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+			public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX TradeOriginationDate, tag 229, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? TradeOriginationDate { get; internal set; }
@@ -23564,7 +23564,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoAllocs { get; internal set; }
 
 			/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-			public List<FixMessage.CrossOrderCancelReplaceRequest.NoSidesGroup.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+			public FixList<FixMessage.CrossOrderCancelReplaceRequest.NoSidesGroup.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 			/// <summary>The FIX QtyType, tag 854, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? QtyType { get; internal set; }
@@ -23660,7 +23660,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 				/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-				public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+				public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 				/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocQty { get; internal set; }
@@ -23686,7 +23686,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -23815,7 +23815,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -23837,7 +23837,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -23971,7 +23971,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 CrossOrderCancelRequest, MsgType u.</summary>
 	public sealed partial class CrossOrderCancelRequest : FixMessage, IInstrument
 	{
-		internal CrossOrderCancelRequest(List<FixField> fields) : base("u", fields)
+		internal CrossOrderCancelRequest(FixList<FixField> fields) : base("u", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -23985,7 +23985,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSides: if (NoSides is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSides = (FixField.Integer)field; break;
 					case FixTag.Side:
 						if (NoSidesGroups is null && NoSides is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSides, field.Position, field, -1));
-						(NoSidesGroups ??= []).Add(new () { Side = (FixField.Character)field });
+						(NoSidesGroups ??= new()).Add(new () { Side = (FixField.Character)field });
 						break;
 					case FixTag.OrigClOrdID:
 						if (NoSidesGroups is null || NoSidesGroups.Count == 0)
@@ -24041,7 +24041,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoPartyIDsGroups is null && NoSidesGroups![^1].NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartyIDSource:
@@ -24074,7 +24074,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -24180,7 +24180,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -24228,7 +24228,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -24259,7 +24259,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -24299,7 +24299,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -24652,7 +24652,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -24666,7 +24666,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -24706,7 +24706,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -25043,7 +25043,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSides { get; internal set; }
 
 		/// <summary>The entries counted by NoSides, tag 552; null when the group is absent.</summary>
-		public List<FixMessage.CrossOrderCancelRequest.NoSidesGroup>? NoSidesGroups { get; internal set; }
+		public FixList<FixMessage.CrossOrderCancelRequest.NoSidesGroup>? NoSidesGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -25061,7 +25061,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -25172,7 +25172,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -25184,13 +25184,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.CrossOrderCancelRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.CrossOrderCancelRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.CrossOrderCancelRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.CrossOrderCancelRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public FixField.Timestamp? TransactTime { get; internal set; }
@@ -25220,7 +25220,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-			public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+			public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX TradeOriginationDate, tag 229, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? TradeOriginationDate { get; internal set; }
@@ -25275,7 +25275,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -25404,7 +25404,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -25426,7 +25426,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -25550,7 +25550,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 DerivativeSecurityList, MsgType AA.</summary>
 	public sealed partial class DerivativeSecurityList : FixMessage, IUnderlyingInstrument, IUnderlyingStipulations
 	{
-		internal DerivativeSecurityList(List<FixField> fields) : base("AA", fields)
+		internal DerivativeSecurityList(FixList<FixField> fields) : base("AA", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -25566,7 +25566,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingSecurityAltID: if (NoUnderlyingSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSecurityAltID:
 						if (NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-						(NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+						(NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
 						if (NoUnderlyingSecurityAltIDGroups is null || NoUnderlyingSecurityAltIDGroups.Count == 0)
@@ -25620,7 +25620,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingStips: if (NoUnderlyingStips is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingStips = (FixField.Integer)field; break;
 					case FixTag.UnderlyingStipType:
 						if (NoUnderlyingStipsGroups is null && NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-						(NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+						(NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingStipValue:
 						if (NoUnderlyingStipsGroups is null || NoUnderlyingStipsGroups.Count == 0)
@@ -25635,7 +25635,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -25675,7 +25675,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -25980,7 +25980,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoEventsGroups is null && NoRelatedSymGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -26069,7 +26069,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoInstrAttribGroups is null && NoRelatedSymGroups![^1].NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.InstrAttribValue:
@@ -26094,7 +26094,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups is null && NoRelatedSymGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -26135,7 +26135,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -26517,7 +26517,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-		public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+		public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -26646,7 +26646,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-		public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+		public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 		/// <summary>The FIX TotNoRelatedSym, tag 393, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? TotNoRelatedSym { get; internal set; }
@@ -26658,7 +26658,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoRelatedSym { get; internal set; }
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
-		public List<FixMessage.DerivativeSecurityList.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
+		public FixList<FixMessage.DerivativeSecurityList.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
 		public sealed class NoRelatedSymGroup : IInstrument, IInstrumentExtension
@@ -26679,7 +26679,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -26790,7 +26790,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -26814,13 +26814,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 			/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-			public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+			public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 			/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoLegs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-			public List<FixMessage.DerivativeSecurityList.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+			public FixList<FixMessage.DerivativeSecurityList.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionID { get; internal set; }
@@ -26856,7 +26856,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-				public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegProduct { get; internal set; }
@@ -26981,7 +26981,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 DerivativeSecurityListRequest, MsgType z.</summary>
 	public sealed partial class DerivativeSecurityListRequest : FixMessage, IUnderlyingInstrument, IUnderlyingStipulations
 	{
-		internal DerivativeSecurityListRequest(List<FixField> fields) : base("z", fields)
+		internal DerivativeSecurityListRequest(FixList<FixField> fields) : base("z", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -26996,7 +26996,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingSecurityAltID: if (NoUnderlyingSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSecurityAltID:
 						if (NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-						(NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+						(NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
 						if (NoUnderlyingSecurityAltIDGroups is null || NoUnderlyingSecurityAltIDGroups.Count == 0)
@@ -27050,7 +27050,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingStips: if (NoUnderlyingStips is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingStips = (FixField.Integer)field; break;
 					case FixTag.UnderlyingStipType:
 						if (NoUnderlyingStipsGroups is null && NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-						(NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+						(NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingStipValue:
 						if (NoUnderlyingStipsGroups is null || NoUnderlyingStipsGroups.Count == 0)
@@ -27100,7 +27100,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-		public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+		public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -27229,7 +27229,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-		public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+		public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 		/// <summary>The FIX SecuritySubType, tag 762, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? SecuritySubType { get; internal set; }
@@ -27265,7 +27265,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 DontKnowTrade, MsgType Q.</summary>
 	public sealed partial class DontKnowTrade : FixMessage, IInstrument, IOrderQtyData
 	{
-		internal DontKnowTrade(List<FixField> fields) : base("Q", fields)
+		internal DontKnowTrade(FixList<FixField> fields) : base("Q", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -27282,7 +27282,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -27330,7 +27330,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -27361,7 +27361,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -27401,7 +27401,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -27754,7 +27754,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -27768,7 +27768,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -27808,7 +27808,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -28164,7 +28164,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -28275,7 +28275,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -28287,13 +28287,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.DontKnowTrade.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.DontKnowTrade.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.DontKnowTrade.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.DontKnowTrade.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -28347,7 +28347,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -28476,7 +28476,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -28498,7 +28498,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -28622,7 +28622,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Email, MsgType C.</summary>
 	public sealed partial class Email : FixMessage
 	{
-		internal Email(List<FixField> fields) : base("C", fields)
+		internal Email(FixList<FixField> fields) : base("C", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -28637,7 +28637,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
 						if (NoRoutingIDsGroups is null && NoRoutingIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRoutingIDs, field.Position, field, -1));
-						(NoRoutingIDsGroups ??= []).Add(new () { RoutingType = (FixField.Integer)field });
+						(NoRoutingIDsGroups ??= new()).Add(new () { RoutingType = (FixField.Integer)field });
 						break;
 					case FixTag.RoutingID:
 						if (NoRoutingIDsGroups is null || NoRoutingIDsGroups.Count == 0)
@@ -28650,7 +28650,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -28690,7 +28690,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -28995,7 +28995,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoEventsGroups is null && NoRelatedSymGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -29041,7 +29041,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -29081,7 +29081,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -29434,7 +29434,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -29448,7 +29448,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -29488,7 +29488,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -29800,7 +29800,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
 						if (LinesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLinesOfText, field.Position, field, -1));
-						(LinesOfTextGroups ??= []).Add(new () { Text = (FixField.Text)field });
+						(LinesOfTextGroups ??= new()).Add(new () { Text = (FixField.Text)field });
 						break;
 					case FixTag.EncodedTextLen:
 						if (LinesOfTextGroups is null || LinesOfTextGroups.Count == 0)
@@ -29852,25 +29852,25 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoRoutingIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoRoutingIDs, tag 215; null when the group is absent.</summary>
-		public List<FixMessage.Email.NoRoutingIDsGroup>? NoRoutingIDsGroups { get; internal set; }
+		public FixList<FixMessage.Email.NoRoutingIDsGroup>? NoRoutingIDsGroups { get; internal set; }
 
 		/// <summary>The FIX NoRelatedSym, tag 146, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoRelatedSym { get; internal set; }
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
-		public List<FixMessage.Email.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
+		public FixList<FixMessage.Email.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.Email.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.Email.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.Email.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.Email.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? OrderID { get; internal set; }
@@ -29882,7 +29882,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? LinesOfText { get; internal set; }
 
 		/// <summary>The entries counted by LinesOfText, tag 33; null when the group is absent.</summary>
-		public List<FixMessage.Email.LinesOfTextGroup>? LinesOfTextGroups { get; internal set; }
+		public FixList<FixMessage.Email.LinesOfTextGroup>? LinesOfTextGroups { get; internal set; }
 
 		/// <summary>The FIX RawDataLength, tag 95, wire type <c>Length</c>; null when the field is absent.</summary>
 		public FixField.Integer? RawDataLength { get; internal set; }
@@ -29919,7 +29919,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -30030,7 +30030,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -30058,7 +30058,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -30187,7 +30187,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -30209,7 +30209,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -30346,7 +30346,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ExecutionReport, MsgType 8.</summary>
 	public sealed partial class ExecutionReport : FixMessage, ICommissionData, IDiscretionInstructions, IFinancingDetails, IInstrument, IOrderQtyData, IParties, IPegInstructions, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal ExecutionReport(List<FixField> fields) : base("8", fields)
+		internal ExecutionReport(FixList<FixField> fields) : base("8", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -30367,7 +30367,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -30399,7 +30399,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -30414,7 +30414,7 @@ public abstract partial class FixMessage
 					case FixTag.NoContraBrokers: if (NoContraBrokers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoContraBrokers = (FixField.Integer)field; break;
 					case FixTag.ContraBroker:
 						if (NoContraBrokersGroups is null && NoContraBrokers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoContraBrokers, field.Position, field, -1));
-						(NoContraBrokersGroups ??= []).Add(new () { ContraBroker = (FixField.Text)field });
+						(NoContraBrokersGroups ??= new()).Add(new () { ContraBroker = (FixField.Text)field });
 						break;
 					case FixTag.ContraTrader:
 						if (NoContraBrokersGroups is null || NoContraBrokersGroups.Count == 0)
@@ -30476,7 +30476,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -30524,7 +30524,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -30564,7 +30564,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -30604,7 +30604,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -30957,7 +30957,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -30972,7 +30972,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -31108,7 +31108,7 @@ public abstract partial class FixMessage
 					case FixTag.NoContAmts: if (NoContAmts is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoContAmts = (FixField.Integer)field; break;
 					case FixTag.ContAmtType:
 						if (NoContAmtsGroups is null && NoContAmts is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoContAmts, field.Position, field, -1));
-						(NoContAmtsGroups ??= []).Add(new () { ContAmtType = (FixField.Integer)field });
+						(NoContAmtsGroups ??= new()).Add(new () { ContAmtType = (FixField.Integer)field });
 						break;
 					case FixTag.ContAmtValue:
 						if (NoContAmtsGroups is null || NoContAmtsGroups.Count == 0)
@@ -31129,7 +31129,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -31169,7 +31169,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -31506,7 +31506,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegStipulationsGroups is null && NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -31547,7 +31547,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -31580,7 +31580,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -31635,7 +31635,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMiscFees: if (NoMiscFees is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMiscFees = (FixField.Integer)field; break;
 					case FixTag.MiscFeeAmt:
 						if (NoMiscFeesGroups is null && NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-						(NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+						(NoMiscFeesGroups ??= new()).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
 						break;
 					case FixTag.MiscFeeCurr:
 						if (NoMiscFeesGroups is null || NoMiscFeesGroups.Count == 0)
@@ -31711,7 +31711,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradeOriginationDate, tag 229, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? TradeOriginationDate { get; internal set; }
@@ -31720,7 +31720,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoContraBrokers { get; internal set; }
 
 		/// <summary>The entries counted by NoContraBrokers, tag 382; null when the group is absent.</summary>
-		public List<FixMessage.ExecutionReport.NoContraBrokersGroup>? NoContraBrokersGroups { get; internal set; }
+		public FixList<FixMessage.ExecutionReport.NoContraBrokersGroup>? NoContraBrokersGroups { get; internal set; }
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? ListID { get; internal set; }
@@ -31801,7 +31801,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -31912,7 +31912,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -31951,7 +31951,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.ExecutionReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.ExecutionReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -31960,7 +31960,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX QtyType, tag 854, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? QtyType { get; internal set; }
@@ -32335,13 +32335,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoContAmts { get; internal set; }
 
 		/// <summary>The entries counted by NoContAmts, tag 518; null when the group is absent.</summary>
-		public List<FixMessage.ExecutionReport.NoContAmtsGroup>? NoContAmtsGroups { get; internal set; }
+		public FixList<FixMessage.ExecutionReport.NoContAmtsGroup>? NoContAmtsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.ExecutionReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.ExecutionReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX CopyMsgIndicator, tag 797, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public FixField.Boolean? CopyMsgIndicator { get; internal set; }
@@ -32350,7 +32350,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoMiscFees { get; internal set; }
 
 		/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
-		public List<FixMessage.ExecutionReport.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
+		public FixList<FixMessage.ExecutionReport.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoContraBrokers, tag 382.</summary>
 		public sealed class NoContraBrokersGroup
@@ -32390,7 +32390,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -32519,7 +32519,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoContAmts, tag 518.</summary>
@@ -32554,7 +32554,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -32677,7 +32677,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+			public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX LegPositionEffect, tag 564, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? LegPositionEffect { get; internal set; }
@@ -32689,7 +32689,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX LegRefID, tag 654, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? LegRefID { get; internal set; }
@@ -32733,7 +32733,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Heartbeat, MsgType 0.</summary>
 	public sealed partial class Heartbeat : FixMessage
 	{
-		internal Heartbeat(List<FixField> fields) : base("0", fields)
+		internal Heartbeat(FixList<FixField> fields) : base("0", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -32763,7 +32763,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 IndicationOfInterest, MsgType 6.</summary>
 	public sealed partial class IndicationOfInterest : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal IndicationOfInterest(List<FixField> fields) : base("6", fields)
+		internal IndicationOfInterest(FixList<FixField> fields) : base("6", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -32779,7 +32779,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -32827,7 +32827,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -32867,7 +32867,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -32907,7 +32907,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -33260,7 +33260,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -33283,7 +33283,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -33296,7 +33296,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -33336,7 +33336,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -33665,7 +33665,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegStipulationsGroups is null && NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -33684,7 +33684,7 @@ public abstract partial class FixMessage
 					case FixTag.NoIOIQualifiers: if (NoIOIQualifiers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoIOIQualifiers = (FixField.Integer)field; break;
 					case FixTag.IOIQualifier:
 						if (NoIOIQualifiersGroups is null && NoIOIQualifiers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoIOIQualifiers, field.Position, field, -1));
-						(NoIOIQualifiersGroups ??= []).Add(new () { IOIQualifier = (FixField.Character)field });
+						(NoIOIQualifiersGroups ??= new()).Add(new () { IOIQualifier = (FixField.Character)field });
 						break;
 					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
 					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
@@ -33694,7 +33694,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
 						if (NoRoutingIDsGroups is null && NoRoutingIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRoutingIDs, field.Position, field, -1));
-						(NoRoutingIDsGroups ??= []).Add(new () { RoutingType = (FixField.Integer)field });
+						(NoRoutingIDsGroups ??= new()).Add(new () { RoutingType = (FixField.Integer)field });
 						break;
 					case FixTag.RoutingID:
 						if (NoRoutingIDsGroups is null || NoRoutingIDsGroups.Count == 0)
@@ -33753,7 +33753,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -33864,7 +33864,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -33903,7 +33903,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.IndicationOfInterest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.IndicationOfInterest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -33936,13 +33936,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.IndicationOfInterest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.IndicationOfInterest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX PriceType, tag 423, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? PriceType { get; internal set; }
@@ -33963,7 +33963,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoIOIQualifiers { get; internal set; }
 
 		/// <summary>The entries counted by NoIOIQualifiers, tag 199; null when the group is absent.</summary>
-		public List<FixMessage.IndicationOfInterest.NoIOIQualifiersGroup>? NoIOIQualifiersGroups { get; internal set; }
+		public FixList<FixMessage.IndicationOfInterest.NoIOIQualifiersGroup>? NoIOIQualifiersGroups { get; internal set; }
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Text { get; internal set; }
@@ -33984,7 +33984,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoRoutingIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoRoutingIDs, tag 215; null when the group is absent.</summary>
-		public List<FixMessage.IndicationOfInterest.NoRoutingIDsGroup>? NoRoutingIDsGroups { get; internal set; }
+		public FixList<FixMessage.IndicationOfInterest.NoRoutingIDsGroup>? NoRoutingIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Spread, tag 218, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
 		public FixField.Decimal? Spread { get; internal set; }
@@ -34047,7 +34047,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -34176,7 +34176,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -34198,7 +34198,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -34318,7 +34318,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+			public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoIOIQualifiers, tag 199.</summary>
@@ -34348,7 +34348,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListCancelRequest, MsgType K.</summary>
 	public sealed partial class ListCancelRequest : FixMessage
 	{
-		internal ListCancelRequest(List<FixField> fields) : base("K", fields)
+		internal ListCancelRequest(FixList<FixField> fields) : base("K", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -34402,7 +34402,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListExecute, MsgType L.</summary>
 	public sealed partial class ListExecute : FixMessage
 	{
-		internal ListExecute(List<FixField> fields) : base("L", fields)
+		internal ListExecute(FixList<FixField> fields) : base("L", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -34456,7 +34456,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListStatus, MsgType N.</summary>
 	public sealed partial class ListStatus : FixMessage
 	{
-		internal ListStatus(List<FixField> fields) : base("N", fields)
+		internal ListStatus(FixList<FixField> fields) : base("N", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -34476,7 +34476,7 @@ public abstract partial class FixMessage
 					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
 						if (NoOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
-						(NoOrdersGroups ??= []).Add(new () { ClOrdID = (FixField.Text)field });
+						(NoOrdersGroups ??= new()).Add(new () { ClOrdID = (FixField.Text)field });
 						break;
 					case FixTag.SecondaryClOrdID:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
@@ -34613,7 +34613,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoOrders { get; internal set; }
 
 		/// <summary>The entries counted by NoOrders, tag 73; null when the group is absent.</summary>
-		public List<FixMessage.ListStatus.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
+		public FixList<FixMessage.ListStatus.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
 		public sealed class NoOrdersGroup
@@ -34665,7 +34665,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListStatusRequest, MsgType M.</summary>
 	public sealed partial class ListStatusRequest : FixMessage
 	{
-		internal ListStatusRequest(List<FixField> fields) : base("M", fields)
+		internal ListStatusRequest(FixList<FixField> fields) : base("M", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -34707,7 +34707,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ListStrikePrice, MsgType m.</summary>
 	public sealed partial class ListStrikePrice : FixMessage
 	{
-		internal ListStrikePrice(List<FixField> fields) : base("m", fields)
+		internal ListStrikePrice(FixList<FixField> fields) : base("m", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -34719,7 +34719,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStrikes: if (NoStrikes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStrikes = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoStrikesGroups is null && NoStrikes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStrikes, field.Position, field, -1));
-						(NoStrikesGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoStrikesGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoStrikesGroups is null || NoStrikesGroups.Count == 0)
@@ -34759,7 +34759,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoStrikesGroups![^1].NoSecurityAltIDGroups is null && NoStrikesGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoStrikesGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoStrikesGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -35064,7 +35064,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoStrikesGroups![^1].NoEventsGroups is null && NoStrikesGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoStrikesGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoStrikesGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -35110,7 +35110,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -35150,7 +35150,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -35503,7 +35503,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -35609,13 +35609,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStrikes { get; internal set; }
 
 		/// <summary>The entries counted by NoStrikes, tag 428; null when the group is absent.</summary>
-		public List<FixMessage.ListStrikePrice.NoStrikesGroup>? NoStrikesGroups { get; internal set; }
+		public FixList<FixMessage.ListStrikePrice.NoStrikesGroup>? NoStrikesGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.ListStrikePrice.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.ListStrikePrice.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoStrikes, tag 428.</summary>
 		public sealed class NoStrikesGroup : IInstrument
@@ -35636,7 +35636,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -35747,7 +35747,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -35775,7 +35775,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -35904,7 +35904,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 			/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? PrevClosePx { get; internal set; }
@@ -35944,7 +35944,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Logon, MsgType A.</summary>
 	public sealed partial class Logon : FixMessage
 	{
-		internal Logon(List<FixField> fields) : base("A", fields)
+		internal Logon(FixList<FixField> fields) : base("A", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -35960,7 +35960,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMsgTypes: if (NoMsgTypes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMsgTypes = (FixField.Integer)field; break;
 					case FixTag.RefMsgType:
 						if (NoMsgTypesGroups is null && NoMsgTypes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMsgTypes, field.Position, field, -1));
-						(NoMsgTypesGroups ??= []).Add(new () { RefMsgType = (FixField.Text)field });
+						(NoMsgTypesGroups ??= new()).Add(new () { RefMsgType = (FixField.Text)field });
 						break;
 					case FixTag.MsgDirection:
 						if (NoMsgTypesGroups is null || NoMsgTypesGroups.Count == 0)
@@ -36008,7 +36008,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoMsgTypes { get; internal set; }
 
 		/// <summary>The entries counted by NoMsgTypes, tag 384; null when the group is absent.</summary>
-		public List<FixMessage.Logon.NoMsgTypesGroup>? NoMsgTypesGroups { get; internal set; }
+		public FixList<FixMessage.Logon.NoMsgTypesGroup>? NoMsgTypesGroups { get; internal set; }
 
 		/// <summary>The FIX TestMessageIndicator, tag 464, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public FixField.Boolean? TestMessageIndicator { get; internal set; }
@@ -36039,7 +36039,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Logout, MsgType 5.</summary>
 	public sealed partial class Logout : FixMessage
 	{
-		internal Logout(List<FixField> fields) : base("5", fields)
+		internal Logout(FixList<FixField> fields) : base("5", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -36077,7 +36077,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MarketDataIncrementalRefresh, MsgType X.</summary>
 	public sealed partial class MarketDataIncrementalRefresh : FixMessage
 	{
-		internal MarketDataIncrementalRefresh(List<FixField> fields) : base("X", fields)
+		internal MarketDataIncrementalRefresh(FixList<FixField> fields) : base("X", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -36087,7 +36087,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMDEntries: if (NoMDEntries is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMDEntries = (FixField.Integer)field; break;
 					case FixTag.MDUpdateAction:
 						if (NoMDEntriesGroups is null && NoMDEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMDEntries, field.Position, field, -1));
-						(NoMDEntriesGroups ??= []).Add(new () { MDUpdateAction = (FixField.Character)field });
+						(NoMDEntriesGroups ??= new()).Add(new () { MDUpdateAction = (FixField.Character)field });
 						break;
 					case FixTag.DeleteReason:
 						if (NoMDEntriesGroups is null || NoMDEntriesGroups.Count == 0)
@@ -36167,7 +36167,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoMDEntriesGroups![^1].NoSecurityAltIDGroups is null && NoMDEntriesGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoMDEntriesGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoMDEntriesGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -36472,7 +36472,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoMDEntriesGroups![^1].NoEventsGroups is null && NoMDEntriesGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoMDEntriesGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoMDEntriesGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -36529,7 +36529,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoMDEntriesGroups![^1].NoUnderlyingsGroups is null && NoMDEntriesGroups![^1].NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-							(NoMDEntriesGroups![^1].NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+							(NoMDEntriesGroups![^1].NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSymbolSfx:
@@ -36570,7 +36570,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoMDEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoMDEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoMDEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoMDEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -36923,7 +36923,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoMDEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoMDEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoMDEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoMDEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -36948,7 +36948,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoMDEntriesGroups![^1].NoLegsGroups is null && NoMDEntriesGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoMDEntriesGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoMDEntriesGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -36989,7 +36989,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoMDEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoMDEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoMDEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoMDEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -37595,7 +37595,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoMDEntries { get; internal set; }
 
 		/// <summary>The entries counted by NoMDEntries, tag 268; null when the group is absent.</summary>
-		public List<FixMessage.MarketDataIncrementalRefresh.NoMDEntriesGroup>? NoMDEntriesGroups { get; internal set; }
+		public FixList<FixMessage.MarketDataIncrementalRefresh.NoMDEntriesGroup>? NoMDEntriesGroups { get; internal set; }
 
 		/// <summary>The FIX ApplQueueDepth, tag 813, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? ApplQueueDepth { get; internal set; }
@@ -37637,7 +37637,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -37748,7 +37748,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -37760,13 +37760,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyings { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-			public List<FixMessage.MarketDataIncrementalRefresh.NoMDEntriesGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+			public FixList<FixMessage.MarketDataIncrementalRefresh.NoMDEntriesGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 			/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoLegs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-			public List<FixMessage.MarketDataIncrementalRefresh.NoMDEntriesGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+			public FixList<FixMessage.MarketDataIncrementalRefresh.NoMDEntriesGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 			/// <summary>The FIX FinancialStatus, tag 291, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
 			public FixField.Multiple? FinancialStatus { get; internal set; }
@@ -37892,7 +37892,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-				public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+				public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -38021,7 +38021,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+				public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 			}
 
 			/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -38043,7 +38043,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-				public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegProduct { get; internal set; }
@@ -38168,7 +38168,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MarketDataRequest, MsgType V.</summary>
 	public sealed partial class MarketDataRequest : FixMessage
 	{
-		internal MarketDataRequest(List<FixField> fields) : base("V", fields)
+		internal MarketDataRequest(FixList<FixField> fields) : base("V", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -38185,12 +38185,12 @@ public abstract partial class FixMessage
 					case FixTag.NoMDEntryTypes: if (NoMDEntryTypes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMDEntryTypes = (FixField.Integer)field; break;
 					case FixTag.MDEntryType:
 						if (NoMDEntryTypesGroups is null && NoMDEntryTypes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMDEntryTypes, field.Position, field, -1));
-						(NoMDEntryTypesGroups ??= []).Add(new () { MDEntryType = (FixField.Character)field });
+						(NoMDEntryTypesGroups ??= new()).Add(new () { MDEntryType = (FixField.Character)field });
 						break;
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -38230,7 +38230,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -38535,7 +38535,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoEventsGroups is null && NoRelatedSymGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -38592,7 +38592,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups is null && NoRelatedSymGroups![^1].NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSymbolSfx:
@@ -38633,7 +38633,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -38986,7 +38986,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -39011,7 +39011,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups is null && NoRelatedSymGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -39052,7 +39052,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -39362,7 +39362,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -39412,19 +39412,19 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoMDEntryTypes { get; internal set; }
 
 		/// <summary>The entries counted by NoMDEntryTypes, tag 267; null when the group is absent.</summary>
-		public List<FixMessage.MarketDataRequest.NoMDEntryTypesGroup>? NoMDEntryTypesGroups { get; internal set; }
+		public FixList<FixMessage.MarketDataRequest.NoMDEntryTypesGroup>? NoMDEntryTypesGroups { get; internal set; }
 
 		/// <summary>The FIX NoRelatedSym, tag 146, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoRelatedSym { get; internal set; }
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
-		public List<FixMessage.MarketDataRequest.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
+		public FixList<FixMessage.MarketDataRequest.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
 
 		/// <summary>The FIX NoTradingSessions, tag 386, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.MarketDataRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.MarketDataRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX ApplQueueAction, tag 815, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? ApplQueueAction { get; internal set; }
@@ -39458,7 +39458,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -39569,7 +39569,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -39581,13 +39581,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyings { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-			public List<FixMessage.MarketDataRequest.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+			public FixList<FixMessage.MarketDataRequest.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 			/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoLegs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-			public List<FixMessage.MarketDataRequest.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+			public FixList<FixMessage.MarketDataRequest.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoUnderlyings, tag 711.</summary>
 			public sealed class NoUnderlyingsGroup : IUnderlyingInstrument, IUnderlyingStipulations
@@ -39608,7 +39608,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-				public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+				public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -39737,7 +39737,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+				public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 			}
 
 			/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -39759,7 +39759,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-				public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegProduct { get; internal set; }
@@ -39894,7 +39894,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MarketDataRequestReject, MsgType Y.</summary>
 	public sealed partial class MarketDataRequestReject : FixMessage
 	{
-		internal MarketDataRequestReject(List<FixField> fields) : base("Y", fields)
+		internal MarketDataRequestReject(FixList<FixField> fields) : base("Y", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -39905,7 +39905,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAltMDSource: if (NoAltMDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAltMDSource = (FixField.Integer)field; break;
 					case FixTag.AltMDSourceID:
 						if (NoAltMDSourceGroups is null && NoAltMDSource is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAltMDSource, field.Position, field, -1));
-						(NoAltMDSourceGroups ??= []).Add(new () { AltMDSourceID = (FixField.Text)field });
+						(NoAltMDSourceGroups ??= new()).Add(new () { AltMDSourceID = (FixField.Text)field });
 						break;
 					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
 					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
@@ -39930,7 +39930,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAltMDSource { get; internal set; }
 
 		/// <summary>The entries counted by NoAltMDSource, tag 816; null when the group is absent.</summary>
-		public List<FixMessage.MarketDataRequestReject.NoAltMDSourceGroup>? NoAltMDSourceGroups { get; internal set; }
+		public FixList<FixMessage.MarketDataRequestReject.NoAltMDSourceGroup>? NoAltMDSourceGroups { get; internal set; }
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Text { get; internal set; }
@@ -39958,7 +39958,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MarketDataSnapshotFullRefresh, MsgType W.</summary>
 	public sealed partial class MarketDataSnapshotFullRefresh : FixMessage, IInstrument
 	{
-		internal MarketDataSnapshotFullRefresh(List<FixField> fields) : base("W", fields)
+		internal MarketDataSnapshotFullRefresh(FixList<FixField> fields) : base("W", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -39972,7 +39972,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -40020,7 +40020,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -40051,7 +40051,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -40091,7 +40091,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -40444,7 +40444,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -40458,7 +40458,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -40498,7 +40498,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -40811,7 +40811,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMDEntries: if (NoMDEntries is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMDEntries = (FixField.Integer)field; break;
 					case FixTag.MDEntryType:
 						if (NoMDEntriesGroups is null && NoMDEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMDEntries, field.Position, field, -1));
-						(NoMDEntriesGroups ??= []).Add(new () { MDEntryType = (FixField.Character)field });
+						(NoMDEntriesGroups ??= new()).Add(new () { MDEntryType = (FixField.Character)field });
 						break;
 					case FixTag.MDEntryPx:
 						if (NoMDEntriesGroups is null || NoMDEntriesGroups.Count == 0)
@@ -41100,7 +41100,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -41211,7 +41211,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -41223,13 +41223,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.MarketDataSnapshotFullRefresh.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.MarketDataSnapshotFullRefresh.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.MarketDataSnapshotFullRefresh.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.MarketDataSnapshotFullRefresh.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX FinancialStatus, tag 291, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
 		public FixField.Multiple? FinancialStatus { get; internal set; }
@@ -41244,7 +41244,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoMDEntries { get; internal set; }
 
 		/// <summary>The entries counted by NoMDEntries, tag 268; null when the group is absent.</summary>
-		public List<FixMessage.MarketDataSnapshotFullRefresh.NoMDEntriesGroup>? NoMDEntriesGroups { get; internal set; }
+		public FixList<FixMessage.MarketDataSnapshotFullRefresh.NoMDEntriesGroup>? NoMDEntriesGroups { get; internal set; }
 
 		/// <summary>The FIX ApplQueueDepth, tag 813, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? ApplQueueDepth { get; internal set; }
@@ -41271,7 +41271,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -41400,7 +41400,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -41422,7 +41422,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -41649,7 +41649,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MassQuote, MsgType i.</summary>
 	public sealed partial class MassQuote : FixMessage, IParties
 	{
-		internal MassQuote(List<FixField> fields) : base("i", fields)
+		internal MassQuote(FixList<FixField> fields) : base("i", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -41662,7 +41662,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -41694,7 +41694,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -41713,7 +41713,7 @@ public abstract partial class FixMessage
 					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteSets = (FixField.Integer)field; break;
 					case FixTag.QuoteSetID:
 						if (NoQuoteSetsGroups is null && NoQuoteSets is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteSets, field.Position, field, -1));
-						(NoQuoteSetsGroups ??= []).Add(new () { QuoteSetID = (FixField.Text)field });
+						(NoQuoteSetsGroups ??= new()).Add(new () { QuoteSetID = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (NoQuoteSetsGroups is null || NoQuoteSetsGroups.Count == 0)
@@ -41761,7 +41761,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoQuoteSetsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -42114,7 +42114,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoUnderlyingStipsGroups is null && NoQuoteSetsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -42163,7 +42163,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteEntries, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups ??= []).Add(new () { QuoteEntryID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups ??= new()).Add(new () { QuoteEntryID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Symbol:
@@ -42212,7 +42212,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoSecurityAltIDGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -42517,7 +42517,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoEventsGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -42574,7 +42574,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -42615,7 +42615,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -43132,7 +43132,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -43153,7 +43153,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoQuoteSets { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteSets, tag 296; null when the group is absent.</summary>
-		public List<FixMessage.MassQuote.NoQuoteSetsGroup>? NoQuoteSetsGroups { get; internal set; }
+		public FixList<FixMessage.MassQuote.NoQuoteSetsGroup>? NoQuoteSetsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoQuoteSets, tag 296.</summary>
 		public sealed class NoQuoteSetsGroup : IUnderlyingInstrument, IUnderlyingStipulations
@@ -43177,7 +43177,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -43306,7 +43306,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 			/// <summary>The FIX QuoteSetValidUntilTime, tag 367, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 			public FixField.Timestamp? QuoteSetValidUntilTime { get; internal set; }
@@ -43321,7 +43321,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoQuoteEntries { get; internal set; }
 
 			/// <summary>The entries counted by NoQuoteEntries, tag 295; null when the group is absent.</summary>
-			public List<FixMessage.MassQuote.NoQuoteSetsGroup.NoQuoteEntriesGroup>? NoQuoteEntriesGroups { get; internal set; }
+			public FixList<FixMessage.MassQuote.NoQuoteSetsGroup.NoQuoteEntriesGroup>? NoQuoteEntriesGroups { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoQuoteEntries, tag 295.</summary>
 			public sealed class NoQuoteEntriesGroup : IInstrument
@@ -43345,7 +43345,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-				public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? Product { get; internal set; }
@@ -43456,7 +43456,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoEvents { get; internal set; }
 
 				/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-				public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+				public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 				/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 				public FixField.Date? DatedDate { get; internal set; }
@@ -43468,7 +43468,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegs { get; internal set; }
 
 				/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-				public List<FixMessage.MassQuote.NoQuoteSetsGroup.NoQuoteEntriesGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+				public FixList<FixMessage.MassQuote.NoQuoteSetsGroup.NoQuoteEntriesGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 				/// <summary>The FIX BidPx, tag 132, wire type <c>Price</c>; null when the field is absent.</summary>
 				public FixField.Decimal? BidPx { get; internal set; }
@@ -43558,7 +43558,7 @@ public abstract partial class FixMessage
 					public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 					/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-					public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+					public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 					/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 					public FixField.Integer? LegProduct { get; internal set; }
@@ -43684,7 +43684,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MassQuoteAcknowledgement, MsgType b.</summary>
 	public sealed partial class MassQuoteAcknowledgement : FixMessage, IParties
 	{
-		internal MassQuoteAcknowledgement(List<FixField> fields) : base("b", fields)
+		internal MassQuoteAcknowledgement(FixList<FixField> fields) : base("b", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -43699,7 +43699,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -43731,7 +43731,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -43751,7 +43751,7 @@ public abstract partial class FixMessage
 					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteSets = (FixField.Integer)field; break;
 					case FixTag.QuoteSetID:
 						if (NoQuoteSetsGroups is null && NoQuoteSets is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteSets, field.Position, field, -1));
-						(NoQuoteSetsGroups ??= []).Add(new () { QuoteSetID = (FixField.Text)field });
+						(NoQuoteSetsGroups ??= new()).Add(new () { QuoteSetID = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (NoQuoteSetsGroups is null || NoQuoteSetsGroups.Count == 0)
@@ -43799,7 +43799,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoQuoteSetsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -44152,7 +44152,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoUnderlyingStipsGroups is null && NoQuoteSetsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -44193,7 +44193,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteEntries, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups ??= []).Add(new () { QuoteEntryID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups ??= new()).Add(new () { QuoteEntryID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Symbol:
@@ -44242,7 +44242,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoSecurityAltIDGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -44547,7 +44547,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoEventsGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -44604,7 +44604,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -44645,7 +44645,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -45176,7 +45176,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -45200,7 +45200,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoQuoteSets { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteSets, tag 296; null when the group is absent.</summary>
-		public List<FixMessage.MassQuoteAcknowledgement.NoQuoteSetsGroup>? NoQuoteSetsGroups { get; internal set; }
+		public FixList<FixMessage.MassQuoteAcknowledgement.NoQuoteSetsGroup>? NoQuoteSetsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoQuoteSets, tag 296.</summary>
 		public sealed class NoQuoteSetsGroup : IUnderlyingInstrument, IUnderlyingStipulations
@@ -45224,7 +45224,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -45353,7 +45353,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 			/// <summary>The FIX TotNoQuoteEntries, tag 304, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? TotNoQuoteEntries { get; internal set; }
@@ -45365,7 +45365,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoQuoteEntries { get; internal set; }
 
 			/// <summary>The entries counted by NoQuoteEntries, tag 295; null when the group is absent.</summary>
-			public List<FixMessage.MassQuoteAcknowledgement.NoQuoteSetsGroup.NoQuoteEntriesGroup>? NoQuoteEntriesGroups { get; internal set; }
+			public FixList<FixMessage.MassQuoteAcknowledgement.NoQuoteSetsGroup.NoQuoteEntriesGroup>? NoQuoteEntriesGroups { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoQuoteEntries, tag 295.</summary>
 			public sealed class NoQuoteEntriesGroup : IInstrument
@@ -45389,7 +45389,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-				public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? Product { get; internal set; }
@@ -45500,7 +45500,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoEvents { get; internal set; }
 
 				/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-				public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+				public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 				/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 				public FixField.Date? DatedDate { get; internal set; }
@@ -45512,7 +45512,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegs { get; internal set; }
 
 				/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-				public List<FixMessage.MassQuoteAcknowledgement.NoQuoteSetsGroup.NoQuoteEntriesGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+				public FixList<FixMessage.MassQuoteAcknowledgement.NoQuoteSetsGroup.NoQuoteEntriesGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 				/// <summary>The FIX BidPx, tag 132, wire type <c>Price</c>; null when the field is absent.</summary>
 				public FixField.Decimal? BidPx { get; internal set; }
@@ -45605,7 +45605,7 @@ public abstract partial class FixMessage
 					public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 					/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-					public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+					public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 					/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 					public FixField.Integer? LegProduct { get; internal set; }
@@ -45731,7 +45731,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 MultilegOrderCancelReplaceRequest, MsgType AC.</summary>
 	public sealed partial class MultilegOrderCancelReplaceRequest : FixMessage, ICommissionData, IDiscretionInstructions, IInstrument, IOrderQtyData, IParties, IPegInstructions
 	{
-		internal MultilegOrderCancelReplaceRequest(List<FixField> fields) : base("AC", fields)
+		internal MultilegOrderCancelReplaceRequest(FixList<FixField> fields) : base("AC", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -45746,7 +45746,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -45778,7 +45778,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -45801,7 +45801,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						break;
 					case FixTag.AllocAcctIDSource:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -45841,7 +45841,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNested3PartyIDsGroups is null && NoAllocsGroups![^1].NoNested3PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested3PartyIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNested3PartyIDsGroups ??= []).Add(new () { Nested3PartyID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNested3PartyIDsGroups ??= new()).Add(new () { Nested3PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested3PartyIDSource:
@@ -45874,7 +45874,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNested3PartyIDsGroups![^1].NoNested3PartySubIDsGroups is null && NoAllocsGroups![^1].NoNested3PartyIDsGroups![^1].NoNested3PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested3PartySubIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNested3PartyIDsGroups![^1].NoNested3PartySubIDsGroups ??= []).Add(new () { Nested3PartySubID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNested3PartyIDsGroups![^1].NoNested3PartySubIDsGroups ??= new()).Add(new () { Nested3PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested3PartySubIDType:
@@ -45905,7 +45905,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -45924,7 +45924,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -45972,7 +45972,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -46003,7 +46003,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -46043,7 +46043,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -46396,7 +46396,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -46411,7 +46411,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -46451,7 +46451,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -46788,7 +46788,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegStipulationsGroups is null && NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -46813,7 +46813,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegAllocsGroups is null && NoLegsGroups![^1].NoLegAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegAllocs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegAllocsGroups ??= []).Add(new () { LegAllocAccount = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegAllocsGroups ??= new()).Add(new () { LegAllocAccount = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegIndividualAllocID:
@@ -46838,7 +46838,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups is null && NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups ??= []).Add(new () { Nested2PartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups ??= new()).Add(new () { Nested2PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartyIDSource:
@@ -46871,7 +46871,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups is null && NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= []).Add(new () { Nested2PartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= new()).Add(new () { Nested2PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartySubIDType:
@@ -46936,7 +46936,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -46969,7 +46969,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -47103,7 +47103,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradeOriginationDate, tag 229, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? TradeOriginationDate { get; internal set; }
@@ -47136,7 +47136,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAllocs { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-		public List<FixMessage.MultilegOrderCancelReplaceRequest.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+		public FixList<FixMessage.MultilegOrderCancelReplaceRequest.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlType, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SettlType { get; internal set; }
@@ -47169,7 +47169,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.MultilegOrderCancelReplaceRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.MultilegOrderCancelReplaceRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? ProcessCode { get; internal set; }
@@ -47193,7 +47193,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -47304,7 +47304,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -47316,7 +47316,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.MultilegOrderCancelReplaceRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.MultilegOrderCancelReplaceRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
 		public FixField.Decimal? PrevClosePx { get; internal set; }
@@ -47325,7 +47325,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.MultilegOrderCancelReplaceRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.MultilegOrderCancelReplaceRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX LocateReqd, tag 114, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public FixField.Boolean? LocateReqd { get; internal set; }
@@ -47523,7 +47523,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNested3PartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNested3PartyIDs, tag 948; null when the group is absent.</summary>
-			public List<INestedParties3.NoNested3PartyIDsGroup>? NoNested3PartyIDsGroups { get; internal set; }
+			public FixList<INestedParties3.NoNested3PartyIDsGroup>? NoNested3PartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
@@ -47558,7 +47558,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -47687,7 +47687,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -47709,7 +47709,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -47832,13 +47832,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+			public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX NoLegAllocs, tag 670, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoLegAllocs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegAllocs, tag 670; null when the group is absent.</summary>
-			public List<FixMessage.MultilegOrderCancelReplaceRequest.NoLegsGroup.NoLegAllocsGroup>? NoLegAllocsGroups { get; internal set; }
+			public FixList<FixMessage.MultilegOrderCancelReplaceRequest.NoLegsGroup.NoLegAllocsGroup>? NoLegAllocsGroups { get; internal set; }
 
 			/// <summary>The FIX LegPositionEffect, tag 564, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? LegPositionEffect { get; internal set; }
@@ -47850,7 +47850,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX LegRefID, tag 654, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? LegRefID { get; internal set; }
@@ -47877,7 +47877,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoNested2PartyIDs { get; internal set; }
 
 				/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-				public List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
+				public FixList<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
 
 				/// <summary>The FIX LegAllocQty, tag 673, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? LegAllocQty { get; internal set; }
@@ -47900,7 +47900,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NetworkStatusRequest, MsgType BC.</summary>
 	public sealed partial class NetworkStatusRequest : FixMessage
 	{
-		internal NetworkStatusRequest(List<FixField> fields) : base("BC", fields)
+		internal NetworkStatusRequest(FixList<FixField> fields) : base("BC", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -47911,7 +47911,7 @@ public abstract partial class FixMessage
 					case FixTag.NoCompIDs: if (NoCompIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoCompIDs = (FixField.Integer)field; break;
 					case FixTag.RefCompID:
 						if (NoCompIDsGroups is null && NoCompIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoCompIDs, field.Position, field, -1));
-						(NoCompIDsGroups ??= []).Add(new () { RefCompID = (FixField.Text)field });
+						(NoCompIDsGroups ??= new()).Add(new () { RefCompID = (FixField.Text)field });
 						break;
 					case FixTag.RefSubID:
 						if (NoCompIDsGroups is null || NoCompIDsGroups.Count == 0)
@@ -47957,7 +47957,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoCompIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoCompIDs, tag 936; null when the group is absent.</summary>
-		public List<FixMessage.NetworkStatusRequest.NoCompIDsGroup>? NoCompIDsGroups { get; internal set; }
+		public FixList<FixMessage.NetworkStatusRequest.NoCompIDsGroup>? NoCompIDsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoCompIDs, tag 936.</summary>
 		public sealed class NoCompIDsGroup
@@ -47985,7 +47985,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NetworkStatusResponse, MsgType BD.</summary>
 	public sealed partial class NetworkStatusResponse : FixMessage
 	{
-		internal NetworkStatusResponse(List<FixField> fields) : base("BD", fields)
+		internal NetworkStatusResponse(FixList<FixField> fields) : base("BD", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -47998,7 +47998,7 @@ public abstract partial class FixMessage
 					case FixTag.NoCompIDs: if (NoCompIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoCompIDs = (FixField.Integer)field; break;
 					case FixTag.RefCompID:
 						if (NoCompIDsGroups is null && NoCompIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoCompIDs, field.Position, field, -1));
-						(NoCompIDsGroups ??= []).Add(new () { RefCompID = (FixField.Text)field });
+						(NoCompIDsGroups ??= new()).Add(new () { RefCompID = (FixField.Text)field });
 						break;
 					case FixTag.RefSubID:
 						if (NoCompIDsGroups is null || NoCompIDsGroups.Count == 0)
@@ -48066,7 +48066,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoCompIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoCompIDs, tag 936; null when the group is absent.</summary>
-		public List<FixMessage.NetworkStatusResponse.NoCompIDsGroup>? NoCompIDsGroups { get; internal set; }
+		public FixList<FixMessage.NetworkStatusResponse.NoCompIDsGroup>? NoCompIDsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoCompIDs, tag 936.</summary>
 		public sealed class NoCompIDsGroup
@@ -48100,7 +48100,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NewOrderCross, MsgType s.</summary>
 	public sealed partial class NewOrderCross : FixMessage, IDiscretionInstructions, IInstrument, IPegInstructions, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal NewOrderCross(List<FixField> fields) : base("s", fields)
+		internal NewOrderCross(FixList<FixField> fields) : base("s", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -48112,7 +48112,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSides: if (NoSides is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSides = (FixField.Integer)field; break;
 					case FixTag.Side:
 						if (NoSidesGroups is null && NoSides is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSides, field.Position, field, -1));
-						(NoSidesGroups ??= []).Add(new () { Side = (FixField.Character)field });
+						(NoSidesGroups ??= new()).Add(new () { Side = (FixField.Character)field });
 						break;
 					case FixTag.ClOrdID:
 						if (NoSidesGroups is null || NoSidesGroups.Count == 0)
@@ -48152,7 +48152,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoPartyIDsGroups is null && NoSidesGroups![^1].NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartyIDSource:
@@ -48185,7 +48185,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -48282,7 +48282,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoAllocsGroups is null && NoSidesGroups![^1].NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+							(NoSidesGroups![^1].NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						}
 						break;
 					case FixTag.AllocAcctIDSource:
@@ -48323,7 +48323,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups is null && NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -48356,7 +48356,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -48582,7 +48582,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -48630,7 +48630,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -48661,7 +48661,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -48701,7 +48701,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -49054,7 +49054,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -49068,7 +49068,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -49108,7 +49108,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -49425,7 +49425,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -49442,7 +49442,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -49523,7 +49523,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSides { get; internal set; }
 
 		/// <summary>The entries counted by NoSides, tag 552; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderCross.NoSidesGroup>? NoSidesGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderCross.NoSidesGroup>? NoSidesGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -49541,7 +49541,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -49652,7 +49652,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -49664,13 +49664,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderCross.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderCross.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderCross.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderCross.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlType, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SettlType { get; internal set; }
@@ -49697,7 +49697,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderCross.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderCross.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? ProcessCode { get; internal set; }
@@ -49715,7 +49715,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX OrdType, tag 40, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? OrdType { get; internal set; }
@@ -49880,7 +49880,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-			public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+			public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX TradeOriginationDate, tag 229, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? TradeOriginationDate { get; internal set; }
@@ -49913,7 +49913,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoAllocs { get; internal set; }
 
 			/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-			public List<FixMessage.NewOrderCross.NoSidesGroup.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+			public FixList<FixMessage.NewOrderCross.NoSidesGroup.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 			/// <summary>The FIX QtyType, tag 854, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? QtyType { get; internal set; }
@@ -50009,7 +50009,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 				/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-				public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+				public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 				/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocQty { get; internal set; }
@@ -50035,7 +50035,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -50164,7 +50164,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -50186,7 +50186,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -50320,7 +50320,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NewOrderList, MsgType E.</summary>
 	public sealed partial class NewOrderList : FixMessage
 	{
-		internal NewOrderList(List<FixField> fields) : base("E", fields)
+		internal NewOrderList(FixList<FixField> fields) : base("E", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -50347,7 +50347,7 @@ public abstract partial class FixMessage
 					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
 						if (NoOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
-						(NoOrdersGroups ??= []).Add(new () { ClOrdID = (FixField.Text)field });
+						(NoOrdersGroups ??= new()).Add(new () { ClOrdID = (FixField.Text)field });
 						break;
 					case FixTag.SecondaryClOrdID:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
@@ -50395,7 +50395,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoPartyIDsGroups is null && NoOrdersGroups![^1].NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartyIDSource:
@@ -50428,7 +50428,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoOrdersGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -50525,7 +50525,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoAllocsGroups is null && NoOrdersGroups![^1].NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						}
 						break;
 					case FixTag.AllocAcctIDSource:
@@ -50566,7 +50566,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups is null && NoOrdersGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -50599,7 +50599,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoOrdersGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -50704,7 +50704,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoTradingSessionsGroups is null && NoOrdersGroups![^1].NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.TradingSessionSubID:
@@ -50769,7 +50769,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoSecurityAltIDGroups is null && NoOrdersGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -51074,7 +51074,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoEventsGroups is null && NoOrdersGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoOrdersGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -51131,7 +51131,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoUnderlyingsGroups is null && NoOrdersGroups![^1].NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSymbolSfx:
@@ -51172,7 +51172,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoOrdersGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -51525,7 +51525,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoOrdersGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -51590,7 +51590,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoStipulationsGroups is null && NoOrdersGroups![^1].NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.StipulationValue:
@@ -52229,7 +52229,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoOrders { get; internal set; }
 
 		/// <summary>The entries counted by NoOrders, tag 73; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderList.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderList.NoOrdersGroup>? NoOrdersGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
 		public sealed class NoOrdersGroup : ICommissionData, IDiscretionInstructions, IInstrument, IOrderQtyData, IParties, IPegInstructions, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
@@ -52253,7 +52253,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-			public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+			public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX TradeOriginationDate, tag 229, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? TradeOriginationDate { get; internal set; }
@@ -52286,7 +52286,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoAllocs { get; internal set; }
 
 			/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-			public List<FixMessage.NewOrderList.NoOrdersGroup.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+			public FixList<FixMessage.NewOrderList.NoOrdersGroup.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 			/// <summary>The FIX SettlType, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? SettlType { get; internal set; }
@@ -52319,7 +52319,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoTradingSessions { get; internal set; }
 
 			/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-			public List<FixMessage.NewOrderList.NoOrdersGroup.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+			public FixList<FixMessage.NewOrderList.NoOrdersGroup.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 			/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? ProcessCode { get; internal set; }
@@ -52340,7 +52340,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -52451,7 +52451,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -52463,7 +52463,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyings { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-			public List<FixMessage.NewOrderList.NoOrdersGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+			public FixList<FixMessage.NewOrderList.NoOrdersGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 			/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? PrevClosePx { get; internal set; }
@@ -52484,7 +52484,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-			public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+			public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX QtyType, tag 854, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? QtyType { get; internal set; }
@@ -52715,7 +52715,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 				/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-				public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+				public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 				/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocQty { get; internal set; }
@@ -52750,7 +52750,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-				public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+				public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -52879,7 +52879,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+				public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 			}
 		}
 
@@ -52893,7 +52893,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NewOrderMultileg, MsgType AB.</summary>
 	public sealed partial class NewOrderMultileg : FixMessage, ICommissionData, IDiscretionInstructions, IInstrument, IOrderQtyData, IParties, IPegInstructions
 	{
-		internal NewOrderMultileg(List<FixField> fields) : base("AB", fields)
+		internal NewOrderMultileg(FixList<FixField> fields) : base("AB", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -52905,7 +52905,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -52937,7 +52937,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -52960,7 +52960,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						break;
 					case FixTag.AllocAcctIDSource:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -53000,7 +53000,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNested3PartyIDsGroups is null && NoAllocsGroups![^1].NoNested3PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested3PartyIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNested3PartyIDsGroups ??= []).Add(new () { Nested3PartyID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNested3PartyIDsGroups ??= new()).Add(new () { Nested3PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested3PartyIDSource:
@@ -53033,7 +53033,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNested3PartyIDsGroups![^1].NoNested3PartySubIDsGroups is null && NoAllocsGroups![^1].NoNested3PartyIDsGroups![^1].NoNested3PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested3PartySubIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNested3PartyIDsGroups![^1].NoNested3PartySubIDsGroups ??= []).Add(new () { Nested3PartySubID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNested3PartyIDsGroups![^1].NoNested3PartySubIDsGroups ??= new()).Add(new () { Nested3PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested3PartySubIDType:
@@ -53064,7 +53064,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -53083,7 +53083,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -53131,7 +53131,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -53162,7 +53162,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -53202,7 +53202,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -53555,7 +53555,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -53570,7 +53570,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -53610,7 +53610,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -53947,7 +53947,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegStipulationsGroups is null && NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -53972,7 +53972,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegAllocsGroups is null && NoLegsGroups![^1].NoLegAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegAllocs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegAllocsGroups ??= []).Add(new () { LegAllocAccount = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegAllocsGroups ??= new()).Add(new () { LegAllocAccount = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegIndividualAllocID:
@@ -53997,7 +53997,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups is null && NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups ??= []).Add(new () { Nested2PartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups ??= new()).Add(new () { Nested2PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartyIDSource:
@@ -54030,7 +54030,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups is null && NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= []).Add(new () { Nested2PartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= new()).Add(new () { Nested2PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartySubIDType:
@@ -54095,7 +54095,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -54128,7 +54128,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -54253,7 +54253,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradeOriginationDate, tag 229, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? TradeOriginationDate { get; internal set; }
@@ -54286,7 +54286,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAllocs { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderMultileg.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderMultileg.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlType, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SettlType { get; internal set; }
@@ -54319,7 +54319,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderMultileg.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderMultileg.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? ProcessCode { get; internal set; }
@@ -54343,7 +54343,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -54454,7 +54454,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -54466,7 +54466,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderMultileg.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderMultileg.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
 		public FixField.Decimal? PrevClosePx { get; internal set; }
@@ -54475,7 +54475,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderMultileg.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderMultileg.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX LocateReqd, tag 114, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public FixField.Boolean? LocateReqd { get; internal set; }
@@ -54673,7 +54673,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNested3PartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNested3PartyIDs, tag 948; null when the group is absent.</summary>
-			public List<INestedParties3.NoNested3PartyIDsGroup>? NoNested3PartyIDsGroups { get; internal set; }
+			public FixList<INestedParties3.NoNested3PartyIDsGroup>? NoNested3PartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
@@ -54708,7 +54708,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -54837,7 +54837,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -54859,7 +54859,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -54982,13 +54982,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+			public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX NoLegAllocs, tag 670, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoLegAllocs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegAllocs, tag 670; null when the group is absent.</summary>
-			public List<FixMessage.NewOrderMultileg.NoLegsGroup.NoLegAllocsGroup>? NoLegAllocsGroups { get; internal set; }
+			public FixList<FixMessage.NewOrderMultileg.NoLegsGroup.NoLegAllocsGroup>? NoLegAllocsGroups { get; internal set; }
 
 			/// <summary>The FIX LegPositionEffect, tag 564, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? LegPositionEffect { get; internal set; }
@@ -55000,7 +55000,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX LegRefID, tag 654, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? LegRefID { get; internal set; }
@@ -55027,7 +55027,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoNested2PartyIDs { get; internal set; }
 
 				/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-				public List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
+				public FixList<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
 
 				/// <summary>The FIX LegAllocQty, tag 673, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? LegAllocQty { get; internal set; }
@@ -55050,7 +55050,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 NewOrderSingle, MsgType D.</summary>
 	public sealed partial class NewOrderSingle : FixMessage, ICommissionData, IDiscretionInstructions, IFinancingDetails, IInstrument, IOrderQtyData, IParties, IPegInstructions, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal NewOrderSingle(List<FixField> fields) : base("D", fields)
+		internal NewOrderSingle(FixList<FixField> fields) : base("D", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -55062,7 +55062,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -55094,7 +55094,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -55117,7 +55117,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						break;
 					case FixTag.AllocAcctIDSource:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -55157,7 +55157,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNestedPartyIDsGroups is null && NoAllocsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -55190,7 +55190,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -55221,7 +55221,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -55239,7 +55239,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -55287,7 +55287,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -55327,7 +55327,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -55367,7 +55367,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -55720,7 +55720,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -55738,7 +55738,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -55844,7 +55844,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradeOriginationDate, tag 229, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? TradeOriginationDate { get; internal set; }
@@ -55877,7 +55877,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAllocs { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderSingle.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderSingle.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlType, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SettlType { get; internal set; }
@@ -55910,7 +55910,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderSingle.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderSingle.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? ProcessCode { get; internal set; }
@@ -55931,7 +55931,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -56042,7 +56042,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -56081,7 +56081,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.NewOrderSingle.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.NewOrderSingle.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
 		public FixField.Decimal? PrevClosePx { get; internal set; }
@@ -56099,7 +56099,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX QtyType, tag 854, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? QtyType { get; internal set; }
@@ -56339,7 +56339,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
@@ -56374,7 +56374,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -56503,7 +56503,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -56516,7 +56516,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 News, MsgType B.</summary>
 	public sealed partial class News : FixMessage
 	{
-		internal News(List<FixField> fields) : base("B", fields)
+		internal News(FixList<FixField> fields) : base("B", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -56530,7 +56530,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
 						if (NoRoutingIDsGroups is null && NoRoutingIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRoutingIDs, field.Position, field, -1));
-						(NoRoutingIDsGroups ??= []).Add(new () { RoutingType = (FixField.Integer)field });
+						(NoRoutingIDsGroups ??= new()).Add(new () { RoutingType = (FixField.Integer)field });
 						break;
 					case FixTag.RoutingID:
 						if (NoRoutingIDsGroups is null || NoRoutingIDsGroups.Count == 0)
@@ -56543,7 +56543,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -56583,7 +56583,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -56888,7 +56888,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoEventsGroups is null && NoRelatedSymGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -56934,7 +56934,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -56974,7 +56974,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -57284,7 +57284,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -57324,7 +57324,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -57677,7 +57677,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -57691,7 +57691,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
 						if (LinesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLinesOfText, field.Position, field, -1));
-						(LinesOfTextGroups ??= []).Add(new () { Text = (FixField.Text)field });
+						(LinesOfTextGroups ??= new()).Add(new () { Text = (FixField.Text)field });
 						break;
 					case FixTag.EncodedTextLen:
 						if (LinesOfTextGroups is null || LinesOfTextGroups.Count == 0)
@@ -57741,31 +57741,31 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoRoutingIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoRoutingIDs, tag 215; null when the group is absent.</summary>
-		public List<FixMessage.News.NoRoutingIDsGroup>? NoRoutingIDsGroups { get; internal set; }
+		public FixList<FixMessage.News.NoRoutingIDsGroup>? NoRoutingIDsGroups { get; internal set; }
 
 		/// <summary>The FIX NoRelatedSym, tag 146, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoRelatedSym { get; internal set; }
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
-		public List<FixMessage.News.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
+		public FixList<FixMessage.News.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.News.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.News.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.News.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.News.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX LinesOfText, tag 33, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? LinesOfText { get; internal set; }
 
 		/// <summary>The entries counted by LinesOfText, tag 33; null when the group is absent.</summary>
-		public List<FixMessage.News.LinesOfTextGroup>? LinesOfTextGroups { get; internal set; }
+		public FixList<FixMessage.News.LinesOfTextGroup>? LinesOfTextGroups { get; internal set; }
 
 		/// <summary>The FIX URLLink, tag 149, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? URLLink { get; internal set; }
@@ -57805,7 +57805,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -57916,7 +57916,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -57944,7 +57944,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -58077,7 +58077,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -58206,7 +58206,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by LinesOfText, tag 33.</summary>
@@ -58232,7 +58232,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderCancelReject, MsgType 9.</summary>
 	public sealed partial class OrderCancelReject : FixMessage
 	{
-		internal OrderCancelReject(List<FixField> fields) : base("9", fields)
+		internal OrderCancelReject(FixList<FixField> fields) : base("9", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -58342,7 +58342,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderCancelReplaceRequest, MsgType G.</summary>
 	public sealed partial class OrderCancelReplaceRequest : FixMessage, ICommissionData, IDiscretionInstructions, IFinancingDetails, IInstrument, IOrderQtyData, IParties, IPegInstructions, ISpreadOrBenchmarkCurveData, IYieldData
 	{
-		internal OrderCancelReplaceRequest(List<FixField> fields) : base("G", fields)
+		internal OrderCancelReplaceRequest(FixList<FixField> fields) : base("G", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -58352,7 +58352,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -58384,7 +58384,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -58413,7 +58413,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						break;
 					case FixTag.AllocAcctIDSource:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -58453,7 +58453,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNestedPartyIDsGroups is null && NoAllocsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -58486,7 +58486,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -58517,7 +58517,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -58534,7 +58534,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -58582,7 +58582,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -58622,7 +58622,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -58662,7 +58662,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -59015,7 +59015,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -59117,7 +59117,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradeOriginationDate, tag 229, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? TradeOriginationDate { get; internal set; }
@@ -59168,7 +59168,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAllocs { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-		public List<FixMessage.OrderCancelReplaceRequest.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+		public FixList<FixMessage.OrderCancelReplaceRequest.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlType, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SettlType { get; internal set; }
@@ -59201,7 +59201,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.OrderCancelReplaceRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.OrderCancelReplaceRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -59219,7 +59219,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -59330,7 +59330,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -59369,7 +59369,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.OrderCancelReplaceRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.OrderCancelReplaceRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -59612,7 +59612,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
@@ -59647,7 +59647,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -59776,7 +59776,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -59789,7 +59789,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderCancelRequest, MsgType F.</summary>
 	public sealed partial class OrderCancelRequest : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, IParties
 	{
-		internal OrderCancelRequest(List<FixField> fields) : base("F", fields)
+		internal OrderCancelRequest(FixList<FixField> fields) : base("F", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -59808,7 +59808,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -59840,7 +59840,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -59858,7 +59858,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -59906,7 +59906,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -59946,7 +59946,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -59986,7 +59986,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -60339,7 +60339,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -60405,7 +60405,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -60423,7 +60423,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -60534,7 +60534,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -60573,7 +60573,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.OrderCancelRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.OrderCancelRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -60627,7 +60627,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -60756,7 +60756,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -60769,7 +60769,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderMassCancelReport, MsgType r.</summary>
 	public sealed partial class OrderMassCancelReport : FixMessage, IInstrument, IUnderlyingInstrument, IUnderlyingStipulations
 	{
-		internal OrderMassCancelReport(List<FixField> fields) : base("r", fields)
+		internal OrderMassCancelReport(FixList<FixField> fields) : base("r", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -60786,7 +60786,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAffectedOrders: if (NoAffectedOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAffectedOrders = (FixField.Integer)field; break;
 					case FixTag.OrigClOrdID:
 						if (NoAffectedOrdersGroups is null && NoAffectedOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAffectedOrders, field.Position, field, -1));
-						(NoAffectedOrdersGroups ??= []).Add(new () { OrigClOrdID = (FixField.Text)field });
+						(NoAffectedOrdersGroups ??= new()).Add(new () { OrigClOrdID = (FixField.Text)field });
 						break;
 					case FixTag.AffectedOrderID:
 						if (NoAffectedOrdersGroups is null || NoAffectedOrdersGroups.Count == 0)
@@ -60813,7 +60813,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -60861,7 +60861,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -60896,7 +60896,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingSecurityAltID: if (NoUnderlyingSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSecurityAltID:
 						if (NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-						(NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+						(NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
 						if (NoUnderlyingSecurityAltIDGroups is null || NoUnderlyingSecurityAltIDGroups.Count == 0)
@@ -60950,7 +60950,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingStips: if (NoUnderlyingStips is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingStips = (FixField.Integer)field; break;
 					case FixTag.UnderlyingStipType:
 						if (NoUnderlyingStipsGroups is null && NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-						(NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+						(NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingStipValue:
 						if (NoUnderlyingStipsGroups is null || NoUnderlyingStipsGroups.Count == 0)
@@ -61003,7 +61003,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAffectedOrders { get; internal set; }
 
 		/// <summary>The entries counted by NoAffectedOrders, tag 534; null when the group is absent.</summary>
-		public List<FixMessage.OrderMassCancelReport.NoAffectedOrdersGroup>? NoAffectedOrdersGroups { get; internal set; }
+		public FixList<FixMessage.OrderMassCancelReport.NoAffectedOrdersGroup>? NoAffectedOrdersGroups { get; internal set; }
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TradingSessionID { get; internal set; }
@@ -61027,7 +61027,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -61138,7 +61138,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -61162,7 +61162,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-		public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+		public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -61291,7 +61291,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-		public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+		public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -61331,7 +61331,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderMassCancelRequest, MsgType q.</summary>
 	public sealed partial class OrderMassCancelRequest : FixMessage, IInstrument, IUnderlyingInstrument, IUnderlyingStipulations
 	{
-		internal OrderMassCancelRequest(List<FixField> fields) : base("q", fields)
+		internal OrderMassCancelRequest(FixList<FixField> fields) : base("q", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -61349,7 +61349,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -61397,7 +61397,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -61432,7 +61432,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingSecurityAltID: if (NoUnderlyingSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSecurityAltID:
 						if (NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-						(NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+						(NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
 						if (NoUnderlyingSecurityAltIDGroups is null || NoUnderlyingSecurityAltIDGroups.Count == 0)
@@ -61486,7 +61486,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingStips: if (NoUnderlyingStips is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingStips = (FixField.Integer)field; break;
 					case FixTag.UnderlyingStipType:
 						if (NoUnderlyingStipsGroups is null && NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-						(NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+						(NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingStipValue:
 						if (NoUnderlyingStipsGroups is null || NoUnderlyingStipsGroups.Count == 0)
@@ -61542,7 +61542,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -61653,7 +61653,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -61677,7 +61677,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-		public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+		public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -61806,7 +61806,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-		public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+		public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -61833,7 +61833,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderMassStatusRequest, MsgType AF.</summary>
 	public sealed partial class OrderMassStatusRequest : FixMessage, IInstrument, IParties, IUnderlyingInstrument, IUnderlyingStipulations
 	{
-		internal OrderMassStatusRequest(List<FixField> fields) : base("AF", fields)
+		internal OrderMassStatusRequest(FixList<FixField> fields) : base("AF", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -61844,7 +61844,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -61876,7 +61876,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -61898,7 +61898,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -61946,7 +61946,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -61981,7 +61981,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingSecurityAltID: if (NoUnderlyingSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSecurityAltID:
 						if (NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-						(NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+						(NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
 						if (NoUnderlyingSecurityAltIDGroups is null || NoUnderlyingSecurityAltIDGroups.Count == 0)
@@ -62035,7 +62035,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyingStips: if (NoUnderlyingStips is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyingStips = (FixField.Integer)field; break;
 					case FixTag.UnderlyingStipType:
 						if (NoUnderlyingStipsGroups is null && NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-						(NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+						(NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingStipValue:
 						if (NoUnderlyingStipsGroups is null || NoUnderlyingStipsGroups.Count == 0)
@@ -62066,7 +62066,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -62096,7 +62096,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -62207,7 +62207,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -62231,7 +62231,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-		public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+		public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -62360,7 +62360,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-		public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+		public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -62375,7 +62375,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 OrderStatusRequest, MsgType H.</summary>
 	public sealed partial class OrderStatusRequest : FixMessage, IFinancingDetails, IInstrument, IParties
 	{
-		internal OrderStatusRequest(List<FixField> fields) : base("H", fields)
+		internal OrderStatusRequest(FixList<FixField> fields) : base("H", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -62388,7 +62388,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -62420,7 +62420,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -62441,7 +62441,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -62489,7 +62489,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -62529,7 +62529,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -62569,7 +62569,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -62922,7 +62922,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -62960,7 +62960,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX OrdStatusReqID, tag 790, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? OrdStatusReqID { get; internal set; }
@@ -62987,7 +62987,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -63098,7 +63098,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -63137,7 +63137,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.OrderStatusRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.OrderStatusRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -63161,7 +63161,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -63290,7 +63290,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -63303,7 +63303,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 PositionMaintenanceReport, MsgType AM.</summary>
 	public sealed partial class PositionMaintenanceReport : FixMessage, IInstrument, IParties, IPositionAmountData, IPositionQty
 	{
-		internal PositionMaintenanceReport(List<FixField> fields) : base("AM", fields)
+		internal PositionMaintenanceReport(FixList<FixField> fields) : base("AM", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -63322,7 +63322,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -63354,7 +63354,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -63375,7 +63375,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -63423,7 +63423,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -63455,7 +63455,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -63495,7 +63495,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -63805,7 +63805,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -63845,7 +63845,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -64198,7 +64198,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -64212,7 +64212,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -64226,7 +64226,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPositions: if (NoPositions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPositions = (FixField.Integer)field; break;
 					case FixTag.PosType:
 						if (NoPositionsGroups is null && NoPositions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPositions, field.Position, field, -1));
-						(NoPositionsGroups ??= []).Add(new () { PosType = (FixField.Text)field });
+						(NoPositionsGroups ??= new()).Add(new () { PosType = (FixField.Text)field });
 						break;
 					case FixTag.LongQty:
 						if (NoPositionsGroups is null || NoPositionsGroups.Count == 0)
@@ -64266,7 +64266,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPositionsGroups![^1].NoNestedPartyIDsGroups is null && NoPositionsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoPositionsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoPositionsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -64299,7 +64299,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -64313,7 +64313,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPosAmt: if (NoPosAmt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPosAmt = (FixField.Integer)field; break;
 					case FixTag.PosAmtType:
 						if (NoPosAmtGroups is null && NoPosAmt is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPosAmt, field.Position, field, -1));
-						(NoPosAmtGroups ??= []).Add(new () { PosAmtType = (FixField.Text)field });
+						(NoPosAmtGroups ??= new()).Add(new () { PosAmtType = (FixField.Text)field });
 						break;
 					case FixTag.PosAmt:
 						if (NoPosAmtGroups is null || NoPosAmtGroups.Count == 0)
@@ -64372,7 +64372,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -64399,7 +64399,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -64510,7 +64510,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -64525,19 +64525,19 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.PositionMaintenanceReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.PositionMaintenanceReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.PositionMaintenanceReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.PositionMaintenanceReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoTradingSessions, tag 386, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.PositionMaintenanceReport.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.PositionMaintenanceReport.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public FixField.Timestamp? TransactTime { get; internal set; }
@@ -64546,13 +64546,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPositions { get; internal set; }
 
 		/// <summary>The entries counted by NoPositions, tag 702; null when the group is absent.</summary>
-		public List<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; internal set; }
+		public FixList<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; internal set; }
 
 		/// <summary>The FIX NoPosAmt, tag 753, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoPosAmt { get; internal set; }
 
 		/// <summary>The entries counted by NoPosAmt, tag 753; null when the group is absent.</summary>
-		public List<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; internal set; }
+		public FixList<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; internal set; }
 
 		/// <summary>The FIX AdjustmentType, tag 718, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? AdjustmentType { get; internal set; }
@@ -64588,7 +64588,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -64721,7 +64721,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -64850,7 +64850,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoTradingSessions, tag 386.</summary>
@@ -64873,7 +64873,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 PositionMaintenanceRequest, MsgType AL.</summary>
 	public sealed partial class PositionMaintenanceRequest : FixMessage, IInstrument, IParties, IPositionQty
 	{
-		internal PositionMaintenanceRequest(List<FixField> fields) : base("AL", fields)
+		internal PositionMaintenanceRequest(FixList<FixField> fields) : base("AL", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -64890,7 +64890,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -64922,7 +64922,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -64943,7 +64943,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -64991,7 +64991,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -65023,7 +65023,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -65063,7 +65063,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -65373,7 +65373,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -65413,7 +65413,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -65766,7 +65766,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -65780,7 +65780,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -65794,7 +65794,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPositions: if (NoPositions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPositions = (FixField.Integer)field; break;
 					case FixTag.PosType:
 						if (NoPositionsGroups is null && NoPositions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPositions, field.Position, field, -1));
-						(NoPositionsGroups ??= []).Add(new () { PosType = (FixField.Text)field });
+						(NoPositionsGroups ??= new()).Add(new () { PosType = (FixField.Text)field });
 						break;
 					case FixTag.LongQty:
 						if (NoPositionsGroups is null || NoPositionsGroups.Count == 0)
@@ -65834,7 +65834,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPositionsGroups![^1].NoNestedPartyIDsGroups is null && NoPositionsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoPositionsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoPositionsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -65867,7 +65867,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -65923,7 +65923,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -65950,7 +65950,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -66061,7 +66061,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -66076,19 +66076,19 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.PositionMaintenanceRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.PositionMaintenanceRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.PositionMaintenanceRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.PositionMaintenanceRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoTradingSessions, tag 386, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.PositionMaintenanceRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.PositionMaintenanceRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public FixField.Timestamp? TransactTime { get; internal set; }
@@ -66097,7 +66097,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPositions { get; internal set; }
 
 		/// <summary>The entries counted by NoPositions, tag 702; null when the group is absent.</summary>
-		public List<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; internal set; }
+		public FixList<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; internal set; }
 
 		/// <summary>The FIX AdjustmentType, tag 718, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? AdjustmentType { get; internal set; }
@@ -66139,7 +66139,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -66272,7 +66272,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -66401,7 +66401,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoTradingSessions, tag 386.</summary>
@@ -66424,7 +66424,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 PositionReport, MsgType AP.</summary>
 	public sealed partial class PositionReport : FixMessage, IInstrument, IParties, IPositionAmountData, IPositionQty
 	{
-		internal PositionReport(List<FixField> fields) : base("AP", fields)
+		internal PositionReport(FixList<FixField> fields) : base("AP", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -66443,7 +66443,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -66475,7 +66475,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -66496,7 +66496,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -66544,7 +66544,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -66579,7 +66579,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -66619,7 +66619,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -66929,7 +66929,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -66969,7 +66969,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -67322,7 +67322,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -67352,7 +67352,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPositions: if (NoPositions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPositions = (FixField.Integer)field; break;
 					case FixTag.PosType:
 						if (NoPositionsGroups is null && NoPositions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPositions, field.Position, field, -1));
-						(NoPositionsGroups ??= []).Add(new () { PosType = (FixField.Text)field });
+						(NoPositionsGroups ??= new()).Add(new () { PosType = (FixField.Text)field });
 						break;
 					case FixTag.LongQty:
 						if (NoPositionsGroups is null || NoPositionsGroups.Count == 0)
@@ -67392,7 +67392,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPositionsGroups![^1].NoNestedPartyIDsGroups is null && NoPositionsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoPositionsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoPositionsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -67425,7 +67425,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoPositionsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -67439,7 +67439,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPosAmt: if (NoPosAmt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPosAmt = (FixField.Integer)field; break;
 					case FixTag.PosAmtType:
 						if (NoPosAmtGroups is null && NoPosAmt is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPosAmt, field.Position, field, -1));
-						(NoPosAmtGroups ??= []).Add(new () { PosAmtType = (FixField.Text)field });
+						(NoPosAmtGroups ??= new()).Add(new () { PosAmtType = (FixField.Text)field });
 						break;
 					case FixTag.PosAmt:
 						if (NoPosAmtGroups is null || NoPosAmtGroups.Count == 0)
@@ -67498,7 +67498,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -67525,7 +67525,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -67636,7 +67636,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -67660,25 +67660,25 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.PositionReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.PositionReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.PositionReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.PositionReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoPositions, tag 702, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoPositions { get; internal set; }
 
 		/// <summary>The entries counted by NoPositions, tag 702; null when the group is absent.</summary>
-		public List<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; internal set; }
+		public FixList<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; internal set; }
 
 		/// <summary>The FIX NoPosAmt, tag 753, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoPosAmt { get; internal set; }
 
 		/// <summary>The entries counted by NoPosAmt, tag 753; null when the group is absent.</summary>
-		public List<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; internal set; }
+		public FixList<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; internal set; }
 
 		/// <summary>The FIX RegistStatus, tag 506, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? RegistStatus { get; internal set; }
@@ -67714,7 +67714,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -67847,7 +67847,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -67976,7 +67976,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingSettlPrice, tag 732, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? UnderlyingSettlPrice { get; internal set; }
@@ -67995,7 +67995,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Quote, MsgType S.</summary>
 	public sealed partial class Quote : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, IParties, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal Quote(List<FixField> fields) : base("S", fields)
+		internal Quote(FixList<FixField> fields) : base("S", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -68008,13 +68008,13 @@ public abstract partial class FixMessage
 					case FixTag.NoQuoteQualifiers: if (NoQuoteQualifiers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteQualifiers = (FixField.Integer)field; break;
 					case FixTag.QuoteQualifier:
 						if (NoQuoteQualifiersGroups is null && NoQuoteQualifiers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteQualifiers, field.Position, field, -1));
-						(NoQuoteQualifiersGroups ??= []).Add(new () { QuoteQualifier = (FixField.Character)field });
+						(NoQuoteQualifiersGroups ??= new()).Add(new () { QuoteQualifier = (FixField.Character)field });
 						break;
 					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteResponseLevel = (FixField.Integer)field; break;
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -68046,7 +68046,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -68066,7 +68066,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -68114,7 +68114,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -68154,7 +68154,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -68194,7 +68194,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -68547,7 +68547,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -68572,7 +68572,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -68588,7 +68588,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -68628,7 +68628,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -68981,7 +68981,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegStipulationsGroups is null && NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -69006,7 +69006,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -69039,7 +69039,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -69187,7 +69187,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoQuoteQualifiers { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteQualifiers, tag 735; null when the group is absent.</summary>
-		public List<FixMessage.Quote.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
+		public FixList<FixMessage.Quote.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
 
 		/// <summary>The FIX QuoteResponseLevel, tag 301, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? QuoteResponseLevel { get; internal set; }
@@ -69196,7 +69196,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TradingSessionID { get; internal set; }
@@ -69220,7 +69220,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -69331,7 +69331,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -69370,7 +69370,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.Quote.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.Quote.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -69409,7 +69409,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -69424,7 +69424,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.Quote.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.Quote.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX BidPx, tag 132, wire type <c>Price</c>; null when the field is absent.</summary>
 		public FixField.Decimal? BidPx { get; internal set; }
@@ -69593,7 +69593,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -69722,7 +69722,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -69744,7 +69744,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -69873,13 +69873,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+			public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX NoNestedPartyIDs, tag 539, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX LegPriceType, tag 686, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegPriceType { get; internal set; }
@@ -69916,7 +69916,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteCancel, MsgType Z.</summary>
 	public sealed partial class QuoteCancel : FixMessage, IParties
 	{
-		internal QuoteCancel(List<FixField> fields) : base("Z", fields)
+		internal QuoteCancel(FixList<FixField> fields) : base("Z", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -69929,7 +69929,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -69961,7 +69961,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -69980,7 +69980,7 @@ public abstract partial class FixMessage
 					case FixTag.NoQuoteEntries: if (NoQuoteEntries is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteEntries = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoQuoteEntriesGroups is null && NoQuoteEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteEntries, field.Position, field, -1));
-						(NoQuoteEntriesGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoQuoteEntriesGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoQuoteEntriesGroups is null || NoQuoteEntriesGroups.Count == 0)
@@ -70020,7 +70020,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteEntriesGroups![^1].NoSecurityAltIDGroups is null && NoQuoteEntriesGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoQuoteEntriesGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoQuoteEntriesGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -70325,7 +70325,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteEntriesGroups![^1].NoEventsGroups is null && NoQuoteEntriesGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoQuoteEntriesGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoQuoteEntriesGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -70454,7 +70454,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteEntriesGroups![^1].NoUnderlyingsGroups is null && NoQuoteEntriesGroups![^1].NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-							(NoQuoteEntriesGroups![^1].NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+							(NoQuoteEntriesGroups![^1].NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSymbolSfx:
@@ -70495,7 +70495,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoQuoteEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoQuoteEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoQuoteEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -70848,7 +70848,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoQuoteEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoQuoteEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoQuoteEntriesGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -70873,7 +70873,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteEntriesGroups![^1].NoLegsGroups is null && NoQuoteEntriesGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoQuoteEntriesGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoQuoteEntriesGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -70914,7 +70914,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoQuoteEntriesGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -71247,7 +71247,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -71268,7 +71268,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoQuoteEntries { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteEntries, tag 295; null when the group is absent.</summary>
-		public List<FixMessage.QuoteCancel.NoQuoteEntriesGroup>? NoQuoteEntriesGroups { get; internal set; }
+		public FixList<FixMessage.QuoteCancel.NoQuoteEntriesGroup>? NoQuoteEntriesGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoQuoteEntries, tag 295.</summary>
 		public sealed class NoQuoteEntriesGroup : IFinancingDetails, IInstrument
@@ -71289,7 +71289,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -71400,7 +71400,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -71439,13 +71439,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyings { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-			public List<FixMessage.QuoteCancel.NoQuoteEntriesGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+			public FixList<FixMessage.QuoteCancel.NoQuoteEntriesGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 			/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoLegs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-			public List<FixMessage.QuoteCancel.NoQuoteEntriesGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+			public FixList<FixMessage.QuoteCancel.NoQuoteEntriesGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoUnderlyings, tag 711.</summary>
 			public sealed class NoUnderlyingsGroup : IUnderlyingInstrument, IUnderlyingStipulations
@@ -71466,7 +71466,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-				public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+				public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -71595,7 +71595,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+				public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 			}
 
 			/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -71617,7 +71617,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-				public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegProduct { get; internal set; }
@@ -71742,7 +71742,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteRequest, MsgType R.</summary>
 	public sealed partial class QuoteRequest : FixMessage
 	{
-		internal QuoteRequest(List<FixField> fields) : base("R", fields)
+		internal QuoteRequest(FixList<FixField> fields) : base("R", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -71755,7 +71755,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -71795,7 +71795,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -72100,7 +72100,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoEventsGroups is null && NoRelatedSymGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -72229,7 +72229,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups is null && NoRelatedSymGroups![^1].NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSymbolSfx:
@@ -72270,7 +72270,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -72623,7 +72623,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -72792,7 +72792,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoStipulationsGroups is null && NoRelatedSymGroups![^1].NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.StipulationValue:
@@ -72841,7 +72841,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups is null && NoRelatedSymGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -72882,7 +72882,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -73235,7 +73235,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulationsGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -73260,7 +73260,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -73293,7 +73293,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -73358,7 +73358,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoQuoteQualifiersGroups is null && NoRelatedSymGroups![^1].NoQuoteQualifiers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteQualifiers, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoQuoteQualifiersGroups ??= []).Add(new () { QuoteQualifier = (FixField.Character)field });
+							(NoRelatedSymGroups![^1].NoQuoteQualifiersGroups ??= new()).Add(new () { QuoteQualifier = (FixField.Character)field });
 						}
 						break;
 					case FixTag.QuotePriceType:
@@ -73551,7 +73551,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoPartyIDsGroups is null && NoRelatedSymGroups![^1].NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartyIDSource:
@@ -73584,7 +73584,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoRelatedSymGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -73624,7 +73624,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoRelatedSym { get; internal set; }
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
-		public List<FixMessage.QuoteRequest.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
+		public FixList<FixMessage.QuoteRequest.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Text { get; internal set; }
@@ -73654,7 +73654,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -73765,7 +73765,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -73804,7 +73804,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyings { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-			public List<FixMessage.QuoteRequest.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+			public FixList<FixMessage.QuoteRequest.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 			/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? PrevClosePx { get; internal set; }
@@ -73864,7 +73864,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-			public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+			public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? Account { get; internal set; }
@@ -73879,13 +73879,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-			public List<FixMessage.QuoteRequest.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+			public FixList<FixMessage.QuoteRequest.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 			/// <summary>The FIX NoQuoteQualifiers, tag 735, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoQuoteQualifiers { get; internal set; }
 
 			/// <summary>The entries counted by NoQuoteQualifiers, tag 735; null when the group is absent.</summary>
-			public List<FixMessage.QuoteRequest.NoRelatedSymGroup.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
+			public FixList<FixMessage.QuoteRequest.NoRelatedSymGroup.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
 
 			/// <summary>The FIX QuotePriceType, tag 692, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? QuotePriceType { get; internal set; }
@@ -73957,7 +73957,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-			public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+			public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoUnderlyings, tag 711.</summary>
 			public sealed class NoUnderlyingsGroup : IUnderlyingInstrument, IUnderlyingStipulations
@@ -73978,7 +73978,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-				public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+				public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -74107,7 +74107,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+				public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 			}
 
 			/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -74129,7 +74129,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-				public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegProduct { get; internal set; }
@@ -74258,13 +74258,13 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegStipulations { get; internal set; }
 
 				/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-				public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+				public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 				/// <summary>The FIX NoNestedPartyIDs, tag 539, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 				public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 				/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-				public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+				public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 				/// <summary>The FIX LegBenchmarkCurveCurrency, tag 676, wire type <c>Currency</c>; null when the field is absent.</summary>
 				public FixField.Text? LegBenchmarkCurveCurrency { get; internal set; }
@@ -74300,7 +74300,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteRequestReject, MsgType AG.</summary>
 	public sealed partial class QuoteRequestReject : FixMessage
 	{
-		internal QuoteRequestReject(List<FixField> fields) : base("AG", fields)
+		internal QuoteRequestReject(FixList<FixField> fields) : base("AG", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -74312,7 +74312,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -74352,7 +74352,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -74657,7 +74657,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoEventsGroups is null && NoRelatedSymGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -74786,7 +74786,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups is null && NoRelatedSymGroups![^1].NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSymbolSfx:
@@ -74827,7 +74827,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -75180,7 +75180,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -75349,7 +75349,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoStipulationsGroups is null && NoRelatedSymGroups![^1].NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.StipulationValue:
@@ -75398,7 +75398,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups is null && NoRelatedSymGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -75439,7 +75439,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -75792,7 +75792,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulationsGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -75817,7 +75817,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -75850,7 +75850,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -75915,7 +75915,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoQuoteQualifiersGroups is null && NoRelatedSymGroups![^1].NoQuoteQualifiers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteQualifiers, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoQuoteQualifiersGroups ??= []).Add(new () { QuoteQualifier = (FixField.Character)field });
+							(NoRelatedSymGroups![^1].NoQuoteQualifiersGroups ??= new()).Add(new () { QuoteQualifier = (FixField.Character)field });
 						}
 						break;
 					case FixTag.QuotePriceType:
@@ -76100,7 +76100,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoPartyIDsGroups is null && NoRelatedSymGroups![^1].NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartyIDSource:
@@ -76133,7 +76133,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoRelatedSymGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -76170,7 +76170,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoRelatedSym { get; internal set; }
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
-		public List<FixMessage.QuoteRequestReject.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
+		public FixList<FixMessage.QuoteRequestReject.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Text { get; internal set; }
@@ -76200,7 +76200,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -76311,7 +76311,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -76350,7 +76350,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyings { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-			public List<FixMessage.QuoteRequestReject.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+			public FixList<FixMessage.QuoteRequestReject.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 			/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? PrevClosePx { get; internal set; }
@@ -76410,7 +76410,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-			public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+			public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? Account { get; internal set; }
@@ -76425,13 +76425,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-			public List<FixMessage.QuoteRequestReject.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+			public FixList<FixMessage.QuoteRequestReject.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 			/// <summary>The FIX NoQuoteQualifiers, tag 735, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoQuoteQualifiers { get; internal set; }
 
 			/// <summary>The entries counted by NoQuoteQualifiers, tag 735; null when the group is absent.</summary>
-			public List<FixMessage.QuoteRequestReject.NoRelatedSymGroup.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
+			public FixList<FixMessage.QuoteRequestReject.NoRelatedSymGroup.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
 
 			/// <summary>The FIX QuotePriceType, tag 692, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? QuotePriceType { get; internal set; }
@@ -76500,7 +76500,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-			public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+			public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoUnderlyings, tag 711.</summary>
 			public sealed class NoUnderlyingsGroup : IUnderlyingInstrument, IUnderlyingStipulations
@@ -76521,7 +76521,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-				public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+				public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -76650,7 +76650,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+				public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 			}
 
 			/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -76672,7 +76672,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-				public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegProduct { get; internal set; }
@@ -76801,13 +76801,13 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegStipulations { get; internal set; }
 
 				/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-				public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+				public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 				/// <summary>The FIX NoNestedPartyIDs, tag 539, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 				public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 				/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-				public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+				public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 				/// <summary>The FIX LegBenchmarkCurveCurrency, tag 676, wire type <c>Currency</c>; null when the field is absent.</summary>
 				public FixField.Text? LegBenchmarkCurveCurrency { get; internal set; }
@@ -76843,7 +76843,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteResponse, MsgType AJ.</summary>
 	public sealed partial class QuoteResponse : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, IParties, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal QuoteResponse(List<FixField> fields) : base("AJ", fields)
+		internal QuoteResponse(FixList<FixField> fields) : base("AJ", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -76859,12 +76859,12 @@ public abstract partial class FixMessage
 					case FixTag.NoQuoteQualifiers: if (NoQuoteQualifiers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteQualifiers = (FixField.Integer)field; break;
 					case FixTag.QuoteQualifier:
 						if (NoQuoteQualifiersGroups is null && NoQuoteQualifiers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteQualifiers, field.Position, field, -1));
-						(NoQuoteQualifiersGroups ??= []).Add(new () { QuoteQualifier = (FixField.Character)field });
+						(NoQuoteQualifiersGroups ??= new()).Add(new () { QuoteQualifier = (FixField.Character)field });
 						break;
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -76896,7 +76896,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -76916,7 +76916,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -76964,7 +76964,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -77004,7 +77004,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -77044,7 +77044,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -77397,7 +77397,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -77422,7 +77422,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -77438,7 +77438,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -77478,7 +77478,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -77831,7 +77831,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegStipulationsGroups is null && NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -77856,7 +77856,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -77889,7 +77889,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -78046,13 +78046,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoQuoteQualifiers { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteQualifiers, tag 735; null when the group is absent.</summary>
-		public List<FixMessage.QuoteResponse.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
+		public FixList<FixMessage.QuoteResponse.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
 
 		/// <summary>The FIX NoPartyIDs, tag 453, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TradingSessionID { get; internal set; }
@@ -78076,7 +78076,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -78187,7 +78187,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -78226,7 +78226,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.QuoteResponse.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.QuoteResponse.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -78265,7 +78265,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -78280,7 +78280,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.QuoteResponse.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.QuoteResponse.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX BidPx, tag 132, wire type <c>Price</c>; null when the field is absent.</summary>
 		public FixField.Decimal? BidPx { get; internal set; }
@@ -78449,7 +78449,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -78578,7 +78578,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -78600,7 +78600,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -78729,13 +78729,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+			public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX NoNestedPartyIDs, tag 539, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX LegPriceType, tag 686, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegPriceType { get; internal set; }
@@ -78772,7 +78772,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteStatusReport, MsgType AI.</summary>
 	public sealed partial class QuoteStatusReport : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, IParties, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
 	{
-		internal QuoteStatusReport(List<FixField> fields) : base("AI", fields)
+		internal QuoteStatusReport(FixList<FixField> fields) : base("AI", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -78786,7 +78786,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -78818,7 +78818,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -78838,7 +78838,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -78886,7 +78886,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -78926,7 +78926,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -78966,7 +78966,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -79319,7 +79319,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -79344,7 +79344,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStipulations: if (NoStipulations is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStipulations = (FixField.Integer)field; break;
 					case FixTag.StipulationType:
 						if (NoStipulationsGroups is null && NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-						(NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+						(NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						break;
 					case FixTag.StipulationValue:
 						if (NoStipulationsGroups is null || NoStipulationsGroups.Count == 0)
@@ -79360,7 +79360,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -79400,7 +79400,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -79753,7 +79753,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegStipulationsGroups is null && NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -79778,7 +79778,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -79811,7 +79811,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -79825,7 +79825,7 @@ public abstract partial class FixMessage
 					case FixTag.NoQuoteQualifiers: if (NoQuoteQualifiers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteQualifiers = (FixField.Integer)field; break;
 					case FixTag.QuoteQualifier:
 						if (NoQuoteQualifiersGroups is null && NoQuoteQualifiers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteQualifiers, field.Position, field, -1));
-						(NoQuoteQualifiersGroups ??= []).Add(new () { QuoteQualifier = (FixField.Character)field });
+						(NoQuoteQualifiersGroups ??= new()).Add(new () { QuoteQualifier = (FixField.Character)field });
 						break;
 					case FixTag.ExpireTime: if (ExpireTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExpireTime = (FixField.Timestamp)field; break;
 					case FixTag.Price: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Decimal)field; break;
@@ -79905,7 +79905,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TradingSessionID { get; internal set; }
@@ -79929,7 +79929,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -80040,7 +80040,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -80079,7 +80079,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.QuoteStatusReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.QuoteStatusReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
@@ -80118,7 +80118,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoStipulations { get; internal set; }
 
 		/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-		public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+		public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -80133,13 +80133,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.QuoteStatusReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.QuoteStatusReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoQuoteQualifiers, tag 735, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoQuoteQualifiers { get; internal set; }
 
 		/// <summary>The entries counted by NoQuoteQualifiers, tag 735; null when the group is absent.</summary>
-		public List<FixMessage.QuoteStatusReport.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
+		public FixList<FixMessage.QuoteStatusReport.NoQuoteQualifiersGroup>? NoQuoteQualifiersGroups { get; internal set; }
 
 		/// <summary>The FIX ExpireTime, tag 126, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public FixField.Timestamp? ExpireTime { get; internal set; }
@@ -80307,7 +80307,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -80436,7 +80436,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -80458,7 +80458,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -80587,13 +80587,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+			public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX NoNestedPartyIDs, tag 539, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoQuoteQualifiers, tag 735.</summary>
@@ -80613,7 +80613,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 QuoteStatusRequest, MsgType a.</summary>
 	public sealed partial class QuoteStatusRequest : FixMessage, IFinancingDetails, IInstrument, IParties
 	{
-		internal QuoteStatusRequest(List<FixField> fields) : base("a", fields)
+		internal QuoteStatusRequest(FixList<FixField> fields) : base("a", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -80628,7 +80628,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -80676,7 +80676,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -80716,7 +80716,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -80756,7 +80756,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -81109,7 +81109,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -81123,7 +81123,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -81163,7 +81163,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -81473,7 +81473,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -81505,7 +81505,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -81554,7 +81554,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -81665,7 +81665,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -81704,19 +81704,19 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.QuoteStatusRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.QuoteStatusRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.QuoteStatusRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.QuoteStatusRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoPartyIDs, tag 453, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -81755,7 +81755,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -81884,7 +81884,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -81906,7 +81906,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -82030,7 +82030,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RFQRequest, MsgType AH.</summary>
 	public sealed partial class RFQRequest : FixMessage
 	{
-		internal RFQRequest(List<FixField> fields) : base("AH", fields)
+		internal RFQRequest(FixList<FixField> fields) : base("AH", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -82040,7 +82040,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -82080,7 +82080,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -82385,7 +82385,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoEventsGroups is null && NoRelatedSymGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -82442,7 +82442,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups is null && NoRelatedSymGroups![^1].NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSymbolSfx:
@@ -82483,7 +82483,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -82836,7 +82836,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -82861,7 +82861,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups is null && NoRelatedSymGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -82902,7 +82902,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -83267,7 +83267,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoRelatedSym { get; internal set; }
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
-		public List<FixMessage.RFQRequest.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
+		public FixList<FixMessage.RFQRequest.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
 
 		/// <summary>The FIX SubscriptionRequestType, tag 263, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SubscriptionRequestType { get; internal set; }
@@ -83291,7 +83291,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -83402,7 +83402,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -83414,13 +83414,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyings { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-			public List<FixMessage.RFQRequest.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+			public FixList<FixMessage.RFQRequest.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 			/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoLegs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-			public List<FixMessage.RFQRequest.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+			public FixList<FixMessage.RFQRequest.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 			/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? PrevClosePx { get; internal set; }
@@ -83456,7 +83456,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-				public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+				public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -83585,7 +83585,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+				public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 			}
 
 			/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -83607,7 +83607,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-				public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegProduct { get; internal set; }
@@ -83732,7 +83732,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RegistrationInstructions, MsgType o.</summary>
 	public sealed partial class RegistrationInstructions : FixMessage, IParties
 	{
-		internal RegistrationInstructions(List<FixField> fields) : base("o", fields)
+		internal RegistrationInstructions(FixList<FixField> fields) : base("o", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -83745,7 +83745,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -83777,7 +83777,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -83796,7 +83796,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRegistDtls: if (NoRegistDtls is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRegistDtls = (FixField.Integer)field; break;
 					case FixTag.RegistDtls:
 						if (NoRegistDtlsGroups is null && NoRegistDtls is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRegistDtls, field.Position, field, -1));
-						(NoRegistDtlsGroups ??= []).Add(new () { RegistDtls = (FixField.Text)field });
+						(NoRegistDtlsGroups ??= new()).Add(new () { RegistDtls = (FixField.Text)field });
 						break;
 					case FixTag.RegistEmail:
 						if (NoRegistDtlsGroups is null || NoRegistDtlsGroups.Count == 0)
@@ -83836,7 +83836,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRegistDtlsGroups![^1].NoNestedPartyIDsGroups is null && NoRegistDtlsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoRegistDtlsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoRegistDtlsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -83869,7 +83869,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRegistDtlsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoRegistDtlsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoRegistDtlsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoRegistDtlsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -83907,7 +83907,7 @@ public abstract partial class FixMessage
 					case FixTag.NoDistribInsts: if (NoDistribInsts is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoDistribInsts = (FixField.Integer)field; break;
 					case FixTag.DistribPaymentMethod:
 						if (NoDistribInstsGroups is null && NoDistribInsts is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoDistribInsts, field.Position, field, -1));
-						(NoDistribInstsGroups ??= []).Add(new () { DistribPaymentMethod = (FixField.Integer)field });
+						(NoDistribInstsGroups ??= new()).Add(new () { DistribPaymentMethod = (FixField.Integer)field });
 						break;
 					case FixTag.DistribPercentage:
 						if (NoDistribInstsGroups is null || NoDistribInstsGroups.Count == 0)
@@ -83991,7 +83991,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -84012,13 +84012,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoRegistDtls { get; internal set; }
 
 		/// <summary>The entries counted by NoRegistDtls, tag 473; null when the group is absent.</summary>
-		public List<FixMessage.RegistrationInstructions.NoRegistDtlsGroup>? NoRegistDtlsGroups { get; internal set; }
+		public FixList<FixMessage.RegistrationInstructions.NoRegistDtlsGroup>? NoRegistDtlsGroups { get; internal set; }
 
 		/// <summary>The FIX NoDistribInsts, tag 510, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoDistribInsts { get; internal set; }
 
 		/// <summary>The entries counted by NoDistribInsts, tag 510; null when the group is absent.</summary>
-		public List<FixMessage.RegistrationInstructions.NoDistribInstsGroup>? NoDistribInstsGroups { get; internal set; }
+		public FixList<FixMessage.RegistrationInstructions.NoDistribInstsGroup>? NoDistribInstsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoRegistDtls, tag 473.</summary>
 		public sealed class NoRegistDtlsGroup : INestedParties
@@ -84039,7 +84039,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX OwnerType, tag 522, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? OwnerType { get; internal set; }
@@ -84089,7 +84089,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RegistrationInstructionsResponse, MsgType p.</summary>
 	public sealed partial class RegistrationInstructionsResponse : FixMessage, IParties
 	{
-		internal RegistrationInstructionsResponse(List<FixField> fields) : base("p", fields)
+		internal RegistrationInstructionsResponse(FixList<FixField> fields) : base("p", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -84102,7 +84102,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -84134,7 +84134,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -84176,7 +84176,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -84203,7 +84203,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 Reject, MsgType 3.</summary>
 	public sealed partial class Reject : FixMessage
 	{
-		internal Reject(List<FixField> fields) : base("3", fields)
+		internal Reject(FixList<FixField> fields) : base("3", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -84257,7 +84257,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RequestForPositions, MsgType AN.</summary>
 	public sealed partial class RequestForPositions : FixMessage, IInstrument, IParties
 	{
-		internal RequestForPositions(List<FixField> fields) : base("AN", fields)
+		internal RequestForPositions(FixList<FixField> fields) : base("AN", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -84270,7 +84270,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -84302,7 +84302,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -84323,7 +84323,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -84371,7 +84371,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -84403,7 +84403,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -84443,7 +84443,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -84753,7 +84753,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -84793,7 +84793,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -85146,7 +85146,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -85163,7 +85163,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= new()).Add(new () { TradingSessionID = (FixField.Text)field });
 						break;
 					case FixTag.TradingSessionSubID:
 						if (NoTradingSessionsGroups is null || NoTradingSessionsGroups.Count == 0)
@@ -85205,7 +85205,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -85232,7 +85232,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -85343,7 +85343,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -85358,13 +85358,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.RequestForPositions.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.RequestForPositions.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.RequestForPositions.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.RequestForPositions.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX ClearingBusinessDate, tag 715, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? ClearingBusinessDate { get; internal set; }
@@ -85379,7 +85379,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTradingSessions { get; internal set; }
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
-		public List<FixMessage.RequestForPositions.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
+		public FixList<FixMessage.RequestForPositions.NoTradingSessionsGroup>? NoTradingSessionsGroups { get; internal set; }
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public FixField.Timestamp? TransactTime { get; internal set; }
@@ -85418,7 +85418,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -85551,7 +85551,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -85680,7 +85680,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoTradingSessions, tag 386.</summary>
@@ -85703,7 +85703,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 RequestForPositionsAck, MsgType AO.</summary>
 	public sealed partial class RequestForPositionsAck : FixMessage, IInstrument, IParties
 	{
-		internal RequestForPositionsAck(List<FixField> fields) : base("AO", fields)
+		internal RequestForPositionsAck(FixList<FixField> fields) : base("AO", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -85718,7 +85718,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -85750,7 +85750,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -85771,7 +85771,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -85819,7 +85819,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -85851,7 +85851,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -85891,7 +85891,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -86201,7 +86201,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -86241,7 +86241,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -86594,7 +86594,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -86642,7 +86642,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Account { get; internal set; }
@@ -86669,7 +86669,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -86780,7 +86780,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -86795,13 +86795,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.RequestForPositionsAck.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.RequestForPositionsAck.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.RequestForPositionsAck.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.RequestForPositionsAck.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX ResponseTransportType, tag 725, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? ResponseTransportType { get; internal set; }
@@ -86837,7 +86837,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -86970,7 +86970,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -87099,7 +87099,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -87112,7 +87112,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 ResendRequest, MsgType 2.</summary>
 	public sealed partial class ResendRequest : FixMessage
 	{
-		internal ResendRequest(List<FixField> fields) : base("2", fields)
+		internal ResendRequest(FixList<FixField> fields) : base("2", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -87146,7 +87146,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityDefinition, MsgType d.</summary>
 	public sealed partial class SecurityDefinition : FixMessage, IInstrument, IInstrumentExtension
 	{
-		internal SecurityDefinition(List<FixField> fields) : base("d", fields)
+		internal SecurityDefinition(FixList<FixField> fields) : base("d", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -87162,7 +87162,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -87210,7 +87210,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -87243,7 +87243,7 @@ public abstract partial class FixMessage
 					case FixTag.NoInstrAttrib: if (NoInstrAttrib is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoInstrAttrib = (FixField.Integer)field; break;
 					case FixTag.InstrAttribType:
 						if (NoInstrAttribGroups is null && NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-						(NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+						(NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						break;
 					case FixTag.InstrAttribValue:
 						if (NoInstrAttribGroups is null || NoInstrAttribGroups.Count == 0)
@@ -87256,7 +87256,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -87296,7 +87296,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -87649,7 +87649,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -87669,7 +87669,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -87709,7 +87709,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -88054,7 +88054,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -88165,7 +88165,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -88183,13 +88183,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-		public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+		public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.SecurityDefinition.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityDefinition.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 		public FixField.Text? Currency { get; internal set; }
@@ -88213,7 +88213,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.SecurityDefinition.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityDefinition.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX ExpirationCycle, tag 827, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? ExpirationCycle { get; internal set; }
@@ -88243,7 +88243,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -88372,7 +88372,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -88394,7 +88394,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -88518,7 +88518,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityDefinitionRequest, MsgType c.</summary>
 	public sealed partial class SecurityDefinitionRequest : FixMessage, IInstrument, IInstrumentExtension
 	{
-		internal SecurityDefinitionRequest(List<FixField> fields) : base("c", fields)
+		internal SecurityDefinitionRequest(FixList<FixField> fields) : base("c", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -88533,7 +88533,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -88581,7 +88581,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -88614,7 +88614,7 @@ public abstract partial class FixMessage
 					case FixTag.NoInstrAttrib: if (NoInstrAttrib is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoInstrAttrib = (FixField.Integer)field; break;
 					case FixTag.InstrAttribType:
 						if (NoInstrAttribGroups is null && NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-						(NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+						(NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						break;
 					case FixTag.InstrAttribValue:
 						if (NoInstrAttribGroups is null || NoInstrAttribGroups.Count == 0)
@@ -88627,7 +88627,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -88667,7 +88667,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -89020,7 +89020,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -89040,7 +89040,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -89080,7 +89080,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -89421,7 +89421,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -89532,7 +89532,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -89550,13 +89550,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-		public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+		public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.SecurityDefinitionRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityDefinitionRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 		public FixField.Text? Currency { get; internal set; }
@@ -89580,7 +89580,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.SecurityDefinitionRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityDefinitionRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX ExpirationCycle, tag 827, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? ExpirationCycle { get; internal set; }
@@ -89607,7 +89607,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -89736,7 +89736,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -89758,7 +89758,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -89882,7 +89882,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityList, MsgType y.</summary>
 	public sealed partial class SecurityList : FixMessage
 	{
-		internal SecurityList(List<FixField> fields) : base("y", fields)
+		internal SecurityList(FixList<FixField> fields) : base("y", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -89896,7 +89896,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= new()).Add(new () { Symbol = (FixField.Text)field });
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -89936,7 +89936,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SecurityAltIDSource:
@@ -90241,7 +90241,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoEventsGroups is null && NoRelatedSymGroups![^1].NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.EventDate:
@@ -90314,7 +90314,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoInstrAttribGroups is null && NoRelatedSymGroups![^1].NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+							(NoRelatedSymGroups![^1].NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.InstrAttribValue:
@@ -90411,7 +90411,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups is null && NoRelatedSymGroups![^1].NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSymbolSfx:
@@ -90452,7 +90452,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -90805,7 +90805,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -90838,7 +90838,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoStipulationsGroups is null && NoRelatedSymGroups![^1].NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.StipulationValue:
@@ -90863,7 +90863,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups is null && NoRelatedSymGroups![^1].NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSymbolSfx:
@@ -90904,7 +90904,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -91241,7 +91241,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulationsGroups is null && NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoRelatedSymGroups![^1].NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -91497,7 +91497,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoRelatedSym { get; internal set; }
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
-		public List<FixMessage.SecurityList.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
+		public FixList<FixMessage.SecurityList.NoRelatedSymGroup>? NoRelatedSymGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
 		public sealed class NoRelatedSymGroup : IFinancingDetails, IInstrument, IInstrumentExtension, ISpreadOrBenchmarkCurveData, IStipulations, IYieldData
@@ -91518,7 +91518,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-			public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Product { get; internal set; }
@@ -91629,7 +91629,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoEvents { get; internal set; }
 
 			/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-			public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+			public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 			/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? DatedDate { get; internal set; }
@@ -91647,7 +91647,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 			/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-			public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+			public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 			/// <summary>The FIX AgreementDesc, tag 913, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? AgreementDesc { get; internal set; }
@@ -91680,7 +91680,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyings { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-			public List<FixMessage.SecurityList.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+			public FixList<FixMessage.SecurityList.NoRelatedSymGroup.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 			/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 			public FixField.Text? Currency { get; internal set; }
@@ -91689,13 +91689,13 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-			public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+			public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoLegs { get; internal set; }
 
 			/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-			public List<FixMessage.SecurityList.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
+			public FixList<FixMessage.SecurityList.NoRelatedSymGroup.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 			/// <summary>The FIX Spread, tag 218, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
 			public FixField.Decimal? Spread { get; internal set; }
@@ -91782,7 +91782,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-				public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+				public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -91911,7 +91911,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 				/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+				public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 			}
 
 			/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -91933,7 +91933,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 				/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-				public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+				public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 				/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegProduct { get; internal set; }
@@ -92056,7 +92056,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoLegStipulations { get; internal set; }
 
 				/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-				public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+				public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 				/// <summary>The FIX LegBenchmarkCurveCurrency, tag 676, wire type <c>Currency</c>; null when the field is absent.</summary>
 				public FixField.Text? LegBenchmarkCurveCurrency { get; internal set; }
@@ -92085,7 +92085,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityListRequest, MsgType x.</summary>
 	public sealed partial class SecurityListRequest : FixMessage, IFinancingDetails, IInstrument, IInstrumentExtension
 	{
-		internal SecurityListRequest(List<FixField> fields) : base("x", fields)
+		internal SecurityListRequest(FixList<FixField> fields) : base("x", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -92100,7 +92100,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -92148,7 +92148,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -92181,7 +92181,7 @@ public abstract partial class FixMessage
 					case FixTag.NoInstrAttrib: if (NoInstrAttrib is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoInstrAttrib = (FixField.Integer)field; break;
 					case FixTag.InstrAttribType:
 						if (NoInstrAttribGroups is null && NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-						(NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+						(NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						break;
 					case FixTag.InstrAttribValue:
 						if (NoInstrAttribGroups is null || NoInstrAttribGroups.Count == 0)
@@ -92203,7 +92203,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -92243,7 +92243,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -92596,7 +92596,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -92610,7 +92610,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -92650,7 +92650,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -92996,7 +92996,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -93107,7 +93107,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -93125,7 +93125,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-		public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+		public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 		/// <summary>The FIX AgreementDesc, tag 913, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? AgreementDesc { get; internal set; }
@@ -93158,13 +93158,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.SecurityListRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityListRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.SecurityListRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityListRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 		public FixField.Text? Currency { get; internal set; }
@@ -93206,7 +93206,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -93335,7 +93335,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -93357,7 +93357,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -93481,7 +93481,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityStatus, MsgType f.</summary>
 	public sealed partial class SecurityStatus : FixMessage, IInstrument, IInstrumentExtension
 	{
-		internal SecurityStatus(List<FixField> fields) : base("f", fields)
+		internal SecurityStatus(FixList<FixField> fields) : base("f", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -93495,7 +93495,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -93543,7 +93543,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -93576,7 +93576,7 @@ public abstract partial class FixMessage
 					case FixTag.NoInstrAttrib: if (NoInstrAttrib is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoInstrAttrib = (FixField.Integer)field; break;
 					case FixTag.InstrAttribType:
 						if (NoInstrAttribGroups is null && NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-						(NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+						(NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						break;
 					case FixTag.InstrAttribValue:
 						if (NoInstrAttribGroups is null || NoInstrAttribGroups.Count == 0)
@@ -93589,7 +93589,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -93629,7 +93629,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -93982,7 +93982,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -93996,7 +93996,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -94036,7 +94036,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -94392,7 +94392,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -94503,7 +94503,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -94521,19 +94521,19 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-		public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+		public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.SecurityStatus.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityStatus.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.SecurityStatus.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityStatus.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 		public FixField.Text? Currency { get; internal set; }
@@ -94614,7 +94614,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -94743,7 +94743,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -94765,7 +94765,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -94889,7 +94889,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityStatusRequest, MsgType e.</summary>
 	public sealed partial class SecurityStatusRequest : FixMessage, IInstrument, IInstrumentExtension
 	{
-		internal SecurityStatusRequest(List<FixField> fields) : base("e", fields)
+		internal SecurityStatusRequest(FixList<FixField> fields) : base("e", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -94903,7 +94903,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -94951,7 +94951,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -94984,7 +94984,7 @@ public abstract partial class FixMessage
 					case FixTag.NoInstrAttrib: if (NoInstrAttrib is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoInstrAttrib = (FixField.Integer)field; break;
 					case FixTag.InstrAttribType:
 						if (NoInstrAttribGroups is null && NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-						(NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+						(NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						break;
 					case FixTag.InstrAttribValue:
 						if (NoInstrAttribGroups is null || NoInstrAttribGroups.Count == 0)
@@ -94997,7 +94997,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -95037,7 +95037,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -95390,7 +95390,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -95404,7 +95404,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -95444,7 +95444,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -95784,7 +95784,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -95895,7 +95895,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -95913,19 +95913,19 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-		public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+		public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 		/// <summary>The FIX NoUnderlyings, tag 711, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.SecurityStatusRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityStatusRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.SecurityStatusRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.SecurityStatusRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 		public FixField.Text? Currency { get; internal set; }
@@ -95958,7 +95958,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -96087,7 +96087,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -96109,7 +96109,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -96233,7 +96233,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityTypeRequest, MsgType v.</summary>
 	public sealed partial class SecurityTypeRequest : FixMessage
 	{
-		internal SecurityTypeRequest(List<FixField> fields) : base("v", fields)
+		internal SecurityTypeRequest(FixList<FixField> fields) : base("v", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -96295,7 +96295,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SecurityTypes, MsgType w.</summary>
 	public sealed partial class SecurityTypes : FixMessage
 	{
-		internal SecurityTypes(List<FixField> fields) : base("w", fields)
+		internal SecurityTypes(FixList<FixField> fields) : base("w", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -96309,7 +96309,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityTypes: if (NoSecurityTypes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityTypes = (FixField.Integer)field; break;
 					case FixTag.SecurityType:
 						if (NoSecurityTypesGroups is null && NoSecurityTypes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityTypes, field.Position, field, -1));
-						(NoSecurityTypesGroups ??= []).Add(new () { SecurityType = (FixField.Text)field });
+						(NoSecurityTypesGroups ??= new()).Add(new () { SecurityType = (FixField.Text)field });
 						break;
 					case FixTag.SecuritySubType:
 						if (NoSecurityTypesGroups is null || NoSecurityTypesGroups.Count == 0)
@@ -96370,7 +96370,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityTypes { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityTypes, tag 558; null when the group is absent.</summary>
-		public List<FixMessage.SecurityTypes.NoSecurityTypesGroup>? NoSecurityTypesGroups { get; internal set; }
+		public FixList<FixMessage.SecurityTypes.NoSecurityTypesGroup>? NoSecurityTypesGroups { get; internal set; }
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Text { get; internal set; }
@@ -96416,7 +96416,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SequenceReset, MsgType 4.</summary>
 	public sealed partial class SequenceReset : FixMessage
 	{
-		internal SequenceReset(List<FixField> fields) : base("4", fields)
+		internal SequenceReset(FixList<FixField> fields) : base("4", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -96450,7 +96450,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SettlementInstructionRequest, MsgType AV.</summary>
 	public sealed partial class SettlementInstructionRequest : FixMessage, IParties
 	{
-		internal SettlementInstructionRequest(List<FixField> fields) : base("AV", fields)
+		internal SettlementInstructionRequest(FixList<FixField> fields) : base("AV", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -96461,7 +96461,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -96493,7 +96493,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -96536,7 +96536,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? AllocAccount { get; internal set; }
@@ -96584,7 +96584,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 SettlementInstructions, MsgType T.</summary>
 	public sealed partial class SettlementInstructions : FixMessage
 	{
-		internal SettlementInstructions(List<FixField> fields) : base("T", fields)
+		internal SettlementInstructions(FixList<FixField> fields) : base("T", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -96602,7 +96602,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSettlInst: if (NoSettlInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSettlInst = (FixField.Integer)field; break;
 					case FixTag.SettlInstID:
 						if (NoSettlInstGroups is null && NoSettlInst is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlInst, field.Position, field, -1));
-						(NoSettlInstGroups ??= []).Add(new () { SettlInstID = (FixField.Text)field });
+						(NoSettlInstGroups ??= new()).Add(new () { SettlInstID = (FixField.Text)field });
 						break;
 					case FixTag.SettlInstTransType:
 						if (NoSettlInstGroups is null || NoSettlInstGroups.Count == 0)
@@ -96634,7 +96634,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSettlInstGroups![^1].NoPartyIDsGroups is null && NoSettlInstGroups![^1].NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-							(NoSettlInstGroups![^1].NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+							(NoSettlInstGroups![^1].NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartyIDSource:
@@ -96667,7 +96667,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSettlInstGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoSettlInstGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoSettlInstGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoSettlInstGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -96780,7 +96780,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSettlInstGroups![^1].NoDlvyInstGroups is null && NoSettlInstGroups![^1].NoDlvyInst is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoDlvyInst, field.Position, field, -1));
-							(NoSettlInstGroups![^1].NoDlvyInstGroups ??= []).Add(new () { SettlInstSource = (FixField.Character)field });
+							(NoSettlInstGroups![^1].NoDlvyInstGroups ??= new()).Add(new () { SettlInstSource = (FixField.Character)field });
 						}
 						break;
 					case FixTag.DlvyInstType:
@@ -96805,7 +96805,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSettlInstGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups is null && NoSettlInstGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartyIDs, field.Position, field, -1));
-							(NoSettlInstGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= []).Add(new () { SettlPartyID = (FixField.Text)field });
+							(NoSettlInstGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups ??= new()).Add(new () { SettlPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartyIDSource:
@@ -96838,7 +96838,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSettlInstGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups is null && NoSettlInstGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSettlPartySubIDs, field.Position, field, -1));
-							(NoSettlInstGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= []).Add(new () { SettlPartySubID = (FixField.Text)field });
+							(NoSettlInstGroups![^1].NoDlvyInstGroups![^1].NoSettlPartyIDsGroups![^1].NoSettlPartySubIDsGroups ??= new()).Add(new () { SettlPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.SettlPartySubIDType:
@@ -96962,7 +96962,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSettlInst { get; internal set; }
 
 		/// <summary>The entries counted by NoSettlInst, tag 778; null when the group is absent.</summary>
-		public List<FixMessage.SettlementInstructions.NoSettlInstGroup>? NoSettlInstGroups { get; internal set; }
+		public FixList<FixMessage.SettlementInstructions.NoSettlInstGroup>? NoSettlInstGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoSettlInst, tag 778.</summary>
 		public sealed class NoSettlInstGroup : IParties, ISettlInstructionsData
@@ -96980,7 +96980,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-			public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+			public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? Side { get; internal set; }
@@ -97019,7 +97019,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoDlvyInst { get; internal set; }
 
 			/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
-			public List<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
+			public FixList<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; internal set; }
 
 			/// <summary>The FIX PaymentMethod, tag 492, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? PaymentMethod { get; internal set; }
@@ -97059,7 +97059,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TestRequest, MsgType 1.</summary>
 	public sealed partial class TestRequest : FixMessage
 	{
-		internal TestRequest(List<FixField> fields) : base("1", fields)
+		internal TestRequest(FixList<FixField> fields) : base("1", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -97089,7 +97089,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradeCaptureReport, MsgType AE.</summary>
 	public sealed partial class TradeCaptureReport : FixMessage, IFinancingDetails, IInstrument, IOrderQtyData, IPositionAmountData, ISpreadOrBenchmarkCurveData, ITrdRegTimestamps, IYieldData
 	{
-		internal TradeCaptureReport(List<FixField> fields) : base("AE", fields)
+		internal TradeCaptureReport(FixList<FixField> fields) : base("AE", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -97126,7 +97126,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -97174,7 +97174,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -97226,7 +97226,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -97266,7 +97266,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -97619,7 +97619,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -97653,7 +97653,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPosAmt: if (NoPosAmt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPosAmt = (FixField.Integer)field; break;
 					case FixTag.PosAmtType:
 						if (NoPosAmtGroups is null && NoPosAmt is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPosAmt, field.Position, field, -1));
-						(NoPosAmtGroups ??= []).Add(new () { PosAmtType = (FixField.Text)field });
+						(NoPosAmtGroups ??= new()).Add(new () { PosAmtType = (FixField.Text)field });
 						break;
 					case FixTag.PosAmt:
 						if (NoPosAmtGroups is null || NoPosAmtGroups.Count == 0)
@@ -97668,7 +97668,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -97708,7 +97708,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -98045,7 +98045,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegStipulationsGroups is null && NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -98086,7 +98086,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -98119,7 +98119,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -98174,7 +98174,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTrdRegTimestamps: if (NoTrdRegTimestamps is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrdRegTimestamps = (FixField.Integer)field; break;
 					case FixTag.TrdRegTimestamp:
 						if (NoTrdRegTimestampsGroups is null && NoTrdRegTimestamps is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrdRegTimestamps, field.Position, field, -1));
-						(NoTrdRegTimestampsGroups ??= []).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
+						(NoTrdRegTimestampsGroups ??= new()).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
 						break;
 					case FixTag.TrdRegTimestampType:
 						if (NoTrdRegTimestampsGroups is null || NoTrdRegTimestampsGroups.Count == 0)
@@ -98199,7 +98199,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSides: if (NoSides is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSides = (FixField.Integer)field; break;
 					case FixTag.Side:
 						if (NoSidesGroups is null && NoSides is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSides, field.Position, field, -1));
-						(NoSidesGroups ??= []).Add(new () { Side = (FixField.Character)field });
+						(NoSidesGroups ??= new()).Add(new () { Side = (FixField.Character)field });
 						break;
 					case FixTag.OrderID:
 						if (NoSidesGroups is null || NoSidesGroups.Count == 0)
@@ -98255,7 +98255,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoPartyIDsGroups is null && NoSidesGroups![^1].NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartyIDSource:
@@ -98288,7 +98288,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -98353,7 +98353,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoClearingInstructionsGroups is null && NoSidesGroups![^1].NoClearingInstructions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoClearingInstructions, field.Position, field, -1));
-							(NoSidesGroups![^1].NoClearingInstructionsGroups ??= []).Add(new () { ClearingInstruction = (FixField.Integer)field });
+							(NoSidesGroups![^1].NoClearingInstructionsGroups ??= new()).Add(new () { ClearingInstruction = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.TradeInputSource:
@@ -98690,7 +98690,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoContAmtsGroups is null && NoSidesGroups![^1].NoContAmts is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoContAmts, field.Position, field, -1));
-							(NoSidesGroups![^1].NoContAmtsGroups ??= []).Add(new () { ContAmtType = (FixField.Integer)field });
+							(NoSidesGroups![^1].NoContAmtsGroups ??= new()).Add(new () { ContAmtType = (FixField.Integer)field });
 						}
 						break;
 					case FixTag.ContAmtValue:
@@ -98723,7 +98723,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoStipulationsGroups is null && NoSidesGroups![^1].NoStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStipulations, field.Position, field, -1));
-							(NoSidesGroups![^1].NoStipulationsGroups ??= []).Add(new () { StipulationType = (FixField.Text)field });
+							(NoSidesGroups![^1].NoStipulationsGroups ??= new()).Add(new () { StipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.StipulationValue:
@@ -98748,7 +98748,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoMiscFeesGroups is null && NoSidesGroups![^1].NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-							(NoSidesGroups![^1].NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+							(NoSidesGroups![^1].NoMiscFeesGroups ??= new()).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
 						}
 						break;
 					case FixTag.MiscFeeCurr:
@@ -98821,7 +98821,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoAllocsGroups is null && NoSidesGroups![^1].NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+							(NoSidesGroups![^1].NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						}
 						break;
 					case FixTag.AllocAcctIDSource:
@@ -98862,7 +98862,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoAllocsGroups![^1].NoNested2PartyIDsGroups is null && NoSidesGroups![^1].NoAllocsGroups![^1].NoNested2PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartyIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNested2PartyIDsGroups ??= []).Add(new () { Nested2PartyID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNested2PartyIDsGroups ??= new()).Add(new () { Nested2PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartyIDSource:
@@ -98895,7 +98895,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoSidesGroups![^1].NoAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups is null && NoSidesGroups![^1].NoAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartySubIDs, field.Position, field, -1));
-							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= []).Add(new () { Nested2PartySubID = (FixField.Text)field });
+							(NoSidesGroups![^1].NoAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= new()).Add(new () { Nested2PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartySubIDType:
@@ -99015,7 +99015,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -99126,7 +99126,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -99201,7 +99201,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReport.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX UnderlyingTradingSessionID, tag 822, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? UnderlyingTradingSessionID { get; internal set; }
@@ -99267,7 +99267,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPosAmt { get; internal set; }
 
 		/// <summary>The entries counted by NoPosAmt, tag 753; null when the group is absent.</summary>
-		public List<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; internal set; }
+		public FixList<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; internal set; }
 
 		/// <summary>The FIX MultiLegReportingType, tag 442, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? MultiLegReportingType { get; internal set; }
@@ -99279,7 +99279,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReport.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public FixField.Timestamp? TransactTime { get; internal set; }
@@ -99288,7 +99288,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTrdRegTimestamps { get; internal set; }
 
 		/// <summary>The entries counted by NoTrdRegTimestamps, tag 768; null when the group is absent.</summary>
-		public List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
+		public FixList<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
 
 		/// <summary>The FIX SettlType, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SettlType { get; internal set; }
@@ -99306,7 +99306,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSides { get; internal set; }
 
 		/// <summary>The entries counted by NoSides, tag 552; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReport.NoSidesGroup>? NoSidesGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReport.NoSidesGroup>? NoSidesGroups { get; internal set; }
 
 		/// <summary>The FIX CopyMsgIndicator, tag 797, wire type <c>Boolean</c>; null when the field is absent.</summary>
 		public FixField.Boolean? CopyMsgIndicator { get; internal set; }
@@ -99336,7 +99336,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -99465,7 +99465,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -99487,7 +99487,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -99610,7 +99610,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+			public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX LegPositionEffect, tag 564, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? LegPositionEffect { get; internal set; }
@@ -99622,7 +99622,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX LegRefID, tag 654, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? LegRefID { get; internal set; }
@@ -99665,7 +99665,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-			public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+			public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? Account { get; internal set; }
@@ -99686,7 +99686,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoClearingInstructions { get; internal set; }
 
 			/// <summary>The entries counted by NoClearingInstructions, tag 576; null when the group is absent.</summary>
-			public List<FixMessage.TradeCaptureReport.NoSidesGroup.NoClearingInstructionsGroup>? NoClearingInstructionsGroups { get; internal set; }
+			public FixList<FixMessage.TradeCaptureReport.NoSidesGroup.NoClearingInstructionsGroup>? NoClearingInstructionsGroups { get; internal set; }
 
 			/// <summary>The FIX TradeInputSource, tag 578, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradeInputSource { get; internal set; }
@@ -99812,19 +99812,19 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoContAmts { get; internal set; }
 
 			/// <summary>The entries counted by NoContAmts, tag 518; null when the group is absent.</summary>
-			public List<FixMessage.TradeCaptureReport.NoSidesGroup.NoContAmtsGroup>? NoContAmtsGroups { get; internal set; }
+			public FixList<FixMessage.TradeCaptureReport.NoSidesGroup.NoContAmtsGroup>? NoContAmtsGroups { get; internal set; }
 
 			/// <summary>The FIX NoStipulations, tag 232, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-			public List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
+			public FixList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX NoMiscFees, tag 136, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 			public FixField.Integer? NoMiscFees { get; internal set; }
 
 			/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
-			public List<FixMessage.TradeCaptureReport.NoSidesGroup.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
+			public FixList<FixMessage.TradeCaptureReport.NoSidesGroup.NoMiscFeesGroup>? NoMiscFeesGroups { get; internal set; }
 
 			/// <summary>The FIX ExchangeRule, tag 825, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? ExchangeRule { get; internal set; }
@@ -99842,7 +99842,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoAllocs { get; internal set; }
 
 			/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-			public List<FixMessage.TradeCaptureReport.NoSidesGroup.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+			public FixList<FixMessage.TradeCaptureReport.NoSidesGroup.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoClearingInstructions, tag 576.</summary>
 			public sealed class NoClearingInstructionsGroup
@@ -99899,7 +99899,7 @@ public abstract partial class FixMessage
 				public FixField.Integer? NoNested2PartyIDs { get; internal set; }
 
 				/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-				public List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
+				public FixList<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
 
 				/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocQty { get; internal set; }
@@ -99916,7 +99916,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradeCaptureReportAck, MsgType AR.</summary>
 	public sealed partial class TradeCaptureReportAck : FixMessage, IInstrument, ITrdRegTimestamps
 	{
-		internal TradeCaptureReportAck(List<FixField> fields) : base("AR", fields)
+		internal TradeCaptureReportAck(FixList<FixField> fields) : base("AR", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -99947,7 +99947,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -99995,7 +99995,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -100027,7 +100027,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTrdRegTimestamps: if (NoTrdRegTimestamps is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTrdRegTimestamps = (FixField.Integer)field; break;
 					case FixTag.TrdRegTimestamp:
 						if (NoTrdRegTimestampsGroups is null && NoTrdRegTimestamps is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTrdRegTimestamps, field.Position, field, -1));
-						(NoTrdRegTimestampsGroups ??= []).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
+						(NoTrdRegTimestampsGroups ??= new()).Add(new () { TrdRegTimestamp = (FixField.Timestamp)field });
 						break;
 					case FixTag.TrdRegTimestampType:
 						if (NoTrdRegTimestampsGroups is null || NoTrdRegTimestampsGroups.Count == 0)
@@ -100053,7 +100053,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -100093,7 +100093,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -100430,7 +100430,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegStipulationsGroups is null && NoLegsGroups![^1].NoLegStipulations is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegStipulations, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegStipulationsGroups ??= []).Add(new () { LegStipulationType = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegStipulationsGroups ??= new()).Add(new () { LegStipulationType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegStipulationValue:
@@ -100471,7 +100471,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartyIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= []).Add(new () { NestedPartyID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups ??= new()).Add(new () { NestedPartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartyIDSource:
@@ -100504,7 +100504,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups is null && NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNestedPartySubIDs, field.Position, field, -1));
-							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= []).Add(new () { NestedPartySubID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoNestedPartyIDsGroups![^1].NoNestedPartySubIDsGroups ??= new()).Add(new () { NestedPartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.NestedPartySubIDType:
@@ -100567,7 +100567,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= new()).Add(new () { AllocAccount = (FixField.Text)field });
 						break;
 					case FixTag.AllocAcctIDSource:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -100607,7 +100607,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNested2PartyIDsGroups is null && NoAllocsGroups![^1].NoNested2PartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartyIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNested2PartyIDsGroups ??= []).Add(new () { Nested2PartyID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNested2PartyIDsGroups ??= new()).Add(new () { Nested2PartyID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartyIDSource:
@@ -100640,7 +100640,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups is null && NoAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoNested2PartySubIDs, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= []).Add(new () { Nested2PartySubID = (FixField.Text)field });
+							(NoAllocsGroups![^1].NoNested2PartyIDsGroups![^1].NoNested2PartySubIDsGroups ??= new()).Add(new () { Nested2PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.Nested2PartySubIDType:
@@ -100739,7 +100739,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -100850,7 +100850,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -100865,7 +100865,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoTrdRegTimestamps { get; internal set; }
 
 		/// <summary>The entries counted by NoTrdRegTimestamps, tag 768; null when the group is absent.</summary>
-		public List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
+		public FixList<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; internal set; }
 
 		/// <summary>The FIX ResponseTransportType, tag 725, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? ResponseTransportType { get; internal set; }
@@ -100886,7 +100886,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReportAck.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReportAck.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX ClearingFeeIndicator, tag 635, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? ClearingFeeIndicator { get; internal set; }
@@ -100919,7 +100919,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoAllocs { get; internal set; }
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReportAck.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReportAck.NoAllocsGroup>? NoAllocsGroups { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
 		public sealed class NoLegsGroup : IInstrumentLeg, ILegStipulations, INestedParties
@@ -100940,7 +100940,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -101063,7 +101063,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegStipulations { get; internal set; }
 
 			/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
+			public FixList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; internal set; }
 
 			/// <summary>The FIX LegPositionEffect, tag 564, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? LegPositionEffect { get; internal set; }
@@ -101075,7 +101075,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+			public FixList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX LegRefID, tag 654, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? LegRefID { get; internal set; }
@@ -101112,7 +101112,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoNested2PartyIDs { get; internal set; }
 
 			/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-			public List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
+			public FixList<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; internal set; }
 
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
@@ -101128,7 +101128,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradeCaptureReportRequest, MsgType AD.</summary>
 	public sealed partial class TradeCaptureReportRequest : FixMessage, IFinancingDetails, IInstrument, IInstrumentExtension, IParties
 	{
-		internal TradeCaptureReportRequest(List<FixField> fields) : base("AD", fields)
+		internal TradeCaptureReportRequest(FixList<FixField> fields) : base("AD", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -101153,7 +101153,7 @@ public abstract partial class FixMessage
 					case FixTag.NoPartyIDs: if (NoPartyIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoPartyIDs = (FixField.Integer)field; break;
 					case FixTag.PartyID:
 						if (NoPartyIDsGroups is null && NoPartyIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartyIDs, field.Position, field, -1));
-						(NoPartyIDsGroups ??= []).Add(new () { PartyID = (FixField.Text)field });
+						(NoPartyIDsGroups ??= new()).Add(new () { PartyID = (FixField.Text)field });
 						break;
 					case FixTag.PartyIDSource:
 						if (NoPartyIDsGroups is null || NoPartyIDsGroups.Count == 0)
@@ -101185,7 +101185,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoPartyIDsGroups![^1].NoPartySubIDsGroups is null && NoPartyIDsGroups![^1].NoPartySubIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoPartySubIDs, field.Position, field, -1));
-							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= []).Add(new () { PartySubID = (FixField.Text)field });
+							(NoPartyIDsGroups![^1].NoPartySubIDsGroups ??= new()).Add(new () { PartySubID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.PartySubIDType:
@@ -101203,7 +101203,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -101251,7 +101251,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -101284,7 +101284,7 @@ public abstract partial class FixMessage
 					case FixTag.NoInstrAttrib: if (NoInstrAttrib is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoInstrAttrib = (FixField.Integer)field; break;
 					case FixTag.InstrAttribType:
 						if (NoInstrAttribGroups is null && NoInstrAttrib is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoInstrAttrib, field.Position, field, -1));
-						(NoInstrAttribGroups ??= []).Add(new () { InstrAttribType = (FixField.Integer)field });
+						(NoInstrAttribGroups ??= new()).Add(new () { InstrAttribType = (FixField.Integer)field });
 						break;
 					case FixTag.InstrAttribValue:
 						if (NoInstrAttribGroups is null || NoInstrAttribGroups.Count == 0)
@@ -101306,7 +101306,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -101346,7 +101346,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -101699,7 +101699,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -101713,7 +101713,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -101753,7 +101753,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -102063,7 +102063,7 @@ public abstract partial class FixMessage
 					case FixTag.NoDates: if (NoDates is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoDates = (FixField.Integer)field; break;
 					case FixTag.TradeDate:
 						if (NoDatesGroups is null && NoDates is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoDates, field.Position, field, -1));
-						(NoDatesGroups ??= []).Add(new () { TradeDate = (FixField.Date)field });
+						(NoDatesGroups ??= new()).Add(new () { TradeDate = (FixField.Date)field });
 						break;
 					case FixTag.TransactTime:
 						if (NoDatesGroups is null || NoDatesGroups.Count == 0)
@@ -102148,7 +102148,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
+		public FixList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; internal set; }
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? Symbol { get; internal set; }
@@ -102166,7 +102166,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -102277,7 +102277,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -102295,7 +102295,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoInstrAttrib { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-		public List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
+		public FixList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; internal set; }
 
 		/// <summary>The FIX AgreementDesc, tag 913, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? AgreementDesc { get; internal set; }
@@ -102328,19 +102328,19 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReportRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReportRequest.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReportRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReportRequest.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX NoDates, tag 580, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoDates { get; internal set; }
 
 		/// <summary>The entries counted by NoDates, tag 580; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReportRequest.NoDatesGroup>? NoDatesGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReportRequest.NoDatesGroup>? NoDatesGroups { get; internal set; }
 
 		/// <summary>The FIX ClearingBusinessDate, tag 715, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? ClearingBusinessDate { get; internal set; }
@@ -102400,7 +102400,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -102529,7 +102529,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -102551,7 +102551,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -102685,7 +102685,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradeCaptureReportRequestAck, MsgType AQ.</summary>
 	public sealed partial class TradeCaptureReportRequestAck : FixMessage, IInstrument
 	{
-		internal TradeCaptureReportRequestAck(List<FixField> fields) : base("AQ", fields)
+		internal TradeCaptureReportRequestAck(FixList<FixField> fields) : base("AQ", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -102704,7 +102704,7 @@ public abstract partial class FixMessage
 					case FixTag.NoSecurityAltID: if (NoSecurityAltID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoSecurityAltID = (FixField.Integer)field; break;
 					case FixTag.SecurityAltID:
 						if (NoSecurityAltIDGroups is null && NoSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoSecurityAltID, field.Position, field, -1));
-						(NoSecurityAltIDGroups ??= []).Add(new () { SecurityAltID = (FixField.Text)field });
+						(NoSecurityAltIDGroups ??= new()).Add(new () { SecurityAltID = (FixField.Text)field });
 						break;
 					case FixTag.SecurityAltIDSource:
 						if (NoSecurityAltIDGroups is null || NoSecurityAltIDGroups.Count == 0)
@@ -102752,7 +102752,7 @@ public abstract partial class FixMessage
 					case FixTag.NoEvents: if (NoEvents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoEvents = (FixField.Integer)field; break;
 					case FixTag.EventType:
 						if (NoEventsGroups is null && NoEvents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoEvents, field.Position, field, -1));
-						(NoEventsGroups ??= []).Add(new () { EventType = (FixField.Integer)field });
+						(NoEventsGroups ??= new()).Add(new () { EventType = (FixField.Integer)field });
 						break;
 					case FixTag.EventDate:
 						if (NoEventsGroups is null || NoEventsGroups.Count == 0)
@@ -102783,7 +102783,7 @@ public abstract partial class FixMessage
 					case FixTag.NoUnderlyings: if (NoUnderlyings is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoUnderlyings = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoUnderlyingsGroups is null && NoUnderlyings is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyings, field.Position, field, -1));
-						(NoUnderlyingsGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoUnderlyingsGroups ??= new()).Add(new () { UnderlyingSymbol = (FixField.Text)field });
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoUnderlyingsGroups is null || NoUnderlyingsGroups.Count == 0)
@@ -102823,7 +102823,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingSecurityAltID, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= []).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingSecurityAltIDGroups ??= new()).Add(new () { UnderlyingSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingSecurityAltIDSource:
@@ -103176,7 +103176,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups is null && NoUnderlyingsGroups![^1].NoUnderlyingStips is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoUnderlyingStips, field.Position, field, -1));
-							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= []).Add(new () { UnderlyingStipType = (FixField.Text)field });
+							(NoUnderlyingsGroups![^1].NoUnderlyingStipsGroups ??= new()).Add(new () { UnderlyingStipType = (FixField.Text)field });
 						}
 						break;
 					case FixTag.UnderlyingStipValue:
@@ -103190,7 +103190,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLegs: if (NoLegs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoLegs = (FixField.Integer)field; break;
 					case FixTag.LegSymbol:
 						if (NoLegsGroups is null && NoLegs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegs, field.Position, field, -1));
-						(NoLegsGroups ??= []).Add(new () { LegSymbol = (FixField.Text)field });
+						(NoLegsGroups ??= new()).Add(new () { LegSymbol = (FixField.Text)field });
 						break;
 					case FixTag.LegSymbolSfx:
 						if (NoLegsGroups is null || NoLegsGroups.Count == 0)
@@ -103230,7 +103230,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoLegsGroups![^1].NoLegSecurityAltIDGroups is null && NoLegsGroups![^1].NoLegSecurityAltID is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLegSecurityAltID, field.Position, field, -1));
-							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= []).Add(new () { LegSecurityAltID = (FixField.Text)field });
+							(NoLegsGroups![^1].NoLegSecurityAltIDGroups ??= new()).Add(new () { LegSecurityAltID = (FixField.Text)field });
 						}
 						break;
 					case FixTag.LegSecurityAltIDSource:
@@ -103587,7 +103587,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoSecurityAltID { get; internal set; }
 
 		/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-		public List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
+		public FixList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; internal set; }
 
 		/// <summary>The FIX Product, tag 460, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? Product { get; internal set; }
@@ -103698,7 +103698,7 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoEvents { get; internal set; }
 
 		/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-		public List<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
+		public FixList<IInstrument.NoEventsGroup>? NoEventsGroups { get; internal set; }
 
 		/// <summary>The FIX DatedDate, tag 873, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? DatedDate { get; internal set; }
@@ -103710,13 +103710,13 @@ public abstract partial class FixMessage
 		public FixField.Integer? NoUnderlyings { get; internal set; }
 
 		/// <summary>The entries counted by NoUnderlyings, tag 711; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReportRequestAck.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReportRequestAck.NoUnderlyingsGroup>? NoUnderlyingsGroups { get; internal set; }
 
 		/// <summary>The FIX NoLegs, tag 555, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoLegs { get; internal set; }
 
 		/// <summary>The entries counted by NoLegs, tag 555; null when the group is absent.</summary>
-		public List<FixMessage.TradeCaptureReportRequestAck.NoLegsGroup>? NoLegsGroups { get; internal set; }
+		public FixList<FixMessage.TradeCaptureReportRequestAck.NoLegsGroup>? NoLegsGroups { get; internal set; }
 
 		/// <summary>The FIX MultiLegReportingType, tag 442, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? MultiLegReportingType { get; internal set; }
@@ -103755,7 +103755,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-			public List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
+			public FixList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX UnderlyingProduct, tag 462, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingProduct { get; internal set; }
@@ -103884,7 +103884,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoUnderlyingStips { get; internal set; }
 
 			/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
+			public FixList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; internal set; }
 		}
 
 		/// <summary>One entry of the group counted by NoLegs, tag 555.</summary>
@@ -103906,7 +103906,7 @@ public abstract partial class FixMessage
 			public FixField.Integer? NoLegSecurityAltID { get; internal set; }
 
 			/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-			public List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
+			public FixList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; internal set; }
 
 			/// <summary>The FIX LegProduct, tag 607, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegProduct { get; internal set; }
@@ -104030,7 +104030,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradingSessionStatus, MsgType h.</summary>
 	public sealed partial class TradingSessionStatus : FixMessage
 	{
-		internal TradingSessionStatus(List<FixField> fields) : base("h", fields)
+		internal TradingSessionStatus(FixList<FixField> fields) : base("h", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -104124,7 +104124,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 TradingSessionStatusRequest, MsgType g.</summary>
 	public sealed partial class TradingSessionStatusRequest : FixMessage
 	{
-		internal TradingSessionStatusRequest(List<FixField> fields) : base("g", fields)
+		internal TradingSessionStatusRequest(FixList<FixField> fields) : base("g", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -104174,7 +104174,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 UserRequest, MsgType BE.</summary>
 	public sealed partial class UserRequest : FixMessage
 	{
-		internal UserRequest(List<FixField> fields) : base("BE", fields)
+		internal UserRequest(FixList<FixField> fields) : base("BE", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -104228,7 +104228,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 UserResponse, MsgType BF.</summary>
 	public sealed partial class UserResponse : FixMessage
 	{
-		internal UserResponse(List<FixField> fields) : base("BF", fields)
+		internal UserResponse(FixList<FixField> fields) : base("BF", fields)
 		{
 			foreach (var field in fields)
 			{
@@ -104270,7 +104270,7 @@ public abstract partial class FixMessage
 	/// <summary>FIX 4.4 XMLnonFIX, MsgType n.</summary>
 	public sealed partial class XMLnonFIX : FixMessage
 	{
-		internal XMLnonFIX(List<FixField> fields) : base("n", fields)
+		internal XMLnonFIX(FixList<FixField> fields) : base("n", fields)
 		{
 			foreach (var field in fields)
 			{
