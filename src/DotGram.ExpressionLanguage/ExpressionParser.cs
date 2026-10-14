@@ -152,16 +152,16 @@ namespace DotGram.ExpressionLanguage;
 //     (CS0136). The nearer name wins here — more permissive than C#, so no valid C# is
 //     turned into something else, and the check C# makes is one this has no reason to.
 
-// The tape, named. Left to the generator this grammar would be carried as Immediate, and it is
-// one of the grammars that carrier is least safe for (GRAM5016): its constructions read and
-// write the context — the scopes a lambda or a block declares names into — and the `when`
-// guards that decide between competing readings ask the same context. On the tape every
-// construction runs after the parse has accepted, so a guard sees what the derivation that
-// stands declared and nothing else; carried immediately, a construction runs as its
-// alternative is read, before the guards after it and for readings later given up, and 81 of
-// the 84 rules it builds are read for derivations that may not stand.
+// The immediate carrier, named. Left to the generator this grammar would be carried that way
+// too, with a warning (GRAM5016): its constructions read and write the context — the scopes a
+// lambda or a block declares names into — and the `when` guards that decide between competing
+// readings ask the same context. Carried immediately, a construction runs as its alternative
+// is read, before the guards after it and for readings later given up, and 81 of the 84 rules
+// it builds are read for derivations that may not stand; on the tape every construction runs
+// after the parse has accepted, so a guard sees what the derivation that stands declared and
+// nothing else. The immediate reading is the faster one by enough to be the reading a scope is
+// given, and the two are held to each other on every text the corpus can be cut into (below).
 //
-// The immediate reading below is compiled anyway, to be measured and held against this one.
 // Where two readings compete over the same text the question is asked by a `when` and not by
 // letting a construction throw — `Target` asks `Has(n, member, scope)`, which is exactly what
 // its construction is about to do; `NamedType` asks `Resolves` for the same reason — and
@@ -171,13 +171,14 @@ namespace DotGram.ExpressionLanguage;
 // way — `s.Trim)` builds `s.Trim` and is told there is no such property before the `)` is
 // reached, where the tape refuses the `)` — and the immediate carrier holds that exception and
 // drops it with the reading the parse gives up (docs/syntax.md §7.5), so the agreement is
-// exact, throwers included. What keeps the reading a scope is given on the tape is the
-// paragraph above: over a context the agreement is a search over a corpus, not a proof.
+// exact, throwers included. Over a context that agreement is a search over a corpus, not a
+// proof, which is why the second reading stays compiled and held against this one.
 //
 // That second reading is not in the package. It is compiled only where DOTGRAM_EL_IMMEDIATE
 // is defined, which is the fixture tests/DotGram.ExpressionLanguage.Immediate: these same
-// sources built again into an assembly of their own, which the tests and the stand read. The
-// package carries the one reading a scope is given, and nothing that only measures it.
+// sources built again into an assembly of their own, which the tests and the stand read. It
+// was the immediate reading while this one was the tape's; the fixture is where the tape
+// reading goes next, so that the agreement keeps comparing the two carriers.
 [Gram("""
 	@using System;
 	@using System.Globalization;
@@ -1643,14 +1644,14 @@ namespace DotGram.ExpressionLanguage;
 
 	// And the body of a lambda whose parameters say no types, read again once they have one.
 	private parse HeldBody as ParseBody
-	""", Lexical = true, Carrier = GramCarrier.Tape)]
+	""", Lexical = true, Carrier = GramCarrier.Immediate)]
 
-// The same grammar with the constructions run where they are read rather than after
-// the parse is accepted (§6.5). It is here to be measured and to be held against the
-// reading above: the two must answer alike on every input, which is what
-// ExpressionCarrierTests asks. No construction found so far needs to be deferred — the one
-// place that did, a name resolved by a factory that threw, is a `when` now.
-// Compiled in the fixture only, as the comment above the grammar says.
+// The same grammar once more, to be measured and to be held against the reading above: the
+// two must answer alike on every input, which is what ExpressionCarrierTests asks. It was the
+// immediate reading while the one above was the tape's; both are immediate now, until the
+// fixture takes the tape reading over. No construction found so far needs a `when` in front of
+// it to keep the carriers agreeing — the one place that did, a name resolved by a factory that
+// threw, is a `when` now. Compiled in the fixture only, as the comment above the grammar says.
 #if DOTGRAM_EL_IMMEDIATE
 [GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
 #endif

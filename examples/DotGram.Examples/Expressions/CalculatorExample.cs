@@ -32,13 +32,13 @@ namespace DotGram.Examples.Expressions;
 // and its `^` on `int` is exclusive-or rather than power, so that one is a method —
 // overloaded the three ways the operators are overloaded once.
 //
-// The carrier is named, the tape: `/` throws on a zero divisor. A grammar that names none
-// is carried as Immediate, which runs a construction as soon as its alternative is read —
-// `1/0=` divides, and throws, before the parse refuses the `=` — and holds what it threw
-// until the parse has accepted, dropping it with a reading the parse gives up
-// (docs/syntax.md §7.5). On the tape every construction waits until the parse has accepted.
-// Either way a text that is no expression is refused, and only an expression that divides by
-// zero throws; the tape is the carrier on which `/` never runs for a refused text at all.
+// The carrier is named, the immediate one, which is also what a grammar that names none gets:
+// a construction runs as soon as its alternative is read — `1/0=` divides, and throws, before
+// the parse refuses the `=` — and what it threw is held until the parse has accepted, and
+// dropped with a reading the parse gives up (docs/syntax.md §7.5). So a text that is no
+// expression is refused, and only an expression that divides by zero throws, as on the tape,
+// where every construction waits until the parse has accepted; named here so that the choice
+// is visible beside `/`, the one construction that can throw.
 
 [Gram("""
 	@using System.Globalization;
@@ -64,7 +64,7 @@ namespace DotGram.Examples.Expressions;
 	parse Expr with (Value = IntNumber)     as EvaluateInt
 	parse Expr with (Value = DecimalNumber) as EvaluateDecimal
 	parse Expr with (Value = NodeNumber)    as BuildTree
-	""", Carrier = GramCarrier.Tape)]
+	""", Carrier = GramCarrier.Immediate)]
 public static partial class Calculator
 {
 	/// <summary>The tree the third parser builds, and the operators that build it.</summary>
