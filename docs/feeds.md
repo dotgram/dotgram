@@ -698,9 +698,10 @@ second entry and the fourth because that is when the third line was read.
 with one of the feeds above what a client would: it writes the feed at any size, reads it with
 its grammar, and bulk-loads it into SQLite with [linq2db](https://github.com/linq2db/linq2db),
 the bad lines into a table of their own. It takes linq2db and Microsoft.Data.Sqlite from NuGet,
-the only project in the repository that takes a database at all, and for that reason it is not
-in `DotGram.slnx`: a solution build, CI's included, has no reason to restore them. Run it on its
-own, from the repository root:
+the only project in the repository that takes a database at all. It is in `DotGram.slnx`, so
+every build compiles it, and `tests/DotGram.FeedLoad.Tests` runs it over each feed at ten
+thousand records (`DOTGRAM_FEEDLOAD_RECORDS=10M` asks the test for ten million; `docs/development.md`
+has the command). Run it on its own, from the repository root:
 
 ```sh
 dotnet run -c Release --project examples/DotGram.FeedLoad                       # 10M end-of-day trades
