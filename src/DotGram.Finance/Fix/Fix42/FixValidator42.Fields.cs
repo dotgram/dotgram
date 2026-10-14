@@ -1363,7 +1363,7 @@ partial class FixValidator42
 
 	static bool ValidateExecInst(Fix42Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or
 				"C" or "D" or "E" or "F" or "G" or "I" or "L" or "M" or "N" or "O" or "P" or "R" or "S" or "T" or
 				"U" or "V" or "W"))
@@ -3142,7 +3142,7 @@ partial class FixValidator42
 
 	static bool ValidateQuoteCondition(Fix42Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I"))
 			{
 				Invalid(message, field);
@@ -3155,7 +3155,7 @@ partial class FixValidator42
 
 	static bool ValidateTradeCondition(Fix42Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or
 				"M" or "N"))
 			{

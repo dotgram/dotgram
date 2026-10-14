@@ -360,15 +360,15 @@ partial class FixValidator42
 		if (message.AllocLinkID is not null) context.Validators.AllocLinkID(context, message, message.AllocLinkID);
 		if (message.AllocLinkType is not null) context.Validators.AllocLinkType(context, message, message.AllocLinkType);
 		if (message.NoOrders is not null) context.Validators.NoOrders(context, message, message.NoOrders);
-		Counted(message, message.NoOrders, message.NoOrdersGroups);
-		if (message.NoOrdersGroups is not null)
-			for (var i = 0; i < message.NoOrdersGroups.Count; i++)
-				context.Validators.Allocation_NoOrders(context, message, message.NoOrdersGroups[i], i);
+		Counted(message, message.NoOrders, message.NoOrdersGroupsStore);
+		if (message.NoOrdersGroupsStore is not null)
+			for (var i = 0; i < message.NoOrdersGroupsStore.Count; i++)
+				context.Validators.Allocation_NoOrders(context, message, message.NoOrdersGroupsStore[i], i);
 		if (message.NoExecs is not null) context.Validators.NoExecs(context, message, message.NoExecs);
-		Counted(message, message.NoExecs, message.NoExecsGroups);
-		if (message.NoExecsGroups is not null)
-			for (var i = 0; i < message.NoExecsGroups.Count; i++)
-				context.Validators.Allocation_NoExecs(context, message, message.NoExecsGroups[i], i);
+		Counted(message, message.NoExecs, message.NoExecsGroupsStore);
+		if (message.NoExecsGroupsStore is not null)
+			for (var i = 0; i < message.NoExecsGroupsStore.Count; i++)
+				context.Validators.Allocation_NoExecs(context, message, message.NoExecsGroupsStore[i], i);
 		if (message.Side is null) Missing(message, FixTag.Side);
 		else context.Validators.Side(context, message, message.Side);
 		if (message.Symbol is null) Missing(message, FixTag.Symbol);
@@ -413,10 +413,10 @@ partial class FixValidator42
 		if (message.NumDaysInterest is not null) context.Validators.NumDaysInterest(context, message, message.NumDaysInterest);
 		if (message.AccruedInterestRate is not null) context.Validators.AccruedInterestRate(context, message, message.AccruedInterestRate);
 		if (message.NoAllocs is not null) context.Validators.NoAllocs(context, message, message.NoAllocs);
-		Counted(message, message.NoAllocs, message.NoAllocsGroups);
-		if (message.NoAllocsGroups is not null)
-			for (var i = 0; i < message.NoAllocsGroups.Count; i++)
-				context.Validators.Allocation_NoAllocs(context, message, message.NoAllocsGroups[i], i);
+		Counted(message, message.NoAllocs, message.NoAllocsGroupsStore);
+		if (message.NoAllocsGroupsStore is not null)
+			for (var i = 0; i < message.NoAllocsGroupsStore.Count; i++)
+				context.Validators.Allocation_NoAllocs(context, message, message.NoAllocsGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -457,15 +457,15 @@ partial class FixValidator42
 		if (message.SideValue1 is not null) context.Validators.SideValue1(context, message, message.SideValue1);
 		if (message.SideValue2 is not null) context.Validators.SideValue2(context, message, message.SideValue2);
 		if (message.NoBidDescriptors is not null) context.Validators.NoBidDescriptors(context, message, message.NoBidDescriptors);
-		Counted(message, message.NoBidDescriptors, message.NoBidDescriptorsGroups);
-		if (message.NoBidDescriptorsGroups is not null)
-			for (var i = 0; i < message.NoBidDescriptorsGroups.Count; i++)
-				context.Validators.BidRequest_NoBidDescriptors(context, message, message.NoBidDescriptorsGroups[i], i);
+		Counted(message, message.NoBidDescriptors, message.NoBidDescriptorsGroupsStore);
+		if (message.NoBidDescriptorsGroupsStore is not null)
+			for (var i = 0; i < message.NoBidDescriptorsGroupsStore.Count; i++)
+				context.Validators.BidRequest_NoBidDescriptors(context, message, message.NoBidDescriptorsGroupsStore[i], i);
 		if (message.NoBidComponents is not null) context.Validators.NoBidComponents(context, message, message.NoBidComponents);
-		Counted(message, message.NoBidComponents, message.NoBidComponentsGroups);
-		if (message.NoBidComponentsGroups is not null)
-			for (var i = 0; i < message.NoBidComponentsGroups.Count; i++)
-				context.Validators.BidRequest_NoBidComponents(context, message, message.NoBidComponentsGroups[i], i);
+		Counted(message, message.NoBidComponents, message.NoBidComponentsGroupsStore);
+		if (message.NoBidComponentsGroupsStore is not null)
+			for (var i = 0; i < message.NoBidComponentsGroupsStore.Count; i++)
+				context.Validators.BidRequest_NoBidComponents(context, message, message.NoBidComponentsGroupsStore[i], i);
 		if (message.LiquidityIndType is not null) context.Validators.LiquidityIndType(context, message, message.LiquidityIndType);
 		if (message.WtAverageLiquidity is not null) context.Validators.WtAverageLiquidity(context, message, message.WtAverageLiquidity);
 		if (message.ExchangeForPhysical is not null) context.Validators.ExchangeForPhysical(context, message, message.ExchangeForPhysical);
@@ -495,10 +495,10 @@ partial class FixValidator42
 		if (message.ClientBidID is not null) context.Validators.ClientBidID(context, message, message.ClientBidID);
 		if (message.NoBidComponents is null) Missing(message, FixTag.NoBidComponents);
 		else context.Validators.NoBidComponents(context, message, message.NoBidComponents);
-		Counted(message, message.NoBidComponents, message.NoBidComponentsGroups);
-		if (message.NoBidComponentsGroups is not null)
-			for (var i = 0; i < message.NoBidComponentsGroups.Count; i++)
-				context.Validators.BidResponse_NoBidComponents(context, message, message.NoBidComponentsGroups[i], i);
+		Counted(message, message.NoBidComponents, message.NoBidComponentsGroupsStore);
+		if (message.NoBidComponentsGroupsStore is not null)
+			for (var i = 0; i < message.NoBidComponentsGroupsStore.Count; i++)
+				context.Validators.BidResponse_NoBidComponents(context, message, message.NoBidComponentsGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -571,23 +571,23 @@ partial class FixValidator42
 		if (message.EncodedSubjectLen is not null) context.Validators.EncodedSubjectLen(context, message, message.EncodedSubjectLen);
 		if (message.EncodedSubject is not null) context.Validators.EncodedSubject(context, message, message.EncodedSubject);
 		if (message.NoRoutingIDs is not null) context.Validators.NoRoutingIDs(context, message, message.NoRoutingIDs);
-		Counted(message, message.NoRoutingIDs, message.NoRoutingIDsGroups);
-		if (message.NoRoutingIDsGroups is not null)
-			for (var i = 0; i < message.NoRoutingIDsGroups.Count; i++)
-				context.Validators.Email_NoRoutingIDs(context, message, message.NoRoutingIDsGroups[i], i);
+		Counted(message, message.NoRoutingIDs, message.NoRoutingIDsGroupsStore);
+		if (message.NoRoutingIDsGroupsStore is not null)
+			for (var i = 0; i < message.NoRoutingIDsGroupsStore.Count; i++)
+				context.Validators.Email_NoRoutingIDs(context, message, message.NoRoutingIDsGroupsStore[i], i);
 		if (message.NoRelatedSym is not null) context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
-		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
-		if (message.NoRelatedSymGroups is not null)
-			for (var i = 0; i < message.NoRelatedSymGroups.Count; i++)
-				context.Validators.Email_NoRelatedSym(context, message, message.NoRelatedSymGroups[i], i);
+		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroupsStore);
+		if (message.NoRelatedSymGroupsStore is not null)
+			for (var i = 0; i < message.NoRelatedSymGroupsStore.Count; i++)
+				context.Validators.Email_NoRelatedSym(context, message, message.NoRelatedSymGroupsStore[i], i);
 		if (message.OrderID is not null) context.Validators.OrderID(context, message, message.OrderID);
 		if (message.ClOrdID is not null) context.Validators.ClOrdID(context, message, message.ClOrdID);
 		if (message.LinesOfText is null) Missing(message, FixTag.NoLinesOfText);
 		else context.Validators.LinesOfText(context, message, message.LinesOfText);
-		Counted(message, message.LinesOfText, message.LinesOfTextGroups);
-		if (message.LinesOfTextGroups is not null)
-			for (var i = 0; i < message.LinesOfTextGroups.Count; i++)
-				context.Validators.Email_LinesOfText(context, message, message.LinesOfTextGroups[i], i);
+		Counted(message, message.LinesOfText, message.LinesOfTextGroupsStore);
+		if (message.LinesOfTextGroupsStore is not null)
+			for (var i = 0; i < message.LinesOfTextGroupsStore.Count; i++)
+				context.Validators.Email_LinesOfText(context, message, message.LinesOfTextGroupsStore[i], i);
 		if (message.RawDataLength is not null) context.Validators.RawDataLength(context, message, message.RawDataLength);
 		if (message.RawData is not null) context.Validators.RawData(context, message, message.RawData);
 
@@ -604,10 +604,10 @@ partial class FixValidator42
 		if (message.ClientID is not null) context.Validators.ClientID(context, message, message.ClientID);
 		if (message.ExecBroker is not null) context.Validators.ExecBroker(context, message, message.ExecBroker);
 		if (message.NoContraBrokers is not null) context.Validators.NoContraBrokers(context, message, message.NoContraBrokers);
-		Counted(message, message.NoContraBrokers, message.NoContraBrokersGroups);
-		if (message.NoContraBrokersGroups is not null)
-			for (var i = 0; i < message.NoContraBrokersGroups.Count; i++)
-				context.Validators.ExecutionReport_NoContraBrokers(context, message, message.NoContraBrokersGroups[i], i);
+		Counted(message, message.NoContraBrokers, message.NoContraBrokersGroupsStore);
+		if (message.NoContraBrokersGroupsStore is not null)
+			for (var i = 0; i < message.NoContraBrokersGroupsStore.Count; i++)
+				context.Validators.ExecutionReport_NoContraBrokers(context, message, message.NoContraBrokersGroupsStore[i], i);
 		if (message.ListID is not null) context.Validators.ListID(context, message, message.ListID);
 		if (message.ExecID is null) Missing(message, FixTag.ExecID);
 		else context.Validators.ExecID(context, message, message.ExecID);
@@ -750,20 +750,20 @@ partial class FixValidator42
 		if (message.IOIQltyInd is not null) context.Validators.IOIQltyInd(context, message, message.IOIQltyInd);
 		if (message.IOINaturalFlag is not null) context.Validators.IOINaturalFlag(context, message, message.IOINaturalFlag);
 		if (message.NoIOIQualifiers is not null) context.Validators.NoIOIQualifiers(context, message, message.NoIOIQualifiers);
-		Counted(message, message.NoIOIQualifiers, message.NoIOIQualifiersGroups);
-		if (message.NoIOIQualifiersGroups is not null)
-			for (var i = 0; i < message.NoIOIQualifiersGroups.Count; i++)
-				context.Validators.IndicationofInterest_NoIOIQualifiers(context, message, message.NoIOIQualifiersGroups[i], i);
+		Counted(message, message.NoIOIQualifiers, message.NoIOIQualifiersGroupsStore);
+		if (message.NoIOIQualifiersGroupsStore is not null)
+			for (var i = 0; i < message.NoIOIQualifiersGroupsStore.Count; i++)
+				context.Validators.IndicationofInterest_NoIOIQualifiers(context, message, message.NoIOIQualifiersGroupsStore[i], i);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
 		if (message.EncodedText is not null) context.Validators.EncodedText(context, message, message.EncodedText);
 		if (message.TransactTime is not null) context.Validators.TransactTime(context, message, message.TransactTime);
 		if (message.URLLink is not null) context.Validators.URLLink(context, message, message.URLLink);
 		if (message.NoRoutingIDs is not null) context.Validators.NoRoutingIDs(context, message, message.NoRoutingIDs);
-		Counted(message, message.NoRoutingIDs, message.NoRoutingIDsGroups);
-		if (message.NoRoutingIDsGroups is not null)
-			for (var i = 0; i < message.NoRoutingIDsGroups.Count; i++)
-				context.Validators.IndicationofInterest_NoRoutingIDs(context, message, message.NoRoutingIDsGroups[i], i);
+		Counted(message, message.NoRoutingIDs, message.NoRoutingIDsGroupsStore);
+		if (message.NoRoutingIDsGroupsStore is not null)
+			for (var i = 0; i < message.NoRoutingIDsGroupsStore.Count; i++)
+				context.Validators.IndicationofInterest_NoRoutingIDs(context, message, message.NoRoutingIDsGroupsStore[i], i);
 		if (message.SpreadToBenchmark is not null) context.Validators.SpreadToBenchmark(context, message, message.SpreadToBenchmark);
 		if (message.Benchmark is not null) context.Validators.Benchmark(context, message, message.Benchmark);
 
@@ -818,10 +818,10 @@ partial class FixValidator42
 		else context.Validators.TotNoOrders(context, message, message.TotNoOrders);
 		if (message.NoOrders is null) Missing(message, FixTag.NoOrders);
 		else context.Validators.NoOrders(context, message, message.NoOrders);
-		Counted(message, message.NoOrders, message.NoOrdersGroups);
-		if (message.NoOrdersGroups is not null)
-			for (var i = 0; i < message.NoOrdersGroups.Count; i++)
-				context.Validators.ListStatus_NoOrders(context, message, message.NoOrdersGroups[i], i);
+		Counted(message, message.NoOrders, message.NoOrdersGroupsStore);
+		if (message.NoOrdersGroupsStore is not null)
+			for (var i = 0; i < message.NoOrdersGroupsStore.Count; i++)
+				context.Validators.ListStatus_NoOrders(context, message, message.NoOrdersGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -845,10 +845,10 @@ partial class FixValidator42
 		else context.Validators.TotNoStrikes(context, message, message.TotNoStrikes);
 		if (message.NoStrikes is null) Missing(message, FixTag.NoStrikes);
 		else context.Validators.NoStrikes(context, message, message.NoStrikes);
-		Counted(message, message.NoStrikes, message.NoStrikesGroups);
-		if (message.NoStrikesGroups is not null)
-			for (var i = 0; i < message.NoStrikesGroups.Count; i++)
-				context.Validators.ListStrikePrice_NoStrikes(context, message, message.NoStrikesGroups[i], i);
+		Counted(message, message.NoStrikes, message.NoStrikesGroupsStore);
+		if (message.NoStrikesGroupsStore is not null)
+			for (var i = 0; i < message.NoStrikesGroupsStore.Count; i++)
+				context.Validators.ListStrikePrice_NoStrikes(context, message, message.NoStrikesGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -864,10 +864,10 @@ partial class FixValidator42
 		if (message.ResetSeqNumFlag is not null) context.Validators.ResetSeqNumFlag(context, message, message.ResetSeqNumFlag);
 		if (message.MaxMessageSize is not null) context.Validators.MaxMessageSize(context, message, message.MaxMessageSize);
 		if (message.NoMsgTypes is not null) context.Validators.NoMsgTypes(context, message, message.NoMsgTypes);
-		Counted(message, message.NoMsgTypes, message.NoMsgTypesGroups);
-		if (message.NoMsgTypesGroups is not null)
-			for (var i = 0; i < message.NoMsgTypesGroups.Count; i++)
-				context.Validators.Logon_NoMsgTypes(context, message, message.NoMsgTypesGroups[i], i);
+		Counted(message, message.NoMsgTypes, message.NoMsgTypesGroupsStore);
+		if (message.NoMsgTypesGroupsStore is not null)
+			for (var i = 0; i < message.NoMsgTypesGroupsStore.Count; i++)
+				context.Validators.Logon_NoMsgTypes(context, message, message.NoMsgTypesGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -886,10 +886,10 @@ partial class FixValidator42
 		if (message.MDReqID is not null) context.Validators.MDReqID(context, message, message.MDReqID);
 		if (message.NoMDEntries is null) Missing(message, FixTag.NoMDEntries);
 		else context.Validators.NoMDEntries(context, message, message.NoMDEntries);
-		Counted(message, message.NoMDEntries, message.NoMDEntriesGroups);
-		if (message.NoMDEntriesGroups is not null)
-			for (var i = 0; i < message.NoMDEntriesGroups.Count; i++)
-				context.Validators.MarketDataIncrementalRefresh_NoMDEntries(context, message, message.NoMDEntriesGroups[i], i);
+		Counted(message, message.NoMDEntries, message.NoMDEntriesGroupsStore);
+		if (message.NoMDEntriesGroupsStore is not null)
+			for (var i = 0; i < message.NoMDEntriesGroupsStore.Count; i++)
+				context.Validators.MarketDataIncrementalRefresh_NoMDEntries(context, message, message.NoMDEntriesGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -906,16 +906,16 @@ partial class FixValidator42
 		if (message.AggregatedBook is not null) context.Validators.AggregatedBook(context, message, message.AggregatedBook);
 		if (message.NoMDEntryTypes is null) Missing(message, FixTag.NoMDEntryTypes);
 		else context.Validators.NoMDEntryTypes(context, message, message.NoMDEntryTypes);
-		Counted(message, message.NoMDEntryTypes, message.NoMDEntryTypesGroups);
-		if (message.NoMDEntryTypesGroups is not null)
-			for (var i = 0; i < message.NoMDEntryTypesGroups.Count; i++)
-				context.Validators.MarketDataRequest_NoMDEntryTypes(context, message, message.NoMDEntryTypesGroups[i], i);
+		Counted(message, message.NoMDEntryTypes, message.NoMDEntryTypesGroupsStore);
+		if (message.NoMDEntryTypesGroupsStore is not null)
+			for (var i = 0; i < message.NoMDEntryTypesGroupsStore.Count; i++)
+				context.Validators.MarketDataRequest_NoMDEntryTypes(context, message, message.NoMDEntryTypesGroupsStore[i], i);
 		if (message.NoRelatedSym is null) Missing(message, FixTag.NoRelatedSym);
 		else context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
-		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
-		if (message.NoRelatedSymGroups is not null)
-			for (var i = 0; i < message.NoRelatedSymGroups.Count; i++)
-				context.Validators.MarketDataRequest_NoRelatedSym(context, message, message.NoRelatedSymGroups[i], i);
+		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroupsStore);
+		if (message.NoRelatedSymGroupsStore is not null)
+			for (var i = 0; i < message.NoRelatedSymGroupsStore.Count; i++)
+				context.Validators.MarketDataRequest_NoRelatedSym(context, message, message.NoRelatedSymGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -960,10 +960,10 @@ partial class FixValidator42
 		if (message.TotalVolumeTraded is not null) context.Validators.TotalVolumeTraded(context, message, message.TotalVolumeTraded);
 		if (message.NoMDEntries is null) Missing(message, FixTag.NoMDEntries);
 		else context.Validators.NoMDEntries(context, message, message.NoMDEntries);
-		Counted(message, message.NoMDEntries, message.NoMDEntriesGroups);
-		if (message.NoMDEntriesGroups is not null)
-			for (var i = 0; i < message.NoMDEntriesGroups.Count; i++)
-				context.Validators.MarketDataSnapshotFullRefresh_NoMDEntries(context, message, message.NoMDEntriesGroups[i], i);
+		Counted(message, message.NoMDEntries, message.NoMDEntriesGroupsStore);
+		if (message.NoMDEntriesGroupsStore is not null)
+			for (var i = 0; i < message.NoMDEntriesGroupsStore.Count; i++)
+				context.Validators.MarketDataSnapshotFullRefresh_NoMDEntries(context, message, message.NoMDEntriesGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -978,10 +978,10 @@ partial class FixValidator42
 		if (message.DefOfferSize is not null) context.Validators.DefOfferSize(context, message, message.DefOfferSize);
 		if (message.NoQuoteSets is null) Missing(message, FixTag.NoQuoteSets);
 		else context.Validators.NoQuoteSets(context, message, message.NoQuoteSets);
-		Counted(message, message.NoQuoteSets, message.NoQuoteSetsGroups);
-		if (message.NoQuoteSetsGroups is not null)
-			for (var i = 0; i < message.NoQuoteSetsGroups.Count; i++)
-				context.Validators.MassQuote_NoQuoteSets(context, message, message.NoQuoteSetsGroups[i], i);
+		Counted(message, message.NoQuoteSets, message.NoQuoteSetsGroupsStore);
+		if (message.NoQuoteSetsGroupsStore is not null)
+			for (var i = 0; i < message.NoQuoteSetsGroupsStore.Count; i++)
+				context.Validators.MassQuote_NoQuoteSets(context, message, message.NoQuoteSetsGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -1004,10 +1004,10 @@ partial class FixValidator42
 		else context.Validators.TotNoOrders(context, message, message.TotNoOrders);
 		if (message.NoOrders is null) Missing(message, FixTag.NoOrders);
 		else context.Validators.NoOrders(context, message, message.NoOrders);
-		Counted(message, message.NoOrders, message.NoOrdersGroups);
-		if (message.NoOrdersGroups is not null)
-			for (var i = 0; i < message.NoOrdersGroups.Count; i++)
-				context.Validators.NewOrderList_NoOrders(context, message, message.NoOrdersGroups[i], i);
+		Counted(message, message.NoOrders, message.NoOrdersGroupsStore);
+		if (message.NoOrdersGroupsStore is not null)
+			for (var i = 0; i < message.NoOrdersGroupsStore.Count; i++)
+				context.Validators.NewOrderList_NoOrders(context, message, message.NoOrdersGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -1020,10 +1020,10 @@ partial class FixValidator42
 		if (message.ExecBroker is not null) context.Validators.ExecBroker(context, message, message.ExecBroker);
 		if (message.Account is not null) context.Validators.Account(context, message, message.Account);
 		if (message.NoAllocs is not null) context.Validators.NoAllocs(context, message, message.NoAllocs);
-		Counted(message, message.NoAllocs, message.NoAllocsGroups);
-		if (message.NoAllocsGroups is not null)
-			for (var i = 0; i < message.NoAllocsGroups.Count; i++)
-				context.Validators.NewOrderSingle_NoAllocs(context, message, message.NoAllocsGroups[i], i);
+		Counted(message, message.NoAllocs, message.NoAllocsGroupsStore);
+		if (message.NoAllocsGroupsStore is not null)
+			for (var i = 0; i < message.NoAllocsGroupsStore.Count; i++)
+				context.Validators.NewOrderSingle_NoAllocs(context, message, message.NoAllocsGroupsStore[i], i);
 		if (message.SettlmntTyp is not null) context.Validators.SettlmntTyp(context, message, message.SettlmntTyp);
 		if (message.FutSettDate is not null) context.Validators.FutSettDate(context, message, message.FutSettDate);
 		if (message.HandlInst is null) Missing(message, FixTag.HandlInst);
@@ -1033,10 +1033,10 @@ partial class FixValidator42
 		if (message.MaxFloor is not null) context.Validators.MaxFloor(context, message, message.MaxFloor);
 		if (message.ExDestination is not null) context.Validators.ExDestination(context, message, message.ExDestination);
 		if (message.NoTradingSessions is not null) context.Validators.NoTradingSessions(context, message, message.NoTradingSessions);
-		Counted(message, message.NoTradingSessions, message.NoTradingSessionsGroups);
-		if (message.NoTradingSessionsGroups is not null)
-			for (var i = 0; i < message.NoTradingSessionsGroups.Count; i++)
-				context.Validators.NewOrderSingle_NoTradingSessions(context, message, message.NoTradingSessionsGroups[i], i);
+		Counted(message, message.NoTradingSessions, message.NoTradingSessionsGroupsStore);
+		if (message.NoTradingSessionsGroupsStore is not null)
+			for (var i = 0; i < message.NoTradingSessionsGroupsStore.Count; i++)
+				context.Validators.NewOrderSingle_NoTradingSessions(context, message, message.NoTradingSessionsGroupsStore[i], i);
 		if (message.ProcessCode is not null) context.Validators.ProcessCode(context, message, message.ProcessCode);
 		if (message.Symbol is null) Missing(message, FixTag.Symbol);
 		else context.Validators.Symbol(context, message, message.Symbol);
@@ -1112,21 +1112,21 @@ partial class FixValidator42
 		if (message.EncodedHeadlineLen is not null) context.Validators.EncodedHeadlineLen(context, message, message.EncodedHeadlineLen);
 		if (message.EncodedHeadline is not null) context.Validators.EncodedHeadline(context, message, message.EncodedHeadline);
 		if (message.NoRoutingIDs is not null) context.Validators.NoRoutingIDs(context, message, message.NoRoutingIDs);
-		Counted(message, message.NoRoutingIDs, message.NoRoutingIDsGroups);
-		if (message.NoRoutingIDsGroups is not null)
-			for (var i = 0; i < message.NoRoutingIDsGroups.Count; i++)
-				context.Validators.News_NoRoutingIDs(context, message, message.NoRoutingIDsGroups[i], i);
+		Counted(message, message.NoRoutingIDs, message.NoRoutingIDsGroupsStore);
+		if (message.NoRoutingIDsGroupsStore is not null)
+			for (var i = 0; i < message.NoRoutingIDsGroupsStore.Count; i++)
+				context.Validators.News_NoRoutingIDs(context, message, message.NoRoutingIDsGroupsStore[i], i);
 		if (message.NoRelatedSym is not null) context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
-		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
-		if (message.NoRelatedSymGroups is not null)
-			for (var i = 0; i < message.NoRelatedSymGroups.Count; i++)
-				context.Validators.News_NoRelatedSym(context, message, message.NoRelatedSymGroups[i], i);
+		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroupsStore);
+		if (message.NoRelatedSymGroupsStore is not null)
+			for (var i = 0; i < message.NoRelatedSymGroupsStore.Count; i++)
+				context.Validators.News_NoRelatedSym(context, message, message.NoRelatedSymGroupsStore[i], i);
 		if (message.LinesOfText is null) Missing(message, FixTag.NoLinesOfText);
 		else context.Validators.LinesOfText(context, message, message.LinesOfText);
-		Counted(message, message.LinesOfText, message.LinesOfTextGroups);
-		if (message.LinesOfTextGroups is not null)
-			for (var i = 0; i < message.LinesOfTextGroups.Count; i++)
-				context.Validators.News_LinesOfText(context, message, message.LinesOfTextGroups[i], i);
+		Counted(message, message.LinesOfText, message.LinesOfTextGroupsStore);
+		if (message.LinesOfTextGroupsStore is not null)
+			for (var i = 0; i < message.LinesOfTextGroupsStore.Count; i++)
+				context.Validators.News_LinesOfText(context, message, message.LinesOfTextGroupsStore[i], i);
 		if (message.URLLink is not null) context.Validators.URLLink(context, message, message.URLLink);
 		if (message.RawDataLength is not null) context.Validators.RawDataLength(context, message, message.RawDataLength);
 		if (message.RawData is not null) context.Validators.RawData(context, message, message.RawData);
@@ -1172,10 +1172,10 @@ partial class FixValidator42
 		if (message.ListID is not null) context.Validators.ListID(context, message, message.ListID);
 		if (message.Account is not null) context.Validators.Account(context, message, message.Account);
 		if (message.NoAllocs is not null) context.Validators.NoAllocs(context, message, message.NoAllocs);
-		Counted(message, message.NoAllocs, message.NoAllocsGroups);
-		if (message.NoAllocsGroups is not null)
-			for (var i = 0; i < message.NoAllocsGroups.Count; i++)
-				context.Validators.OrderCancelReplaceRequest_NoAllocs(context, message, message.NoAllocsGroups[i], i);
+		Counted(message, message.NoAllocs, message.NoAllocsGroupsStore);
+		if (message.NoAllocsGroupsStore is not null)
+			for (var i = 0; i < message.NoAllocsGroupsStore.Count; i++)
+				context.Validators.OrderCancelReplaceRequest_NoAllocs(context, message, message.NoAllocsGroupsStore[i], i);
 		if (message.SettlmntTyp is not null) context.Validators.SettlmntTyp(context, message, message.SettlmntTyp);
 		if (message.FutSettDate is not null) context.Validators.FutSettDate(context, message, message.FutSettDate);
 		if (message.HandlInst is null) Missing(message, FixTag.HandlInst);
@@ -1185,10 +1185,10 @@ partial class FixValidator42
 		if (message.MaxFloor is not null) context.Validators.MaxFloor(context, message, message.MaxFloor);
 		if (message.ExDestination is not null) context.Validators.ExDestination(context, message, message.ExDestination);
 		if (message.NoTradingSessions is not null) context.Validators.NoTradingSessions(context, message, message.NoTradingSessions);
-		Counted(message, message.NoTradingSessions, message.NoTradingSessionsGroups);
-		if (message.NoTradingSessionsGroups is not null)
-			for (var i = 0; i < message.NoTradingSessionsGroups.Count; i++)
-				context.Validators.OrderCancelReplaceRequest_NoTradingSessions(context, message, message.NoTradingSessionsGroups[i], i);
+		Counted(message, message.NoTradingSessions, message.NoTradingSessionsGroupsStore);
+		if (message.NoTradingSessionsGroupsStore is not null)
+			for (var i = 0; i < message.NoTradingSessionsGroupsStore.Count; i++)
+				context.Validators.OrderCancelReplaceRequest_NoTradingSessions(context, message, message.NoTradingSessionsGroupsStore[i], i);
 		if (message.Symbol is null) Missing(message, FixTag.Symbol);
 		else context.Validators.Symbol(context, message, message.Symbol);
 		if (message.SymbolSfx is not null) context.Validators.SymbolSfx(context, message, message.SymbolSfx);
@@ -1388,10 +1388,10 @@ partial class FixValidator42
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.Text is not null) context.Validators.Text(context, message, message.Text);
 		if (message.NoQuoteSets is not null) context.Validators.NoQuoteSets(context, message, message.NoQuoteSets);
-		Counted(message, message.NoQuoteSets, message.NoQuoteSetsGroups);
-		if (message.NoQuoteSetsGroups is not null)
-			for (var i = 0; i < message.NoQuoteSetsGroups.Count; i++)
-				context.Validators.QuoteAcknowledgement_NoQuoteSets(context, message, message.NoQuoteSetsGroups[i], i);
+		Counted(message, message.NoQuoteSets, message.NoQuoteSetsGroupsStore);
+		if (message.NoQuoteSetsGroupsStore is not null)
+			for (var i = 0; i < message.NoQuoteSetsGroupsStore.Count; i++)
+				context.Validators.QuoteAcknowledgement_NoQuoteSets(context, message, message.NoQuoteSetsGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -1407,10 +1407,10 @@ partial class FixValidator42
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.NoQuoteEntries is null) Missing(message, FixTag.NoQuoteEntries);
 		else context.Validators.NoQuoteEntries(context, message, message.NoQuoteEntries);
-		Counted(message, message.NoQuoteEntries, message.NoQuoteEntriesGroups);
-		if (message.NoQuoteEntriesGroups is not null)
-			for (var i = 0; i < message.NoQuoteEntriesGroups.Count; i++)
-				context.Validators.QuoteCancel_NoQuoteEntries(context, message, message.NoQuoteEntriesGroups[i], i);
+		Counted(message, message.NoQuoteEntries, message.NoQuoteEntriesGroupsStore);
+		if (message.NoQuoteEntriesGroupsStore is not null)
+			for (var i = 0; i < message.NoQuoteEntriesGroupsStore.Count; i++)
+				context.Validators.QuoteCancel_NoQuoteEntries(context, message, message.NoQuoteEntriesGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -1421,10 +1421,10 @@ partial class FixValidator42
 		else context.Validators.QuoteReqID(context, message, message.QuoteReqID);
 		if (message.NoRelatedSym is null) Missing(message, FixTag.NoRelatedSym);
 		else context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
-		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
-		if (message.NoRelatedSymGroups is not null)
-			for (var i = 0; i < message.NoRelatedSymGroups.Count; i++)
-				context.Validators.QuoteRequest_NoRelatedSym(context, message, message.NoRelatedSymGroups[i], i);
+		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroupsStore);
+		if (message.NoRelatedSymGroupsStore is not null)
+			for (var i = 0; i < message.NoRelatedSymGroupsStore.Count; i++)
+				context.Validators.QuoteRequest_NoRelatedSym(context, message, message.NoRelatedSymGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -1516,10 +1516,10 @@ partial class FixValidator42
 		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, message, message.EncodedTextLen);
 		if (message.EncodedText is not null) context.Validators.EncodedText(context, message, message.EncodedText);
 		if (message.NoRelatedSym is not null) context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
-		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
-		if (message.NoRelatedSymGroups is not null)
-			for (var i = 0; i < message.NoRelatedSymGroups.Count; i++)
-				context.Validators.SecurityDefinition_NoRelatedSym(context, message, message.NoRelatedSymGroups[i], i);
+		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroupsStore);
+		if (message.NoRelatedSymGroupsStore is not null)
+			for (var i = 0; i < message.NoRelatedSymGroupsStore.Count; i++)
+				context.Validators.SecurityDefinition_NoRelatedSym(context, message, message.NoRelatedSymGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -1555,10 +1555,10 @@ partial class FixValidator42
 		if (message.EncodedText is not null) context.Validators.EncodedText(context, message, message.EncodedText);
 		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, message, message.TradingSessionID);
 		if (message.NoRelatedSym is not null) context.Validators.NoRelatedSym(context, message, message.NoRelatedSym);
-		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroups);
-		if (message.NoRelatedSymGroups is not null)
-			for (var i = 0; i < message.NoRelatedSymGroups.Count; i++)
-				context.Validators.SecurityDefinitionRequest_NoRelatedSym(context, message, message.NoRelatedSymGroups[i], i);
+		Counted(message, message.NoRelatedSym, message.NoRelatedSymGroupsStore);
+		if (message.NoRelatedSymGroupsStore is not null)
+			for (var i = 0; i < message.NoRelatedSymGroupsStore.Count; i++)
+				context.Validators.SecurityDefinitionRequest_NoRelatedSym(context, message, message.NoRelatedSymGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -1787,10 +1787,10 @@ partial class FixValidator42
 		if (entry.AccruedInterestAmt is not null) context.Validators.AccruedInterestAmt(context, message, entry.AccruedInterestAmt);
 		if (entry.SettlInstMode is not null) context.Validators.SettlInstMode(context, message, entry.SettlInstMode);
 		if (entry.NoMiscFees is not null) context.Validators.NoMiscFees(context, message, entry.NoMiscFees);
-		Counted(message, entry.NoMiscFees, entry.NoMiscFeesGroups);
-		if (entry.NoMiscFeesGroups is not null)
-			for (var i = 0; i < entry.NoMiscFeesGroups.Count; i++)
-				context.Validators.Allocation_NoAllocs_NoMiscFees(context, message, entry.NoMiscFeesGroups[i], i);
+		Counted(message, entry.NoMiscFees, entry.NoMiscFeesGroupsStore);
+		if (entry.NoMiscFeesGroupsStore is not null)
+			for (var i = 0; i < entry.NoMiscFeesGroupsStore.Count; i++)
+				context.Validators.Allocation_NoAllocs_NoMiscFees(context, message, entry.NoMiscFeesGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -2146,10 +2146,10 @@ partial class FixValidator42
 		else context.Validators.TotQuoteEntries(context, message, entry.TotQuoteEntries);
 		if (entry.NoQuoteEntries is null) Missing(message, FixTag.NoQuoteEntries, entry.QuoteSetID.Position, index);
 		else context.Validators.NoQuoteEntries(context, message, entry.NoQuoteEntries);
-		Counted(message, entry.NoQuoteEntries, entry.NoQuoteEntriesGroups);
-		if (entry.NoQuoteEntriesGroups is not null)
-			for (var i = 0; i < entry.NoQuoteEntriesGroups.Count; i++)
-				context.Validators.MassQuote_NoQuoteSets_NoQuoteEntries(context, message, entry.NoQuoteEntriesGroups[i], i);
+		Counted(message, entry.NoQuoteEntries, entry.NoQuoteEntriesGroupsStore);
+		if (entry.NoQuoteEntriesGroupsStore is not null)
+			for (var i = 0; i < entry.NoQuoteEntriesGroupsStore.Count; i++)
+				context.Validators.MassQuote_NoQuoteSets_NoQuoteEntries(context, message, entry.NoQuoteEntriesGroupsStore[i], i);
 
 		return message.IsValid;
 	}
@@ -2206,10 +2206,10 @@ partial class FixValidator42
 		if (entry.ExecBroker is not null) context.Validators.ExecBroker(context, message, entry.ExecBroker);
 		if (entry.Account is not null) context.Validators.Account(context, message, entry.Account);
 		if (entry.NoAllocs is not null) context.Validators.NoAllocs(context, message, entry.NoAllocs);
-		Counted(message, entry.NoAllocs, entry.NoAllocsGroups);
-		if (entry.NoAllocsGroups is not null)
-			for (var i = 0; i < entry.NoAllocsGroups.Count; i++)
-				context.Validators.NewOrderList_NoOrders_NoAllocs(context, message, entry.NoAllocsGroups[i], i);
+		Counted(message, entry.NoAllocs, entry.NoAllocsGroupsStore);
+		if (entry.NoAllocsGroupsStore is not null)
+			for (var i = 0; i < entry.NoAllocsGroupsStore.Count; i++)
+				context.Validators.NewOrderList_NoOrders_NoAllocs(context, message, entry.NoAllocsGroupsStore[i], i);
 		if (entry.SettlmntTyp is not null) context.Validators.SettlmntTyp(context, message, entry.SettlmntTyp);
 		if (entry.FutSettDate is not null) context.Validators.FutSettDate(context, message, entry.FutSettDate);
 		if (entry.HandlInst is not null) context.Validators.HandlInst(context, message, entry.HandlInst);
@@ -2218,10 +2218,10 @@ partial class FixValidator42
 		if (entry.MaxFloor is not null) context.Validators.MaxFloor(context, message, entry.MaxFloor);
 		if (entry.ExDestination is not null) context.Validators.ExDestination(context, message, entry.ExDestination);
 		if (entry.NoTradingSessions is not null) context.Validators.NoTradingSessions(context, message, entry.NoTradingSessions);
-		Counted(message, entry.NoTradingSessions, entry.NoTradingSessionsGroups);
-		if (entry.NoTradingSessionsGroups is not null)
-			for (var i = 0; i < entry.NoTradingSessionsGroups.Count; i++)
-				context.Validators.NewOrderList_NoOrders_NoTradingSessions(context, message, entry.NoTradingSessionsGroups[i], i);
+		Counted(message, entry.NoTradingSessions, entry.NoTradingSessionsGroupsStore);
+		if (entry.NoTradingSessionsGroupsStore is not null)
+			for (var i = 0; i < entry.NoTradingSessionsGroupsStore.Count; i++)
+				context.Validators.NewOrderList_NoOrders_NoTradingSessions(context, message, entry.NoTradingSessionsGroupsStore[i], i);
 		if (entry.ProcessCode is not null) context.Validators.ProcessCode(context, message, entry.ProcessCode);
 		if (entry.Symbol is null) Missing(message, FixTag.Symbol, entry.ClOrdID.Position, index);
 		else context.Validators.Symbol(context, message, entry.Symbol);
@@ -2398,10 +2398,10 @@ partial class FixValidator42
 		if (entry.EncodedUnderlyingSecurityDesc is not null) context.Validators.EncodedUnderlyingSecurityDesc(context, message, entry.EncodedUnderlyingSecurityDesc);
 		if (entry.TotQuoteEntries is not null) context.Validators.TotQuoteEntries(context, message, entry.TotQuoteEntries);
 		if (entry.NoQuoteEntries is not null) context.Validators.NoQuoteEntries(context, message, entry.NoQuoteEntries);
-		Counted(message, entry.NoQuoteEntries, entry.NoQuoteEntriesGroups);
-		if (entry.NoQuoteEntriesGroups is not null)
-			for (var i = 0; i < entry.NoQuoteEntriesGroups.Count; i++)
-				context.Validators.QuoteAcknowledgement_NoQuoteSets_NoQuoteEntries(context, message, entry.NoQuoteEntriesGroups[i], i);
+		Counted(message, entry.NoQuoteEntries, entry.NoQuoteEntriesGroupsStore);
+		if (entry.NoQuoteEntriesGroupsStore is not null)
+			for (var i = 0; i < entry.NoQuoteEntriesGroupsStore.Count; i++)
+				context.Validators.QuoteAcknowledgement_NoQuoteSets_NoQuoteEntries(context, message, entry.NoQuoteEntriesGroupsStore[i], i);
 
 		return message.IsValid;
 	}

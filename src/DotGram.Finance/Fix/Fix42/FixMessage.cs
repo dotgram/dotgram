@@ -22,7 +22,7 @@ public abstract partial class FixMessage : IFixFindings
 	internal FixMessage(string messageType, List<FixField> fields)
 	{
 		MessageType = messageType;
-		Fields      = fields;
+		FieldStore  = fields;
 	}
 
 	/// <summary>
@@ -32,18 +32,22 @@ public abstract partial class FixMessage : IFixFindings
 	/// <summary>
 	/// All fields in wire order, including header and trailer; group entries are flattened into the list.
 	/// </summary>
-	public List<FixField> Fields      { get; private protected set; }
+	public FixList<FixField> Fields => new(FieldStore);
+
+	internal List<FixField> FieldStore;
 
 
 	/// <summary>Everything found wrong with this message, or null while nothing has been.</summary>
-	public List<FixFinding>? InvalidFindings { get; private set; }
+	public FixList<FixFinding> InvalidFindings => new(_findings);
+
+	List<FixFinding>? _findings;
 
 	/// <summary>Whether nothing has been found wrong with this message.</summary>
 	/// <remarks>
 	/// True before <see cref="Validate"/> is called means only that the reading found nothing: the
 	/// message has not been held to the schema yet.
 	/// </remarks>
-	public bool IsValid => InvalidFindings is null;
+	public bool IsValid => _findings is null;
 
 	// What the reading measured of the octets this message was read from, which it does not keep: the
 	// octets of the body and their sum before CheckSum, for Validate to hold BodyLength and CheckSum to;
@@ -81,7 +85,7 @@ public abstract partial class FixMessage : IFixFindings
 	/// <param name="finding">What is wrong.</param>
 	protected internal void AddFinding(FixFinding finding)
 	{
-		(InvalidFindings ??= []).Add(finding);
+		(_findings ??= []).Add(finding);
 	}
 
 	void IFixFindings.AddFinding(FixFinding finding)

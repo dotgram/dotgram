@@ -2884,7 +2884,7 @@ partial class FixValidator44
 
 	static bool ValidateExecInst(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or
 				"C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or "M" or "N" or "O" or "P" or
 				"Q" or "R" or "S" or "U" or "V" or "W" or "X" or "Y" or "Z" or "a" or "b" or "c" or "d" or "e"))
@@ -4758,7 +4758,7 @@ partial class FixValidator44
 
 	static bool ValidateQuoteCondition(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I"))
 			{
 				Invalid(message, field);
@@ -4771,7 +4771,7 @@ partial class FixValidator44
 
 	static bool ValidateTradeCondition(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or
 				"M" or "N" or "P" or "Q" or "R"))
 			{
@@ -4850,7 +4850,7 @@ partial class FixValidator44
 
 	static bool ValidateOpenCloseSettlFlag(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "5"))
 			{
 				Invalid(message, field);
@@ -4895,7 +4895,7 @@ partial class FixValidator44
 
 	static bool ValidateFinancialStatus(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("1" or "2"))
 			{
 				Invalid(message, field);
@@ -4908,7 +4908,7 @@ partial class FixValidator44
 
 	static bool ValidateCorporateAction(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("A" or "B" or "C" or "D" or "E"))
 			{
 				Invalid(message, field);
@@ -6822,7 +6822,7 @@ partial class FixValidator44
 
 	static bool ValidateOrderRestrictions(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A"))
 			{
 				Invalid(message, field);
@@ -6965,7 +6965,7 @@ partial class FixValidator44
 
 	static bool ValidateScope(Fix44Context context, FixMessage message, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
+		foreach (var code in field.Items)
 			if (code is not ("1" or "2" or "3"))
 			{
 				Invalid(message, field);
