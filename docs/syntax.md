@@ -3417,6 +3417,12 @@ bad element as it hands the good ones back, one repetition at a time, so a rule 
 marks two is told it gets no reader overload (`GRAM5001`) rather than silently
 recovering in one place only. Read whole, it recovers in both.
 
+**A repetition inside a lookahead does not recover in place.** A lookahead (§3.4) is a
+reading of its own that answers yes or no, and its rule plans no recovery for it, so
+`?=(Row* recover ';')` is refused (`GRAM4038`) rather than read as a plain `Row*`. Name the
+recovering repetition as a rule and call that from the lookahead — `?=Rows` with
+`Rows = Row* recover ';'` — and it recovers as written: a rule plans its own.
+
 **The synchronization expression is one operand, so a choice needs brackets.**
 
 ```dotgram

@@ -56,6 +56,12 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string LateWith            = "GRAM4036";
 
+	/// <summary>
+	/// A repetition marked <c>recover</c> inside a lookahead, which its rule plans no recovery
+	/// for.
+	/// </summary>
+	public const string RecoveryInLookahead = "GRAM4038";
+
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
 
@@ -161,6 +167,10 @@ public sealed partial class GrammarNormalizer
 		// Straight after lowering: whether every route to a reference bound its text is a
 		// question about the routes the author wrote, and every pass below may reshape them.
 		normalizer.CheckBoundTexts();
+
+		// And for the same reason, whether a `recover` sits where no recovery is planned for it: a
+		// pass that rebuilds a repetition may leave it without the recovery it had.
+		normalizer.CheckLookaheadRecoveries();
 
 		// Here and not with the other checks, which run at the end: this one asks what the
 		// author wrote, and by the end several passes have rewritten the calls it would be

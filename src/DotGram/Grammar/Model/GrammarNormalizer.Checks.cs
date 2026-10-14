@@ -257,6 +257,7 @@ public sealed partial class GrammarNormalizer
 		}
 
 		CheckTrivia();
+		CheckLookaheadRecoveries();
 	}
 
 	/// <summary>
@@ -441,6 +442,58 @@ public sealed partial class GrammarNormalizer
 		foreach (var node in NodeWalk.Descendants(_bodies[rule]))
 			if (_recoveries.TryGetValue(node, out var recovery) && recovery.Factory is not null)
 				CheckRecoveredElement(rule, node);
+	}
+
+	/// <summary>
+	/// A <c>recover</c> inside a lookahead is refused.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A recovery is planned per rule, from the repetitions its body reads, and a lookahead is a
+	/// reading of its own that answers yes or no: a recovering repetition inside one was never
+	/// given a plan and ran as a plain repetition, so the parser silently read differently from
+	/// what the grammar said. A rule called from the lookahead plans its own recoveries, so the
+	/// same repetition moved into one recovers as written.
+	/// </para>
+	/// <para>
+	/// Run straight after lowering, on the grammar as written — before a pass rebuilds a rule
+	/// and leaves a repetition it rebuilt without the recovery it had, as unweaving trivia
+	/// does — and again with the other checks, for an instance made later. A specialization is
+	/// a rule like any other, which is where a parameter read inside a lookahead puts a
+	/// recovering argument, and what a recovery synchronizes on is read through as well. Every
+	/// copy reports at the one place the author wrote it, once.
+	/// </para>
+	/// </remarks>
+	void CheckLookaheadRecoveries()
+	{
+		if (_recoveries.Count == 0)
+			return;
+
+		foreach (var rule in _rules)
+			if (_bodies.TryGetValue(rule, out var body))
+				Look(body, inLookahead: false);
+
+		void Look(Node node, bool inLookahead)
+		{
+			if (_recoveries.TryGetValue(node, out var recovery))
+			{
+				if (inLookahead)
+					Report(
+						RecoveryInLookahead,
+						"'recover' inside a lookahead would be read as a plain repetition: a lookahead is a " +
+						"reading of its own, and its rule plans no recovery for it. Move the recovering " +
+						"repetition into a rule of its own and call that rule from the lookahead, or take the " +
+						"'recover' off (docs/syntax.md §8.2).",
+						recovery.At);
+
+				Look(recovery.Sync, inLookahead);
+			}
+
+			var looking = inLookahead || node is Node.Lookahead;
+
+			foreach (var child in node.Children)
+				Look(child, looking);
+		}
 	}
 
 	/// <summary>

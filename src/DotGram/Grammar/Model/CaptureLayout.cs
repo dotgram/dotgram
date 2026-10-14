@@ -352,6 +352,9 @@ public sealed record Recovery(Node Sync, string? Factory)
 {
 	public bool YieldStep { get; init; }
 
+	/// <summary>Where the grammar wrote the <c>recover</c>, for what is said about it.</summary>
+	public Parsing.Location At { get; init; }
+
 	/// <summary>
 	/// The names §8.2 supplies to a failure factory, in the order it takes them.
 	/// </summary>

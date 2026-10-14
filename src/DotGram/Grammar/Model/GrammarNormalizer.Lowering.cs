@@ -461,7 +461,10 @@ public sealed partial class GrammarNormalizer
 		// to a `partial void` the generated class declares and the consumer may implement.
 		_recoveries[repetition] = new Recovery(
 			Lower(sync, ns),
-			factory is null ? null : Valued(factory, "in the value of a '=>', which is C#"));
+			factory is null ? null : Valued(factory, "in the value of a '=>', which is C#"))
+		{
+			At = at.At,
+		};
 
 		return repetition;
 	}
