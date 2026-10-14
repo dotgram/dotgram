@@ -125,7 +125,7 @@ public sealed partial class GrammarNormalizer
 			Expr.Sequence(var operands) => LowerSequence(operands, ns),
 			Expr.Glued(var operands) => LowerGlued(operands, ns),
 			Expr.Choice(var alternatives) => LowerChoice(alternatives, ns),
-			Expr.Call(var target, var arguments) => LowerCall(RuleOf(expression, target.Name), arguments, ns),
+			Expr.Call(var target, var arguments) => LowerCall(RuleOf(expression, target.Name), arguments, ns, expression.At),
 			Expr.Reference(_, var name, _) => LowerReference(expression, name, ns),
 			Expr.With(var operand, _) => LowerWith(expression, operand, ns),
 			Expr.Marked(var operand, var value) => new Node.Marked(Lower(operand, ns), Substituted(Valued(value, "in the value of a 'with state'"))),
@@ -541,12 +541,29 @@ public sealed partial class GrammarNormalizer
 	/// value is decided here: a number is neither a recognizer nor lowerable into one, and
 	/// stands where a count goes rather than where an operand does.
 	/// </remarks>
-	Node LowerCall(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarNamespace ns)
+	Node LowerCall(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarNamespace ns, Location at)
 	{
 		if (rule.Declaration is not { Params.Count: > 0 })
 			return CallTo(rule, [.. arguments.Select(argument => Lower(argument, ns))]);
 
-		return Specialize(rule, arguments, ns);
+		var call = Specialize(rule, arguments, ns);
+
+		// Std.Nested is read with a counter wherever a scanner or a lexer reads it, and a
+		// counter needs to know which delimiter stands where it stops (NestedPair). Said where
+		// the call is, because the arguments are the caller's: a parameterized rule passing
+		// its own on is told at its own call, once the arguments are known. Not the rule's call
+		// to itself, whose body is still being lowered.
+		if (NestedPair.Is(rule) && call is Node.Call(var made, _) && _currentRule != made &&
+			_bodies.TryGetValue(made, out var body) && NestedPair.Refusal(body) is { } why)
+		{
+			Report(
+				NestedNeedsLiterals,
+				$"Std.Nested(open, close) needs two literals that cannot begin at one place, and here {why}. " +
+				"Write them in quotes, and give `open` and `close` different first characters (docs/syntax.md §5.2).",
+				at);
+		}
+
+		return call;
 	}
 
 	/// <summary>Every specialization made so far, by the rule and what it was given.</summary>

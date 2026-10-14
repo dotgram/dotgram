@@ -2957,7 +2957,20 @@ file.Line("return spare;");
 				{
 					using (file.Block($"{(continued++ == 0 ? "if" : "else if")} (kind == {continuation.Kind})"))
 					{
-						if (MeasuredBy(lexical, continuation.Tail) is { } rule)
+						if (continuation.Counted is { } pair)
+						{
+							// Std.Nested's rest, read with its counter. A pair the text ends inside
+							// of is cut short (-1, below), as the rule's own reading would say.
+							file.Line("var measured = end;");
+							file.Line();
+							NestedPair.WriteRest(file, pair, "measured", continued.ToString(System.Globalization.CultureInfo.InvariantCulture), ["measured = -1;", "break;"]);
+							file.Line();
+							file.Line("if (measured < 0)");
+							file.Then("kind = -1;");
+							file.Line("else");
+							file.Then("end = measured;");
+						}
+						else if (MeasuredBy(lexical, continuation.Tail) is { } rule)
 						{
 							var output = valuing!.Results.QualifiedOf(rule) is null ? "" : ", out _";
 
@@ -3013,7 +3026,13 @@ file.Line("return spare;");
 						{
 							var from = $"p + {beginning.Length}";
 
-							if (MeasuredBy(lexical, continuation.Tail) is { } rule)
+							if (continuation.Counted is { } pair)
+							{
+								file.Line($"var measured = {from};");
+								file.Line();
+								NestedPair.WriteRest(file, pair, "measured", $"{continued}_{longer}", ["measured = -1;", "break;"]);
+							}
+							else if (MeasuredBy(lexical, continuation.Tail) is { } rule)
 							{
 								var output = valuing!.Results.QualifiedOf(rule) is null ? "" : ", out _";
 
@@ -3048,7 +3067,7 @@ file.Line("return spare;");
 					file.Line();
 
 				// A continuation measured by a rule says -1 where the text ended inside it.
-				var cutShort = lexical.Inventory.Continued.Any(one => MeasuredBy(lexical, one.Tail) is not null);
+				var cutShort = lexical.Inventory.Continued.Any(one => one.Counted is not null || MeasuredBy(lexical, one.Tail) is not null);
 
 				using (file.Block($"if (kind {(cutShort ? "<=" : "==")} 0 || end <= p)"))
 				{
@@ -5182,6 +5201,7 @@ file.Line("return spare;");
 	{
 		return [
 		.. lexical.Inventory.Continued
+			.Where(static one => one.Counted is null)
 			.Select(one => MeasuredBy(lexical, one.Tail))
 			.OfType<RuleSymbol>()
 			.Distinct(),

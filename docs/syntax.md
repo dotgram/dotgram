@@ -1306,6 +1306,10 @@ list never needs to hand a completed element back, which is the difference betwe
 syntax error reported in milliseconds and one reported in minutes. Whitespace-only trivia
 needs no braces: single characters leave nothing to re-read.
 
+Braced trivia is read by a scanner, which reads what it calls in place and so cannot follow
+a rule that reaches itself. A comment that holds others is the one such rule trivia needs,
+and is written `Std.Nested("/*", "*/")` (§5.2), which a scanner reads with a counter.
+
 **And a rule that spells out a lexeme is worth making atomic for the same reason:**
 
 ```dotgram
@@ -1807,6 +1811,7 @@ recognition, which every grammar spells the same way.
 | `Double` | digits, a point and digits, an exponent — each after the first optional | `double` |
 | `LineComment(start)` | `start` to the end of the line, the line ending left unread | text |
 | `BlockComment(open, close)` | `open` to the first `close` | text |
+| `Nested(open, close)` | `open` to the `close` that balances it, holding other pairs to any depth — `Nested("/*", "*/")` reads `/* a /* b */ c */` whole | text |
 | `Quoted(quote)` | `quote` to `quote`, with `quote` doubled inside — `Quoted('\'')` is SQL's string, `Quoted('"')` its delimited identifier and CSV's field | text, as written |
 | `Escaped(quote, escape)` | `quote` to `quote`, with `escape` in front of a quote or anything else inside — `Escaped('"', '\\')` is C's string | text, as written |
 
@@ -1819,6 +1824,32 @@ parameter — and the idiom is the one lookahead a lexer reads as a pattern (§6
 they are tokens in a grammar read over tokens. The numbers are unsigned: whether `-` is
 part of a number or an operator in front of one is a question about the calling grammar,
 not about digits.
+
+`Nested` is the one rule of the library that reaches itself, and it is written as the rule
+that says what it means:
+
+```dotgram
+Nested(open, close) = open & (?!close & (Nested(open, close) | ?!open & any))* & close
+```
+
+Inside a pair `close` is asked first and ends it, an `open` always begins another, and
+anything else is passed over; a pair that never balances is refused where it opened. The
+engine reads it as written. A scanner cannot — braced `trivia` (§4.5) commits to a first
+reading by reading what it calls in place — and neither can the automaton of a lexer
+(§7.1), which reads regular languages; both read it instead with a counter, a loop that
+looks for where either delimiter can begin and counts the levels, which has no depth to run
+out of and reads what the rule reads. So the comments of SQL and of most languages written
+since nest in trivia as they do in the language:
+
+```dotgram
+trivia = { (Std.Spacing | Std.LineComment("--") | Std.Nested("/*", "*/"))* }
+```
+
+The counter has to know which delimiter stands where it stopped, so the arguments are two
+literals, `"…"` or `"…"i`, neither empty, that cannot begin at one place: their first
+characters differ, under folding where a literal folds. Anything else is refused at the call
+(`GRAM4037`). It is recognized by being the library's: a rule of the same shape written under
+another name is read as written, and so is not a scanner's or a lexer's to read.
 
 ---
 
@@ -2945,8 +2976,9 @@ namespace Lexical
 {
     trivia = none
 
-    Comment = "/*" & Nested
-    Nested  = ([^ '*' | '/'] | '*' & ?!'/' | '/' & ?!'*' | "/*" & Nested)* & "*/"
+    Comment = Std.Nested("/*", "*/")
+    Remark  = "(*" & Rest
+    Rest    = ([^ '*' | '('] | '*' & ?!')' | '(' & ?!'*' | "(*" & Rest)* & "*)"
 
     Blob    = '<' & @ReadBlob
 }
@@ -2957,6 +2989,9 @@ them as it decides everything else, and nothing is asked where the beginning doe
 Where it does, the rest is measured from where the beginning ended: by the grammar's own
 rule, read over characters, or by the host, handed the position after the beginning. The
 lexer learns nothing about nesting or quoting. A kind of it is simply measured elsewhere.
+`Std.Nested(open, close)` (§5.2), alone or last, is such a terminal without being written as
+one: its `open` is the beginning, and the rest is read by its counter, so a pair the text
+ends inside of is cut short as the rule over characters would say.
 A terminal written this way may build a value like any other, and its value is read over
 the whole token.
 

@@ -56,6 +56,9 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string LateWith            = "GRAM4036";
 
+	/// <summary>A call to <c>Std.Nested</c> whose arguments a counter cannot tell apart.</summary>
+	public const string NestedNeedsLiterals = "GRAM4037";
+
 	/// <summary>
 	/// A repetition marked <c>recover</c> inside a lookahead, which its rule plans no recovery
 	/// for.

@@ -311,7 +311,7 @@ sealed partial class Machine
 		if (SeamReached.Contains(rule))
 			return _scannerReports[rule] = false;
 
-		var body    = _graph.Bodies[rule] is Node.Atomic(var kept) ? kept : _graph.Bodies[rule];
+		var body    = ScanBody(rule);
 		var reports = new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
 			.Render(body)
 			.Contains("furthest", StringComparison.Ordinal);
@@ -322,6 +322,19 @@ sealed partial class Machine
 	}
 
 	readonly Dictionary<RuleSymbol, bool> _scannerReports = [];
+
+	/// <summary>What the scanner of <paramref name="rule"/> is written from.</summary>
+	/// <remarks>
+	/// The body, inside its braces; or, for Std.Nested itself, a call to it, which is read with
+	/// the counter rather than with the body the counter stands for.
+	/// </remarks>
+	Node ScanBody(RuleSymbol rule)
+	{
+		if (NestedPair.Is(rule))
+			return new Node.Call(rule, []);
+
+		return _graph.Bodies[rule] is Node.Atomic(var kept) ? kept : _graph.Bodies[rule];
+	}
 
 	/// <summary>Every scanner the compiled states call, rendered as methods.</summary>
 	/// <summary>What a scanner takes beyond the input, where it has anything to say.</summary>
@@ -344,7 +357,7 @@ sealed partial class Machine
 				continue;
 
 			var rule = pair.Key;
-			var body = _graph.Bodies[rule] is Node.Atomic(var kept) ? kept : _graph.Bodies[rule];
+			var body = ScanBody(rule);
 
 			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves, StopCharacters);
 			var inner = scan.Render(body, ScannerReports(rule));
@@ -509,6 +522,11 @@ sealed partial class Machine
 
 			case Node.Atomic(var kept):
 				return Scannable(kept, after, seen);
+
+			// Std.Nested reaches itself and has one reading all the same, which a counter reads
+			// (NestedPair): whatever follows it, there is nothing to come back for.
+			case Node.Call(var called, _) when NestedPair.Is(called) && NestedPair.Of(called, _graph) is not null:
+				return true;
 
 			case Node.Call(var called, _):
 			{
@@ -1150,6 +1168,11 @@ sealed partial class Machine
 
 					break;
 
+				case Node.Call(var called, _) when NestedPair.Is(called) && NestedPair.Of(called, graph) is { } pair:
+					EmitNested(code, pair, fail, loaded);
+
+					break;
+
 				case Node.Call(var called, _):
 					Emit(code, graph.Bodies[called], fail, loaded);
 
@@ -1159,6 +1182,31 @@ sealed partial class Machine
 					throw new InvalidOperationException(
 						$"{node.GetType().Name} passed Scannable but has no scan emission.");
 			}
+		}
+
+		/// <summary>
+		/// Std.Nested, read with its counter: <c>open</c> as any literal is, then the loop to the
+		/// <c>close</c> that balances it (NestedPair). A pair the text ends inside of is refused
+		/// where it opened, having reached the end — where the rule's own reading reaches too.
+		/// </summary>
+		void EmitNested(Writer code, NestedPair.Delimiters pair, string fail, bool loaded)
+		{
+			var mark = Mark();
+
+			code.Line($"mark{mark} = p;");
+			Emit(code, new Node.Literal(pair.Open) { IgnoreCase = pair.OpenFolds }, fail, loaded);
+
+			using (code.Block(""))
+			{
+				NestedPair.WriteRest(code, pair, "p", _labels++.ToString(System.Globalization.CultureInfo.InvariantCulture),
+				[
+					"if (text.Length > furthest) furthest = text.Length;",
+					$"p = mark{mark};",
+					$"goto {fail};",
+				]);
+			}
+
+			Unmark();
 		}
 
 		void EmitRepeat(Writer code, Node.Repeat repeat, string fail)

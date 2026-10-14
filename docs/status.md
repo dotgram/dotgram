@@ -29,6 +29,8 @@ then quietly mean nothing.
 | the same, on a publication, `parse R with (A = B) as X` §5.1/§6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, either side a parameterized rule §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `Std.Nested(open, close)`, read with a counter in a scanner and in a token the lexer begins §5.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same given arguments a counter cannot tell apart, refused (`GRAM4037`) §5.2 | ✓ | ✓ | ✓ | — | — |
 | `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publication `parse` and `find` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a directive naming an expression rather than a rule §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -1496,6 +1498,8 @@ and where it stands the rest is measured by the rule over characters or by the h
 position after it. A beginning that can be empty, or is also a token of its own, is refused
 with `GRAM5004`. A terminal that is nothing but `@M` has no beginning, so the host is asked
 at the start of every token before the automaton; that works and is `GRAM5011`, a warning.
+`Std.Nested(open, close)`, as the terminal or its last operand, is begun by its `open`, and
+its rest is read by its counter rather than by a machine over characters.
 
 ## Carriers
 

@@ -287,7 +287,9 @@ public static class GramCompiler
 		if (!split.Trivia.Any(rule => seam.Scanner(rule) is not null))
 		{
 			Say("`trivia` cannot be read by committing to its first reading, and the seam " +
-				"between tokens is skipped by a scanner that does (§4.5)");
+				"between tokens is skipped by a scanner that does (§4.5). A rule in it that reaches " +
+				"itself is one a scanner cannot read; a comment that nests is written " +
+				"`Std.Nested(open, close)`, which it can");
 
 			return null;
 		}
