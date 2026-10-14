@@ -1586,6 +1586,22 @@ other bindings, like everything else the binding reaches. Mismatched signatures 
 refused (`GRAM3009`): a call's arguments have to fit the replacement for the
 substitution to mean anything.
 
+An argument is written at the call site and means what it means there. A call into
+the namespace from outside, `R = Ns.L(B)` where `Ns` binds `B = D`, passes the `B`
+written in `R`, not the `D` the header puts in its place for what is reached from
+inside. The generator does not read it so yet: such an argument is refused
+(`GRAM4040`) rather than read wrongly — at any depth of the argument, through a
+parameter that passes it on, under a header the namespace inherits from an enclosing
+one, and where a rebinding is what makes the call one into the namespace
+(`L(B) with (L = Ns.F)`). An argument that names only rules the header does not
+rebind, `Ns.L(Y)`, is read as written; a call written inside the namespace is reached
+from inside, and its argument is rebound with the rest; and a name both headers bind to
+the same rule — a caller inside `O with (B = D)` passing `B` into a namespace nested in
+`O`, which inherits that binding — means the same on both sides. A `with` expression inside an
+argument, `L(D with (D = Y))`, is refused too (`GRAM4041`): two calls passing the same
+argument share one instance, and the rebinding has no instance of its own to apply
+to. Declare a rule with the rebinding, `X = D with (D = Y)`, and pass that.
+
 Bindings in one header resolve simultaneously, against the namespace the header itself
 is written in: `namespace Name with (A = B, B = C)` sends a call to `A` all the way to `C`
 regardless of which entry is written first. A nested namespace inherits its enclosing
@@ -1656,7 +1672,9 @@ S = O.M.F                                       // reads C: M replaces the bindi
 A nested header otherwise resolves with what it inherits, as one header would:
 `namespace O with (B = D) { namespace M with (D = C) { … } }` sends `B` on to `C`. A
 substitution that loops once stacked, `(X with (D = Y)) with (Y = D)`, is refused like a
-header that loops (`GRAM3011`). Where two of them each need the other applied first — a
+header that loops (`GRAM3011`); so is a `with` over the header of a namespace its operand
+calls into from outside, `Ns.E with (D = B)` under `namespace Ns with (B = D)`, which is
+one header `with (B = D, D = B)`. Where two of them each need the other applied first — a
 header that reaches a `with` calling back into its namespace from outside, or two headers
 each reaching a rule the other rebinds — there is no order, and the grammar is refused
 (`GRAM4017`).

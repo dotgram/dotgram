@@ -1089,6 +1089,43 @@ public sealed class SemanticTests
 			("Y = 'y'\nA2(x) = 'a' & x\nB2(x) = 'b' & x\nC2(x) = 'c' & x\nU = B\nparse U\nR = (A2(D) with (A2 = B2)) with (B2 = C2, D = Y)", "cy", "bd"),
 			// A header's replacement that is another namespace's rule is read as that namespace makes it.
 			("C = 'c'\nY = 'y'\nnamespace Ns1 with (B = Ns2.F) { E = B }\nnamespace Ns2 with (C = D) { F = C }\nR = Ns1.E with (D = Y)", "y", "d"),
+			// An argument from outside that the header does not rebind, and one inside that it does.
+			("Y = 'y'\nnamespace Ns with (B = D) { L(x) = x & B }\nR = Ns.L(Y)", "yd", "yb"),
+			("namespace Ns with (B = D) { L(x) = x & B }\nR = Ns.L(D)", "dd", "bd"),
+			("namespace Ns with (B = D) { L(x) = x & B  G = L(B) }\nR = Ns.G", "dd", "bd"),
+			("Y = 'y'\nnamespace Ns with (B = D) { L(x) = x & B }\nM(x) = Ns.L(x)\nR = M(Y)", "yd", "yb"),
+			// A `with` on a rule of its own, passed as the argument, in place of one inside the argument.
+			("Y = 'y'\nL(x) = x & B\nX = D with (D = Y)\nR = L(X)", "yb", "db"),
+			// An outer `with` over an inner one on an operand of its own: the outer rebinds what the inner's
+			// clone put in place, through a quantifier or a sequence around the inner.
+			("A = 'a'\nC = 'c'\nX = A\nU = D\nparse U\nR = ((X with (A = B)) & '!') with (B = C)", "c!", "b!"),
+			("A = 'a'\nC = 'c'\nX = A\nU = D\nparse U\nR = (X with (A = B))+ with (B = C)", "cc", "bb"),
+			("A = 'a'\nC = 'c'\nX = A\nR = ((((X with (A = B)) & '!') with (B = C)) & '?') with (C = D)", "d!?", "c!?"),
+			("C = 'c'\nL(x) = x\nF(x) = B & x\nU = B & D\nparse U\nR = ((L('!') with (L = F)) & '?') with (B = C)", "c!?", "b!?"),
+			// Two sibling `with`s under one: neither is over the other's call, so nothing loops.
+			("Y = 'y'\nZ = 'z'\nU = Y\nparse U\nR = ((B with (B = D)) & (D with (D = B))) with (Y = Z)", "db", "bd"),
+			// An inner `with` sent `D` on already: the outer's binding of `D` binds nothing, and does not loop.
+			("Y = 'y'\nnamespace N with (B = D) { X = B }\nR = ((N.X with (D = Y)) & '!') with (D = B)", "y!", "b!"),
+			// An argument passed on by a rule outside, and the caller's header binding it as the callee's does.
+			("Y = 'y'\nnamespace Ns with (B = Y) { L(x) = x }\nM(x) = Ns.L(x)\nnamespace O with (B = Y) { R2 = M(B) }\nR = O.R2 & D", "yd", "bd"),
+			("Y = 'y'\nnamespace Ns with (B = Y) { L(x) = x }\nM(x) = Ns.L(x & '!')\nnamespace O with (B = Y) { R2 = M((B & 'a')) }\nR = O.R2 & D", "ya!d", "ba!d"),
+			// The caller's header rebinds the argument to a rule the callee's does not touch.
+			("Y = 'y'\nnamespace Ns with (D = Y) { L(x) = x }\nnamespace O with (B = D) { R2 = Ns.L(B) }\nR = O.R2", "d", "y"),
+			// An instance another call made first, passed as the argument: this call's own argument is what counts.
+			("Y = 'y'\nP(x) = x\nnamespace Ns with (B = Y) { L(x) = x }\nnamespace Warm { W = P(B) }\nnamespace O with (B = Y) { R2 = Ns.L(P(B)) }\nR = Warm.W & O.R2 & D", "byd", "bbd"),
+			// A rule that calls itself with its arguments the other way round, called twice.
+			("namespace Ns with (B = D) { L(x) = x }\nA(x, w) = ('a' & A(w, x)) | Ns.L(x)\nnamespace O with (B = D) { R2 = A(B, B) & A(B, B) }\nR = O.R2", "dd", "bb"),
+			// Glue shared by two unrelated operands is not an argument passed on.
+			("Y = 'y'\nnamespace Ns with (B = Y) { L(x) = x }\nM(x) = Ns.L('a' ~ 'c') & x\nnamespace O with (B = D) { R2 = M(B ~ '!') }\nnamespace P { R3 = M(B ~ '!') }\nR = O.R2 & P.R3", "acd!acb!", "acy!acy!"),
+			// A `with` over a header it does not loop with.
+			("Y = 'y'\nnamespace Ns with (B = D) { E = B & Y }\nR = Ns.E with (Y = B)", "db", "dy"),
+			// An argument written inside the namespace, rebound by a `with` from outside to a rule of it: the
+			// header has rebound the argument already, and the rule is read with it so.
+			("L(x) = x\nnamespace Ns with (B = D) { G = L(B)  F(x) = x & B }\nR = Ns.G with (L = Ns.F)", "dd", "bd"),
+			// An argument the caller's own header rebinds as the nested header it is passed into does.
+			("Y = 'y'\nZ = 'z'\nU = Z\nparse U\nnamespace O with (B = D) { namespace Ns with (Z = Y) { L(x) = x }  R2 = Ns.L(B) }\nR = O.R2", "d", "b"),
+			// Rebound to a rule of another namespace whose header does not touch what the argument means.
+			("Y = 'y'\nL(x) = x\nnamespace Ns with (B = D) { G = L(B) }\nnamespace N2 with (B = Y) { F(x) = x & B }\nR = Ns.G with (L = N2.F)", "dy", "by"),
 		];
 
 		foreach (var (rule, accepted, refused) in shapes)
@@ -1702,6 +1739,19 @@ public sealed class SemanticTests
 	[InlineData("X = D\nR = (X with (D = Y)) with (Y = D)\nparse R")]
 	[InlineData("namespace N with (D = Y, Y = D) { X = D }\nparse N.X")]
 	[InlineData("namespace O with (B = Y) { namespace M with (Y = B) { X = B } }\nparse O.M.X")]
+	// A `with` over the header of a namespace its operand calls into is one header with it.
+	[InlineData("namespace N with (B = D) { X = B }\nR = N.X with (D = B)\nparse R")]
+	[InlineData("namespace N with (B = D) { X = B }\nR = (N.X with (D = Y)) with (Y = B)\nparse R")]
+	[InlineData("namespace N with (B = D) { X = B }\nW = N.X\nR = W with (D = B)\nparse R")]
+	// Through more than one step: one header `with (B = D, Y = Z, D = Y, Z = B)` loops through four.
+	[InlineData("Z = 'z'\nnamespace N with (B = D, Y = Z) { X = B & Y }\nR = N.X with (D = Y, Z = B)\nparse R")]
+	[InlineData("Z = 'z'\nX = B & Y\nR = (X with (B = D, Y = Z)) with (D = Y, Z = B)\nparse R")]
+	// On an operand of its own around the inner `with`, the same stacking.
+	[InlineData("X = B\nR = ((X with (B = D)) & '!') with (D = B)\nparse R")]
+	// A second call beside the inner `with`, with nothing between it and the outer, loops with the header.
+	[InlineData("namespace N with (B = D) { X = B }\nR = ((N.X with (D = Y)) & N.X) with (D = B)\nparse R")]
+	// Around an operand that calls nothing, the stacking is the same.
+	[InlineData("R = (('x' with (B = D)) & '!') with (D = B)\nparse R")]
 	public void Substitutions_that_loop_once_stacked_are_refused(string rules)
 	{
 		Refused(GrammarBinder.CircularRebinding, "B = 'b'\nD = 'd'\nY = 'y'\n" + rules + "\n");
@@ -1714,26 +1764,126 @@ public sealed class SemanticTests
 	[Fact]
 	public void A_with_inside_an_instance_made_during_specialization_is_refused()
 	{
-		Refused(
-			GrammarNormalizer.LateWith,
-			"""
-			using Ns;
+		Refused(GrammarNormalizer.LateWith, LateInstance);
+	}
 
-			B = 'b'
-			D = 'd'
-			Z = 'z'
-			Y = 'y'
-			F(x) = (Z with (Z = Y)) & x
+	const string LateInstance =
+		"""
+		using Ns;
 
-			namespace Ns with (B = D)
-			{
-				E(x) = B & x
-				G = E(B)
-			}
+		B = 'b'
+		D = 'd'
+		Z = 'z'
+		Y = 'y'
+		F(x) = (Z with (Z = Y)) & x
 
-			R = Ns.G with (E = F)
-			parse R
-			""");
+		namespace Ns with (B = D)
+		{
+			E(x) = B & x
+			G = E(B)
+		}
+
+		R = Ns.G with (E = F)
+		parse R
+		""";
+
+	/// <summary>
+	/// The refusal names what the author can see: the instance, the call as written and the
+	/// substitution that replaced its rule.
+	/// </summary>
+	[Fact]
+	public void A_late_with_refusal_names_the_call_as_written()
+	{
+		var refusal = Assert.Single(Compile(LateInstance).Diagnostics, one => one.Id == GrammarNormalizer.LateWith);
+
+		Assert.Contains("inside 'F(D)'", refusal.Message, StringComparison.Ordinal);
+		Assert.Contains("the 'with' in 'R' replaced 'E' with 'F' in the call 'E(B)'", refusal.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// An instance a header makes while a publication's <c>with</c> reads through it is the
+	/// header's, and the refusal says so.
+	/// </summary>
+	[Fact]
+	public void A_late_with_refusal_names_the_header_that_made_the_instance()
+	{
+		var refusal = Assert.Single(
+			Compile(
+				"""
+				B = 'b'
+				Z = 'z'
+				Y = 'y'
+				E(x) = x
+				F(x) = (Z with (Z = Y)) & x
+				L(x) = x
+				namespace Ns with (E = F) { G(x) = E(x) }
+				R = L(B)
+				parse R
+				parse R with (L = Ns.G) as Swapped
+				""").Diagnostics,
+			one => one.Id == GrammarNormalizer.LateWith);
+
+		Assert.Contains("the header of namespace 'Ns' replaced 'E' with 'F' in the call 'E(B)'", refusal.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// An argument written outside a namespace that names a rule its header rebinds is refused
+	/// rather than read as the header rebinds it: at any depth of the argument, through a
+	/// parameter that passes it on, under a header the namespace inherits, and where a
+	/// rebinding — a <c>with</c> or a publication's — is what makes the call one into the
+	/// namespace.
+	/// </summary>
+	[Theory]
+	[InlineData("namespace Ns with (B = D) { L(x) = x & B }\nR = Ns.L(B)")]
+	[InlineData("P(y) = y\nnamespace Ns with (B = D) { L(x) = x & B }\nR = Ns.L(P(B))")]
+	[InlineData("namespace Ns with (B = D) { L(x) = x & B }\nR = Ns.L((Y & B))")]
+	[InlineData("namespace Ns with (B = D) { L(x) = x & B }\nR = Ns.L(B?)")]
+	[InlineData("namespace Ns with (B = D) { L(x) = x & B }\nM(x) = Ns.L(x)\nR = M(B)")]
+	[InlineData("namespace O with (B = D) { namespace Ns { L(x) = x & B } }\nR = O.Ns.L(B)")]
+	[InlineData("namespace O with (B = D) { namespace Ns with (Z = Y) { L(x) = x & B } }\nR = O.Ns.L(B)")]
+	[InlineData("P(y) = y\nnamespace Ns with (P = Q) { L(x) = x }\nQ(y) = y & Y\nR = Ns.L(P(Z))")]
+	[InlineData("L(x) = x\nnamespace Ns with (B = D) { F(x) = x & B }\nR = L(B) with (L = Ns.F)")]
+	[InlineData("L(x) = x\nnamespace Ns with (B = D) { F(x) = x & B }\nR = L(B)\nparse R with (L = Ns.F) as Swapped")]
+	[InlineData("L(x) = x\nnamespace Ns with (B = D) { F(x) = x & B }\nnamespace O with (L = Ns.F) { R2 = L(B) }\nR = O.R2")]
+	// An instance shared by two calls passes each call's own argument on: the second is checked at its call.
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nM(x) = Ns.L(x)\nnamespace O with (B = D) { R2 = M(B) }\nnamespace P { R3 = M(B) }\nR = O.R2 & P.R3")]
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nM(x) = Ns.L(x)\nnamespace P { R3 = M(B) }\nnamespace O with (B = D) { R2 = M(B) }\nR = O.R2 & P.R3")]
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nM(x) = Ns.L(x)\nK(x) = M(x)\nnamespace O with (B = D) { R2 = K(B) }\nR3 = K(B)\nR = O.R2 & R3")]
+	// Passed on inside another call's argument, and through a rule that reaches itself.
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nP(x) = x\nM(x) = Ns.L(P(x))\nnamespace O with (B = D) { R2 = M(B) }\nR3 = M(B)\nR = O.R2 & R3")]
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nA(x) = ('a' & K(x)) | Ns.L(x)\nK(x) = 'k' & A(x)\nnamespace O with (B = D) { R2 = A(B) }\nR3 = K(B)\nR = O.R2 & R3")]
+	// Through a rule that passes two arguments on in two positions.
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nM(x, w) = Ns.L(w) & x\nK(x, w) = M(x, w) | M(w, x)\nnamespace O with (B = D) { R2 = K(B, 'q') }\nR3 = K(B, 'q')\nR = O.R2 & R3")]
+	// The caller's own header binds the name, but not as the callee's does: the callee's clone reads it first.
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nM(x) = Ns.L(x)\nnamespace O with (B = D) { R2 = M(B) }\nR = O.R2")]
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nnamespace O with (B = D) { R2 = Ns.L(B) }\nR = O.R2")]
+	[InlineData("P(x) = x\nnamespace Ns with (B = Y) { L(x) = x }\nnamespace Warm { W = P(B) }\nnamespace O with (B = D) { R2 = Ns.L(P(B)) }\nR = Warm.W & O.R2")]
+	// A `with` inside a namespace whose header is applied after it: the argument is still as written.
+	[InlineData("L(x) = x\nnamespace Ns with (B = Y) { F(x) = x }\nnamespace O with (B = D) { R2 = L(B) with (L = Ns.F) }\nR = O.R2")]
+	// A name written in the rule itself beside the one passed on.
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nM(x) = Ns.L(x & B)\nnamespace O with (B = D) { R2 = M(B) }\nR = O.R2")]
+	[InlineData("namespace Ns with (B = Y) { L(x) = x }\nM(x) = Ns.L(B & x)\nnamespace O with (B = D) { R2 = M(B) }\nR = O.R2")]
+	public void An_argument_a_header_would_rebind_is_refused(string rules)
+	{
+		Refused(GrammarNormalizer.HeaderBoundArgument, "B = 'b'\nD = 'd'\nY = 'y'\nZ = 'z'\n" + rules + "\nparse R\n");
+	}
+
+	/// <summary>
+	/// A <c>with</c> inside an argument of a parameterized rule is refused rather than dropped,
+	/// at any depth, and once.
+	/// </summary>
+	[Theory]
+	[InlineData("L(x) = x & B\nR = L(D with (D = Y))")]
+	[InlineData("L(x) = x & B\nR = L((D & B) with (D = Y))")]
+	[InlineData("L(x) = x & B\nM(y) = y\nR = L(M(D with (D = Y)))")]
+	[InlineData("L(x) = x & B\nM(y) = L(y)\nR = M(D with (D = Y))")]
+	[InlineData("L(x) = x & B\nR = L(D with (D = Y)) with (B = Z)")]
+	public void A_with_inside_an_argument_is_refused(string rules)
+	{
+		var diagnostics = Compile("B = 'b'\nD = 'd'\nY = 'y'\nZ = 'z'\n" + rules + "\nparse R\n").Diagnostics;
+
+		Assert.Single(diagnostics, one => one.Id == GrammarNormalizer.WithInArgument);
+		Assert.DoesNotContain(diagnostics, one => one.Id == GrammarNormalizer.LateWith);
 	}
 
 	/// <summary>

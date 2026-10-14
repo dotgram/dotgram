@@ -1,6 +1,7 @@
 ﻿using System;
 
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
@@ -408,7 +409,7 @@ public sealed partial class GrammarNormalizer
 					if (byRule.TryGetValue(called, out var other) && other != group && !first.Contains(other))
 						first.Add(other);
 
-			foreach (var (_, _, into) in CallsIntoSites(group, graph))
+			foreach (var (_, _, into) in CallsIntoSites(group.Key, group, graph))
 				if (!first.Contains(into))
 					first.Add(into);
 
@@ -746,9 +747,32 @@ public sealed partial class GrammarNormalizer
 
 		if (_origins.TryGetValue(called, out var origin) &&
 			targets.TryGetValue(origin.Origin, out var bound))
-			return UnderHeader(((Node.Call)Instantiate(bound, origin.Passed, origin.Counts, origin.Values)).Rule);
+		{
+			var making = _making;
+
+			_making = Making(called, origin.Origin, bound);
+
+			var instance = ((Node.Call)Instantiate(bound, origin.Passed, origin.Counts, origin.Values)).Rule;
+
+			_making = making;
+
+			return UnderHeader(instance);
+		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// What is making an instance of <paramref name="replacement"/> for the arguments of
+	/// <paramref name="instance"/>, for a <c>with</c> its body turns out to hold: the substitution
+	/// being applied, the rule it replaced and the call as the author wrote it. Null before any
+	/// substitution is applied, while what a <c>with</c> or a header reaches is being asked.
+	/// </summary>
+	string? Making(RuleSymbol instance, RuleSymbol replaced, RuleSymbol replacement)
+	{
+		return _stacking.What is null
+			? null
+			: $"{_stacking.What} replaced '{replaced.Name}' with '{replacement.Name}' in the call '{Shown(instance)}'";
 	}
 
 	/// <summary>
@@ -776,8 +800,13 @@ public sealed partial class GrammarNormalizer
 
 		// The header's own specialization of the instance, as `SpecializeSite` makes one: not
 		// composed on anything, which also keeps an instance that reaches itself through the
-		// header from asking for its own specialization while it is being made.
+		// header from asking for its own specialization while it is being made. And said so:
+		// what it makes, from the reach on, is made by the header, not by the `with` that asked
+		// for the instance.
+		var stacking = _stacking;
+
 		_composeOnHeaders = false;
+		_stacking         = (site.OwnRebindings[0].At, $"the header of namespace '{site.Name}'");
 
 		var forward   = BuildCallGraph();
 		var reachable = ReachableFromSeed([instance], forward, site.Rebindings);
@@ -786,6 +815,7 @@ public sealed partial class GrammarNormalizer
 		if (!affected.Contains(instance))
 		{
 			_composeOnHeaders = true;
+			_stacking         = stacking;
 
 			return instance;
 		}
@@ -795,6 +825,7 @@ public sealed partial class GrammarNormalizer
 
 		CloneAffected(affected, site.Rebindings, site.Name, map);
 
+		_stacking         = stacking;
 		_composeOnHeaders = true;
 		_headerClones++;
 
@@ -809,6 +840,375 @@ public sealed partial class GrammarNormalizer
 
 		return clone;
 	}
+
+	/// <summary>
+	/// Refuses a call into a namespace with a header, written outside it, whose argument names a
+	/// rule the header rebinds — at any depth of the argument, and whichever enclosing header
+	/// the namespace inherits the binding from (GRAM4040).
+	/// </summary>
+	/// <remarks>
+	/// An argument is written at the call site and means what it means there (§5.1); the header
+	/// rebinds what is reached from inside the namespace. The instance is a rule of the namespace,
+	/// though, and its clone under the header rewrites the argument with the rest of its body:
+	/// <c>Ns.L(B)</c> under <c>B = D</c> read <c>D</c> where <c>B</c> was written. Refused rather
+	/// than read wrongly until an argument is resolved before the clone rewrites it.
+	/// </remarks>
+	void RefuseHeaderBoundArguments(
+		RuleSymbol rule, IReadOnlyList<Expr> arguments, IReadOnlyList<Node?> passed, GrammarNamespace writtenIn)
+	{
+		if (NearestSite(rule.Namespace) is not { } site || Encloses(site, writtenIn))
+			return;
+
+		for (var i = 0; i < passed.Count; i++)
+			if (passed[i] is { } argument && HeaderBound(argument, writtenIn, site) is (var named, var rebound))
+				Report(
+					HeaderBoundArgument,
+					$"'{Shown(named)}' is passed to '{rule.Name}' from outside namespace '{site.Name}', whose " +
+					$"header rebinds '{rebound.Name}'; the argument would be read inside the namespace, " +
+					"as the header rebinds it, rather than as it is written here. Not supported yet: pass a rule " +
+					"the header does not rebind, or write the call inside the namespace if the rebinding is meant.",
+					arguments[i].At);
+
+		// An argument the rule being lowered passes on from its own: every later call of that rule
+		// passes something else on the same way, without lowering this call again.
+		if (_currentRule is { } current && _origins.TryGetValue(current, out var own))
+		{
+			var received = Received(own.Passed);
+
+			for (var i = 0; i < passed.Count; i++)
+				for (var j = 0; j < received.Count; j++)
+					if (received[j] is { } forwarded && passed[i] is { } argument && Shares(forwarded, argument))
+						PassesInto(current).Add((site, j));
+		}
+	}
+
+	/// <summary>
+	/// Refuses, at a call of a parameterized rule, an argument the rule passes on into a namespace
+	/// with a header from outside it — itself, or through the rules it calls with it
+	/// (<see cref="Forwards"/>): the instance is one for every call that passes the same thing,
+	/// lowered once, so the check inside it saw the first call's argument alone. And records, for
+	/// the rule being lowered, which of its own arguments this call passes on, so that a call of
+	/// it is checked the same way.
+	/// </summary>
+	void RefuseForwardedArguments(
+		RuleSymbol rule, RuleSymbol instance, IReadOnlyList<Expr> arguments, IReadOnlyList<Node?> passed,
+		GrammarNamespace writtenIn, bool reused)
+	{
+		if (!_origins.ContainsKey(instance))
+			return;
+
+		if (reused && _passesInto.Count > 0)
+			foreach (var (site, i) in Forwards(instance))
+				if (!Encloses(site, writtenIn) && passed[i] is { } argument &&
+					HeaderBound(argument, writtenIn, site) is (var named, var rebound))
+					Report(
+						HeaderBoundArgument,
+						$"'{Shown(named)}' is passed to '{rule.Name}', which passes it on into namespace '{site.Name}' " +
+						$"from outside it, and the header of '{site.Name}' rebinds '{rebound.Name}'; the argument would " +
+						"be read inside the namespace, as the header rebinds it, rather than as it is written here. " +
+						"Not supported yet: pass a rule the header does not rebind.",
+						arguments[i].At);
+
+		if (_currentRule is { } current && _origins.TryGetValue(current, out var own))
+		{
+			var received = Received(own.Passed);
+
+			for (var i = 0; i < passed.Count; i++)
+				for (var j = 0; j < received.Count; j++)
+					if (received[j] is { } forwarded && passed[i] is { } argument && Shares(forwarded, argument))
+						Edges(current).Add((instance, i, j));
+		}
+	}
+
+	/// <summary>
+	/// Where an instance passes each of its arguments on into a namespace with a header from
+	/// outside it: directly, and through every instance it calls with one of them, however far —
+	/// asked when a call is checked rather than recorded as the bodies are lowered, since a rule
+	/// that reaches itself is called again before its own body has been read to the end.
+	/// </summary>
+	/// <remarks>
+	/// A fixed point over the instances reached, not one walk with a visited set: an instance
+	/// reached twice, with a different argument of its own each time, has something to say each
+	/// time, and a cycle that moves an argument from one position to another says it only once
+	/// everything it reaches has.
+	/// </remarks>
+	HashSet<(GrammarNamespace Site, int Index)> Forwards(RuleSymbol instance)
+	{
+		var known   = new Dictionary<RuleSymbol, HashSet<(GrammarNamespace Site, int Index)>>();
+		var pending = new Queue<RuleSymbol>([instance]);
+
+		while (pending.Count > 0)
+		{
+			var reached = pending.Dequeue();
+
+			if (known.ContainsKey(reached))
+				continue;
+
+			known[reached] = _passesInto.TryGetValue(reached, out var own) ? [.. own] : [];
+
+			if (_edges.TryGetValue(reached, out var edges))
+				foreach (var (callee, _, _) in edges)
+					pending.Enqueue(callee);
+		}
+
+		for (var changed = true; changed;)
+		{
+			changed = false;
+
+			// Off a copy: a rule that calls itself with its arguments in another order adds to the
+			// set it is reading.
+			foreach (var pair in known)
+				if (_edges.TryGetValue(pair.Key, out var edges))
+					foreach (var (callee, i, j) in edges)
+						foreach (var (site, index) in known[callee].ToList())
+							if (index == i)
+								changed |= pair.Value.Add((site, j));
+		}
+
+		return known[instance];
+	}
+
+	/// <summary>
+	/// The nodes an instance received as its arguments, as sets by identity, for
+	/// <see cref="Shares"/>: without the singletons every lowering shares, which pass nothing on.
+	/// </summary>
+	static List<HashSet<Node>?> Received(IReadOnlyList<Node?> passed)
+	{
+		var received = new List<HashSet<Node>?>(passed.Count);
+
+		foreach (var one in passed)
+			received.Add(
+				one is null
+					? null
+					: NodeWalk.ByIdentity(NodeWalk.Descendants(one).Where(static node =>
+						!ReferenceEquals(node, Node.Empty.Instance) && !ReferenceEquals(node, Node.Glue.Instance))));
+
+		return received;
+	}
+
+	/// <summary>
+	/// Whether a namespace's header has cloned <paramref name="rule"/>, so that a call to it from
+	/// outside reads the clone.
+	/// </summary>
+	bool Superseded(RuleSymbol rule)
+	{
+		foreach (var site in _siteClones.Values)
+			if (site.ContainsKey(rule))
+				return true;
+
+		return false;
+	}
+
+	HashSet<(GrammarNamespace Site, int Index)> PassesInto(RuleSymbol instance)
+	{
+		if (!_passesInto.TryGetValue(instance, out var forwarded))
+			_passesInto[instance] = forwarded = [];
+
+		return forwarded;
+	}
+
+	HashSet<(RuleSymbol Callee, int Index, int Own)> Edges(RuleSymbol instance)
+	{
+		if (!_edges.TryGetValue(instance, out var edges))
+			_edges[instance] = edges = [];
+
+		return edges;
+	}
+
+	/// <summary>
+	/// For each instance of a parameterized rule that itself passes one of its arguments on into
+	/// a namespace with a header from outside it: the namespace, and which argument.
+	/// </summary>
+	readonly Dictionary<RuleSymbol, HashSet<(GrammarNamespace Site, int Index)>> _passesInto = [];
+
+	/// <summary>
+	/// For each instance of a parameterized rule, the instances it calls with one of its own
+	/// arguments: the callee, which of the callee's arguments, and which of its own it is.
+	/// </summary>
+	readonly Dictionary<RuleSymbol, HashSet<(RuleSymbol Callee, int Index, int Own)>> _edges = [];
+
+	/// <summary>
+	/// Whether anything of an argument received (<see cref="Received"/>) is in
+	/// <paramref name="argument"/>: the node itself, or any node of it — a sequence passed on is
+	/// spliced flat into the sequence around it, and keeps its operands — in the argument or in
+	/// the arguments of an instance it calls.
+	/// </summary>
+	bool Shares(HashSet<Node> forwarded, Node argument)
+	{
+		foreach (var (node, _, _) in ArgumentNodes(argument, _model.Root))
+			if (forwarded.Contains(node))
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
+	/// The same, for an instance a rebinding reads as a rule of a namespace with a header from
+	/// outside it: <c>L(B) with (L = Ns.F)</c> reads <c>Ns</c>'s <c>F(B)</c>, and the clone under
+	/// the header would rewrite <c>B</c> with it.
+	/// </summary>
+	/// <remarks>
+	/// Asked where the instance is actually rebuilt, from the rule being cloned: what a `with`
+	/// or a header reaches is asked off the bodies as written, including the body of a rule the
+	/// namespace has cloned already, whose arguments the header has rebound in the clone alone.
+	/// A header's own replacement, `namespace O with (L = Ns.F)`, is one too.
+	/// </remarks>
+	void RefuseHeaderBoundArguments(RuleSymbol instance, RuleSymbol replacement, GrammarNamespace writtenIn)
+	{
+		if (NearestSite(replacement.Namespace) is not { } site || Encloses(site, writtenIn))
+			return;
+
+		if (!_origins.TryGetValue(instance, out var origin))
+			return;
+
+		foreach (var argument in origin.Passed)
+			if (argument is not null && HeaderBound(argument, writtenIn, site) is (var named, var rebound))
+			{
+				Report(
+					HeaderBoundArgument,
+					$"'{Shown(named)}' is an argument of '{Shown(instance)}', which {_stacking.What} reads as " +
+					$"'{replacement.Name}' of namespace '{site.Name}' from outside it, and the header of " +
+					$"'{site.Name}' rebinds '{rebound.Name}'; the argument would be read as the header rebinds " +
+					"it rather than as it is written. Not supported yet: pass a rule the header does not rebind.",
+					_stacking.At);
+
+				return;
+			}
+	}
+
+	/// <summary>
+	/// A rule the argument names that the header of <paramref name="site"/> would rebind, and
+	/// not as the name means where it is written: the name as written and the rule it would
+	/// rebind; null where the header changes nothing the argument means.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A name as the author wrote it is read through the header first — the instance is a rule
+	/// of the namespace, cloned under its header before the header of the namespace the argument
+	/// is written in reaches the clone — so a name the header rebinds is changed unless the
+	/// caller's own header binds it to the same rule: a caller inside <c>O with (B = D)</c>
+	/// passing <c>B</c> into a namespace nested in <c>O</c> means <c>D</c> on both sides. Where it
+	/// is written is where the argument was, not where the call is: an argument a parameterized
+	/// rule passes on, <c>M(x) = Ns.L(x)</c>, was written where <c>M</c> was called.
+	/// </para>
+	/// <para>
+	/// A node of a copy a header made — one no argument was lowered to — is already what that
+	/// header put in place, and the namespace a rebinding then reads the instance in changes it
+	/// only where its header rebinds that.
+	/// </para>
+	/// </remarks>
+	(RuleSymbol Named, RuleSymbol Rebound)? HeaderBound(Node argument, GrammarNamespace writtenIn, GrammarNamespace site)
+	{
+		foreach (var (named, from, written) in ArgumentCalls(argument, writtenIn))
+		{
+			var rule = _origins.TryGetValue(named, out var origin) ? origin.Origin : named;
+
+			if (!written)
+			{
+				if (from.Rebindings.TryGetValue(rule, out var meant))
+					rule = meant;
+
+				if (site.Rebindings.ContainsKey(rule))
+					return (named, rule);
+			}
+			else if (site.Rebindings.TryGetValue(rule, out var there) &&
+				!(from.Rebindings.TryGetValue(rule, out var here) && ReferenceEquals(here, there)))
+				return (named, rule);
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Every rule an argument calls, at any depth — in the argument itself, and in the arguments
+	/// of every instance of a parameterized rule it calls, since those are read inside the
+	/// instance with it — each with the namespace the call was written in.
+	/// </summary>
+	IEnumerable<(RuleSymbol Called, GrammarNamespace WrittenIn, bool Written)> ArgumentCalls(Node argument, GrammarNamespace writtenIn)
+	{
+		var seen = new HashSet<(RuleSymbol, GrammarNamespace, bool)>();
+
+		foreach (var (node, from, written) in ArgumentNodes(argument, writtenIn))
+			if (node is Node.Call(var called, _) && seen.Add((called, from, written)))
+				yield return (called, from, written);
+	}
+
+	/// <summary>
+	/// Every node of an argument, at any depth — in the argument itself, and in the arguments of
+	/// every instance of a parameterized rule it calls — each with the namespace it was written
+	/// in, and whether it is a node an argument was lowered to rather than a copy a header made.
+	/// </summary>
+	IEnumerable<(Node Node, GrammarNamespace WrittenIn, bool Written)> ArgumentNodes(Node argument, GrammarNamespace writtenIn)
+	{
+		var seen    = NodeWalk.ByIdentity([]);
+		var pending = new Queue<(Node Node, GrammarNamespace From, bool Written)>([(argument, writtenIn, false)]);
+
+		while (pending.Count > 0)
+		{
+			var (node, from, written) = pending.Dequeue();
+
+			if (!seen.Add(node))
+				continue;
+
+			if (_argumentOrigins.TryGetValue(node, out var origin))
+				(from, written) = (origin, true);
+
+			yield return (node, from, written);
+
+			// This call's own arguments where it is the call as lowered; the instance's first
+			// call's otherwise, as a copy of a call has them.
+			if (node is Node.Call(var called, _))
+			{
+				if (_callArguments.TryGetValue(node, out var given))
+					foreach (var passed in given)
+					{
+						if (passed is not null)
+							pending.Enqueue((passed, from, written));
+					}
+				else if (_origins.TryGetValue(called, out var made))
+					foreach (var passed in made.Passed)
+						if (passed is not null)
+							pending.Enqueue((passed, from, written));
+			}
+
+			if (_recoveries.TryGetValue(node, out var recovery))
+				pending.Enqueue((recovery.Sync, from, written));
+
+			foreach (var child in node.Children)
+				pending.Enqueue((child, from, written));
+		}
+	}
+
+	/// <summary>
+	/// The namespace each argument of a parameterized call was written in, by every node it lowered
+	/// to. An instance passes the nodes on as they are, so a forwarded argument keeps where it came
+	/// from — spliced flat into a sequence around it too, where the operands are what is left of it.
+	/// </summary>
+	readonly Dictionary<Node, GrammarNamespace> _argumentOrigins = new(NodeIdentity.Instance);
+
+	/// <summary>
+	/// The arguments each call of a parameterized rule was lowered with, by the call node: two
+	/// calls passing the same thing share an instance, which keeps the first call's nodes alone.
+	/// </summary>
+	readonly Dictionary<Node, IReadOnlyList<Node?>> _callArguments = new(NodeIdentity.Instance);
+
+	/// <summary>
+	/// The substitution being applied, for a refusal of something it makes: where it is written,
+	/// and what it is called in a message.
+	/// </summary>
+	(Location At, string? What) _stacking;
+
+	/// <summary>
+	/// What is making the instance being lowered, where a substitution is: the call as written
+	/// and the rebinding, for a <c>with</c> the instance turns out to hold (<see cref="RefuseLateWith"/>).
+	/// </summary>
+	string? _making;
+
+	/// <summary>
+	/// The rule whose body is being copied under a substitution, where one is: the rule a call
+	/// the copy rebuilds is written in.
+	/// </summary>
+	RuleSymbol? _cloning;
 
 	/// <summary>
 	/// The rules whose calls a binding rewrites — the bound rules themselves, plus
@@ -871,6 +1271,8 @@ public sealed partial class GrammarNormalizer
 		if (targets.Count == 0)
 			return EmptyClones;
 
+		_stacking = (site.OwnRebindings[0].At, $"the header of namespace '{site.Name}'");
+
 		// A call from here into a namespace specialized before this one reads that namespace's
 		// clone, and this header goes on top of it, as a `with` there would (§5.1).
 		if (before.Count > 0)
@@ -923,11 +1325,15 @@ public sealed partial class GrammarNormalizer
 				added.Add(rule);
 			}
 
+		var cloning = _cloning;
+
 		foreach (var rule in added)
 		{
 			var clone = cloneMap[rule];
 
+			_cloning       = rule;
 			_bodies[clone] = CloneBody(_bodies[rule], targets, cloneMap, siteName);
+
 			_rules.Add(clone);
 
 			// The boundary trivia a whole parse of this rule wraps in (§4.5) — cloned and
@@ -982,6 +1388,8 @@ public sealed partial class GrammarNormalizer
 					declared.IsSequence);
 			}
 		}
+
+		_cloning = cloning;
 
 		return cloneMap;
 	}
@@ -1208,9 +1616,20 @@ public sealed partial class GrammarNormalizer
 		Dictionary<RuleSymbol, RuleSymbol> cloneMap,
 		string siteName)
 	{
-		var origin      = _origins[instance];
+		var origin = _origins[instance];
+		var making = _making;
+
+		// Not from a rule a site has cloned already: its calls were moved to the clone, and what
+		// is left is read by nothing.
+		if (_cloning is { } caller && !Superseded(caller))
+			RefuseHeaderBoundArguments(instance, targets[origin.Origin], caller.Namespace);
+
+		_making = Making(instance, origin.Origin, targets[origin.Origin]);
+
 		var replacement = UnderHeader(((Node.Call)Instantiate(
 			targets[origin.Origin], origin.Passed, origin.Counts, origin.Values)).Rule);
+
+		_making = making;
 
 		if (cloneMap.TryGetValue(replacement, out var existing))
 			return existing;
@@ -1221,7 +1640,12 @@ public sealed partial class GrammarNormalizer
 		cloneMap[replacement] = clone;
 		_cloneOf[clone]       = replacement;
 
+		var cloning = _cloning;
+
+		_cloning       = replacement;
 		_bodies[clone] = CloneBody(_bodies[replacement], targets, cloneMap, siteName);
+		_cloning       = cloning;
+
 		_rules.Add(clone);
 
 		if (_trivia.TryGetValue(replacement, out var trivia))

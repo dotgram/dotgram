@@ -201,6 +201,11 @@ public sealed partial class GrammarNormalizer
 			// What a collapsed call stood for, which a trace build reports around it.
 			Moving(_forwarded),
 
+			// Where an argument of a parameterized call was written, and what a call was lowered
+			// with: read while the substitutions are specialized, and kept by a node rebuilt there.
+			Moving(_argumentOrigins),
+			Moving(_callArguments),
+
 			// Keyed by rule rather than by node, and named here all the same: the *values*
 			// name nodes, so a rebuild has to reach into them. That is why the list holds a
 			// move rather than a dictionary.
