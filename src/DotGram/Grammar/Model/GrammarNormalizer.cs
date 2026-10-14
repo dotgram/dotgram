@@ -184,6 +184,7 @@ public sealed partial class GrammarNormalizer
 		normalizer.SpecializeWithSitesAndNamespaces();
 		normalizer.SpecializePublicationWith();
 		normalizer.RefuseLateWith();
+		normalizer.RefuseNestedPairs();
 
 		// After all three substitutions, so that what a condition reads is what this parser
 		// will be, and before anything rewrites the shape of a rule.

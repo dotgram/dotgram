@@ -341,6 +341,63 @@ public sealed class NestedPairTests
 		Assert.Equal(GramSeverity.Error, refusal.Severity);
 	}
 
+	/// <summary>
+	/// A copy of the rule a <c>with</c> made means what its body says, which is not what the
+	/// counter reads, so it is read as written.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void A_rebound_copy_is_read_as_written(bool direct)
+	{
+		var built = Build("Block = { Std.Nested(\"(\", \")\") with (any = 'x') }\nStart = Block & eof\nparse Start\n", CarrierKind.Auto, direct);
+
+		Assert.True(EmittedCode.Match(built, "Grammar", "TryParseStart", "(x(xx))").IsSuccess);
+		Assert.False(EmittedCode.Match(built, "Grammar", "TryParseStart", "(y)").IsSuccess);
+	}
+
+	/// <summary>
+	/// A longer token beginning as the pair does: longest wins, the beginning compared as the
+	/// automaton read it — folded where it folds — and a beginning that ends in <c>open</c> after
+	/// a literal is one spelling.
+	/// </summary>
+	[Theory]
+	[InlineData("Std.Nested(\"a(\"i, \")\")", "\"A(x\"", "A(x)", "a(xA(y))", "A(x!")]
+	[InlineData("'#' & Std.Nested(\"(\", \")\")", "\"#(x\"", "#(x)", "#(x(y))", "#(x!")]
+	public void A_longer_token_beginning_alike_is_measured_against(string pair, string longer, params string[] inputs)
+	{
+		// Terminals, in a namespace without trivia: outside one, `'#' & …` is two tokens.
+		var grammar =
+			"trivia = { Std.Spacing* }\n" +
+			"namespace Lexical\n{\n\ttrivia = none\n" +
+			"\tBlock = " + pair + "\n" +
+			"\tOther = " + longer + "\n}\n" +
+			"Start = (Lexical.Block | Lexical.Other & '!') & eof\nparse Start\n";
+
+		foreach (var direct in new[] { false, true })
+		{
+			var cut   = Build(grammar, CarrierKind.Auto, direct, lexical: true);
+			var chars = Build(grammar, CarrierKind.Auto, direct);
+
+			foreach (var input in inputs)
+			{
+				Assert.True(EmittedCode.Match(cut, "Grammar", "TryParseStart", input).IsSuccess, input);
+				Agree(chars, cut, input, positions: false, messages: false);
+			}
+		}
+	}
+
+	/// <summary>A parameterized rebinding that puts the library's rule in place is checked as a call is.</summary>
+	[Fact]
+	public void A_rebinding_to_the_pair_is_checked_too()
+	{
+		var result = GramCompiler.Compile(
+			"P(o, c) = o & c\nStart = P(\"<\", \"<\") with (P = Std.Nested) & eof\nparse Start\n",
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
+
+		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.NestedNeedsLiterals);
+	}
+
 	/// <summary>A rule of the same shape the author wrote is the author's, and is read as written.</summary>
 	[Fact]
 	public void Only_the_librarys_rule_is_recognized()

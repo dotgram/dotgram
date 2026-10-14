@@ -71,17 +71,35 @@ static class NestedPair
 	}
 
 	/// <summary>The delimiters of a specialization, read off its body, or null where the arguments do not qualify.</summary>
+	/// <remarks>
+	/// The whole body is asked, not only its ends: a <c>with</c> makes a copy of the rule with
+	/// the same declaration and something else in it — <c>Std.Nested("(", ")") with (any =
+	/// 'x')</c> — and that copy means something the counter does not, so it is read as written.
+	/// </remarks>
 	public static Delimiters? Of(RuleSymbol rule, RecognitionGraph graph)
 	{
-		return graph.Bodies.TryGetValue(rule, out var body) ? Of(body) : null;
+		return graph.Bodies.TryGetValue(rule, out var body) &&
+			Shape(body) is ({ } open, { } close) && Refusal(open, close) is null &&
+			Faithful(rule, body, open, close)
+				? new Delimiters(open.Text, open.IgnoreCase, close.Text, close.IgnoreCase)
+				: null;
 	}
 
-	/// <inheritdoc cref="Of(RuleSymbol, RecognitionGraph)"/>
-	public static Delimiters? Of(Node body)
+	/// <summary>
+	/// Whether the body is the library's, word for word, over these delimiters:
+	/// <c>open &amp; (?!close &amp; (self | ?!open &amp; any))* &amp; close</c>, with the built-in
+	/// <c>any</c>.
+	/// </summary>
+	static bool Faithful(RuleSymbol rule, Node body, Node.Literal open, Node.Literal close)
 	{
-		return Shape(body) is var (open, close) && Refusal(open, close) is null
-			? new Delimiters(open!.Text, open.IgnoreCase, close!.Text, close.IgnoreCase)
-			: null;
+		return body is Node.Sequence({ Count: 3 } parts) &&
+			parts[1] is Node.Repeat(Node.Sequence({ Count: 2 } turn), 0, null) &&
+			turn[0] is Node.Lookahead(false, Node.Literal guard) && guard == close &&
+			turn[1] is Node.Choice({ Count: 2 } ways) &&
+			ways[0] is Node.Call(var self, { Count: 0 }) && self == rule &&
+			ways[1] is Node.Sequence({ Count: 2 } other) &&
+			other[0] is Node.Lookahead(false, Node.Literal refused) && refused == open &&
+			other[1] is Node.Call({ IsBuiltIn: true, Name: "any" }, { Count: 0 });
 	}
 
 	/// <summary>
