@@ -630,6 +630,31 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
+	public void And_a_price_too_long_to_be_a_decimal_is_a_typo_rather_than_an_overflow()
+	{
+		var lines = PriceList.Read(new StringReader("Gold  " + new string('9', 29) + ".00\nTea   1.50\n"));
+
+		Assert.Collection(
+			lines,
+			static line => Assert.IsType<Typo>(line),
+			static line => Assert.Equal(new Price("Tea", 1.50m), line));
+	}
+
+	[Fact]
+	public void And_a_quantity_too_long_to_be_an_int_is_unclear_rather_than_an_overflow()
+	{
+		var lines = OrderSheet.ParseSheet(new StringReader(
+			"Order for: A\nDeliver: B\n2147483648 x milk\n4 x butter\n"));
+
+		Assert.Collection(
+			lines,
+			static line => Assert.IsType<Customer>(line),
+			static line => Assert.IsType<Delivery>(line),
+			static line => Assert.Equal(3, Assert.IsType<Unclear>(line).Line),
+			static line => Assert.Equal(new Ordered(4, "butter"), line));
+	}
+
+	[Fact]
 	public void An_order_sheet_reads_its_header_and_its_lines_in_order()
 	{
 		const string Text =
@@ -688,6 +713,31 @@ public sealed class ExampleTests
 				rejected.ToString().TrimEnd());
 
 			Assert.False(entries.MoveNext());
+		}
+		finally
+		{
+			Logbook.Rejected = null;
+		}
+	}
+
+	[Theory]
+	[InlineData("2026-02-30 09:10")]
+	[InlineData("2026-10-32 09:10")]
+	[InlineData("2026-10-01 24:00")]
+	public void And_a_logbook_stamp_that_is_no_time_is_reported_and_the_next_entry_still_read(string stamp)
+	{
+		using var rejected = new StringWriter();
+
+		Logbook.Rejected = rejected;
+
+		try
+		{
+			var entries = Logbook.Read(new StringReader(
+				stamp + " press-4 oil topped up\n" +
+				"2026-10-01 14:05 lathe-1 calibrated\n")).ToArray();
+
+			Assert.Equal([new LogEntry(new DateTime(2026, 10, 1, 14, 5, 0), "lathe-1", "calibrated")], entries);
+			Assert.StartsWith("line 1: ", rejected.ToString(), StringComparison.Ordinal);
 		}
 		finally
 		{

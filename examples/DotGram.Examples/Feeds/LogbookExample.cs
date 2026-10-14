@@ -24,6 +24,11 @@ namespace DotGram.Examples.Feeds;
 // channel nobody listens on. LoggingFeedExample says more about why it is a `partial
 // void` rather than an event.
 //
+// The stamp is checked by a `when` before it is turned into a DateTime: `2026-02-30 09:10`
+// has the shape of a time and is none, and `ParseExact` on it would throw out of the
+// enumeration and lose every entry after it. Refused by the guard, the line is reported and
+// dropped like any other bad one.
+//
 // `stream yield` makes the read lazy, so the report of a bad line is made when that line
 // is read: between the entry before it and the entry after it, not at the end.
 
@@ -33,7 +38,9 @@ public sealed record LogEntry(DateTime At, string Machine, string Note);
 [Gram("""
 	Log   : @LogEntry[] = Entry* recover eol
 
-	Entry : @LogEntry = at: Stamp & ' '+ & machine: Name & ' '+ & note: Rest & eol
+	Entry : @LogEntry = at: Stamp
+	                    & when @(IsTime(at))
+	                    & ' '+ & machine: Name & ' '+ & note: Rest & eol
 	                 => @(new LogEntry(ToTime(at), machine, note))
 
 	Stamp = Digit{4} & '-' & Digit{2} & '-' & Digit{2} & ' ' & Digit{2} & ':' & Digit{2}
@@ -54,6 +61,11 @@ public static partial class Logbook
 	public static System.IO.TextWriter? Rejected;
 
 	// Reachable from the grammar's `=>`, which becomes a method of this same class.
+	static bool IsTime(string text)
+	{
+		return DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+	}
+
 	static DateTime ToTime(string text)
 	{
 		return DateTime.ParseExact(text, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);

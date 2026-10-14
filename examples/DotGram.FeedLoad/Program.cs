@@ -69,7 +69,7 @@ public sealed record Options(FeedFormat Format, long Records, long Bad, int Seed
 				case "--format":  format  = FormatOf(Value(args, ref at)); break;
 				case "--records": records = Count(Value(args, ref at));  break;
 				case "--bad":     bad     = Count(Value(args, ref at));  break;
-				case "--seed":    seed    = (int)Count(Value(args, ref at)); break;
+				case "--seed":    seed    = SeedOf(Value(args, ref at));   break;
 				case "--feed":    feed    = Value(args, ref at);         break;
 				case "--db":      db      = Value(args, ref at);         break;
 				case "--keep":    keep    = true;                        break;
@@ -83,6 +83,16 @@ public sealed record Options(FeedFormat Format, long Records, long Bad, int Seed
 			throw new ArgumentException("--bad cannot be more than --records.");
 
 		return new Options(format, records, wrong, seed, feed, db, keep);
+	}
+
+	static int SeedOf(string text)
+	{
+		var count = Count(text);
+
+		if (count > int.MaxValue)
+			throw new ArgumentException("--seed is at most " + int.MaxValue.ToString(CultureInfo.InvariantCulture) + ".");
+
+		return (int)count;
 	}
 
 	static string Value(string[] args, ref int at)
@@ -107,12 +117,22 @@ public sealed record Options(FeedFormat Format, long Records, long Bad, int Seed
 	// 20, 50k, 1M, 10M.
 	public static long Count(string text)
 	{
+		if (text.Length == 0)
+			throw new ArgumentException("Not a count: " + text + ".");
+
 		var scale = text[^1] switch { 'k' or 'K' => 1_000L, 'm' or 'M' => 1_000_000L, _ => 1L };
 		var digits = scale == 1 ? text : text[..^1];
 
 		if (!long.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var count))
 			throw new ArgumentException("Not a count: " + text + ".");
 
-		return count * scale;
+		try
+		{
+			return checked(count * scale);
+		}
+		catch (OverflowException)
+		{
+			throw new ArgumentException("Too large a count: " + text + ".");
+		}
 	}
 }

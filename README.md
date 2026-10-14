@@ -89,7 +89,7 @@ public sealed record Typo(int Line, string Text, string Message) : PriceLine;
 	                  => @(new Price(item.Trim(), ToDecimal(amount)))
 
 	Item   = [^ '0'..'9' | '\r' | '\n']+
-	Amount = ['0'..'9']+ & '.' & ['0'..'9']{2}
+	Amount = ['0'..'9']{1,12} & '.' & ['0'..'9']{2}
 
 	parse PriceList as Read stream yield
 	""")]
@@ -912,7 +912,7 @@ Complete examples are under [`examples/DotGram.Examples`](examples/DotGram.Examp
 | [`TypedCsvExample.cs`](examples/DotGram.Examples/Formats/TypedCsvExample.cs) | construction of existing C# types |
 | [`GramExample.cs`](examples/DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself |
 
-[`examples/README.md`](examples/README.md) lists all thirty-five, grouped by what they
+[`examples/README.md`](examples/README.md) lists all thirty-eight, grouped by what they
 read: formats, feeds, expressions, languages.
 
 ## Documentation
