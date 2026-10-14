@@ -1423,6 +1423,11 @@ otherwise find, where an identifier hands characters back and a keyword matches
 mid-word. A word literal is a lexeme, and a lexeme is whole. Whether a literal qualifies
 is decided when the grammar is built: `"if"` gets the checks, `"("` does not.
 
+Read over tokens, the lexer asks the same two questions of the characters on either side
+of a keyword's token: where one continues a word, the token is not the keyword, whether
+or not another pattern covers the longer word. `gogo` is never two `"go"`s, nor `gox`
+`"go"` and `'x'`; where a class matches the same token, the token is still that class.
+
 Same shape as `trivia` (§4.5), and for the same reason: a rule, ordinary shadowing,
 and the insertion dropped entirely while the rule is empty. A regex or a feed grammar
 pays nothing; a language grammar pays one line. The boundary may name its class through

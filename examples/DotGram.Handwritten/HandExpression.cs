@@ -779,7 +779,10 @@ public static class HandExpression
 					while (p < s.Length && IsPart(s[p]))
 						p++;
 
-					kind = Keyword(s.Slice(start, p - start));
+					// A keyword is a whole word, and a word right after a number's last digit or
+					// suffix letter goes on from it: `1else` is a number and the name `else`, as the
+					// grammar's word boundary has it.
+					kind = start > 0 && IsPart(s[start - 1]) ? Identifier : Keyword(s.Slice(start, p - start));
 					break;
 			}
 

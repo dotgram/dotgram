@@ -2548,12 +2548,77 @@ public static partial class CSharpEmitter
 	/// of every other pattern, and it ran for ten minutes without finishing.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// What the lexer asks around a keyword: the kind a token is without its keywords, and
+	/// whether a character continues a word.
+	/// </summary>
+	/// <remarks>
+	/// The character test answers ASCII from two words of bits, since a keyword's neighbour is
+	/// nearly always ASCII and a category would otherwise be a call into
+	/// <c>CharUnicodeInfo</c> for it; the categories of ASCII are settled by the standard. The
+	/// rest is the boundary's own test, or its ranges above ASCII where it is nothing else.
+	/// </remarks>
+	static void Unworded(Writer file, IReadOnlyList<int> unworded, Node.Element boundary)
+	{
+		file.Line("/// <summary>By kind, the kind a token is without its keywords, where a word goes on beside it.</summary>");
+		file.Line($"static readonly int[] Unworded_DotGram = {{ {string.Join(", ", unworded)} }};");
+		file.Line();
+
+		file.Line("/// <summary>Whether a character continues a word, which a keyword may not stand next to.</summary>");
+
+		using (file.Block("static bool WordGoesOn_DotGram(char c)"))
+		{
+			if (boundary.References.Count > 0)
+			{
+				file.Line($"return {Test(boundary)};");
+
+				return;
+			}
+
+			var ranges = FirstSets.OfElement(boundary).Ranges;
+			var low    = 0UL;
+			var high   = 0UL;
+
+			foreach (var range in ranges)
+				for (var c = (int)range.From; c <= range.To && c < 128; c++)
+					if (c < 64)
+						low |= 1UL << c;
+					else
+						high |= 1UL << (c - 64);
+
+			file.Line("if (c < 128)");
+			file.Then($"return ((c < 64 ? 0x{low:X}UL >> c : 0x{high:X}UL >> (c - 64)) & 1) != 0;");
+			file.Line();
+
+			if (boundary.Categories.Count > 0)
+			{
+				file.Line($"return {Test(boundary)};");
+
+				return;
+			}
+
+			var above = ranges
+				.Where(range => range.To >= 128)
+				.Select(range => range.From >= 128 ? range : new CharRange((char)128, range.To))
+				.ToList();
+
+			file.Line(above.Count == 0
+				? "return false;"
+				: $"return {Test(new Node.Element(false, above, [], []))};");
+		}
+
+		file.Line();
+	}
+
 	static string Lexical(LexicalSplit lexical, Machine? valuing, bool utf8Literals, ExpectedSets expectedSets)
 	{
 		var file = new Writer(0);
 
 		file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!, utf8: utf8Literals));
 		file.Line();
+
+		if (lexical.Inventory is { Unworded.Count: > 0, WordBoundary: { } boundary })
+			Unworded(file, lexical.Inventory.Unworded, boundary);
 
 		var seam     = Seam(lexical, expectedSets);
 		var skipping = lexical.Trivia
@@ -3046,6 +3111,18 @@ file.Line("return spare;");
 
 				if (continued > 0)
 					file.Line();
+
+				// A keyword stands between characters that do not continue a word (§4.6), and
+				// longest match cannot say so: where no pattern covers the longer word, the token
+				// ends inside it. Asked only of a kind that holds a keyword, which then is the
+				// same token without its keywords — or none, where nothing else matched it.
+				if (lexical.Inventory.Unworded.Count > 0)
+				{
+					file.Line("if (kind > 0 && Unworded_DotGram[kind] != kind &&");
+					file.Line("\t((end < text.Length && WordGoesOn_DotGram(text[end])) || (p > 0 && WordGoesOn_DotGram(text[p - 1]))))");
+					file.Then("kind = Unworded_DotGram[kind];");
+					file.Line();
+				}
 
 				// A continuation measured by a rule says -1 where the text ended inside it.
 				var cutShort = lexical.Inventory.Continued.Any(one => MeasuredBy(lexical, one.Tail) is not null);

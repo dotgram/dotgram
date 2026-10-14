@@ -107,6 +107,32 @@ public sealed class TerminalInventory
 	public IReadOnlyList<Group> WordKinds { get; private init; } = [];
 
 	/// <summary>
+	/// By kind number, the kind a token is where a character next to it continues a word: the
+	/// same patterns without the keywords, 0 where nothing else matched. Empty where no kind
+	/// holds a keyword.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §4.6 puts a word boundary on both sides of a keyword, and an automaton cannot ask it:
+	/// longest match decides between the patterns, and where none of them is longer the token
+	/// ends inside a word. <c>gogo</c> came out as two keywords <c>go</c> wherever no class
+	/// covered the longer word, and <c>gox</c> as a keyword and a mark — both of which the
+	/// reading over characters refuses. So the lexer asks the characters on both sides of a
+	/// token that holds a keyword, and where one continues a word it takes this kind instead.
+	/// </para>
+	/// <para>
+	/// A kind of its own where the keyword had none: <c>go</c> read by <c>"go"</c> and by a
+	/// class that matches only it is one kind, and the class alone is not a kind the automaton
+	/// gives. Those are numbered after every other kind, so nothing already numbered moves.
+	/// A kind that holds no keyword maps to itself.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<int> Unworded { get; private init; } = [];
+
+	/// <summary>What continues a word, as the lexer asks it around a keyword; null where <see cref="Unworded"/> is empty.</summary>
+	public Node.Element? WordBoundary { get; private init; }
+
+	/// <summary>
 	/// The machine that reads the patterns together, and whose accepting states are the kinds.
 	/// </summary>
 	/// <remarks>
@@ -1045,6 +1071,9 @@ public sealed class TerminalInventory
 				continued[i] = continued[i] with { Extended = unions };
 			}
 
+			var boundary = Boundaries();
+			var unworded = boundary is null ? [] : Unworded(kinds);
+
 			var counted = new TerminalInventory(true, patterns, kinds, [], _reasons);
 			var wordly  = Runs(
 				"word",
@@ -1062,10 +1091,57 @@ public sealed class TerminalInventory
 
 			return new TerminalInventory(true, patterns, kinds, named, _reasons)
 			{
-				Machine   = machine,
-				WordKinds = wordly,
-				Continued = continued,
+				Machine      = machine,
+				WordKinds    = wordly,
+				Continued    = continued,
+				Unworded     = unworded,
+				WordBoundary = unworded.Count > 0 ? boundary : null,
 			};
+		}
+
+		/// <summary>
+		/// By kind number, the kind each one is without its keywords; empty where none holds one.
+		/// </summary>
+		/// <remarks>
+		/// A set that is no kind yet is appended as one, and maps to itself: it holds no keyword.
+		/// </remarks>
+		static List<int> Unworded(List<Kind> kinds)
+		{
+			if (!kinds.Any(kind => kind.Matched.Any(one => one is Pattern.Word)))
+				return [];
+
+			var unworded = new List<int>(kinds.Count + 1) { 0 };
+
+			for (var at = 0; at < kinds.Count; at++)
+			{
+				var matched = kinds[at].Matched;
+
+				if (!matched.Any(one => one is Pattern.Word))
+				{
+					unworded.Add(kinds[at].Number);
+
+					continue;
+				}
+
+				var rest = matched.Where(one => one is not Pattern.Word).ToList();
+
+				if (rest.Count == 0)
+				{
+					unworded.Add(0);
+
+					continue;
+				}
+
+				var same = kinds.FirstOrDefault(kind =>
+					kind.Matched.Count == rest.Count && kind.Matched.All(rest.Contains));
+
+				if (same is null)
+					kinds.Add(same = new Kind(kinds.Count + 1, rest));
+
+				unworded.Add(same.Number);
+			}
+
+			return unworded;
 		}
 
 		/// <summary>Whether one pattern is a word — §4.6's question asked of a token.</summary>
