@@ -202,6 +202,7 @@ public static partial class Sql2023Writer
 						});
 					}
 
+					CheckXmlIndexOptions(xml);
 					PutOptions(xml.Options);
 					return true;
 
@@ -1022,6 +1023,8 @@ public static partial class Sql2023Writer
 					if (index.Placements.Any(static one => one.Kind == PlacementKind.FilestreamOn))
 						throw Misplaced(index, "Placements", "with FILESTREAM_ON on a columnstore index");
 
+					CheckColumnstoreOptions(index);
+
 					Word("CREATE");
 					PutClustering(index.Clustering);
 					Word("COLUMNSTORE INDEX");
@@ -1241,6 +1244,71 @@ public static partial class Sql2023Writer
 			{
 				if (option.Options.Count > 0 || option.Order is not null || option.Partitions is not null || !SpatialAtom(option.Value))
 					throw Misplaced(index, "Options", "set to other than a number, a string, a binary string, NULL, ON, OFF or a name of one part, the values a spatial option reads");
+
+				if (!Syntax.Spatial(option.Name.Text, SpatialRead(option)))
+					throw Misplaced(index, "Options", "that say a word the engine refuses of their name (Syntax.Spatial), such as a FILLFACTOR outside 1 to 100, a MAXDOP that is not a whole number or ONLINE = ON");
+			}
+		}
+
+		/// <summary>
+		/// An option as the grammar's <c>SpatialSet</c> builds it, for <c>Syntax.Spatial</c> to judge: a number as a number, a
+		/// plain name in upper case, as the grammar writes <c>ON</c> and <c>OFF</c>, any other name in brackets, which no word
+		/// is, and any other value as text.
+		/// </summary>
+		static Clause.Option SpatialRead(Option option)
+		{
+			DotGram.Sql.Expression value = option.Value switch
+			{
+				Expression.Literal { Value: LiteralValue.Numeric number } => new DotGram.Sql.Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(number.Text)),
+				Expression.Reference { Name.Parts: [{ Style: IdentifierStyle.Regular } part] } => new DotGram.Sql.Expression.ColumnReference(part.Text.ToUpperInvariant()),
+				Expression.Reference { Name.Parts: [var part] } => new DotGram.Sql.Expression.ColumnReference("[" + part.Text + "]"),
+				_ => new DotGram.Sql.Expression.Literal(SqlLiteralKind.Text, "''"),
+			};
+
+			return new Clause.Option(option.Name.Text, value, Clause.None);
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE COLUMNSTORE INDEX (Transact-SQL). The grammar's ColumnstoreOptionSyntax:
+		/// DROP_EXISTING and ONLINE set to ON or OFF, MAXDOP set to an unsigned number, COMPRESSION_DELAY set to one with
+		/// MINUTE or MINUTES after it or not, and DATA_COMPRESSION set to COLUMNSTORE or COLUMNSTORE_ARCHIVE, which may say
+		/// ON PARTITIONS.
+		/// </summary>
+		static void CheckColumnstoreOptions(IndexDefinition index)
+		{
+			foreach (var option in index.Options)
+			{
+				var read = option.Options.Count == 0 && option.Order is null
+					&& (option.Partitions is null || Plain(option.Name, "DATA_COMPRESSION"))
+					&& (Plain(option.Name, "DROP_EXISTING", "ONLINE") && IsWord(option.Value, "ON", "OFF")
+						|| Plain(option.Name, "MAXDOP") && IsOptionNumber(option.Value)
+						|| Plain(option.Name, "COMPRESSION_DELAY") && (IsOptionNumber(option.Value)
+							|| option.Value is Expression.Measured { Unit: var unit, Value: var delay } && Plain(unit, "MINUTE", "MINUTES") && IsOptionNumber(delay))
+						|| Plain(option.Name, "DATA_COMPRESSION") && IsWord(option.Value, "COLUMNSTORE", "COLUMNSTORE_ARCHIVE"));
+
+				if (!read)
+					throw Misplaced(index, "Options", "other than the ones a columnstore index reads: DROP_EXISTING and ONLINE set to ON or OFF, MAXDOP set to a number, COMPRESSION_DELAY set to a number of minutes, and DATA_COMPRESSION set to COLUMNSTORE or COLUMNSTORE_ARCHIVE");
+			}
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE XML INDEX (Transact-SQL). The grammar's XmlIndexOptionSyntax: PAD_INDEX, SORT_IN_TEMPDB, DROP_EXISTING,
+		/// ALLOW_ROW_LOCKS, ALLOW_PAGE_LOCKS and STATISTICS_NORECOMPUTE set to ON or OFF; FILLFACTOR and MAXDOP set to an
+		/// unsigned number; IGNORE_DUP_KEY and ONLINE set to OFF alone; XML_COMPRESSION set to ON or OFF, which may say
+		/// ON PARTITIONS. No other name, no option of its own, no option without its value.
+		/// </summary>
+		static void CheckXmlIndexOptions(Statement.CreateXmlIndex index)
+		{
+			foreach (var option in index.Options)
+			{
+				var read = option.Options.Count == 0 && option.Order is null
+					&& (option.Partitions is null || Plain(option.Name, "XML_COMPRESSION"))
+					&& (Plain(option.Name, "PAD_INDEX", "SORT_IN_TEMPDB", "DROP_EXISTING", "ALLOW_ROW_LOCKS", "ALLOW_PAGE_LOCKS", "STATISTICS_NORECOMPUTE", "XML_COMPRESSION") && IsWord(option.Value, "ON", "OFF")
+						|| Plain(option.Name, "IGNORE_DUP_KEY", "ONLINE") && IsWord(option.Value, "OFF")
+						|| Plain(option.Name, "FILLFACTOR", "MAXDOP") && IsOptionNumber(option.Value));
+
+				if (!read)
+					throw Misplaced(index, "Options", "other than the ones an XML index reads: PAD_INDEX, SORT_IN_TEMPDB, DROP_EXISTING, ALLOW_ROW_LOCKS, ALLOW_PAGE_LOCKS, STATISTICS_NORECOMPUTE and XML_COMPRESSION set to ON or OFF, IGNORE_DUP_KEY and ONLINE set to OFF, FILLFACTOR and MAXDOP set to a number");
 			}
 		}
 
@@ -1254,6 +1322,13 @@ public static partial class Sql2023Writer
 				Expression.Literal { Value: LiteralValue.Binary { ZeroX: true } } => true,
 				_ => IsName(value) && !IsWord(value, "NULL"),
 			};
+		}
+
+		/// <summary>The grammar's <c>Number</c>: an unsigned decimal number, with a point or an exponent or not.</summary>
+		static bool IsOptionNumber(Expression? value)
+		{
+			return value is Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate, Text: var text } }
+				&& text.Length > 0 && (char.IsDigit(text[0]) || text[0] == '.');
 		}
 
 		/// <summary>The value is a name of one part, written as a name: the grammar's word after an equals sign.</summary>
