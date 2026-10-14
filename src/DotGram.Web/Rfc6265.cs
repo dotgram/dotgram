@@ -325,7 +325,7 @@ public static class CookieDate
 	// the next `;`.
 	NameValuePair = [' ' | '\t']* & [^';' | '=' | ' ' | '\t'] & [^';' | '=']* & '=' & [^';']*
 
-	CookieAvs : @SetCookie.Attribute[] = items: CookieAv* => @(items)
+	CookieAvs : @SetCookie.Attribute[] = { items: CookieAv* } => @(items)
 
 	CookieAv : @SetCookie.Attribute = ';' & text: CookieAvText => @(Rfc6265.Attribute(text))
 
@@ -334,7 +334,7 @@ public static class CookieDate
 	// ── §4.2.1 ───────────────────────────────────────────────────────────────────
 
 	// cookie-header = "Cookie:" OWS cookie-string OWS; cookie-string = cookie-pair *( ";" SP cookie-pair ).
-	CookieString : @CookiePair[] = Ows & first: CookiePairRule & rest: NextCookiePair* & Ows => @(Rfc6265.Joined(first, rest))
+	CookieString : @CookiePair[] = Ows & first: CookiePairRule & { rest: NextCookiePair* } & Ows => @(Rfc6265.Joined(first, rest))
 
 	NextCookiePair : @CookiePair = ';' & ' ' & pair: CookiePairRule => @(pair)
 
@@ -355,7 +355,7 @@ public static class CookieDate
 	// ── §5.1.1 ───────────────────────────────────────────────────────────────────
 
 	// cookie-date = *delimiter date-token-list *delimiter.
-	CookieDate : @string[] = Delimiter* & first: DateToken & rest: NextDateToken* & Delimiter* => @(Rfc6265.Joined(first, rest))
+	CookieDate : @string[] = Delimiter* & first: DateToken & { rest: NextDateToken* } & Delimiter* => @(Rfc6265.Joined(first, rest))
 
 	NextDateToken : @string = Delimiter+ & token: DateToken => @(token)
 
