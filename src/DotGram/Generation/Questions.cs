@@ -405,7 +405,11 @@ static class Questions
 		}
 
 		// Whether a type exists, asked the way the binder asks it: a generic one as its
-		// definition and then each argument, since no host can answer for the spelling.
+		// definition and then each argument, since no host can answer for the spelling. Asked
+		// bare and under each import (the names loop above), which is also what the graph asks
+		// of every C# type a declaration writes, to tell which spelling a name binds to before
+		// it asks whether that one is a class: a struct nested in the host shadows an imported
+		// class of the same name (GrammarNormalizer.ReferenceTypes).
 		void Exists(TypeRef type)
 		{
 			names.Add(new Question(type.Definition, Question.Exists));

@@ -299,7 +299,7 @@ public sealed partial class GrammarNormalizer
 			Located    = Locating(normalizer, resolver, locationType, Imports(model.Root)),
 
 			// The declared types the host vouches for as classes, for the one cast the emitter writes by kind.
-			ReferenceTypes = ReferenceTypes(normalizer, resolver, Imports(model.Root)),
+			ReferenceTypes = ReferenceTypes(normalizer, resolver, model.Root, Imports(model.Root)),
 
 			// Not read here: carried for FollowSets, which every later stage asks.
 			PositionalFollow = positionalFollow,
@@ -359,18 +359,36 @@ public sealed partial class GrammarNormalizer
 	/// <see cref="RecognitionGraph.Types"/> carries (<see cref="ISymbolResolver.IsReferenceType"/>).
 	/// </summary>
 	/// <remarks>
-	/// Asked the way <see cref="Locating"/> asks: bare and then under each import, which is how
-	/// the questions were foreseen. An array spelling is not asked about — the emitter knows one
-	/// for a class by its brackets — and a type nothing answers for is left out, which keeps the
-	/// cast a struct would need.
+	/// <para>
+	/// A type the grammar wrote is asked bare and then under each import, and answered by the
+	/// first spelling that names a type at all — the way C# binds the name in the generated file.
+	/// A struct nested in the host is what a bare <c>Node</c> means there, even beside a
+	/// <c>using</c> of a namespace with a class <c>Node</c>; taking the first spelling that is a
+	/// class instead dropped the struct's cast and the parser did not compile. Whether a spelling
+	/// exists is asked by its generic definition, as the binder asks it — the question the
+	/// collector already foresees for every C# type a declaration writes, bare and under each
+	/// import (<c>Questions.Of</c>).
+	/// </para>
+	/// <para>
+	/// Any other spelling — an external recognizer's value type as the host spelled it, the
+	/// <c>SourceSpan</c> nested in the generated class — was not written in the grammar, so no
+	/// question about whether it exists was foreseen; it is answered as before, by whichever
+	/// spelling is a class. An array spelling is not asked about — the emitter knows one for a
+	/// class by its brackets — and a type nothing answers for is left out, which keeps the cast
+	/// a struct would need.
+	/// </para>
 	/// </remarks>
 	static IReadOnlyCollection<string> ReferenceTypes(
-		GrammarNormalizer normalizer, ISymbolResolver? resolver, IReadOnlyList<string> imports)
+		GrammarNormalizer normalizer, ISymbolResolver? resolver, GrammarNamespace root, IReadOnlyList<string> imports)
 	{
 		var references = new HashSet<string>(StringComparer.Ordinal);
 
 		if (resolver is null)
 			return references;
+
+		var written = new Dictionary<string, string>(StringComparer.Ordinal);
+
+		Written(root);
 
 		var asked = new HashSet<string>(StringComparer.Ordinal);
 
@@ -385,7 +403,42 @@ public sealed partial class GrammarNormalizer
 
 		return references;
 
+		// Each type a declaration wrote, by its spelling, with the definition it is looked for by.
+		void Written(GrammarNamespace ns)
+		{
+			foreach (var rule in ns.Rules.Values)
+			{
+				if (rule.Declaration is not { } declaration)
+					continue;
+
+				if (declaration.Type is { IsCSharp: true } type)
+					written[type.Name] = type.Definition;
+
+				foreach (var parameter in declaration.Params)
+					if (parameter.Type is { IsCSharp: true } given)
+						written[given.Name] = given.Definition;
+			}
+
+			foreach (var nested in ns.Nested)
+				Written(nested);
+		}
+
 		bool IsReference(string type)
+		{
+			if (!written.TryGetValue(type, out var definition))
+				return AnyIsReference(type);
+
+			if (resolver.TypeExists(definition))
+				return resolver.IsReferenceType(type);
+
+			foreach (var import in imports)
+				if (resolver.TypeExists(import + "." + definition))
+					return resolver.IsReferenceType(import + "." + type);
+
+			return false;
+		}
+
+		bool AnyIsReference(string type)
 		{
 			if (resolver.IsReferenceType(type))
 				return true;
