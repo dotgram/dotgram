@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- A spike, not landed: the collection shapes of FIX parse results measured as a consumer sees them.
+	     Each column's DotGram.Finance is built beforehand (generate.cs with FIX_SHAPE, then a Release build
+	     with -p:FixShape) and referenced here by path, so a BenchmarkDotNet job selects its column with an
+	     MSBuild argument: net8.0 binds the netstandard2.0 asset, as every net8/net9 consumer does. -->
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<IsPackable>false</IsPackable>
+		<FixShape Condition="'$(FixShape)' == ''">A</FixShape>
+		<FixShapeDlls Condition="'$(FixShapeDlls)' == ''">/ramdisk/build/dotgram/fix-h1/dlls</FixShapeDlls>
+		<FixShapeAsset>netstandard2.0</FixShapeAsset>
+		<FixShapeAsset Condition="'$(TargetFramework)' == 'net10.0'">net10.0</FixShapeAsset>
+		<DefineConstants>$(DefineConstants);FIXSHAPE_$(FixShape)</DefineConstants>
+
+		<!-- BenchmarkDotNet builds the columns side by side: each its own output. -->
+		<ArtifactsPivots>$(Configuration.ToLowerInvariant())_$(TargetFramework)_$(FixShape)</ArtifactsPivots>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="BenchmarkDotNet" />
+		<PackageReference Include="Portable.System.DateTimeOnly" />
+
+		<Reference Include="DotGram.Finance">
+			<HintPath>$(FixShapeDlls)/$(FixShape)/$(FixShapeAsset)/DotGram.Finance.dll</HintPath>
+		</Reference>
+		<Reference Include="DotGram.ExpressionLanguage">
+			<HintPath>$(FixShapeDlls)/$(FixShape)/$(FixShapeAsset)/DotGram.ExpressionLanguage.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+</Project>

@@ -46,4 +46,29 @@ abstract partial class FixValidator
 		if (!counter.IsValid || counter.Value != (entries?.Count ?? 0))
 			message.AddFinding(new FixFinding(FixRule.GroupCountMismatch, counter.Tag, counter.Position, counter, -1));
 	}
+#if FIXSHAPE_B
+
+	// What a loaded dictionary's check passes: the public property.
+	internal static void Counted<T>(IFixFindings message, FixField.Typed<long>? counter, IReadOnlyList<T>? entries)
+	{
+		Counted(message, counter, (List<T>?)entries);
+	}
+#elif FIXSHAPE_C
+
+	// What a loaded dictionary's check passes: the public property.
+	internal static void Counted<T>(IFixFindings message, FixField.Typed<long>? counter, FixList<T> entries)
+	{
+		Counted(message, counter, entries.Items);
+	}
+#elif FIXSHAPE_F
+
+	internal static void Counted<T>(IFixFindings message, FixField.Typed<long>? counter, FixList<T>? entries)
+	{
+		if (counter is null)
+			return;
+
+		if (!counter.IsValid || counter.Value != (entries?.Count ?? 0))
+			message.AddFinding(new FixFinding(FixRule.GroupCountMismatch, counter.Tag, counter.Position, counter, -1));
+	}
+#endif
 }

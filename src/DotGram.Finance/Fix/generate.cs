@@ -535,6 +535,96 @@ sealed class Model
 	}
 }
 
+// ── the shape of the lists a message hands out ─────────────────────────────────────────────────
+
+// A spike, not landed: FIX_SHAPE picks the public type of every group, of Fields and of the findings.
+// A is List<T> (today), B IReadOnlyList<T> over a List<T>, C the struct FixList<T> over a List<T>, F the
+// class FixList<T> that is the storage itself. In B and C the reader and the checks use a List<T> kept
+// beside the public property, so that the library does not pay for the public type itself.
+static class Shape
+{
+	public static readonly string Name = Environment.GetEnvironmentVariable("FIX_SHAPE") is { Length: > 0 } s ? s : "A";
+
+	public static bool Stored => Name is "B" or "C";
+
+	public static string Public(string type)
+	{
+		return Name switch
+		{
+			"A" => $"List<{type}>?",
+			"B" => $"IReadOnlyList<{type}>?",
+			"C" => $"FixList<{type}>",
+			"F" => $"FixList<{type}>?",
+			_   => throw new GeneratorException($"FIX_SHAPE '{Name}' is not one of A, B, C, F."),
+		};
+	}
+
+	public static string Store(string list)
+	{
+		return Stored ? list + "Store" : list;
+	}
+
+	public static string New => Name == "F" ? "new()" : "[]";
+
+	// What a check reads a group through: the store where the class of the subject is known, the public
+	// property where only its interface is.
+	public static string View(string subject, Group g)
+	{
+		if (!Stored)
+			return $"{subject}.{g.List}";
+
+		if (subject != "block")
+			return $"{subject}.{Store(g.List)}";
+
+		return Name == "B" ? $"((List<{g.Entry.TypeName}>?){subject}.{g.List})" : $"{subject}.{g.List}.Items";
+	}
+
+	public static List<string> Property(string pad, string type, string list, string setter)
+	{
+		return Name switch
+		{
+			"B" => new List<string> { $"{pad}public IReadOnlyList<{type}>? {list} => {list}Store;", $"{pad}internal List<{type}>? {list}Store;" },
+			"C" => new List<string> { $"{pad}public FixList<{type}> {list} => new({list}Store);", $"{pad}internal List<{type}>? {list}Store;" },
+			_   => new List<string> { $"{pad}public {Public(type)} {list} {{ get; {setter}; }}" },
+		};
+	}
+
+	public static string MultipleItems => Name == "A" ? "field.Value" : "field.Items";
+
+	public static Dictionary<string, string> Tokens()
+	{
+		var fieldsType  = Name == "F" ? "FixList<FixField>" : "List<FixField>";
+		var fieldsStore = Stored ? "FieldStore" : "Fields";
+
+		var fieldsDecl = Name switch
+		{
+			"B" => "\tpublic IReadOnlyList<FixField> Fields => FieldStore;\n\n\tinternal List<FixField> FieldStore;",
+			"C" => "\tpublic FixList<FixField> Fields => new(FieldStore);\n\n\tinternal List<FixField> FieldStore;",
+			_   => $"\tpublic {fieldsType} Fields      {{ get; private protected set; }}",
+		};
+
+		var findingsDecl = Name switch
+		{
+			"B" => "\tpublic IReadOnlyList<FixFinding>? InvalidFindings => _findings;\n\n\tList<FixFinding>? _findings;",
+			"C" => "\tpublic FixList<FixFinding> InvalidFindings => new(_findings);\n\n\tList<FixFinding>? _findings;",
+			_   => $"\tpublic {Public("FixFinding")} InvalidFindings {{ get; private set; }}",
+		};
+
+		return new Dictionary<string, string>
+		{
+			["FieldsType"]     = fieldsType,
+			["FieldsStore"]    = fieldsStore,
+			["FieldsSet"]      = fieldsStore.PadRight(11),
+			["FieldsDecl"]     = fieldsDecl,
+			["FindingsDecl"]   = findingsDecl,
+			["FindingsStore"]  = Stored ? "_findings" : "InvalidFindings",
+			["FindingsNew"]    = New,
+			["EachList"]       = Name == "A" ? "List<TEntry>?" : Public("TEntry"),
+			["EachAbsent"]     = Name == "C" ? "entries.Count == 0" : "entries is null",
+		};
+	}
+}
+
 // ── module-level helpers ──────────────────────────────────────────────────────────────────────
 
 static class Fx
@@ -859,7 +949,7 @@ sealed class Writer
 				var group = (Group)m;
 
 				outLines.Add($"{pad}/// <summary>{ListDoc(group)}</summary>");
-				outLines.Add($"{pad}public List<{group.Entry.TypeName}>? {group.List} {{ get; {setter}; }}");
+				outLines.AddRange(Shape.Property(pad, group.Entry.TypeName, group.List, setter));
 			}
 
 			outLines.Add("");
@@ -955,12 +1045,12 @@ sealed class Writer
 						Place(group.Counter);
 
 					var opener = group.Entry.Opener;
-					var target = $"{holder}{group.List}";
+					var target = $"{holder}{Shape.Store(group.List)}";
 
 					// The first entry of a group whose counter has not been read is entries nothing counts:
 					// said once, at the entry, by the counter's tag.
 					var uncounted = $"if ({target} is null && {holder}{group.Counter.Name} is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, {group.Counter.Const}, field.Position, field, -1));";
-					var add       = $"({target} ??= []).Add(new () {{ {opener.Name} = ({opener.TypeName})field }});";
+					var add       = $"({target} ??= {Shape.New}).Add(new () {{ {opener.Name} = ({opener.TypeName})field }});";
 
 					if (lists.Count == 0)
 					{
@@ -1004,7 +1094,7 @@ sealed class Writer
 			$"\t/// <summary>{_v.Title} {msg.Name}, MsgType {msg.MsgType}.</summary>",
 			head,
 			"\t{",
-			$"\t\tinternal {msg.Name}(List<FixField> fields) : base(\"{msg.MsgType}\", fields)",
+			$"\t\tinternal {msg.Name}({Shape.Tokens()["FieldsType"]} fields) : base(\"{msg.MsgType}\", fields)",
 			"\t\t{",
 			"\t\t\tforeach (var field in fields)",
 			"\t\t\t{",
@@ -1069,7 +1159,7 @@ sealed class Writer
 				outLines.Add($"\t{group.Counter.TypeName}? {group.Counter.Name} {{ get; }}");
 				outLines.Add("");
 				outLines.Add($"\t/// <summary>{ListDoc(group)}</summary>");
-				outLines.Add($"\tList<{group.Entry.TypeName}>? {group.List} {{ get; }}");
+				outLines.Add($"\t{Shape.Public(group.Entry.TypeName)} {group.List} {{ get; }}");
 				outLines.Add("");
 			}
 		}
@@ -1119,10 +1209,15 @@ sealed class Writer
 				var group = (Group)mm;
 
 				FieldCheck(group.Counter, outLines, subject, entryOpener);
-				outLines.Add($"\t\tCounted(message, {subject}.{group.Counter.Name}, {subject}.{group.List});");
-				outLines.Add($"\t\tif ({subject}.{group.List} is not null)");
-				outLines.Add($"\t\t\tfor (var i = 0; i < {subject}.{group.List}.Count; i++)");
-				outLines.Add($"\t\t\t\tcontext.Validators.{group.Entry.Slot}(context, message, {subject}.{group.List}[i], i);");
+				var view = Shape.View(subject, group);
+
+				outLines.Add($"\t\tCounted(message, {subject}.{group.Counter.Name}, {view});");
+				outLines.Add($"\t\tif ({view} is not null)");
+				// Flow analysis does not follow a cast or a struct's property through the null test above.
+				var held = Shape.Stored && subject == "block" ? view + "!" : view;
+
+				outLines.Add($"\t\t\tfor (var i = 0; i < {held}.Count; i++)");
+				outLines.Add($"\t\t\t\tcontext.Validators.{group.Entry.Slot}(context, message, {held}[i], i);");
 			}
 		}
 
@@ -1192,7 +1287,7 @@ sealed class Writer
 			empties.Add($"\t/// <summary>Whether a carrier of the {v.Title} {i.Name} has none of its fields.</summary>");
 			empties.Add($"\tinternal static bool Empty({i.TypeName} block)");
 			empties.Add("\t{");
-			empties.Add("\t\treturn " + string.Join(" &&\n\t\t\t", props.Select(p => p is Field pf ? $"block.{pf.Name} is null" : $"block.{((Group)p).List} is null")) + ";");
+			empties.Add("\t\treturn " + string.Join(" &&\n\t\t\t", props.Select(p => p is Field pf ? $"block.{pf.Name} is null" : $"{Shape.View("block", (Group)p)} is null")) + ";");
 			empties.Add("\t}");
 			empties.Add("");
 		}
@@ -1431,7 +1526,7 @@ sealed class Writer
 
 				if (cls == "Multiple")
 				{
-					outLines.Add("\t\tforeach (var code in field.Value)");
+					outLines.Add($"\t\tforeach (var code in {Shape.MultipleItems})");
 
 					var wrapped = Wrapped(items, "\t\t\tif (code is not (", "\t\t\t\t");
 
@@ -1613,7 +1708,7 @@ sealed class Writer
 
 		var outLines = new List<string> { "" };
 
-		outLines.AddRange(groups.Select(g => $"\t\tCounted(message, message.{g.Counter.Name}, message.{g.List});"));
+		outLines.AddRange(groups.Select(g => $"\t\tCounted(message, message.{g.Counter.Name}, {Shape.View("message", g)});"));
 		outLines.Add("");
 
 		return outLines;
@@ -1652,6 +1747,9 @@ sealed class Writer
 		text = text.Replace("@@Ns@@", _v.Ns).Replace("@@Context@@", _v.Context).Replace("@@Validator@@", _v.Validator)
 			.Replace("@@BeginString@@", _v.Begin).Replace("@@Title@@", _v.Title)
 			.Replace("@@MessageCountWords@@", Fx.Words(_m.Messages.Count)).Replace("@@PairCountWords@@", Fx.Words(_m.Pairs.Count));
+
+		foreach (var (token, value) in Shape.Tokens())
+			text = text.Replace($"@@{token}@@", value);
 
 		foreach (var (token, tableLines) in tables)
 			text = text.Replace($"@@{token}@@", string.Join("\n", tableLines));

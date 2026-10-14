@@ -133,7 +133,7 @@ public static partial class FixParser
 	{
 		message = null;
 
-		var     fields = new List<FixField>(input is ICollection c ? c.Count : 6);
+		var     fields = new @@FieldsType@@(input is ICollection c ? c.Count : 6);
 		string? type   = null;
 
 		foreach (var field in input)
@@ -461,7 +461,7 @@ public static partial class FixParser
 		var sum  = 0;
 		var body = -1;
 
-		foreach (var field in message.Fields)
+		foreach (var field in message.@@FieldsStore@@)
 		{
 			if (field.Tag == FixTag.CheckSum)
 				break;
@@ -488,7 +488,7 @@ public static partial class FixParser
 		var sum  = 0;
 		var body = -1;
 
-		foreach (var field in message.Fields)
+		foreach (var field in message.@@FieldsStore@@)
 		{
 			if (field.Tag == FixTag.CheckSum)
 				break;

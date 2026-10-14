@@ -16,6 +16,12 @@
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+
+		<!-- A spike, not landed: the shape of the lists the messages hand out, A (today), B, C or F. The
+		     generated sources are written for one shape at a time (FIX_SHAPE of generate.cs), and the
+		     hand-written ones follow this property. -->
+		<FixShape Condition="'$(FixShape)' == ''">A</FixShape>
+		<DefineConstants>$(DefineConstants);FIXSHAPE_$(FixShape)</DefineConstants>
 	</PropertyGroup>
 	<ItemGroup>
 		<InternalsVisibleTo Include="DotGram.Finance.Tests" />

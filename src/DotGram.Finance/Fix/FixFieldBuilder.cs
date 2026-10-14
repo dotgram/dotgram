@@ -40,8 +40,13 @@ static class FixFieldBuilder
 			FixValueType.ZonedTime      => new FixField.ZonedTime(tag, value.ToZonedTime()),
 			FixValueType.Date           => new FixField.Date     (tag, value.ToDate()),
 			FixValueType.MonthYear      => new FixField.MonthYear(tag, value.ToMonthYear()),
+#if FIXSHAPE_C
+			FixValueType.Multiple       => new FixField.Multiple (tag, FixConvert.SplitList(value.ToText(), false)),
+			FixValueType.MultipleString => new FixField.Multiple (tag, FixConvert.SplitList(value.ToText(), true)),
+#else
 			FixValueType.Multiple       => new FixField.Multiple (tag, value.ToMultiple()),
 			FixValueType.MultipleString => new FixField.Multiple (tag, value.ToMultipleString()),
+#endif
 			FixValueType.Data           => new FixField.Data     (tag, value.ToData()),
 			_                           => new FixField.Invalid  (tag, value),
 		};
@@ -62,8 +67,13 @@ static class FixFieldBuilder
 			FixValueType.ZonedTime      => new FixField.ZonedTime(tag, value.ToZonedTime()),
 			FixValueType.Date           => new FixField.Date     (tag, value.ToDate()),
 			FixValueType.MonthYear      => new FixField.MonthYear(tag, value.ToMonthYear()),
+#if FIXSHAPE_C
+			FixValueType.Multiple       => new FixField.Multiple (tag, FixConvert.SplitList(value.ToText(), false)),
+			FixValueType.MultipleString => new FixField.Multiple (tag, FixConvert.SplitList(value.ToText(), true)),
+#else
 			FixValueType.Multiple       => new FixField.Multiple (tag, value.ToMultiple()),
 			FixValueType.MultipleString => new FixField.Multiple (tag, value.ToMultipleString()),
+#endif
 			FixValueType.Data           => new FixField.Data     (tag, value.ToData()),
 			_                           => new FixField.Invalid  (tag, value),
 		};

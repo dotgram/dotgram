@@ -278,6 +278,11 @@ public abstract class FixField : IFixLocation
 		/// </summary>
 		/// <exception cref="InvalidOperationException"><see cref="IsValid"/> is false.</exception>
 		public T Value => IsValid ? _value : throw new InvalidOperationException("The field has no valid typed value; inspect its original wire value.");
+#if !FIXSHAPE_A
+
+		// The value whether or not it is valid, for the checks of this package.
+		internal T Raw => _value;
+#endif
 
 		/// <summary>
 		/// Returns the stored value and reports whether primitive conversion succeeded.
@@ -385,8 +390,28 @@ public abstract class FixField : IFixLocation
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
 	/// <param name="value">What <see cref="FixConvert.ToMultiple(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+#if FIXSHAPE_B
+	public sealed class Multiple(int tag, (bool Valid, string[] Value) value)
+		: Typed<IReadOnlyList<string>>(tag, (value.Valid, value.Value))
+	{
+		internal string[] Items => (string[])Raw;
+	}
+#elif FIXSHAPE_C
+	public sealed class Multiple(int tag, (bool Valid, List<string> Value) value)
+		: Typed<FixList<string>>(tag, (value.Valid, new FixList<string>(value.Value)))
+	{
+		internal List<string> Items => Raw.Items!;
+	}
+#elif FIXSHAPE_F
+	public sealed class Multiple(int tag, (bool Valid, string[] Value) value)
+		: Typed<FixList<string>>(tag, (value.Valid, new FixList<string>(value.Value)))
+	{
+		internal string[] Items => Raw.Buffer;
+	}
+#else
 	public sealed class Multiple(int tag, (bool Valid, string[] Value) value)
 		: Typed<string[]>(tag, value);
+#endif
 
 	/// <summary>
 	/// A field whose value is octets: FIX <c>data</c>.
