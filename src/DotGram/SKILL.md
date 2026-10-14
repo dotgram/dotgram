@@ -420,7 +420,8 @@ would be safer the build warns, `GRAM5016`: constructions share `context` with a
 input can rebuild a list on every turn given back. `GRAM5012`, information, names the other
 constructions that can run for text read another way or a second time. Answer either by naming
 the carrier: `Tape` holds every construction until the parse is accepted (constructions that
-count, log, throw or share `context` with guards want it); `Immediate` says you have checked, and
+count, log or share `context` with guards want it; one that throws does not: what it throws on a
+reading given up is held and never escapes, §7.5); `Immediate` says you have checked, and
 silences both, now and for every reason found later. Name the carrier rather than suppress
 `GRAM5016`: the name is where the decision lives.
 

@@ -4014,7 +4014,7 @@ sealed partial class Machine
 				var passed   = machine.Carrier.RecordMarks(_part ? "lmark" : "lm");
 
 				for (var one = 0; one < declared.Count; one++)
-					text.Append(", ").Append(type.Length > 0 ? machine.Carrier.RecordMarkType + " " + declared[one] : passed[one]);
+					text.Append(", ").Append(type.Length > 0 ? declared[one].Type + " " + declared[one].Name : passed[one].Name);
 			}
 
 			// The strength the rule was entered at, which every method of it reads.
@@ -5596,6 +5596,17 @@ sealed partial class Machine
 			var begun      = _part ? "start" : "pos";
 			var mark       = _part ? "lmark" : "lm";
 
+			var accumulator = machine.GuardAccumulator(rule, guard);
+			var members     = machine.GuardMembers(rule, guard);
+
+			// A value the guard names is built already on a carrier that builds as it reads, and
+			// what a construction under it threw is thrown now, where the tape would build it.
+			if (accumulator is not null ||
+				members.Any(one => one.Member.Rule is { } valued && machine.Valued(valued) && !machine.IsExtent(valued)))
+			{
+				Carried(code, machine.Carrier.GuardAsks(mark));
+			}
+
 			if (CSharpEmitter.Uses(_graph, text, "parserText"))
 			{
 				parameters.Add((machine.BorrowedCaptures ? machine.CaptureSpanType : "string") + " parserText");
@@ -5617,18 +5628,18 @@ sealed partial class Machine
 			// The value so far (§4.3), where a guard in a step names it: the reader holds it as
 			// `fold`, a value where the carrier builds as it reads and a record to build where
 			// it does not.
-			if (machine.GuardAccumulator(rule, guard) is { } accumulator)
+			if (accumulator is { } named)
 			{
 				var build = machine.Carrier.BuildFold(rule, mark);
 
 				if (build.Length > 0)
 					code.Line(build);
 
-				parameters.Add($"{_graph.Types[rule]} {ResultTypes.ParameterOf(accumulator)}");
+				parameters.Add($"{_graph.Types[rule]} {ResultTypes.ParameterOf(named)}");
 				arguments.Add(ValueAt(rule, "fold"));
 			}
 
-			foreach (var (member, slots) in machine.GuardMembers(rule, guard))
+			foreach (var (member, slots) in members)
 			{
 				var handed = $"g{_guardLocals++}";
 				var type   = member.Rule is null ? machine.BorrowedCaptures ? machine.CaptureSpanType : "string" : machine._results.ValueOf(member.Rule);

@@ -866,16 +866,26 @@ sealed partial class Machine
 		public abstract IEnumerable<string> MarkRecords(string name);
 
 		/// <summary>
-		/// What <see cref="MarkRecords"/> declares, named: a rule read in parts hands its
-		/// mark down to them, and how many numbers that is depends on the carrier.
+		/// What <see cref="MarkRecords"/> declares, typed and named: a rule read in parts hands
+		/// its mark down to them, and how many locals that is, and of what, depends on the carrier.
 		/// </summary>
-		public virtual IReadOnlyList<string> RecordMarks(string name)
+		public virtual IReadOnlyList<(string Type, string Name)> RecordMarks(string name)
 		{
-			return [name];
+			return [(RecordMarkType, name)];
 		}
 
-		/// <summary>The type of each of <see cref="RecordMarks"/>, as a part declares it.</summary>
+		/// <summary>The type of a snapshot of the records, as a part declares it.</summary>
 		public virtual string RecordMarkType => "int";
+
+		/// <summary>
+		/// What a guard that names a built value is preceded by: a carrier holding a construction's
+		/// exception throws it here, where the tape would have built the value (<see cref="ImmediateCarrier.GuardAsks"/>).
+		/// </summary>
+		/// <param name="mark">The local <see cref="MarkRecords"/> declared where the guarded rule began.</param>
+		public virtual string GuardAsks(string mark)
+		{
+			return "";
+		}
 
 		/// <summary>Locals remembering where the gathered members of the rule stood.</summary>
 		public abstract IEnumerable<string> MarkGathered(RuleSymbol? owner, string name);

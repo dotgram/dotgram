@@ -679,8 +679,8 @@ a rule whose own guard asks for its value so far. With a context or a recovery, 
 rule, nothing is left unbuilt: the second reading builds again, and every way back taken builds
 what stood before it again, as often as the input gives ways back — for a long refused list,
 memory quadratic in its length, which `GRAM5016` warns of. A construction that only builds
-does not mind. One that
-counts, logs or throws does: an exception it throws there escapes the publication (§7.5). In a
+does not mind. One that counts or logs does. One that throws does not: what it throws is held,
+and thrown only where the tape would have built its value (§7.5). In a
 grammar with a `context`, constructions run interleaved with the hooks that share it (§7.7).
 The generator says where this can matter: `GRAM5016`, a warning, where constructions share
 `context` with a guard, a selector or a recognizer, or where a refused input can rebuild a list
@@ -688,8 +688,7 @@ on every turn given back; `GRAM5012`, information, where a construction can run 
 parser then reads another way or a second time.
 
 **On the tape, a construction runs once the parse has accepted.** Where a construction must
-not run for input that is refused or for a reading given up — it counts, logs, or throws —
-say so:
+not run for input that is refused or for a reading given up — it counts or logs — say so:
 
 ```csharp
 [Gram("…", Carrier = GramCarrier.Tape)]
@@ -3126,14 +3125,19 @@ shared between assemblies.
 after `when`, an external recognizer: what they throw propagates from every publication, with
 or without the `Try` prefix, as any exception of C# does (§7.4). A `Try` method that turned it
 into a refusal would report a defect of the host as input that did not fit. The parser never
-lets escape an exception from a reading it has abandoned — on the tape
-(`Carrier = GramCarrier.Tape`): host code is asked about what the parse reads, and a reading
+lets escape an exception from a reading it has abandoned, on either carrier. On the tape
+(`Carrier = GramCarrier.Tape`) host code is asked about what the parse reads, and a reading
 the parse gives up cannot fail it. Carried immediately, the default, a construction runs as
-its alternative is read, and one that throws on a reading the parse would have given up
-escapes the publication, `Try` or not, and a throwing `Parse` can surface it instead of the
-parse error. A grammar left to choose whose constructions can run there is told so
-(`GRAM5012`); one whose constructions may throw there names the tape, or puts every such
-construction behind a guard that answers first.
+its alternative is read; what it throws is held, the reading goes on with the value left
+default, and the held exception is thrown where the tape would have thrown it: when the
+publication builds its answer, or where a `when` or `switch` asks for a value built since its
+rule began — from `Try` and `Parse` alike. An exception held in a reading the parse gives up
+goes with it, and a refused parse throws nothing it held: the refusal is the answer. The first
+construction to throw is the one thrown; a later one, handed the default the first left, is
+not. What a guard or a recognizer throws is not held: it runs during recognition on both
+carriers and propagates at once. A grammar left to choose whose constructions can run on a
+reading that does not stand is told so (`GRAM5012`), for the side effects such a construction
+may have, not for what it throws.
 
 ### 7.6 Mapping positions back
 
