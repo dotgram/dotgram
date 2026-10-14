@@ -19,7 +19,8 @@ namespace DotGram.Grammar.Emit;
 /// A pass over the finished text, for the same reason as <see cref="CheckBlocks"/>. A call is a
 /// statement on lines of its own, and the name it calls ends in <c>_DotGram</c> as every name the
 /// generator keeps for itself does, so that a host's own <c>Trace</c> in an expression it hands
-/// across is never taken for one. The pass refuses a call that is the whole body of a statement
+/// across is never taken for one; a line of a host's multi-line string literal that is itself such a call
+/// of a name reserved for the generator is the one thing this does not tell apart. The pass refuses a call that is the whole body of a statement
 /// above it, which removing would give a different body, rather than guess.
 /// </para>
 /// </remarks>
