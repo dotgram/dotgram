@@ -121,7 +121,7 @@ public static partial class HandSqlStandard
 		if (IdentifierChain(ref cursor, out value) && cursor.AtEnd)
 			return true;
 
-		value = null!;
+		value = default;
 
 		return false;
 	}
@@ -165,7 +165,7 @@ public static partial class HandSqlStandard
 		if (TableName(ref cursor, out value) && cursor.AtEnd)
 			return true;
 
-		value = null!;
+		value = default;
 
 		return false;
 	}
@@ -187,7 +187,7 @@ public static partial class HandSqlStandard
 		if (SchemaName(ref cursor, out value) && cursor.AtEnd)
 			return true;
 
-		value = null!;
+		value = default;
 
 		return false;
 	}
@@ -271,7 +271,7 @@ public static partial class HandSqlStandard
 	/// <summary><c>&lt;identifier chain&gt;</c>: a name, and the names after it.</summary>
 	static bool IdentifierChain(ref SqlCursor cursor, out QualifiedName name)
 	{
-		name = null!;
+		name = default;
 
 		if (!Identifier(ref cursor, out var first))
 			return false;
@@ -306,7 +306,7 @@ public static partial class HandSqlStandard
 	/// </summary>
 	static bool TableName(ref SqlCursor cursor, out QualifiedName name)
 	{
-		name = null!;
+		name = default;
 
 		if (cursor.Word == SqlWord.Module)
 		{
@@ -330,6 +330,26 @@ public static partial class HandSqlStandard
 		return Names(ref cursor, 3, out name);
 	}
 
+	/// <summary><see cref="TableName(ref SqlCursor, out QualifiedName)"/> for a name that may be left out.</summary>
+	static bool OptionalTableName(ref SqlCursor cursor, out QualifiedName? name)
+	{
+		var read = TableName(ref cursor, out QualifiedName found);
+
+		name = read ? found : null;
+
+		return read;
+	}
+
+	/// <summary><see cref="Names(ref SqlCursor, int, out QualifiedName)"/> for a name that may be left out.</summary>
+	static bool OptionalNames(ref SqlCursor cursor, int most, out QualifiedName? name)
+	{
+		var read = Names(ref cursor, most, out QualifiedName found);
+
+		name = read ? found : null;
+
+		return read;
+	}
+
 	/// <summary><c>&lt;schema name&gt;</c>: a catalog's name may stand before it.</summary>
 	static bool SchemaName(ref SqlCursor cursor, out QualifiedName name)
 	{
@@ -342,7 +362,7 @@ public static partial class HandSqlStandard
 	/// </summary>
 	static bool Names(ref SqlCursor cursor, int most, out QualifiedName name)
 	{
-		name = null!;
+		name = default;
 
 		if (!Identifier(ref cursor, out var first))
 			return false;

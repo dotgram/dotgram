@@ -168,7 +168,10 @@ public static partial class Sql2023Writer
 
 		void PutName(QualifiedName name)
 		{
-			for (var at = 0; at < name.Parts.Count; at++)
+			if (name.Count == 0)
+				throw new ArgumentException("A name of no parts, default(QualifiedName), is no name and is not written.", nameof(name));
+
+			for (var at = 0; at < name.Count; at++)
 			{
 				if (at > 0)
 				{
@@ -176,20 +179,23 @@ public static partial class Sql2023Writer
 					Hold();
 				}
 
-				PutIdentifier(name.Parts[at]);
+				PutIdentifier(name[at]);
 			}
 		}
 
 		static string Dotted(QualifiedName name)
 		{
+			if (name.Count == 0)
+				throw new ArgumentException("A name of no parts, default(QualifiedName), is no name and is not written.", nameof(name));
+
 			var text = new StringBuilder();
 
-			for (var at = 0; at < name.Parts.Count; at++)
+			for (var at = 0; at < name.Count; at++)
 			{
 				if (at > 0)
 					text.Append('.');
 
-				text.Append(name.Parts[at].Text);
+				text.Append(name[at].Text);
 			}
 
 			return text.ToString();
@@ -362,9 +368,9 @@ public static partial class Sql2023Writer
 			}
 
 			if (!NamedKeyWords.Contains(keyword)
-				|| written.Parts.Count is 0 or > 2
-				|| written.Parts.Count == 2 && !Unquoted(written.Parts[0].Text).Equals("SYS", StringComparison.OrdinalIgnoreCase)
-				|| !Unquoted(written.Parts[written.Parts.Count - 1].Text).TrimEnd().Equals(keyword, StringComparison.OrdinalIgnoreCase))
+				|| written.Count is 0 or > 2
+				|| written.Count == 2 && !Unquoted(written[0].Text).Equals("SYS", StringComparison.OrdinalIgnoreCase)
+				|| !Unquoted(written[written.Count - 1].Text).TrimEnd().Equals(keyword, StringComparison.OrdinalIgnoreCase))
 				throw Misplaced(type, "WrittenName", $"that is not {keyword} written as a name, bare or qualified by sys");
 
 			PutName(written);
@@ -1629,7 +1635,7 @@ public static partial class Sql2023Writer
 			{
 				case CurrentValue.TransformGroupForType:
 					Word("CURRENT_TRANSFORM_GROUP_FOR_TYPE");
-					PutName(current.TypeName!);
+					PutName(current.TypeName!.Value);
 					return;
 
 				case CurrentValue.Time or CurrentValue.Timestamp or CurrentValue.LocalTime or CurrentValue.LocalTimestamp:

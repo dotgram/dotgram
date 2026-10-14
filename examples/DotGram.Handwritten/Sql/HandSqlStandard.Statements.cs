@@ -2651,7 +2651,7 @@ partial class HandSqlStandard
 	/// </summary>
 	static Identifier? Alone(string? scope, Expression value)
 	{
-		return scope is null && value is Expression.Reference { Name.Parts.Count: 1 } reference ? reference.Name.Parts[0] : null;
+		return scope is null && value is Expression.Reference { Name.Count: 1 } reference ? reference.Name[0] : null;
 	}
 
 	static StatementReference StatementNameOf(string? scope, Expression value)
