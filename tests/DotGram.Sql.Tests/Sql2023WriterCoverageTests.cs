@@ -1550,7 +1550,7 @@ public sealed class Sql2023WriterCoverageTests
 			"a spatial option set to the name NULL" => SpatialWith(new Option(new Identifier("CELLS_PER_OBJECT"), new Expression.Reference(new QualifiedName([new Identifier("NULL")])), [])),
 			"a table type key with IGNORE_DUP_KEY set to a number" => new Statement.CreateTableType(T, [IntColumn(), new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [new Option(new Identifier("IGNORE_DUP_KEY"), Two, [])] })]),
 			"a table type key with BUCKET_COUNT set to a name" => new Statement.CreateTableType(T, [IntColumn(), new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [new Option(new Identifier("BUCKET_COUNT"), A, [])] })]),
-			"a type named with no part" => new Statement.CreateAliasType(new QualifiedName([]), new DataType.Numeric(NumericTypeKind.Int)),
+			"a type named with no part" => new Statement.CreateAliasType(default, new DataType.Numeric(NumericTypeKind.Int)),
 			"partitions on an option other than a compression" => Altered(new AlterTableAction.Rebuild(null, false, [Set("PAD_INDEX", "ON") with { Partitions = [new PartitionRange(Two, null)] }])),
 			"partitions on an option with no value" => Altered(new AlterTableAction.Rebuild(null, false, [Flag("DATA_COMPRESSION") with { Partitions = [new PartitionRange(Two, null)] }])),
 			"partitions on a BULK INSERT option" => new Statement.BulkInsert(T, Str, [Flag("TABLOCK") with { Partitions = [new PartitionRange(Two, null)] }]),

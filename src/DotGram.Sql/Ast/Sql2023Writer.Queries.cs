@@ -916,7 +916,7 @@ public static partial class Sql2023Writer
 			{
 				case TableSource.Named named:
 					// T-SQL: a name of one part starting with @ is a table variable, which is a record of its own.
-					if (named.Name.Parts is [{ Style: IdentifierStyle.Regular } only] && only.Text.StartsWith("@", StringComparison.Ordinal))
+					if (named.Name is [{ Style: IdentifierStyle.Regular } only] && only.Text.StartsWith("@", StringComparison.Ordinal))
 						throw Misplaced(named, "Name", "of one part starting with @, which is a TableSource.Variable");
 
 					// T-SQL: OPENDATASOURCE (Transact-SQL). The server the name is looked up on, before it; it takes a
@@ -1531,7 +1531,7 @@ public static partial class Sql2023Writer
 
 					// T-SQL: INSERT (Transact-SQL). `INSERT t2(a) VALUES (1)` reads as the table t2 and its column a.
 					if (insert.Columns.Count == 0 && insert.Target is TableSource.Function { Invocation.Arguments: { Count: > 0 } arguments }
-						&& arguments.All(static one => one is { Name: null, Value: Expression.Reference { Name.Parts.Count: 1 } }))
+						&& arguments.All(static one => one is { Name: null, Value: Expression.Reference { Name.Count: 1 } }))
 						throw Misplaced(insert, "Target", "that is a function whose arguments read as a column list, with no columns after it");
 
 					// BNF: <insertion target> is a <table name>, with no ONLY; T-SQL reads `INSERT ONLY (t)` as a call.

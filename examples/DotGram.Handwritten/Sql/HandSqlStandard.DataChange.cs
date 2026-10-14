@@ -298,7 +298,7 @@ partial class HandSqlStandard
 			}
 
 			cursor = save;
-			name   = null!;
+			name   = default;
 
 			return false;
 		}
@@ -310,7 +310,7 @@ partial class HandSqlStandard
 			return true;
 		}
 
-		name = null!;
+		name = default;
 
 		return false;
 	}

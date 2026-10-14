@@ -315,7 +315,8 @@ public sealed class LocatedReadingTests
 	/// <summary>
 	/// A node of the SQL:2023 tree hands back the span it was offered, the text in front of it said to
 	/// begin where the node does, and a node nobody located says nothing at all; equality looks at
-	/// neither. Every node of each statement is offered a span of its own.
+	/// neither. Every node of each statement is offered a span of its own, but a name: a value that keeps
+	/// no span, it spans its parts, from the first one's start to the last one's end.
 	/// </summary>
 	[Theory]
 	[InlineData("SELECT a.b, COUNT(*) AS n, CASE WHEN x > 1 THEN 'y' ELSE NULL END FROM t AS a JOIN u ON a.id = u.id WHERE a.c BETWEEN 1 AND 2 AND d IN (SELECT e FROM f) GROUP BY a.b HAVING COUNT(*) > 1 ORDER BY 1 DESC")]
@@ -329,12 +330,23 @@ public sealed class LocatedReadingTests
 
 		Assert.True(SqlWalker.Walk(plain, static node => node.Span == default && node.Span.GapStart == 0 && !node.Span.Known));
 
-		var nodes = Nodes(located).Distinct<ISqlSpan>(ReferenceEqualityComparer.Instance).ToList();
+		var all   = Nodes(located);
+		var names = all.OfType<Ast.QualifiedName>().ToList();
+		var nodes = all.Where(static node => node is not Ast.QualifiedName).ToList();
 
+		Assert.Equal(nodes.Count, nodes.Distinct(ReferenceEqualityComparer.Instance).Count());
 		Assert.True(nodes.Count > 5, text);
+		Assert.NotEmpty(names);
+
+		foreach (var name in names)
+			Assert.False(name.Span.Known, text);
 
 		for (var i = 0; i < nodes.Count; i++)
 			nodes[i].Locate(i + 1, 2 * i + 3);
+
+		// The walk handed each name out as a copy; the copy reads its parts, which the walk located.
+		foreach (var name in names)
+			Assert.Equal(new SqlSpan(name.First.Span.At, name.Last.Span.End - name.First.Span.At), name.Span);
 
 		for (var i = 0; i < nodes.Count; i++)
 		{
@@ -349,6 +361,103 @@ public sealed class LocatedReadingTests
 
 		Assert.Equal(plain, located);
 		Assert.Equal(plain.GetHashCode(), located.GetHashCode());
+	}
+
+	/// <summary>
+	/// A located reading of SQL:2023 says where every name was written. A name keeps no span of its
+	/// own and spans its parts, so every part is made by a rule that a located reading offers its range
+	/// to — those a helper used to make from a word as well: <c>MODULE</c> in front of a module's table,
+	/// column or cursor, and the SQL language identifier that ends a character set's name, after
+	/// <c>CHARACTER SET</c> and after an introducer.
+	/// </summary>
+	/// <remarks>
+	/// No row reads a FROM clause: two rules of the grammar hand back null for a correlation that
+	/// was not written, and a reading that locates every rule cannot locate that (see
+	/// <c>SqlStandardLocated</c>).
+	/// </remarks>
+	[Theory]
+	[InlineData("Statement", "UPDATE c.s.t SET a = x.y + s.t.c WHERE z = 1", "c.s.t")]
+	[InlineData("Expression", "MODULE.t.c + 1", "MODULE.t.c")]
+	[InlineData("Statement", "DELETE FROM MODULE.t WHERE CURRENT OF MODULE.c", "MODULE.c")]
+	[InlineData("Statement", "UPDATE MODULE.t SET a = 1 WHERE CURRENT OF MODULE.c", "MODULE.t")]
+	[InlineData("Statement", "OPEN MODULE.c", "MODULE.c")]
+	[InlineData("Statement", "CLOSE c", "c")]
+	[InlineData("DataType", "CHAR(5) CHARACTER SET s.latin1", "s.latin1")]
+	[InlineData("DataType", "CHAR(5) CHARACTER SET c.s.latin1", "c.s.latin1")]
+	[InlineData("DataType", "CHAR(5) CHARACTER SET latin1", "latin1")]
+	[InlineData("Value", "_s.latin1'abc'", "s.latin1")]
+	[InlineData("Value", "_c.s.latin1'abc'", "c.s.latin1")]
+	[InlineData("Value", "_latin1'abc'", "latin1")]
+	[InlineData("Statement", "CREATE TABLE s.t (a INT NOT NULL, b VARCHAR(20) CHARACTER SET x.utf8 DEFAULT 'x', PRIMARY KEY (a))", "x.utf8")]
+	public void A_located_SQL2023_name_spans_its_parts(string level, string text, string written)
+	{
+		var (located, plain) = level switch
+		{
+			"Value"      => ((ISqlSpan)Productions.SqlStandardLocated.ParseValue(text), (ISqlSpan)SqlStandardParser.ParseValue(text)),
+			"DataType"   => (Productions.SqlStandardLocated.ParseDataType(text), SqlStandardParser.ParseDataType(text)),
+			"Expression" => (Productions.SqlStandardLocated.ParseExpression(text), SqlStandardParser.ParseExpression(text)),
+			_            => (Productions.SqlStandardLocated.ParseStatement(text), SqlStandardParser.ParseStatement(text)),
+		};
+
+		Assert.Equal(plain, located);
+
+		var all   = Nodes(located);
+		var names = all.OfType<Ast.QualifiedName>().ToList();
+
+		Assert.Contains(names, name => Cut(text, name.Span) == written);
+
+		// The names and their parts; not every node, since a node a helper builds inside a value that is
+		// no node (an expression tower's) is offered no range in this reading.
+		foreach (var node in all.Where(static node => node is Ast.Identifier or Ast.QualifiedName))
+		{
+			Assert.True(node.Span.Known, $"{node.GetType().Name} in {text}");
+			Assert.InRange(node.Span.End, node.Span.At, text.Length);
+		}
+
+		foreach (var name in names)
+		{
+			Assert.Equal(name.First.Span.At, name.Span.At);
+			Assert.Equal(name.Last.Span.End, name.Span.End);
+			Assert.Equal(string.Join(".", name.Parts.Select(static part => part.Text)), Cut(text, name.Span).Replace(" ", ""));
+		}
+
+		foreach (var part in all.OfType<Ast.Identifier>().Where(static part => part.Style == Ast.IdentifierStyle.Regular))
+			Assert.Equal(part.Text, Cut(text, part.Span));
+	}
+
+	/// <summary>
+	/// A name whose parts were not all located is not located, rather than spanning what is known of it:
+	/// a part made without a reading's offer leaves the span unknown, never short or reversed.
+	/// </summary>
+	[Fact]
+	public void A_name_with_a_part_not_located_has_no_span()
+	{
+		var first = new Ast.Identifier("s");
+		var last  = new Ast.Identifier("t");
+		var name  = new Ast.QualifiedName(first, [last]);
+
+		first.Locate(10, 1);
+
+		Assert.False(name.Span.Known);
+
+		last.Locate(12, 1);
+
+		Assert.Equal(new SqlSpan(10, 3), name.Span);
+
+		var unlocated = new Ast.QualifiedName(new Ast.Identifier("u"), [last]);
+
+		Assert.False(unlocated.Span.Known);
+
+		var reversed = new Ast.QualifiedName(first, [new Ast.Identifier("v")]);
+
+		reversed[1].Locate(2, 1);
+
+		Assert.False(reversed.Span.Known);
+	}
+
+	static string Cut(string text, SqlSpan span)
+	{
+		return text.Substring(span.At, span.Length);
 	}
 
 	/// <summary>A backup's tail is put on the statement with <c>with</c>, and the statement keeps its span.</summary>

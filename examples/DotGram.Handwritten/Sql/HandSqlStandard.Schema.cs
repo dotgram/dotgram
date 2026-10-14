@@ -347,7 +347,7 @@ partial class HandSqlStandard
 
 				var marked = cursor;
 
-				if (cursor.TakeWord("UNDER") && !TableName(ref cursor, out under!))
+				if (cursor.TakeWord("UNDER") && !OptionalTableName(ref cursor, out under))
 				{
 					cursor = marked;
 					under  = null;
@@ -475,7 +475,7 @@ partial class HandSqlStandard
 
 		var marked = cursor;
 
-		if (cursor.Take(SqlWord.Scope) && !TableName(ref cursor, out scope!))
+		if (cursor.Take(SqlWord.Scope) && !OptionalTableName(ref cursor, out scope))
 		{
 			cursor = marked;
 			scope  = null;
@@ -1329,7 +1329,7 @@ partial class HandSqlStandard
 
 				var marked = cursor;
 
-				if (cursor.TakeWord("UNDER") && !TableName(ref cursor, out under!))
+				if (cursor.TakeWord("UNDER") && !OptionalTableName(ref cursor, out under))
 				{
 					cursor = marked;
 					under  = null;

@@ -323,9 +323,9 @@ public static partial class Sql2023Writer
 			{
 				var read = column switch
 				{
-					Expression.Reference { Name.Parts.Count: 1 } => true,
+					Expression.Reference { Name.Count: 1 } => true,
 					Expression.Asterisk                          => columns.Count == 1,
-					Expression.Invocation { Name.Parts: [var called] } when called.Text.Equals("PROPERTY", StringComparison.OrdinalIgnoreCase) => !bracketed,
+					Expression.Invocation { Name: [var called] } when called.Text.Equals("PROPERTY", StringComparison.OrdinalIgnoreCase) => !bracketed,
 					_                                            => false,
 				};
 

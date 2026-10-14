@@ -257,6 +257,13 @@ sealed partial class Machine
 			factory.Accumulator is not null)
 			return false;
 
+		// Nor can a site hand its callee the range the rule was read over: a site keeps no
+		// boundary to measure it by. A construction told where it was written, in a grammar
+		// that locates every rule (no per-call door, where the offer stands around the call
+		// instead), takes that range as a parameter and keeps its boundary too.
+		if (CSharpEmitter.TakesSpan(_graph, factory))
+			return false;
+
 		var witnessed = false;
 
 		foreach (var member in factory.Members)

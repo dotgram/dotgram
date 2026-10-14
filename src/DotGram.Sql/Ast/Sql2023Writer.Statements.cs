@@ -286,7 +286,7 @@ public static partial class Sql2023Writer
 					if (translation.Source.Routine is { } fromRoutine)
 						PutDesignator(fromRoutine);
 					else
-						PutName(translation.Source.Existing!);
+						PutName(translation.Source.Existing!.Value);
 
 					break;
 
@@ -715,7 +715,7 @@ public static partial class Sql2023Writer
 				return;
 
 			Word("UNDER");
-			PutName(under);
+			PutName(under.Value);
 		}
 
 		void PutGeneration(ReferenceGeneration? generation)
@@ -1628,7 +1628,7 @@ public static partial class Sql2023Writer
 						PutReturns(returns);
 
 					Word("FOR");
-					PutName(routine.ForType!);
+					PutName(routine.ForType!.Value);
 					break;
 			}
 
@@ -2294,7 +2294,7 @@ public static partial class Sql2023Writer
 					else
 					{
 						Word("SET TRANSFORM GROUP FOR TYPE");
-						PutName(group.Value.ForType!);
+						PutName(group.Value.ForType!.Value);
 					}
 
 					PutExpression(group.Value.Value);

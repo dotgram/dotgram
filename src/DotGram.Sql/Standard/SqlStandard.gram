@@ -137,11 +137,14 @@ namespace Lexical
 	// before it, and then an <SQL language identifier>. Said as a run, since a name the chain
 	// could still go on from is not yet the last. The names are identifiers, so §5.4's Syntax
 	// Rule reaches inside the token: `_select.latin1'a'` is refused.
-	IntroducedCharacterSet : @CharacterSetName = (q: IntroducedName & '.'){0,2} & l: SQLLanguageIdentifier => @(Nodes.CharacterSet(q, l))
+	IntroducedCharacterSet : @CharacterSetName = (q: IntroducedName & '.'){0,2} & l: IntroducedLanguage => @(Nodes.CharacterSet(q, l))
 	IntroducedName : @Identifier
 		= t: UnicodeDelimitedIdentifier => @(Nodes.UnicodeIdentifier(t))
 		| ?!ReservedWordWhole & t: RegularIdentifier => @(new Identifier(t))
 		| t: DelimitedIdentifier => @(new Identifier(t, IdentifierStyle.Delimited))
+	// The SQL language identifier last, made where it is read so that a located reading says where it
+	// was written, and with it where the name ends.
+	IntroducedLanguage : @Identifier = l: SQLLanguageIdentifier => @(new Identifier(l))
 
 	// <character string literal> and <Unicode character string literal> with an introducer.
 	// §5.4's Syntax Rule reaches inside this token — a character set name is no reserved word —
@@ -382,7 +385,8 @@ ActualIdentifier : @Identifier
 TableName                  : @QualifiedName = n: LocalOrSchemaQualifiedName => @(n)
 LocalOrSchemaQualifiedName : @QualifiedName = m: LocalQualifier & '.' & q: QualifiedIdentifier => @(Nodes.Named(m, q))
                                             | first: Identifier & ('.' & rest: Identifier){0,2} => @(Nodes.Chain(first, rest))
-LocalQualifier             = "MODULE"i
+// The word is a part of the name, made by a rule of its own so that a located reading says where it was written.
+LocalQualifier             : @Identifier = m: "MODULE"i => @(new Identifier(m))
 QualifiedIdentifier        : @Identifier = i: Identifier => @(i)
 
 // <schema name>: a catalog's name may stand before it.
@@ -398,7 +402,7 @@ BasicIdentifierChain : @QualifiedName = n: IdentifierChain => @(n)
 
 ColumnReference : @Expression
 	= n: BasicIdentifierChain => @(new Expression.Reference(n))
-	| m: "MODULE"i & '.' & q: QualifiedIdentifier & '.' & c: ColumnName => @(new Expression.Reference(Nodes.Named(m, q, c)))
+	| m: LocalQualifier & '.' & q: QualifiedIdentifier & '.' & c: ColumnName => @(new Expression.Reference(Nodes.Named(m, q, c)))
 
 SchemaQualifiedName             : @QualifiedName = first: Identifier & ('.' & rest: Identifier){0,2} => @(Nodes.Chain(first, rest))
 PathResolvedUserDefinedTypeName : @QualifiedName = first: Identifier & ('.' & rest: Identifier){0,2} => @(Nodes.Chain(first, rest))
@@ -479,7 +483,8 @@ FieldDefinition : @FieldDefinition = n: Identifier & t: DataType => @(new FieldD
 ReferenceType   : @DataType = "REF"i & '(' & n: PathResolvedUserDefinedTypeName & ')' & ("SCOPE"i & s: TableName)? => @(new DataType.Reference(n, s))
 
 // <character set specification>, <character set name>: names, and an SQL language identifier last.
-CharacterSetSpecification : @CharacterSetName = (q: Identifier & '.'){0,2} & l: SQLLanguageIdentifier => @(Nodes.CharacterSet(q, l))
+CharacterSetSpecification : @CharacterSetName = (q: Identifier & '.'){0,2} & l: LanguageName => @(Nodes.CharacterSet(q, l))
+LanguageName              : @Identifier = l: SQLLanguageIdentifier => @(new Identifier(l))
 
 CollateClause : @CollationName = "COLLATE"i & n: SchemaQualifiedName => @(new CollationName(n))
 
@@ -760,7 +765,7 @@ PrimaryBase : @Towers.Typed
 	| v: JSONObjectConstructor => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: JSONArrayConstructor => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: RowPatternNavigationOperation => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
-	| m: "MODULE"i & '.' & q: QualifiedIdentifier & '.' & c: ColumnName => @(new Towers.Typed(new Expression.Reference(Nodes.Named(m, q, c)), Towers.Value | Towers.Truth | Towers.Bare))
+	| m: LocalQualifier & '.' & q: QualifiedIdentifier & '.' & c: ColumnName => @(new Towers.Typed(new Expression.Reference(Nodes.Named(m, q, c)), Towers.Value | Towers.Truth | Towers.Bare))
 	| i: Identifier & named: NameTail => @(Nodes.NamedPrimary(i, named))
 
 // After a name, read once for the four primaries that begin with one: `OVER` and a window, which makes
@@ -843,7 +848,7 @@ CollectionValueConstructor : @Expression
 SQLArgumentList : @Sql.SqlList<Argument> = '(' & { first: SQLArgument & (',' & rest: SQLArgument)* }? & ')' => @(Nodes.Arguments(first, rest))
 SQLArgument : @Argument
 	= n: Identifier & "=>" & v: ArgumentValue => @(new Argument(v, n, true))
-	| v: ValueNode & ("AS"i & t: PathResolvedUserDefinedTypeName)? => @(new Argument(t is null ? v : new Expression.Generalized(v, new DataType.UserDefined(t))))
+	| v: ValueNode & ("AS"i & t: PathResolvedUserDefinedTypeName)? => @(new Argument(t is { } type ? new Expression.Generalized(v, new DataType.UserDefined(type)) : v))
 	| v: ContextuallyTypedValueSpecification => @(new Argument(v))
 ArgumentValue : @Expression = v: ValueNode => @(v)
                             | v: ContextuallyTypedValueSpecification => @(v)
@@ -911,7 +916,7 @@ StringValueFunction : @Expression
 	| w: ("BTRIM"i | "LTRIM"i | "RTRIM"i) & '(' & v: CharacterValueExpression & (',' & characters: CharacterNode)? & ')' => @(Nodes.Call(w, v.Node, characters))
 	| overlay: OverlayFunction => @(overlay)
 	| "NORMALIZE"i & '(' & v: CharacterValueExpression & (',' & form: NormalForm & (',' & length: CharacterLargeObjectLength)?)? & ')' => @(Nodes.Normalized(v.Node, form, length))
-	| w: "CLASSIFIER"i & '(' & variable: Identifier? & ')' => @(Nodes.Call(w, variable is null ? null : new Expression.Reference(new QualifiedName([variable]))))
+	| w: "CLASSIFIER"i & '(' & variable: Identifier? & ')' => @(Nodes.Call(w, variable is { } name ? new Expression.Reference(new QualifiedName(name)) : null))
 
 // <character substring function>, <binary substring function>, <regular expression substring
 // function>. All three begin with the string, which is read once and what follows it says which: the
@@ -1537,8 +1542,8 @@ TargetCorrelation : @Alias = a: "AS"i? & n: CorrelationName => @(new Alias(n, nu
 ForPortionOf : @PeriodPortion = "FOR"i & "PORTION"i & "OF"i & n: Identifier & "FROM"i & lo: DatetimeValueExpression & "TO"i & hi: DatetimeValueExpression => @(new PeriodPortion(n, lo.Node, hi.Node))
 
 // <cursor name>, a <local qualified name>.
-CursorName : @QualifiedName = m: "MODULE"i & '.' & i: Identifier => @(Nodes.Named(m, i))
-                            | i: Identifier => @(new QualifiedName([i]))
+CursorName : @QualifiedName = m: LocalQualifier & '.' & i: Identifier => @(Nodes.Named(m, i))
+                            | i: Identifier => @(new QualifiedName(i))
 
 // ── §14.11 Insert statement ─────────────────────────────────────────────────
 
@@ -1694,7 +1699,7 @@ SchemaNameClause : @Nodes.SchemaNaming
 	| n: SchemaName => @(new Nodes.SchemaNaming(n, null))
 
 SchemaCharacterSetOrPath : @Nodes.SchemaDefaults
-	= c: SchemaCharacterSetSpecification & ("PATH"i & first: SchemaName & (',' & rest: SchemaName)*)? => @(new Nodes.SchemaDefaults(c, first is null ? null : new PathSpecification(Nodes.List(first, rest)), false))
+	= c: SchemaCharacterSetSpecification & ("PATH"i & first: SchemaName & (',' & rest: SchemaName)*)? => @(new Nodes.SchemaDefaults(c, first is { } schema ? new PathSpecification(Nodes.List(schema, rest)) : null, false))
 	| "PATH"i & first: SchemaName & (',' & rest: SchemaName)* & c: SchemaCharacterSetSpecification? => @(new Nodes.SchemaDefaults(c, new PathSpecification(Nodes.List(first, rest)), true))
 
 SchemaCharacterSetSpecification : @CharacterSetName = "DEFAULT"i & "CHARACTER"i & "SET"i & c: CharacterSetSpecification => @(c)
@@ -1992,7 +1997,7 @@ MethodSpecificationDesignator : @RoutineDefinition
 	= "SPECIFIC"i & "METHOD"i & n: SchemaQualifiedName
 	  => @(new RoutineDefinition(RoutineKind.Method, n, [], null, [], null!, SpecificMethod: true))
 	| m: ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & k: MethodName & p: SQLParameterDeclarationList & r: ReturnsClause? & "FOR"i & t: SchemaQualifiedName
-	  => @(new RoutineDefinition(RoutineKind.Method, new QualifiedName([k]), p, r, [], null!, Nodes.Method(m).Modifier, t))
+	  => @(new RoutineDefinition(RoutineKind.Method, new QualifiedName(k), p, r, [], null!, Nodes.Method(m).Modifier, t))
 
 SQLParameterDeclarationList : @Sql.SqlList<ParameterDefinition> = '(' & { first: SQLParameterDeclaration & (',' & rest: SQLParameterDeclaration)* }? & ')' => @(Nodes.ListOrEmpty(first, rest))
 
@@ -2402,7 +2407,7 @@ SelectStatementSingleRow : @Statement.Select = "SELECT"i & q: SetQuantifier? & l
 TargetSpecification : @Expression
 	= ':' & n: Identifier & (k: "INDICATOR"i? & ':' & i: Identifier)? => @(Nodes.HostParameter(n, i, k is not null))
 	| c: IdentifierChain & (l: LeftBracketOrTrigraph & x: SimpleValueSpecification & RightBracketOrTrigraph)? => @(Nodes.Target(c, l, x))
-	| m: "MODULE"i & '.' & a: Identifier & '.' & b: Identifier => @(new Expression.Reference(Nodes.Named(m, a, b)))
+	| m: LocalQualifier & '.' & a: Identifier & '.' & b: Identifier => @(new Expression.Reference(Nodes.Named(m, a, b)))
 	| '?' => @(new Expression.Parameter(ParameterKind.Dynamic))
 
 FreeLocatorStatement : @Statement.FreeLocator = "FREE"i & "LOCATOR"i & first: LocatorReference & (',' & rest: LocatorReference)* => @(new Statement.FreeLocator { Locators = Nodes.List(first, rest) })
@@ -2514,7 +2519,7 @@ ConditionInformationItem : @ConditionInformationItem = t: SimpleTargetSpecificat
 
 SimpleTargetSpecification : @Expression = ':' & n: Identifier => @(new Expression.Parameter(ParameterKind.Host, n))
                                         | c: IdentifierChain => @(new Expression.Reference(c))
-                                        | m: "MODULE"i & '.' & a: Identifier & '.' & b: Identifier => @(new Expression.Reference(Nodes.Named(m, a, b)))
+                                        | m: LocalQualifier & '.' & a: Identifier & '.' & b: Identifier => @(new Expression.Reference(Nodes.Named(m, a, b)))
 
 StatementInformationItemName
 	= "NUMBER"i | "MORE"i | "COMMAND_FUNCTION_CODE"i | "COMMAND_FUNCTION"i | "DYNAMIC_FUNCTION_CODE"i | "DYNAMIC_FUNCTION"i

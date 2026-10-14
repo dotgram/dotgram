@@ -31,6 +31,7 @@
 
 	<ItemGroup>
 		<AdditionalFiles Include="SqlStandardProductions.gram" />
+		<AdditionalFiles Include="SqlStandardLocated.gram" />
 		<AdditionalFiles Include="..\..\src\DotGram.Sql\Standard\SqlStandard.gram" Link="SqlStandard.gram" />
 	</ItemGroup>
 
