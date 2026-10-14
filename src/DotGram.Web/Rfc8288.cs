@@ -162,7 +162,7 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	Element : @WebLink = link: LinkValue & Ows & ((',' & Ows)+ | ?!any) => @(link)
 
-	LinkValue : @WebLink = '<' & target: Target & '>' & parameters: LinkParam* => @(new WebLink(target, parameters))
+	LinkValue : @WebLink = '<' & target: Target & '>' & { parameters: LinkParam* } => @(new WebLink(target, parameters))
 
 	// A URI-Reference, as Rfc3986 says. The check is a rule of its own, so that no guarded rule holds a
 	// repetition the reader would divide into a part.
