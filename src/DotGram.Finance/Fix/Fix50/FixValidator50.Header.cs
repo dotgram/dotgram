@@ -66,7 +66,7 @@ partial class FixValidator50 : FixValidator
 		// say what the octets are: said once, at the first such field.
 		var encoding = message.MessageEncoding is not null;
 
-		foreach (var field in message.Fields)
+		foreach (var field in message.FieldStore)
 		{
 			// A length field is followed by the data it measures, and by nothing else.
 			if (length != 0 && field.Tag != context.DataTag(length))
@@ -89,14 +89,14 @@ partial class FixValidator50 : FixValidator
 				message.AddFinding(new FixFinding(FixRule.FieldOutOfOrder, field.Tag, field.Position, field, -1));
 		}
 
-		Counted(message, message.NoHops, message.NoHopsGroups);
+		Counted(message, message.NoHops, message.NoHopsGroupsStore);
 
 		return message.IsValid;
 	}
 
 	/// <summary>Holds each entry of a group to its check, in order; nothing where the group is absent.</summary>
 	/// <remarks>What a loaded dictionary's check calls for a group, rather than writing the loop in its text.</remarks>
-	internal static void Each<TEntry>(Fix50Context context, FixMessage message, List<TEntry>? entries, Func<Fix50Context, FixMessage, TEntry, int, bool> check)
+	internal static void Each<TEntry>(Fix50Context context, FixMessage message, IReadOnlyList<TEntry>? entries, Func<Fix50Context, FixMessage, TEntry, int, bool> check)
 	{
 		if (entries is null)
 			return;
@@ -108,7 +108,7 @@ partial class FixValidator50 : FixValidator
 	// A field of the header that has to stand at an index of its own, and does not.
 	static void First(FixMessage message, int index, FixField? field)
 	{
-		if (field is not null && (message.Fields.Count <= index || !ReferenceEquals(message.Fields[index], field)))
+		if (field is not null && (message.FieldStore.Count <= index || !ReferenceEquals(message.FieldStore[index], field)))
 			message.AddFinding(new FixFinding(FixRule.FieldOutOfOrder, field.Tag, field.Position, field, -1));
 	}
 

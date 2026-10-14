@@ -556,7 +556,7 @@ public static partial class FixParser
 		var sum  = 0;
 		var body = -1;
 
-		foreach (var field in message.Fields)
+		foreach (var field in message.FieldStore)
 		{
 			if (field.Tag == FixTag.CheckSum)
 				break;
@@ -583,7 +583,7 @@ public static partial class FixParser
 		var sum  = 0;
 		var body = -1;
 
-		foreach (var field in message.Fields)
+		foreach (var field in message.FieldStore)
 		{
 			if (field.Tag == FixTag.CheckSum)
 				break;

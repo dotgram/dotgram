@@ -52,7 +52,7 @@ public abstract class FixCustomMessage : FixMessage
 	internal FixCustomMessage Read(string type, List<FixField> fields)
 	{
 		MessageType = type;
-		Fields      = fields;
+		FieldStore  = fields;
 
 		foreach (var field in fields)
 			if (!SetStandardField(field) && !Place(field))

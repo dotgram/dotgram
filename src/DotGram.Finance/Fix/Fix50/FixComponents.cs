@@ -111,7 +111,7 @@ public interface IExpirationQty
 	FixField.Integer? NoExpiration { get; }
 
 	/// <summary>The entries counted by NoExpiration, tag 981; null when the group is absent.</summary>
-	List<IExpirationQty.NoExpirationGroup>? NoExpirationGroups { get; }
+	IReadOnlyList<IExpirationQty.NoExpirationGroup>? NoExpirationGroups { get; }
 
 	/// <summary>One entry of the group counted by NoExpiration, tag 981.</summary>
 	public sealed class NoExpirationGroup
@@ -176,7 +176,7 @@ public interface IInstrument : IInstrumentParties
 	FixField.Integer? NoSecurityAltID { get; }
 
 	/// <summary>The entries counted by NoSecurityAltID, tag 454; null when the group is absent.</summary>
-	List<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; }
+	IReadOnlyList<IInstrument.NoSecurityAltIDGroup>? NoSecurityAltIDGroups { get; }
 
 	/// <summary>The FIX Product, tag 460.</summary>
 	FixField.Integer? Product { get; }
@@ -416,7 +416,7 @@ public interface IInstrument : IInstrumentParties
 	FixField.Integer? NoEvents { get; }
 
 	/// <summary>The entries counted by NoEvents, tag 864; null when the group is absent.</summary>
-	List<IInstrument.NoEventsGroup>? NoEventsGroups { get; }
+	IReadOnlyList<IInstrument.NoEventsGroup>? NoEventsGroups { get; }
 
 	/// <summary>The FIX DatedDate, tag 873.</summary>
 	FixField.Date? DatedDate { get; }
@@ -428,7 +428,7 @@ public interface IInstrument : IInstrumentParties
 	FixField.Integer? NoComplexEvents { get; }
 
 	/// <summary>The entries counted by NoComplexEvents, tag 1483; null when the group is absent.</summary>
-	List<IInstrument.NoComplexEventsGroup>? NoComplexEventsGroups { get; }
+	IReadOnlyList<IInstrument.NoComplexEventsGroup>? NoComplexEventsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoSecurityAltID, tag 454.</summary>
 	public sealed class NoSecurityAltIDGroup
@@ -487,7 +487,8 @@ public interface IInstrument : IInstrumentParties
 		public FixField.Integer? NoComplexEventDates { get; internal set; }
 
 		/// <summary>The entries counted by NoComplexEventDates, tag 1491; null when the group is absent.</summary>
-		public List<IInstrument.NoComplexEventsGroup.NoComplexEventDatesGroup>? NoComplexEventDatesGroups { get; internal set; }
+		public IReadOnlyList<IInstrument.NoComplexEventsGroup.NoComplexEventDatesGroup>? NoComplexEventDatesGroups => NoComplexEventDatesGroupsStore;
+		internal List<IInstrument.NoComplexEventsGroup.NoComplexEventDatesGroup>? NoComplexEventDatesGroupsStore;
 
 		/// <summary>One entry of the group counted by NoComplexEventDates, tag 1491.</summary>
 		public sealed class NoComplexEventDatesGroup
@@ -502,7 +503,8 @@ public interface IInstrument : IInstrumentParties
 			public FixField.Integer? NoComplexEventTimes { get; internal set; }
 
 			/// <summary>The entries counted by NoComplexEventTimes, tag 1494; null when the group is absent.</summary>
-			public List<IInstrument.NoComplexEventsGroup.NoComplexEventDatesGroup.NoComplexEventTimesGroup>? NoComplexEventTimesGroups { get; internal set; }
+			public IReadOnlyList<IInstrument.NoComplexEventsGroup.NoComplexEventDatesGroup.NoComplexEventTimesGroup>? NoComplexEventTimesGroups => NoComplexEventTimesGroupsStore;
+			internal List<IInstrument.NoComplexEventsGroup.NoComplexEventDatesGroup.NoComplexEventTimesGroup>? NoComplexEventTimesGroupsStore;
 
 			/// <summary>One entry of the group counted by NoComplexEventTimes, tag 1494.</summary>
 			public sealed class NoComplexEventTimesGroup
@@ -531,7 +533,7 @@ public interface IInstrumentExtension
 	FixField.Integer? NoInstrAttrib { get; }
 
 	/// <summary>The entries counted by NoInstrAttrib, tag 870; null when the group is absent.</summary>
-	List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; }
+	IReadOnlyList<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; }
 
 	/// <summary>One entry of the group counted by NoInstrAttrib, tag 870.</summary>
 	public sealed class NoInstrAttribGroup
@@ -564,7 +566,7 @@ public interface IInstrumentLeg
 	FixField.Integer? NoLegSecurityAltID { get; }
 
 	/// <summary>The entries counted by NoLegSecurityAltID, tag 604; null when the group is absent.</summary>
-	List<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; }
+	IReadOnlyList<IInstrumentLeg.NoLegSecurityAltIDGroup>? NoLegSecurityAltIDGroups { get; }
 
 	/// <summary>The FIX LegProduct, tag 607.</summary>
 	FixField.Integer? LegProduct { get; }
@@ -732,7 +734,7 @@ public interface IInstrumentParties
 	FixField.Integer? NoInstrumentParties { get; }
 
 	/// <summary>The entries counted by NoInstrumentParties, tag 1018; null when the group is absent.</summary>
-	List<IInstrumentParties.NoInstrumentPartiesGroup>? NoInstrumentPartiesGroups { get; }
+	IReadOnlyList<IInstrumentParties.NoInstrumentPartiesGroup>? NoInstrumentPartiesGroups { get; }
 
 	/// <summary>One entry of the group counted by NoInstrumentParties, tag 1018.</summary>
 	public sealed class NoInstrumentPartiesGroup
@@ -750,7 +752,8 @@ public interface IInstrumentParties
 		public FixField.Integer? NoInstrumentPartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoInstrumentPartySubIDs, tag 1052; null when the group is absent.</summary>
-		public List<IInstrumentParties.NoInstrumentPartiesGroup.NoInstrumentPartySubIDsGroup>? NoInstrumentPartySubIDsGroups { get; internal set; }
+		public IReadOnlyList<IInstrumentParties.NoInstrumentPartiesGroup.NoInstrumentPartySubIDsGroup>? NoInstrumentPartySubIDsGroups => NoInstrumentPartySubIDsGroupsStore;
+		internal List<IInstrumentParties.NoInstrumentPartiesGroup.NoInstrumentPartySubIDsGroup>? NoInstrumentPartySubIDsGroupsStore;
 
 		/// <summary>One entry of the group counted by NoInstrumentPartySubIDs, tag 1052.</summary>
 		public sealed class NoInstrumentPartySubIDsGroup
@@ -792,7 +795,7 @@ public interface ILegStipulations
 	FixField.Integer? NoLegStipulations { get; }
 
 	/// <summary>The entries counted by NoLegStipulations, tag 683; null when the group is absent.</summary>
-	List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; }
+	IReadOnlyList<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoLegStipulations, tag 683.</summary>
 	public sealed class NoLegStipulationsGroup
@@ -813,7 +816,7 @@ public interface INestedParties
 	FixField.Integer? NoNestedPartyIDs { get; }
 
 	/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-	List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; }
+	IReadOnlyList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoNestedPartyIDs, tag 539.</summary>
 	public sealed class NoNestedPartyIDsGroup
@@ -831,7 +834,8 @@ public interface INestedParties
 		public FixField.Integer? NoNestedPartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartySubIDs, tag 804; null when the group is absent.</summary>
-		public List<INestedParties.NoNestedPartyIDsGroup.NoNestedPartySubIDsGroup>? NoNestedPartySubIDsGroups { get; internal set; }
+		public IReadOnlyList<INestedParties.NoNestedPartyIDsGroup.NoNestedPartySubIDsGroup>? NoNestedPartySubIDsGroups => NoNestedPartySubIDsGroupsStore;
+		internal List<INestedParties.NoNestedPartyIDsGroup.NoNestedPartySubIDsGroup>? NoNestedPartySubIDsGroupsStore;
 
 		/// <summary>One entry of the group counted by NoNestedPartySubIDs, tag 804.</summary>
 		public sealed class NoNestedPartySubIDsGroup
@@ -853,7 +857,7 @@ public interface INestedParties2
 	FixField.Integer? NoNested2PartyIDs { get; }
 
 	/// <summary>The entries counted by NoNested2PartyIDs, tag 756; null when the group is absent.</summary>
-	List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; }
+	IReadOnlyList<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoNested2PartyIDs, tag 756.</summary>
 	public sealed class NoNested2PartyIDsGroup
@@ -871,7 +875,8 @@ public interface INestedParties2
 		public FixField.Integer? NoNested2PartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNested2PartySubIDs, tag 806; null when the group is absent.</summary>
-		public List<INestedParties2.NoNested2PartyIDsGroup.NoNested2PartySubIDsGroup>? NoNested2PartySubIDsGroups { get; internal set; }
+		public IReadOnlyList<INestedParties2.NoNested2PartyIDsGroup.NoNested2PartySubIDsGroup>? NoNested2PartySubIDsGroups => NoNested2PartySubIDsGroupsStore;
+		internal List<INestedParties2.NoNested2PartyIDsGroup.NoNested2PartySubIDsGroup>? NoNested2PartySubIDsGroupsStore;
 
 		/// <summary>One entry of the group counted by NoNested2PartySubIDs, tag 806.</summary>
 		public sealed class NoNested2PartySubIDsGroup
@@ -893,7 +898,7 @@ public interface INestedParties3
 	FixField.Integer? NoNested3PartyIDs { get; }
 
 	/// <summary>The entries counted by NoNested3PartyIDs, tag 948; null when the group is absent.</summary>
-	List<INestedParties3.NoNested3PartyIDsGroup>? NoNested3PartyIDsGroups { get; }
+	IReadOnlyList<INestedParties3.NoNested3PartyIDsGroup>? NoNested3PartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoNested3PartyIDs, tag 948.</summary>
 	public sealed class NoNested3PartyIDsGroup
@@ -911,7 +916,8 @@ public interface INestedParties3
 		public FixField.Integer? NoNested3PartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNested3PartySubIDs, tag 952; null when the group is absent.</summary>
-		public List<INestedParties3.NoNested3PartyIDsGroup.NoNested3PartySubIDsGroup>? NoNested3PartySubIDsGroups { get; internal set; }
+		public IReadOnlyList<INestedParties3.NoNested3PartyIDsGroup.NoNested3PartySubIDsGroup>? NoNested3PartySubIDsGroups => NoNested3PartySubIDsGroupsStore;
+		internal List<INestedParties3.NoNested3PartyIDsGroup.NoNested3PartySubIDsGroup>? NoNested3PartySubIDsGroupsStore;
 
 		/// <summary>One entry of the group counted by NoNested3PartySubIDs, tag 952.</summary>
 		public sealed class NoNested3PartySubIDsGroup
@@ -933,7 +939,7 @@ public interface INestedParties4
 	FixField.Integer? NoNested4PartyIDs { get; }
 
 	/// <summary>The entries counted by NoNested4PartyIDs, tag 1414; null when the group is absent.</summary>
-	List<INestedParties4.NoNested4PartyIDsGroup>? NoNested4PartyIDsGroups { get; }
+	IReadOnlyList<INestedParties4.NoNested4PartyIDsGroup>? NoNested4PartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoNested4PartyIDs, tag 1414.</summary>
 	public sealed class NoNested4PartyIDsGroup
@@ -951,7 +957,8 @@ public interface INestedParties4
 		public FixField.Integer? NoNested4PartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNested4PartySubIDs, tag 1413; null when the group is absent.</summary>
-		public List<INestedParties4.NoNested4PartyIDsGroup.NoNested4PartySubIDsGroup>? NoNested4PartySubIDsGroups { get; internal set; }
+		public IReadOnlyList<INestedParties4.NoNested4PartyIDsGroup.NoNested4PartySubIDsGroup>? NoNested4PartySubIDsGroups => NoNested4PartySubIDsGroupsStore;
+		internal List<INestedParties4.NoNested4PartyIDsGroup.NoNested4PartySubIDsGroup>? NoNested4PartySubIDsGroupsStore;
 
 		/// <summary>One entry of the group counted by NoNested4PartySubIDs, tag 1413.</summary>
 		public sealed class NoNested4PartySubIDsGroup
@@ -993,7 +1000,7 @@ public interface IParties
 	FixField.Integer? NoPartyIDs { get; }
 
 	/// <summary>The entries counted by NoPartyIDs, tag 453; null when the group is absent.</summary>
-	List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; }
+	IReadOnlyList<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoPartyIDs, tag 453.</summary>
 	public sealed class NoPartyIDsGroup
@@ -1011,7 +1018,8 @@ public interface IParties
 		public FixField.Integer? NoPartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartySubIDs, tag 802; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup.NoPartySubIDsGroup>? NoPartySubIDsGroups { get; internal set; }
+		public IReadOnlyList<IParties.NoPartyIDsGroup.NoPartySubIDsGroup>? NoPartySubIDsGroups => NoPartySubIDsGroupsStore;
+		internal List<IParties.NoPartyIDsGroup.NoPartySubIDsGroup>? NoPartySubIDsGroupsStore;
 
 		/// <summary>One entry of the group counted by NoPartySubIDs, tag 802.</summary>
 		public sealed class NoPartySubIDsGroup
@@ -1071,7 +1079,7 @@ public interface IPositionAmountData
 	FixField.Integer? NoPosAmt { get; }
 
 	/// <summary>The entries counted by NoPosAmt, tag 753; null when the group is absent.</summary>
-	List<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; }
+	IReadOnlyList<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; }
 
 	/// <summary>One entry of the group counted by NoPosAmt, tag 753.</summary>
 	public sealed class NoPosAmtGroup
@@ -1095,7 +1103,7 @@ public interface IPositionQty
 	FixField.Integer? NoPositions { get; }
 
 	/// <summary>The entries counted by NoPositions, tag 702; null when the group is absent.</summary>
-	List<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; }
+	IReadOnlyList<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoPositions, tag 702.</summary>
 	public sealed class NoPositionsGroup : INestedParties
@@ -1119,7 +1127,8 @@ public interface IPositionQty
 		public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-		public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+		public IReadOnlyList<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups => NoNestedPartyIDsGroupsStore;
+		internal List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroupsStore;
 	}
 }
 
@@ -1131,7 +1140,7 @@ public interface IRateSource
 	FixField.Integer? NoRateSources { get; }
 
 	/// <summary>The entries counted by NoRateSources, tag 1445; null when the group is absent.</summary>
-	List<IRateSource.NoRateSourcesGroup>? NoRateSourcesGroups { get; }
+	IReadOnlyList<IRateSource.NoRateSourcesGroup>? NoRateSourcesGroups { get; }
 
 	/// <summary>One entry of the group counted by NoRateSources, tag 1445.</summary>
 	public sealed class NoRateSourcesGroup
@@ -1155,7 +1164,7 @@ public interface IRootParties
 	FixField.Integer? NoRootPartyIDs { get; }
 
 	/// <summary>The entries counted by NoRootPartyIDs, tag 1116; null when the group is absent.</summary>
-	List<IRootParties.NoRootPartyIDsGroup>? NoRootPartyIDsGroups { get; }
+	IReadOnlyList<IRootParties.NoRootPartyIDsGroup>? NoRootPartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoRootPartyIDs, tag 1116.</summary>
 	public sealed class NoRootPartyIDsGroup
@@ -1173,7 +1182,8 @@ public interface IRootParties
 		public FixField.Integer? NoRootPartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoRootPartySubIDs, tag 1120; null when the group is absent.</summary>
-		public List<IRootParties.NoRootPartyIDsGroup.NoRootPartySubIDsGroup>? NoRootPartySubIDsGroups { get; internal set; }
+		public IReadOnlyList<IRootParties.NoRootPartyIDsGroup.NoRootPartySubIDsGroup>? NoRootPartySubIDsGroups => NoRootPartySubIDsGroupsStore;
+		internal List<IRootParties.NoRootPartyIDsGroup.NoRootPartySubIDsGroup>? NoRootPartySubIDsGroupsStore;
 
 		/// <summary>One entry of the group counted by NoRootPartySubIDs, tag 1120.</summary>
 		public sealed class NoRootPartySubIDsGroup
@@ -1195,13 +1205,13 @@ public interface ISecurityTradingRules
 	FixField.Integer? NoTickRules { get; }
 
 	/// <summary>The entries counted by NoTickRules, tag 1205; null when the group is absent.</summary>
-	List<ISecurityTradingRules.NoTickRulesGroup>? NoTickRulesGroups { get; }
+	IReadOnlyList<ISecurityTradingRules.NoTickRulesGroup>? NoTickRulesGroups { get; }
 
 	/// <summary>The FIX NoLotTypeRules, tag 1234.</summary>
 	FixField.Integer? NoLotTypeRules { get; }
 
 	/// <summary>The entries counted by NoLotTypeRules, tag 1234; null when the group is absent.</summary>
-	List<ISecurityTradingRules.NoLotTypeRulesGroup>? NoLotTypeRulesGroups { get; }
+	IReadOnlyList<ISecurityTradingRules.NoLotTypeRulesGroup>? NoLotTypeRulesGroups { get; }
 
 	/// <summary>The FIX PriceLimitType, tag 1306.</summary>
 	FixField.Integer? PriceLimitType { get; }
@@ -1249,13 +1259,13 @@ public interface ISecurityTradingRules
 	FixField.Integer? NoTradingSessionRules { get; }
 
 	/// <summary>The entries counted by NoTradingSessionRules, tag 1309; null when the group is absent.</summary>
-	List<ISecurityTradingRules.NoTradingSessionRulesGroup>? NoTradingSessionRulesGroups { get; }
+	IReadOnlyList<ISecurityTradingRules.NoTradingSessionRulesGroup>? NoTradingSessionRulesGroups { get; }
 
 	/// <summary>The FIX NoNestedInstrAttrib, tag 1312.</summary>
 	FixField.Integer? NoNestedInstrAttrib { get; }
 
 	/// <summary>The entries counted by NoNestedInstrAttrib, tag 1312; null when the group is absent.</summary>
-	List<ISecurityTradingRules.NoNestedInstrAttribGroup>? NoNestedInstrAttribGroups { get; }
+	IReadOnlyList<ISecurityTradingRules.NoNestedInstrAttribGroup>? NoNestedInstrAttribGroups { get; }
 
 	/// <summary>One entry of the group counted by NoTickRules, tag 1205.</summary>
 	public sealed class NoTickRulesGroup
@@ -1296,31 +1306,36 @@ public interface ISecurityTradingRules
 		public FixField.Integer? NoOrdTypeRules { get; internal set; }
 
 		/// <summary>The entries counted by NoOrdTypeRules, tag 1237; null when the group is absent.</summary>
-		public List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoOrdTypeRulesGroup>? NoOrdTypeRulesGroups { get; internal set; }
+		public IReadOnlyList<ISecurityTradingRules.NoTradingSessionRulesGroup.NoOrdTypeRulesGroup>? NoOrdTypeRulesGroups => NoOrdTypeRulesGroupsStore;
+		internal List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoOrdTypeRulesGroup>? NoOrdTypeRulesGroupsStore;
 
 		/// <summary>The FIX NoTimeInForceRules, tag 1239, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoTimeInForceRules { get; internal set; }
 
 		/// <summary>The entries counted by NoTimeInForceRules, tag 1239; null when the group is absent.</summary>
-		public List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoTimeInForceRulesGroup>? NoTimeInForceRulesGroups { get; internal set; }
+		public IReadOnlyList<ISecurityTradingRules.NoTradingSessionRulesGroup.NoTimeInForceRulesGroup>? NoTimeInForceRulesGroups => NoTimeInForceRulesGroupsStore;
+		internal List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoTimeInForceRulesGroup>? NoTimeInForceRulesGroupsStore;
 
 		/// <summary>The FIX NoExecInstRules, tag 1232, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoExecInstRules { get; internal set; }
 
 		/// <summary>The entries counted by NoExecInstRules, tag 1232; null when the group is absent.</summary>
-		public List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoExecInstRulesGroup>? NoExecInstRulesGroups { get; internal set; }
+		public IReadOnlyList<ISecurityTradingRules.NoTradingSessionRulesGroup.NoExecInstRulesGroup>? NoExecInstRulesGroups => NoExecInstRulesGroupsStore;
+		internal List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoExecInstRulesGroup>? NoExecInstRulesGroupsStore;
 
 		/// <summary>The FIX NoMatchRules, tag 1235, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoMatchRules { get; internal set; }
 
 		/// <summary>The entries counted by NoMatchRules, tag 1235; null when the group is absent.</summary>
-		public List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoMatchRulesGroup>? NoMatchRulesGroups { get; internal set; }
+		public IReadOnlyList<ISecurityTradingRules.NoTradingSessionRulesGroup.NoMatchRulesGroup>? NoMatchRulesGroups => NoMatchRulesGroupsStore;
+		internal List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoMatchRulesGroup>? NoMatchRulesGroupsStore;
 
 		/// <summary>The FIX NoMDFeedTypes, tag 1141, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
 		public FixField.Integer? NoMDFeedTypes { get; internal set; }
 
 		/// <summary>The entries counted by NoMDFeedTypes, tag 1141; null when the group is absent.</summary>
-		public List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoMDFeedTypesGroup>? NoMDFeedTypesGroups { get; internal set; }
+		public IReadOnlyList<ISecurityTradingRules.NoTradingSessionRulesGroup.NoMDFeedTypesGroup>? NoMDFeedTypesGroups => NoMDFeedTypesGroupsStore;
+		internal List<ISecurityTradingRules.NoTradingSessionRulesGroup.NoMDFeedTypesGroup>? NoMDFeedTypesGroupsStore;
 
 		/// <summary>One entry of the group counted by NoOrdTypeRules, tag 1237.</summary>
 		public sealed class NoOrdTypeRulesGroup
@@ -1398,7 +1413,7 @@ public interface ISettlInstructionsData
 	FixField.Integer? NoDlvyInst { get; }
 
 	/// <summary>The entries counted by NoDlvyInst, tag 85; null when the group is absent.</summary>
-	List<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; }
+	IReadOnlyList<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; }
 
 	/// <summary>One entry of the group counted by NoDlvyInst, tag 85.</summary>
 	public sealed class NoDlvyInstGroup : ISettlParties
@@ -1413,7 +1428,8 @@ public interface ISettlInstructionsData
 		public FixField.Integer? NoSettlPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoSettlPartyIDs, tag 781; null when the group is absent.</summary>
-		public List<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups { get; internal set; }
+		public IReadOnlyList<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups => NoSettlPartyIDsGroupsStore;
+		internal List<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroupsStore;
 	}
 }
 
@@ -1425,7 +1441,7 @@ public interface ISettlParties
 	FixField.Integer? NoSettlPartyIDs { get; }
 
 	/// <summary>The entries counted by NoSettlPartyIDs, tag 781; null when the group is absent.</summary>
-	List<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups { get; }
+	IReadOnlyList<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoSettlPartyIDs, tag 781.</summary>
 	public sealed class NoSettlPartyIDsGroup
@@ -1443,7 +1459,8 @@ public interface ISettlParties
 		public FixField.Integer? NoSettlPartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoSettlPartySubIDs, tag 801; null when the group is absent.</summary>
-		public List<ISettlParties.NoSettlPartyIDsGroup.NoSettlPartySubIDsGroup>? NoSettlPartySubIDsGroups { get; internal set; }
+		public IReadOnlyList<ISettlParties.NoSettlPartyIDsGroup.NoSettlPartySubIDsGroup>? NoSettlPartySubIDsGroups => NoSettlPartySubIDsGroupsStore;
+		internal List<ISettlParties.NoSettlPartyIDsGroup.NoSettlPartySubIDsGroup>? NoSettlPartySubIDsGroupsStore;
 
 		/// <summary>One entry of the group counted by NoSettlPartySubIDs, tag 801.</summary>
 		public sealed class NoSettlPartySubIDsGroup
@@ -1465,7 +1482,7 @@ public interface ISideTrdRegTS
 	FixField.Integer? NoSideTrdRegTS { get; }
 
 	/// <summary>The entries counted by NoSideTrdRegTS, tag 1016; null when the group is absent.</summary>
-	List<ISideTrdRegTS.NoSideTrdRegTSGroup>? NoSideTrdRegTSGroups { get; }
+	IReadOnlyList<ISideTrdRegTS.NoSideTrdRegTSGroup>? NoSideTrdRegTSGroups { get; }
 
 	/// <summary>One entry of the group counted by NoSideTrdRegTS, tag 1016.</summary>
 	public sealed class NoSideTrdRegTSGroup
@@ -1518,7 +1535,7 @@ public interface IStipulations
 	FixField.Integer? NoStipulations { get; }
 
 	/// <summary>The entries counted by NoStipulations, tag 232; null when the group is absent.</summary>
-	List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; }
+	IReadOnlyList<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoStipulations, tag 232.</summary>
 	public sealed class NoStipulationsGroup
@@ -1539,7 +1556,7 @@ public interface ITargetParties
 	FixField.Integer? NoTargetPartyIDs { get; }
 
 	/// <summary>The entries counted by NoTargetPartyIDs, tag 1461; null when the group is absent.</summary>
-	List<ITargetParties.NoTargetPartyIDsGroup>? NoTargetPartyIDsGroups { get; }
+	IReadOnlyList<ITargetParties.NoTargetPartyIDsGroup>? NoTargetPartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoTargetPartyIDs, tag 1461.</summary>
 	public sealed class NoTargetPartyIDsGroup
@@ -1563,7 +1580,7 @@ public interface ITrdRegTimestamps
 	FixField.Integer? NoTrdRegTimestamps { get; }
 
 	/// <summary>The entries counted by NoTrdRegTimestamps, tag 768; null when the group is absent.</summary>
-	List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; }
+	IReadOnlyList<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoTrdRegTimestamps, tag 768.</summary>
 	public sealed class NoTrdRegTimestampsGroup
@@ -1646,7 +1663,7 @@ public interface IUnderlyingAmount
 	FixField.Integer? NoUnderlyingAmounts { get; }
 
 	/// <summary>The entries counted by NoUnderlyingAmounts, tag 984; null when the group is absent.</summary>
-	List<IUnderlyingAmount.NoUnderlyingAmountsGroup>? NoUnderlyingAmountsGroups { get; }
+	IReadOnlyList<IUnderlyingAmount.NoUnderlyingAmountsGroup>? NoUnderlyingAmountsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoUnderlyingAmounts, tag 984.</summary>
 	public sealed class NoUnderlyingAmountsGroup
@@ -1685,7 +1702,7 @@ public interface IUnderlyingInstrument : IUnderlyingStipulations, IUndlyInstrume
 	FixField.Integer? NoUnderlyingSecurityAltID { get; }
 
 	/// <summary>The entries counted by NoUnderlyingSecurityAltID, tag 457; null when the group is absent.</summary>
-	List<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; }
+	IReadOnlyList<IUnderlyingInstrument.NoUnderlyingSecurityAltIDGroup>? NoUnderlyingSecurityAltIDGroups { get; }
 
 	/// <summary>The FIX UnderlyingProduct, tag 462.</summary>
 	FixField.Integer? UnderlyingProduct { get; }
@@ -1901,7 +1918,7 @@ public interface IUnderlyingStipulations
 	FixField.Integer? NoUnderlyingStips { get; }
 
 	/// <summary>The entries counted by NoUnderlyingStips, tag 887; null when the group is absent.</summary>
-	List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; }
+	IReadOnlyList<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoUnderlyingStips, tag 887.</summary>
 	public sealed class NoUnderlyingStipsGroup
@@ -1922,7 +1939,7 @@ public interface IUndlyInstrumentParties
 	FixField.Integer? NoUndlyInstrumentParties { get; }
 
 	/// <summary>The entries counted by NoUndlyInstrumentParties, tag 1058; null when the group is absent.</summary>
-	List<IUndlyInstrumentParties.NoUndlyInstrumentPartiesGroup>? NoUndlyInstrumentPartiesGroups { get; }
+	IReadOnlyList<IUndlyInstrumentParties.NoUndlyInstrumentPartiesGroup>? NoUndlyInstrumentPartiesGroups { get; }
 
 	/// <summary>One entry of the group counted by NoUndlyInstrumentParties, tag 1058.</summary>
 	public sealed class NoUndlyInstrumentPartiesGroup
@@ -1940,7 +1957,8 @@ public interface IUndlyInstrumentParties
 		public FixField.Integer? NoUndlyInstrumentPartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoUndlyInstrumentPartySubIDs, tag 1062; null when the group is absent.</summary>
-		public List<IUndlyInstrumentParties.NoUndlyInstrumentPartiesGroup.NoUndlyInstrumentPartySubIDsGroup>? NoUndlyInstrumentPartySubIDsGroups { get; internal set; }
+		public IReadOnlyList<IUndlyInstrumentParties.NoUndlyInstrumentPartiesGroup.NoUndlyInstrumentPartySubIDsGroup>? NoUndlyInstrumentPartySubIDsGroups => NoUndlyInstrumentPartySubIDsGroupsStore;
+		internal List<IUndlyInstrumentParties.NoUndlyInstrumentPartiesGroup.NoUndlyInstrumentPartySubIDsGroup>? NoUndlyInstrumentPartySubIDsGroupsStore;
 
 		/// <summary>One entry of the group counted by NoUndlyInstrumentPartySubIDs, tag 1062.</summary>
 		public sealed class NoUndlyInstrumentPartySubIDsGroup
