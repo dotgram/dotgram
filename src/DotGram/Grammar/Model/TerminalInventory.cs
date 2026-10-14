@@ -107,6 +107,66 @@ public sealed class TerminalInventory
 	public IReadOnlyList<Group> WordKinds { get; private init; } = [];
 
 	/// <summary>
+	/// By kind number, the kind a token is where the character after it continues a word: the
+	/// same patterns without the keywords, 0 where nothing else matched. Empty where no kind
+	/// holds a keyword.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §4.6 puts a word boundary after a keyword, and an automaton cannot ask it: longest
+	/// match decides between the patterns, and where none of them is longer the token ends
+	/// inside a word. <c>gogo</c> came out as two keywords <c>go</c> wherever no class covered
+	/// the longer word, and <c>gox</c> as a keyword and a mark — both of which the reading over
+	/// characters refuses. So the lexer asks the character after a token that holds a keyword,
+	/// and where it continues a word takes this kind instead — and where that is none, the
+	/// longest shorter token, the keyword never having matched.
+	/// </para>
+	/// <para>
+	/// Not the character before. §4.6 guards that side too, and over tokens a keyword glued to
+	/// the number before it — <c>1MB</c> — is read as two tokens all the same, which is how the
+	/// T-SQL engine reads it and what the T-SQL tests hold the grammar to.
+	/// </para>
+	/// <para>
+	/// A kind of its own where the keyword had none: <c>go</c> read by <c>"go"</c> and by a
+	/// class that matches only it is one kind, and the class alone is not a kind the automaton
+	/// gives. Those are numbered after every other kind, so nothing already numbered moves.
+	/// A kind that is not asked maps to itself: one that holds no keyword, one whose keywords'
+	/// boundaries have no character in common, and one holding a spelling some syntax reads with
+	/// no boundary woven around it — over characters that reading matches inside a word.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<int> Unworded { get; private init; } = [];
+
+	/// <summary>
+	/// The boundaries the lexer asks after a keyword, and by kind number which one, -1 where it
+	/// asks none. Both empty where <see cref="Unworded"/> is.
+	/// </summary>
+	/// <remarks>
+	/// The boundary a keyword was woven with, which is its namespace's (§4.6) and not one for the
+	/// whole grammar: a grammar that inherits another reads the inherited keywords under the
+	/// inherited boundary. A kind whose keywords were woven under several asks what all of them
+	/// agree continues a word, so it refuses nothing the reading over characters reads.
+	/// </remarks>
+	public IReadOnlyList<Node.Element> WordBoundaries { get; private init; } = [];
+
+	/// <inheritdoc cref="WordBoundaries"/>
+	public IReadOnlyList<int> WordBoundaryOf { get; private init; } = [];
+
+	/// <summary>
+	/// The kinds the lexer has to ask at all, as runs: those that can end a token right before a
+	/// character that continues a word. Empty where none can, and then nothing is asked.
+	/// </summary>
+	/// <remarks>
+	/// Most cannot, which is what makes the question nearly free. A keyword that is also an
+	/// identifier — <c>SELECT</c>, read by <c>"SELECT"</c> and by the name class — ends where the
+	/// automaton stopped, and from there every character that continues a word leads on to an
+	/// accepting state: longest match has already taken the longer word, so no such character can
+	/// follow the token. Only a state with some word character that does not lead on is asked;
+	/// a kind made by measuring a continuation is asked wherever it holds a keyword.
+	/// </remarks>
+	public IReadOnlyList<Group> Asked { get; private init; } = [];
+
+	/// <summary>
 	/// The machine that reads the patterns together, and whose accepting states are the kinds.
 	/// </summary>
 	/// <remarks>
@@ -468,6 +528,12 @@ public sealed class TerminalInventory
 		readonly List<string>     _reasons = [];
 		readonly List<(string Name, List<Text> Members)> _sets = [];
 
+		/// <summary>The boundaries each keyword was woven with: what the lexer asks after its token.</summary>
+		readonly Dictionary<Text, List<Node.Element?>> _woven = [];
+
+		/// <summary>The literals some syntax reads with no boundary woven around them.</summary>
+		readonly HashSet<Text> _unguarded = [];
+
 		/// <summary>
 		/// Everything `trivia` and `wordboundary` are made of, which no walk may enter.
 		/// </summary>
@@ -595,6 +661,11 @@ public sealed class TerminalInventory
 						if (Worded(nodes, i) is var (literal, last))
 						{
 							Take(_words, literal.Text, literal.IgnoreCase);
+
+							if (!_woven.TryGetValue((literal.Text, literal.IgnoreCase), out var with))
+								_woven[(literal.Text, literal.IgnoreCase)] = with = [];
+
+							with.Add(nodes[i] is Node.Behind behind ? behind.Test : Element(nodes[last], []));
 
 							i = last;
 						}
@@ -740,6 +811,11 @@ public sealed class TerminalInventory
 		/// </remarks>
 		void Take(List<Text> into, string text, bool ignoreCase)
 		{
+			// Read somewhere with no boundary woven around it: over characters that occurrence
+			// matches inside a word, so the lexer may not refuse the spelling for being in one.
+			if (into == _marks)
+				_unguarded.Add((text, ignoreCase));
+
 			if (_seen.Add((ignoreCase ? "i" : "") + text))
 			{
 				into.Add((text, ignoreCase));
@@ -1056,6 +1132,11 @@ public sealed class TerminalInventory
 				continued[i] = continued[i] with { Extended = unions };
 			}
 
+			var (woven, wovenWith, wovenOf) = Unworded(kinds);
+			var asked = Asked(machine, kinds, woven, wovenWith, wovenOf);
+
+			var (unworded, boundaries, boundaryOf) = Settled(kinds, woven, wovenWith, wovenOf, asked);
+
 			var counted = new TerminalInventory(true, patterns, kinds, [], _reasons);
 			var wordly  = Runs(
 				"word",
@@ -1073,9 +1154,235 @@ public sealed class TerminalInventory
 
 			return new TerminalInventory(true, patterns, kinds, named, _reasons)
 			{
-				Machine   = machine,
-				WordKinds = wordly,
-				Continued = continued,
+				Machine        = machine,
+				WordKinds      = wordly,
+				Continued      = continued,
+				Unworded       = unworded,
+				WordBoundaries = boundaries,
+				WordBoundaryOf = boundaryOf,
+				Asked          = asked,
+			};
+		}
+
+		/// <summary>
+		/// By kind number, whether it holds a keyword to ask about — 0 where nothing else is in
+		/// the kind, -1 where something is, the kind itself where nothing is asked — and the
+		/// boundary asked after it; all three empty where no kind holds one.
+		/// </summary>
+		(List<int> Unworded, List<Node.Element> Boundaries, List<int> BoundaryOf) Unworded(List<Kind> kinds)
+		{
+			var unworded   = new List<int>(kinds.Count + 1) { 0 };
+			var boundaries = new List<Node.Element>();
+			var boundaryOf = new List<int>(kinds.Count + 1) { -1 };
+
+			for (var at = 0; at < kinds.Count; at++)
+			{
+				var matched  = kinds[at].Matched;
+				var words    = matched.OfType<Pattern.Word>().ToList();
+				var boundary = words.Count == 0
+					? null
+					: Narrowest(words.SelectMany(word => !_unguarded.Contains((word.Text, word.IgnoreCase)) &&
+						_woven.TryGetValue((word.Text, word.IgnoreCase), out var with) ? with : [null]));
+
+				if (boundary is null)
+				{
+					unworded.Add(kinds[at].Number);
+					boundaryOf.Add(-1);
+
+					continue;
+				}
+
+				var index = boundaries.FindIndex(one => Same(one, boundary));
+
+				if (index < 0)
+				{
+					index = boundaries.Count;
+					boundaries.Add(boundary);
+				}
+
+				boundaryOf.Add(index);
+
+				// Which kind it is without them is settled once it is known to be asked at all,
+				// so that a kind nobody asks for is not numbered.
+				unworded.Add(matched.Any(one => one is not Pattern.Word) ? -1 : 0);
+			}
+
+			return boundaries.Count == 0 ? ([], [], []) : (unworded, boundaries, boundaryOf);
+		}
+
+		/// <summary>
+		/// Each kind that holds a keyword mapped to the kind it is without them; all empty where
+		/// nothing is asked.
+		/// </summary>
+		/// <remarks>
+		/// Every such kind and not only the asked ones: a token the lexer shortened, having refused
+		/// the longer, ends where longest match did not stop, and the pruning says nothing of it.
+		/// A set that is no kind yet is appended as one, and maps to itself: it holds no keyword.
+		/// </remarks>
+		static (List<int> Unworded, List<Node.Element> Boundaries, List<int> BoundaryOf) Settled(
+			List<Kind> kinds,
+			List<int> unworded,
+			List<Node.Element> boundaries,
+			List<int> boundaryOf,
+			IReadOnlyList<Group> asked)
+		{
+			if (asked.Count == 0)
+				return ([], [], []);
+
+			var known = kinds.Count;
+
+			for (var number = 1; number <= known; number++)
+			{
+				if (unworded[number] != -1)
+					continue;
+
+				var rest = kinds[number - 1].Matched.Where(one => one is not Pattern.Word).ToList();
+				var same = kinds.FirstOrDefault(kind =>
+					kind.Matched.Count == rest.Count && kind.Matched.All(rest.Contains));
+
+				if (same is null)
+				{
+					kinds.Add(same = new Kind(kinds.Count + 1, rest));
+					unworded.Add(same.Number);
+					boundaryOf.Add(-1);
+				}
+
+				unworded[number] = same.Number;
+			}
+
+			return (unworded, boundaries, boundaryOf);
+		}
+
+		/// <summary>The kinds that can end a token right before a character that continues a word.</summary>
+		static List<Group> Asked(
+			LexicalAutomaton machine,
+			List<Kind> kinds,
+			List<int> unworded,
+			List<Node.Element> boundaries,
+			List<int> boundaryOf)
+		{
+			if (unworded.Count == 0)
+				return [];
+
+			var asked = new HashSet<int>();
+
+			// A kind past the automaton's own was made by measuring a continuation, and the
+			// automaton says nothing of where it ends.
+			for (var number = machine.Sets.Count + 1; number <= kinds.Count; number++)
+				if (unworded[number] != number)
+					asked.Add(number);
+
+			var words = boundaries.Select(one => FirstSets.OfElement(one)).ToList();
+
+			for (var state = 0; state < machine.Accepts.Count; state++)
+			{
+				var number = machine.Accepts[state] + 1;
+
+				if (number == 0 || unworded[number] == number || asked.Contains(number))
+					continue;
+
+				if (StopsBeforeWord(machine, state, words[boundaryOf[number]]))
+					asked.Add(number);
+			}
+
+			return Runs("asked", asked);
+		}
+
+		/// <summary>
+		/// Whether some character that continues a word does not lead on from this state to an
+		/// accepting one — so a token ending here can stand right before it.
+		/// </summary>
+		static bool StopsBeforeWord(LexicalAutomaton machine, int state, FirstSets.First word)
+		{
+			if (!word.IsKnown)
+				return !word.Nothing;
+
+			var row = machine.Next[state];
+
+			foreach (var range in word.Ranges)
+			{
+				var at = (int)range.From;
+
+				for (var atom = 0; atom < machine.Atoms.Count && at <= range.To; atom++)
+				{
+					if (machine.Atoms[atom].To < at)
+						continue;
+
+					if (machine.Atoms[atom].From > at || row[atom] < 0 || machine.Accepts[row[atom]] < 0)
+						return true;
+
+					at = machine.Atoms[atom].To + 1;
+				}
+
+				if (at <= range.To)
+					return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// What every one of the boundaries says continues a word, as one element; null where that
+		/// is nothing, or where one of them cannot be listed.
+		/// </summary>
+		/// <remarks>
+		/// One of them as written where it is inside all the others — the usual case, an inherited
+		/// grammar's boundary being a narrower one than the grammar's own — so that a category stays
+		/// a category rather than the thousand ranges it is made of.
+		/// </remarks>
+		static Node.Element? Narrowest(IEnumerable<Node.Element?> boundaries)
+		{
+			var distinct = new List<Node.Element>();
+
+			foreach (var boundary in boundaries)
+			{
+				if (boundary is null)
+					return null;
+
+				if (!distinct.Any(one => Same(one, boundary)))
+					distinct.Add(boundary);
+			}
+
+			if (distinct.Count == 1)
+				return distinct[0];
+
+			var sets = distinct.Select(FirstSets.OfElement).ToList();
+
+			if (sets.Any(set => !set.IsKnown))
+				return null;
+
+			for (var i = 0; i < distinct.Count; i++)
+				if (sets.All(set => set.Covers(sets[i])))
+					return distinct[i];
+
+			var shared = sets.Aggregate((left, right) => left.And(right));
+
+			return shared.IsKnown ? new Node.Element(false, shared.Ranges, [], []) : null;
+		}
+
+		/// <summary>Whether two elements are written alike.</summary>
+		static bool Same(Node.Element left, Node.Element right)
+		{
+			return left.IsNegated == right.IsNegated &&
+			left.Ranges.SequenceEqual(right.Ranges) &&
+			left.Categories.SequenceEqual(right.Categories) &&
+			left.References.SequenceEqual(right.References);
+		}
+
+		/// <summary>The element a boundary's lookahead comes down to, negated or not.</summary>
+		Node.Element? Element(Node node, HashSet<RuleSymbol> seen)
+		{
+			return node switch
+			{
+				Node.Element element => element,
+				Node.Lookahead(false, var body) => Element(body, seen),
+				Node.Call(var rule, _) when seen.Add(rule) &&
+					graph.Bodies.TryGetValue(rule, out var called) => Element(called, seen),
+				Node.Sequence([var only]) => Element(only, seen),
+				Node.Choice([var only]) { Selection: null } => Element(only, seen),
+				Node.Atomic(var kept) => Element(kept, seen),
+				Node.Marked(var marked, _) => Element(marked, seen),
+				_ => null,
 			};
 		}
 

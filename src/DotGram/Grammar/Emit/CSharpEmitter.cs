@@ -2532,6 +2532,121 @@ public static partial class CSharpEmitter
 		}
 	}
 
+	/// <summary>How many runs of kinds the lexer tests for by comparison before it takes a table.</summary>
+	const int AskedRuns = 3;
+
+	/// <summary>
+	/// What the lexer asks after a keyword: the kind a token is without its keywords, and
+	/// whether a character continues a word.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// One test where the grammar has one boundary, which is nearly always; where its keywords
+	/// were woven under several, one test a boundary and a table saying which a kind asks.
+	/// </para>
+	/// <para>
+	/// The test answers ASCII from two words of bits, since a keyword's neighbour is nearly
+	/// always ASCII and a category would otherwise be a call into <c>CharUnicodeInfo</c> for
+	/// it; the categories of ASCII are settled by the standard. The rest is the boundary's own
+	/// test, or its ranges above ASCII where it is nothing else.
+	/// </para>
+	/// </remarks>
+	static void Unworded(Writer file, TerminalInventory inventory)
+	{
+		var boundaries = inventory.WordBoundaries;
+
+		file.Line("/// <summary>By kind, the kind a token is without its keywords, where a word goes on after it.</summary>");
+		file.Line($"static readonly int[] Unworded_DotGram = {{ {string.Join(", ", inventory.Unworded)} }};");
+		file.Line();
+
+		if (inventory.Asked.Count > AskedRuns)
+		{
+			var asked = new int[inventory.Unworded.Count];
+
+			foreach (var run in inventory.Asked)
+				for (var number = run.From; number <= run.To; number++)
+					asked[number] = 1;
+
+			file.Line("/// <summary>By kind, whether a token of it can stand right before a character that continues a word.</summary>");
+			file.Line($"static readonly byte[] Asked_DotGram = {{ {string.Join(", ", asked)} }};");
+			file.Line();
+		}
+
+		if (boundaries.Count > 1)
+		{
+			file.Line("/// <summary>By kind, which boundary its keywords were woven with.</summary>");
+			file.Line($"static readonly {(boundaries.Count > 256 ? "int" : "byte")}[] WordBoundaryOf_DotGram = {{ {string.Join(", ", inventory.WordBoundaryOf.Select(static one => Math.Max(one, 0)))} }};");
+			file.Line();
+			file.Line("/// <summary>Whether a character continues a word after a keyword of this kind.</summary>");
+
+			using (file.Block("static bool WordGoesOn_DotGram(int kind, char c)"))
+			{
+				file.Line("switch (WordBoundaryOf_DotGram[kind])");
+
+				using (file.Block(""))
+				{
+					for (var at = 0; at < boundaries.Count - 1; at++)
+						file.Line($"case {at}: return WordGoesOn_DotGram{at}(c);");
+
+					file.Line($"default: return WordGoesOn_DotGram{boundaries.Count - 1}(c);");
+				}
+			}
+
+			file.Line();
+		}
+
+		for (var at = 0; at < boundaries.Count; at++)
+			WordGoesOn(file, boundaries.Count > 1 ? at.ToString(System.Globalization.CultureInfo.InvariantCulture) : "", boundaries[at]);
+	}
+
+	static void WordGoesOn(Writer file, string suffix, Node.Element boundary)
+	{
+		file.Line("/// <summary>Whether a character continues a word, which no keyword may be followed by.</summary>");
+
+		using (file.Block($"static bool WordGoesOn_DotGram{suffix}(char c)"))
+		{
+			if (boundary.References.Count > 0)
+			{
+				file.Line($"return {Test(boundary)};");
+
+				return;
+			}
+
+			var ranges = FirstSets.OfElement(boundary).Ranges;
+			var low    = 0UL;
+			var high   = 0UL;
+
+			foreach (var range in ranges)
+				for (var c = (int)range.From; c <= range.To && c < 128; c++)
+					if (c < 64)
+						low |= 1UL << c;
+					else
+						high |= 1UL << (c - 64);
+
+			file.Line("if (c < 128)");
+			file.Then($"return ((c < 64 ? 0x{low:X}UL >> c : 0x{high:X}UL >> (c - 64)) & 1) != 0;");
+			file.Line();
+
+			if (boundary.Categories.Count > 0)
+			{
+				file.Line($"return {Test(boundary)};");
+
+				return;
+			}
+
+			var above = ranges
+				.Where(range => range.To >= 128)
+				.Select(range => range.From >= 128 ? range : new CharRange((char)128, range.To))
+				.ToList();
+
+			file.Line(above.Count == 0
+				? "return false;"
+				: $"return {Test(new Node.Element(false, above, [], []))};");
+		}
+
+		file.Line();
+	}
+
 	/// <summary>
 	/// The lexical half of a split grammar: the scanner, the seam, and the loop.
 	/// </summary>
@@ -2554,6 +2669,9 @@ public static partial class CSharpEmitter
 
 		file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!, utf8: utf8Literals));
 		file.Line();
+
+		if (lexical.Inventory.Asked.Count > 0)
+			Unworded(file, lexical.Inventory);
 
 		var seam     = Seam(lexical, expectedSets);
 		var skipping = lexical.Trivia
@@ -2953,6 +3071,17 @@ file.Line("return spare;");
 				// on every other token; a refusal is a character nothing reads.
 				var continued = 0;
 
+				// Where a keyword is taken back below, the shorter token found instead may be one
+				// of these too, and is measured as the first was.
+				var remeasured = lexical.Inventory.Asked.Count > 0 && lexical.Inventory.Continued.Count > 0;
+
+				if (remeasured)
+				{
+					file.Line("var rescanned = false;");
+					file.Line();
+					file.Line("Measured_DotGram:");
+				}
+
 				foreach (var continuation in lexical.Inventory.Continued)
 				{
 					using (file.Block($"{(continued++ == 0 ? "if" : "else if")} (kind == {continuation.Kind})"))
@@ -3069,6 +3198,72 @@ file.Line("return spare;");
 
 				if (continued > 0)
 					file.Line();
+
+				// A keyword is not followed by a character that continues a word (§4.6), and
+				// longest match cannot say so: where no pattern covers the longer word, the token
+				// ends inside it. Asked only of a kind that can end right before such a character —
+				// which most cannot, a keyword that is also a name having taken the longer word
+				// already — and then the token is the same without its keywords; where nothing
+				// else matched it, the keyword never matched at all and the token is the longest
+				// shorter one, asked the same. After the terminals the lexer only begins, so that
+				// a longer one of those is not lost to a keyword that would not have stood.
+				if (lexical.Inventory.Asked.Count > 0)
+				{
+					var inventory = lexical.Inventory;
+					var goesOn    = inventory.WordBoundaries.Count > 1
+						? "WordGoesOn_DotGram(kind, text[end])"
+						: "WordGoesOn_DotGram(text[end])";
+					var asked     = inventory.Asked.Count > AskedRuns
+						? "kind > 0 && Asked_DotGram[kind] != 0"
+						: string.Join(" || ", inventory.Asked.Select(static run => run.From == run.To
+							? $"kind == {run.From}"
+							: $"(uint)(kind - {run.From}) <= {run.To - run.From}u"));
+
+					// A token shortened and measured again is asked whatever its kind: the pruning
+					// is about where longest match stops, and this one did not stop there.
+					if (remeasured)
+						asked = $"{asked} || (rescanned && kind > 0 && Unworded_DotGram[kind] != kind)";
+
+					file.Line($"if (({asked}) && end < text.Length && {goesOn})");
+
+					using (file.Block(""))
+					using (file.Block("while (true)"))
+					{
+						file.Line("kind = Unworded_DotGram[kind];");
+						file.Line();
+						file.Line("if (kind != 0 || end - 1 <= p)");
+						file.Then("break;");
+						file.Line();
+						file.Line("end = Scan(text.Slice(0, end - 1), p, out kind);");
+						file.Line();
+
+						// A shorter token that is a terminal the lexer only begins is measured as
+						// the first was, and asked again after.
+						if (remeasured)
+						{
+							var begun = inventory.Continued
+								.SelectMany(static one => one.Extended.Select(static pair => pair.Kind).Prepend(one.Kind))
+								.Distinct()
+								.Select(static one => $"kind == {one}");
+
+							file.Line($"if ({string.Join(" || ", begun)})");
+
+							using (file.Block(""))
+							{
+								file.Line("rescanned = true;");
+								file.Line();
+								file.Line("goto Measured_DotGram;");
+							}
+
+							file.Line();
+						}
+
+						file.Line($"if (kind == 0 || Unworded_DotGram[kind] == kind || !{goesOn})");
+						file.Then("break;");
+					}
+
+					file.Line();
+				}
 
 				// A continuation measured by a rule says -1 where the text ended inside it.
 				var cutShort = lexical.Inventory.Continued.Any(one => one.Counted is not null || MeasuredBy(lexical, one.Tail) is not null);
