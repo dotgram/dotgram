@@ -407,8 +407,8 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 // apostrophe into a literal. What the ABNF does not say is here as well:
 //
 //   * A literal's `ucschar` and `iprivate` beyond the Basic Multilingual Plane are one surrogate
-//     pair each. The pair is read as any high surrogate followed by any low one, which lets
-//     through the two noncharacters at the end of each plane that the ABNF leaves out.
+//     pair each, and the pairs read are those the two ranges hold: not the two noncharacters at
+//     the end of each plane, and not U+E0000 to U+E0FFF.
 //   * An operator the RFC reserves for later — `= , ! @ |` — is not an operator here, and a
 //     template using one is refused, as Appendix A says it is an error.
 //
@@ -446,7 +446,20 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 
 	LiteralChar = ['!' | '#'..'$' | '&'..';' | '=' | '?'..'[' | ']' | '_' | 'a'..'z' | '~'
 	              | '\u00A0'..'\uD7FF' | '\uE000'..'\uFDCF' | '\uFDF0'..'\uFFEF']
-	            | ['\uD800'..'\uDBFF'] & ['\uDC00'..'\uDFFF']
+	            | High & ['\uDC00'..'\uDFFF']
+	            | HighLast & ['\uDC00'..'\uDFFD']
+
+	// The high surrogates of `ucschar` and `iprivate` beyond the Basic Multilingual Plane. Each plane
+	// is sixty-four of them, and the last one of a plane stands apart because its two last low
+	// surrogates spell the plane's noncharacters, U+xFFFE and U+xFFFF, which neither range holds.
+	// U+E0000 to U+E0FFF, `\uDB40` to `\uDB43`, is in neither range at all.
+	High = ['\uD800'..'\uD83E' | '\uD840'..'\uD87E' | '\uD880'..'\uD8BE' | '\uD8C0'..'\uD8FE'
+	      | '\uD900'..'\uD93E' | '\uD940'..'\uD97E' | '\uD980'..'\uD9BE' | '\uD9C0'..'\uD9FE'
+	      | '\uDA00'..'\uDA3E' | '\uDA40'..'\uDA7E' | '\uDA80'..'\uDABE' | '\uDAC0'..'\uDAFE'
+	      | '\uDB00'..'\uDB3E' | '\uDB44'..'\uDB7E' | '\uDB80'..'\uDBBE' | '\uDBC0'..'\uDBFE']
+
+	HighLast = ['\uD83F' | '\uD87F' | '\uD8BF' | '\uD8FF' | '\uD93F' | '\uD97F' | '\uD9BF' | '\uD9FF'
+	          | '\uDA3F' | '\uDA7F' | '\uDABF' | '\uDAFF' | '\uDB3F' | '\uDB7F' | '\uDBBF' | '\uDBFF']
 
 	// §2.2.
 	Expression : @UriTemplate.Part

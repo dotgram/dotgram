@@ -182,6 +182,10 @@ A link-param's value is the same written as a token or a quoted string. Where RF
 parameter once — `rel`, `title`, `title*`, `media`, `type` — the first counts, and `Title`
 prefers a `title*` that decodes, from UTF-8 or ISO-8859-1. A target and an anchor are kept as
 written: resolving a relative one needs the URL of the response that carried the field.
+A value the RFC gives a syntax has to have it, or the field is refused: `rel` and `rev` are
+relation types separated by spaces, each a lowercase registered name or an absolute URI;
+`anchor` is a URI reference, `hreflang` a language tag and `type` a type and subtype. Of `rel`
+and `type` only the first is asked, since a parser ignores the rest. `media` is not checked.
 
 ### Content-Disposition
 

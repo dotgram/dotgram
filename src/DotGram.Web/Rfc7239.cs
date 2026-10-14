@@ -193,7 +193,9 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 //   * `proto` is a URI scheme (RFC 3986 §3.1).
 //   * A name written twice in one element, whatever its case, is invalid (§4).
 //
-// An element of empty slots is left out, and a field left with no element is refused: `1#` asks for one.
+// An element of empty slots is left out of what is returned, but it is an element all the same: `1#` asks for
+// one that is not empty, and `;` is not empty. So `;` is a field with no pairs, and an empty field, or one of
+// commas and whitespace alone, is refused.
 // Erratum 5275, reported and not verified, spells the list rule out and changes nothing read.
 
 // Carried immediately, by name: an element is built the moment its rule has been read, and nothing
@@ -227,8 +229,9 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 
 	// ── §4 ───────────────────────────────────────────────────────────────────────
 
-	// Forwarded = 1#forwarded-element.
-	ForwardedField : @ForwardedElement[] = Ows & elements: ElementList & Ows & when @(elements!.Length > 0) => @(elements)
+	// Forwarded = 1#forwarded-element. An element without a pair is semicolons alone, so a field that kept no
+	// element still had one that was not empty where it holds a semicolon.
+	ForwardedField : @ForwardedElement[] = Ows & elements: ElementList & Ows & when @(elements!.Length > 0 || parserText.IndexOf(';') >= 0) => @(elements)
 
 	// Atomic: once the list has read as many elements as it can, a later failure (an unclosed
 	// tail after the last one, say) must not give elements back to try again with fewer.
