@@ -1,0 +1,18 @@
+// SQL:2023 with locations: the shipped grammar (src/DotGram.Sql/Standard/SqlStandard.gram), included,
+// and its six levels published again by a class that asks every rule to say where it was read.
+
+@using System;
+@using DotGram.Sql.Ast;
+@using DotGram.Sql.Standard;
+
+using SqlStandardParser;
+using SqlStandardParser.Lexical;
+
+trivia = { Separator? }
+
+parse Value               as ParseValue
+parse DataType            as ParseDataType
+parse ValueExpressionTree as ParseExpression
+parse SearchConditionTree as ParseSearchCondition
+parse SqlStatement        as ParseStatement
+parse Sql                 as ParseSql

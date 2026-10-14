@@ -1700,19 +1700,188 @@ public sealed record PeriodPortion(Identifier Name, Expression From, Expression 
 public enum IdentityRestart { Continue, Restart }
 
 // --- Names and small value objects -----------------------------------------
-public sealed record QualifiedName(SqlList<Identifier> Parts) : ISqlNode
+//
+// A value of two references: the first part, and the others, if any, in an array of their own, so a
+// one-part name costs nothing beyond what holds it and its identifier. Its span is its parts' first to
+// last; it stores none. default(QualifiedName) has no parts and is no name; the writer and the walker
+// refuse it.
+
+/// <summary>
+/// A name of one part or several, <c>t</c>, <c>s.t</c>, <c>c.s.t</c>: a value of its first
+/// <see cref="Identifier"/> and an array of the others, where there are any.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A value and not a record, so that a name costs the record holding it no object of its own: a
+/// one-part name is its identifier alone, and a longer one adds an array. A position that may be left
+/// out is a <c>QualifiedName?</c>, null where nothing was written.
+/// </para>
+/// <para>
+/// <c>default(QualifiedName)</c> has no parts and is no name: no parser builds one,
+/// <see cref="Sql2023Writer"/> refuses to write one, and <see cref="SqlWalker"/> to walk one.
+/// </para>
+/// <para>
+/// It stores no span of its own: <see cref="Span"/> runs from its first part's start to its last
+/// part's end where both are known, and is unknown otherwise, and <see cref="Locate"/> keeps nothing.
+/// Equality is its parts', which leave where they were written out of theirs.
+/// </para>
+/// </remarks>
+public readonly record struct QualifiedName : ISqlNode
 {
-	SqlLocation _location;
-	Type EqualityContract => SqlLocation.Guard(GetType());
-	public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
+	readonly Identifier    _first;
+	readonly Identifier[]? _rest;
+
+	/// <summary>A one-part name.</summary>
+	public QualifiedName(Identifier first)
 	{
-		_location = new SqlLocation(new SqlSpan(at, length));
+		_first = first ?? throw new ArgumentNullException(nameof(first));
+	}
+
+	/// <summary>
+	/// A name of <paramref name="first"/> and the parts after it. The array is kept as it is, not
+	/// copied: it is the name's from then on, and changing it changes the name.
+	/// </summary>
+	public QualifiedName(Identifier first, Identifier[]? rest)
+	{
+		_first = first ?? throw new ArgumentNullException(nameof(first));
+		_rest  = rest is { Length: > 0 } ? rest : null;
+	}
+
+	/// <summary>A name of the parts of <paramref name="parts"/>, which has one at least.</summary>
+	public QualifiedName(SqlList<Identifier> parts)
+	{
+		if (parts.IsEmpty)
+			throw new ArgumentException("A name has a part at least.", nameof(parts));
+
+		_first = parts[0];
+		_rest  = parts.Length > 1 ? parts.AsSpan().Slice(1).ToArray() : null;
 	}
 
 	public static QualifiedName Of(params Identifier[] parts)
 	{
 		return new(SqlList.From(parts));
+	}
+
+	/// <summary>How many parts the name has; none only for <c>default</c>.</summary>
+	public int Count => _first is null ? 0 : 1 + (_rest?.Length ?? 0);
+
+	/// <summary>The part at <paramref name="index"/>, the first at nought.</summary>
+	public Identifier this[int index]
+	{
+		get
+		{
+			if (index == 0 && _first is not null)
+				return _first;
+
+			if (_rest is not null && (uint)(index - 1) < (uint)_rest.Length)
+				return _rest[index - 1];
+
+			throw new ArgumentOutOfRangeException(nameof(index));
+		}
+	}
+
+	/// <summary>The first part: the catalog's or the schema's name where there are several, null only for <c>default</c>.</summary>
+	public Identifier First => _first;
+
+	/// <summary>The last part, the name itself; null only for <c>default</c>.</summary>
+	public Identifier Last => _rest is { } rest ? rest[rest.Length - 1] : _first;
+
+	/// <summary>
+	/// The parts as a list, made on each call for a name of two parts or more. The indexer and
+	/// <c>foreach</c> read them without making one.
+	/// </summary>
+	public SqlList<Identifier> Parts
+	{
+		get
+		{
+			if (_first is null)
+				return default;
+
+			var parts = new Identifier[1 + (_rest?.Length ?? 0)];
+
+			parts[0] = _first;
+			_rest?.CopyTo(parts, 1);
+
+			return SqlList.Own(parts);
+		}
+	}
+
+	/// <summary>
+	/// From the first part's start to the last part's end, where a reading said where both were
+	/// written; unknown otherwise, never a part of the extent.
+	/// </summary>
+	public SqlSpan Span
+	{
+		get
+		{
+			if (_first is null)
+				return default;
+
+			var first = _first.Span;
+
+			if (_rest is null || !first.Known)
+				return first;
+
+			var last = _rest[_rest.Length - 1].Span;
+
+			if (!last.Known || last.End < first.At)
+				return default;
+
+			return new SqlSpan(first.At, last.End - first.At);
+		}
+	}
+
+	/// <summary>Keeps nothing: the span is the parts'.</summary>
+	public void Locate(int at, int length)
+	{
+	}
+
+	public bool Equals(QualifiedName other)
+	{
+		if (!EqualityComparer<Identifier>.Default.Equals(_first, other._first))
+			return false;
+
+		return new SqlList<Identifier>(_rest).Equals(new SqlList<Identifier>(other._rest));
+	}
+
+	public override int GetHashCode()
+	{
+		return SqlHash.Finish(SqlHash.Add(SqlHash.Add(SqlHash.Start(Count), _first?.GetHashCode() ?? 0), new SqlList<Identifier>(_rest).GetHashCode()));
+	}
+
+	bool PrintMembers(System.Text.StringBuilder builder)
+	{
+		builder.Append("Parts = ");
+		builder.Append(Parts.ToString());
+		builder.Append(", Span = ");
+		builder.Append(Span.ToString());
+
+		return true;
+	}
+
+	public Enumerator GetEnumerator()
+	{
+		return new Enumerator(this);
+	}
+
+	/// <summary>What <c>foreach</c> over a name walks with.</summary>
+	public struct Enumerator
+	{
+		readonly QualifiedName _name;
+		int                    _at;
+
+		internal Enumerator(QualifiedName name)
+		{
+			_name = name;
+			_at   = -1;
+		}
+
+		public readonly Identifier Current => _name[_at];
+
+		public bool MoveNext()
+		{
+			return ++_at < _name.Count;
+		}
 	}
 }
 public sealed record CharacterSetName(QualifiedName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;

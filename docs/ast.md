@@ -226,6 +226,15 @@ The parser hands it out at six levels, and the node a level gives back is the ro
 `FOR UPDATE` or `FOR READ ONLY` where one followed it — and `ParseSql` a `Statement[]`. `-1` is one literal to `ParseValue`
 and a sign applied to the literal `1` to `ParseExpression`, as the standard's `<factor>` has it.
 
+A name, `QualifiedName`, is a value and not a record: its first `Identifier` and, where there are
+more, an array of the others, so that a name of one part costs the node holding it nothing but its
+identifier. `Count`, the indexer, `First`, `Last` and `foreach` read the parts; `Parts` makes a list of
+them on each call. A position that may be left out is a `QualifiedName?`, null where nothing was
+written. `default(QualifiedName)` has no parts and is no name: no parser builds one, and the writer
+and `SqlWalker` refuse it. A name keeps no span of its own: its `Span` runs from its first part's start
+to its last part's end where a reading said where both were, and is unknown otherwise, and the walker
+hands out each part once, after the name.
+
 ## The nodes
 
 ### `Statement`
