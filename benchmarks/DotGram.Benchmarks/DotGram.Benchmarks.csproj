@@ -30,6 +30,7 @@
 		     syntax, which needs no schema and runs nothing (Engine.cs). Benchmarks only,
 		     like ScriptDom, and the harness says so and moves on where no server answers. -->
 		<PackageReference Include="Microsoft.Data.SqlClient" />
+		<PackageReference Include="System.Security.Cryptography.Pkcs" />
 
 		<!-- A reference reading of the FIX message layer (StandFixMessages.cs), which nothing that ships depends on. The dictionary
 		     the package carries is copied beside the program, where the row reads it. -->
