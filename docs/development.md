@@ -47,6 +47,8 @@ ScriptDom again, held per file to `CorpusBaseline.txt` (`CorpusRoundTripTests`, 
 before any change to how failures are recorded, before merging anything that touches
 retention, before one that touches how a walk reads what it has built, and before one that
 changes what T-SQL reads or what `SqlWriter` prints.
+The examples are compiled by the real generator during that build, so a member the
+generator stopped producing fails the build rather than a test.
 
 `tests/DotGram.FeedLoad.Tests` runs `examples/DotGram.FeedLoad` over each of its three feeds
 (pipe, CSV, fixed width): the feed is written, read by its grammar and bulk-loaded into a
@@ -60,8 +62,6 @@ for the pipe feed (docs/feeds.md), so it is for the release check and not for ev
 ```sh
 DOTGRAM_FEEDLOAD_RECORDS=10M dotnet test tests/DotGram.FeedLoad.Tests/DotGram.FeedLoad.Tests.csproj -c Release
 ```
-The examples are compiled by the real generator during that build, so a member the
-generator stopped producing fails the build rather than a test.
 
 A trace build (syntax.md §6.9) is held to what it observes by `tests/DotGram.Trace.Tests`, over the
 shipped grammars themselves: `tests/DotGram.Traced` compiles the sources of DotGram.Sql,

@@ -9,8 +9,8 @@ marks the repetition of records, a bad one is handed back in its place with wher
 why, and reading goes on at the next line.
 
 The repository README has the shortest of these, a price list, and the first of the trading
-feeds below. This page has all of them, and then one of them loaded into a database ten
-million records at a time.
+feeds below. This page has all of them, and then a feed of ten million records
+bulk-loaded into a database.
 
 Every example here is run as it is written: the file at the top of it is the input, and what
 the loop prints must be the block below the loop, character for character. The same grammars
@@ -559,7 +559,7 @@ the same layout backwards, from a column to the name of the field it falls in.
 ## Files kept by hand
 
 Not every feed comes from a system. Two that people write themselves, smaller and looser than
-the trading feeds, and two more things `recover` can do.
+the trading feeds, and each shows one more thing `recover` can do.
 
 An order sheet a wholesaler's clerk fills in from a phone call, `order.txt` — two header
 lines, then items and remarks in any order:
@@ -575,6 +575,12 @@ x2 sugar
 ```
 
 ```csharp
+using System;
+using System.Globalization;
+using System.IO;
+
+using DotGram;
+
 public abstract record SheetLine;
 public sealed record Customer(string Name) : SheetLine;
 public sealed record Delivery(string When) : SheetLine;
@@ -591,7 +597,7 @@ public sealed record Unclear(int Line, string Text, string Message) : SheetLine;
 	Delivery : @SheetLine = "Deliver:"   & ' '* & time: Rest & eol => @(new Delivery(time))
 
 	Line   : @SheetLine = (v: Item | v: Remark) => @(v)
-	Item   : @SheetLine = quantity: Digit+ & ' '* & 'x' & ' '+ & product: Rest & eol
+	Item   : @SheetLine = quantity: Digit{1,9} & ' '* & 'x' & ' '+ & product: Rest & eol
 	                   => @(new Ordered(Number(quantity), product))
 	Remark : @SheetLine = '#' & ' '* & text: Rest & eol => @(new Remark(text))
 
@@ -647,7 +653,9 @@ public sealed record LogEntry(DateTime At, string Machine, string Note);
 [Gram("""
 	Log   : @LogEntry[] = Entry* recover eol
 
-	Entry : @LogEntry = at: Stamp & ' '+ & machine: Name & ' '+ & note: Rest & eol
+	Entry : @LogEntry = at: Stamp
+	                    & when @(IsTime(at))
+	                    & ' '+ & machine: Name & ' '+ & note: Rest & eol
 	                 => @(new LogEntry(ToTime(at), machine, note))
 
 	Stamp = Digit{4} & '-' & Digit{2} & '-' & Digit{2} & ' ' & Digit{2} & ':' & Digit{2}
@@ -659,6 +667,11 @@ public sealed record LogEntry(DateTime At, string Machine, string Note);
 	""")]
 public static partial class Logbook
 {
+	static bool IsTime(string text)
+	{
+		return DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+	}
+
 	static DateTime ToTime(string text)
 	{
 		return DateTime.ParseExact(text, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
@@ -691,6 +704,12 @@ themselves, `IEnumerable<LogEntry>`, with nothing to filter out. What was droppe
 `OnRecovered`, a `partial void` the generated class declares; left unimplemented, the compiler
 removes every call to it and the parse pays nothing for it. The report lands between the
 second entry and the fourth because that is when the third line was read.
+
+Dates stay text in the trading feeds, but here the stamp becomes a `DateTime`, so a guard asks
+first: `2026-02-30 09:10` looks like a time and is not one, and
+`DateTime.ParseExact` on it would throw out of the loop and lose every entry after it. With
+`when`, the line is refused and reported like the one with the short day, and the next entry is
+read.
 
 ## Ten million records into a database
 
@@ -739,21 +758,15 @@ What it does, in order:
    var loaded = db.BulkCopy(copy, Details<EodTrade>(EodTrades.Read(reader), Aside)).RowsCopied;
    ```
 
-   The header becomes a row of `Files`; the trailer completes it with its count and total; a
-   rejected line becomes a row of `Rejects` — the line, the column, the field, a category, the
-   line's text and the parser's message — inserted when it is read. The records go to the
-   database as they are read, and the file is never in memory; what is held is the rejected
-   lines, for the summary, and BulkCopy's batch of rows. The record
-   types are the grammars' own and know nothing of a database; their tables and columns are a
-   fluent mapping in the program.
+   The header and the trailer fill a row of `Files`, and a rejected line becomes a row of
+   `Rejects` — where it is, the field, a category, its text and the parser's message. The file
+   is never in memory.
 4. **Asks the database a question or two** — the most traded ISINs, the quantity the trailer
    claims against `SUM(Quantity)` — and prints one line: how many records were loaded, how
    many rejected and why, and whether the trailer's count is what was read.
 
-The category is the program's, not the parser's: `TradingFeedGenerator.Categorize` reads it off
-the field the parser stopped in and where — a stop in a date field is a bad date, a line that
-ended before the record did is a missing field, a quote left open is an unclosed quote. It is
-there so the summary can say what went wrong in words; the message is what the parser said.
+The category is the program's, not the parser's: it is read off the field the parser stopped in,
+so the summary can say what went wrong in words; the message is what the parser said.
 
 ### A small run
 
@@ -790,11 +803,12 @@ D|T-0000020|2026-10-02|2026-10-04|GB00BP6MXD84|SELL|95177|25.50|GBP
 T|20|1123584
 ```
 
-What it printed:
+What it printed (a real run puts a GUID of 32 hex digits where `<guid>` stands, and its
+timings differ):
 
 ```text
 Feed:     pipe, 20 records, 3 bad (bad date 1, missing field 1, unknown record 1), seed 7
-File:     /tmp/dotgram-feedload-39259.txt, 1.4 KB
+File:     /tmp/dotgram-feedload-<guid>.txt, 1.4 KB
 Parse:    22 lines in 0.0 s — 1,420 lines/s, 0.1 MB/s
 Load:     22 lines in 0.4 s — 53 lines/s, 0.0 MB/s
 By ISIN:  GB00BP6MXD84 4 trades, 252,691 shares
@@ -809,11 +823,11 @@ Line  Column  Field           Category        Message                   Text
   14      65  Price           missing field   Expected '|' at 14:65.    D|T-0000013|2026-10-02|2026-10-05|US88160R1014|SELL|56180|249.81
   18      21  TradeDate       bad date        Expected Date at 18:21.   D|T-0000017|2026-10-O2|2026-10-04|US0231351067|SELL|79615|200.50|USD
 
-Database: /tmp/dotgram-feedload-39259.db, 20.0 KB; peak working set 87.2 MB
+Database: /tmp/dotgram-feedload-<guid>.db, 20.0 KB; peak working set 87.2 MB
 
 Loaded 17 records, rejected 3 (bad date 1, missing field 1, unknown record 1); trailer: expected 20 — OK
 Timings: generate 0.0 s, parse 0.0 s, parse + load 0.4 s, queries 0.2 s
-Kept:     /tmp/dotgram-feedload-39259.txt, /tmp/dotgram-feedload-39259.db
+Kept:     /tmp/dotgram-feedload-<guid>.txt, /tmp/dotgram-feedload-<guid>.db
 ```
 
 Line 14 lost its currency, so it ended where a pipe should have followed the price: the field
@@ -826,23 +840,9 @@ rejects table is for: those are the lines somebody has to look at.
 
 The default run, once, on the machine this was written on: an AMD Ryzen 9 5950X, Linux, .NET 10,
 Release, the feed and the database on a RAM disk, and the garbage collector's heap capped at
-256 MB (`DOTNET_GCHeapHardLimit=0x10000000`) to show that the cap is never near. The temporary
-directory is shown as `/tmp`:
-
-```text
-Feed:     pipe, 10,000,000 records, 2,000 bad (bad date 498, bad number 492, missing field 515, unknown record 495), seed 1
-File:     /tmp/dotgram-feedload-25958.txt, 649.8 MB
-Parse:    10,000,002 lines in 12.6 s — 792,636 lines/s, 51.5 MB/s
-Load:     10,000,002 lines in 58.0 s — 172,278 lines/s, 11.2 MB/s
-By ISIN:  GB0002634946 834,868 trades, 41,716,273,797 shares
-By ISIN:  US5949181045 834,594 trades, 41,725,018,446 shares
-By ISIN:  CH0038863350 833,831 trades, 41,700,252,865 shares
-Quantity: trailer 499,862,109,042, SUM(Quantity) 499,761,938,354 (the rejected lines are in the trailer and not in the table)
-Database: /tmp/dotgram-feedload-25958.db, 910.1 MB; peak working set 116.6 MB
-
-Loaded 9,998,000 records, rejected 2,000 (bad date 498, bad number 492, missing field 515, unknown record 495); trailer: expected 10,000,000 — OK
-Timings: generate 8.0 s, parse 12.6 s, parse + load 58.0 s, queries 5.7 s
-```
+256 MB (`DOTNET_GCHeapHardLimit=0x10000000`) to show that the cap is never near. Ten million
+trades, 2,000 of them bad, were loaded as 9,998,000 records and 2,000 rejects, and the trailer's
+count matched what was read.
 
 | | end-of-day trades, 10M | corporate actions, 1M | confirmations, 1M |
 | --- | ---: | ---: | ---: |
@@ -854,7 +854,7 @@ Timings: generate 8.0 s, parse 12.6 s, parse + load 58.0 s, queries 5.7 s
 
 The parser reads the trades at about 50 MB a second, and SQLite takes about a fifth of that:
 loading is the database's time, not the parser's. Memory is flat — the peak working set was
-109 MB for a million trades and 117 MB for ten million, and most of it is the runtime and
-linq2db themselves.
+about 117 MB for ten million trades, and most of it is the runtime and linq2db themselves.
+
 `BulkCopyType.MultipleRows`, an `INSERT` of many rows at a time, is what the program uses;
 `ProviderSpecific` measured the same, SQLite having no bulk interface of its own.

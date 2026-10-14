@@ -47,7 +47,7 @@
 	</ItemGroup>
 
 	<ItemGroup Label="Examples">
-		<!-- examples/DotGram.FeedLoad only, which is not in the solution: a feed read by a grammar
+		<!-- examples/DotGram.FeedLoad and tests/DotGram.FeedLoad.Tests only: a feed read by a grammar
 		     and bulk-loaded into a database, the way a client would do it. -->
 		<PackageVersion Include="linq2db" Version="6.5.0" />
 		<PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.12" />
