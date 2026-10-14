@@ -27,7 +27,8 @@ namespace DotGram.Tests;
 /// class after an alternative that fails on its first item, a look before the class, alternatives
 /// that overlap, a literal of two characters tried first near the end of the input, a class named
 /// by a rule, a repetition of at least one, a loop that has to give characters back to what
-/// follows it, and Std's <c>Escaped</c> itself, whose stops are few enough to search for. Each is
+/// follows it, an alternative that refuses before the class where nothing after the loop says
+/// more, and Std's <c>Escaped</c> itself, whose stops are few enough to search for. Each is
 /// read by the reader and by the engine, over both carriers, as a whole parse and as a
 /// <c>find</c>, and the fast side is also held to the reference semantics.
 /// </remarks>
@@ -134,6 +135,17 @@ public sealed class ChoiceRunTests
 			"\"ab\\()", "search",
 			["\"\"", "\"ab\"", "\"a\\\"b\"", "\"a\\\"", "\"\\\\\"", "\"a\\", "\"ab", "(\"a\")"]),
 
+		// What the alternative tried first refuses at a character passed over is said by a reading
+		// that records, and nothing after the loop says anything further here: both looks after it
+		// refuse in silence.
+		new("refused before",
+			"""
+			Start : @int = b: ((?!'q' & ('x' & any | any{G}))*) & ?!'q' & 'q' => @(b.Length)
+			      | '(' & inner: Start & ')' => @(inner)
+			""",
+			"axq()", null,
+			["aaaq", "axaq", "q", "aaa", "xq", "(aq)"]),
+
 		new("std escaped",
 			"""
 			Start : @int = e: Std.Escaped('"', '\\') => @(e.Length)
@@ -176,21 +188,26 @@ public sealed class ChoiceRunTests
 		foreach (var (carrier, direct) in new[]
 			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
 		{
-			var fast = Build(fastly + "\nparse Start\n", carrier, direct, row.Reads);
 			var slow = Build(slowly + "\nparse Start\n", carrier, direct, null);
 
-			foreach (var input in inputs)
+			// The floor's loop and net8's search (NET8_0_OR_GREATER), both held to the loop.
+			foreach (var net8 in new[] { false, true })
 			{
-				var expected = (EmittedCode.Match(slow, "Grammar", "TryParseStart", input), EmittedCode.Outcome(slow, "Grammar", "TryParseStart", input));
-				var actual   = (EmittedCode.Match(fast, "Grammar", "TryParseStart", input), EmittedCode.Outcome(fast, "Grammar", "TryParseStart", input));
+				var fast = Build(fastly + "\nparse Start\n", carrier, direct, row.Reads, net8: net8);
 
-				Assert.True(
-					expected.Equals(actual),
-					$"{row.Name}, {carrier}, direct {direct}, \"{Escaped(input)}\": the loop says {expected}, the class {actual}");
+				foreach (var input in inputs)
+				{
+					var expected = (EmittedCode.Match(slow, "Grammar", "TryParseStart", input), EmittedCode.Outcome(slow, "Grammar", "TryParseStart", input));
+					var actual   = (EmittedCode.Match(fast, "Grammar", "TryParseStart", input), EmittedCode.Outcome(fast, "Grammar", "TryParseStart", input));
 
-				Assert.True(
-					!row.Reference || actual.Item1.IsSuccess == ReferenceInterpreter.Parses(graph, start, input),
-					$"{row.Name}, {carrier}, direct {direct}, \"{Escaped(input)}\": the class says {actual.Item1.IsSuccess}");
+					Assert.True(
+						expected.Equals(actual),
+						$"{row.Name}, {carrier}, direct {direct}, net8 {net8}, \"{Escaped(input)}\": the loop says {expected}, the class {actual}");
+
+					Assert.True(
+						!row.Reference || actual.Item1.IsSuccess == ReferenceInterpreter.Parses(graph, start, input),
+						$"{row.Name}, {carrier}, direct {direct}, net8 {net8}, \"{Escaped(input)}\": the class says {actual.Item1.IsSuccess}");
+				}
 			}
 		}
 
@@ -202,6 +219,11 @@ public sealed class ChoiceRunTests
 			{
 				var expected = EmittedCode.Found(slow, "Grammar", "FindStart", input);
 				var actual   = EmittedCode.Found(fast, "Grammar", "FindStart", input);
+
+				Assert.True(
+					EmittedCode.FoundAt(slow, "Grammar", "FindStart", input)
+						.SequenceEqual(EmittedCode.FoundAt(fast, "Grammar", "FindStart", input)),
+					$"{row.Name}, find, \"{Escaped(input)}\": found at other places");
 
 				Assert.True(
 					expected.SequenceEqual(actual),
@@ -222,6 +244,7 @@ public sealed class ChoiceRunTests
 	{
 		var row  = Rows.Single(one => one.Name == "json string");
 		var fast = Build(Fast(row) + "\nparse Start\n", CarrierKind.Auto, direct, "class");
+		var net8 = Build(Fast(row) + "\nparse Start\n", CarrierKind.Auto, direct, "class", net8: true);
 		var slow = Build(Slow(row) + "\nparse Start\n", CarrierKind.Auto, direct, null);
 		var body = new StringBuilder();
 
@@ -229,9 +252,14 @@ public sealed class ChoiceRunTests
 			body.Append(i % 7 == 0 ? "\\\"" : i % 5 == 0 ? "\\u00e9" : i % 3 == 0 ? "\u00e9" : "text ");
 
 		foreach (var input in new[] { "\"" + body + "\"", "\"" + body, "\"" + body + "\\u00\"", "\"" + body + "\u0001\"" })
+		{
 			Assert.Equal(
 				EmittedCode.Match(slow, "Grammar", "TryParseStart", input),
 				EmittedCode.Match(fast, "Grammar", "TryParseStart", input));
+			Assert.Equal(
+				EmittedCode.Match(slow, "Grammar", "TryParseStart", input),
+				EmittedCode.Match(net8, "Grammar", "TryParseStart", input));
+		}
 	}
 
 	/// <summary>
@@ -276,7 +304,8 @@ public sealed class ChoiceRunTests
 	}
 
 	/// <param name="reads">"class", "search", "neither", or null where any may be right.</param>
-	static Assembly Build(string grammar, CarrierKind carrier, bool direct, string? reads, string? members = null)
+	/// <param name="net8">Whether to compile what is written for net8 (NET8_0_OR_GREATER) rather than the floor.</param>
+	static Assembly Build(string grammar, CarrierKind carrier, bool direct, string? reads, string? members = null, bool net8 = false)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
@@ -285,7 +314,7 @@ public sealed class ChoiceRunTests
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
 
-		var classes  = ReadThrough.IsMatch(source);
+		var classes  = ReadThrough.IsMatch(source) || source.Contains("var throughFound", StringComparison.Ordinal);
 		var searches = source.Contains("var untilFound", StringComparison.Ordinal);
 
 		Assert.True(
@@ -298,7 +327,7 @@ public sealed class ChoiceRunTests
 			},
 			$"Expected the turns {reads ?? "-"}, the class {classes}, the search {searches}, in:\n{grammar}");
 
-		return EmittedCode.Compile(source, declarationMembers: members);
+		return EmittedCode.Compile(source, declarationMembers: members, symbols: net8 ? ["NET8_0_OR_GREATER"] : null);
 	}
 
 	/// <summary>What the class read through looks like in the emitted source (Machine.EmitThrough).</summary>
