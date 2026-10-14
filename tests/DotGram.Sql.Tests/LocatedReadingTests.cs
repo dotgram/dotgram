@@ -382,6 +382,7 @@ public sealed class LocatedReadingTests
 	[InlineData("Statement", "UPDATE MODULE.t SET a = 1 WHERE CURRENT OF MODULE.c", "MODULE.t")]
 	[InlineData("Statement", "OPEN MODULE.c", "MODULE.c")]
 	[InlineData("Statement", "CLOSE c", "c")]
+	[InlineData("Expression", "U&\"a\" + \"b\".\"c\"", "\"b\".\"c\"")]
 	[InlineData("DataType", "CHAR(5) CHARACTER SET s.latin1", "s.latin1")]
 	[InlineData("DataType", "CHAR(5) CHARACTER SET c.s.latin1", "c.s.latin1")]
 	[InlineData("DataType", "CHAR(5) CHARACTER SET latin1", "latin1")]
@@ -418,11 +419,32 @@ public sealed class LocatedReadingTests
 		{
 			Assert.Equal(name.First.Span.At, name.Span.At);
 			Assert.Equal(name.Last.Span.End, name.Span.End);
-			Assert.Equal(string.Join(".", name.Parts.Select(static part => part.Text)), Cut(text, name.Span).Replace(" ", ""));
+			if (name.Parts.All(static part => part.Style == Ast.IdentifierStyle.Regular))
+				Assert.Equal(string.Join(".", name.Parts.Select(static part => part.Text)), Cut(text, name.Span).Replace(" ", ""));
 		}
 
 		foreach (var part in all.OfType<Ast.Identifier>().Where(static part => part.Style == Ast.IdentifierStyle.Regular))
 			Assert.Equal(part.Text, Cut(text, part.Span));
+	}
+
+	/// <summary>
+	/// A built-in function's name is made from its key word inside a helper, which no reading locates: its
+	/// span is unknown, not a part of the call's, and the names it is called on are located.
+	/// </summary>
+	[Theory]
+	[InlineData("NULLIF(a, b)")]
+	[InlineData("ABS(s.t.c)")]
+	[InlineData("UPPER(x)")]
+	public void A_name_made_from_a_key_word_is_not_located(string text)
+	{
+		var call      = Assert.IsType<Ast.Expression.Invocation>(Productions.SqlStandardLocated.ParseExpression(text));
+		var arguments = Nodes(call).OfType<Ast.QualifiedName>().Skip(1).ToList();
+
+		Assert.False(call.Name.Span.Known, text);
+		Assert.NotEmpty(arguments);
+
+		foreach (var name in arguments)
+			Assert.Equal(Cut(text, name.Span).Replace(" ", ""), string.Join(".", name.Parts.Select(static part => part.Text)));
 	}
 
 	/// <summary>
