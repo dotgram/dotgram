@@ -202,8 +202,9 @@ sealed partial class Machine
 	/// </para>
 	/// <para>
 	/// What a construction throws is not let out of an abandoned reading either. The call
-	/// stands in a <c>try</c>: on a throw the register is left default and the exception is
-	/// held in the reader's journal (<c>Faulted_DotGram</c>), and the reading goes on. A held
+	/// stands in a <c>try</c> in a method of its own (<see cref="Holding"/>): on a throw the
+	/// register is left default and the exception is held in the reader's journal
+	/// (<c>Faulted_DotGram</c>), and the reading goes on. A held
 	/// exception is thrown where the tape would have built the value it came from — at
 	/// acceptance the first of all (<see cref="BuildRoot"/>), and before a guard the first
 	/// raised under a value the guard names (<see cref="GuardAsks"/>) — and the journal is cut
@@ -370,12 +371,6 @@ sealed partial class Machine
 		internal bool Holds => _holds ??= machine._rules.Any(rule => machine.Valued(rule) && !machine.IsExtent(rule));
 
 		bool? _holds;
-
-		/// <summary>
-		/// Whether the construction just written moved the fold's value so far inside its own
-		/// statement, so that <see cref="Accumulated"/> has nothing left to say for it.
-		/// </summary>
-		bool _folded;
 
 		const string NoInlining =
 			"[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
@@ -778,7 +773,6 @@ sealed partial class Machine
 			_puts.Clear();
 			_drops.Clear();
 			_accumulated = false;
-			_folded      = false;
 
 			return "";
 		}
@@ -817,14 +811,6 @@ sealed partial class Machine
 
 		public override string Accumulated(RuleSymbol owner)
 		{
-			// Moved inside the construction's own statement already (Held).
-			if (_folded)
-			{
-				_folded = false;
-
-				return "";
-			}
-
 			return Builds(owner) ? base.Accumulated(owner) : "";
 		}
 
@@ -880,7 +866,7 @@ sealed partial class Machine
 		{
 			var rule    = _rule ?? throw new InvalidOperationException("A record ended that never began.");
 			var unbuilt = Unbuilding && machine.Demands.ReadUnbuilt(rule);
-			var built   = Held(Built(rule), rule, folding: !unbuilt);
+			var built   = Built(rule);
 
 			if (!unbuilt || built.Length == 0)
 				return built;
@@ -891,33 +877,63 @@ sealed partial class Machine
 		}
 
 		/// <summary>
-		/// A construction's statement with its exception held: the assignment inside a
-		/// <c>try</c>, and on a throw the register left default and the exception kept
-		/// (<see cref="HoldMethods"/>). An extent is two positions and throws nothing.
+		/// The methods that call the constructions with what they throw held, one per
+		/// construction (<see cref="Holding"/>), written into the reader after the hold methods.
 		/// </summary>
-		/// <param name="folding">
-		/// Whether a folding rule's value so far may move inside the statement, so that the turn
-		/// stays the one assignment it was (<see cref="Accumulated"/> then says nothing). Not
-		/// where the statement is wrapped for a reading that may be unbuilt: there the value so
-		/// far moves after it, as it did, whether the construction ran or not.
-		/// </param>
-		string Held(string built, RuleSymbol rule, bool folding)
+		readonly Dictionary<string, string> _holding = new(StringComparer.Ordinal);
+
+		/// <summary>
+		/// A construction called from a method of its own, with what it throws held: the
+		/// <c>try</c> stands in that method and not in the reader, whose locals would otherwise
+		/// be kept live across the handler — written through to the stack at every definition,
+		/// which on a deep reading was a third of its time. Not inlined, so that it stays so.
+		/// </summary>
+		/// <param name="name">The method's name, unique to the construction.</param>
+		/// <param name="type">What the construction builds.</param>
+		/// <param name="parameters">The method's parameters, typed and named.</param>
+		/// <param name="made">The construction's call, over those names.</param>
+		/// <returns>The call of the method, over <paramref name="arguments"/>.</returns>
+		string Holding(string name, string type, IReadOnlyList<string> parameters, string made, IReadOnlyList<string> arguments, string summary)
 		{
-			if (!Holds || built.Length == 0 || machine.IsExtent(rule))
-				return built;
+			if (!_holding.ContainsKey(name))
+			{
+				var file = new Writer(0);
 
-			var into = Register(machine._results.QualifiedOf(rule)!);
-			var fold = folding && Builds(rule) && machine._graph.Folds.ContainsKey(rule) ? "fold = " : "";
+				file.Line($"/// <summary>{summary}, with what it throws held (Faulted_DotGram): a method of its own, so that no local of the reader is live across the handler.</summary>");
+				file.Line(NoInlining);
 
-			_folded = fold.Length > 0;
+				using (file.Block($"{type} {name}({string.Join(", ", parameters)})"))
+				{
+					using (file.Block("try"))
+						file.Line($"return {made};");
 
-			return $"try {{ {fold}{built} }} catch (global::System.Exception thrown) {{ {fold}{into} = default!; Faulted_DotGram(thrown); }}";
+					using (file.Block("catch (global::System.Exception thrown)"))
+					{
+						file.Line("Faulted_DotGram(thrown);");
+						file.Line();
+						file.Line("return default!;");
+					}
+				}
+
+				file.Line();
+
+				_holding[name] = file.ToString();
+			}
+
+			return $"{name}({string.Join(", ", arguments)})";
+		}
+
+		/// <summary>The name a typed parameter is declared under: what follows its type.</summary>
+		static string NameOf(string parameter)
+		{
+			return parameter.Substring(parameter.LastIndexOf(' ') + 1);
 		}
 
 		string Built(RuleSymbol rule)
 		{
 			var type = machine._results.QualifiedOf(rule)!;
 			var into = Register(type);
+			var id   = CSharpEmitter.IdentifierOf(rule);
 
 			// A terminal that builds, over kinds: the lexer measured it, and the character
 			// machine of its own builds it from the text — now rather than in the walk.
@@ -926,7 +942,12 @@ sealed partial class Machine
 				if (_start is null)
 					throw new InvalidOperationException($"'{rule.Name}' builds from its text and its reader keeps no positions.");
 
-				return $"{into} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({machine.TokenOf(_start)});";
+				if (!Holds)
+					return $"{into} = Value_{id}_DotGram({machine.TokenOf(_start)});";
+
+				return $"{into} = {Holding(
+					$"Held_{id}_Value_DotGram", type, ["int at"], $"Value_{id}_DotGram({machine.TokenOf("at")})", [_start],
+					$"What <c>{rule.Name}</c> builds from its token")};";
 			}
 
 			// The span an alternative stands on, where the record would have carried one —
@@ -954,9 +975,20 @@ sealed partial class Machine
 			{
 				// No `=>`: the value is the members, in the order the rule lists them.
 				var members = machine.DirectMembers(rule, _factory);
-				var passed  = members.Select(member => Value(member) + (member.Member.IsOptional ? "" : "!"));
 
-				return $"{into} = new {type}({string.Join(", ", passed)});";
+				if (!Holds)
+					return $"{into} = new {type}({string.Join(", ", members.Select(member => Value(member) + (member.Member.IsOptional ? "" : "!")))});";
+
+				// Typed as the factory of a `=>` would be handed them (CSharpEmitter.FactoryParameters).
+				var parameters = members.Select((member, i) =>
+					(machine.BorrowedCaptures && member.Member.Rule is null ? machine.CaptureSpanType : machine._results.ValueOf(member.Member)) +
+					(member.Member.IsSequence ? "[]" : member.Member.IsOptional && !(machine.BorrowedCaptures && member.Member.Rule is null) ? "?" : "") +
+					$" m{i}").ToList();
+				var passed     = members.Select((member, i) => $"m{i}" + (member.Member.IsOptional ? "" : "!"));
+
+				return $"{into} = {Holding(
+					$"Held_{id}_New_DotGram", type, parameters, $"new {type}({string.Join(", ", passed)})",
+					members.Select(Value).ToList(), $"What <c>{rule.Name}</c> is made of")};";
 			}
 
 			var made = machine._factories[rule][_factory];
@@ -965,9 +997,31 @@ sealed partial class Machine
 				rule, made, machine.DirectMembers(rule, _factory), Text, Span,
 				() => accumulated ? "fold" : "default!", Value);
 
-			var call = $"{made.Method}({string.Join(", ", arguments)})";
+			if (!Holds)
+			{
+				var call = $"{made.Method}({string.Join(", ", arguments)})";
 
-			return $"{into} = {(start is null ? call : machine.Offered(made, call, start, $"{end} - {start}"))};";
+				return $"{into} = {(start is null ? call : machine.Offered(made, call, start, $"{end} - {start}"))};";
+			}
+
+			// The factory's own parameters, and the range it is offered where it is located.
+			var factoryParameters = CSharpEmitter.FactoryParameters(
+				machine._graph, rule, made, machine._results, machine.BorrowedCaptures, machine.BufferedBytes).ToList();
+			var inner   = $"{made.Method}({string.Join(", ", factoryParameters.Select(NameOf))})";
+			var offered = start is null ? inner : machine.Offered(made, inner, "parserFrom", "parserLength");
+			var handed  = new List<string>(arguments);
+
+			if (!ReferenceEquals(offered, inner))
+			{
+				factoryParameters.Add("int parserFrom");
+				factoryParameters.Add("int parserLength");
+				handed.Add(start!);
+				handed.Add($"{end} - {start}");
+			}
+
+			return $"{into} = {Holding(
+				$"Held_{id}_{_factory}_DotGram", type, factoryParameters, offered, handed,
+				$"What <c>{rule.Name}</c> builds its value with")};";
 
 			string Value(DirectMember member)
 			{
@@ -1012,7 +1066,13 @@ sealed partial class Machine
 					ReplayMethods(file);
 
 				if (Holds)
+				{
 					HoldMethods(file);
+
+					// Written after the bodies, which is when every construction has asked for its own.
+					foreach (var holding in _holding.Values)
+						file.Write(holding);
+				}
 
 				if (machine._directRules is not { } rules ||
 					!rules.Any(rule => machine.DirectMembers(rule).Exists(static one => one.Shape == MemberShape.Pieces)))

@@ -3619,6 +3619,21 @@ file.Line("return spare;");
 		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory,
 		ResultTypes results, ILineMap? lines, bool spanCaptures = false, bool bytes = false)
 	{
+		var parameters = FactoryParameters(graph, rule, factory, results, spanCaptures, bytes);
+		var head       = $"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})";
+		var summary    = $"/// <summary>What <c>{rule.Name}</c> builds its value with";
+
+		EmitFactoryBody(file, graph, rule, factory, results, lines, head, summary);
+	}
+
+	/// <summary>
+	/// A factory's parameters, typed and named, in the order its call hands them
+	/// (<see cref="Machine.DirectArguments"/>): what the reader that holds a construction's
+	/// exception declares on the method it calls the factory through (Machine.Immediate.cs).
+	/// </summary>
+	internal static List<string> FactoryParameters(
+		RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory, ResultTypes results, bool spanCaptures, bool bytes)
+	{
 		var captureType = spanCaptures ? $"global::System.ReadOnlySpan<{(bytes ? "byte" : "char")}>" : "string";
 		var parameters = new List<string>();
 
@@ -3680,9 +3695,13 @@ file.Line("return spare;");
 
 					" " + ResultTypes.ParameterOf(member));
 
-		var head    = $"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})";
-		var summary = $"/// <summary>What <c>{rule.Name}</c> builds its value with";
+		return parameters;
+	}
 
+	/// <summary>The factory itself, under the head its parameters make (<see cref="EmitFactory"/>).</summary>
+	static void EmitFactoryBody(
+		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory, ResultTypes results, ILineMap? lines, string head, string summary)
+	{
 		switch (((Node.Construct)factory.Of).How)
 		{
 			// The author's own C#, written under a `#line` pointing back at it (§7.6).

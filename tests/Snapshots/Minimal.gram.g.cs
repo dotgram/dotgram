@@ -3316,6 +3316,36 @@ namespace DotGram.Snapshots
 				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Sum_0_DotGram(string d)
+			{
+				try
+				{
+					return Construct_Sum(d);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Sum_1_DotGram(int l, int r)
+			{
+				try
+				{
+					return Construct_Sum_1(l, r);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
 			public int Read_Sum_Sum(int pos, int power)
 			{
 				if ((probes++ & 3) == 0 && !EnoughStack_DotGram_Sum())
@@ -3362,7 +3392,7 @@ namespace DotGram.Snapshots
 				}
 				p++;
 				b0 = p;
-				try { fold = last1 = Construct_Sum((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { fold = last1 = default!; Faulted_DotGram(thrown); }
+				fold = last1 = Held_Sum_0_DotGram((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				while (true)
 				{
 					var o1 = (uint)p < (uint)text.Length;
@@ -3445,7 +3475,7 @@ namespace DotGram.Snapshots
 				if (q0 < 0) return -1;
 				p = q0;
 				r1 = last1;
-				try { fold = last1 = Construct_Sum_1(fold, r1!); } catch (global::System.Exception thrown) { fold = last1 = default!; Faulted_DotGram(thrown); }
+				fold = last1 = Held_Sum_1_DotGram(fold, r1!);
 				return p;
 			}
 

@@ -1571,6 +1571,36 @@ namespace DotGram.Snapshots
 				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Padded_Word_value1_0_DotGram(string t)
+			{
+				try
+				{
+					return Construct_Padded_Word_value1(t);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Word_0_DotGram(string w)
+			{
+				try
+				{
+					return Construct_Word(w);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
 			public int Read_Hashed_Hashed(int pos)
 			{
 				var s  = ways.Cursor;
@@ -1676,7 +1706,7 @@ namespace DotGram.Snapshots
 				if (q0 < 0) return -1;
 				p = q0;
 				r0 = last0;
-				if (unbuilt == 0) try { last0 = Construct_Padded_Word_value1(r0!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last0 = Held_Padded_Word_value1_0_DotGram(r0!);
 				return p;
 			}
 
@@ -1767,7 +1797,7 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				if (unbuilt == 0) try { last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last0 = Held_Word_0_DotGram((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
@@ -2109,6 +2139,21 @@ namespace DotGram.Snapshots
 				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Word_0_DotGram(string w)
+			{
+				try
+				{
+					return Construct_Word(w);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
 			public int Read_List_With1_List_With1(int pos)
 			{
 				var s  = ways.Cursor;
@@ -2328,7 +2373,7 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				if (unbuilt == 0) try { last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last0 = Held_Word_0_DotGram((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
@@ -2603,6 +2648,21 @@ namespace DotGram.Snapshots
 				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Word_0_DotGram(string w)
+			{
+				try
+				{
+					return Construct_Word(w);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
 			public int Read_List_List(int pos)
 			{
 				var s  = ways.Cursor;
@@ -2822,7 +2882,7 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				if (unbuilt == 0) try { last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last0 = Held_Word_0_DotGram((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
@@ -3094,6 +3154,96 @@ namespace DotGram.Snapshots
 				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Small_0_DotGram(int n)
+			{
+				try
+				{
+					return Construct_Small(n);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Small_1_DotGram(int n)
+			{
+				try
+				{
+					return Construct_Small_1(n);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Small_2_DotGram(int n)
+			{
+				try
+				{
+					return Construct_Small_2(n);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Small_3_DotGram()
+			{
+				try
+				{
+					return Construct_Small_3();
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Number_0_DotGram(string d)
+			{
+				try
+				{
+					return Construct_Number(d);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Word_0_DotGram(string w)
+			{
+				try
+				{
+					return Construct_Word(w);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
 			public int Read_Small_Small(int pos)
 			{
 				var s  = ways.Cursor;
@@ -3242,7 +3392,7 @@ namespace DotGram.Snapshots
 								return -1;
 							}
 							p += 1;
-							if (unbuilt == 0) try { last1 = Construct_Small_3(); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+							if (unbuilt == 0) last1 = Held_Small_3_DotGram();
 							break;
 						}
 				}
@@ -3260,14 +3410,14 @@ namespace DotGram.Snapshots
 					Refused_DotGram(ref failure, p, null);
 					return -1;
 				}
-				if (unbuilt == 0) try { last1 = Construct_Small((int)r0!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last1 = Held_Small_0_DotGram((int)r0!);
 				return p;
 			}
 
 			public int Read_Small_Small_Part1(int pos, int start, int? r0, int r0f)
 			{
 				var p = pos;
-				if (unbuilt == 0) try { last1 = Construct_Small_1((int)r0!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last1 = Held_Small_1_DotGram((int)r0!);
 				return p;
 			}
 
@@ -3287,7 +3437,7 @@ namespace DotGram.Snapshots
 					Refused_DotGram(ref failure, p, null);
 					return -1;
 				}
-				if (unbuilt == 0) try { last1 = Construct_Small_2((int)r0!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last1 = Held_Small_2_DotGram((int)r0!);
 				return p;
 			}
 
@@ -3319,7 +3469,7 @@ namespace DotGram.Snapshots
 				}
 
 				b0 = p;
-				try { last1 = Construct_Number((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+				last1 = Held_Number_0_DotGram((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
@@ -3410,7 +3560,7 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				if (unbuilt == 0) try { last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last0 = Held_Word_0_DotGram((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
@@ -3720,6 +3870,51 @@ namespace DotGram.Snapshots
 				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Call_0_DotGram(int target)
+			{
+				try
+				{
+					return Construct_Call(target);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Call_1_DotGram(int target)
+			{
+				try
+				{
+					return Construct_Call_1(target);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			int Held_Number_0_DotGram(string d)
+			{
+				try
+				{
+					return Construct_Number(d);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
 			public int Read_Primary_Primary(int pos)
 			{
 				var s  = ways.Cursor;
@@ -3853,7 +4048,7 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 2;
-				if (unbuilt == 0) try { last1 = Construct_Call(r0!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last1 = Held_Call_0_DotGram(r0!);
 				fold = last1;
 				while (true)
 				{
@@ -3910,7 +4105,7 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 2;
-				if (unbuilt == 0) try { last1 = Construct_Call_1(fold); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last1 = Held_Call_1_DotGram(fold);
 				fold = last1;
 				return p;
 			}
@@ -3943,7 +4138,7 @@ namespace DotGram.Snapshots
 				}
 
 				b0 = p;
-				if (unbuilt == 0) try { last1 = Construct_Number((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last1 = Held_Number_0_DotGram((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
