@@ -90,7 +90,8 @@ examples/
 	                      Grouped by what they read: Formats/, Feeds/, Expressions/,
 	                      Languages/, each its own namespace under DotGram.Examples
 	DotGram.FeedLoad/     a trading feed generated at size and bulk-loaded into SQLite with
-	                      linq2db, from NuGet. Not in the solution; run on its own (docs/feeds.md)
+	                      linq2db, from NuGet. Run on its own (docs/feeds.md); tests/DotGram.FeedLoad.Tests
+	                      runs it as a test
 tests/
 	DotGram.Tests/        three levels: direct calls, in-memory generator driver,
 	                      and the generator attached as an analyzer

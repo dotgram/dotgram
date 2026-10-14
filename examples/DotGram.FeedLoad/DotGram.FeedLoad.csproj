@@ -2,8 +2,8 @@
 
 	<!--
 	  The trading feeds of docs/feeds.md generated at size, read by their grammars and bulk-loaded
-	  into SQLite with linq2db. Not in DotGram.slnx: it is the one project here that takes a
-	  database and an ORM, and a solution build — CI's included — has no reason to restore them.
+	  into SQLite with linq2db. In DotGram.slnx, so every build compiles it, and run as a test by
+	  tests/DotGram.FeedLoad.Tests; it is the one project here that takes a database and an ORM.
 	  Run it on its own, from the repository root: dotnet run -c Release with this project;
 	  docs/feeds.md has the command line.
 	-->

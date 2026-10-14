@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- DotGram.FeedLoad run as a test: a trading feed written, read by its grammar, bulk-loaded into a
+	     temporary SQLite file and counted. The database and the ORM are this project's and
+	     DotGram.FeedLoad's alone; DotGram.Tests takes neither. -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.FeedLoad.Tests</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+
+		<!-- A test project is an executable: it hosts Microsoft.Testing.Platform itself
+		     rather than being hosted by VSTest. -->
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\examples\DotGram.FeedLoad\DotGram.FeedLoad.csproj" />
+	</ItemGroup>
+
+</Project>

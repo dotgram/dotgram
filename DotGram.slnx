@@ -50,6 +50,9 @@
 		<Project Path="examples/DotGram.Examples/DotGram.Examples.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="examples/DotGram.FeedLoad/DotGram.FeedLoad.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 	</Folder>
 	<Folder Name="/src/">
 		<Project Path="src/DotGram.Finance/DotGram.Finance.csproj">
@@ -80,6 +83,9 @@
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Finance.Fix44.Tests/DotGram.Finance.Fix44.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.FeedLoad.Tests/DotGram.FeedLoad.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Finance.Tests/DotGram.Finance.Tests.csproj">
