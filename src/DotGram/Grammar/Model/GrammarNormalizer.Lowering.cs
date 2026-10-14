@@ -559,32 +559,63 @@ public sealed partial class GrammarNormalizer
 		return call;
 	}
 
-	/// <summary>The refusals of <see cref="RefuseNestedPair"/> already said, so a copy says nothing again.</summary>
-	readonly HashSet<string> _nestedRefused = new(StringComparer.Ordinal);
+	/// <summary>The specializations of Std.Nested refused, which no other check speaks about.</summary>
+	readonly HashSet<RuleSymbol> _refusedPairs = [];
 
-	/// <summary>GRAM4037, where a specialization of Std.Nested has arguments a counter cannot tell apart.</summary>
-	void RefuseNestedPair(RuleSymbol made, Location at)
+	/// <summary>Why a specialization of Std.Nested is refused, or null where it is not.</summary>
+	string? PairRefusal(RuleSymbol made)
 	{
-		if (!_bodies.TryGetValue(made, out var body) || NestedPair.Refusal(body) is not { } why || !_nestedRefused.Add(why))
-			return;
+		if (!_bodies.TryGetValue(made, out var body) || NestedPair.Refusal(body) is not { } why)
+			return null;
 
+		_refusedPairs.Add(made);
+
+		return why;
+	}
+
+	/// <summary>GRAM4037 at <paramref name="at"/>, for the reasons given.</summary>
+	void RefuseNestedPair(IEnumerable<string> why, Location at)
+	{
 		Report(
 			NestedNeedsLiterals,
-			$"Std.Nested(open, close) needs two literals that cannot begin at one place, and here {why}. " +
+			$"Std.Nested(open, close) needs two literals that cannot begin at one place, and here {string.Join("; ", why)}. " +
 			"Write them in quotes, and give `open` and `close` different first characters (docs/syntax.md §5.2).",
 			at);
 	}
 
+	/// <summary>The reasons told at a call, which a copy of what the call made does not tell again.</summary>
+	readonly HashSet<string> _pairReasons = new(StringComparer.Ordinal);
+
+	/// <summary>GRAM4037 at a call that makes a specialization of Std.Nested, where it is refused.</summary>
+	void RefuseNestedPair(RuleSymbol made, Location at)
+	{
+		if (PairRefusal(made) is not { } why)
+			return;
+
+		_pairReasons.Add(why);
+		RefuseNestedPair([why], at);
+	}
+
 	/// <summary>
 	/// The specializations of Std.Nested no call made: a parameterized rebinding instantiates its
-	/// replacement for the arguments the call it rebinds carried (§5.1). Said at the start of the
-	/// grammar, there being no call of its own to say it at.
+	/// replacement for the arguments the call it rebinds carried (§5.1). Said once, at the start of
+	/// the grammar, with every reason, there being no call of their own to say it at; and not for
+	/// a reason a call already gave, which a copy of what it made — a <c>with</c> applied to it —
+	/// only repeats.
 	/// </summary>
 	void RefuseNestedPairs()
 	{
+		var reasons = new List<string>();
+
 		foreach (var rule in _rules.ToList())
-			if (NestedPair.Is(rule))
-				RefuseNestedPair(rule, default);
+			if (NestedPair.Is(rule) && !_refusedPairs.Contains(rule) && PairRefusal(rule) is { } why &&
+				!_pairReasons.Contains(why) && !reasons.Contains(why))
+			{
+				reasons.Add(why);
+			}
+
+		if (reasons.Count > 0)
+			RefuseNestedPair(reasons, default);
 	}
 
 	/// <summary>Every specialization made so far, by the rule and what it was given.</summary>

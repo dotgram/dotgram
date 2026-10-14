@@ -387,15 +387,76 @@ public sealed class NestedPairTests
 		}
 	}
 
+	/// <summary>Every call is told, the same reason or not, and nothing else is said about it.</summary>
+	[Theory]
+	[InlineData("Std.Nested(['a'], \"b\") & Std.Nested(\"c\", ['d'])", 2)]
+	[InlineData("Std.Nested(\"<\", \"<\") & Std.Nested(\"<\", \"<\")", 2)]
+	[InlineData("Std.Nested(\"\", \"\")", 1)]
+	[InlineData("Std.Nested(\"\", \"x\") & Std.Nested(\"x\", \"\")", 2)]
+	[InlineData("Std.Nested(\"\", \"\")* & Std.Nested(\"\", \"\")+", 2)]
+	[InlineData("Wrap(\"<\", \"<\") & Wrap(\"<\", \"<\")", 1)]
+	[InlineData("(Std.Nested(\"<\", \"<\") with (any = 'x'))", 1)]
+	[InlineData("Empty* & Empty+", 1)]
+	public void Each_call_is_refused_and_only_for_its_arguments(string calls, int count)
+	{
+		// A rule that calls the pair is refused at its call whether anything reaches it or not, so
+		// `Empty` is declared only where it is read.
+		var grammar = "Start = " + calls + " & eof\nparse Start\nWrap(o, c) = Std.Nested(o, c)\n" +
+			(calls.Contains("Empty", StringComparison.Ordinal) ? "Empty = Std.Nested(\"\", \"\")\n" : "");
+
+		foreach (var lexical in new[] { false, true })
+		{
+			var result = GramCompiler.Compile(
+				"trivia = { ' '* }\n" + grammar,
+				new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical });
+
+			var said = result.Diagnostics.Where(one => one.Severity != GramSeverity.Info).ToList();
+
+			Assert.All(said, one => Assert.Equal(GrammarNormalizer.NestedNeedsLiterals, one.Id));
+			Assert.Equal(count, said.Count);
+			Assert.Equal(count, said.Select(one => one.Position).Distinct().Count());
+
+			// Each where the call is written: in the grammar's own text, which starts the spliced one.
+			Assert.All(said, one => Assert.InRange(one.Position, 1, "trivia = { ' '* }\n".Length + grammar.Length));
+			Assert.Empty(result.Sources);
+		}
+	}
+
 	/// <summary>A parameterized rebinding that puts the library's rule in place is checked as a call is.</summary>
+	/// <remarks>Said once, at the start, with every reason: there is no call of its own to say it at.</remarks>
 	[Fact]
 	public void A_rebinding_to_the_pair_is_checked_too()
 	{
+		foreach (var lexical in new[] { false, true })
+		{
+			var result = GramCompiler.Compile(
+				"trivia = { ' '* }\nP(o, c) = o & c\n" +
+				"Start = (P(\"\", \"\") & P(\"<\", \"<\") & P(\"<\", \"<\")) with (P = Std.Nested) & eof\nparse Start\n",
+				new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical });
+
+			var said = Assert.Single(result.Diagnostics, one => one.Severity != GramSeverity.Info);
+
+			Assert.Equal(GrammarNormalizer.NestedNeedsLiterals, said.Id);
+			Assert.Equal(0, said.Position);
+			Assert.Contains("empty", said.Message, StringComparison.Ordinal);
+			Assert.Contains("can begin at one place", said.Message, StringComparison.Ordinal);
+			Assert.Empty(result.Sources);
+		}
+	}
+
+	/// <summary>Trivia that reads a refused pair is told about the pair, not about being empty.</summary>
+	[Theory]
+	[InlineData("trivia = { Std.Nested(\"\", \"\") }")]
+	[InlineData("trivia = Gap\nGap = { Std.Nested(\"<\", \"<\")* }")]
+	public void Trivia_reading_a_refused_pair_says_only_that(string trivia)
+	{
 		var result = GramCompiler.Compile(
-			"P(o, c) = o & c\nStart = P(\"<\", \"<\") with (P = Std.Nested) & eof\nparse Start\n",
+			trivia + "\nStart = 'x' & 'y'\nparse Start\n",
 			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
 
-		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.NestedNeedsLiterals);
+		var said = Assert.Single(result.Diagnostics, one => one.Severity != GramSeverity.Info);
+
+		Assert.Equal(GrammarNormalizer.NestedNeedsLiterals, said.Id);
 	}
 
 	/// <summary>A rule of the same shape the author wrote is the author's, and is read as written.</summary>
