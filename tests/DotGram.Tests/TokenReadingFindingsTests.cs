@@ -1083,6 +1083,93 @@ public sealed class TokenReadingFindingsTests
 		}
 	}
 
+	// ── A worded keyword over tokens ────────────────────────────────────────────
+
+	/// <summary>
+	/// A literal every character of which continues a word is a word, and over tokens it is
+	/// matched only where a word ends, as over characters (§4.6): not inside a longer word that
+	/// no pattern of the lexer covers, and not before a word character a mark stands for. Whole
+	/// and from every position a word may begin at, in every rendering.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The lexer used to cut <c>gogo</c> into two keywords where no identifier covers the longer
+	/// word, and read <c>gox</c> as <c>go</c> and <c>x</c>: longest match decides between the
+	/// patterns, and none of them is longer there, so the boundary was never asked.
+	/// </para>
+	/// <para>
+	/// Where a class also matches the token, it is still that class: <c>go1</c> is no keyword,
+	/// but it is a name and a number, as it is over characters. A class that matches nothing but
+	/// the keyword's own spelling leaves the token that class alone; where nothing else matches
+	/// it, the keyword never matched and the token is the longest shorter one, <c>g</c> before
+	/// <c>o</c>. A keyword is asked about the boundary it was woven with, its namespace's, and a
+	/// boundary may be a negated class. A terminal the lexer only begins is measured before the
+	/// keyword is asked, so <c>gox</c> is still the longer terminal. A spelling some syntax reads
+	/// with no boundary — a namespace that declares <c>wordboundary = none</c> — is not refused
+	/// inside a word anywhere, since over characters that reading matches there.
+	/// </para>
+	/// <para>
+	/// The character before a token is not asked over tokens — a keyword glued to the number
+	/// before it is two tokens, as the T-SQL engine reads <c>1MB</c> — so a reading is not begun
+	/// inside a word here, where over characters the keyword's lookbehind refuses it.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("wordboundary = ['a'..'z']\nStart = \"go\"* & ';' & eof\nparse Start\n", "gogo;|go go;|go;|;|got;|go gogo;|gog;|ogo;|go  go ;")]
+	[InlineData("wordboundary = ['a'..'z']\nStart = \"go\" & ['x'..'y'] & eof\nparse Start\n", "gox|go x|go|gox x")]
+	[InlineData("wordboundary = ['a'..'z' | '0'..'9']\nnamespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n\tNum = ['0'..'9']+\n}\nStart = (\"go\" | Lex.Name | Lex.Num)* & ';' & eof\nparse Start\n", "go1;|go;|gogo;|1go;|go1go;|1go1;|go1go1;")]
+	[InlineData("wordboundary = ['a'..'z' | '0'..'9']\nnamespace Lex\n{\n\ttrivia = none\n\tNum = ['0'..'9']+\n}\nStart = \"go\" & Lex.Num & eof\nparse Start\n", "go1|go 1|go|1")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tG = 'g' & 'o'\n}\nStart = (\"go\" & '!' | Lex.G & ['x'..'y'])* & ';' & eof\nparse Start\n", "gox;|go!;|go x;|go!gox;|go!go!;")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tG = 'g'\n\tO = 'o'\n}\nStart = (\"go\" | Lex.G & Lex.O) & ['x'..'y'] & eof\nparse Start\n", "gox|go x|g ox|go|goy|gog")]
+	[InlineData("wordboundary = ['a'..'z' | '0'..'9']\nnamespace Inner\n{\n\twordboundary = ['a'..'z']\n\tPart = \"go\" & ['1'..'2'] & eof\n}\nStart = \"hi\" & ['1'..'2'] & eof | Inner.Part\nparse Start\n", "go1|go 1|hi1|hi 1|gogo1|higo1")]
+	[InlineData("wordboundary = [^ ' ' | ';']\nStart = \"go\"* & ';' & eof\nparse Start\n", "gogo;|go go;|go;|;|go  go ;")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tG = 'g' & 'o'\n\tR = 'g' & Tail\n\tTail = 'o' & 'x' & ?!'z'\n}\nStart = (\"go\" & '!' | Lex.G & '?' | Lex.R) & eof\nparse Start\n", "gox|go!|go?|go x|gogo!")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Inner\n{\n\twordboundary = none\n\tPart = \"go\"* & ';'\n}\nStart = Inner.Part & eof | \"go\" & '!' & eof\nparse Start\n", "gogo;|go!|gogo!|gogo;go")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Inner\n{\n\twordboundary = none\n\tPart = \"go\" & \"to\" & ';'\n}\nStart = Inner.Part & eof | \"go\" & '!' & eof\nparse Start\n", "goto;|go to;|go!|goto!")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Inner\n{\n\twordboundary = none\n\tPart = (\"ab\" | \"c\")* & ';'\n}\nStart = Inner.Part & eof | (\"ab\" | \"c\") & '!' & eof\nparse Start\n", "abc;|ab!|cab;|abc!|cc;")]
+	[InlineData("wordboundary = ['a']\nStart = \"a\" & \"aa\" & ';' & eof\nparse Start\n", "aaa;|a aa;|aa a;|a a a;")]
+	public void A_worded_keyword_is_matched_over_tokens_only_at_a_word_boundary(string grammar, string inputs)
+	{
+		grammar = "trivia = { ' '* }\n" + grammar;
+
+		var tokens     = OverTokens(grammar).ToArray();
+		var characters = OverCharacters(grammar).ToArray();
+
+		foreach (var input in inputs.Split('|'))
+		{
+			var expected = EmittedCode.Match(characters[0], "Grammar", "TryParseStart", input).IsSuccess;
+
+			var answers = string.Join(
+				", ",
+				characters.Concat(tokens).Select(one => EmittedCode.Match(one, "Grammar", "TryParseStart", input).IsSuccess ? "read" : "refused"));
+
+			Assert.True(
+				answers == string.Join(", ", Enumerable.Repeat(expected ? "read" : "refused", characters.Length + tokens.Length)),
+				$"\"{input}\": over characters, then over tokens: {answers}");
+
+			// From a position, where a rendering has the form that begins where it is told.
+			var positioned = characters.Concat(tokens).Where(Positional).ToArray();
+
+			for (var at = 0; at <= input.Length && positioned.Length > 1; at++)
+			{
+				if (at > 0 && input[at - 1] is not (' ' or ';' or '!'))
+					continue;
+
+				var from = EmittedCode.Positioned(positioned[0], "Grammar", "TryParseStart", input, at, null).IsSuccess;
+
+				foreach (var assembly in positioned.Skip(1))
+					Assert.True(
+						from == EmittedCode.Positioned(assembly, "Grammar", "TryParseStart", input, at, null).IsSuccess,
+						$"\"{input}\" at {at}: the first rendering that reads from a position {(from ? "read" : "refused")}");
+			}
+		}
+
+		static bool Positional(Assembly assembly)
+		{
+			return assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(string), typeof(int)]) is not null;
+		}
+	}
+
 	// ── Choices a scanner reads ─────────────────────────────────────────────────
 
 	/// <summary>
