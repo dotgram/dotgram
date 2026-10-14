@@ -343,6 +343,105 @@ public sealed class GeneratorDriverTests
 			Assert.Equal($"No C# type named '{missing}' is in view here.", Assert.Single(reported));
 	}
 
+	/// <summary>
+	/// A result type the host nests is the one a bare name means, even where an imported
+	/// namespace has a class of the same name: a struct nested in the host keeps the cast its
+	/// <c>T?</c> local needs to become a <c>T</c>.
+	/// </summary>
+	/// <remarks>
+	/// Whether a declared type is a class is asked bare and then under each import, and the
+	/// search stops at the first spelling that names a type at all — the way C# itself binds
+	/// the name in the generated file, inside the host. Searching on past a struct found bare
+	/// took the imported class's answer, dropped the cast and the parser did not compile. A
+	/// generic type is found by its definition, whatever its arguments are.
+	/// </remarks>
+	[Theory]
+	[InlineData("Node")]
+	[InlineData("Node<int[]>")]
+	public void A_nested_struct_shadows_an_imported_class_of_the_same_name(string type)
+	{
+		var parse = Build($$""""
+			namespace Imported
+			{
+				public sealed class Node(string text)
+				{
+					public string Text { get; } = text;
+				}
+
+				public sealed class Node<T>(string text)
+				{
+					public string Text { get; } = text;
+				}
+			}
+
+			[DotGram.Gram("""
+				@using Imported;
+				Start : @string = a: Name & '=' & n: Word => @(a + Join(n))
+				                | a: Name => @(a)
+				Name : @string = t: ['a'..'z']+ => @(t)
+				Word : @{{type}} = t: ['0'..'9']+ => @(new {{type}}(t))
+				parse Start
+				""")]
+			public partial class Shadowed
+			{
+				public readonly struct Node(string text)
+				{
+					public string Text { get; } = text;
+				}
+
+				public readonly struct Node<T>(string text)
+				{
+					public string Text { get; } = text;
+				}
+
+				static string Join({{type}} node)
+				{
+					return ":" + node.Text;
+				}
+			}
+			"""")
+			.GetType("Shadowed")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("a:1", parse.Invoke(null, ["a=1"]));
+		Assert.Equal("a", parse.Invoke(null, ["a"]));
+	}
+
+	/// <summary>
+	/// A type the host spelled — an external recognizer's tuple — is not searched for under the
+	/// grammar's imports: nothing foresaw a question about it, and one asked would stop the
+	/// generator rather than answer.
+	/// </summary>
+	[Fact]
+	public void An_external_tuple_value_beside_an_import_is_not_searched_for()
+	{
+		var parse = Build(""""
+			[DotGram.Gram("""
+				@using System.Text;
+				Start : @int = v: @ReadPair => @(v.Item1 + v.Item2)
+				parse Start
+				""")]
+			public partial class Paired
+			{
+				static bool ReadPair(System.ReadOnlySpan<char> input, ref int pos, out (int, int) value)
+				{
+					value = (1, 2);
+
+					if (pos >= input.Length)
+						return false;
+
+					pos++;
+
+					return true;
+				}
+			}
+			"""")
+			.GetType("Paired")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal(3, parse.Invoke(null, ["x"]));
+	}
+
 	// ── Driving it ───────────────────────────────────────────────────────────────
 
 	// ── A host inheriting a grammar ─────────────────────────────────────────────
