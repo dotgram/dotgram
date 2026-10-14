@@ -59,7 +59,7 @@ public sealed record Unclear(int Line, string Text, string Message) : SheetLine;
 	Delivery : @SheetLine = "Deliver:"   & ' '* & time: Rest & eol => @(new Delivery(time))
 
 	Line   : @SheetLine = (v: Item | v: Remark) => @(v)
-	Item   : @SheetLine = quantity: Digit+ & ' '* & 'x' & ' '+ & product: Rest & eol
+	Item   : @SheetLine = quantity: Digit{1,9} & ' '* & 'x' & ' '+ & product: Rest & eol
 	                   => @(new Ordered(Number(quantity), product))
 	Remark : @SheetLine = '#' & ' '* & text: Rest & eol => @(new Remark(text))
 

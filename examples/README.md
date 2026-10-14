@@ -2,7 +2,7 @@
 
 Whole, working parsers, meant to be copied. No test framework and no scaffolding —
 each file is a grammar, the class it attaches to, and the code somebody would write
-against it. `DotGram.Tests` runs them; nothing here knows that.
+against it. The test projects run them; nothing here knows that.
 
 A file in `DotGram.Examples` is a demo a reader copies, and is linked below with what it
 teaches that no other example does (a test fails when one is not). A grammar written to
@@ -98,7 +98,16 @@ Two things, and nothing else:
     """)]
 public static partial class Numbers
 {
-    public static int Sum(string text) => ParseDigits(text).Length;   // ParseDigits is generated here
+    // ParseDigits is generated here
+    public static int Sum(string text)
+    {
+        var total = 0;
+
+        foreach (var digit in ParseDigits(text))
+            total += digit - '0';
+
+        return total;
+    }
 }
 ```
 
@@ -121,7 +130,7 @@ after the class or given to the attribute, and listed so the generator can see i
 
 ## Seeing what was generated
 
-Both example projects write it to disk:
+`DotGram.Examples` writes it to disk:
 
 ```xml
 <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
@@ -134,14 +143,8 @@ output is collected, and `obj` beside the project file in a project of your own.
 
 ## What these deliberately do not show
 
-Things the specification describes and the compiler does not do yet — a rejection
+The specification describes things the compiler does not do yet, such as a rejection
 whose `parserMessage` names the set of what could have appeared, rather than only
 which rule and where.
 [`docs/status.md`](../docs/status.md) is the list; where an example works around a gap,
 it says so at that line.
-
-## Finance
-
-[Fix44](DotGram.Examples/Finance/Fix44/Fix44Grammar.gram) retains the large FIX
-grammar for regression tests and benchmarks. It reuses the field model and
-conversion helpers from DotGram.Finance; the production parser is `Fix`.

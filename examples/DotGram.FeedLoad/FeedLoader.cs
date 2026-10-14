@@ -104,7 +104,7 @@ public static class FeedLoader
 		Load load;
 
 		using (var db = new DataConnection(new DataOptions()
-			.UseSQLite("Data Source=" + database, SQLiteProvider.Microsoft)
+			.UseSQLite(new SqliteConnectionStringBuilder { DataSource = database }.ToString(), SQLiteProvider.Microsoft)
 			.UseMappingSchema(Mapping)))
 		{
 			load = Into(db, options.Format, feed);
@@ -161,6 +161,10 @@ public static class FeedLoader
 		using var transaction = db.BeginTransaction();
 		using var reader      = File.OpenText(feed);
 
+		// The file's row exists from the start, so a feed whose header was rejected still has one
+		// to finish; the header only fills it in.
+		db.Insert(file);
+
 		// Everything that is not a detail row, as it passes: a header becomes the file's row, a
 		// trailer finishes it, and a rejected line is inserted where it was read.
 		void Aside(object line)
@@ -186,8 +190,6 @@ public static class FeedLoader
 			file.Feed         = name;
 			file.BusinessDate = businessDate;
 			file.Sender       = sender;
-
-			db.Insert(file);
 		}
 
 		void Rejected(int line, int column, string field, string text, string message)
