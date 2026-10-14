@@ -47,6 +47,19 @@ ScriptDom again, held per file to `CorpusBaseline.txt` (`CorpusRoundTripTests`, 
 before any change to how failures are recorded, before merging anything that touches
 retention, before one that touches how a walk reads what it has built, and before one that
 changes what T-SQL reads or what `SqlWriter` prints.
+
+`tests/DotGram.FeedLoad.Tests` runs `examples/DotGram.FeedLoad` over each of its three feeds
+(pipe, CSV, fixed width): the feed is written, read by its grammar and bulk-loaded into a
+temporary SQLite file, and every line must be loaded or rejected, the rejects of the kinds the
+generator wrote, and the trailer's count right. It takes the database and the ORM, so they stay
+out of `DotGram.Tests`. The size is 10,000 records everywhere, CI and a local run alike. The
+environment variable `DOTGRAM_FEEDLOAD_RECORDS` (the syntax of the program's `--records`: `50k`,
+`1M`, `10M`) changes it; ten million records is about 90 seconds and 1.5 GB of temporary disk
+for the pipe feed (docs/feeds.md), so it is for the release check and not for every run:
+
+```sh
+DOTGRAM_FEEDLOAD_RECORDS=10M dotnet test tests/DotGram.FeedLoad.Tests/DotGram.FeedLoad.Tests.csproj -c Release
+```
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 

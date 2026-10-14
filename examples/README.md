@@ -80,7 +80,7 @@ Record-oriented input: four ways over one line-oriented format, then files that 
 
 | | |
 | --- | --- |
-| [`DotGram.FeedLoad`](DotGram.FeedLoad/) | a console program: a trading feed written at size — ten million records by default — read by its grammar and bulk-loaded into SQLite with linq2db, the bad lines into a table of their own. The one project here that takes packages, and so not in `DotGram.slnx`; [`docs/feeds.md`](../docs/feeds.md) has how to run it and what it measured |
+| [`DotGram.FeedLoad`](DotGram.FeedLoad/) | a console program: a trading feed written at size — ten million records by default — read by its grammar and bulk-loaded into SQLite with linq2db, the bad lines into a table of their own. The one project here that takes packages; `tests/DotGram.FeedLoad.Tests` runs it. [`docs/feeds.md`](../docs/feeds.md) has how to run it and what it measured |
 
 ## Taking one
 
