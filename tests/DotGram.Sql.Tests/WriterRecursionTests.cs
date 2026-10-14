@@ -45,7 +45,7 @@ public sealed class WriterRecursionTests
 {
 	[Theory]
 	[InlineData("SqlWriter.cs")]
-	[InlineData("Standard/Sql2023Writer.cs")]
+	[InlineData("Ast/Sql2023Writer.cs")]
 	public void Every_cycle_of_calls_passes_a_stack_check(string file)
 	{
 		var token = TestContext.Current.CancellationToken;

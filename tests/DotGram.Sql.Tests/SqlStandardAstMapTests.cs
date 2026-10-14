@@ -12,7 +12,7 @@ using Xunit;
 namespace DotGram.Sql.Tests;
 
 /// <summary>
-/// <c>Sql2023Ast.BnfMap.csv</c> says where every rule of the SQL:2023 BNF goes in the tree, and it has
+/// <c>SqlAst.BnfMap.csv</c> says where every rule of the SQL:2023 BNF goes in the tree, and it has
 /// to keep saying it (docs/design/sql-ast.md, requirement 21).
 /// </summary>
 /// <remarks>
@@ -41,6 +41,23 @@ public sealed class SqlStandardAstMapTests
 		var stale       = Rows().Select(one => one.Rule).Where(one => !productions.Contains(one)).ToArray();
 
 		Assert.Empty(stale);
+	}
+
+	/// <summary>
+	/// The tree and its writer are every parser's, in <c>Ast/</c>, the folder of their namespace; the
+	/// standard's folder keeps its parsers. A file named for the tree or the writer that comes back into
+	/// <c>Standard/</c> belongs in <c>Ast/</c>.
+	/// </summary>
+	[Fact]
+	public void The_tree_and_its_writer_stay_out_of_the_standards_folder()
+	{
+		var strays = Directory.GetFiles(Standard(), "*.cs", SearchOption.AllDirectories)
+			.Select(Path.GetFileName)
+			.Where(one => one!.StartsWith("Sql2023", StringComparison.Ordinal) || one.StartsWith("SqlAst", StringComparison.Ordinal))
+			.ToArray();
+
+		Assert.Empty(strays);
+		Assert.NotEmpty(Directory.GetFiles(Path.Combine(Standard(), "..", "Ast"), "SqlAst*.cs"));
 	}
 
 	[Fact]
@@ -101,7 +118,7 @@ public sealed class SqlStandardAstMapTests
 
 	static List<(string Rule, string[] Targets)> Rows()
 	{
-		var lines  = File.ReadAllLines(Path.Combine(Standard(), "Specification", "Sql2023Ast.BnfMap.csv"));
+		var lines  = File.ReadAllLines(Path.Combine(Standard(), "Specification", "SqlAst.BnfMap.csv"));
 		var header = Fields(lines[0]);
 		var rule   = Array.IndexOf(header, "BNF rule");
 		var ast    = Array.IndexOf(header, "AST");

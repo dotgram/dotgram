@@ -31,8 +31,8 @@ dialect is the size of the difference.
 
 `TransactSqlParser` builds the tree, and `Sql92Parser` the expressions in it that the two share.
 `SqlStandardParser` builds a tree of its own, the standard's, laid out in
-[`Sql2023Ast.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Standard/Sql2023Ast.cs) in `DotGram.Sql.Ast` and printed back by
-[`Sql2023Writer`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Standard/Sql2023Writer.cs). Its records are named for the standard's
+[`SqlAst.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/SqlAst.cs) in `DotGram.Sql.Ast` and printed back by
+[`Sql2023Writer`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/Sql2023Writer.cs). Its records are named for the standard's
 constructs, so `DotGram.Sql.Ast.Statement` and `DotGram.Sql.Statement` are two types.
 
 `SqlStandardParser` reads at six levels: `ParseValue` (the standard's literal, a signed number among

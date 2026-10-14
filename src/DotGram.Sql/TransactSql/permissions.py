@@ -1,5 +1,5 @@
 # Writes PermissionCatalogue.cs: what permission may be written of what securable class. And from the
-# same pairs, Sql2023Ast.Permissions.cs: the tree's PrivilegeKind and SecurableClass.
+# same pairs, SqlAst.Permissions.cs: the tree's PrivilegeKind and SecurableClass.
 #
 #     python src/DotGram.Sql/TransactSql/permissions.py              asks the server, writes both
 #     python src/DotGram.Sql/TransactSql/permissions.py --catalogue  asks no server: reads the pairs back
@@ -50,7 +50,7 @@ import textwrap
 SQLCMD = r'C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\180\Tools\Binn\sqlcmd.exe'
 SERVER = 'localhost'
 OUTPUT = 'src/DotGram.Sql/TransactSql/PermissionCatalogue.cs'
-TREE   = 'src/DotGram.Sql/Standard/Sql2023Ast.Permissions.cs'
+TREE   = 'src/DotGram.Sql/Ast/SqlAst.Permissions.cs'
 
 # The class the view lists and the parser refuses. Asked, not assumed: see the header.
 UNREACHABLE = {'CREDENTIAL'}

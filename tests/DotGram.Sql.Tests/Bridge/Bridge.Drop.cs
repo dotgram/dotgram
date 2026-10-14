@@ -25,7 +25,7 @@ static partial class Bridge
 		static readonly string[] Objects = Enum.GetNames<Ast.DropObjectKind>();
 
 		/// <summary>
-		/// The old drops a record of their own in <c>Sql2023Ast.TransactSql.cs</c> stands for.
+		/// The old drops a record of their own in <c>SqlAst.TransactSql.cs</c> stands for.
 		/// </summary>
 		static readonly string[] Own =
 		[

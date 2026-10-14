@@ -206,7 +206,7 @@ key's or an Always Encrypted value's, is an option holding it.
 
 ## The SQL:2023 tree
 
-`src/DotGram.Sql/Standard/Sql2023Ast.cs`, in the namespace `DotGram.Sql.Ast`, is the tree of
+`src/DotGram.Sql/Ast/SqlAst.cs`, in the namespace `DotGram.Sql.Ast`, is the tree of
 the standard's parser, laid out by `design/sql-ast.md`. `SqlStandardParser` builds it —
 through `src/DotGram.Sql/Standard/Nodes.cs` and `Towers.cs` — for names, literals, data
 types, value expressions and predicates, functions, windows, row pattern recognition, the

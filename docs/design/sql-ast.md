@@ -2,7 +2,7 @@
 
 What the tree every SQL parser builds has to be. Set by Igor on 2026-09-15, when the tree was to be
 reshaped to SQL:2023 and then adapted to T-SQL and SQL-92. The starting point is
-`src/DotGram.Sql/Standard/Sql2023Ast.cs` with its map `Sql2023Ast.BnfMap.csv`: a blank, not a dogma —
+`src/DotGram.Sql/Ast/SqlAst.cs` with its map `SqlAst.BnfMap.csv`: a blank, not a dogma —
 it is changed wherever these requirements or the parsers need it, and each change is recorded below.
 
 `docs/ast.md` describes the tree that is built today; this document is what the reshaped tree is held
@@ -121,7 +121,7 @@ properties, enums and lists in place of the BNF's structure, with validation out
 
 ## How the blank is adapted
 
-Each change to `Sql2023Ast.cs` made to meet the requirements above or the parsers' needs, and why.
+Each change to `SqlAst.cs` made to meet the requirements above or the parsers' needs, and why.
 Conflicts with what T-SQL already builds are decided with Igor before they are resolved.
 
 **It compiles, on both frameworks the package ships for** (2026-09-15). The blank did not: 176

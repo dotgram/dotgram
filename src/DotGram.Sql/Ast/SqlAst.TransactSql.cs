@@ -694,7 +694,7 @@ public abstract partial record Statement
 	// ---- cursors and transactions ---------------------------------------------------------------
 	//
 	// The standard has DECLARE, OPEN, FETCH and CLOSE, and the T-SQL words that go with them are
-	// properties on CursorProperties and CursorSource.Query (Sql2023Ast.cs). What is here is what the
+	// properties on CursorProperties and CursorSource.Query (SqlAst.cs). What is here is what the
 	// standard has no statement for at all.
 
 	/// <summary>T-SQL: DEALLOCATE (Transact-SQL). <c>DEALLOCATE { [GLOBAL] name | @variable }</c>.</summary>
