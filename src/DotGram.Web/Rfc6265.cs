@@ -230,15 +230,29 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 		var negative = value[0] == '-';
 		var seconds  = 0L;
 
+		// A negative number is gathered below zero, so that long.MinValue, which has no positive
+		// counterpart, is read as itself. Only a digit that would carry past the end saturates.
 		for (var at = negative ? 1 : 0; at < value.Length; at++)
 		{
-			if (seconds > (long.MaxValue - 9) / 10)
-				return negative ? long.MinValue : long.MaxValue;
+			var digit = value[at] - '0';
 
-			seconds = seconds * 10 + (value[at] - '0');
+			if (negative)
+			{
+				if (seconds < (long.MinValue + digit) / 10)
+					return long.MinValue;
+
+				seconds = seconds * 10 - digit;
+			}
+			else
+			{
+				if (seconds > (long.MaxValue - digit) / 10)
+					return long.MaxValue;
+
+				seconds = seconds * 10 + digit;
+			}
 		}
 
-		return negative ? -seconds : seconds;
+		return seconds;
 	}
 }
 

@@ -181,7 +181,7 @@ public sealed class Rfc7239Tests
 
 	[Theory]
 	[InlineData("")]
-	[InlineData(" , ; ,")]
+	[InlineData(" , \t,")]
 	[InlineData("for=_a;For=_b")]
 	[InlineData("for=192.0.2.43:80")]
 	[InlineData("for=[2001:db8::1]")]

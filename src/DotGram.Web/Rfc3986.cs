@@ -189,8 +189,9 @@ public sealed record UriReference(
 		            | ((H16 & ':'){0,5} & H16)? & "::" & H16
 		            | ((H16 & ':'){0,6} & H16)? & "::"
 
-		// §3.2.2. Never assigned, and part of the specification all the same.
-		IPvFuture = 'v' & Hexdig+ & '.' & (Unreserved | SubDelims | ':')+
+		// §3.2.2. Never assigned, and part of the specification all the same. ABNF's quoted
+		// strings ignore case (RFC 5234 §2.3), so the version flag is `v` or `V`.
+		IPvFuture = ['v' | 'V'] & Hexdig+ & '.' & (Unreserved | SubDelims | ':')+
 
 		IPLiteral = '[' & (IPv6Address | IPvFuture) & ']'
 

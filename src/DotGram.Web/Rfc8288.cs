@@ -121,6 +121,13 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 // Appendix B's algorithms are more lenient than the ABNF and say that they are advisory; the body of
 // the RFC is normative, so a field that the ABNF does not make is refused whole. A link-value without a
 // `rel` is well-formed and has no relations: §3.3's MUST binds the sender.
+//
+// The ABNF the RFC gives a parameter's value, after unquoting, is asked of it as well: `rel` and `rev`
+// are relation types separated by spaces, each a registered name in lowercase or an absolute URI;
+// `anchor` is a URI-Reference; `hreflang` a language tag; `type` RFC 6838's type and subtype. Of `rel`
+// and `type`, which may appear once, only the first is asked, since a parser ignores the rest (§3.3,
+// §3.4.1). `media` is CSS's media-query-list, which is not read here, and `title*` keeps a value that
+// does not decode, as RFC 8187 allows.
 
 // Carried immediately, by name: a link is built the moment its rule has been read, and nothing is
 // recorded on a tape and replayed once the parse is accepted. Named, though left to choose the
@@ -162,7 +169,12 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	Element : @WebLink = link: LinkValue & Ows & ((',' & Ows)+ | ?!any) => @(link)
 
-	LinkValue : @WebLink = '<' & target: Target & '>' & parameters: LinkParam* => @(new WebLink(target, parameters))
+	// The values §3.2, §3.3 and §3.4.1 give a syntax are held to it once the parameters are read, which is
+	// where the first of a once-only parameter is known.
+	LinkValue : @WebLink = '<' & target: Target & '>' & parameters: Parameters & when @(Rfc8288.AreValid(parameters!)) => @(new WebLink(target, parameters))
+
+	// A rule of its own for the same reason as Target: the guard above holds no repetition.
+	Parameters : @WebLink.Parameter[] = parameters: LinkParam* => @(parameters)
 
 	// A URI-Reference, as Rfc3986 says. The check is a rule of its own, so that no guarded rule holds a
 	// repetition the reader would divide into a part.
@@ -294,6 +306,81 @@ static partial class Rfc8288
 		}
 
 		return new ExtendedValue(charset, language, value);
+	}
+
+	/// <summary>Whether each parameter whose value the RFC gives a syntax has that syntax.</summary>
+	internal static bool AreValid(WebLink.Parameter[] parameters)
+	{
+		var rel  = false;
+		var type = false;
+
+		foreach (var parameter in parameters)
+		{
+			var valid = parameter.Name switch
+			{
+				"rel"      => rel || IsRelationTypes(parameter.Value),
+				"rev"      => IsRelationTypes(parameter.Value),
+				"anchor"   => Rfc3986.TryParseReference(parameter.Value, out _),
+				"hreflang" => Rfc5646.TryParseTag(parameter.Value, out _),
+				"type"     => type || IsMediaType(parameter.Value),
+				_          => true,
+			};
+
+			if (!valid)
+				return false;
+
+			rel  |= parameter.Name == "rel";
+			type |= parameter.Name == "type";
+		}
+
+		return true;
+	}
+
+	// §3.3: relation-type *( 1*SP relation-type ), relation-type = reg-rel-type / ext-rel-type.
+	static bool IsRelationTypes(string value)
+	{
+		if (value.Length == 0 || value[0] == ' ' || value[value.Length - 1] == ' ')
+			return false;
+
+		foreach (var type in value.Split([' '], StringSplitOptions.RemoveEmptyEntries))
+			if (!IsRegisteredRelationType(type) && !Rfc3986.TryParseUri(type, out _))
+				return false;
+
+		return true;
+	}
+
+	// reg-rel-type = LOALPHA *( LOALPHA / DIGIT / "." / "-" ).
+	static bool IsRegisteredRelationType(string type)
+	{
+		if (type[0] is not (>= 'a' and <= 'z'))
+			return false;
+
+		foreach (var character in type)
+			if (character is not (>= 'a' and <= 'z' or >= '0' and <= '9' or '.' or '-'))
+				return false;
+
+		return true;
+	}
+
+	// §3.4.1: type-name "/" subtype-name, both RFC 6838 §4.2's restricted-name.
+	static bool IsMediaType(string value)
+	{
+		var slash = value.IndexOf('/');
+
+		return slash >= 0 && IsRestrictedName(value.Substring(0, slash)) && IsRestrictedName(value.Substring(slash + 1));
+	}
+
+	// restricted-name = restricted-name-first *126restricted-name-chars.
+	static bool IsRestrictedName(string name)
+	{
+		if (name.Length is 0 or > 127 || name[0] is not (>= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9'))
+			return false;
+
+		foreach (var character in name)
+			if (character is not (>= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '!' or '#' or '$' or '&' or '-' or '^' or '_' or '.' or '+'))
+				return false;
+
+		return true;
 	}
 
 	static int Hex(char digit)
