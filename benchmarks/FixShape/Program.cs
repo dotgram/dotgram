@@ -10,7 +10,7 @@ using BenchmarkDotNet.Running;
 
 namespace DotGram.Finance.FixShape;
 
-// FixShape --window <W1|W2|W3|W4|dry|dry8> [BenchmarkDotNet arguments]: one BenchmarkDotNet run of a window,
+// FixShape --window <W1|W1a|W1b|W2|W3|W4|dry|dry8> [BenchmarkDotNet arguments]: one BenchmarkDotNet run of a window,
 // every column a job (A1 and A2 are the same build, the A/A). FixShape --print: the checksum of every row
 // for the column this build was made against, and the findings of the validate rows.
 static class Program
@@ -44,7 +44,7 @@ static class Program
 
 		if (at < 0 || at + 1 >= args.Length)
 		{
-			Console.Error.WriteLine("usage: FixShape --window <W1|W2|W3|W4|dry|dry8> [BenchmarkDotNet arguments] | --print");
+			Console.Error.WriteLine("usage: FixShape --window <W1|W1a|W1b|W2|W3|W4|dry|dry8> [BenchmarkDotNet arguments] | --print");
 			return 2;
 		}
 
@@ -54,15 +54,19 @@ static class Program
 
 		string[] rows = window switch
 		{
-			"W1" or "dry" => [.. Fix44All.Select(r => "Fix44_" + r), .. Others.Select(r => "Fix42_" + r), .. Others.Select(r => "Fix50_" + r)],
-			"W2"          => [.. Others.Select(r => "Fix42_" + r), .. Others.Select(r => "Fix50_" + r)],
-			"W3" or "dry8"=> [.. Fix44All.Where(r => r[0] is 'I' or 'E').Select(r => "Fix44_" + r)],
-			"W4"          => [.. Fix44All.Where(r => r[0] == 'I' && r[1] != '6').Select(r => "Fix44_" + r)],
-			_             => throw new ArgumentException("No window " + window),
+			"dry"          => [.. Fix44All.Select(r => "Fix44_" + r), .. Others.Select(r => "Fix42_" + r), .. Others.Select(r => "Fix50_" + r)],
+			"W1"           => [.. Fix44All.Select(r => "Fix44_" + r)],
+			"W1a"          => [.. Fix44All.Where(r => r[0] is 'P' or 'V' or 'E').Select(r => "Fix44_" + r)],
+			"W1b"          => [.. Fix44All.Where(r => r[0] == 'I').Select(r => "Fix44_" + r)],
+			"W2"           => [.. Others.Select(r => "Fix42_" + r), .. Others.Select(r => "Fix50_" + r)],
+			"W3" or "dry8" => [.. Fix44All.Where(r => r[0] is 'I' or 'E').Select(r => "Fix44_" + r)],
+			"W4"           => [.. Fix44All.Where(r => r[0] == 'I' && r[1] != '6').Select(r => "Fix44_" + r)],
+			_              => throw new ArgumentException("No window " + window),
 		};
 
-		if (window == "W1")
-			rows = [.. Fix44All.Select(r => "Fix44_" + r)];
+		// A row list of the caller's own, to re-run the rows of a window whose A/A was too wide.
+		if (Environment.GetEnvironmentVariable("FIXH1_ROWS") is { Length: > 0 } only)
+			rows = [.. rows.Where(r => only.Split(',').Any(o => r.EndsWith(o, StringComparison.Ordinal)))];
 
 		var runtime = window is "W3" or "dry8" ? CoreRuntime.Core80 : CoreRuntime.Core10_0;
 		var config  = DefaultConfig.Instance
