@@ -113,7 +113,14 @@ sealed partial class Machine
 	/// characters <c>X</c> can begin with, and the longest literal it holds, short of which from the
 	/// end of the input trying it says the input ran out.
 	/// </summary>
-	internal sealed record UntilScan(char[] Stops, int Longest);
+	/// <param name="Through">
+	/// Where the turns passed over are those of a choice (<see cref="ThroughTurns"/>): the characters
+	/// a turn reads alone, as a class. <see cref="Stops"/> holds the rest where they are few enough
+	/// to search for, and is empty where the class is read through instead. Only a loop no failure
+	/// after it asks back passes over such turns: a turn given back would have tried the choice's
+	/// other alternatives at its character, and said what they refused there.
+	/// </param>
+	internal sealed record UntilScan(char[] Stops, int Longest, IReadOnlyList<CharRange>? Through = null);
 
 	/// <summary>
 	/// The characters a turn of <c>(?!X &amp; any)*</c> can stop at, where they are few: the
@@ -150,10 +157,12 @@ sealed partial class Machine
 	{
 		// The shape is asked before anything is tested: a test of a class writes its table, and a
 		// table written for a question that came to nothing renumbers the file's tables.
-		if (OverKinds || _starves || Tracing is not null || repeat.Max != null ||
-			repeat.Body is not Node.Sequence({ Count: >= 2 } parts) ||
-			parts.Take(parts.Count - 1).Any(part => part is not Node.Lookahead(false, _)) || !ReadsAnything(parts[^1]))
+		if (OverKinds || _starves || Tracing is not null || repeat.Max != null)
 			return null;
+
+		if (repeat.Body is not Node.Sequence({ Count: >= 2 } parts) ||
+			parts.Take(parts.Count - 1).Any(part => part is not Node.Lookahead(false, _)) || !ReadsAnything(parts[^1]))
+			return ThroughTurns(repeat.Body);
 
 		var made    = new List<char>();
 		var longest = 1;
@@ -183,6 +192,270 @@ sealed partial class Machine
 			return null;
 
 		return new UntilScan([.. made], longest);
+	}
+
+	/// <summary>
+	/// The turns of a repetition of a choice that read one character alone, where those are a
+	/// class: <c>([' '..'!' | '#'..'['] | '\\' &amp; Escape)*</c>, the body of a quoted string, or
+	/// <c>(?!q &amp; (e &amp; any | ?!e &amp; any))*</c>, Std's <c>Escaped</c>. Null where the body is
+	/// not of that shape.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A character of the class is a turn the choice takes by one alternative that reads it and
+	/// keeps nothing, every alternative before it failing on its first item, and every one after
+	/// it unable to begin there: so a run of such characters is that many turns, each of which
+	/// leaves nothing behind but the position. Read through as a class, inside the rule, rather
+	/// than a call of the choice per character — the per-character call that was the cost of a
+	/// string's text — they end where the loop would next have had a question to ask, and the
+	/// turn there is read as it always was.
+	/// </para>
+	/// <para>
+	/// What the alternatives tried first at such a character refuse is the one thing not kept: a
+	/// reading that records said it at the character. Every such place is before where the
+	/// passed-over turns end, and the turn there and what follows are read as before, so a
+	/// refusal at or past that end replaces whatever was said before it, as the furthest does. The
+	/// alternatives obey what <see cref="UntilStops"/> asks of the bodies its looks refuse:
+	/// none matches nothing, each knows what it begins with, recognizes and nothing else, and
+	/// looks at nothing before its first item but the looks the class is read past; and the class
+	/// holds no character another alternative begins with or its looks read first (<see cref="Touches"/>),
+	/// so that none tried before the one taken reads further, and none after it could match instead.
+	/// </para>
+	/// </remarks>
+	UntilScan? ThroughTurns(Node body)
+	{
+		// A body that is itself a character, or a lookahead before a character, is a run or an
+		// until scan of its own, read elsewhere.
+		if (OneCharacter(body) is not null || body is not (Node.Choice or Node.Sequence))
+			return null;
+
+		var longest = 1;
+
+		if (Turns(body, ref longest) is not { Count: > 0 } through ||
+			through is [{ From: '\0', To: '\uFFFF' }])
+			return null;
+
+		// Only where the class is what the loop mostly reads: the other turns begin with a few
+		// characters, an escape. A class of a few characters beside alternatives that begin with
+		// many — `(Pchar | '/' | '?')*` with `Pchar` a rule of its own — would be tested at every
+		// turn and seldom read past one.
+		var others = 0;
+
+		if (FirstSets.Of(body, _graph) is not { IsKnown: true } begins)
+			return null;
+
+		foreach (var range in Without(begins.Ranges, FirstSets.First.Chars(through)))
+			if ((others += range.To - range.From + 1) > 5)
+				return null;
+
+		// The characters that end the run, where they are few: Std's `Escaped` stops at its quote
+		// and its escape, which a search finds as the until scan's does.
+		var stops = new List<char>();
+
+		foreach (var range in Without([new CharRange('\0', '\uFFFF')], FirstSets.First.Chars(through)))
+			for (int c = range.From; c <= range.To && stops.Count <= 5; c++)
+				stops.Add((char)c);
+
+		var searched = stops.Count <= 5 && !stops.Any(char.IsSurrogate) && !(BufferedBytes && stops.Any(one => one > 0x7F));
+
+		// Over a buffer the end is not known until it is read, and a class is read only over a span.
+		if (BufferedInput && (longest > 1 || !searched))
+			return null;
+
+		return new UntilScan(searched ? [.. stops] : [], longest, through);
+	}
+
+	/// <summary>
+	/// The characters at which a turn of <paramref name="node"/> reads that one character and
+	/// nothing else (<see cref="ThroughTurns"/>), or null where that cannot be told.
+	/// </summary>
+	/// <param name="longest">Raised to the length of the longest literal in what is tried before.</param>
+	IReadOnlyList<CharRange>? Turns(Node node, ref int longest)
+	{
+		if (OneCharacter(node) is { } one)
+			return one;
+
+		switch (node)
+		{
+			case Node.Sequence([var only]):
+				return Turns(only, ref longest);
+
+			// Looks that refuse before a character: a turn the looks admit where none of what they
+			// refuse can begin.
+			case Node.Sequence({ Count: >= 2 } parts):
+			{
+				var refusedFirst = FirstSets.First.None;
+
+				for (var i = 0; i < parts.Count - 1; i++)
+				{
+					if (parts[i] is not Node.Lookahead(false, var refused) || !TriedAndRefused(refused, ref longest))
+						return null;
+
+					refusedFirst = refusedFirst.Or(FirstSets.Of(refused, _graph));
+				}
+
+				return Turns(parts[^1], ref longest) is { } read ? Without(read, refusedFirst) : null;
+			}
+
+			case Node.Choice({ Count: >= 2 } alternatives) { Selection: null }:
+			{
+				var firsts = new FirstSets.First[alternatives.Count];
+
+				for (var i = 0; i < alternatives.Count; i++)
+				{
+					if (!TriedAndRefused(alternatives[i], ref longest, looks: true))
+						return null;
+
+					firsts[i] = Touches(alternatives[i]);
+				}
+
+				var made = new List<CharRange>();
+
+				for (var i = 0; i < alternatives.Count; i++)
+				{
+					var single = Turns(alternatives[i], ref longest);
+
+					if (single is null)
+						continue;
+
+					var others = FirstSets.First.None;
+
+					for (var j = 0; j < alternatives.Count; j++)
+						if (j != i)
+							others = others.Or(firsts[j]);
+
+					made.AddRange(Without(single, others));
+				}
+
+				return FirstSets.First.Normalized(made);
+			}
+
+			default:
+				return null;
+		}
+	}
+
+	/// <summary>
+	/// The characters trying a node reads first: what it begins with, and what the looks before its
+	/// first item begin with, which they read at a character the node cannot begin with.
+	/// </summary>
+	FirstSets.First Touches(Node node)
+	{
+		switch (node)
+		{
+			case Node.Sequence(var parts):
+			{
+				var touched = FirstSets.Of(node, _graph);
+
+				foreach (var part in parts)
+				{
+					if (part is not Node.Lookahead(false, var refused))
+						return touched.Or(Touches(part));
+
+					touched = touched.Or(FirstSets.Of(refused, _graph));
+				}
+
+				return touched;
+			}
+
+			case Node.Choice(var alternatives):
+			{
+				var touched = FirstSets.Of(node, _graph);
+
+				foreach (var alternative in alternatives)
+					touched = touched.Or(Touches(alternative));
+
+				return touched;
+			}
+
+			default:
+				return FirstSets.Of(node, _graph);
+		}
+	}
+
+	/// <summary>
+	/// Whether a node tried at a character it cannot begin with does nothing but fail there: it
+	/// cannot match nothing, knows what it begins with, only recognizes, and — unless it is an
+	/// alternative whose own looks <see cref="Turns"/> answers for — looks at nothing before its
+	/// first item.
+	/// </summary>
+	bool TriedAndRefused(Node node, ref int longest, bool looks = false)
+	{
+		return !FirstSets.Nullable(node, _graph) && FirstSets.Of(node, _graph).IsKnown &&
+			OnlyRecognizes(node, ref longest) &&
+			(!LooksBeforeItsFirstItem(node, []) || looks && Turns(node, ref longest) is not null);
+	}
+
+	/// <summary>
+	/// The characters a node reads as one, keeping nothing: a class, a literal of one character
+	/// or a rule inlined as one (<see cref="RunTest"/>'s cases, asked without writing a test). A
+	/// class that holds a category or a predicate of the host is not one here.
+	/// </summary>
+	IReadOnlyList<CharRange>? OneCharacter(Node node)
+	{
+		switch (node)
+		{
+			case Node.Element { Categories.Count: 0, References.Count: 0 } element:
+				return FirstSets.OfElement(element) is { IsKnown: true } first ? first.Ranges : null;
+
+			case Node.Literal(var value) { IgnoreCase: false } when value.Length == 1:
+				return [new CharRange(value[0], value[0])];
+
+			case Node.Call(var rule, { Count: 0 }) when CanInline(rule):
+				return OneCharacter(_graph.Bodies[rule]);
+
+			case Node.Sequence([var only]):
+				return OneCharacter(only);
+
+			case Node.Choice(var alternatives) { Selection: null }:
+			{
+				var made = new List<CharRange>();
+
+				foreach (var alternative in alternatives)
+					if (OneCharacter(alternative) is { } ranges)
+						made.AddRange(ranges);
+					else
+						return null;
+
+				return FirstSets.First.Normalized(made);
+			}
+
+			default:
+				return null;
+		}
+	}
+
+	/// <summary>The characters of <paramref name="ranges"/> that <paramref name="first"/> does not hold.</summary>
+	static IReadOnlyList<CharRange> Without(IReadOnlyList<CharRange> ranges, FirstSets.First first)
+	{
+		if (first.Anything)
+			return [];
+
+		if (first.Nothing || first.Ranges.Count == 0)
+			return ranges;
+
+		var made = new List<CharRange>();
+
+		foreach (var range in ranges)
+		{
+			int from = range.From;
+
+			foreach (var taken in first.Ranges)
+			{
+				if (taken.To < from || taken.From > range.To)
+					continue;
+
+				if (taken.From > from)
+					made.Add(new CharRange((char)from, (char)(taken.From - 1)));
+
+				from = taken.To + 1;
+			}
+
+			if (from <= range.To)
+				made.Add(new CharRange((char)from, range.To));
+		}
+
+		return made;
 	}
 
 	/// <summary>
@@ -301,6 +574,16 @@ sealed partial class Machine
 	internal void EmitUntilSkip(
 		Writer writer, UntilScan until, int? exit = null, string? turns = null, string? gave = null)
 	{
+		if (until.Through is not null && (exit is not null || gave is not null))
+			throw new InvalidOperationException("The turns of a choice are passed over only where nothing asks them back.");
+
+		if (until.Stops.Length == 0)
+		{
+			EmitThrough(writer, until, turns);
+
+			return;
+		}
+
 		var stops = until.Stops;
 
 		using (writer.Block($"if ({Within("p")})"))
@@ -361,6 +644,54 @@ sealed partial class Machine
 						writer.Line("break;");
 					}
 				}
+
+				before?.Dispose();
+			}
+		}
+	}
+
+	/// <summary>
+	/// Moves <c>p</c> past the turns <see cref="ThroughTurns"/> reads through as a class: to the
+	/// first character outside it, or to the end of the input — or, where an alternative tried
+	/// before holds a literal of more than one character, to where that literal would no longer
+	/// fit, as <see cref="EmitUntilSkip"/> stops short.
+	/// </summary>
+	/// <param name="turns">A count of turns to add the passed-over ones to, or null.</param>
+	void EmitThrough(Writer writer, UntilScan until, string? turns)
+	{
+		var test = RangesTest(until.Through!, Tabulate);
+
+		using (writer.Block($"if ({Within("p")})"))
+		{
+			writer.Line($"c = {ReadAt("p")};");
+
+			using (writer.Block($"if ({test})"))
+			{
+				var within = Within("p");
+				var before = (IDisposable?)null;
+
+				if (until.Longest > 1)
+				{
+					writer.Line($"var untilEnd = {EndOfInput} - {until.Longest - 1};");
+					writer.Line();
+					before = writer.Block("if (p < untilEnd)");
+					within = "p < untilEnd";
+				}
+
+				if (turns is not null)
+					writer.Line("var untilFrom = p;");
+
+				writer.Line("p++;");
+
+				using (writer.Block($"while ({within})"))
+				{
+					writer.Line($"c = {ReadAt("p")};");
+					writer.Line($"if (!({test})) break;");
+					writer.Line("p++;");
+				}
+
+				if (turns is not null)
+					writer.Line($"{turns} += p - untilFrom;");
 
 				before?.Dispose();
 			}

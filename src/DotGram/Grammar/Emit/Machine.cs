@@ -5890,8 +5890,9 @@ sealed partial class Machine
 
 		// `(?!X & any)*` goes straight to where X may begin (UntilStops). A settled loop owes
 		// nothing for the turns it passed over; one that may be asked back leaves them as a run
-		// resuming at its exit, as each turn's own exit would have. Not where turns are counted.
-		if (min == 0 && UntilStops(repeatNode) is { } stops)
+		// resuming at its exit, as each turn's own exit would have. Not where turns are counted,
+		// nor the turns of a choice (UntilScan.Through) where they may be asked back.
+		if (min == 0 && UntilStops(repeatNode) is { } stops && (settled || stops.Through is null))
 		{
 			_usesChar = true;
 			EmitUntilSkip(atLoop, stops, settled ? null : exit);
