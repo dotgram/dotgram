@@ -341,10 +341,10 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 
 	ItemField : @Item = ' '* & item: SfItem & ' '* => @(item)
 
-	ListField : @IReadOnlyList<Member> = ' '* & (first: ListMember & rest: ListRest* & Ows)?
+	ListField : @IReadOnlyList<Member> = ' '* & (first: ListMember & { rest: ListRest* } & Ows)?
 		=> @(Rfc9651.Members(first, rest))
 
-	DictionaryField : @OrderedMap<Member> = ' '* & (first: DictMember & rest: DictRest* & Ows)?
+	DictionaryField : @OrderedMap<Member> = ' '* & (first: DictMember & { rest: DictRest* } & Ows)?
 		=> @(Rfc9651.Map(first, rest))
 
 	// ── Lists (§3.1, §4.2.1) ─────────────────────────────────────────────────────
