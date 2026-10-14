@@ -49,6 +49,27 @@ public sealed record WebLink(string Target, IReadOnlyList<WebLink.Parameter> Par
 		return read;
 	}
 
+	/// <summary>
+	/// A Link field value held to RFC 8288's ABNF to the letter: a registered relation type in <c>rel</c> or
+	/// <c>rev</c> has to be lowercase, as <c>reg-rel-type</c> is written, where <see cref="ParseField"/> takes
+	/// it in any case.
+	/// </summary>
+	/// <exception cref="FormatException">The text is no Link field by the ABNF; the message says where.</exception>
+	public static WebLink[] ParseStrictField(string text)
+	{
+		return Rfc8288.ParseStrictLinks(text ?? throw new ArgumentNullException(nameof(text)));
+	}
+
+	/// <summary>A Link field value held to the ABNF to the letter, or false where the text is not one.</summary>
+	public static bool TryParseStrictField(string text, [NotNullWhen(true)] out WebLink[]? links)
+	{
+		var read = Rfc8288.TryParseStrictLinks(text ?? throw new ArgumentNullException(nameof(text)), out var parsed);
+
+		links = read ? parsed : null;
+
+		return read;
+	}
+
 	/// <summary>Equal to another link-value with the same target and equal parameters in the same order.</summary>
 	public bool Equals(WebLink? other)
 	{
@@ -62,6 +83,7 @@ public sealed record WebLink(string Target, IReadOnlyList<WebLink.Parameter> Par
 	}
 
 	/// <summary>The relation types of the first <c>rel</c> (§3.3), which later ones do not replace.</summary>
+	/// <remarks>As written: compare them without case, as §2.1.1 does.</remarks>
 	public IReadOnlyList<string> Relations =>
 		First("rel") is { } rel ? rel.Value.Split([' '], StringSplitOptions.RemoveEmptyEntries) : [];
 
@@ -121,6 +143,19 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 // Appendix B's algorithms are more lenient than the ABNF and say that they are advisory; the body of
 // the RFC is normative, so a field that the ABNF does not make is refused whole. A link-value without a
 // `rel` is well-formed and has no relations: §3.3's MUST binds the sender.
+//
+// The ABNF the RFC gives a parameter's value, after unquoting, is asked of it as well: `rel` and `rev`
+// are relation types separated by spaces, each a registered name or an absolute URI;
+// `anchor` is a URI-Reference; `hreflang` a language tag; `type` RFC 6838's type and subtype. Of `rel`
+// and `type`, which may appear once, only the first is asked, since a parser ignores the rest (§3.3,
+// §3.4.1). `media` is CSS's media-query-list, which is not read here, and `title*` keeps a value that
+// does not decode, as RFC 8187 allows.
+//
+// A registered relation type is where the ABNF and practice part. `reg-rel-type` is LOALPHA and the
+// rest, so `rel=Next` is not one; but §2.1.1 compares registered types without case, Appendix B lowers
+// them, and HTML's link types are matched without case. So there are two
+// readings, as RFC 5322's are read here twice: ParseLinks takes a registered type in any case, and
+// ParseStrictLinks only in lowercase. They differ in nothing else.
 
 // Carried immediately, by name: a link is built the moment its rule has been read, and nothing is
 // recorded on a tape and replayed once the parse is accepted. Named, though left to choose the
@@ -162,7 +197,20 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	Element : @WebLink = link: LinkValue & Ows & ((',' & Ows)+ | ?!any) => @(link)
 
-	LinkValue : @WebLink = '<' & target: Target & '>' & parameters: LinkParam* => @(new WebLink(target, parameters))
+	// The values §3.2, §3.3 and §3.4.1 give a syntax are held to it once the parameters are read, which is
+	// where the first of a once-only parameter is known. Each entry has one of the two alternatives: the
+	// strict reading asks a registered relation type to be lowercase, as reg-rel-type is; the other takes
+	// it in any case, as relation types compare (§2.1.1) and as Appendix B and HTML read them.
+	LinkValue : @WebLink
+		= '<' & target: Target & '>' & parameters: Parameters & when Reading is "strict"
+		  & when @(Rfc8288.AreValid(parameters!, strict: true)) => @(new WebLink(target, parameters))
+		| '<' & target: Target & '>' & parameters: Parameters & when Reading is "practice"
+		  & when @(Rfc8288.AreValid(parameters!, strict: false)) => @(new WebLink(target, parameters))
+
+	Reading = "strict" | "practice"
+
+	// A rule of its own for the same reason as Target: the guard above holds no repetition.
+	Parameters : @WebLink.Parameter[] = parameters: LinkParam* => @(parameters)
 
 	// A URI-Reference, as Rfc3986 says. The check is a rule of its own, so that no guarded rule holds a
 	// repetition the reader would divide into a part.
@@ -176,11 +224,12 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	Assignment = ('=' & Ows & (Token | QuotedString))?
 
-	parse Field as ParseLinks
+	parse Field with (Reading = "practice") as ParseLinks
+	parse Field with (Reading = "strict")   as ParseStrictLinks
 	""", Carrier = GramCarrier.Immediate)]
 static partial class Rfc8288
 {
-	// ParseLinks and TryParseLinks are generated here.
+	// ParseLinks, ParseStrictLinks and their Try forms are generated here.
 
 	/// <summary>A link-param from its name and what followed it: nothing, or <c>=</c>, space and a value.</summary>
 	internal static WebLink.Parameter Parameter(string name, string assigned)
@@ -294,6 +343,84 @@ static partial class Rfc8288
 		}
 
 		return new ExtendedValue(charset, language, value);
+	}
+
+	/// <summary>Whether each parameter whose value the RFC gives a syntax has that syntax.</summary>
+	internal static bool AreValid(WebLink.Parameter[] parameters, bool strict)
+	{
+		var rel  = false;
+		var type = false;
+
+		foreach (var parameter in parameters)
+		{
+			var valid = parameter.Name switch
+			{
+				"rel"      => rel || IsRelationTypes(parameter.Value, strict),
+				"rev"      => IsRelationTypes(parameter.Value, strict),
+				"anchor"   => Rfc3986.TryParseReference(parameter.Value, out _),
+				"hreflang" => Rfc5646.TryParseTag(parameter.Value, out _),
+				"type"     => type || IsMediaType(parameter.Value),
+				_          => true,
+			};
+
+			if (!valid)
+				return false;
+
+			rel  |= parameter.Name == "rel";
+			type |= parameter.Name == "type";
+		}
+
+		return true;
+	}
+
+	// §3.3: relation-type *( 1*SP relation-type ), relation-type = reg-rel-type / ext-rel-type.
+	static bool IsRelationTypes(string value, bool strict)
+	{
+		if (value.Length == 0 || value[0] == ' ' || value[value.Length - 1] == ' ')
+			return false;
+
+		foreach (var type in value.Split([' '], StringSplitOptions.RemoveEmptyEntries))
+			if (!IsRegisteredRelationType(type, strict) && !Rfc3986.TryParseUri(type, out _))
+				return false;
+
+		return true;
+	}
+
+	// reg-rel-type = LOALPHA *( LOALPHA / DIGIT / "." / "-" ), and outside the strict reading a letter of
+	// either case, since a registered type compares without case (§2.1.1).
+	static bool IsRegisteredRelationType(string type, bool strict)
+	{
+		for (var at = 0; at < type.Length; at++)
+		{
+			var character = type[at];
+			var letter    = character is >= 'a' and <= 'z' || !strict && character is >= 'A' and <= 'Z';
+
+			if (!letter && (at == 0 || character is not (>= '0' and <= '9' or '.' or '-')))
+				return false;
+		}
+
+		return true;
+	}
+
+	// §3.4.1: type-name "/" subtype-name, both RFC 6838 §4.2's restricted-name.
+	static bool IsMediaType(string value)
+	{
+		var slash = value.IndexOf('/');
+
+		return slash >= 0 && IsRestrictedName(value.Substring(0, slash)) && IsRestrictedName(value.Substring(slash + 1));
+	}
+
+	// restricted-name = restricted-name-first *126restricted-name-chars.
+	static bool IsRestrictedName(string name)
+	{
+		if (name.Length is 0 or > 127 || name[0] is not (>= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9'))
+			return false;
+
+		foreach (var character in name)
+			if (character is not (>= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '!' or '#' or '$' or '&' or '-' or '^' or '_' or '.' or '+'))
+				return false;
+
+		return true;
 	}
 
 	static int Hex(char digit)
