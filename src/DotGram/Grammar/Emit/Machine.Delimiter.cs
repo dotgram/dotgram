@@ -120,7 +120,12 @@ sealed partial class Machine
 	/// after it asks back passes over such turns: a turn given back would have tried the choice's
 	/// other alternatives at its character, and said what they refused there.
 	/// </param>
-	internal sealed record UntilScan(char[] Stops, int Longest, IReadOnlyList<CharRange>? Through = null);
+	/// <param name="Quiet">
+	/// Whether the turns are passed over only in a reading that records nothing
+	/// (<c>Failure.Quiet</c>): where an alternative tried before the one that reads the character
+	/// refuses there, which a reading that records says.
+	/// </param>
+	internal sealed record UntilScan(char[] Stops, int Longest, IReadOnlyList<CharRange>? Through = null, bool Quiet = false);
 
 	/// <summary>
 	/// The characters a turn of <c>(?!X &amp; any)*</c> can stop at, where they are few: the
@@ -211,10 +216,12 @@ sealed partial class Machine
 	/// turn there is read as it always was.
 	/// </para>
 	/// <para>
-	/// What the alternatives tried first at such a character refuse is the one thing not kept: a
-	/// reading that records said it at the character. Every such place is before where the
-	/// passed-over turns end, and the turn there and what follows are read as before, so a
-	/// refusal at or past that end replaces whatever was said before it, as the furthest does. The
+	/// What an alternative tried before the one taken refuses at such a character is the one thing
+	/// a turn passed over would not say, and a reading that records says it: nothing after the
+	/// loop need say anything further (a look refuses in silence), so it can be the furthest
+	/// refusal. Where any alternative is tried first, then, only the quiet reading passes the turns
+	/// over (<see cref="UntilScan.Quiet"/>), and the reading that records reads them as before;
+	/// the class first (a string's text before its escape) is passed over by both. The
 	/// alternatives obey what <see cref="UntilStops"/> asks of the bodies its looks refuse:
 	/// none matches nothing, each knows what it begins with, recognizes and nothing else, and
 	/// looks at nothing before its first item but the looks the class is read past; and the class
@@ -230,8 +237,9 @@ sealed partial class Machine
 			return null;
 
 		var longest = 1;
+		var quiet   = false;
 
-		if (Turns(body, ref longest) is not { Count: > 0 } through ||
+		if (Turns(body, ref longest, ref quiet) is not { Count: > 0 } through ||
 			through is [{ From: '\0', To: '\uFFFF' }])
 			return null;
 
@@ -259,10 +267,12 @@ sealed partial class Machine
 		var searched = stops.Count <= 5 && !stops.Any(char.IsSurrogate) && !(BufferedBytes && stops.Any(one => one > 0x7F));
 
 		// Over a buffer the end is not known until it is read, and a class is read only over a span.
-		if (BufferedInput && (longest > 1 || !searched))
+		// And a machine with no quiet reading has none to pass the turns over in, where only that
+		// reading may.
+		if (BufferedInput && (longest > 1 || !searched) || quiet && !Quiets)
 			return null;
 
-		return new UntilScan(searched ? [.. stops] : [], longest, through);
+		return new UntilScan(searched ? [.. stops] : [], longest, through, quiet);
 	}
 
 	/// <summary>
@@ -270,7 +280,8 @@ sealed partial class Machine
 	/// nothing else (<see cref="ThroughTurns"/>), or null where that cannot be told.
 	/// </summary>
 	/// <param name="longest">Raised to the length of the longest literal in what is tried before.</param>
-	IReadOnlyList<CharRange>? Turns(Node node, ref int longest)
+	/// <param name="quiet">Set where an alternative is tried, and refuses, before the one that reads.</param>
+	IReadOnlyList<CharRange>? Turns(Node node, ref int longest, ref bool quiet)
 	{
 		if (OneCharacter(node) is { } one)
 			return one;
@@ -278,7 +289,7 @@ sealed partial class Machine
 		switch (node)
 		{
 			case Node.Sequence([var only]):
-				return Turns(only, ref longest);
+				return Turns(only, ref longest, ref quiet);
 
 			// Looks that refuse before a character: a turn the looks admit where none of what they
 			// refuse can begin.
@@ -294,7 +305,7 @@ sealed partial class Machine
 					refusedFirst = refusedFirst.Or(FirstSets.Of(refused, _graph));
 				}
 
-				return Turns(parts[^1], ref longest) is { } read ? Without(read, refusedFirst) : null;
+				return Turns(parts[^1], ref longest, ref quiet) is { } read ? Without(read, refusedFirst) : null;
 			}
 
 			case Node.Choice({ Count: >= 2 } alternatives) { Selection: null }:
@@ -313,7 +324,7 @@ sealed partial class Machine
 
 				for (var i = 0; i < alternatives.Count; i++)
 				{
-					var single = Turns(alternatives[i], ref longest);
+					var single = Turns(alternatives[i], ref longest, ref quiet);
 
 					if (single is null)
 						continue;
@@ -324,7 +335,14 @@ sealed partial class Machine
 						if (j != i)
 							others = others.Or(firsts[j]);
 
-					made.AddRange(Without(single, others));
+					var read = Without(single, others);
+
+					// The alternatives before this one are tried at its characters and refuse there,
+					// which a reading that records says: only the quiet reading passes them over.
+					if (i > 0 && read.Count > 0)
+						quiet = true;
+
+					made.AddRange(read);
 				}
 
 				return FirstSets.First.Normalized(made);
@@ -381,9 +399,13 @@ sealed partial class Machine
 	/// </summary>
 	bool TriedAndRefused(Node node, ref int longest, bool looks = false)
 	{
+		// Asked whether the alternative reads alone at all; which reading may pass it over is
+		// asked of it again where it is taken (Turns).
+		var quiet = false;
+
 		return !FirstSets.Nullable(node, _graph) && FirstSets.Of(node, _graph).IsKnown &&
 			OnlyRecognizes(node, ref longest) &&
-			(!LooksBeforeItsFirstItem(node, []) || looks && Turns(node, ref longest) is not null);
+			(!LooksBeforeItsFirstItem(node, []) || looks && Turns(node, ref longest, ref quiet) is not null);
 	}
 
 	/// <summary>
@@ -577,13 +599,18 @@ sealed partial class Machine
 		if (until.Through is not null && (exit is not null || gave is not null))
 			throw new InvalidOperationException("The turns of a choice are passed over only where nothing asks them back.");
 
-		if (until.Stops.Length == 0)
+		using (until.Quiet ? writer.Block("if (failure.Quiet)") : null)
 		{
-			EmitThrough(writer, until, turns);
-
-			return;
+			if (until.Stops.Length == 0)
+				EmitThrough(writer, until, turns);
+			else
+				EmitPassOver(writer, until, exit, turns, gave);
 		}
+	}
 
+	/// <summary><see cref="EmitUntilSkip"/>'s search for the stops.</summary>
+	void EmitPassOver(Writer writer, UntilScan until, int? exit, string? turns, string? gave)
+	{
 		var stops = until.Stops;
 
 		using (writer.Block($"if ({Within("p")})"))
