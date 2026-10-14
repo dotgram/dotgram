@@ -17,10 +17,14 @@ public sealed partial class GrammarNormalizer
 	/// <summary>
 	/// One pending `with` site, recorded while lowering the rule it sits in: which rule
 	/// to splice back into, the identity of the operand's own already-lowered root, its
-	/// resolved rebindings, and the name a clone made for it is given.
+	/// resolved rebindings, the name a clone made for it is given, and — for one recorded
+	/// inside an instance a substitution made — what made the instance, for the refusal.
 	/// </summary>
 	internal sealed record WithSite(
-		RuleSymbol Rule, Node Root, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, string Name, Location At);
+		RuleSymbol Rule, Node Root, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, string Name, Location At)
+	{
+		public string? Made { get; init; }
+	}
 
 	readonly List<WithSite> _pendingWith = [];
 	int _withCounter;
@@ -54,7 +58,7 @@ public sealed partial class GrammarNormalizer
 	{
 		var forward  = BuildCallGraph();
 		var calledBy = Reverse(forward);
-		var builtAt  = _headerClones;
+		var known    = _rules.Count;
 
 		_composeOnHeaders = sites.Count > 0;
 
@@ -62,6 +66,10 @@ public sealed partial class GrammarNormalizer
 			IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets,
 			Dictionary<RuleSymbol, RuleSymbol> CloneMap,
 			string Name)>(NodeIdentity.Instance);
+
+		// The roots done so far, in order: a `with` inside another's operand was lowered first,
+		// so an inner root comes before every root around it.
+		var inner = new List<Rewrite>();
 
 		// Two or more sites sharing the same root only arise from direct stacking —
 		// `(X with (A=B)) with (C=D)` — since `Group` is transparent at lowering and
@@ -95,23 +103,33 @@ public sealed partial class GrammarNormalizer
 					if (!merged.ContainsKey(pair.Key))
 						layered[pair.Key] = pair.Value;
 
-				foreach (var pair in layered)
-					if (ReferenceEquals(pair.Key, pair.Value))
-					{
-						Report(
-							GrammarBinder.CircularRebinding,
-							$"'{pair.Key}' is bound in a cycle: this 'with' sends back to it what the " +
-							"'with' it is written around put in its place.",
-							site.At);
+				foreach (var looped in Looping(layered))
+				{
+					Report(
+						GrammarBinder.CircularRebinding,
+						$"'{looped}' is bound in a cycle: this 'with' sends back to it what the " +
+						"'with' it is written around put in its place.",
+						site.At);
 
-						loops = true;
-					}
+					loops = true;
+				}
 
 				merged = layered;
 				name   = site.Name;
 			}
 
 			if (loops)
+				continue;
+
+			_stacking = (atRoot.Last().At, $"the 'with' in '{group.Key.Name}'");
+
+			var under  = inner.Where(done => Within(done.Root, atRoot.Key)).ToList();
+			var scopes = Scopes(atRoot.Key, under);
+
+			// Under this `with` are the `with`s inside its operand, on operands of their own, and
+			// the header of a namespace the operand calls into from outside (§5.1): along each
+			// call's path the lot is one header, and one that sends a name back to itself loops.
+			if (LoopsStacked(group.Key, scopes, merged, forward))
 				continue;
 
 			merged = OnTopOfHeaders(merged, sites, NearestSite(group.Key.Namespace));
@@ -121,19 +139,35 @@ public sealed partial class GrammarNormalizer
 			// either calls is what this `with` rebinds on top, as a publication's `with` does.
 			var seed = DirectCalls(atRoot.Key);
 
+			// And what the `with`s inside the operand put in place of each call, innermost first,
+			// as the splice below will: this one is over them (§5.1), and rebinds what their clones
+			// call. Read off the operand as written alone, the walk found `X` calling `A` under
+			// `((X with (A = B)) & '!') with (B = C)`, nothing to rebind, and the outer was dropped.
+			foreach (var scope in scopes)
+				seed.UnionWith(scope.Calls);
+
 			foreach (var called in seed.ToList())
 				if (Rebound(called, merged) is { } replacement)
 					seed.Add(replacement);
 
+			// Rules made since the graph was built — an inner `with`'s clones, a parameterized
+			// replacement's instance read through its header, a replacement's instance an inner
+			// `with` rebuilt just now — are read again, with them: the walk reads a fresh rule's
+			// body, but nothing above knows what calls it.
+			if (_rules.Count != known)
+			{
+				forward  = BuildCallGraph();
+				calledBy = Reverse(forward);
+				known    = _rules.Count;
+			}
+
 			var reachable = ReachableFromSeed(seed, forward, merged);
 
-			// Reading a parameterized replacement through its header made clones the graph above
-			// has not seen: read again, with them.
-			if (builtAt != _headerClones)
+			if (_rules.Count != known)
 			{
 				forward   = BuildCallGraph();
 				calledBy  = Reverse(forward);
-				builtAt   = _headerClones;
+				known     = _rules.Count;
 				reachable = ReachableFromSeed(seed, forward, merged);
 			}
 
@@ -148,9 +182,12 @@ public sealed partial class GrammarNormalizer
 			}
 
 			rewrites[atRoot.Key] = (merged, cloneMap, name);
+			inner.Add(new Rewrite(atRoot.Key, merged, cloneMap, name));
 		}
 
+		_cloning           = group.Key;
 		_bodies[group.Key] = SpliceWithSites(_bodies[group.Key], rewrites);
+		_cloning           = null;
 
 		_composeOnHeaders = false;
 
@@ -159,6 +196,71 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>Every `with` site specialized, or refused with the reason (<see cref="RefuseLateWith"/>).</summary>
 	readonly HashSet<WithSite> _specializedWith = [];
+
+	/// <summary>
+	/// One `with` root specialized: the operand, the rebindings as merged and composed on the
+	/// headers, the clones made for it, and the name they carry.
+	/// </summary>
+	sealed record Rewrite(
+		Node Root, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, Dictionary<RuleSymbol, RuleSymbol> CloneMap, string Name);
+
+	/// <summary>
+	/// The calls of an operand that stand under the same inner `with`s: the inner roots around
+	/// them, innermost first, and each call as those put it in place.
+	/// </summary>
+	sealed record Scope(List<Rewrite> Chain, HashSet<RuleSymbol> Calls);
+
+	/// <summary>
+	/// The operand's calls by what stands between each and the operand: a sibling `with` is not
+	/// over a call outside it, and two calls under different inner `with`s are two paths.
+	/// </summary>
+	/// <remarks>
+	/// Each call is rewritten through its chain as the splice will rewrite it, innermost first:
+	/// what the clones so made call is what the `with` over them rebinds. <see cref="RewriteCall"/>
+	/// may make a replacement's instance here, into the inner's own clones, which the splice then
+	/// finds made.
+	/// </remarks>
+	List<Scope> Scopes(Node root, List<Rewrite> under)
+	{
+		var scopes = new List<Scope>();
+
+		var insides = under.Select(done => NodeWalk.ByIdentity(NodeWalk.Descendants(done.Root))).ToList();
+
+		// Every node, not only a call: an operand that calls nothing, `('x' with (B = D)) & '!'`,
+		// still stacks what is written around it on what is written on it.
+		foreach (var node in NodeWalk.Descendants(root))
+		{
+			var chain = under.Where((done, at) => insides[at].Contains(node)).ToList();
+			var scope = scopes.FirstOrDefault(one => one.Chain.Count == chain.Count && one.Chain.Zip(chain, ReferenceEquals).All(same => same));
+
+			if (scope is null)
+				scopes.Add(scope = new Scope(chain, []));
+
+			if (node is not Node.Call(var called, _))
+				continue;
+
+			var read = called;
+
+			foreach (var done in chain)
+				read = RewriteCall(read, done.Targets, done.CloneMap, done.Name);
+
+			scope.Calls.Add(read);
+		}
+
+		return scopes;
+	}
+
+	/// <summary>
+	/// Whether <paramref name="node"/> is <paramref name="root"/> or a node inside it.
+	/// </summary>
+	static bool Within(Node node, Node root)
+	{
+		foreach (var one in NodeWalk.Descendants(root))
+			if (ReferenceEquals(one, node))
+				return true;
+
+		return false;
+	}
 
 	/// <summary>
 	/// Refuses every `with` site that was never specialized (GRAM4036): one recorded after the
@@ -172,11 +274,116 @@ public sealed partial class GrammarNormalizer
 			if (_specializedWith.Add(site))
 				Report(
 					LateWith,
-					"This 'with' is inside an instance of a parameterized rule made only while another " +
-					"rebinding was applied, after every 'with' was put in order, and is not supported " +
-					"yet. Write the rebinding where the instance is called, or on the rule's own " +
-					"declaration.",
+					$"This 'with' is inside '{Shown(site.Rule)}', an instance of a parameterized rule made " +
+					(site.Made is null
+						? "only while another rebinding was applied, "
+						: $"only while {site.Made}, ") +
+					"after every 'with' was put in order, and is not supported yet. Write the rebinding " +
+					"where the instance is called, or on the rule's own declaration.",
 					site.At);
+	}
+
+	/// <summary>
+	/// Refuses a <c>with</c> that, stacked on what is under it — the <c>with</c>s inside its
+	/// operand on operands of their own, and the header of a namespace its operand calls into from
+	/// outside — sends a name back to itself (GRAM3011), as the one header
+	/// <c>with (B = D, D = B)</c> is refused, and as two <c>with</c>s on one operand are.
+	/// </summary>
+	/// <remarks>
+	/// Along each path: only the inner `with`s around a call, and only the namespaces that call
+	/// reaches into from outside — the header of the namespace the <c>with</c> is written in goes
+	/// on top of it, after it, and is not stacked under it. Each layer rebinds what the layers
+	/// under it put in place, and a binding of a name a lower layer already replaced does nothing —
+	/// so `((N.X with (D = Y)) & '!') with (D = B)` under `N`'s `B = D` is no loop: the inner
+	/// `with` sent `D` on to `Y`, and the outer's `D` binds nothing; while a second `N.X` beside
+	/// the inner `with`, with nothing between it and the outer, does loop.
+	/// </remarks>
+	bool LoopsStacked(
+		RuleSymbol host,
+		List<Scope> scopes,
+		Dictionary<RuleSymbol, RuleSymbol> merged,
+		Dictionary<RuleSymbol, List<RuleSymbol>> forward)
+	{
+		var loops = false;
+		var told  = new HashSet<(GrammarNamespace?, RuleSymbol)>();
+
+		foreach (var scope in scopes)
+		{
+			var bases = new List<(GrammarNamespace? Into, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Header)> { (null, NoTargets) };
+
+			foreach (var (_, _, into) in CallsInto(host, scope.Calls, merged, forward))
+				if (bases.All(one => one.Into != into))
+					bases.Add((into, into.Rebindings));
+
+			foreach (var (into, header) in bases)
+			{
+				var layered = header.ToDictionary(static pair => pair.Key, static pair => pair.Value);
+
+				foreach (var done in scope.Chain)
+					layered = Layered(layered, done.Targets);
+
+				layered = Layered(layered, merged);
+
+				foreach (var looped in Looping(layered))
+					if (told.Add((into, looped)))
+					{
+						Report(
+							GrammarBinder.CircularRebinding,
+							into is null
+								? $"'{looped}' is bound in a cycle: this 'with' sends back to it what the 'with' it " +
+								  "is written around put in its place."
+								: $"'{looped}' is bound in a cycle: this 'with' sends back to it what the header of " +
+								  $"namespace '{into.Name}', which its operand calls into, put in its place.",
+							_stacking.At);
+
+						loops = true;
+					}
+			}
+		}
+
+		return loops;
+	}
+
+	/// <summary>
+	/// <paramref name="upper"/> stacked on <paramref name="lower"/> (§5.1): what the lower put in
+	/// place is rebound by the upper, and a binding of a name the lower already replaced does
+	/// nothing.
+	/// </summary>
+	static Dictionary<RuleSymbol, RuleSymbol> Layered(
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> lower, IReadOnlyDictionary<RuleSymbol, RuleSymbol> upper)
+	{
+		var layered = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		foreach (var pair in lower)
+			layered[pair.Key] = upper.TryGetValue(pair.Value, out var over) ? over : pair.Value;
+
+		foreach (var pair in upper)
+			if (!lower.ContainsKey(pair.Key))
+				layered[pair.Key] = pair.Value;
+
+		return layered;
+	}
+
+	/// <summary>
+	/// Every name that stacked substitutions send back to itself: a key the bindings lead back
+	/// to, through however many of them — as one header <c>with (B = D, D = B)</c> loops, and
+	/// as <c>with (B = D, Y = Z, D = Y, Z = B)</c> does through four.
+	/// </summary>
+	static IEnumerable<RuleSymbol> Looping(Dictionary<RuleSymbol, RuleSymbol> layered)
+	{
+		foreach (var key in layered.Keys)
+		{
+			var path = new HashSet<RuleSymbol> { key };
+
+			for (var at = layered[key]; layered.ContainsKey(at); at = layered[at])
+				if (!path.Add(at))
+				{
+					if (ReferenceEquals(at, key))
+						yield return key;
+
+					break;
+				}
+		}
 	}
 
 	/// <summary>
@@ -260,44 +467,59 @@ public sealed partial class GrammarNormalizer
 	/// <c>Ns2</c>, which the <c>with</c> then reads as <c>Ns2</c> makes it.
 	/// </remarks>
 	List<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace Into)> CallsIntoSites(
-		IGrouping<RuleSymbol, WithSite> group,
+		RuleSymbol host,
+		IEnumerable<WithSite> sites,
 		Dictionary<RuleSymbol, List<RuleSymbol>> forward)
 	{
 		var into = new List<(RuleSymbol, RuleSymbol, GrammarNamespace)>();
 
-		foreach (var site in group)
+		foreach (var site in sites)
+			into.AddRange(CallsInto(host, DirectCalls(site.Root), site.Targets, forward));
+
+		return into;
+	}
+
+	/// <summary>
+	/// The same, from the calls given — a `with`'s operand's as written, or as the `with`s inside
+	/// it put them in place — under the rebindings given.
+	/// </summary>
+	List<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace Into)> CallsInto(
+		RuleSymbol host,
+		IEnumerable<RuleSymbol> calls,
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
+		Dictionary<RuleSymbol, List<RuleSymbol>> forward)
+	{
+		var into    = new List<(RuleSymbol, RuleSymbol, GrammarNamespace)>();
+		var seen    = new HashSet<(RuleSymbol, GrammarNamespace?)>();
+		var pending = new Queue<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace? In)>();
+		var own     = NearestSite(host.Namespace);
+
+		foreach (var called in calls)
 		{
-			var seen    = new HashSet<(RuleSymbol, GrammarNamespace?)>();
-			var pending = new Queue<(RuleSymbol Caller, RuleSymbol Called, GrammarNamespace? In)>();
-			var own     = NearestSite(group.Key.Namespace);
+			pending.Enqueue((host, called, null));
 
-			foreach (var called in DirectCalls(site.Root))
-			{
-				pending.Enqueue((group.Key, called, null));
+			// A call the `with` replaces is read as its replacement, with the same caller.
+			if (Rebound(called, targets) is { } replacement)
+				pending.Enqueue((host, replacement, null));
+		}
 
-				// A call the `with` replaces is read as its replacement, with the same caller.
-				if (Rebound(called, site.Targets) is { } replacement)
-					pending.Enqueue((group.Key, replacement, null));
-			}
+		while (pending.Count > 0)
+		{
+			var (caller, called, within) = pending.Dequeue();
+			var headed                   = within is null ? called : Rebound(called, within.Rebindings) ?? called;
+			var reached                  = Rebound(headed, targets) ?? headed;
+			var namespaced               = NearestSite(reached.Namespace);
 
-			while (pending.Count > 0)
-			{
-				var (caller, called, within) = pending.Dequeue();
-				var headed                   = within is null ? called : Rebound(called, within.Rebindings) ?? called;
-				var reached                  = Rebound(headed, site.Targets) ?? headed;
-				var namespaced               = NearestSite(reached.Namespace);
+			if (namespaced is not null && namespaced != NearestSite(caller.Namespace) && !Encloses(namespaced, own))
+				into.Add((caller, reached, namespaced));
 
-				if (namespaced is not null && namespaced != NearestSite(caller.Namespace) && !Encloses(namespaced, own))
-					into.Add((caller, reached, namespaced));
+			var onward = namespaced == own && namespaced is not null ? null : namespaced ?? within;
 
-				var onward = namespaced == own && namespaced is not null ? null : namespaced ?? within;
+			if (!seen.Add((reached, onward)))
+				continue;
 
-				if (!seen.Add((reached, onward)))
-					continue;
-
-				foreach (var next in CallsOf(reached, forward))
-					pending.Enqueue((reached, next, onward));
-			}
+			foreach (var next in CallsOf(reached, forward))
+				pending.Enqueue((reached, next, onward));
 		}
 
 		return into;
@@ -556,8 +778,11 @@ public sealed partial class GrammarNormalizer
 
 		while (pending.Count > 0)
 		{
-			var publication     = pending.Dequeue();
-			var at              = dequeued++;
+			var publication = pending.Dequeue();
+			var at          = dequeued++;
+
+			_stacking = (publication.At, $"the 'with' of '{publication.MethodName}'");
+
 			var (asked, cloned) = Asked(publication);
 			var numbered        = publication with { Reading = Reading(asked, publication) };
 

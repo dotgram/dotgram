@@ -483,7 +483,7 @@ public sealed partial class GrammarNormalizer
 
 		if (_model.WithBindings.TryGetValue(expression, out var targets) && targets.Count > 0)
 		{
-			_pendingWith.Add(new WithSite(_currentRule!, lowered, targets, "With" + (++_withCounter), expression.At));
+			_pendingWith.Add(new WithSite(_currentRule!, lowered, targets, "With" + (++_withCounter), expression.At) { Made = _making });
 			_withRoots.Add(lowered);
 		}
 
@@ -702,15 +702,75 @@ public sealed partial class GrammarNormalizer
 
 			// Lowered here and read inside the rule it is passed to, which is another rule: a
 			// binding is read only in the rule that bound it.
+			var known = _pendingWith.Count;
+
 			passed.Add(RefuseBoundText(argument, $"in an argument of '{rule.Name}', which is read inside that rule")
 				? Node.Empty.Instance
 				: Lower(argument, ns));
 			counts.Add(null);
 			values.Add(null);
+
+			// Where it was written, for a check once it is read inside the rule — kept where a
+			// parameter passed it on, since those are the same nodes, written further out.
+			if (passed[^1] is { } lowered)
+				foreach (var node in NodeWalk.Descendants(lowered))
+					if (!ReferenceEquals(node, Node.Empty.Instance) && !ReferenceEquals(node, Node.Glue.Instance) && !_argumentOrigins.ContainsKey(node))
+						_argumentOrigins[node] = ns;
+
+			RefuseWithInArgument(rule, known);
 		}
 
-		return Instantiate(rule, passed, counts, values);
+		RefuseHeaderBoundArguments(rule, arguments, passed, ns);
+
+		var rules = _rules.Count;
+		var call  = Instantiate(rule, passed, counts, values);
+
+		_callArguments[call] = passed;
+
+		RefuseForwardedArguments(rule, ((Node.Call)call).Rule, arguments, passed, ns, reused: _rules.Count == rules);
+
+		return call;
 	}
+
+	/// <summary>
+	/// Refuses a <c>with</c> expression written inside an argument of a parameterized rule, at
+	/// any depth (GRAM4041): every site recorded while the argument was lowered, in the rule
+	/// the call is written in.
+	/// </summary>
+	/// <remarks>
+	/// An instance is one rule for every call that passes the same arguments, keyed by what they
+	/// lower to — and a <c>with</c> lowers to its operand alone, so <c>L(D with (D = Y))</c> and
+	/// <c>L(D)</c> are one instance. The site is recorded against the rule the call is written
+	/// in, whose body the operand is not in, and the splice found nothing to rewrite: the parser
+	/// read the argument as though the <c>with</c> had not been written. A site recorded in an
+	/// instance's own body while the argument was lowered — a rule the argument calls, whose
+	/// declaration holds a <c>with</c> — is that instance's, not the argument's, and is left to
+	/// the order.
+	/// </remarks>
+	void RefuseWithInArgument(RuleSymbol rule, int known)
+	{
+		for (var at = known; at < _pendingWith.Count; at++)
+		{
+			var site = _pendingWith[at];
+
+			if (site.Rule != _currentRule || !_withInArguments.Add(site))
+				continue;
+
+			Report(
+				WithInArgument,
+				$"A 'with' inside an argument of '{rule.Name}' is not supported yet: an instance of a " +
+				"parameterized rule is one rule for every call that passes the same argument, " +
+				"whatever each call rebinds in it, and this rebinding would be dropped. Declare a " +
+				"rule with the rebinding and pass that rule.",
+				site.At);
+		}
+	}
+
+	/// <summary>
+	/// The sites <see cref="RefuseWithInArgument"/> has refused: once each, however deep the
+	/// call that holds them.
+	/// </summary>
+	readonly HashSet<WithSite> _withInArguments = [];
 
 	/// <summary>The C# type a literal argument is, or null where the argument is not one.</summary>
 	static string? LiteralType(Expr argument)
@@ -1229,7 +1289,7 @@ public sealed partial class GrammarNormalizer
 			nodes.Add(lowered);
 		}
 
-		return Flatten(MergeLiterals(nodes), _withRoots);
+		return Flatten(MergeLiterals(nodes, _withRoots), _withRoots);
 	}
 
 	/// <summary>
@@ -1485,7 +1545,11 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>`'a' &amp; 'b'` is `"ab"`: a sequence of literals already means their
 	/// concatenation.</summary>
-	static List<Node> MergeLiterals(List<Node> nodes)
+	/// <summary>
+	/// Adjacent literals as one, but for a literal a `with` is written on, which has to stay the
+	/// node its site was recorded as: `('x' with (B = D)) & '!'` keeps its two.
+	/// </summary>
+	static List<Node> MergeLiterals(List<Node> nodes, HashSet<Node> withRoots)
 	{
 		var merged = new List<Node>();
 
@@ -1494,7 +1558,8 @@ public sealed partial class GrammarNormalizer
 			if (node is Node.Literal(var text) { IgnoreCase: var ignoreCase } &&
 				merged.Count > 0 &&
 				merged[^1] is Node.Literal(var previous) { IgnoreCase: var previousIgnoreCase } &&
-				ignoreCase == previousIgnoreCase)
+				ignoreCase == previousIgnoreCase &&
+				!withRoots.Contains(node) && !withRoots.Contains(merged[^1]))
 			{
 				merged[^1] = new Node.Literal(previous + text) { IgnoreCase = ignoreCase };
 				continue;

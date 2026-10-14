@@ -62,6 +62,17 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string RecoveryInLookahead = "GRAM4038";
 
+	/// <summary>
+	/// An argument of a call into a namespace with a header, written outside that namespace,
+	/// that names a rule the header rebinds.
+	/// </summary>
+	public const string HeaderBoundArgument = "GRAM4040";
+
+	/// <summary>
+	/// A <c>with</c> expression inside an argument of a parameterized rule.
+	/// </summary>
+	public const string WithInArgument      = "GRAM4041";
+
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
 
