@@ -1002,6 +1002,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			StaticImports  = [.. host.Includes.Items.Select(static one => one.ClassName)],
 			Portable       = host.Portable,
 			Carrier        = (CarrierKind)host.Carrier,
+			ConstructionsMayThrow = host.ConstructionsMayThrow,
 			BufferedInput  = host.BufferedInput,
 			BufferedBytes  = host.BufferedBytes,
 			SpanCaptures   = host.SpanCaptures,
@@ -1055,11 +1056,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 			reporting == Reporting.Full && result.Sources.Count > 0
 				? string.Format(CultureInfo.InvariantCulture,
 					"DotGram: {0}, mode={1}, options: Lexical={2}, " +
-					"Carrier={3}, BufferedInput={4}, BufferedBytes={5}, SpanCaptures={6}",
+					"Carrier={3}, ConstructionsMayThrow={7}, BufferedInput={4}, BufferedBytes={5}, SpanCaptures={6}",
 					host.HintName,
 					result.UsesLexical ? "lexical" : "characters", host.Lexical,
 					(CarrierKind)host.Carrier,
-					host.BufferedInput, host.BufferedBytes, host.SpanCaptures) +
+					host.BufferedInput, host.BufferedBytes, host.SpanCaptures, host.ConstructionsMayThrow) +
 					string.Concat((result.Carriers ?? []).Select(static line => "\n// " + line))
 				: null,
 			marked);
@@ -1338,6 +1339,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		int       PartSize   = 0,
 		bool      Lexical    = false,
 		int       Carrier    = 0,
+		bool      ConstructionsMayThrow = false,
 		bool      BufferedInput = false,
 		bool      BufferedBytes = false,
 		bool      SpanCaptures = false,
@@ -1665,6 +1667,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 				PartSize:   partSize,
 				Lexical:    lexical,
 				Carrier:    carrier,
+				// What the author says of the grammar's constructions, which the immediate carrier
+				// pays for on every one of them and so does not assume (docs/syntax.md §7.5).
+				ConstructionsMayThrow: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.ConstructionsMayThrow)).Value.Value as bool? ?? first?.ConstructionsMayThrow ?? false,
 				SpanCaptures: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.SpanCaptures)).Value.Value as bool? ?? first?.SpanCaptures ?? false,
 				BufferedBytes: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedBytes)).Value.Value as bool? ?? first?.BufferedBytes ?? false,
 				BufferedInput: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedInput)).Value.Value as bool? ?? first?.BufferedInput ?? false,

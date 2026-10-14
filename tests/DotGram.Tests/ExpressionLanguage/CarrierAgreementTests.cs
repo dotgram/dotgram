@@ -34,16 +34,15 @@ namespace DotGram.Tests.ExpressionLanguage;
 /// would show here as a disagreement, and nowhere else.
 /// </para>
 /// <para>
-/// One difference is allowed, and only one: where the tape refuses the text, the immediate
-/// carrier may throw instead. A parse that fails has already run the constructions of what it
-/// read before failing on that carrier — `s.Trim)` builds `s.Trim` and is told there is no such
-/// property before the `)` refuses it, and `x &lt; 1 || x &gt;` joins `x &lt; 1` and `x` with `||`
-/// before finding nothing after the `&gt;`. The tape would throw the same for `s.Trim` and for
-/// `x &lt; 1 || x`; what differs is only that the immediate carrier gets there before it knows
-/// the parse will fail. No guard can take that back without changing what those shorter texts
-/// mean. What may not happen is anything else: a text one carrier accepts and the other does
-/// not, a different refusal, a different exception, or the immediate carrier throwing where the
-/// tape accepts.
+/// No difference is allowed. One used to be: where the tape refused the text, the immediate
+/// carrier could throw instead, because a parse that fails had already run the constructions of
+/// what it read before failing — `s.Trim)` built `s.Trim` and was told there is no such property
+/// before the `)` refused it. The immediate carrier now holds what a construction throws and
+/// drops it with the reading the parse gives up, throwing it only where the tape would have
+/// built the value (§7.5); so the two carriers must agree on every text, throwers included,
+/// and this test is the proof of that over the whole corpus. That the corpus has throwers at
+/// all is asserted beside it, so that agreement is not covering for a corpus nothing throws on:
+/// before the change, 654 of these texts threw on the immediate carrier where the tape refused.
 /// </para>
 /// <para>
 /// The second is the contract of the public surface. D137 (2026-09-24) settled that a host's
@@ -58,31 +57,23 @@ public sealed class CarrierAgreementTests
 	public void The_two_carriers_answer_every_text_alike()
 	{
 		var differed = new List<string>();
-		var early    = 0;
+		var threw    = 0;
 
 		foreach (var text in Texts())
 		{
 			var tape      = Answer(text, ExpressionParser.TryParseLambda);
 			var immediate = Answer(text, ImmediateExpressions.Immediate.TryParseLambda);
 
-			if (tape == immediate)
-				continue;
+			if (tape.StartsWith(Threw, StringComparison.Ordinal))
+				threw++;
 
-			// Refused on the tape, thrown immediately: what was read before the refusal built
-			// something that cannot be built, as the remarks say.
-			if (!tape.StartsWith(Threw, StringComparison.Ordinal) && tape != Accepted &&
-				immediate.StartsWith(Threw, StringComparison.Ordinal))
-			{
-				early++;
-				continue;
-			}
-
-			differed.Add($"{Escaped(text)}\n  tape:      {tape}\n  immediate: {immediate}");
+			if (tape != immediate)
+				differed.Add($"{Escaped(text)}\n  tape:      {tape}\n  immediate: {immediate}");
 		}
 
-		// Not a bound: a corpus that grows grows this. That there are some says the texts reach
-		// the case the remarks allow, so that the allowance is not covering for nothing.
-		Assert.True(early > 0, "No text the tape refuses threw on the immediate carrier.");
+		// Not a bound: a corpus that grows grows this. That there are some says the corpus has
+		// constructions that throw, so that agreement is not covering for nothing.
+		Assert.True(threw > 0, "No text threw on the tape.");
 
 		Assert.True(differed.Count == 0,
 			$"{differed.Count} texts told the carriers apart; the first three:\n" +

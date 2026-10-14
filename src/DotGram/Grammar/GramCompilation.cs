@@ -205,6 +205,14 @@ public sealed class GramCompilerOptions
 	public CarrierKind Carrier { get; set; } = CarrierKind.Auto;
 
 	/// <summary>
+	/// Whether a construction of the grammar may throw on a reading the parse gives up
+	/// (<c>[Gram(ConstructionsMayThrow = …)]</c>). Then a machine on the immediate carrier holds
+	/// what a construction throws and throws it only where the tape would have built the value;
+	/// otherwise the exception leaves the parse where it is thrown. The tape ignores it.
+	/// </summary>
+	public bool ConstructionsMayThrow { get; set; }
+
+	/// <summary>
 	/// Whether to say, in <see cref="GramCompilation.Carriers"/>, which carrier each machine has and
 	/// what the tape would hold back: the rules the gates name and the place each was found. For a
 	/// report; a parse is generated the same either way, and without it nothing of this is kept.

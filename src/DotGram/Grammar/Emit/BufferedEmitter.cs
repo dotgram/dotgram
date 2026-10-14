@@ -69,7 +69,7 @@ public static partial class CSharpEmitter
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
 		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
 		Dictionary<string, int>? expectedTables,
-		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed, bool countRules,
+		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed, bool countRules, bool constructionsMayThrow,
 		TraceTables? tracing, ExpectedSets expectedSets)
 	{
 		// A buffered machine chooses its carrier as the file's machines do, by the same gates:
@@ -105,6 +105,7 @@ public static partial class CSharpEmitter
 				{
 					Reporting   = reporting,
 					CountsRules = countRules,
+					ConstructionsMayThrow = constructionsMayThrow,
 				};
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";
@@ -163,6 +164,7 @@ public static partial class CSharpEmitter
 					InPlace   = true,
 					Reporting   = reporting,
 					CountsRules = countRules,
+					ConstructionsMayThrow = constructionsMayThrow,
 				};
 
 				if (memory.CanDirect([publication]) && !memory.Probes)
@@ -209,6 +211,7 @@ public static partial class CSharpEmitter
 			{
 				Reporting   = reporting,
 				CountsRules = countRules,
+				ConstructionsMayThrow = constructionsMayThrow,
 			};
 			added[host] = owner with { Machine = shared, Publications = publications };
 			for (var guest = guests.Count - 1; guest >= 0; guest--)

@@ -210,6 +210,18 @@ sealed partial class Machine
 	internal bool CountsRules;
 
 	/// <summary>
+	/// Whether the grammar says a construction of its may throw on a reading the parse gives up
+	/// (<c>[Gram(ConstructionsMayThrow = true)]</c>): what an immediate reader holds such an
+	/// exception for (<see cref="ImmediateCarrier.Holds"/>).
+	/// </summary>
+	/// <remarks>
+	/// Unset, an immediate machine is written exactly as it was before it could hold one: the
+	/// hold is paid for on every construction, and a grammar none of whose constructions throws
+	/// should not pay it.
+	/// </remarks>
+	internal bool ConstructionsMayThrow;
+
+	/// <summary>
 	/// What the file's trace build numbers its events by, where it is one: then every rule's method
 	/// reports its entry and each of its returns, a remembered failure, a guard asked, an element
 	/// stepped over and a hand-off to another stack, and the frames of the forwarding rules the
@@ -1740,6 +1752,24 @@ sealed partial class Machine
 		readonly bool _guarded = NodeWalk.Descendants(machine._graph.Bodies[owner]).Any(static one => one is Node.Guard);
 
 		/// <summary>
+		/// Whether a guard of the rule names a built value no one local holds (<see cref="Machine.GuardAsksWider"/>):
+		/// what decides whether the mark the rule takes at its start carries, on a carrier that
+		/// builds as it reads, the exception held when it began (<see cref="ValueCarrier.GuardMarkRecords"/>).
+		/// </summary>
+		readonly bool _asksWider = NodeWalk.Descendants(machine._graph.Bodies[owner]).OfType<Node.Guard>().Any(guard => machine.GuardAsksWider(owner, guard));
+
+		/// <summary>
+		/// The record slots a guard of the rule names (<see cref="Machine.GuardFlaggedSlots"/>), on a
+		/// carrier that holds what a construction threw: each keeps a flag beside its local — the
+		/// place in the held exceptions of the first raised while its value was read, or -1 —
+		/// written where the value is captured and read where the guard is asked
+		/// (<see cref="ValueCarrier.GuardAsks"/>). Empty on every other carrier.
+		/// </summary>
+		readonly HashSet<int> _flagged = machine.Carrier is ImmediateCarrier { Holds: true }
+			? [.. NodeWalk.Descendants(machine._graph.Bodies[owner]).OfType<Node.Guard>().SelectMany(guard => machine.GuardFlaggedSlots(owner, guard))]
+			: [];
+
+		/// <summary>
 		/// Whether anything in this reading writes a record, and so a failed attempt can
 		/// leave records on the log that nothing will ever refer to.
 		/// </summary>
@@ -1925,7 +1955,7 @@ sealed partial class Machine
 			// Where the log stood when the rule began, for a guard that builds a value from
 			// what has been recorded since.
 			if (_guarded && !_part)
-				foreach (var line in machine.Carrier.MarkRecords("lm"))
+				foreach (var line in machine.Carrier.GuardMarkRecords("lm", _asksWider))
 					Declare(line);
 
 			foreach (var slot in _kept.OrderBy(static one => one))
@@ -1958,6 +1988,9 @@ sealed partial class Machine
 
 					default:
 						Declare(machine.Carrier.DeclareRecordLocal(slot, RuleOfSlot(slot), Optional(slot)));
+
+						if (_flagged.Contains(slot))
+							Declare($"var r{slot}f = -1;");
 						break;
 				}
 			}
@@ -2514,6 +2547,25 @@ sealed partial class Machine
 					break;
 
 				case MemberShape.Record:
+					// A slot a guard names, on a carrier that holds what a construction threw: the
+					// first exception raised while this value was read is the one held at the count
+					// the journal stood at before — a reading given up inside cut the journal back,
+					// so one raised and still held is one that stands (_flagged,
+					// ValueCarrier.GuardAsks). An earlier capture's place is kept over a later one's
+					// where it still names a held exception, so that a slot written more than once
+					// in one reading names its first thrower.
+					if (_flagged.Contains(slot))
+					{
+						var before = $"cf{_snapshots++}";
+
+						code.Line($"var {before} = faults;");
+						Emit(code, held, following, loaded);
+						code.Line($"r{slot} = {machine.Carrier.Last(RuleOfSlot(slot))};");
+						code.Line($"r{slot}f = r{slot}f >= 0 && r{slot}f < {before} ? r{slot}f : faults > {before} ? {before} : -1;");
+
+						break;
+					}
+
 					Emit(code, held, following, loaded);
 					code.Line($"r{slot} = {machine.Carrier.Last(RuleOfSlot(slot))};");
 					break;
@@ -3903,6 +3955,11 @@ sealed partial class Machine
 			var taken = captured.Where(elsewhere.Contains).OrderBy(static one => one).ToList();
 			var given = used.Where(one => !captured.Contains(one)).OrderBy(static one => one).ToList();
 
+			// Whether a guard of the part, or of a part of it, names a value no one local holds, so
+			// that the exception held where the rule began is handed down (ValueCarrier.GuardMarks):
+			// handed to every part of such a rule, it was a parameter most of them never read.
+			var wider = NodeWalk.Descendants(part).OfType<Node.Guard>().Any(guard => machine.GuardAsksWider(owner, guard));
+
 			// A part that is one call and nothing else is that call. The method it would be
 			// is the call between a position taken and a position returned, and a capture
 			// no record outside reads — `p: Predicate => @(p)` is one, its construction
@@ -3933,7 +3990,7 @@ sealed partial class Machine
 			ObservedOpen |= apart.ObservedOpen;
 			_pushed      |= apart._pushed;
 
-			Parts.Add((name, Handing(given, taken, "int "), written));
+			Parts.Add((name, Handing(given, taken, "int ", wider), written));
 
 			foreach (var made in apart.Parts)
 				Parts.Add(made);
@@ -3944,7 +4001,7 @@ sealed partial class Machine
 
 			foreach (var slot in taken)
 				foreach (var name2 in Names(slot))
-					undo.Append(name2[0] == 'r' ? machine.Carrier.ResetRecordLocal(slot, Optional(slot)) : name2 + " = -1;").Append(' ');
+					undo.Append(name2[0] == 'r' && !IsFlag(name2) ? machine.Carrier.ResetRecordLocal(slot, Optional(slot)) : name2 + " = -1;").Append(' ');
 
 			// What it wrote itself, what its own parts wrote, and what the rules it calls
 			// were found to write.
@@ -3955,7 +4012,7 @@ sealed partial class Machine
 				machine.Opens(part);
 
 			return (
-				$"{name}(p{Handing(given, taken, "")})",
+				$"{name}(p{Handing(given, taken, "", wider)})",
 				undo.ToString().TrimEnd(),
 				opens);
 		}
@@ -3994,7 +4051,8 @@ sealed partial class Machine
 		}
 
 		/// <summary>The positions handed over, as a signature or as a call.</summary>
-		string Handing(IReadOnlyList<int> given, IReadOnlyList<int> taken, string type)
+		/// <param name="wider">Whether a guard of the part names a value no one local holds, for the exception held where the rule began (<see cref="ValueCarrier.GuardMarks"/>).</param>
+		string Handing(IReadOnlyList<int> given, IReadOnlyList<int> taken, string type, bool wider)
 		{
 			var text = new System.Text.StringBuilder();
 
@@ -4010,11 +4068,11 @@ sealed partial class Machine
 			// And the rule's log mark, for what a guard builds.
 			if (_guarded)
 			{
-				var declared = machine.Carrier.RecordMarks("lmark");
-				var passed   = machine.Carrier.RecordMarks(_part ? "lmark" : "lm");
+				var declared = machine.Carrier.GuardMarks("lmark", wider);
+				var passed   = machine.Carrier.GuardMarks(_part ? "lmark" : "lm", wider);
 
 				for (var one = 0; one < declared.Count; one++)
-					text.Append(", ").Append(type.Length > 0 ? machine.Carrier.RecordMarkType + " " + declared[one] : passed[one]);
+					text.Append(", ").Append(type.Length > 0 ? declared[one].Type + " " + declared[one].Name : passed[one].Name);
 			}
 
 			// The strength the rule was entered at, which every method of it reads.
@@ -4044,6 +4102,9 @@ sealed partial class Machine
 		/// </summary>
 		string TypeOf(string type, int slot, string name)
 		{
+			if (IsFlag(name))
+				return Typed(type, "int ");
+
 			return name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(RuleOfSlot(slot), Optional(slot))) : type;
 		}
 
@@ -4100,8 +4161,21 @@ sealed partial class Machine
 
 				default:
 					yield return "r" + slot;
+
+					// Whether building the value threw, beside it (_flagged).
+					if (_flagged.Contains(slot))
+						yield return "r" + slot + "f";
 					break;
 			}
+		}
+
+		/// <summary>How many snapshots of the held exception the method has taken before a flagged capture (<see cref="_flagged"/>), for their names.</summary>
+		int _snapshots;
+
+		/// <summary>Whether a handed name is a record's flag (<see cref="_flagged"/>) rather than the record itself.</summary>
+		static bool IsFlag(string name)
+		{
+			return name[0] == 'r' && name[name.Length - 1] == 'f';
 		}
 
 		/// <summary>
@@ -5598,6 +5672,19 @@ sealed partial class Machine
 			var begun      = _part ? "start" : "pos";
 			var mark       = _part ? "lmark" : "lm";
 
+			var accumulator = machine.GuardAccumulator(rule, guard);
+			var members     = machine.GuardMembers(rule, guard);
+
+			// A value the guard names is built already on a carrier that builds as it reads, and
+			// what a construction under it threw is thrown now, where the tape would build it.
+			if (machine.GuardAsksValue(rule, guard))
+			{
+				Carried(code, machine.Carrier.GuardAsks(
+					mark,
+					[.. machine.GuardFlaggedSlots(rule, guard).Select(static slot => $"r{slot}f")],
+					machine.GuardAsksWider(rule, guard)));
+			}
+
 			if (CSharpEmitter.Uses(_graph, text, "parserText"))
 			{
 				parameters.Add((machine.BorrowedCaptures ? machine.CaptureSpanType : "string") + " parserText");
@@ -5619,18 +5706,18 @@ sealed partial class Machine
 			// The value so far (§4.3), where a guard in a step names it: the reader holds it as
 			// `fold`, a value where the carrier builds as it reads and a record to build where
 			// it does not.
-			if (machine.GuardAccumulator(rule, guard) is { } accumulator)
+			if (accumulator is { } named)
 			{
 				var build = machine.Carrier.BuildFold(rule, mark);
 
 				if (build.Length > 0)
 					code.Line(build);
 
-				parameters.Add($"{_graph.Types[rule]} {ResultTypes.ParameterOf(accumulator)}");
+				parameters.Add($"{_graph.Types[rule]} {ResultTypes.ParameterOf(named)}");
 				arguments.Add(ValueAt(rule, "fold"));
 			}
 
-			foreach (var (member, slots) in machine.GuardMembers(rule, guard))
+			foreach (var (member, slots) in members)
 			{
 				var handed = $"g{_guardLocals++}";
 				var type   = member.Rule is null ? machine.BorrowedCaptures ? machine.CaptureSpanType : "string" : machine._results.ValueOf(member.Rule);

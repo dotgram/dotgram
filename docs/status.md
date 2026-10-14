@@ -324,7 +324,10 @@ a failed parse outcome. Catching would mean catching `Exception`, because no typ
 "this quantity is not a number" from `NullReferenceException`, and a parser that
 reports a bug in the author's own C# as "row 400 was malformed" is worse than one that
 stops. The generator does not infer a parser outcome from the signature of the C# called
-by `=>`.
+by `=>`. Where a grammar says `ConstructionsMayThrow = true`, the immediate carrier holds the
+exception while the reading it was raised in may still be given up, and throws it where the
+tape would have built the value (§7.5); it is never an outcome, and one from a reading the
+parse abandons is never seen.
 
 `DecimalCalculator.Evaluate("1 . 5")` in the examples throws `FormatException` out of a
 `decimal.Parse` in a `=>`, and a test asserts exactly that.

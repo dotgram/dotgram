@@ -57,6 +57,11 @@ public sealed class GenerationReportTests
 		Assert.Contains("DotGram: Parser, 1 normalized rules, ", Report(run), StringComparison.Ordinal);
 		Assert.Contains("mode=characters", Detail(run), StringComparison.Ordinal);
 		Assert.Contains("options: Lexical=", Detail(run), StringComparison.Ordinal);
+		Assert.Contains("ConstructionsMayThrow=False", Detail(run), StringComparison.Ordinal);
+		Assert.Contains(
+			"ConstructionsMayThrow=True",
+			Detail(Run(Source.Replace(")]", ", ConstructionsMayThrow = true)]", StringComparison.Ordinal), "full")),
+			StringComparison.Ordinal);
 	}
 
 	/// <summary>`true` is the spelling the levels replaced, and it still means the full report.</summary>
