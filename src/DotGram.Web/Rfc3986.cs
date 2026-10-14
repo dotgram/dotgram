@@ -206,10 +206,10 @@ public sealed record UriReference(
 
 		// §3.3, the four forms. Which one is allowed is what the two `-part` rules below
 		// decide; what each one *is* belongs here.
-		PathAbEmpty  = ('/' & Segment)*
-		PathAbsolute = '/' & (SegmentNz & ('/' & Segment)*)?
-		PathNoScheme = SegmentNzNc & ('/' & Segment)*
-		PathRootless = SegmentNz & ('/' & Segment)*
+		PathAbEmpty  = { ('/' & Segment)* }
+		PathAbsolute = '/' & (SegmentNz & { ('/' & Segment)* })?
+		PathNoScheme = SegmentNzNc & { ('/' & Segment)* }
+		PathRootless = SegmentNz & { ('/' & Segment)* }
 	}
 
 	// ── The reference, and the parts it comes back as ───────────────────────────
