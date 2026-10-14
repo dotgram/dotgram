@@ -1259,7 +1259,7 @@ public static partial class Sql2023Writer
 		{
 			DotGram.Sql.Expression value = option.Value switch
 			{
-				Expression.Literal { Value: LiteralValue.Numeric number } => new DotGram.Sql.Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(number.Text)),
+				LiteralValue.Numeric number => new DotGram.Sql.Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(number.Text)),
 				Expression.Reference { Name.Parts: [{ Style: IdentifierStyle.Regular } part] } => new DotGram.Sql.Expression.ColumnReference(part.Text.ToUpperInvariant()),
 				Expression.Reference { Name.Parts: [var part] } => new DotGram.Sql.Expression.ColumnReference("[" + part.Text + "]"),
 				_ => new DotGram.Sql.Expression.Literal(SqlLiteralKind.Text, "''"),
@@ -1327,7 +1327,7 @@ public static partial class Sql2023Writer
 		/// <summary>The grammar's <c>Number</c>: an unsigned decimal number, with a point or an exponent or not.</summary>
 		static bool IsOptionNumber(Expression? value)
 		{
-			return value is Expression.Literal { Value: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate, Text: var text } }
+			return value is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate, Text: var text }
 				&& text.Length > 0 && (char.IsDigit(text[0]) || text[0] == '.');
 		}
 
