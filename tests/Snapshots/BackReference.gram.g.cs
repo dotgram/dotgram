@@ -3886,6 +3886,21 @@ namespace DotGram.Snapshots
 				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Pair_0_DotGram(string c, string r)
+			{
+				try
+				{
+					return Construct_Pair(c, r);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
 			public int Read_Pair_Pair(int pos)
 			{
 				var p = pos;
@@ -3916,7 +3931,7 @@ namespace DotGram.Snapshots
 				}
 				p += b2 - a2;
 				b1 = p;
-				if (unbuilt == 0) try { last0 = Construct_Pair((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last0 = Held_Pair_0_DotGram((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!);
 				return p;
 			}
 

@@ -416,6 +416,96 @@ namespace DotGram.Snapshots
 					global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 				}
 
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				int Held_Sum_0_DotGram(int first, int[] rest)
+				{
+					try
+					{
+						return Construct_Sum(first, rest);
+					}
+					catch (global::System.Exception thrown)
+					{
+						Faulted_DotGram(thrown);
+
+						return default!;
+					}
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				int Held_Term_0_DotGram(int inner)
+				{
+					try
+					{
+						return Construct_Term(inner);
+					}
+					catch (global::System.Exception thrown)
+					{
+						Faulted_DotGram(thrown);
+
+						return default!;
+					}
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				int Held_Term_1_DotGram(int high, int low)
+				{
+					try
+					{
+						return Construct_Term_1(high, low);
+					}
+					catch (global::System.Exception thrown)
+					{
+						Faulted_DotGram(thrown);
+
+						return default!;
+					}
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				int Held_Term_2_DotGram(int high)
+				{
+					try
+					{
+						return Construct_Term_2(high);
+					}
+					catch (global::System.Exception thrown)
+					{
+						Faulted_DotGram(thrown);
+
+						return default!;
+					}
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				int Held_Digits_0_DotGram(string text)
+				{
+					try
+					{
+						return Construct_Digits(text);
+					}
+					catch (global::System.Exception thrown)
+					{
+						Faulted_DotGram(thrown);
+
+						return default!;
+					}
+				}
+
+				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+				int Held_More_0_DotGram(int value)
+				{
+					try
+					{
+						return Construct_More(value);
+					}
+					catch (global::System.Exception thrown)
+					{
+						Faulted_DotGram(thrown);
+
+						return default!;
+					}
+				}
+
 				public int Read_Sum(int pos)
 				{
 					if ((probes++ & 3) == 0 && !EnoughStack_DotGram())
@@ -554,7 +644,7 @@ namespace DotGram.Snapshots
 						Refused_DotGram(ref failure, p, null);
 						{ values.Count0 = rb_0; return -1; }
 					}
-					if (unbuilt == 0) try { last0 = Construct_Sum(r0!, values.Take0(rb_0)!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); } else { values.Count0 = rb_0; }
+					if (unbuilt == 0) last0 = Held_Sum_0_DotGram(r0!, values.Take0(rb_0)!); else { values.Count0 = rb_0; }
 					return p;
 				}
 
@@ -648,7 +738,7 @@ namespace DotGram.Snapshots
 									return -1;
 								}
 								p += 1;
-								if (unbuilt == 0) try { last0 = Construct_Term((int)r0!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+								if (unbuilt == 0) last0 = Held_Term_0_DotGram((int)r0!);
 								break;
 							}
 						default:
@@ -753,14 +843,14 @@ namespace DotGram.Snapshots
 						Refused_DotGram(ref failure, p, null);
 						return -1;
 					}
-					if (unbuilt == 0) try { last0 = Construct_Term_1((int)r1!, (int)r2!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+					if (unbuilt == 0) last0 = Held_Term_1_DotGram((int)r1!, (int)r2!);
 					return p;
 				}
 
 				public int Read_Term_Part1(int pos, int start, int? r1, int r1f)
 				{
 					var p = pos;
-					if (unbuilt == 0) try { last0 = Construct_Term_2((int)r1!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+					if (unbuilt == 0) last0 = Held_Term_2_DotGram((int)r1!);
 					return p;
 				}
 
@@ -822,7 +912,7 @@ namespace DotGram.Snapshots
 					}
 
 					b0 = p;
-					try { last0 = Construct_Digits((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+					last0 = Held_Digits_0_DotGram((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 					return p;
 				}
 
@@ -886,7 +976,7 @@ namespace DotGram.Snapshots
 					if (q1 < 0) return -1;
 					p = q1;
 					r0 = last0;
-					if (unbuilt == 0) try { last0 = Construct_More(r0!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
+					if (unbuilt == 0) last0 = Held_More_0_DotGram(r0!);
 					return p;
 				}
 

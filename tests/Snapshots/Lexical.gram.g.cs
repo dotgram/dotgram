@@ -454,6 +454,81 @@ namespace DotGram.Snapshots
 				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string[] Held_Program_0_DotGram(string[] item0)
+			{
+				try
+				{
+					return Construct_Program(item0);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Statement_0_DotGram(string name, string value)
+			{
+				try
+				{
+					return Construct_Statement(name, value);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Expression_2_DotGram(string named)
+			{
+				try
+				{
+					return Construct_Expression_2(named);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Expression_0_DotGram(string left, string right)
+			{
+				try
+				{
+					return Construct_Expression(left, right);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			string Held_Expression_1_DotGram(string left)
+			{
+				try
+				{
+					return Construct_Expression_1(left);
+				}
+				catch (global::System.Exception thrown)
+				{
+					Faulted_DotGram(thrown);
+
+					return default!;
+				}
+			}
+
 			public int Read_Program(int pos)
 			{
 				var p = pos;
@@ -502,7 +577,7 @@ namespace DotGram.Snapshots
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(0));
 					{ values.Count1 = rb_1; return -1; }
 				}
-				if (unbuilt == 0) try { last0 = Construct_Program(values.Take1(rb_1)!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); } else { values.Count1 = rb_1; }
+				if (unbuilt == 0) last0 = Held_Program_0_DotGram(values.Take1(rb_1)!); else { values.Count1 = rb_1; }
 				return p;
 			}
 
@@ -573,7 +648,7 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				if (unbuilt == 0) try { last1 = Construct_Statement((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last1 = Held_Statement_0_DotGram((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!);
 				return p;
 			}
 
@@ -599,7 +674,7 @@ namespace DotGram.Snapshots
 							a2 = p;
 							p++;
 							b2 = p;
-							if (unbuilt == 0) try { last1 = Construct_Expression_2((a2 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a2, b2 - a2))!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+							if (unbuilt == 0) last1 = Held_Expression_2_DotGram((a2 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a2, b2 - a2))!);
 							break;
 						}
 					case '\u0003':
@@ -617,7 +692,7 @@ namespace DotGram.Snapshots
 							}
 							if (q0 < 0)
 							{
-								if (unbuilt == 0) try { last1 = Construct_Expression_1((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+								if (unbuilt == 0) last1 = Held_Expression_1_DotGram((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!);
 								q0 = p;
 							}
 							p = q0;
@@ -649,7 +724,7 @@ namespace DotGram.Snapshots
 				}
 				p += 1;
 				b1 = p;
-				if (unbuilt == 0) try { last1 = Construct_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
+				if (unbuilt == 0) last1 = Held_Expression_0_DotGram((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
 				return p;
 			}
 
