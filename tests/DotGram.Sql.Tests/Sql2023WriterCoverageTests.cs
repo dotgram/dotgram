@@ -163,6 +163,16 @@ public sealed class Sql2023WriterCoverageTests
 		return new Statement.CreateSpatialIndex(T, I, C) { Options = [.. options] };
 	}
 
+	static Statement.CreateXmlIndex XmlWith(params Option[] options)
+	{
+		return new Statement.CreateXmlIndex(T, I, C) { Options = [.. options] };
+	}
+
+	static Statement.CreateTable IdentityColumn(params SequenceOption[] options)
+	{
+		return Tabled(null, new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), new ColumnGeneration.Identity(IdentityGeneration.Always, [.. options]), [], null)));
+	}
+
 	static Statement.CreateSequence SequenceWith(params SequenceOption[] options)
 	{
 		return new Statement.CreateSequence { Name = T, Options = [.. options] };
@@ -447,6 +457,16 @@ public sealed class Sql2023WriterCoverageTests
 	static string Repository([System.Runtime.CompilerServices.CallerFilePath] string here = "")
 	{
 		return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", ".."));
+	}
+
+	/// <summary>The option values the grammar reads are not refused along with the ones it does not.</summary>
+	[Fact]
+	public void Option_values_the_grammar_reads_are_written()
+	{
+		Assert.Contains("MAXDOP = 1e3", Sql2023Writer.Write(XmlWith(new Option(new Identifier("MAXDOP"), Number("1e3", NumericLiteralKind.Approximate), []), Set("IGNORE_DUP_KEY", "OFF"), Set("ONLINE", "off"), Set("PAD_INDEX", "ON"))), StringComparison.Ordinal);
+		Assert.Contains("MAXDOP =", Sql2023Writer.Write(SpatialWith(new Option(new Identifier("MAXDOP"), Number("- 0"), []), Set("ONLINE", "OFF"), Set("FILLFACTOR", "A") with { Value = Number("100") })), StringComparison.Ordinal);
+		Assert.Contains("COMPRESSION_DELAY = 2 MINUTE", Sql2023Writer.Write(Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Options = [new Option(new Identifier("COMPRESSION_DELAY"), new Expression.Measured(Two, new Identifier("MINUTE")), []), Set("ONLINE", "ON")] })), StringComparison.Ordinal);
+		Assert.Contains("CACHE", Sql2023Writer.Write(SequenceWith(new SequenceOption.Cache(Two))), StringComparison.Ordinal);
 	}
 
 	/// <summary>That each named exception is true of the writer, and not merely asserted by this file.</summary>
@@ -1143,6 +1163,11 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("UNIQUE on a columnstore index")]
 	[InlineData("INCLUDE on a columnstore index")]
 	[InlineData("FILESTREAM_ON on a columnstore index")]
+	[InlineData("a columnstore index told FILLFACTOR")]
+	[InlineData("a columnstore index told PAD_INDEX")]
+	[InlineData("a columnstore index told ONLINE with options of its own")]
+	[InlineData("a columnstore index told MAXDOP set to a name")]
+	[InlineData("a columnstore index told DATA_COMPRESSION PAGE")]
 	[InlineData("a hash index made by CREATE INDEX")]
 	[InlineData("FILESTREAM_ON before ON")]
 	[InlineData("TEXTIMAGE_ON on an index")]
@@ -1222,10 +1247,32 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a spatial option set to a variable")]
 	[InlineData("a spatial option set to a name of two parts")]
 	[InlineData("a spatial option with no value")]
+	[InlineData("a spatial FILLFACTOR of zero")]
+	[InlineData("a spatial FILLFACTOR above 100")]
+	[InlineData("a spatial MAXDOP with a fraction")]
+	[InlineData("a spatial MAXDOP above 32767")]
+	[InlineData("a spatial MAXDOP set to a name")]
+	[InlineData("a spatial ONLINE set to ON")]
+	[InlineData("a spatial DATA_COMPRESSION set to a word it does not read")]
+	[InlineData("a spatial XML_COMPRESSION")]
+	[InlineData("a spatial STATISTICS_INCREMENTAL")]
+	[InlineData("a spatial option set to ON that is no switch")]
 	[InlineData("a cache set to a name")]
 	[InlineData("a cache set to a signed number")]
 	[InlineData("a cache set to a number with an exponent")]
 	[InlineData("CACHE beside NO CACHE")]
+	[InlineData("a cache on a new identity column")]
+	[InlineData("NO CACHE on a new identity column")]
+	[InlineData("a cache size on a new identity column")]
+	[InlineData("an XML index built ONLINE")]
+	[InlineData("an XML index ignoring a duplicate key")]
+	[InlineData("an XML index option the statement does not read")]
+	[InlineData("an XML index PAD_INDEX set to a name")]
+	[InlineData("an XML index FILLFACTOR set to a name")]
+	[InlineData("an XML index MAXDOP set to a signed number")]
+	[InlineData("an XML index option with no value")]
+	[InlineData("an XML index option with options of its own")]
+	[InlineData("an XML index DATA_COMPRESSION")]
 	[InlineData("MINVALUE twice")]
 	[InlineData("an identity option of one group twice")]
 	[InlineData("an index key that is a number")]
@@ -1456,6 +1503,11 @@ public sealed class Sql2023WriterCoverageTests
 			"UNIQUE on a columnstore index" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Unique = true }),
 			"INCLUDE on a columnstore index" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Include = [C] }),
 			"FILESTREAM_ON on a columnstore index" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Placements = [new Placement(PlacementKind.FilestreamOn, new Identifier("fs"), null)] }),
+			"a columnstore index told FILLFACTOR" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Options = [new Option(new Identifier("FILLFACTOR"), Two, [])] }),
+			"a columnstore index told PAD_INDEX" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Options = [Set("PAD_INDEX", "ON")] }),
+			"a columnstore index told ONLINE with options of its own" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Options = [Set("ONLINE", "ON") with { Options = [Flag("X")] }] }),
+			"a columnstore index told MAXDOP set to a name" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Options = [Set("MAXDOP", "A")] }),
+			"a columnstore index told DATA_COMPRESSION PAGE" => Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Options = [Set("DATA_COMPRESSION", "PAGE")] }),
 			"a hash index made by CREATE INDEX" => Created(new IndexDefinition(I) { Storage = IndexStorage.Hash }),
 			"FILESTREAM_ON before ON" => Created(new IndexDefinition(I) { Placements = [new Placement(PlacementKind.FilestreamOn, new Identifier("fs"), null), new Placement(PlacementKind.On, new Identifier("fg"), null)] }),
 			"TEXTIMAGE_ON on an index" => Tabled(null, Indexed(new IndexDefinition(I) { Placements = [new Placement(PlacementKind.TextImageOn, new Identifier("fg"), null)] })),
@@ -1535,10 +1587,32 @@ public sealed class Sql2023WriterCoverageTests
 			"a spatial option set to a variable" => SpatialWith(new Option(new Identifier("CELLS_PER_OBJECT"), P, [])),
 			"a spatial option set to a name of two parts" => SpatialWith(new Option(new Identifier("CELLS_PER_OBJECT"), new Expression.Reference(new QualifiedName([new Identifier("a"), new Identifier("b")])), [])),
 			"a spatial option with no value" => SpatialWith(Flag("CELLS_PER_OBJECT")),
+			"a spatial FILLFACTOR of zero" => SpatialWith(new Option(new Identifier("FILLFACTOR"), Number("0"), [])),
+			"a spatial FILLFACTOR above 100" => SpatialWith(new Option(new Identifier("FILLFACTOR"), Number("101"), [])),
+			"a spatial MAXDOP with a fraction" => SpatialWith(new Option(new Identifier("MAXDOP"), Number("1.5", NumericLiteralKind.Decimal), [])),
+			"a spatial MAXDOP above 32767" => SpatialWith(new Option(new Identifier("MAXDOP"), Number("32768"), [])),
+			"a spatial MAXDOP set to a name" => SpatialWith(Set("MAXDOP", "A")),
+			"a spatial ONLINE set to ON" => SpatialWith(Set("ONLINE", "ON")),
+			"a spatial DATA_COMPRESSION set to a word it does not read" => SpatialWith(Set("DATA_COMPRESSION", "FAST")),
+			"a spatial XML_COMPRESSION" => SpatialWith(Set("XML_COMPRESSION", "OFF")),
+			"a spatial STATISTICS_INCREMENTAL" => SpatialWith(Set("STATISTICS_INCREMENTAL", "OFF")),
+			"a spatial option set to ON that is no switch" => SpatialWith(Set("CELLS_PER_OBJECT", "ON")),
 			"a cache set to a name" => SequenceWith(new SequenceOption.Cache(A)),
 			"a cache set to a signed number" => SequenceWith(new SequenceOption.Cache(Number("-5"))),
 			"a cache set to a number with an exponent" => SequenceWith(new SequenceOption.Cache(Number("1e3", NumericLiteralKind.Approximate))),
 			"CACHE beside NO CACHE" => SequenceWith(new SequenceOption.Cache(Two), new SequenceOption.NoCache()),
+			"a cache on a new identity column" => IdentityColumn(new SequenceOption.Cache(null)),
+			"NO CACHE on a new identity column" => IdentityColumn(new SequenceOption.NoCache()),
+			"a cache size on a new identity column" => IdentityColumn(new SequenceOption.Cache(Two)),
+			"an XML index built ONLINE" => XmlWith(Set("ONLINE", "ON")),
+			"an XML index ignoring a duplicate key" => XmlWith(Set("IGNORE_DUP_KEY", "ON")),
+			"an XML index option the statement does not read" => XmlWith(Set("RESUMABLE", "OFF")),
+			"an XML index PAD_INDEX set to a name" => XmlWith(Set("PAD_INDEX", "A")),
+			"an XML index FILLFACTOR set to a name" => XmlWith(Set("FILLFACTOR", "A")),
+			"an XML index MAXDOP set to a signed number" => XmlWith(new Option(new Identifier("MAXDOP"), Number("-1"), [])),
+			"an XML index option with no value" => XmlWith(Flag("PAD_INDEX")),
+			"an XML index option with options of its own" => XmlWith(Set("ONLINE", "OFF") with { Options = [Flag("X")] }),
+			"an XML index DATA_COMPRESSION" => XmlWith(Set("DATA_COMPRESSION", "PAGE")),
 			"MINVALUE twice" => SequenceWith(new SequenceOption.Min(Two), new SequenceOption.Min(null, true)),
 			"an identity option of one group twice" => Altered(new AlterTableAction.AlterColumn(C, new AlterColumnAction.IdentityOptions([new SequenceOption.Increment(Two), new SequenceOption.Increment(Two)]), true)),
 			"an index key that is a number" => Created(new IndexDefinition(I) { Columns = [new SortItem(Two)] }),
