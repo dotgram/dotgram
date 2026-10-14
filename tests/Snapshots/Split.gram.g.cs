@@ -1545,37 +1545,6 @@ namespace DotGram.Snapshots
 				(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
 		}
 
-		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
-		static void Trace(string action, int state, int position, int arena)
-		{
-			global::System.Console.Error.WriteLine(
-				".Gram " + action + " state=" + state.ToString() +
-				" at " + position.ToString() + " arena=" + arena.ToString());
-		}
-
-		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
-		static void Trace(
-			string action, int state, int position, int arena,
-			global::System.ReadOnlySpan<char> text, string rule)
-		{
-			var from   = position > 16 ? position - 16 : 0;
-			var to     = position + 16 < text.Length ? position + 16 : text.Length;
-			var window =
-				(from < position && position <= text.Length ? text.Slice(from, position - from).ToString() : "") +
-				"^" +
-				(position >= 0 && position < to ? text.Slice(position, to - position).ToString() : "");
-
-			window = window
-				.Replace("\r", "\\r")
-				.Replace("\n", "\\n")
-				.Replace("\t", "\\t");
-
-			global::System.Console.Error.WriteLine(
-				".Gram " + action + (rule.Length > 0 ? " in " + rule : "") +
-				" state=" + state.ToString() + " at " + position.ToString() +
-				" \"" + window + "\" arena=" + arena.ToString());
-		}
-
 		// The sets a refusal names, by number: built the first time a refusal asks for one, never in the
 		// type's initializer, and then the same array for as long as the process lives, because refusals
 		// tell sets apart by reference.

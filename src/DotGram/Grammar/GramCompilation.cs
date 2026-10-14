@@ -236,6 +236,17 @@ public sealed class GramCompilerOptions
 	public bool Checks { get; set; }
 
 	/// <summary>
+	/// Whether the engine's step trace is written into the parser: a line on standard error per step
+	/// of the automaton, for whoever works on the generator. Not a supported setting.
+	/// </summary>
+	/// <remarks>
+	/// The generator sets it where the compilation defines <c>DOTGRAM_STEPS</c>, and nowhere else:
+	/// without it neither the calls nor the methods they call are written, where they used to be
+	/// written everywhere and removed by the C# compiler in every build without the symbol.
+	/// </remarks>
+	public bool Steps { get; set; }
+
+	/// <summary>
 	/// Whether the parser is a trace build: its readers report what they do to a sink set with
 	/// <c>Tracing(sink)</c> on the generated class, which carries the sink types and three
 	/// ready-made sinks beside the parser (docs/syntax.md, §6.9).

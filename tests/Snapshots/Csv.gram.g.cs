@@ -48,7 +48,6 @@ namespace DotGram.Snapshots
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
-				Trace("enter", state, p, entries.Count, text, "");
 				Dispatch:
 				switch (state)
 				{
@@ -108,7 +107,6 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					Trace("leave repeat", 3, p, entries.Count, text, "Csv");
 					goto S3;
 				}
 
@@ -120,7 +118,6 @@ namespace DotGram.Snapshots
 					{
 						entries.Add(new ParserEntry(ParserEntry.LoopExit, 4, p, call, atomic, repeat, lookahead, 0));
 						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
-						Trace("stand exit", 4, p, entries.Count, text, "Csv");
 					}
 				}
 
@@ -129,7 +126,6 @@ namespace DotGram.Snapshots
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 20, p, call, atomic, repeat, lookahead, 0, 1));
 					call = callIndex;
-					Trace("call Row", 7, p, entries.Count, text, "Csv");
 				}
 
 				S7:
@@ -137,13 +133,11 @@ namespace DotGram.Snapshots
 					var callIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Call, 13, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
-					Trace("call Name", 8, p, entries.Count, text, "Row");
 				}
 
 				S8:
 				{
 					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 3, p, call, atomic, repeat, lookahead, 0));
-					Trace("open capture", 3, p, entries.Count, text, "Name");
 				}
 
 				S9:
@@ -207,7 +201,6 @@ namespace DotGram.Snapshots
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
 					entries.Add(new ParserEntry(ParserEntry.Capture, 3, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
-					Trace("capture", 3, p, entries.Count, text, "Name");
 				}
 
 				S12:
@@ -235,7 +228,6 @@ namespace DotGram.Snapshots
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 1, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 1, p, entries.Count, text, "Row");
 				}
 
 				S14:
@@ -289,7 +281,6 @@ namespace DotGram.Snapshots
 				S18:
 				{
 					entries.Add(new ParserEntry(ParserEntry.Capture, 5, capture5, call, atomic, repeat, lookahead, p));
-					Trace("capture", 5, p, entries.Count, text, "Row");
 				}
 
 				S19:
@@ -320,7 +311,6 @@ namespace DotGram.Snapshots
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 1 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 0, capturedCall, call, atomic, repeat, lookahead, p));
-					Trace("rule capture", 0, p, entries.Count, text, "Csv");
 					goto S5;
 				}
 
@@ -329,7 +319,6 @@ namespace DotGram.Snapshots
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
-					Trace("enter repeat", 5, p, entries.Count, text, "Csv");
 					goto S5;
 				}
 
@@ -371,7 +360,6 @@ namespace DotGram.Snapshots
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
 					entries.Add(new ParserEntry(ParserEntry.Capture, 4, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
-					Trace("capture", 4, p, entries.Count, text, "Amount");
 					goto Return;
 				}
 
@@ -412,7 +400,6 @@ namespace DotGram.Snapshots
 				S26:
 				{
 					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 4, p, call, atomic, repeat, lookahead, 0));
-					Trace("open capture", 4, p, entries.Count, text, "Amount");
 					goto S25;
 				}
 
@@ -464,7 +451,6 @@ namespace DotGram.Snapshots
 					entries.RemoveAt(call);
 
 				call = previousCall;
-				Trace("return", state, p, entries.Count, text, "");
 				goto Dispatch;
 
 				Accept:
@@ -511,7 +497,6 @@ namespace DotGram.Snapshots
 				{
 					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
 				}
-				Trace("fail", state, p, entries.Count, text, "");
 
 				while (entries.Count > 0)
 				{
@@ -527,7 +512,6 @@ namespace DotGram.Snapshots
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						Trace("resume", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.LoopExit)
@@ -541,7 +525,6 @@ namespace DotGram.Snapshots
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						Trace("resume exit", state, p, entries.Count, text, "");
 						goto Dispatch;
 					}
 					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture || entry.Kind == ParserEntry.CaptureOpen)
@@ -584,9 +567,7 @@ namespace DotGram.Snapshots
 							if (entry.RuleIndex >= 0)
 							{
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
-								Trace("capture negative lookahead", entry.RuleIndex, p, entries.Count, text, "");
 							}
-							Trace("negative lookahead succeeds", state, p, entries.Count, text, "");
 							goto Dispatch;
 						}
 					}
@@ -1211,37 +1192,6 @@ namespace DotGram.Snapshots
 				_spareParser = parser;
 			else if (_deeperParserCount < 3)
 				(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
-		}
-
-		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
-		static void Trace(string action, int state, int position, int arena)
-		{
-			global::System.Console.Error.WriteLine(
-				".Gram " + action + " state=" + state.ToString() +
-				" at " + position.ToString() + " arena=" + arena.ToString());
-		}
-
-		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
-		static void Trace(
-			string action, int state, int position, int arena,
-			global::System.ReadOnlySpan<char> text, string rule)
-		{
-			var from   = position > 16 ? position - 16 : 0;
-			var to     = position + 16 < text.Length ? position + 16 : text.Length;
-			var window =
-				(from < position && position <= text.Length ? text.Slice(from, position - from).ToString() : "") +
-				"^" +
-				(position >= 0 && position < to ? text.Slice(position, to - position).ToString() : "");
-
-			window = window
-				.Replace("\r", "\\r")
-				.Replace("\n", "\\n")
-				.Replace("\t", "\\t");
-
-			global::System.Console.Error.WriteLine(
-				".Gram " + action + (rule.Length > 0 ? " in " + rule : "") +
-				" state=" + state.ToString() + " at " + position.ToString() +
-				" \"" + window + "\" arena=" + arena.ToString());
 		}
 
 		// The sets a refusal names, by number: built the first time a refusal asks for one, never in the

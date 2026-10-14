@@ -189,7 +189,7 @@ public static partial class CSharpEmitter
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
 		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
-		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false, bool checks = false)
+		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false, bool checks = false, bool steps = false)
 	{
 		statics ??= [];
 
@@ -1164,12 +1164,12 @@ public static partial class CSharpEmitter
 				if (part.IndexOf('\u0001') >= 0)
 					throw new InvalidOperationException("An unsettled state mark reached a generated source part.");
 				Oversee(part, machines.Count > 0 ? machines[0].Machine.Anchor : null, diagnostics);
-				sourceParts!.Add(Finished(part, checks));
+				sourceParts!.Add(Finished(part, checks, steps));
 			}
 		}
 
 		// Last, so that every offset taken in the text above is an offset in the text it was taken in.
-		return Finished(written, checks);
+		return Finished(written, checks, steps);
 	}
 
 	static void EmitEngine(Writer file, Machine machine, string engine)
@@ -4756,12 +4756,13 @@ file.Line("return spare;");
 
 	/// <summary>
 	/// A generated file as it is handed over: the walk's checks only where they were asked for
-	/// (<see cref="CheckBlocks"/>), documentation only where another assembly reads it
+	/// (<see cref="CheckBlocks"/>), the engine's step trace only where it was asked for
+	/// (<see cref="StepCalls"/>), documentation only where another assembly reads it
 	/// (<see cref="PublicDocs"/>).
 	/// </summary>
-	static string Finished(string text, bool checks)
+	static string Finished(string text, bool checks, bool steps)
 	{
-		return PublicDocs.Keep(CheckBlocks.Settle(text, checks));
+		return PublicDocs.Keep(StepCalls.Settle(CheckBlocks.Settle(text, checks), steps));
 	}
 
 	/// <summary>One published rule's machine, and the names it is emitted under.</summary>

@@ -61,11 +61,25 @@ public sealed class SnapshotTests
 			EmittedCode.Compile(
 				sources[0].Text, options.ClassName, options.Namespace, declarations,
 				sources.Skip(1).Select(static source => source.Text),
-				symbols: options.Checks ? ["DOTGRAM_CHECKS"] : null, utf8Literals: options.Utf8Literals);
+				symbols: Symbols(options), utf8Literals: options.Utf8Literals);
 
 			foreach (var source in sources)
 				Held(source.HintName, source.Text);
 		}
+	}
+
+	/// <summary>The symbols a rendering is compiled with: those its options write text behind.</summary>
+	static string[]? Symbols(GramCompilerOptions options)
+	{
+		var symbols = new List<string>();
+
+		if (options.Checks)
+			symbols.Add("DOTGRAM_CHECKS");
+
+		if (options.Steps)
+			symbols.Add("DOTGRAM_STEPS");
+
+		return symbols.Count == 0 ? null : symbols.ToArray();
 	}
 
 	/// <summary>
@@ -211,6 +225,15 @@ public sealed class SnapshotTests
 				traced.Trace  = true;
 
 				yield return (traced, null);
+
+				// And with the engine's step trace written in, which a parser compiled without
+				// DOTGRAM_STEPS carries no text of: the calls at every step and the methods they call.
+				var stepped = Options();
+
+				stepped.Suffix = "Stepped";
+				stepped.Steps  = true;
+
+				yield return (stepped, null);
 
 				break;
 			}
