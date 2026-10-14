@@ -1204,8 +1204,10 @@ public sealed class TraceTests(ITestOutputHelper output)
 	/// <summary>
 	/// An exception leaves every rule it was thrown inside, for the sink: each rule entered and
 	/// each frame of a forwarding rule is left, innermost first, as thrown, and the reading ends.
-	/// A guard that throws is asked while the rules are open on every carrier; a construction
-	/// that throws is, on the immediate carrier, and the tape builds once the reading is done.
+	/// A guard that throws is asked while the rules are open on every carrier. A construction
+	/// that throws runs while they are open on the immediate carrier too, but what it throws is
+	/// held until the reading stands and thrown once it has ended (docs/syntax.md §7.5), so the
+	/// rules are left as read on both carriers, and the tape builds once the reading is done.
 	/// </summary>
 	[Theory]
 	[InlineData(CarrierKind.Tape, "[7!]")]
@@ -1255,11 +1257,19 @@ public sealed class TraceTests(ITestOutputHelper output)
 			lines.Count(static line => line.StartsWith("end ", StringComparison.Ordinal)));
 
 		// Where the guard throws, the rules and the frame around it are still open, and are left as thrown.
-		if (input == "[7!]" || carrier == CarrierKind.Immediate)
+		if (input == "[7!]")
 		{
 			Assert.Contains("exit Leaf 1 -2", lines);
 			Assert.Contains("exit Inner 1 -2", lines);
 			Assert.Contains("exit Top 0 -2", lines);
+		}
+		// Where the construction throws, the rules are left as read on either carrier: the tape
+		// builds after them, and the immediate carrier holds what it threw until the reading ends.
+		else
+		{
+			Assert.Contains("exit Leaf 1 3", lines);
+			Assert.Contains("exit Inner 1 3", lines);
+			Assert.Contains("exit Top 0 4", lines);
 		}
 	}
 

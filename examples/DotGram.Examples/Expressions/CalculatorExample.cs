@@ -34,9 +34,11 @@ namespace DotGram.Examples.Expressions;
 //
 // The carrier is named, the tape: `/` throws on a zero divisor. A grammar that names none
 // is carried as Immediate, which runs a construction as soon as its alternative is read —
-// `1/0=` would divide, and throw, before the parse refuses the `=`. On the tape every
-// construction waits until the parse has accepted, so a text that is no expression is
-// refused, and only an expression that divides by zero throws.
+// `1/0=` divides, and throws, before the parse refuses the `=` — and holds what it threw
+// until the parse has accepted, dropping it with a reading the parse gives up
+// (docs/syntax.md §7.5). On the tape every construction waits until the parse has accepted.
+// Either way a text that is no expression is refused, and only an expression that divides by
+// zero throws; the tape is the carrier on which `/` never runs for a refused text at all.
 
 [Gram("""
 	@using System.Globalization;

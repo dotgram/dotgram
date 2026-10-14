@@ -334,6 +334,40 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// Whether a guard names a built value — a captured rule's value that is not an extent, or
+	/// the fold's value so far — which the tape builds for it, and a carrier that builds as it
+	/// reads has in hand already, with what building it threw (<c>ImmediateCarrier.GuardAsks</c>).
+	/// </summary>
+	bool GuardAsksValue(RuleSymbol rule, Node.Guard guard)
+	{
+		return GuardAsksWider(rule, guard) || GuardFlaggedSlots(rule, guard).Any();
+	}
+
+	/// <summary>
+	/// The slots of the built values a guard names one at a time — a captured rule's value that
+	/// is not an extent and not a sequence — for which a carrier that builds as it reads keeps,
+	/// beside the local, whether building it threw (<c>ImmediateCarrier.GuardAsks</c>).
+	/// </summary>
+	IEnumerable<int> GuardFlaggedSlots(RuleSymbol rule, Node.Guard guard)
+	{
+		foreach (var (member, slots) in GuardMembers(rule, guard))
+			if (member is { Rule: { } valued, IsSequence: false } && Valued(valued) && !IsExtent(valued))
+				foreach (var slot in slots)
+					yield return slot;
+	}
+
+	/// <summary>
+	/// Whether a guard names a built value no one local holds — the fold's value so far, or a
+	/// sequence gathered across turns — for which a carrier that builds as it reads has only the
+	/// exception held since the rule began to go by (<c>ImmediateCarrier.GuardAsks</c>).
+	/// </summary>
+	bool GuardAsksWider(RuleSymbol rule, Node.Guard guard)
+	{
+		return GuardAccumulator(rule, guard) is not null ||
+			GuardMembers(rule, guard).Any(one => one.Member is { Rule: { } valued, IsSequence: true } && Valued(valued) && !IsExtent(valued));
+	}
+
+	/// <summary>
 	/// The members a guard is handed: those captured before it that its condition names,
 	/// each with the slots that stand before it. Whether the condition names one is the
 	/// scanner's answer (<see cref="CSharpEmitter.Uses"/>), not merely whether its text

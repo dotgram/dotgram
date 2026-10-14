@@ -3853,6 +3853,8 @@ namespace DotGram.Snapshots
 			const Ways? ways = null;
 			internal string last0;
 			internal int unbuilt;
+			internal int faults;
+			internal global::System.Collections.Generic.List<global::System.Exception>? held;
 
 			internal Reader_DotGram_Pair(global::System.ReadOnlySpan<char> text)
 			{
@@ -3860,6 +3862,28 @@ namespace DotGram.Snapshots
 				this.failure = default;
 				this.last0 = default!;
 				this.unbuilt = default!;
+				this.faults = default!;
+				this.held = default!;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Faulted_DotGram(global::System.Exception thrown)
+			{
+				(held ??= new global::System.Collections.Generic.List<global::System.Exception>()).Add(thrown);
+				faults = held.Count;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Unheld_DotGram(int mark)
+			{
+				held!.RemoveRange(mark, held.Count - mark);
+				faults = mark;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			internal void Thrown_DotGram(int at)
+			{
+				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(held![at]).Throw();
 			}
 
 			public int Read_Pair_Pair(int pos)
@@ -3892,7 +3916,7 @@ namespace DotGram.Snapshots
 				}
 				p += b2 - a2;
 				b1 = p;
-				if (unbuilt == 0) last0 = Construct_Pair((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!);
+				if (unbuilt == 0) try { last0 = Construct_Pair((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
 				return p;
 			}
 
@@ -3967,6 +3991,7 @@ namespace DotGram.Snapshots
 				return end;
 			}
 
+			if (reader.faults != 0) reader.Thrown_DotGram(0);
 			value = reader.last0;
 
 			return end;
@@ -3991,6 +4016,7 @@ namespace DotGram.Snapshots
 				return end;
 			}
 
+			if (reader.faults != 0) reader.Thrown_DotGram(0);
 			value = reader.last0;
 
 			return end;

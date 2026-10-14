@@ -4353,8 +4353,8 @@ file.Line("return spare;");
 	/// <para>
 	/// A warning for the reasons that can change what a parse answers or what a refusal costs:
 	/// constructions and hooks sharing <c>context</c>, and lists rebuilt on every turn given back.
-	/// Information for the rest, which change only what a construction that throws or has side
-	/// effects does on a reading that does not stand.
+	/// Information for the rest, which change only what a construction with side effects does on
+	/// a reading that does not stand (what one throws there is held: Machine.Immediate.cs).
 	/// </para>
 	/// </remarks>
 	static void Told(
@@ -4455,8 +4455,9 @@ file.Line("return spare;");
 		if (mild.Count > 0)
 			diagnostics.Add(new GramDiagnostic(
 				GramCompiler.CarrierChosen,
-				$"This grammar is carried as Immediate: {string.Join("; ", mild)}. A construction that can throw or has " +
-					$"side effects there behaves differently than on the tape. {choose}",
+				$"This grammar is carried as Immediate: {string.Join("; ", mild)}. A construction with side effects " +
+					$"behaves differently there than on the tape; what one throws there is held, and thrown only where the " +
+					$"tape would have built its value. {choose}",
 				0,
 				0,
 				GramSeverity.Info));
