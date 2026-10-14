@@ -52,8 +52,21 @@ public static class SqlWalker
 		{
 			var node = pending.Pop();
 
+			if (node is Ast.QualifiedName { Count: 0 })
+				throw new InvalidOperationException("A name of no parts, default(QualifiedName), is no name and is not walked.");
+
 			if (!visit(node))
 				return false;
+
+			// A name is a value of its parts, which its properties hand out more than once (First,
+			// Last, Parts): its parts are what it holds, each once, read by the indexer.
+			if (node is Ast.QualifiedName name)
+			{
+				for (var at = name.Count - 1; at >= 0; at--)
+					pending.Push(name[at]);
+
+				continue;
+			}
 
 			held.Clear();
 

@@ -553,7 +553,7 @@ public static partial class Sql2023Writer
 
 			if (assignment.Targets.Count == 0)
 			{
-				if (assignment.Value is not Expression.Member { Kind: MemberAccessKind.Dot, Arguments: not null, Target: Expression.Reference { Name.Parts.Count: 1 } } call
+				if (assignment.Value is not Expression.Member { Kind: MemberAccessKind.Dot, Arguments: not null, Target: Expression.Reference { Name.Count: 1 } } call
 					|| assignment.Operator != AssignmentOperator.Assign)
 					throw Misplaced(assignment, "Targets", "empty, with neither a variable nor a method called on a column");
 

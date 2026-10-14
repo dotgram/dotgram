@@ -89,7 +89,7 @@ public static partial class Sql2023Writer
 					if (rebuild.All && rebuild.Partition is not null)
 						throw Both(rebuild, "All", "Partition");
 
-					if (rebuild.Partition is Expression.Reference { Name.Parts: [{ Style: IdentifierStyle.Regular } word] } && word.Text.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+					if (rebuild.Partition is Expression.Reference { Name: [{ Style: IdentifierStyle.Regular } word] } && word.Text.Equals("ALL", StringComparison.OrdinalIgnoreCase))
 						throw Misplaced(rebuild, "Partition", "that is a plain ALL, which reads back as All");
 
 					Word("REBUILD");
@@ -132,7 +132,7 @@ public static partial class Sql2023Writer
 
 					// Four properties change offline only: `DROP NOT FOR REPLICATION WITH (ONLINE = ON)` is not read, `ONLINE = OFF` is.
 					if (property.Kind is ColumnPropertyKind.RowGuidCol or ColumnPropertyKind.NotForReplication or ColumnPropertyKind.Persisted or ColumnPropertyKind.Hidden
-						&& property.Options.Any(static one => Plain(one.Name, "ONLINE") && one.Value is Expression.Reference { Name.Parts: [var on] } && Plain(on, "ON")))
+						&& property.Options.Any(static one => Plain(one.Name, "ONLINE") && one.Value is Expression.Reference { Name: [var on] } && Plain(on, "ON")))
 						throw Misplaced(property, "Options", $"with ONLINE = ON on {property.Kind}, which changes offline only");
 
 					Word(property.Add ? "ADD" : "DROP");
@@ -826,7 +826,7 @@ public static partial class Sql2023Writer
 				throw Misplaced(constraint, "Behavior", "with ConstraintKeywordOmitted, which reads back as a column dropped");
 
 			// `DROP s.c` does not read: a constraint without its word is named by one part.
-			if (constraint.ConstraintKeywordOmitted && constraint.Name.Parts.Count > 1)
+			if (constraint.ConstraintKeywordOmitted && constraint.Name.Count > 1)
 				throw Misplaced(constraint, "Name", "of more than one part with ConstraintKeywordOmitted");
 
 			if (!constraint.ConstraintKeywordOmitted)
@@ -1098,7 +1098,7 @@ public static partial class Sql2023Writer
 					if (rebuild.AllPartitions && rebuild.Partition is not null)
 						throw Both(rebuild, "AllPartitions", "Partition");
 
-					if (rebuild.Partition is Expression.Reference { Name.Parts: [{ Style: IdentifierStyle.Regular } word] } && word.Text.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+					if (rebuild.Partition is Expression.Reference { Name: [{ Style: IdentifierStyle.Regular } word] } && word.Text.Equals("ALL", StringComparison.OrdinalIgnoreCase))
 						throw Misplaced(rebuild, "Partition", "that is a plain ALL, which reads back as AllPartitions");
 
 					Word("REBUILD");
@@ -1259,19 +1259,19 @@ public static partial class Sql2023Writer
 		/// <summary>The value is a name of one part, written as a name: the grammar's word after an equals sign.</summary>
 		static bool IsName(Expression? value)
 		{
-			return value is Expression.Reference { Name.Parts: [{ Text.Length: > 0, Style: not (IdentifierStyle.String or IdentifierStyle.NationalString) }] };
+			return value is Expression.Reference { Name: [{ Text.Length: > 0, Style: not (IdentifierStyle.String or IdentifierStyle.NationalString) }] };
 		}
 
 		/// <summary>The value is one of the words given, written plain and alone.</summary>
 		static bool IsWord(Expression? value, params string[] words)
 		{
-			return value is Expression.Reference { Name.Parts: [var part] } && Plain(part, words);
+			return value is Expression.Reference { Name: [var part] } && Plain(part, words);
 		}
 
 		/// <summary>T-SQL: CREATE TYPE (Transact-SQL). A type's name has no empty part, as a synonym's may.</summary>
 		static void CheckTypeName(ISqlNode owner, QualifiedName name)
 		{
-			if (name.Parts.Count == 0 || name.Parts.Any(static part => part.Text.Length == 0))
+			if (name.Count == 0 || name.Parts.Any(static part => part.Text.Length == 0))
 				throw Misplaced(owner, "Name", "with an empty part, which a type's name is not read with");
 		}
 

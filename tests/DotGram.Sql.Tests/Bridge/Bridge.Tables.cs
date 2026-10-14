@@ -161,7 +161,7 @@ static partial class Bridge
 
 				case "OPENXML" when arguments.Length is 2 or 3:
 					// `WITH table` is a schema of one column with no type, which no column written out is.
-					var table = old.Schema is [Clause.JsonColumn { Type: null } named] ? Values.Name(old, named.Name) : null;
+					var table = old.Schema is [Clause.JsonColumn { Type: null } named] ? Values.Name(old, named.Name) : (Ast.QualifiedName?)null;
 
 					return new Ast.TableSource.OpenXml(
 						Values.Of(arguments[0]),
