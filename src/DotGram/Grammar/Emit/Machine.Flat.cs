@@ -280,6 +280,12 @@ sealed partial class Machine
 				factory.Accumulator is not null)
 				return false;
 
+			// Nor the range the rule was read over, which a construction told where it was
+			// written takes as a parameter in a grammar that locates every rule (no per-call
+			// door): a flat rendering keeps no record of where the rule began.
+			if (CSharpEmitter.TakesSpan(_graph, factory))
+				return false;
+
 			foreach (var member in factory.Members)
 				if (member.IsSequence)
 					return false;
