@@ -34,14 +34,15 @@ namespace DotGram.Examples.Languages;
 // with it. Turning the same tree into a SQL `WHERE` or an `Expression<Func<T, bool>>` is
 // the same walk over the same records.
 //
-// The carrier is named, the tape: `decimal.Parse` throws on what it cannot read, and a
-// number's text is read with the trivia the grammar skips inside it, so `0 .75` is a reading
-// of `Number` that `decimal.Parse` refuses. A grammar that names no carrier is carried as
-// Immediate, which runs a construction as soon as its alternative is read: in
-// `cpu=0 .75 mem=2048` that reading is built, and throws, before the parse refuses the text —
-// the exception is held and dropped with the refused reading (docs/syntax.md §7.5), so the
-// answer is the refusal either way. On the tape every construction waits until the parse has
-// accepted, and `decimal.Parse` never runs for a text that is refused.
+// The carrier is named, the immediate one, which is also what a grammar that names none gets:
+// `decimal.Parse` throws on what it cannot read, and a number's text is read with the trivia
+// the grammar skips inside it, so `0 .75` is a reading of `Number` that `decimal.Parse`
+// refuses. A construction runs as soon as its alternative is read: in `cpu=0 .75 mem=2048`
+// that reading is built, and throws, before the parse refuses the text — and the exception is
+// held and dropped with the refused reading (docs/syntax.md §7.5), so the answer is the
+// refusal, as on the tape, where every construction waits until the parse has accepted and
+// `decimal.Parse` never runs for a text that is refused. Named here so that the choice is
+// visible beside the one construction that can throw.
 
 [Gram("""
 	@using DotGram.Examples.Languages;
@@ -89,7 +90,7 @@ namespace DotGram.Examples.Languages;
 	                   => @(text)
 
 	parse Filter
-	""", Carrier = GramCarrier.Tape)]
+	""", Carrier = GramCarrier.Immediate)]
 public sealed partial class Filter
 {
 	/// <summary>Reads a filter, or throws where the text is not one.</summary>
