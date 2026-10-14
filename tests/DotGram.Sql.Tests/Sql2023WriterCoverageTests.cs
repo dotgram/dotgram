@@ -422,7 +422,7 @@ public sealed class Sql2023WriterCoverageTests
 		// EVERY file of the writer, not the one named after it. `Sql2023Writer` is three partial files,
 		// and reading only the first said "no catch-alls left" while 25 stood in the other two.
 		var written = Directory.GetFiles(
-			Path.Combine(Repository(), "src", "DotGram.Sql", "Standard"), "Sql2023Writer*.cs");
+			Path.Combine(Repository(), "src", "DotGram.Sql", "Ast"), "Sql2023Writer*.cs");
 
 		Assert.True(written.Length >= 3, "the writer is in " + written.Length + " files; this check expects all of them");
 

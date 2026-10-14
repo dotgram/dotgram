@@ -2052,7 +2052,7 @@ public abstract record RevokeBody : ISqlNode
 	public record Privileges(RevokeOption? Option, SqlList<Privilege> Items, PrivilegeObject? Object, SqlList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior? Behavior, Identifier? AsPrincipal = null, [property: Spelling] bool To = false) : RevokeBody;
 	public record Roles(bool AdminOptionFor, SqlList<Identifier> Names, SqlList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior Behavior) : RevokeBody;
 }
-// BNF: <action>. PrivilegeKind is written by TransactSql/permissions.py, in Sql2023Ast.Permissions.cs,
+// BNF: <action>. PrivilegeKind is written by TransactSql/permissions.py, in SqlAst.Permissions.cs,
 // because T-SQL's members are its permission catalogue (D148).
 // T-SQL: GRANT (Transact-SQL). `Abbreviated` is the page's shorter word for the same permission: `ALL`
 // for ALL PRIVILEGES and `EXEC` for EXECUTE. It has no text on any other kind, and the writer refuses

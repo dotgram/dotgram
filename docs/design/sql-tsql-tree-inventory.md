@@ -1,8 +1,8 @@
-# T-SQL tree inventory: `SqlSyntax.cs` against `Sql2023Ast.cs`
+# T-SQL tree inventory: `SqlSyntax.cs` against `SqlAst.cs`
 
 Every nested record and every enum of `src/DotGram.Sql/SqlSyntax.cs` (namespace `DotGram.Sql`),
-held against `src/DotGram.Sql/Standard/Sql2023Ast.cs` (namespace `DotGram.Sql.Ast`). Sources are
-`docs/ast.md`'s. Both files were read in full; every target named below exists in `Sql2023Ast.cs`
+held against `src/DotGram.Sql/Ast/SqlAst.cs` (namespace `DotGram.Sql.Ast`). Sources are
+`docs/ast.md`'s. Both files were read in full; every target named below exists in `SqlAst.cs`
 under that name (checked by reading the file and by grep), and a target that is a guess says
 "uncertain".
 

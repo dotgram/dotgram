@@ -32,7 +32,7 @@ static class BridgeReport
 		## What it is for
 
 		T-SQL moves from the tree in `src/DotGram.Sql/SqlSyntax.cs` onto the SQL:2023 tree in
-		`src/DotGram.Sql/Standard/Sql2023Ast*.cs`, the writer first (`sql-parsers.md`, `sql-tsql-tree.md`). Before the
+		`src/DotGram.Sql/Ast/SqlAst*.cs`, the writer first (`sql-parsers.md`, `sql-tsql-tree.md`). Before the
 		grammar is switched, every construct T-SQL reads has to have a place in the new tree and be printed back by
 		`Sql2023Writer`. The bridge proves that family by family, without touching the grammar:
 

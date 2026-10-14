@@ -9,7 +9,7 @@ namespace DotGram.Sql.Tests;
 
 /// <summary>
 /// The old T-SQL tree (<c>SqlSyntax.cs</c>, <c>DotGram.Sql</c>) carried onto the new one
-/// (<c>Sql2023Ast*.cs</c>, <c>DotGram.Sql.Ast</c>), node by node, so that <c>Sql2023Writer</c> can be held
+/// (<c>SqlAst*.cs</c>, <c>DotGram.Sql.Ast</c>), node by node, so that <c>Sql2023Writer</c> can be held
 /// to every statement T-SQL reads before the grammar is switched (docs/design/sql-tsql-bridge.md).
 /// </summary>
 /// <remarks>

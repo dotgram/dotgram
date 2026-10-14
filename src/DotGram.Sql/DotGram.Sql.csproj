@@ -53,7 +53,7 @@ Fixed: SqlStandardParser read a string literal through a simple comment: `'a' --
 		     and both are the old tree's. The ones that say a comment is WRONG stay on: CS1570 for
 		     malformed XML, CS1574 for a cref that resolves to nothing, because those are defects in
 		     what a reader is told rather than gaps in what they are told. Turning the documentation on
-		     found six of CS1570 in the summaries of Sql2023Ast.cs, where a BNF production name was
+		     found six of CS1570 in the summaries of SqlAst.cs, where a BNF production name was
 		     written in angle brackets and is not XML. -->
 		<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 

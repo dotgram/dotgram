@@ -1,7 +1,7 @@
 # T-SQL on the SQL:2023 tree
 
 A proposal, not a description. T-SQL moves from the tree in `SqlSyntax.cs` onto the SQL:2023 tree in
-`Standard/Sql2023Ast.cs` (`design/sql-parsers.md`, decided 2026-09-15). Every node of the old tree is held
+`Ast/SqlAst.cs` (`design/sql-parsers.md`, decided 2026-09-15). Every node of the old tree is held
 against the new one in [`sql-tsql-tree-inventory.md`](sql-tsql-tree-inventory.md): 381 records and enums,
 67 with the same concept in the new tree, 44 whose shape needs a decision, 270 that only T-SQL has.
 
@@ -11,7 +11,7 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
 ## Decided
 
 - T-SQL's own nodes are typed records in the standard's families, declared in a partial file,
-  `Sql2023Ast.TransactSql.cs`.
+  `SqlAst.TransactSql.cs`.
 - The writer first (done: `Sql2023Writer`), then `Sql92Parser` and T-SQL switch together; every commit
   keeps `--engine` with no defects and `--roundtrip` at 100%.
 - `[x]` is `IdentifierStyle.Bracketed`; `@x` and `@@x` are T-SQL's `Expression.Variable`; `0xFF` is read by
@@ -151,5 +151,5 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
     `THROW`, `GOTO`, labels, `BREAK`, `CONTINUE`, `WAITFOR`).
 26. **Batches.** `Batch` and `GO` move into `DotGram.Sql.Ast` beside the statements.
 27. **`StatementCategory`.** Leaves the tree; what reads it asks an extension method outside.
-28. **The node map.** The standard's nodes answer to `Sql2023Ast.BnfMap.csv`; T-SQL's to a map of their own
+28. **The node map.** The standard's nodes answer to `SqlAst.BnfMap.csv`; T-SQL's to a map of their own
     against the reference's pages, which takes over from `docs/ast.md`'s tables and `AstReferenceTests`.
