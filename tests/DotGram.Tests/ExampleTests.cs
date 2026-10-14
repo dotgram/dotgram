@@ -1399,6 +1399,44 @@ public sealed class ExampleTests
 			FixedWidth.Read("000123ACME CORP           2026\n"));
 	}
 
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void And_a_date_that_does_not_exist_is_a_refusal_at_the_end_of_its_digits(bool onTape)
+	{
+		// Eight digits that are no date: the line is refused where the guard looked, after the digits,
+		// on either carrier, and nothing the grammar constructs throws on the way.
+		var (ok, position) = TryFixedWidth(onTape, "000123ACME CORP           20261340USD000001250000|EQ|LDN|ABsettled early\n");
+
+		Assert.False(ok);
+		Assert.Equal(34, position);
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void And_a_line_that_ends_right_after_its_date_is_a_refusal_at_the_missing_currency(bool onTape)
+	{
+		var (ok, position) = TryFixedWidth(onTape, "000123ACME CORP           20260816\n");
+
+		Assert.False(ok);
+		Assert.Equal(35, position);
+	}
+
+	static (bool Ok, long Position) TryFixedWidth(bool onTape, string text)
+	{
+		if (onTape)
+		{
+			var match = FixedWidth.Tape.TryParseFeed(text);
+
+			return (match.IsSuccess, match.Position);
+		}
+
+		var immediate = FixedWidth.TryParseFeed(text);
+
+		return (immediate.IsSuccess, immediate.Position);
+	}
+
 	[Fact]
 	public void And_fixed_columns_mix_with_delimited_and_a_ragged_last_one()
 	{

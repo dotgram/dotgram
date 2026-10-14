@@ -72,11 +72,18 @@ namespace DotGram.Examples.Formats;
 	// `{n}`. Bounded, so a runaway line cannot be swallowed whole.
 	Rest      : @string  = text: [^ '\n' | '\r']{0,40} => @(text.TrimEnd())
 
+	// Eight digits are not yet a date: 20261340 is not one. The guard asks first, so an impossible
+	// date is a refusal at its column and the construction below is only run on a date that
+	// exists. Carried immediately, a construction runs as its alternative is read, and one that
+	// threw here would escape from a line the grammar was about to refuse.
 	Date : @DateOnly = text: ['0'..'9']{8}
+	                   & when @(DateOnly.TryParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
 	                     => @(DateOnly.ParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture))
 
 	parse Feed
 	""")]
+// The same grammar read on the tape, for the test that holds the two to the same answers.
+[GramOptions(Carrier = GramCarrier.Tape, Suffix = "Tape")]
 public sealed partial class FixedWidth
 {
 	/// <summary>Reads a whole file of settlement records.</summary>
