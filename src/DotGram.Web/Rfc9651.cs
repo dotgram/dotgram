@@ -341,7 +341,9 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 
 	ItemField : @Item = ' '* & item: SfItem & ' '* => @(item)
 
-	ListField : @IReadOnlyList<Member> = ' '* & (first: ListMember & rest: ListRest* & Ows)?
+	// The members after the first are atomic: nothing that may follow the list begins with a comma, so a member given
+	// back could never lead anywhere, and the loop writes no way back at each member of a long list.
+	ListField : @IReadOnlyList<Member> = ' '* & (first: ListMember & { rest: ListRest* } & Ows)?
 		=> @(Rfc9651.Members(first, rest))
 
 	DictionaryField : @OrderedMap<Member> = ' '* & (first: DictMember & rest: DictRest* & Ows)?
