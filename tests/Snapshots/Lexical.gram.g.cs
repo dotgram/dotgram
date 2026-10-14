@@ -416,6 +416,7 @@ namespace DotGram.Snapshots
 			internal string[] last0;
 			internal string last1;
 			internal int unbuilt;
+			internal global::System.Exception? fault;
 
 			internal Reader_DotGram(global::System.ReadOnlySpan<char> text, ImmediateValues values, string parserSource, int[] parserStarts, int[] parserLengths)
 			{
@@ -428,6 +429,20 @@ namespace DotGram.Snapshots
 				this.last0 = default!;
 				this.last1 = default!;
 				this.unbuilt = default!;
+				this.fault = default!;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Faulted_DotGram(global::System.Exception thrown)
+			{
+				if (fault == null)
+					fault = thrown;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			internal void Thrown_DotGram()
+			{
+				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(fault!).Throw();
 			}
 
 			public int Read_Program(int pos)
@@ -451,22 +466,26 @@ namespace DotGram.Snapshots
 					}
 
 					var rr0_1 = values.Count1;
+					var lm0f = fault;
 
 					var q0 = Read_Program_Part0(p, rb_1);
 
 					if (q0 < 0 || q0 == p)
 					{
 						values.Count1 = rr0_1;
+						fault = lm0f;
 						break;
 					}
 
 					p = q0;
 				}
+				var lm1f = fault;
 				var rr1_1 = values.Count1;
 				failure.Looking++;
 				var q1 = Read_Program_Part1(p, rb_1);
 				failure.Looking--;
 
+				fault = lm1f;
 				values.Count1 = rr1_1;
 
 				if (q1 >= 0)
@@ -474,7 +493,7 @@ namespace DotGram.Snapshots
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(0));
 					{ values.Count1 = rb_1; return -1; }
 				}
-				if (unbuilt == 0) last0 = Construct_Program(values.Take1(rb_1)!); else { values.Count1 = rb_1; }
+				if (unbuilt == 0) try { last0 = Construct_Program(values.Take1(rb_1)!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); } else { values.Count1 = rb_1; }
 				return p;
 			}
 
@@ -545,7 +564,7 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				if (unbuilt == 0) last1 = Construct_Statement((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!);
+				if (unbuilt == 0) try { last1 = Construct_Statement((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
 				return p;
 			}
 
@@ -571,7 +590,7 @@ namespace DotGram.Snapshots
 							a2 = p;
 							p++;
 							b2 = p;
-							if (unbuilt == 0) last1 = Construct_Expression_2((a2 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a2, b2 - a2))!);
+							if (unbuilt == 0) try { last1 = Construct_Expression_2((a2 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a2, b2 - a2))!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
 							break;
 						}
 					case '\u0003':
@@ -579,10 +598,17 @@ namespace DotGram.Snapshots
 							a0 = p;
 							p += 1;
 							b0 = p;
+							var lm0f = fault;
+
 							var q0 = Read_Expression_Part0(p, a0, b0);
+
 							if (q0 < 0)
 							{
-								if (unbuilt == 0) last1 = Construct_Expression_1((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!);
+								fault = lm0f;
+							}
+							if (q0 < 0)
+							{
+								if (unbuilt == 0) try { last1 = Construct_Expression_1((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
 								q0 = p;
 							}
 							p = q0;
@@ -614,7 +640,7 @@ namespace DotGram.Snapshots
 				}
 				p += 1;
 				b1 = p;
-				if (unbuilt == 0) last1 = Construct_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
+				if (unbuilt == 0) try { last1 = Construct_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
 				return p;
 			}
 
@@ -667,6 +693,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
+				if (reader.fault != null) reader.Thrown_DotGram();
 				value = reader.last0;
 
 				return end;
@@ -699,6 +726,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
+				if (reader.fault != null) reader.Thrown_DotGram();
 				value = reader.last0;
 
 				return end;

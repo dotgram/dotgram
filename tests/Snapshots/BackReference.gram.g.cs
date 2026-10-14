@@ -3871,6 +3871,7 @@ namespace DotGram.Snapshots
 			const Ways? ways = null;
 			internal string last0;
 			internal int unbuilt;
+			internal global::System.Exception? fault;
 
 			internal Reader_DotGram_Pair(global::System.ReadOnlySpan<char> text)
 			{
@@ -3878,6 +3879,20 @@ namespace DotGram.Snapshots
 				this.failure = default;
 				this.last0 = default!;
 				this.unbuilt = default!;
+				this.fault = default!;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Faulted_DotGram(global::System.Exception thrown)
+			{
+				if (fault == null)
+					fault = thrown;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			internal void Thrown_DotGram()
+			{
+				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(fault!).Throw();
 			}
 
 			public int Read_Pair_Pair(int pos)
@@ -3910,7 +3925,7 @@ namespace DotGram.Snapshots
 				}
 				p += b2 - a2;
 				b1 = p;
-				if (unbuilt == 0) last0 = Construct_Pair((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!);
+				if (unbuilt == 0) try { last0 = Construct_Pair((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); }
 				return p;
 			}
 
@@ -3985,6 +4000,7 @@ namespace DotGram.Snapshots
 				return end;
 			}
 
+			if (reader.fault != null) reader.Thrown_DotGram();
 			value = reader.last0;
 
 			return end;
@@ -4009,6 +4025,7 @@ namespace DotGram.Snapshots
 				return end;
 			}
 
+			if (reader.fault != null) reader.Thrown_DotGram();
 			value = reader.last0;
 
 			return end;
