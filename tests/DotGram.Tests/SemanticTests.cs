@@ -4730,6 +4730,53 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.UnbuiltRecovery, "Start = 'a' recover eol");
 	}
 
+	/// <summary>
+	/// A <c>recover</c> inside a lookahead is refused where it was written, over characters and
+	/// over tokens alike, through a parameter the lookahead reads, inside what another recovery
+	/// synchronizes on, and in trivia: the rule plans no recovery for a lookahead, so the
+	/// repetition was read as a plain one and the parser refused what the grammar said it would
+	/// recover from.
+	/// </summary>
+	[Theory]
+	[InlineData("trivia = { ' '* }\nStart = ?=(Row* recover ';' & 'z') & any*", false)]
+	[InlineData("trivia = { ' '* }\nStart = ?=(Row* recover ';' & 'z') & any*", true)]
+	[InlineData("trivia = { ' '* }\nStart = ?!(Row* recover ';' & 'y') & any*", false)]
+	[InlineData("trivia = { ' '* }\nAhead(x) = ?=(x & 'z')\nStart = Ahead(Row* recover ';') & any*", false)]
+	[InlineData("Start = 'b'* recover (?=(Row* recover ';') & ';') & any*", false)]
+	[InlineData("trivia = ?=(Row* recover ';') & ' '*\nStart = 'z' & 'z'", false)]
+	public void Recover_inside_a_lookahead_is_refused(string rules, bool lexical)
+	{
+		var grammar = "Row = 'a' & ';'\n" + rules + "\nparse Start";
+
+		var told = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical })
+			.Diagnostics;
+
+		var refused = Assert.Single(told, static one => one.Id == GrammarNormalizer.RecoveryInLookahead);
+
+		Assert.Equal(GramSeverity.Error, refused.Severity);
+		Assert.Equal("Row* recover ';'", grammar.Substring(refused.Position, refused.Length));
+	}
+
+	/// <summary>
+	/// The way the refusal points to: a recovering repetition named as a rule and called from a
+	/// lookahead recovers there, since a rule plans its own.
+	/// </summary>
+	[Fact]
+	public void A_rule_called_from_a_lookahead_recovers()
+	{
+		const string grammar = """
+			trivia = { ' '* }
+			Row  = 'a' & ';'
+			Rows = Row* recover ';'
+			Start = ?=(Rows & 'z') & any*
+			""";
+
+		Assert.True(Matches(grammar, "aa;z"));
+		Assert.False(Matches(grammar, "aa;y"));
+	}
+
 	[Fact]
 	public void Recover_without_a_factory_drops_the_element_and_reports_it()
 	{
