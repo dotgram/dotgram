@@ -559,20 +559,31 @@ public sealed partial class GrammarNormalizer
 		return call;
 	}
 
-	/// <summary>The refusals of <see cref="RefuseNestedPair"/> already said, so a copy says nothing again.</summary>
-	readonly HashSet<string> _nestedRefused = new(StringComparer.Ordinal);
+	/// <summary>The specializations of Std.Nested refused, which no other check speaks about.</summary>
+	readonly HashSet<RuleSymbol> _refusedPairs = [];
 
-	/// <summary>GRAM4037, where a specialization of Std.Nested has arguments a counter cannot tell apart.</summary>
-	void RefuseNestedPair(RuleSymbol made, Location at)
+	/// <summary>Why each refusal was made, so a copy no call made does not say it again.</summary>
+	readonly HashSet<string> _pairReasons = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// GRAM4037, where a specialization of Std.Nested has arguments a counter cannot tell apart:
+	/// said at every call that makes one, and where no call did, once for each reason.
+	/// </summary>
+	void RefuseNestedPair(RuleSymbol made, Location? at)
 	{
-		if (!_bodies.TryGetValue(made, out var body) || NestedPair.Refusal(body) is not { } why || !_nestedRefused.Add(why))
+		if (!_bodies.TryGetValue(made, out var body) || NestedPair.Refusal(body) is not { } why)
+			return;
+
+		_refusedPairs.Add(made);
+
+		if (!_pairReasons.Add(why) && at is null)
 			return;
 
 		Report(
 			NestedNeedsLiterals,
 			$"Std.Nested(open, close) needs two literals that cannot begin at one place, and here {why}. " +
 			"Write them in quotes, and give `open` and `close` different first characters (docs/syntax.md §5.2).",
-			at);
+			at ?? default);
 	}
 
 	/// <summary>
@@ -583,8 +594,8 @@ public sealed partial class GrammarNormalizer
 	void RefuseNestedPairs()
 	{
 		foreach (var rule in _rules.ToList())
-			if (NestedPair.Is(rule))
-				RefuseNestedPair(rule, default);
+			if (NestedPair.Is(rule) && !_refusedPairs.Contains(rule))
+				RefuseNestedPair(rule, null);
 	}
 
 	/// <summary>Every specialization made so far, by the rule and what it was given.</summary>

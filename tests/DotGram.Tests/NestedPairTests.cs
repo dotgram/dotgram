@@ -387,6 +387,24 @@ public sealed class NestedPairTests
 		}
 	}
 
+	/// <summary>Every call is told, the same reason or not, and nothing else is said about it.</summary>
+	[Theory]
+	[InlineData("Std.Nested(['a'], \"b\") & Std.Nested(\"c\", ['d'])", 2)]
+	[InlineData("Std.Nested(\"<\", \"<\") & Std.Nested(\"<\", \"<\")", 2)]
+	[InlineData("Std.Nested(\"\", \"\")", 1)]
+	[InlineData("Std.Nested(\"\", \"x\") & Std.Nested(\"x\", \"\")", 2)]
+	public void Each_call_is_refused_and_only_for_its_arguments(string calls, int count)
+	{
+		var result = GramCompiler.Compile(
+			"Start = " + calls + " & eof\nparse Start\n",
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
+
+		var said = result.Diagnostics.Where(one => one.Severity != GramSeverity.Info).ToList();
+
+		Assert.All(said, one => Assert.Equal(GrammarNormalizer.NestedNeedsLiterals, one.Id));
+		Assert.Equal(count, said.Count);
+	}
+
 	/// <summary>A parameterized rebinding that puts the library's rule in place is checked as a call is.</summary>
 	[Fact]
 	public void A_rebinding_to_the_pair_is_checked_too()

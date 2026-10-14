@@ -247,6 +247,11 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var rule in _rules)
 		{
+			// A Std.Nested refused for its arguments (GRAM4037) has said what is wrong with it;
+			// what follows from that inside the library's text is the same mistake told again.
+			if (_refusedPairs.Contains(rule))
+				continue;
+
 			CheckRepetitions  (_bodies[rule], rule);
 			CheckCaptures     (_bodies[rule], rule);
 			CheckMarks        (_bodies[rule], rule);
