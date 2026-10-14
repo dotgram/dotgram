@@ -163,6 +163,14 @@ public static class SupportEmitter
 				/// </remarks>
 				public GramCarrier Carrier { get; set; }
 
+				/// <summary>
+				/// Says a construction may throw on a reading the parse gives up: carried
+				/// immediately, what one throws is then thrown only where the tape would have
+				/// built the value, and a refused parse throws nothing. Costs every construction
+				/// a little; the tape ignores it.
+				/// </summary>
+				public bool ConstructionsMayThrow { get; set; }
+
 				/// <summary>Add buffered pull-input publications beside existing forms.</summary>
 				public bool BufferedInput { get; set; }
 

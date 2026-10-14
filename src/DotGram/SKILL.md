@@ -405,6 +405,7 @@ call came from — write nothing in them that assumes it is.
 	Lexical      = true,                 // compile over tokens, not characters
 	LocationType = typeof(ISqlSpan),     // offer every rule the range it matched
 	Carrier      = GramCarrier.Tape,     // run no construction for a parse that fails (§3.7)
+	ConstructionsMayThrow = true,        // on Immediate, throw only what the tape would; ignored here (§7.5)
 	Stacks       = 4,                    // how many stacks a deep reading may take; 0 is no limit
 	PartSize     = 60_000,               // how large a generated method may grow
 	IncludedAs   = "Lex",                // the name an including grammar gets without `As`
@@ -422,7 +423,10 @@ constructions that can run for text read another way or a second time. Answer ei
 the carrier: `Tape` holds every construction until the parse is accepted (constructions that
 count, log, throw or share `context` with guards want it); `Immediate` says you have checked, and
 silences both, now and for every reason found later. Name the carrier rather than suppress
-`GRAM5016`: the name is where the decision lives.
+`GRAM5016`: the name is where the decision lives. Constructions that only throw (`int.Parse`, a
+division, a lookup) can stay immediate with `ConstructionsMayThrow = true`: what one throws is
+held and thrown only where the tape would have thrown it, so a reading given up or a refused
+parse throws nothing. It costs every construction a little; leave it off where none throws.
 
 `[GramOptions]` may be written as many times as there are further readings wanted, each
 naming the nested class it goes into:

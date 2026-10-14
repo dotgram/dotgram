@@ -189,7 +189,8 @@ public static partial class CSharpEmitter
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
 		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
-		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false, bool checks = false, bool steps = false)
+		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false, bool checks = false, bool steps = false,
+		bool constructionsMayThrow = false)
 	{
 		statics ??= [];
 
@@ -276,6 +277,7 @@ public static partial class CSharpEmitter
 			{
 				Reporting   = carriers is not null,
 				CountsRules = countRules,
+				ConstructionsMayThrow = constructionsMayThrow,
 
 				// Over tokens only, which the machine asks itself (Machine.Memo.cs).
 				MemoisesFailures = memoise,
@@ -350,6 +352,7 @@ public static partial class CSharpEmitter
 			// Reported as the machines it replaces were: a merged machine said nothing in the report.
 			made.Reporting = carriers is not null;
 			made.CountsRules = countRules;
+			made.ConstructionsMayThrow = constructionsMayThrow;
 			made.Tracing = tracing;
 			made.KeepsDoors = made.KeepsDoors && tracing is null;
 			made.MemoisesFailures = memoise;
@@ -398,7 +401,7 @@ public static partial class CSharpEmitter
 
 		AddBufferedMachines(
 			graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables,
-			carrier, replay, carriers is not null, directAllowed, countRules, tracing, expectedSets);
+			carrier, replay, carriers is not null, directAllowed, countRules, constructionsMayThrow, tracing, expectedSets);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -1059,7 +1062,7 @@ public static partial class CSharpEmitter
 		// What is said about the carrier, said here: which carrier a machine took is settled by what
 		// it turned out to hold, and nothing before the readers are written knows.
 		if (diagnostics is not null)
-			Told(diagnostics, requested, carrier, machines, graph, overKinds);
+			Told(diagnostics, requested, carrier, machines, graph, overKinds, constructionsMayThrow);
 
 		if (carriers is not null)
 		{
@@ -4625,12 +4628,14 @@ file.Line("return spare;");
 	/// A warning for the reasons that can change what a parse answers or what a refusal costs:
 	/// constructions and hooks sharing <c>context</c>, and lists rebuilt on every turn given back.
 	/// Information for the rest, which change only what a construction that throws or has side
-	/// effects does on a reading that does not stand.
+	/// effects does on a reading that does not stand. What one throws there is held where the
+	/// grammar says <c>ConstructionsMayThrow</c> (Machine.Immediate.cs), and the message names
+	/// the option where it does not.
 	/// </para>
 	/// </remarks>
 	static void Told(
 		ICollection<GramDiagnostic> diagnostics, CarrierKind requested, CarrierKind carrier, List<Compiled> machines,
-		RecognitionGraph graph, bool overKinds)
+		RecognitionGraph graph, bool overKinds, bool constructionsMayThrow)
 	{
 		if (requested == CarrierKind.Immediate)
 		{
@@ -4726,8 +4731,14 @@ file.Line("return spare;");
 		if (mild.Count > 0)
 			diagnostics.Add(new GramDiagnostic(
 				GramCompiler.CarrierChosen,
-				$"This grammar is carried as Immediate: {string.Join("; ", mild)}. A construction that can throw or has " +
-					$"side effects there behaves differently than on the tape. {choose}",
+				$"This grammar is carried as Immediate: {string.Join("; ", mild)}. " +
+					(constructionsMayThrow
+						? "A construction with side effects behaves differently there than on the tape; what one throws " +
+							"there is held, and thrown only where the tape would have built its value (ConstructionsMayThrow). "
+						: "A construction that can throw or has side effects there behaves differently than on the tape: an " +
+							"exception it throws escapes the parse. Where constructions only throw, set ConstructionsMayThrow = true " +
+							"to have the immediate carrier hold what they throw as the tape would. ") +
+					choose,
 				0,
 				0,
 				GramSeverity.Info));

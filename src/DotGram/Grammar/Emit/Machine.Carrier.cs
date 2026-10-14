@@ -866,16 +866,55 @@ sealed partial class Machine
 		public abstract IEnumerable<string> MarkRecords(string name);
 
 		/// <summary>
-		/// What <see cref="MarkRecords"/> declares, named: a rule read in parts hands its
-		/// mark down to them, and how many numbers that is depends on the carrier.
+		/// What <see cref="MarkRecords"/> declares, typed and named: a rule read in parts hands
+		/// its mark down to them, and how many locals that is, and of what, depends on the carrier.
 		/// </summary>
-		public virtual IReadOnlyList<string> RecordMarks(string name)
+		public virtual IReadOnlyList<(string Type, string Name)> RecordMarks(string name)
 		{
-			return [name];
+			return [(RecordMarkType, name)];
 		}
 
-		/// <summary>The type of each of <see cref="RecordMarks"/>, as a part declares it.</summary>
+		/// <summary>The type of a snapshot of the records, as a part declares it.</summary>
 		public virtual string RecordMarkType => "int";
+
+		/// <summary>
+		/// What a method that writes records takes where it begins, for a construction to ask whether
+		/// its reading already holds an exception (<see cref="ImmediateCarrier.EntryFaults"/>).
+		/// Nothing on a carrier that holds none.
+		/// </summary>
+		public virtual IEnumerable<string> EntryFaults(string name)
+		{
+			yield break;
+		}
+
+		/// <summary>
+		/// The mark a guarded rule takes where it begins, for what a guard builds from what has been
+		/// recorded since: <see cref="MarkRecords"/>, unless a carrier has a part of it only a guard
+		/// that names a built value reads (<see cref="ImmediateCarrier.GuardMarkRecords"/>).
+		/// </summary>
+		/// <param name="asksValues">Whether some guard of the rule names a built value (<see cref="Machine.GuardAsksValue"/>).</param>
+		public virtual IEnumerable<string> GuardMarkRecords(string name, bool asksValues)
+		{
+			return MarkRecords(name);
+		}
+
+		/// <summary>What <see cref="GuardMarkRecords"/> declares, typed and named, as a part is handed it.</summary>
+		public virtual IReadOnlyList<(string Type, string Name)> GuardMarks(string name, bool asksValues)
+		{
+			return RecordMarks(name);
+		}
+
+		/// <summary>
+		/// What a guard that names a built value is preceded by: a carrier holding a construction's
+		/// exception throws it here, where the tape would have built the value (<see cref="ImmediateCarrier.GuardAsks"/>).
+		/// </summary>
+		/// <param name="mark">The local <see cref="GuardMarkRecords"/> declared where the guarded rule began.</param>
+		/// <param name="flags">The flag beside each record local the guard names, saying whether building that value threw.</param>
+		/// <param name="wider">Whether the guard names a value no one local holds — the fold's value so far, a sequence.</param>
+		public virtual string GuardAsks(string mark, IReadOnlyList<string> flags, bool wider)
+		{
+			return "";
+		}
 
 		/// <summary>Locals remembering where the gathered members of the rule stood.</summary>
 		public abstract IEnumerable<string> MarkGathered(RuleSymbol? owner, string name);

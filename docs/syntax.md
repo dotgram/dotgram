@@ -680,7 +680,9 @@ rule, nothing is left unbuilt: the second reading builds again, and every way ba
 what stood before it again, as often as the input gives ways back — for a long refused list,
 memory quadratic in its length, which `GRAM5016` warns of. A construction that only builds
 does not mind. One that
-counts, logs or throws does: an exception it throws there escapes the publication (§7.5). In a
+counts, logs or throws does: an exception it throws there escapes the publication (§7.5) —
+unless the grammar says `ConstructionsMayThrow = true`, which holds what a construction throws
+and throws it only where the tape would have. In a
 grammar with a `context`, constructions run interleaved with the hooks that share it (§7.7).
 The generator says where this can matter: `GRAM5016`, a warning, where constructions share
 `context` with a guard, a selector or a recognizer, or where a refused input can rebuild a list
@@ -699,6 +701,18 @@ and every construction is deferred until recognition has selected the accepted d
 unless a later `when` on that same path explicitly asks for the computed value. In that case
 the construction runs for the guard and its result is cached. An alternative later abandoned
 by backtracking does not invoke an unrequested construction.
+
+**Where a construction only throws, it can stay immediate.** A construction that throws for some
+of what it may be handed — `int.Parse`, a division, a lookup that does not find — and has no
+other effect, can keep the immediate carrier and its speed:
+
+```csharp
+[Gram("…", Carrier = GramCarrier.Immediate, ConstructionsMayThrow = true)]
+```
+
+Then what a construction throws is held, and thrown where the tape would have thrown it, so the
+answer is the tape's, exceptions included (§7.5). The hold costs every construction of the
+grammar a little whether anything throws or not, which is why it is asked for rather than given.
 
 **It binds to one alternative, not to the rule body** — by §3.8 it sits below `&` and
 above `|`. So every branch of a `|` builds its own result, and no parentheses are
@@ -2537,7 +2551,8 @@ methods are divided, what a value is told about where it was written — and not
 grammar means. Under every setting a grammar accepts the same texts and builds the same
 values, except where an entry below says otherwise: `Lexical` reads over tokens, where a
 rule's answer stands (§4); `Carrier` decides whether a construction may run for a reading that is abandoned or
-refused; `LocationType` hands values their positions; `Stacks` fails a reading deeper than
+refused, and `ConstructionsMayThrow` whether what one throws there escapes; `LocationType` hands
+values their positions; `Stacks` fails a reading deeper than
 it allows. The build property `DotGramPositionalFollow`, below, is one more: it changes what a
 reading from a position answers, and what the generator tells a grammar left to choose about
 its carrier.
@@ -2558,6 +2573,7 @@ of it fails a build.
 | `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
 | `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
+| `ConstructionsMayThrow` | `false` | a construction may throw on a reading the parse gives up: the immediate carrier holds what it throws and throws it only where the tape would have (§7.5). Ignored on the tape. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
 | `Trace` | `false` | a trace build: the parser reports what it reads to a sink (§6.9). Changes no answer. |
 
@@ -2595,6 +2611,9 @@ A reader holds what it has read until the constructions (§3.7) run, and the car
   context and no recovery, and outside a rule whose own guard asks for its value so far. There
   neither bound holds: the second reading builds again, and every way back taken rebuilds what
   stood before it, as often as the input gives ways back (`GRAM5016`).
+  What a construction throws on an abandoned reading escapes the publication, unless the
+  grammar says `ConstructionsMayThrow = true`: then it is held and thrown only where the tape
+  would have thrown it (§7.5).
 
 A machine the immediate carrier cannot carry is compiled on the tape, the rest of the grammar
 keeping the carrier. Where `Carrier = Immediate` was named, `GRAM5007` says which publications
@@ -3207,8 +3226,30 @@ the parse gives up cannot fail it. Carried immediately, the default, a construct
 its alternative is read, and one that throws on a reading the parse would have given up
 escapes the publication, `Try` or not, and a throwing `Parse` can surface it instead of the
 parse error. A grammar left to choose whose constructions can run there is told so
-(`GRAM5012`); one whose constructions may throw there names the tape, or puts every such
-construction behind a guard that answers first.
+(`GRAM5012`); one whose constructions may throw there names the tape, puts every such
+construction behind a guard that answers first, or says so:
+
+```csharp
+[Gram("…", Carrier = GramCarrier.Immediate, ConstructionsMayThrow = true)]
+```
+
+**A grammar whose constructions may throw can say so.** With `ConstructionsMayThrow = true`
+the immediate carrier holds what a construction throws: the reading goes on with the value
+left default, and the held exception is thrown where the tape would have thrown it — when the
+publication builds its answer, or where a `when` or `switch` asks for a value it was thrown
+under — from `Try` and `Parse` alike. An exception held in a reading the parse gives up goes
+with it, and a refused parse throws nothing it held: the refusal is the answer. A
+construction of a rule whose reading already holds an exception does not run, as on the tape,
+which would have thrown before it. Of several
+held, the one thrown is the first raised under what is asked for — at acceptance the first of
+all; a later one, handed the default an earlier left, is not. One thing is wider than the
+tape: a guard naming a fold's value so far, or a sequence gathered across turns, throws the
+first exception held since its rule began, under whichever value of that rule it was raised.
+What a guard or a recognizer throws is not held: it runs during recognition on both carriers
+and propagates at once. The hold is a handler around every construction and a copy at every
+way back, paid whether anything throws or not, so it is not the default: a grammar none of
+whose constructions throws is compiled without it. The tape ignores the option; it has nothing
+to hold.
 
 ### 7.6 Mapping positions back
 
