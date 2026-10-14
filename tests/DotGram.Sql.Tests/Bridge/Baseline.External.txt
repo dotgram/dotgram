@@ -1,0 +1,12 @@
+# What became of the statements counted under each old record the External family owns:
+# `Record = converted/gap/refused/crashed/unread/different/shape` (docs/design/sql-tsql-bridge.md). A
+# statement is counted under the record its first gap names, or else under its own. BridgeTests fails
+# where `converted` falls or any of the last five rises, and prints a gain; this file is rewritten
+# deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
+
+Statement.ExternalDataSourceDefinition = 0/92/0/0/0/0/0
+Statement.ExternalFileFormatDefinition = 0/101/0/0/0/0/0
+Statement.ExternalLanguageDefinition = 0/41/0/0/0/0/0
+Statement.ExternalLibraryDefinition = 0/59/0/0/0/0/0
+Statement.ExternalModelDefinition = 0/34/0/0/0/0/0
+Statement.ExternalResourcePoolDefinition = 0/79/0/0/0/0/0

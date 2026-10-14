@@ -52,5 +52,4 @@ Statement.Transaction = 45/64/0/0/0/0/0
 Statement.TryCatch = 0/16/0/0/0/0/0
 Statement.Use = 0/7/0/0/0/0/0
 Statement.WaitFor = 0/20/0/0/0/0/0
-Statement.WaitForStatement = 0/10/0/0/0/0/0
 Statement.While = 0/6/0/0/0/0/0

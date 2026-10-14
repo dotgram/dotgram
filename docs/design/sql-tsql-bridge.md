@@ -280,7 +280,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.QualifiedAsterisk` | Queries | A | — | — | 1221 |
 | `Expression.Comparison` | Values | A | — | — | 841 |
 | `Statement.AlterTable` | Tables | B | converted 518, gap 19 | 19: needs decision: inventory Statement.AlterTable (MERGE) (7); needs decision: inventory Statement.AlterTable (SPLIT) (5) | 644 |
-| `Clause.EventPiece` | Server | C | — | — | 514 |
+| `Clause.EventPiece` | Monitoring | C | — | — | 514 |
 | `Expression.NamedArgument` | Values | A | gap 41 | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
 | `Statement.CreateIndex` | Tables | C | converted 358, gap 57 | 57: needs decision: inventory Statement.CreateIndex (SELECTIVE XML INDEX, which no record holds) (31); needs decision: inventory Statement.CreateIndex (a secondary XML index FOR a selective index's path) (13) | 495 |
 | `TableReference.FunctionCall` | Tables | A | gap 6 | 6: needs decision: inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema) (6) | 487 |
@@ -289,7 +289,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.VariableDeclaration` | Procedural | C | — | — | 357 |
 | `Statement.Declare` | Procedural | C | gap 300 | 335: no target record: Statement.DeclareVariables (335) | 347 |
 | `Statement.Compound` | Procedural | C | gap 17 | 328: no target record: Statement.Compound (328) | 337 |
-| `Statement.EventSessionDefinition` | Server | C | gap 323 | 323: no target record: Statement.CreateEventSession (323) | 323 |
+| `Statement.EventSessionDefinition` | Monitoring | C | gap 323 | 323: no target record: Statement.CreateEventSession (323) | 323 |
 | `Clause.Hint` | Queries | C | gap 5 | 5: needs decision: inventory Clause.Hint (the old WITH (n)) (4); needs decision: inventory Clause.Hint (a hint of a shape the family does not hold) (1) | 294 |
 | `Clause.ParameterDeclaration` | Routines | B | — | — | 290 |
 | `Statement.CreateProcedure` | Routines | B | gap 279 | 279: needs decision: inventory Statement.CreateProcedure (279) | 279 |
@@ -324,18 +324,18 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Hinted` | Values | C | gap 27 | 127: needs decision: inventory Expression.Hinted (127) | 127 |
 | `Expression.And` | Values | A | — | — | 122 |
 | `Statement.Transaction` | Procedural | B | converted 45, gap 64 | 67: target exists, no writer arm: Statement.BeginTransaction (33); target exists, no writer arm: Statement.SaveTransaction (21) | 119 |
-| `Statement.ServerAuditDefinition` | Server | C | gap 118 | 118: no target record: Statement.CreateServerAudit (118) | 118 |
+| `Statement.ServerAuditDefinition` | Monitoring | C | gap 118 | 118: no target record: Statement.CreateServerAudit (118) | 118 |
 | `Statement.Delete` | Dml | A | converted 64 | — | 114 |
 | `Expression.Subquery` | Values | A | — | — | 113 |
 | `Statement.Grant` | Security | B | gap 108 | 108: needs decision: inventory Statement.Grant (108) | 108 |
-| `Statement.ExternalFileFormatDefinition` | Server | C | gap 101 | 101: no target record: Statement.CreateExternalFileFormat (101) | 101 |
+| `Statement.ExternalFileFormatDefinition` | External | C | gap 101 | 101: no target record: Statement.CreateExternalFileFormat (101) | 101 |
 | `Statement.FullTextIndexDefinition` | Tables | C | converted 45, gap 3 | 3: needs decision: inventory Statement.FullTextIndexDefinition (a catalog after its filegroup, or a place of other words) (2); needs decision: inventory Statement.FullTextIndexDefinition (ON (catalog) in brackets without a filegroup) (1) | 99 |
 | `Expression.Member` | Values | A | — | — | 98 |
 | `Clause.Output` | Dml | C | — | — | 97 |
 | `TableReference.Derived` | Tables | A | — | — | 97 |
 | `TableReference.Pivot` | Tables | C | — | — | 93 |
 | `Statement.AlterFullTextIndex` | Tables | C | converted 70, gap 22 | 22: needs decision: inventory Statement.AlterFullTextIndex (WITH NO POPULATION, which no Option of one name says) (22) | 92 |
-| `Statement.ExternalDataSourceDefinition` | Server | C | gap 92 | 92: no target record: Statement.CreateExternalDataSource (92) | 92 |
+| `Statement.ExternalDataSourceDefinition` | External | C | gap 92 | 92: no target record: Statement.CreateExternalDataSource (92) | 92 |
 | `Statement.SetVariable` | Procedural | C | gap 78 | 89: no target record: Statement.SetVariable (89) | 89 |
 | `Clause.DatabaseFile` | Database | C | — | — | 88 |
 | `Statement.ResourcePoolDefinition` | Server | C | gap 86 | 86: no target record: Statement.CreateResourcePool (86) | 86 |
@@ -345,7 +345,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Query.FromFile` | Dml | C | — | — | 83 |
 | `Clause.Dropped` | Tables | B | gap 2 | 2: needs decision: inventory Clause.Dropped (a period or an index, which no action holds) (2) | 82 |
 | `Clause.For` | Queries | C | — | — | 82 |
-| `Statement.ExternalResourcePoolDefinition` | Server | C | gap 79 | 79: no target record: Statement.CreateExternalResourcePool (79) | 79 |
+| `Statement.ExternalResourcePoolDefinition` | External | C | gap 79 | 79: no target record: Statement.CreateExternalResourcePool (79) | 79 |
 | `Statement.Print` | Procedural | C | gap 38 | 70: no target record: Statement.Print (70) | 75 |
 | `Statement.Dbcc` | Server | C | gap 73 | 73: no target record: Statement.Dbcc (73) | 73 |
 | `Expression.Not` | Values | A | — | — | 71 |
@@ -355,32 +355,32 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.MergeWhen` | Dml | B | — | — | 65 |
 | `Query.Parenthesized` | Queries | B | — | — | 64 |
 | `Statement.CreateTrigger` | Routines | B | gap 62 | 62: needs decision: inventory Statement.CreateTrigger (62) | 62 |
-| `Statement.ExternalLibraryDefinition` | Server | C | gap 59 | 59: no target record: Statement.CreateExternalLibrary (59) | 59 |
+| `Statement.ExternalLibraryDefinition` | External | C | gap 59 | 59: no target record: Statement.CreateExternalLibrary (59) | 59 |
 | `Clause.CommonTableExpression` | Queries | A | — | — | 57 |
 | `Statement.CreateLogin` | Security | C | gap 57 | 57: no target record: Statement.CreateLogin (57) | 57 |
 | `Statement.UpdateText` | Dml | C | converted 57 | — | 57 |
 | `Expression.OdbcEscape` | Values | C | — | — | 56 |
-| `Statement.DatabaseAuditSpecificationDefinition` | Database | C | gap 56 | 56: no target record: Statement.CreateDatabaseAuditSpecification (56) | 56 |
+| `Statement.DatabaseAuditSpecificationDefinition` | Monitoring | C | gap 56 | 56: no target record: Statement.CreateDatabaseAuditSpecification (56) | 56 |
 | `Expression.Collated` | Values | A | — | — | 55 |
 | `Statement.DropIndex` | Drop | C | gap 47 | 49: target exists, no writer arm: Statement.DropIndex (49) | 53 |
 | `Statement.Merge` | Dml | A | converted 46 | — | 53 |
 | `Expression.IsNull` | Values | A | — | — | 52 |
 | `Statement.AvailabilityGroupDefinition` | Server | C | gap 51 | 51: no target record: Statement.CreateAvailabilityGroup (51) | 51 |
 | `Statement.TriggerSwitch` | Routines | C | gap 44 | 47: no target record: Statement.EnableTrigger (47) | 51 |
-| `Statement.QueueDefinition` | Server | C | gap 48 | 48: no target record: Statement.CreateQueue (48) | 48 |
+| `Statement.QueueDefinition` | Broker | C | gap 48 | 48: no target record: Statement.CreateQueue (48) | 48 |
 | `Statement.If` | Procedural | C | gap 23 | 37: no target record: Statement.If (37) | 47 |
 | `Statement.SequenceDefinition` | Tables | A | converted 46, gap 1 | 1: needs decision: inventory cross-cutting gaps, identifier styles (a name part ` TestSeq`) (1) | 47 |
 | `Statement.AlterFullTextStopList` | Database | C | gap 46 | 46: no target record: Statement.AlterFullTextStopList (46) | 46 |
 | `Statement.RestoreDatabase` | Database | C | gap 46 | 46: no target record: Statement.RestoreDatabase (46) | 46 |
-| `Statement.AuditSpecificationDefinition` | Server | C | gap 45 | 45: no target record: Statement.CreateServerAuditSpecification (45) | 45 |
+| `Statement.AuditSpecificationDefinition` | Monitoring | C | gap 45 | 45: no target record: Statement.CreateServerAuditSpecification (45) | 45 |
 | `Statement.AssemblyDefinition` | Routines | C | gap 44 | 44: no target record: Statement.CreateAssembly (44) | 44 |
 | `Statement.AsymmetricKeyDefinition` | Security | C | gap 43 | 43: no target record: Statement.CreateAsymmetricKey (43) | 43 |
 | `Statement.StatisticsDefinition` | Tables | C | converted 43 | — | 43 |
 | `Statement.UpdateStatistics` | Tables | C | converted 41 | — | 43 |
 | `Clause.Into` | Queries | C | — | — | 41 |
 | `Expression.Multiply` | Values | A | — | — | 41 |
-| `Statement.EndConversation` | Server | C | gap 27 | 34: no target record: Statement.EndConversation (34) | 41 |
-| `Statement.ExternalLanguageDefinition` | Server | C | gap 41 | 41: no target record: Statement.CreateExternalLanguage (41) | 41 |
+| `Statement.EndConversation` | Broker | C | gap 27 | 34: no target record: Statement.EndConversation (34) | 41 |
+| `Statement.ExternalLanguageDefinition` | External | C | gap 41 | 41: no target record: Statement.CreateExternalLanguage (41) | 41 |
 | `Expression.Or` | Values | A | — | — | 40 |
 | `Clause.WindowDefinition` | Values | A | — | — | 39 |
 | `Query.Ordered` | Queries | B | — | — | 39 |
@@ -395,7 +395,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.WriteText` | Dml | C | converted 35 | — | 35 |
 | `Query.Union` | Queries | B | — | — | 34 |
 | `Statement.Deny` | Security | C | gap 34 | 34: bridge arm missing: Statement.Deny (34) | 34 |
-| `Statement.ExternalModelDefinition` | Server | C | gap 34 | 34: no target record: Statement.CreateExternalModel (34) | 34 |
+| `Statement.ExternalModelDefinition` | External | C | gap 34 | 34: no target record: Statement.CreateExternalModel (34) | 34 |
 | `Statement.Fetch` | Procedural | A | converted 34 | — | 34 |
 | `Clause.CursorDefinition` | Procedural | B | — | — | 32 |
 | `Clause.TableSample` | Tables | A | — | — | 31 |
@@ -404,7 +404,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.ShiftLeft` | Values | C | — | — | 30 |
 | `Statement.AlterDatabaseModify` | Database | C | gap 30 | 30: target exists, no writer arm: AlterDatabaseAction.Modify (30) | 30 |
 | `Statement.AlterDatabaseModifyFileGroup` | Database | C | gap 30 | 30: target exists, no writer arm: AlterDatabaseAction.ModifyFileGroup (30) | 30 |
-| `Statement.Send` | Server | C | gap 30 | 30: no target record: Statement.Send (30) | 30 |
+| `Statement.Send` | Broker | C | gap 30 | 30: no target record: Statement.Send (30) | 30 |
 | `Expression.Aliased` | Values | A | — | 29: needs decision: inventory Expression.Aliased (29) | 29 |
 | `Expression.In` | Values | A | — | — | 29 |
 | `Statement.AlterResourceGovernor` | Server | C | gap 29 | 29: no target record: Statement.AlterResourceGovernor (29) | 29 |
@@ -425,8 +425,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropProcedure` | Drop | B | converted 24 | — | 24 |
 | `Statement.ReadText` | Dml | C | converted 24 | — | 24 |
 | `SetExpression.Transactions.IsolationLevel` | Procedural | A | — | — | 23 |
-| `Statement.BeginDialog` | Server | C | gap 23 | 23: no target record: Statement.BeginDialog (23) | 23 |
-| `Statement.BrokerPriorityDefinition` | Server | C | gap 23 | 23: no target record: Statement.CreateBrokerPriority (23) | 23 |
+| `Statement.BeginDialog` | Broker | C | gap 23 | 23: no target record: Statement.BeginDialog (23) | 23 |
+| `Statement.BrokerPriorityDefinition` | Broker | C | gap 23 | 23: no target record: Statement.CreateBrokerPriority (23) | 23 |
 | `Statement.DropTrigger` | Drop | B | converted 19 | — | 23 |
 | `SetExpression.Miscellaneous.Switch` | Procedural | C | — | — | 22 |
 | `Statement.Break` | Procedural | C | gap 3 | 22: no target record: Statement.Break (22) | 22 |
@@ -447,17 +447,17 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AggregateDefinition` | Routines | C | gap 18 | 18: no target record: Statement.CreateAggregate (18) | 18 |
 | `Statement.AlterLogin` | Security | C | gap 18 | 18: no target record: Statement.AlterLogin (18) | 18 |
 | `Statement.DropAssembly` | Drop | C | gap 18 | 18: target exists, no writer arm: Statement.DropAssembly (18) | 18 |
-| `Statement.MessageTypeDefinition` | Server | C | gap 18 | 18: no target record: Statement.CreateMessageType (18) | 18 |
+| `Statement.MessageTypeDefinition` | Broker | C | gap 18 | 18: no target record: Statement.CreateMessageType (18) | 18 |
 | `Statement.RaiseError` | Procedural | C | gap 10 | 18: no target record: Statement.RaiseError (18) | 18 |
-| `Statement.ServiceDefinition` | Server | C | gap 18 | 18: no target record: Statement.CreateService (18) | 18 |
+| `Statement.ServiceDefinition` | Broker | C | gap 18 | 18: no target record: Statement.CreateService (18) | 18 |
 | `Expression.Plus` | Values | A | — | — | 17 |
 | `Statement.AlterPartitionFunction` | Database | C | gap 17 | 17: no target record: Statement.AlterPartitionFunction (17) | 17 |
 | `Statement.BackupCertificate` | Database | C | gap 17 | 17: no target record: Statement.BackupCertificate (17) | 17 |
 | `Statement.Classification` | Security | C | gap 17 | 17: no target record: Statement.AddSensitivityClassification (17) | 17 |
 | `Statement.DropTable` | Drop | B | converted 16 | — | 17 |
-| `Statement.EventNotificationDefinition` | Server | C | gap 17 | 17: no target record: Statement.CreateEventNotification (17) | 17 |
-| `Statement.Receive` | Server | C | gap 13 | 17: no target record: Statement.Receive (17) | 17 |
-| `Statement.RemoteServiceBindingDefinition` | Server | C | gap 17 | 17: no target record: Statement.CreateRemoteServiceBinding (17) | 17 |
+| `Statement.EventNotificationDefinition` | Monitoring | C | gap 17 | 17: no target record: Statement.CreateEventNotification (17) | 17 |
+| `Statement.Receive` | Broker | C | gap 13 | 17: no target record: Statement.Receive (17) | 17 |
+| `Statement.RemoteServiceBindingDefinition` | Broker | C | gap 17 | 17: no target record: Statement.CreateRemoteServiceBinding (17) | 17 |
 | `Statement.AddSignature` | Security | C | gap 16 | 16: no target record: Statement.AddSignature (16) | 16 |
 | `Statement.AlterMasterKey` | Security | C | gap 16 | 16: no target record: Statement.AlterMasterKey (16) | 16 |
 | `Statement.DefaultDefinition` | Routines | C | gap 16 | 16: no target record: Statement.CreateDefault (16) | 16 |
@@ -504,8 +504,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterPartitionScheme` | Database | C | gap 10 | 10: no target record: Statement.AlterPartitionScheme (10) | 10 |
 | `Statement.DatabaseScopedCredentialDefinition` | Security | C | gap 10 | 10: no target record: Statement.CreateDatabaseScopedCredential (10) | 10 |
 | `Statement.DropEventSession` | Drop | C | gap 10 | 10: target exists, no writer arm: Statement.DropEventSession (10) | 10 |
-| `Statement.GetConversationGroup` | Server | C | gap 4 | 10: no target record: Statement.GetConversationGroup (10) | 10 |
-| `Statement.WaitForStatement` | Procedural | C | gap 10 | 10: no target record: Statement.WaitForReceive (10) | 10 |
+| `Statement.GetConversationGroup` | Broker | C | gap 4 | 10: no target record: Statement.GetConversationGroup (10) | 10 |
+| `Statement.WaitForStatement` | Broker | C | gap 10 | 10: no target record: Statement.WaitForReceive (10) | 10 |
 | `Clause.CursorFor` | Procedural | A | — | — | 9 |
 | `Expression.Subtract` | Values | A | — | — | 9 |
 | `Statement.AlterDatabaseCollate` | Database | C | gap 9 | 9: target exists, no writer arm: AlterDatabaseAction.Collate (9) | 9 |
@@ -540,7 +540,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropService` | Drop | C | gap 7 | 7: no target record: Statement.DropService (one record per kind, not declared yet) (7) | 7 |
 | `Statement.DropSymmetricKey` | Drop | C | gap 7 | 7: no target record: Statement.DropSymmetricKey (one record per kind, not declared yet) (7) | 7 |
 | `Statement.RestoreMasterKey` | Database | C | gap 7 | 7: no target record: Statement.RestoreMasterKey (7) | 7 |
-| `Statement.RouteDefinition` | Server | C | gap 7 | 7: no target record: Statement.CreateRoute (7) | 7 |
+| `Statement.RouteDefinition` | Broker | C | gap 7 | 7: no target record: Statement.CreateRoute (7) | 7 |
 | `Statement.SearchPropertyListDefinition` | Database | C | gap 7 | 7: no target record: Statement.CreateSearchPropertyList (7) | 7 |
 | `Statement.Throw` | Procedural | C | gap 5 | 7: no target record: Statement.Throw (7) | 7 |
 | `Statement.Use` | Procedural | C | gap 7 | 7: no target record: Statement.Use (7) | 7 |
@@ -548,7 +548,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `SetExpression.QueryExecution.RowCount` | Procedural | C | — | — | 6 |
 | `Statement.AlterSymmetricKey` | Security | C | gap 6 | 6: no target record: Statement.AlterSymmetricKey (6) | 6 |
 | `Statement.ColumnEncryptionKeyDefinition` | Security | C | gap 6 | 6: no target record: Statement.CreateColumnEncryptionKey (6) | 6 |
-| `Statement.ContractDefinition` | Server | C | gap 6 | 6: no target record: Statement.CreateContract (6) | 6 |
+| `Statement.ContractDefinition` | Broker | C | gap 6 | 6: no target record: Statement.CreateContract (6) | 6 |
 | `Statement.CreateApplicationRole` | Security | C | gap 6 | 6: no target record: Statement.CreateApplicationRole (6) | 6 |
 | `Statement.CreateRole` | Security | A | converted 3, gap 3 | 3: no target record: Statement.CreateRole has no AUTHORIZATION owner (inventory Statement.CreateRole) (3) | 6 |
 | `Statement.DropDatabaseAuditSpecification` | Drop | C | gap 6 | 6: no target record: Statement.DropDatabaseAuditSpecification (one record per kind, not declared yet) (6) | 6 |
@@ -566,10 +566,10 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterColumnEncryptionKey` | Security | C | gap 5 | 5: no target record: Statement.AlterColumnEncryptionKey (5) | 5 |
 | `Statement.AlterDatabaseModifyFile` | Database | C | gap 5 | 5: target exists, no writer arm: AlterDatabaseAction.ModifyFile (5) | 5 |
 | `Statement.CloseSymmetricKey` | Security | C | gap 5 | 5: no target record: Statement.CloseSymmetricKey (5) | 5 |
-| `Statement.ConversationTimer` | Server | C | gap 5 | 5: no target record: Statement.BeginConversationTimer (5) | 5 |
+| `Statement.ConversationTimer` | Broker | C | gap 5 | 5: no target record: Statement.BeginConversationTimer (5) | 5 |
 | `Statement.CreateServerRole` | Security | C | gap 5 | 5: no target record: Statement.CreateServerRole (5) | 5 |
 | `Statement.DropExternalTable` | Drop | C | gap 5 | 5: no target record: Statement.DropExternalTable (one record per kind, not declared yet) (5) | 5 |
-| `Statement.MoveConversation` | Server | C | gap 5 | 5: no target record: Statement.MoveConversation (5) | 5 |
+| `Statement.MoveConversation` | Broker | C | gap 5 | 5: no target record: Statement.MoveConversation (5) | 5 |
 | `Expression.Modulo` | Values | C | — | — | 4 |
 | `Query.Intersect` | Queries | B | — | — | 4 |
 | `SetExpression.Miscellaneous.FipsFlagger` | Procedural | C | — | — | 4 |

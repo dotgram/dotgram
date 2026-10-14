@@ -216,6 +216,22 @@ public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> 
 	/// PARTITIONS (1, 3 TO 5)</c>: the partitions the option is set for, after its value; null where none were said.
 	/// </summary>
 	public SqlList<PartitionRange>? Partitions { get; init; }
+
+	/// <summary>
+	/// T-SQL: the options of the CREATE and ALTER statements, each on its own page. The further words of a name written in
+	/// several words: <c>MOVE TO fg</c> is <see cref="Name"/> <c>MOVE</c> with <c>TO</c> here, and <c>HADR AVAILABILITY
+	/// GROUP = ag</c> is <c>HADR</c> with <c>AVAILABILITY</c> and <c>GROUP</c> here. Empty for a name of one word.
+	/// </summary>
+	public SqlList<Identifier> Words { get; init; } = [];
+
+	/// <summary>
+	/// T-SQL: the options of the CREATE and ALTER statements, each on its own page. A value or a bracketed list written
+	/// after the name with no <c>=</c>, as in <c>WITH INLINE ON</c>. Set only where one place reads both forms for the same
+	/// name, which is the generic option rule (<c>= v</c> or <c>ON</c> | <c>OFF</c> against <c>= (…)</c> or <c>(…)</c>) read
+	/// without a lookahead that narrows it. Where a place's own rule fixes the form for a name (<c>RECOVERY FULL</c>,
+	/// <c>PAD_INDEX = ON</c>), the flag stays false and that place's writer prints the fixed form.
+	/// </summary>
+	[Spelling] public bool EqualsOmitted { get; init; }
 }
 
 /// <summary>

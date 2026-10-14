@@ -318,7 +318,7 @@ public static partial class Sql2023Writer
 
 					// The one option a table type reads: MEMORY_OPTIMIZED = ON or OFF, once.
 					if (type.Options.Count > 1 || type.Options.Any(static one => !(Plain(one.Name, "MEMORY_OPTIMIZED") && IsWord(one.Value, "ON", "OFF")
-						&& one.Options.Count == 0 && one.Order is null && one.Partitions is null)))
+						&& one.Options.Count == 0 && one.Order is null && one.Partitions is null && one.Words.Count == 0 && !one.EqualsOmitted)))
 						throw Misplaced(type, "Options", "other than one MEMORY_OPTIMIZED = ON or OFF, the only option a table type reads");
 
 					Word("CREATE TYPE");
@@ -909,9 +909,19 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutOption(Option option)
 		{
+			PutOption(option, multiWord: false);
+		}
+
+		/// <summary>
+		/// The option writer behind <see cref="PutOption(Option)"/>: the name, its further words, <c>=</c> unless the
+		/// option leaves it out, then the value and the rest. No place of the grammar reads the further words or a left-out
+		/// <c>=</c> yet, so a caller says <paramref name="multiWord"/> only where its own rule does; the others refuse them.
+		/// </summary>
+		void PutOption(Option option, bool multiWord)
+		{
 			if (!SqlStack.Enough())
 			{
-				SqlStack.Deeper(this, option, static (into, node) => into.PutOption(node));
+				SqlStack.Deeper(this, option, (into, node) => into.PutOption(node, multiWord));
 
 				return;
 			}
@@ -919,13 +929,23 @@ public static partial class Sql2023Writer
 			if (option.Order is not null)
 				throw Misplaced(option, "Order", "outside a bulk insert's options");
 
+			if (!multiWord)
+				CheckSingleWord(option);
+
 			PutIdentifier(option.Name);
+
+			foreach (var word in option.Words)
+				PutIdentifier(word);
 
 			if (option.Value is { } value)
 			{
-				Word("=");
+				if (!option.EqualsOmitted)
+					Word("=");
+
 				PutExpression(value);
 			}
+			else if (option.EqualsOmitted)
+				throw Misplaced(option, "EqualsOmitted", "on an option with no value, which has no = to leave out");
 
 			// `DATA_COMPRESSION = PAGE ON PARTITIONS (1)`: the partitions after the value, and no options of its own beside them.
 			// Only the two compressions read ON PARTITIONS in a WITH list (RESAMPLE does in UPDATE STATISTICS, which writes it itself).
@@ -940,9 +960,22 @@ public static partial class Sql2023Writer
 			if (option.Options.Count > 0)
 			{
 				Open();
-				Each(option.Options, PutOption);
+				Each(option.Options, one => PutOption(one, multiWord));
 				Close();
 			}
+		}
+
+		/// <summary>
+		/// The place reads a name of one word and its <c>=</c> as it stands: no place reads the further words of a name or a
+		/// value after the name with no <c>=</c> yet, so an option that says either is refused where it stands.
+		/// </summary>
+		static void CheckSingleWord(Option option)
+		{
+			if (option.Words.Count > 0)
+				throw Misplaced(option, "Words", "on an option at a place that reads only names of one word");
+
+			if (option.EqualsOmitted)
+				throw Misplaced(option, "EqualsOmitted", "on an option at a place that reads only the form with its =");
 		}
 
 		/// <summary>
@@ -1222,7 +1255,7 @@ public static partial class Sql2023Writer
 		{
 			foreach (var option in index.Options)
 			{
-				var read = option.Options.Count == 0 && option.Order is null && option.Partitions is null
+				var read = option.Options.Count == 0 && option.Order is null && option.Partitions is null && option.Words.Count == 0 && !option.EqualsOmitted
 					&& (Plain(option.Name, "CHANGE_TRACKING") && IsWord(option.Value, "MANUAL", "AUTO", "OFF")
 						|| Plain(option.Name, "STOPLIST") && IsName(option.Value));
 
@@ -1242,7 +1275,7 @@ public static partial class Sql2023Writer
 		{
 			foreach (var option in index.Options)
 			{
-				if (option.Options.Count > 0 || option.Order is not null || option.Partitions is not null || !SpatialAtom(option.Value))
+				if (option.Options.Count > 0 || option.Order is not null || option.Partitions is not null || option.Words.Count > 0 || option.EqualsOmitted || !SpatialAtom(option.Value))
 					throw Misplaced(index, "Options", "set to other than a number, a string, a binary string, NULL, ON, OFF or a name of one part, the values a spatial option reads");
 
 				if (!Syntax.Spatial(option.Name.Text, SpatialRead(option)))
@@ -1278,7 +1311,7 @@ public static partial class Sql2023Writer
 		{
 			foreach (var option in index.Options)
 			{
-				var read = option.Options.Count == 0 && option.Order is null
+				var read = option.Options.Count == 0 && option.Order is null && option.Words.Count == 0 && !option.EqualsOmitted
 					&& (option.Partitions is null || Plain(option.Name, "DATA_COMPRESSION"))
 					&& (Plain(option.Name, "DROP_EXISTING", "ONLINE") && IsWord(option.Value, "ON", "OFF")
 						|| Plain(option.Name, "MAXDOP") && IsOptionNumber(option.Value)
@@ -1301,7 +1334,7 @@ public static partial class Sql2023Writer
 		{
 			foreach (var option in index.Options)
 			{
-				var read = option.Options.Count == 0 && option.Order is null
+				var read = option.Options.Count == 0 && option.Order is null && option.Words.Count == 0 && !option.EqualsOmitted
 					&& (option.Partitions is null || Plain(option.Name, "XML_COMPRESSION"))
 					&& (Plain(option.Name, "PAD_INDEX", "SORT_IN_TEMPDB", "DROP_EXISTING", "ALLOW_ROW_LOCKS", "ALLOW_PAGE_LOCKS", "STATISTICS_NORECOMPUTE", "XML_COMPRESSION") && IsWord(option.Value, "ON", "OFF")
 						|| Plain(option.Name, "IGNORE_DUP_KEY", "ONLINE") && IsWord(option.Value, "OFF")
@@ -1434,7 +1467,7 @@ public static partial class Sql2023Writer
 			var words = bracketed ? new[] { "IGNORE_DUP_KEY", "BUCKET_COUNT" } : new[] { "SORTED_DATA", "SORTED_DATA_REORG" };
 
 			// Each with its value: a switch, a bucket count, or the bare word of the old spelling.
-			var read = static (Option one) => one.Options.Count == 0 && one.Order is null && one.Partitions is null
+			var read = static (Option one) => one.Options.Count == 0 && one.Order is null && one.Partitions is null && one.Words.Count == 0 && !one.EqualsOmitted
 				&& (Plain(one.Name, "IGNORE_DUP_KEY") ? IsWord(one.Value, "ON", "OFF")
 					: Plain(one.Name, "BUCKET_COUNT") ? IsUnsigned(one.Value, decimals: true)
 					: one.Value is null);
@@ -1616,6 +1649,9 @@ public static partial class Sql2023Writer
 
 			foreach (var option in options)
 			{
+				// SAMPLE and RESAMPLE are written below without the shared option writer, so its check is made here.
+				CheckSingleWord(option);
+
 				if (option.Options.Count > 0 || option.Order is not null)
 					throw Misplaced(option, "Options or Order", "on a statistics option");
 

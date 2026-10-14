@@ -60,6 +60,9 @@ static partial class Bridge
 		Security.TryConvert,
 		Database.TryConvert,
 		Server.TryConvert,
+		Broker.TryConvert,
+		Monitoring.TryConvert,
+		External.TryConvert,
 		Drop.TryConvert,
 	];
 
@@ -77,6 +80,9 @@ static partial class Bridge
 		("Security",   Security.Owns),
 		("Database",   Database.Owns),
 		("Server",     Server.Owns),
+		("Broker",     Broker.Owns),
+		("Monitoring", Monitoring.Owns),
+		("External",   External.Owns),
 		("Drop",       Drop.Owns),
 	];
 

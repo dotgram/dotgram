@@ -26,6 +26,9 @@ public static partial class Sql2023Writer
 				|| TryPutSecurity(node)
 				|| TryPutDatabase(node)
 				|| TryPutServer(node)
+				|| TryPutBroker(node)
+				|| TryPutMonitoring(node)
+				|| TryPutExternal(node)
 				|| TryPutDrop(node);
 		}
 	}
