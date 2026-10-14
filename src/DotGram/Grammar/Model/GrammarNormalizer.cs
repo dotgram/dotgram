@@ -548,6 +548,11 @@ public sealed partial class GrammarNormalizer
 
 			foreach (var rule in _rules)
 			{
+				// A Std.Nested refused for its arguments (GRAM4037) is taken to read something, as
+				// the pair it stands for does: an empty `open` is the one mistake, and is told once.
+				if (_refusedPairs.Contains(rule))
+					continue;
+
 				var nullable = IsNullable(_bodies[rule]);
 
 				if (nullable != _nullable[rule])

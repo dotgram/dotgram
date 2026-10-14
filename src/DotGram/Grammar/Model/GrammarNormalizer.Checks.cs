@@ -247,6 +247,11 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var rule in _rules)
 		{
+			// A Std.Nested refused for its arguments (GRAM4037) has said what is wrong with it;
+			// what follows from that inside the library's text is the same mistake told again.
+			if (_refusedPairs.Contains(rule))
+				continue;
+
 			CheckRepetitions  (_bodies[rule], rule);
 			CheckCaptures     (_bodies[rule], rule);
 			CheckMarks        (_bodies[rule], rule);
@@ -851,11 +856,27 @@ public sealed partial class GrammarNormalizer
 	/// `trivia` has to accept empty input. That single condition is what lets it be
 	/// inserted everywhere without doubling (§4.5), so it is worth a message of its own.
 	/// </summary>
+	/// <summary>Whether a node reads a Std.Nested refused for its arguments, itself or through what it calls.</summary>
+	bool ReachesRefusedPair(Node node, HashSet<RuleSymbol> seen)
+	{
+		if (node is Node.Call(var called, _))
+			return _refusedPairs.Contains(called) ||
+				seen.Add(called) && _bodies.TryGetValue(called, out var body) && ReachesRefusedPair(body, seen);
+
+		foreach (var child in node.Children)
+			if (ReachesRefusedPair(child, seen))
+				return true;
+
+		return false;
+	}
+
 	void CheckTrivia()
 	{
 		foreach (var trivia in _model.Trivia.Values.Distinct())
 		{
-			if (trivia.Declaration is null || IsNullable(_bodies[trivia]))
+			// Not where a refused Std.Nested is read: what it would read is not known, and the
+			// refusal (GRAM4037) is what there is to say.
+			if (trivia.Declaration is null || IsNullable(_bodies[trivia]) || ReachesRefusedPair(_bodies[trivia], []))
 				continue;
 
 			Report(
