@@ -3223,6 +3223,7 @@ namespace DotGram.Snapshots
 			readonly Ways ways;
 			readonly global::System.ReadOnlyMemory<char> whole;
 			internal int last1;
+			internal global::System.Exception? fault;
 
 			internal Reader_DotGram_Sum(global::System.ReadOnlySpan<char> text, Ways ways, global::System.ReadOnlyMemory<char> parserWhole)
 			{
@@ -3231,6 +3232,7 @@ namespace DotGram.Snapshots
 				this.ways    = ways;
 				this.probes  = 0;
 				this.last1 = default!;
+				this.fault = default!;
 				this.whole   = parserWhole;
 			}
 
@@ -3264,6 +3266,7 @@ namespace DotGram.Snapshots
 				deep.ways   = this.ways;
 				deep.failure = this.failure;
 				deep.last1 = this.last1;
+				deep.fault = this.fault;
 				deep.probes = this.probes;
 				deep.pos    = pos;
 				deep.which  = which;
@@ -3273,6 +3276,7 @@ namespace DotGram.Snapshots
 
 				this.failure = deep.failure;
 				this.last1 = deep.last1;
+				this.fault = deep.fault;
 				// Still on the stack that ran low: the next entry probes it again.
 				this.probes = 0;
 
@@ -3288,12 +3292,26 @@ namespace DotGram.Snapshots
 				return end;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Faulted_DotGram(global::System.Exception thrown)
+			{
+				if (fault == null)
+					fault = thrown;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			internal void Thrown_DotGram()
+			{
+				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(fault!).Throw();
+			}
+
 			public int Read_Sum_Sum(int pos, int power)
 			{
 				if ((probes++ & 3) == 0 && !EnoughStack_DotGram_Sum())
 					return Deepen_DotGram_Sum(pos, 0, power);
 
 				var s  = ways.Cursor;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -3302,6 +3320,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -3332,7 +3351,7 @@ namespace DotGram.Snapshots
 				}
 				p++;
 				b0 = p;
-				fold = last1 = Construct_Sum((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				try { fold = last1 = Construct_Sum((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { fold = last1 = default!; Faulted_DotGram(thrown); }
 				while (true)
 				{
 					var o1 = (uint)p < (uint)text.Length;
@@ -3367,6 +3386,7 @@ namespace DotGram.Snapshots
 						break;
 
 					var s2  = ways.Cursor;
+					var lm2f = fault;
 					var q0 = -1;
 
 					while (true)
@@ -3376,6 +3396,7 @@ namespace DotGram.Snapshots
 						if (q0 >= 0)
 							break;
 
+						fault = lm2f;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
 							continue;
@@ -3413,13 +3434,14 @@ namespace DotGram.Snapshots
 				if (q0 < 0) return -1;
 				p = q0;
 				r1 = last1;
-				fold = last1 = Construct_Sum_1(fold, r1!);
+				try { fold = last1 = Construct_Sum_1(fold, r1!); } catch (global::System.Exception thrown) { fold = last1 = default!; Faulted_DotGram(thrown); }
 				return p;
 			}
 
 			public int Recognize_Sum_Whole_Read(int pos, int power)
 			{
 				var s  = ways.Cursor;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -3428,6 +3450,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -3453,6 +3476,7 @@ namespace DotGram.Snapshots
 			public int Recognize_Sum_Read(int pos, int power)
 			{
 				var s  = ways.Cursor;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -3461,6 +3485,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -3486,6 +3511,7 @@ namespace DotGram.Snapshots
 			internal Ways ways = default!;
 			internal Failure failure = default!;
 			internal int last1 = default!;
+			internal global::System.Exception? fault = default!;
 			internal int probes;
 			internal int pos;
 			internal int which;
@@ -3585,6 +3611,7 @@ namespace DotGram.Snapshots
 				ways   = default!;
 				failure = default!;
 				last1 = default!;
+				fault = default!;
 				thrown = null;
 			}
 
@@ -3668,6 +3695,7 @@ namespace DotGram.Snapshots
 
 					reader.failure = this.failure;
 					reader.last1 = this.last1;
+					reader.fault = this.fault;
 					reader.probes = this.probes;
 
 					switch (this.which)
@@ -3677,6 +3705,7 @@ namespace DotGram.Snapshots
 
 					this.failure = reader.failure;
 					this.last1 = reader.last1;
+					this.fault = reader.fault;
 					this.probes = reader.probes;
 				}
 				catch (global::System.Exception caught)
@@ -3707,6 +3736,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
+				if (reader.fault != null) reader.Thrown_DotGram();
 				value = reader.last1;
 
 				return end;
@@ -3738,6 +3768,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
+				if (reader.fault != null) reader.Thrown_DotGram();
 				value = reader.last1;
 
 				return end;

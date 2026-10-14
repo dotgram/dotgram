@@ -167,11 +167,12 @@ namespace DotGram.ExpressionLanguage;
 // its construction is about to do; `NamedType` asks `Resolves` for the same reason — and
 // `CarrierAgreementTests` puts every corpus shape, every prefix of one and every one-character
 // deletion from one — 10,722 texts — to both carriers and requires the same answer, refusals
-// and throws included. One thing the guards do not cover: a text this language refuses may
-// throw there instead. `s.Trim)` builds `s.Trim` and is told there is no such property before
-// the `)` is reached, where the tape refuses the `)`. So the agreement test lets the immediate
-// reading throw where the tape refuses, and nothing else. That is a search, not a proof, and
-// why the reading a scope is given stays on the tape.
+// and throws included. A text this language refuses may run a construction that throws on the
+// way — `s.Trim)` builds `s.Trim` and is told there is no such property before the `)` is
+// reached, where the tape refuses the `)` — and the immediate carrier holds that exception and
+// drops it with the reading the parse gives up (docs/syntax.md §7.5), so the agreement is
+// exact, throwers included. What keeps the reading a scope is given on the tape is the
+// paragraph above: over a context the agreement is a search over a corpus, not a proof.
 //
 // That second reading is not in the package. It is compiled only where DOTGRAM_EL_IMMEDIATE
 // is defined, which is the fixture tests/DotGram.ExpressionLanguage.Immediate: these same

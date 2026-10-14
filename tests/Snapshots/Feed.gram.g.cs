@@ -424,6 +424,7 @@ namespace DotGram.Snapshots
 			internal global::DotGram.Snapshots.Feed.Row last2;
 			internal global::DotGram.Snapshots.Feed.Header last3;
 			internal int unbuilt;
+			internal global::System.Exception? fault;
 			internal Failure replayed;
 			internal int replayedMore;
 
@@ -438,6 +439,7 @@ namespace DotGram.Snapshots
 				this.last2 = default!;
 				this.last3 = default!;
 				this.unbuilt = default!;
+				this.fault = default!;
 				this.replayed = default!;
 				this.replayedMore = default!;
 			}
@@ -493,10 +495,24 @@ namespace DotGram.Snapshots
 					Replayed_DotGram();
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Faulted_DotGram(global::System.Exception thrown)
+			{
+				if (fault == null)
+					fault = thrown;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			internal void Thrown_DotGram()
+			{
+				global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(fault!).Throw();
+			}
+
 			public int Read_Feed_Feed(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -509,11 +525,17 @@ namespace DotGram.Snapshots
 							u = Stood_DotGram(u, s);
 
 							if (u > 0)
+							{
+								fault = lmf;
+
 								continue;
+							}
 						}
 
 						return q;
 					}
+
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 					{
@@ -557,6 +579,7 @@ namespace DotGram.Snapshots
 
 					var s2  = ways.Cursor;
 					var u2  = 0;
+					var lm2f = fault;
 					var rr2_2 = values.Count2;
 					var q1 = -1;
 
@@ -572,6 +595,7 @@ namespace DotGram.Snapshots
 
 								if (u2 > 0)
 								{
+									fault = lm2f;
 									values.Count2 = rr2_2;
 
 									continue;
@@ -581,6 +605,7 @@ namespace DotGram.Snapshots
 							break;
 						}
 
+						fault = lm2f;
 						values.Count2 = rr2_2;
 
 						if (ways.Cursor > s2 && ways.Retry(s2))
@@ -610,7 +635,7 @@ namespace DotGram.Snapshots
 				var q3 = Read_eof_Feed(p);
 				if (q3 < 0) { values.Count2 = rb_2; return -1; }
 				p = q3;
-				if (unbuilt == 0) last0 = new global::DotGram.Snapshots.Feed.FeedValue(r0!, values.Take2(rb_2)!, r2!); else { values.Count2 = rb_2; }
+				if (unbuilt == 0) try { last0 = new global::DotGram.Snapshots.Feed.FeedValue(r0!, values.Take2(rb_2)!, r2!); } catch (global::System.Exception thrown) { last0 = default!; Faulted_DotGram(thrown); } else { values.Count2 = rb_2; }
 				return p;
 			}
 
@@ -628,6 +653,7 @@ namespace DotGram.Snapshots
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -640,11 +666,17 @@ namespace DotGram.Snapshots
 							u = Stood_DotGram(u, s);
 
 							if (u > 0)
+							{
+								fault = lmf;
+
 								continue;
+							}
 						}
 
 						return q;
 					}
+
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 					{
@@ -682,7 +714,7 @@ namespace DotGram.Snapshots
 				var q2 = Read_eol_Feed(p);
 				if (q2 < 0) return -1;
 				p = q2;
-				if (unbuilt == 0) last3 = new global::DotGram.Snapshots.Feed.Header((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				if (unbuilt == 0) try { last3 = new global::DotGram.Snapshots.Feed.Header((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { last3 = default!; Faulted_DotGram(thrown); }
 				return p;
 			}
 
@@ -810,6 +842,7 @@ namespace DotGram.Snapshots
 			public int Read_eol_Feed(int pos)
 			{
 				var s  = ways.Cursor;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -818,6 +851,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -863,11 +897,13 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 0)
 							{
 								var s1  = ways.Cursor;
+								var lm1f = fault;
 
 								q0 = Read_eol_Feed_Part0(p);
 
 								if (q0 < 0)
 								{
+									fault = lm1f;
 								}
 
 								if (q0 < 0)
@@ -876,11 +912,13 @@ namespace DotGram.Snapshots
 							if (q0 < 0 && d0 <= 1)
 							{
 								var s2  = ways.Cursor;
+								var lm2f = fault;
 
 								q0 = Read_eol_Feed_Part1(p);
 
 								if (q0 < 0)
 								{
+									fault = lm2f;
 								}
 							}
 
@@ -933,6 +971,7 @@ namespace DotGram.Snapshots
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -945,11 +984,17 @@ namespace DotGram.Snapshots
 							u = Stood_DotGram(u, s);
 
 							if (u > 0)
+							{
+								fault = lmf;
+
 								continue;
+							}
 						}
 
 						return q;
 					}
+
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 					{
@@ -997,13 +1042,14 @@ namespace DotGram.Snapshots
 				var q4 = Read_eol_Feed(p);
 				if (q4 < 0) return -1;
 				p = q4;
-				if (unbuilt == 0) last2 = new global::DotGram.Snapshots.Feed.Row((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!);
+				if (unbuilt == 0) try { last2 = new global::DotGram.Snapshots.Feed.Row((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!); } catch (global::System.Exception thrown) { last2 = default!; Faulted_DotGram(thrown); }
 				return p;
 			}
 
 			public int Read_Name_Feed(int pos)
 			{
 				var s  = ways.Cursor;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -1012,6 +1058,7 @@ namespace DotGram.Snapshots
 					if (q >= 0)
 						return q;
 
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 						continue;
@@ -1124,12 +1171,14 @@ namespace DotGram.Snapshots
 						break;
 					}
 
+					var lm2f = fault;
 					var q0 = -1;
 
 					q0 = Read_Amount_Feed_Part0(p);
 
 					if (q0 < 0)
 					{
+						fault = lm2f;
 					}
 
 					if (q0 < 0)
@@ -1184,6 +1233,7 @@ namespace DotGram.Snapshots
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -1196,11 +1246,17 @@ namespace DotGram.Snapshots
 							u = Stood_DotGram(u, s);
 
 							if (u > 0)
+							{
+								fault = lmf;
+
 								continue;
+							}
 						}
 
 						return q;
 					}
+
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 					{
@@ -1238,7 +1294,7 @@ namespace DotGram.Snapshots
 				var q2 = Read_eol_Feed(p);
 				if (q2 < 0) return -1;
 				p = q2;
-				if (unbuilt == 0) last1 = new global::DotGram.Snapshots.Feed.Trailer((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				if (unbuilt == 0) try { last1 = new global::DotGram.Snapshots.Feed.Trailer((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!); } catch (global::System.Exception thrown) { last1 = default!; Faulted_DotGram(thrown); }
 				return p;
 			}
 
@@ -1272,10 +1328,12 @@ namespace DotGram.Snapshots
 			public int Read_eof_Feed(int pos)
 			{
 				var p = pos;
+				var lm0f = fault;
 				failure.Looking++;
 				var q0 = Read_eof_Feed_Part0(p);
 				failure.Looking--;
 
+				fault = lm0f;
 
 				if (q0 >= 0)
 				{
@@ -1303,6 +1361,7 @@ namespace DotGram.Snapshots
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -1315,11 +1374,17 @@ namespace DotGram.Snapshots
 							u = Stood_DotGram(u, s);
 
 							if (u > 0)
+							{
+								fault = lmf;
+
 								continue;
+							}
 						}
 
 						return q;
 					}
+
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 					{
@@ -1353,6 +1418,7 @@ namespace DotGram.Snapshots
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
+				var lmf = fault;
 
 				while (true)
 				{
@@ -1365,11 +1431,17 @@ namespace DotGram.Snapshots
 							u = Stood_DotGram(u, s);
 
 							if (u > 0)
+							{
+								fault = lmf;
+
 								continue;
+							}
 						}
 
 						return q;
 					}
+
+					fault = lmf;
 
 					if (ways.Cursor > s && ways.Retry(s))
 					{
@@ -1419,6 +1491,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
+				if (reader.fault != null) reader.Thrown_DotGram();
 				value = reader.last0;
 
 				return end;
@@ -1453,6 +1526,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
+				if (reader.fault != null) reader.Thrown_DotGram();
 				value = reader.last0;
 
 				return end;
