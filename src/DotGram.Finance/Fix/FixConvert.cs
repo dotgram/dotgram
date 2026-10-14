@@ -660,6 +660,17 @@ public static class FixConvert
 	/// <param name="raw">The value as the wire had it.</param>
 	/// <param name="value">The value, assigned whether or not it is valid.</param>
 	/// <returns>Whether it is valid.</returns>
+	public static bool ToMultipleString(this ReadOnlySpan<char> raw, out string[] value)
+	{
+		value = ToText(raw).Split(' ');
+
+		foreach (var item in value)
+			if (item.Length == 0)
+				return false;
+
+		return true;
+	}
+
 #if FIXSHAPE_C
 	// What string.Split does, into a list sized for it, so that the struct list over it costs one object.
 	internal static (bool Valid, List<string> Value) SplitList(string text, bool strings)
@@ -693,16 +704,6 @@ public static class FixConvert
 	}
 
 #endif
-	public static bool ToMultipleString(this ReadOnlySpan<char> raw, out string[] value)
-	{
-		value = ToText(raw).Split(' ');
-
-		foreach (var item in value)
-			if (item.Length == 0)
-				return false;
-
-		return true;
-	}
 
 	// ── Dates and times ─────────────────────────────────────────────────────────
 	//
