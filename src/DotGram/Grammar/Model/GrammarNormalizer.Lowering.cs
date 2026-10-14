@@ -553,17 +553,38 @@ public sealed partial class GrammarNormalizer
 		// the call is, because the arguments are the caller's: a parameterized rule passing
 		// its own on is told at its own call, once the arguments are known. Not the rule's call
 		// to itself, whose body is still being lowered.
-		if (NestedPair.Is(rule) && call is Node.Call(var made, _) && _currentRule != made &&
-			_bodies.TryGetValue(made, out var body) && NestedPair.Refusal(body) is { } why)
-		{
-			Report(
-				NestedNeedsLiterals,
-				$"Std.Nested(open, close) needs two literals that cannot begin at one place, and here {why}. " +
-				"Write them in quotes, and give `open` and `close` different first characters (docs/syntax.md §5.2).",
-				at);
-		}
+		if (NestedPair.Is(rule) && call is Node.Call(var made, _) && _currentRule != made)
+			RefuseNestedPair(made, at);
 
 		return call;
+	}
+
+	/// <summary>The refusals of <see cref="RefuseNestedPair"/> already said, so a copy says nothing again.</summary>
+	readonly HashSet<string> _nestedRefused = new(StringComparer.Ordinal);
+
+	/// <summary>GRAM4037, where a specialization of Std.Nested has arguments a counter cannot tell apart.</summary>
+	void RefuseNestedPair(RuleSymbol made, Location at)
+	{
+		if (!_bodies.TryGetValue(made, out var body) || NestedPair.Refusal(body) is not { } why || !_nestedRefused.Add(why))
+			return;
+
+		Report(
+			NestedNeedsLiterals,
+			$"Std.Nested(open, close) needs two literals that cannot begin at one place, and here {why}. " +
+			"Write them in quotes, and give `open` and `close` different first characters (docs/syntax.md §5.2).",
+			at);
+	}
+
+	/// <summary>
+	/// The specializations of Std.Nested no call made: a parameterized rebinding instantiates its
+	/// replacement for the arguments the call it rebinds carried (§5.1). Said at the start of the
+	/// grammar, there being no call of its own to say it at.
+	/// </summary>
+	void RefuseNestedPairs()
+	{
+		foreach (var rule in _rules.ToList())
+			if (NestedPair.Is(rule))
+				RefuseNestedPair(rule, default);
 	}
 
 	/// <summary>Every specialization made so far, by the rule and what it was given.</summary>
