@@ -9,6 +9,8 @@ Examples	DotGram.Examples.Formats.Config.Located.g.cs	0649
 Examples	DotGram.Examples.Formats.Config.g.cs	0649
 Examples	DotGram.Examples.Formats.FileNames.g.cs	0649
 Examples	DotGram.Examples.Formats.FixParser.g.cs	0649
+Examples	DotGram.Examples.Formats.FixedWidth.Tape.g.cs	0649
+Examples	DotGram.Examples.Formats.FixedWidth.Tape.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Formats.FixedWidth.g.cs	0649
 Examples	DotGram.Examples.Formats.Netstrings.g.cs	0649
 Examples	DotGram.Examples.Languages.Filter.g.cs	CS0649 // a table nothing writes still declares the field
