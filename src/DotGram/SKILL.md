@@ -316,7 +316,7 @@ one convention or the other, never both (`GRAM4009`).
 | one character | `Digit` `HexDigit` `Letter` `Space` `Whitespace` |
 | runs of them | `Digits` `HexDigits` `Blank` `Spacing` `Identifier` |
 | numbers, as values | `Integer` `Long` `Decimal` `Double` |
-| comments | `LineComment(start)` `BlockComment(open, close)` |
+| comments | `LineComment(start)` `BlockComment(open, close)` `Nested(open, close)` — nests to any depth; two literals that begin differently |
 | quoted text | `Quoted(quote)` — doubled, as SQL and CSV do; `Escaped(quote, escape)` |
 
 The numbers are unsigned: whether `-` belongs to a number or is an operator in front of

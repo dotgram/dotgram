@@ -189,7 +189,10 @@ public sealed class LexicalAutomaton
 
 				case Node.Call(var called, _):
 					if (!inside.Add(called))
-						return Refuse($"{called.Name} reaches itself, so it is not a lexical pattern");
+						return Refuse(
+							$"{called.Name} reaches itself, so it is not a lexical pattern. Begin the terminal " +
+							"with what the lexer can read and end it with that rule or `@M` (§7.1), or, for a " +
+							"pair that nests, end it with `Std.Nested(open, close)`");
 
 					if (!graph.Bodies.TryGetValue(called, out var body))
 						return Refuse($"{called.Name} has no body to read");

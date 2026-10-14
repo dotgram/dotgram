@@ -54,6 +54,15 @@ Double  : double  = Digits & ('.' & Digits)? & ('e'i & ['+' | '-']? & Digits)?
 LineComment(start)        = start & [^ '\r' | '\n']*
 BlockComment(open, close) = open & (?!close & any)* & close
 
+// A pair that holds others: `Nested("/*", "*/")` reads `/* a /* b */ c */` whole. Inside
+// it `close` is asked first and an `open` always opens another, so it ends where its
+// opens and closes balance, at any depth; one that never balances is refused where it
+// opened. The rule is the meaning, and what reads it with the engine reads it so; a
+// scanner and a lexer read it with a counter instead, which is why both arguments have
+// to be literals that cannot begin at one place (syntax.md §5.2).
+
+Nested(open, close) = open & (?!close & (Nested(open, close) | ?!open & any))* & close
+
 // ── Quoted text ──────────────────────────────────────────────────────────────
 //
 // The two ways a quote is written inside what it quotes. `Quoted('\'')` doubles it,

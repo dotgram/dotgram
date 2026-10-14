@@ -205,6 +205,12 @@ public sealed class TerminalInventory
 	/// </param>
 	public sealed record Continuation(Pattern.Class Pattern, int Kind, Node Tail)
 	{
+		/// <summary>
+		/// Where the rest is Std.Nested's, what it opens and closes with: the lexer reads it with a
+		/// counter from where the beginning, which ends with <c>open</c>, ended.
+		/// </summary>
+		internal NestedPair.Delimiters? Counted { get; init; }
+
 		/// <summary>The beginning, where it is one fixed spelling; what a longer token is asked to start with.</summary>
 		public string? Beginning { get; init; }
 
@@ -961,7 +967,7 @@ public sealed class TerminalInventory
 
 			foreach (var pattern in patterns.OfType<Pattern.Class>())
 			{
-				if (Continuation(pattern.Rule) is not var (prefix, tail))
+				if (Continuation(pattern.Rule) is not var (prefix, tail, pair))
 					continue;
 
 				if (Language.Shortest(graph, prefix) is { Length: 0 })
@@ -1004,6 +1010,7 @@ public sealed class TerminalInventory
 
 				continued.Add(new Continuation(pattern, holding[0].Number, tail)
 				{
+					Counted   = pair,
 					Beginning = (prefix as Node.Literal)?.Text,
 					Extended  = [.. extended.Select(static one => (one, 0))],
 				});
@@ -1204,7 +1211,7 @@ public sealed class TerminalInventory
 			{
 				Pattern.Word(_, var word, var fold) => new Node.Literal(word) { IgnoreCase = fold },
 				Pattern.Mark(_, var mark, var fold) => new Node.Literal(mark) { IgnoreCase = fold },
-				Pattern.Class(_, var rule) => Continuation(rule) is var (prefix, _)
+				Pattern.Class(_, var rule) => Continuation(rule) is var (prefix, _, _)
 					? prefix
 					: graph.Bodies.TryGetValue(rule, out var body) ? body : null,
 				_ => null,
@@ -1227,13 +1234,18 @@ public sealed class TerminalInventory
 		/// goes on, and its value is read afterwards over the whole token as any terminal's is.
 		/// </para>
 		/// </remarks>
-		(Node Prefix, Node Tail)? Continuation(RuleSymbol rule)
+		(Node Prefix, Node Tail, NestedPair.Delimiters? Counted)? Continuation(RuleSymbol rule)
 		{
 			if (_tails.TryGetValue(rule, out var known))
 				return known;
 
 			if (!graph.Bodies.TryGetValue(rule, out var body))
 				return null;
+
+			// Std.Nested as the terminal itself: read as a call to it, which is what the branch
+			// below knows how to split.
+			if (NestedPair.Is(rule))
+				body = new Node.Call(rule, []);
 
 			while (true)
 			{
@@ -1245,13 +1257,27 @@ public sealed class TerminalInventory
 					break;
 			}
 
-			(Node Prefix, Node Tail)? found = null;
+			(Node Prefix, Node Tail, NestedPair.Delimiters? Counted)? found = null;
 
-			if (body is Node.Sequence(var parts) && parts.Count >= 2 &&
+			// Std.Nested, last or alone: its `open` is a beginning like any other, and the rest
+			// is read by a counter (NestedPair) rather than by the rule's machine over
+			// characters. The tail is the call, which is what the rest is a reading of.
+			var last = body is Node.Sequence({ Count: >= 1 } run) ? run[run.Count - 1] : body;
+
+			if ((last is Node.Capture(_, var captured) ? captured : last) is Node.Call(var nested, _) &&
+				NestedPair.Is(nested) && NestedPair.Of(nested, graph) is { } pair)
+			{
+				Node open = new Node.Literal(pair.Open) { IgnoreCase = pair.OpenFolds };
+
+				found = body is Node.Sequence({ Count: >= 2 } before)
+					? (new Node.Sequence([.. before.Take(before.Count - 1), open]), last, pair)
+					: (open, last, pair);
+			}
+			else if (body is Node.Sequence(var parts) && parts.Count >= 2 &&
 				(parts[parts.Count - 1] is Node.Capture(_, var held) ? held : parts[parts.Count - 1]) is var tail &&
 				Unread(tail))
 			{
-				found = (parts.Count == 2 ? parts[0] : new Node.Sequence([.. parts.Take(parts.Count - 1)]), tail);
+				found = (parts.Count == 2 ? parts[0] : new Node.Sequence([.. parts.Take(parts.Count - 1)]), tail, null);
 			}
 
 			_tails[rule] = found;
@@ -1259,7 +1285,7 @@ public sealed class TerminalInventory
 			return found;
 		}
 
-		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail)?> _tails = [];
+		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail, NestedPair.Delimiters? Counted)?> _tails = [];
 
 		/// <summary>
 		/// The kinds the automaton can accept further on from a state that accepts only
