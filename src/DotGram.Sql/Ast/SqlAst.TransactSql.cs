@@ -499,7 +499,7 @@ public abstract partial record LiteralValue
 	/// T-SQL: Constants (Transact-SQL), a page syntax.md does not transcribe. T-SQL writes a binary string
 	/// <c>0x0A</c> where the standard writes <c>X'0A'</c>.
 	/// </summary>
-	public partial record Binary
+	public new partial record Binary
 	{
 		/// <summary>
 		/// Written <c>0x…</c>. Then <c>Text</c> is the digits after the <c>0x</c>; without it, <c>Text</c> is the

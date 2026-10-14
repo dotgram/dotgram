@@ -118,7 +118,7 @@ public sealed class SqlStandardEntryTests
 		var expression = SqlStandardParser.ParseExpression("-1");
 
 		Assert.IsType<LiteralValue.Numeric>(value);
-		Assert.False(expression is Expression.Literal { Value: LiteralValue.Numeric { Text: "-1" } });
+		Assert.False(expression is LiteralValue.Numeric { Text: "-1" });
 		Assert.Equal("-1", Sql2023Writer.Write(expression));
 	}
 
@@ -338,7 +338,7 @@ public sealed class SqlStandardEntryTests
 		var value = SqlStandardParser.ParseValue(input);
 
 		Assert.Equal(text, ((LiteralValue.String)value).Text);
-		Assert.Equal(text, ((LiteralValue.String)((Expression.Literal)SqlStandardParser.ParseExpression(input)).Value).Text);
+		Assert.Equal(text, ((LiteralValue.String)SqlStandardParser.ParseExpression(input)).Text);
 	}
 
 	[Theory]
@@ -350,7 +350,7 @@ public sealed class SqlStandardEntryTests
 		var select = (Statement.Select)SqlStandardParser.ParseStatement(input);
 		var column = (SelectColumn.ExpressionItem)((Query.Select)select.Query).Columns[0];
 
-		Assert.Equal(text, ((LiteralValue.String)((Expression.Literal)column.Expression).Value).Text);
+		Assert.Equal(text, ((LiteralValue.String)column.Expression).Text);
 	}
 
 	[Theory]
