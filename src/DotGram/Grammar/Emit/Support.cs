@@ -1607,7 +1607,7 @@ public static partial class CSharpEmitter
 		/// calls are removed at their sites, arguments and all.
 		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
-		static void Trace(string action, int state, int position, int arena)
+		static void Step_DotGram(string action, int state, int position, int arena)
 		{
 			global::System.Console.Error.WriteLine(
 				".Gram " + action + " state=" + state.ToString() +
@@ -1619,7 +1619,7 @@ public static partial class CSharpEmitter
 		/// the position, the caret marking the position itself.
 		/// </summary>
 		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
-		static void Trace(
+		static void Step_DotGram(
 			string action, int state, int position, int arena,
 			global::System.ReadOnlySpan<char> text, string rule)
 		{

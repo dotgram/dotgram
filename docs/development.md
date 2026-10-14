@@ -71,7 +71,11 @@ more compilations of the SQL grammars, for net10.0 only. `tests/DotGram.Tests/Tr
 the same over small grammars, a reading shape at a time.
 
 The engine's own step trace — one line on standard error per step of the automaton, for working on
-the generator, not for grammar authors — is compiled where the build defines `DOTGRAM_STEPS`. It was
+the generator, not for grammar authors — is written into a parser, and compiled, only where the build
+defines `DOTGRAM_STEPS`: the generator reads the symbol from the compilation's preprocessor symbols (as it
+reads `DOTGRAM_CHECKS`), and a parser generated without it carries neither the calls nor the methods they
+call. Define it in the project that holds the grammar, e.g. `<DefineConstants>$(DefineConstants);DOTGRAM_STEPS</DefineConstants>`,
+and generate again. It was
 `DOTGRAM_TRACE` until the trace build came; a consumer that defined `DOTGRAM_TRACE` gets no step lines
 from a parser generated since and has to define `DOTGRAM_STEPS` instead (the release notes say so).
 The rename keeps the symbol a `DotGramTrace` user would guess from flooding standard error.

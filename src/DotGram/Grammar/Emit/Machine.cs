@@ -703,7 +703,7 @@ sealed partial class Machine
 
 			// Nothing but the jump, so that `JumpOnly` can collapse this state away and the
 			// callers reach the body directly. It used to trace here as well, which said
-			// twice what the call site already says once — `Trace("call R", …)` sits
+			// twice what the call site already says once — `Step_DotGram("call R", …)` sits
 			// immediately before the jump in — and cost every rule a state, a dispatch case
 			// and a block for the second saying of it. What the trace loses is the root
 			// entry, which is not reached from a call site; that one is written once at the
@@ -1943,7 +1943,7 @@ sealed partial class Machine
 					"0, rootRule));");
 				file.Line("call = 0;");
 				TraceRoot(file);
-				file.Line("Trace(\"enter\", state, p, entries.Count, text, \"\");");
+				file.Line("Step_DotGram(\"enter\", state, p, entries.Count, text, \"\");");
 
 				// The hottest block there is: every return from a rule and every resumption
 				// after a failure comes through it. Written here, before the states, rather
@@ -2064,7 +2064,7 @@ sealed partial class Machine
 				}
 				file.Line();
 				file.Line("call = previousCall;");
-				file.Line("Trace(\"return\", state, p, entries.Count, text, \"\");");
+				file.Line("Step_DotGram(\"return\", state, p, entries.Count, text, \"\");");
 				file.Line("goto Dispatch;");
 
 				file.Line();
@@ -2151,7 +2151,7 @@ sealed partial class Machine
 					file.Line("if (lookahead < 0)");
 					file.Then("failure.Trace?.Refused(p, expected);");
 				}
-				file.Line("Trace(\"fail\", state, p, entries.Count, text, \"\");");
+				file.Line("Step_DotGram(\"fail\", state, p, entries.Count, text, \"\");");
 				file.Line();
 
 				using (file.Block("while (entries.Count > 0)"))
@@ -2173,7 +2173,7 @@ sealed partial class Machine
 						file.Line("lookahead = entry.LookaheadIndex;");
 						if (Tracing is not null)
 							file.Line("failure.Trace?.Resumed(call);");
-						file.Line("Trace(\"resume\", state, p, entries.Count, text, \"\");");
+						file.Line("Step_DotGram(\"resume\", state, p, entries.Count, text, \"\");");
 						file.Line("goto Dispatch;");
 					}
 
@@ -2189,7 +2189,7 @@ sealed partial class Machine
 								"counted.Position, counted.CallIndex, counted.AtomicIndex, " +
 								"counted.RepeatIndex, counted.LookaheadIndex, counted.Value - 1, " +
 								"counted.RuleIndex);");
-							file.Line("Trace(\"give a turn back\", entry.RepeatIndex, entry.Position, entries.Count, text, \"\");");
+							file.Line("Step_DotGram(\"give a turn back\", entry.RepeatIndex, entry.Position, entries.Count, text, \"\");");
 							file.Line("continue;");
 						}
 					}
@@ -2216,7 +2216,7 @@ sealed partial class Machine
 							file.Line("lookahead = entry.LookaheadIndex;");
 							if (Tracing is not null)
 								file.Line("failure.Trace?.Resumed(call);");
-							file.Line("Trace(\"resume exit\", state, p, entries.Count, text, \"\");");
+							file.Line("Step_DotGram(\"resume exit\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
 					}
@@ -2239,7 +2239,7 @@ sealed partial class Machine
 								"entry.LookaheadIndex, p));");
 							if (Tracing is not null)
 								file.Line("failure.Trace?.Resumed(call);");
-							file.Line("Trace(\"shorten run\", state, p, entries.Count, text, \"\");");
+							file.Line("Step_DotGram(\"shorten run\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
 
@@ -2331,11 +2331,11 @@ sealed partial class Machine
 									"entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, " +
 									"call, atomic, repeat, lookahead, p));");
 								file.Line(
-									$"Trace(\"capture negative lookahead\", entry.RuleIndex, p, entries.Count, text, \"\");");
+									$"Step_DotGram(\"capture negative lookahead\", entry.RuleIndex, p, entries.Count, text, \"\");");
 							}
 							if (Tracing is not null)
 								file.Line("failure.Trace?.Resumed(call);");
-							file.Line("Trace(\"negative lookahead succeeds\", state, p, entries.Count, text, \"\");");
+							file.Line("Step_DotGram(\"negative lookahead succeeds\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
 					}
@@ -2989,7 +2989,7 @@ sealed partial class Machine
 					atClose.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
 						"call, atomic, repeat, lookahead, p));");
-					atClose.Line($"Trace(\"rule capture\", {slot}, p, entries.Count{Traced});");
+					atClose.Line($"Step_DotGram(\"rule capture\", {slot}, p, entries.Count{Traced});");
 					atClose.Line($"goto {Label(atClose, next)};");
 
 					return state;
@@ -3007,7 +3007,7 @@ sealed partial class Machine
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
 						"call, atomic, repeat, lookahead, 0));");
-					writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count{Traced});");
+					writer.Line($"Step_DotGram(\"open capture\", {slot}, p, entries.Count{Traced});");
 					writer.Line($"goto {Label(writer, inner)};");
 
 					CloseOpened(atClose, slot);
@@ -3022,7 +3022,7 @@ sealed partial class Machine
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
 					"call, atomic, repeat, lookahead, p));");
-				atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
+				atClose.Line($"Step_DotGram(\"capture\", {slot}, p, entries.Count{Traced});");
 				atClose.Line($"goto {Label(atClose, next)};");
 
 				return state;
@@ -3074,7 +3074,7 @@ sealed partial class Machine
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Construct, {factory}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
-				atClose.Line($"Trace(\"construct\", {factory}, p, entries.Count{Traced});");
+				atClose.Line($"Step_DotGram(\"construct\", {factory}, p, entries.Count{Traced});");
 				atClose.Line($"goto {Label(atClose, next)};");
 
 				return state;
@@ -3170,7 +3170,7 @@ sealed partial class Machine
 						if (Tracing is not null)
 							writer.Line($"failure.Trace?.Scanned(completedCall, call, {Tracing.RuleOf(rule)}, p, scalarEnd);");
 						writer.Line("p = scalarEnd;");
-						writer.Line($"Trace(\"read {Escape(rule.Name)}\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+						writer.Line($"Step_DotGram(\"read {Escape(rule.Name)}\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 						writer.Line($"goto {Label(writer, next)};");
 					}
 				}
@@ -3186,7 +3186,7 @@ sealed partial class Machine
 				if (_graph.Climbing.Count > 0)
 					writer.Line($"power = {calledPower};");
 				writer.Line(
-					$"Trace(\"call {Escape(rule.Name)}\", {Mark(Lands, _entries[rule])}, p, entries.Count{Traced});");
+					$"Step_DotGram(\"call {Escape(rule.Name)}\", {Mark(Lands, _entries[rule])}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, _entries[rule])};");
 
 				return state;
@@ -3617,13 +3617,13 @@ sealed partial class Machine
 				atOpen.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.StateSet, {site}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
-				atOpen.Line($"Trace(\"set state\", {site}, p, entries.Count{Traced});");
+				atOpen.Line($"Step_DotGram(\"set state\", {site}, p, entries.Count{Traced});");
 				atOpen.Line($"goto {Label(atOpen, inner)};");
 
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.StateEnd, {site}, p, " +
 					"call, atomic, repeat, lookahead, 0));");
-				atClose.Line($"Trace(\"end state\", {site}, p, entries.Count{Traced});");
+				atClose.Line($"Step_DotGram(\"end state\", {site}, p, entries.Count{Traced});");
 				atClose.Line($"goto {Label(atClose, next)};");
 
 				return opened;
@@ -3735,7 +3735,7 @@ sealed partial class Machine
 				writer.Line("var atomicIndex = entries.Count;");
 				writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));");
 				writer.Line("atomic = atomicIndex;");
-				writer.Line($"Trace(\"enter atomic\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+				writer.Line($"Step_DotGram(\"enter atomic\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, inner)};");
 
 				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
@@ -3780,7 +3780,7 @@ sealed partial class Machine
 				atCommit.Line("atomic = boundary.AtomicIndex;");
 				atCommit.Line("repeat = boundary.RepeatIndex;");
 				atCommit.Line("lookahead = boundary.LookaheadIndex;");
-				atCommit.Line($"Trace(\"commit\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+				atCommit.Line($"Step_DotGram(\"commit\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 				atCommit.Line($"goto {Label(atCommit, next)};");
 
 				return state;
@@ -3995,7 +3995,7 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 					$"repeat, lookahead, {(isPositive ? 1 : 0)}));");
 				writer.Line("lookahead = lookaheadIndex;");
-				writer.Line($"Trace(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+				writer.Line($"Step_DotGram(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, inner)};");
 
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -4009,7 +4009,7 @@ sealed partial class Machine
 				atSuccess.Line("atomic    = looked.AtomicIndex;");
 				atSuccess.Line("repeat    = looked.RepeatIndex;");
 				atSuccess.Line("lookahead = looked.LookaheadIndex;");
-				atSuccess.Line($"Trace(\"lookahead body matched\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+				atSuccess.Line($"Step_DotGram(\"lookahead body matched\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 				atSuccess.Line($"goto {(isPositive ? Label(atSuccess, next) : "Fail")};");
 
 				return state;
@@ -4094,7 +4094,7 @@ sealed partial class Machine
 		atClose.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, " +
 			"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
-		atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
+		atClose.Line($"Step_DotGram(\"capture\", {slot}, p, entries.Count{Traced});");
 	}
 
 	/// <summary>The machine-wide slot a binding is recorded in.</summary>
@@ -4133,7 +4133,7 @@ sealed partial class Machine
 			writer.Line(
 				$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
 				"call, atomic, repeat, lookahead, 0));");
-			writer.Line($"Trace(\"open capture\", {slot}, p, entries.Count{Traced});");
+			writer.Line($"Step_DotGram(\"open capture\", {slot}, p, entries.Count{Traced});");
 			writer.Line($"goto {Label(writer, inner)};");
 
 			CloseOpened(atClose, slot);
@@ -4149,7 +4149,7 @@ sealed partial class Machine
 		atClose.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
 			"call, atomic, repeat, lookahead, p));");
-		atClose.Line($"Trace(\"capture\", {slot}, p, entries.Count{Traced});");
+		atClose.Line($"Step_DotGram(\"capture\", {slot}, p, entries.Count{Traced});");
 		Recorded(atClose, binding, slot);
 		atClose.Line($"goto {Label(atClose, next)};");
 
@@ -4302,7 +4302,7 @@ sealed partial class Machine
 		atEntry.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Dead, 0, {least}, call, atomic, repeatIndex, lookahead, {most ?? "-1"}));");
 		atEntry.Line("repeat = repeatIndex;");
-		atEntry.Line($"Trace(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
+		atEntry.Line($"Step_DotGram(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
 		atEntry.Line($"goto {Label(atEntry, loop)};");
 
 		atLoop.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat + 1 < entries.Count);");
@@ -4365,7 +4365,7 @@ sealed partial class Machine
 
 		atExit.Line("repeat = finished.RepeatIndex;");
 		atExit.Line("lookahead = finished.LookaheadIndex;");
-		atExit.Line($"Trace(\"leave repeat\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+		atExit.Line($"Step_DotGram(\"leave repeat\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 		atExit.Line($"goto {Label(atExit, next)};");
 
 		return entry;
@@ -4466,7 +4466,7 @@ sealed partial class Machine
 		writer.Then(
 			$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, next)}, {floor}, " +
 			"call, atomic, repeat, lookahead, p));");
-		writer.Line($"Trace(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+		writer.Line($"Step_DotGram(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, next)};");
 
 		return state;
@@ -4483,7 +4483,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 			"repeat, lookahead, 1));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured positive lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+		writer.Line($"Step_DotGram(\"enter captured positive lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, inner)};");
 
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -4501,7 +4501,7 @@ sealed partial class Machine
 		atSuccess.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, call, atomic, " +
 			"repeat, lookahead, seenTo));");
-		atSuccess.Line($"Trace(\"capture lookahead\", {slot}, seenTo, entries.Count{Traced});");
+		atSuccess.Line($"Step_DotGram(\"capture lookahead\", {slot}, seenTo, entries.Count{Traced});");
 		atSuccess.Line($"goto {Label(atSuccess, next)};");
 
 		return state;
@@ -4543,7 +4543,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 			$"repeat, lookahead, 0, {slot}));");
 		writer.Line("lookahead = lookaheadIndex;");
-		writer.Line($"Trace(\"enter captured negative lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+		writer.Line($"Step_DotGram(\"enter captured negative lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, inner)};");
 
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
@@ -4782,7 +4782,7 @@ sealed partial class Machine
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, carry)}, p, call, atomic, " +
 						"repeat, lookahead, 0));");
-					writer.Line($"Trace(\"push choice\", {Mark(Lands, carry)}, p, entries.Count{Traced});");
+					writer.Line($"Step_DotGram(\"push choice\", {Mark(Lands, carry)}, p, entries.Count{Traced});");
 				}
 
 				writer.Line($"goto {Label(writer, next)};");
@@ -5026,7 +5026,7 @@ sealed partial class Machine
 			writer.Line(
 				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, target)}, p, call, atomic, " +
 				"repeat, lookahead, 0));");
-			writer.Line($"Trace(\"push choice\", {Mark(Lands, target)}, p, entries.Count{Traced});");
+			writer.Line($"Step_DotGram(\"push choice\", {Mark(Lands, target)}, p, entries.Count{Traced});");
 			writer.Line($"goto {Label(writer, first)};");
 
 			if (asked is not null)
@@ -5481,7 +5481,7 @@ sealed partial class Machine
 				"call, atomic, repeat, lookahead, p));");
 		}
 
-		writer.Line($"Trace(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+		writer.Line($"Step_DotGram(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, next)};");
 	}
 
@@ -5885,7 +5885,7 @@ sealed partial class Machine
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
 		atEntry.Line("repeat = repeatIndex;");
-		atEntry.Line($"Trace(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
+		atEntry.Line($"Step_DotGram(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
 		atEntry.Line($"goto {Label(atEntry, loop)};");
 
 		// `(?!X & any)*` goes straight to where X may begin (UntilStops). A settled loop owes
@@ -5922,7 +5922,7 @@ sealed partial class Machine
 					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, " +
 					"repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, " +
 					"repeating.LookaheadIndex, repeating.Value, p);");
-				atLoop.Line($"Trace(\"stand exit\", {Mark(Lands, exit)}, p, entries.Count{Traced});");
+				atLoop.Line($"Step_DotGram(\"stand exit\", {Mark(Lands, exit)}, p, entries.Count{Traced});");
 			}
 		}
 		else if (min == 0)
@@ -6157,7 +6157,7 @@ sealed partial class Machine
 			writer.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
 		writer.Line("repeat = previousRepeat;");
 		writer.Line("lookahead = finished.LookaheadIndex;");
-		writer.Line($"Trace(\"leave repeat\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+		writer.Line($"Step_DotGram(\"leave repeat\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, next)};");
 	}
 

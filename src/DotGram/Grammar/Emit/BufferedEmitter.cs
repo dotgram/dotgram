@@ -847,9 +847,9 @@ public static partial class CSharpEmitter
 		}
 
 		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
-		static void Trace(string action, int state, int position, int arena, BufferedText text, string rule)
+		static void Step_DotGram(string action, int state, int position, int arena, BufferedText text, string rule)
 		{
-			Trace(action, state, position, arena);
+			Step_DotGram(action, state, position, arena);
 		}
 
 		// The end of the trace hook, which a file with no engine goes without (CSharpEmitter).

@@ -24,11 +24,11 @@ namespace DotGram.Tests;
 public sealed class CSharpEmitterTests
 {
 	/// <summary>Compiles a grammar the way the generator does, and returns the C#.</summary>
-	static string Emit(string grammar)
+	static string Emit(string grammar, bool steps = false)
 	{
 		var result = GramCompiler.Compile(
 			grammar,
-			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Direct = false });
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Direct = false, Steps = steps });
 
 		// Anything but information. A grammar is allowed to be told what it did not get and
 		// still be a grammar the emitter should be asked about — that is what `Info` is
@@ -187,7 +187,7 @@ public sealed class CSharpEmitterTests
 			"C = 'c' & A | 'x'\n" +
 			"parse A";
 
-		var source = Emit(grammar);
+		var source = Emit(grammar, steps: true);
 		var input  = string.Concat(Enumerable.Repeat("abc", depth)) + "abx";
 
 		Assert.Contains("call B", source);
@@ -207,7 +207,7 @@ public sealed class CSharpEmitterTests
 			Start : @string = a: Name & ':' & b: Name & ':' & c: Name & ("q" | "qq") => @(a + b + c)
 			Name  : @string = t: 'a' => @(t) | t: 'b' => @(t)
 			parse Start
-			""");
+			""", steps: true);
 
 		// Three call sites, and a rule that is called at all is a rule with a block: one
 		// that keeps nothing is compiled where it is called and has no call site to count,
@@ -642,7 +642,7 @@ public sealed class CSharpEmitterTests
 	[Fact]
 	public void A_positive_lookahead_capture_records_the_extent_it_saw()
 	{
-		var source = Emit("Word = ['a'..'z']+\nStart = seen: ?=Word & Word\nparse Start");
+		var source = Emit("Word = ['a'..'z']+\nStart = seen: ?=Word & Word\nparse Start", steps: true);
 
 		Assert.Contains("capture lookahead", source);
 		Assert.Contains("var seenTo = p;", source);
@@ -652,7 +652,7 @@ public sealed class CSharpEmitterTests
 	[Fact]
 	public void A_negative_lookahead_capture_is_recorded_only_on_its_success_path()
 	{
-		var source = Emit("Start = seen: ?!'z' & 'a'\nparse Start");
+		var source = Emit("Start = seen: ?!'z' & 'a'\nparse Start", steps: true);
 
 		Assert.Contains("capture negative lookahead", source);
 		Assert.Contains("int Recognize_DotGram(", source);
