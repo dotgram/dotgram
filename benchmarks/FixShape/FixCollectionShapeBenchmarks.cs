@@ -16,7 +16,8 @@ namespace DotGram.Finance.FixShape;
 // The public collection shape of a parse result, measured as a consumer reads it. Every column runs the
 // same methods; what differs is the DotGram.Finance the job was built against (FixShape) and, where a
 // consumer would write it differently, the code under #if. Each row's checksum is held to a constant in
-// the setup, so every column is proven to do the same work.
+// the setup, so every column is proven to do the same work. The rows that return a message return it as
+// object: the project BenchmarkDotNet generates references this one, not the DotGram.Finance under it.
 [MemoryDiagnoser]
 public class FixCollectionShapeBenchmarks
 {
@@ -104,8 +105,8 @@ public class FixCollectionShapeBenchmarks
 		{
 			"Fix44_P1_ParseOrder"            => Fields(Fix44_P1_ParseOrder()),
 			"Fix44_P2_ParseSnapshot"         => Fields(Fix44_P2_ParseSnapshot()),
-			"Fix44_V1_ParseValidateOrder"    => Fields(Fix44_V1_ParseValidateOrder()) * 1000 + Findings(Fix44_V1_ParseValidateOrder()),
-			"Fix44_V2_ParseValidateSnapshot" => Fields(Fix44_V2_ParseValidateSnapshot()) * 1000 + Findings(Fix44_V2_ParseValidateSnapshot()),
+			"Fix44_V1_ParseValidateOrder"    => Fields(Fix44_V1_ParseValidateOrder()) * 1000 + Findings((F44.FixMessage)Fix44_V1_ParseValidateOrder()),
+			"Fix44_V2_ParseValidateSnapshot" => Fields(Fix44_V2_ParseValidateSnapshot()) * 1000 + Findings((F44.FixMessage)Fix44_V2_ParseValidateSnapshot()),
 			"Fix44_I1_GroupsForeach"         => Fix44_I1_GroupsForeach(),
 			"Fix44_I2_GroupsFor"             => Fix44_I2_GroupsFor(),
 			"Fix44_I3_NestedForeach"         => Fix44_I3_NestedForeach(),
@@ -129,8 +130,8 @@ public class FixCollectionShapeBenchmarks
 	{
 		var message = row switch
 		{
-			"Fix44_V1_ParseValidateOrder"    => Fix44_V1_ParseValidateOrder(),
-			"Fix44_V2_ParseValidateSnapshot" => Fix44_V2_ParseValidateSnapshot(),
+			"Fix44_V1_ParseValidateOrder"    => (F44.FixMessage)Fix44_V1_ParseValidateOrder(),
+			"Fix44_V2_ParseValidateSnapshot" => (F44.FixMessage)Fix44_V2_ParseValidateSnapshot(),
 			_                                => null,
 		};
 
@@ -167,19 +168,19 @@ public class FixCollectionShapeBenchmarks
 	// ── FIX 4.4: parse, parse and validate ──────────────────────────────────────────────────────
 
 	[Benchmark]
-	public F44.FixMessage Fix44_P1_ParseOrder()
+	public object Fix44_P1_ParseOrder()
 	{
 		return F44.FixParser.ParseMessage(_order44);
 	}
 
 	[Benchmark]
-	public F44.FixMessage Fix44_P2_ParseSnapshot()
+	public object Fix44_P2_ParseSnapshot()
 	{
 		return F44.FixParser.ParseMessage(_snapshot44);
 	}
 
 	[Benchmark]
-	public F44.FixMessage Fix44_V1_ParseValidateOrder()
+	public object Fix44_V1_ParseValidateOrder()
 	{
 		var message = F44.FixParser.ParseMessage(_order44);
 
@@ -189,7 +190,7 @@ public class FixCollectionShapeBenchmarks
 	}
 
 	[Benchmark]
-	public F44.FixMessage Fix44_V2_ParseValidateSnapshot()
+	public object Fix44_V2_ParseValidateSnapshot()
 	{
 		var message = F44.FixParser.ParseMessage(_snapshot44);
 
@@ -372,7 +373,7 @@ public class FixCollectionShapeBenchmarks
 	// ── FIX 4.2 ─────────────────────────────────────────────────────────────────────────────────
 
 	[Benchmark]
-	public F42.FixMessage Fix42_P2_ParseSnapshot()
+	public object Fix42_P2_ParseSnapshot()
 	{
 		return F42.FixParser.ParseMessage(_snapshot42);
 	}
@@ -418,7 +419,7 @@ public class FixCollectionShapeBenchmarks
 	// ── FIX 5.0 SP2 ─────────────────────────────────────────────────────────────────────────────
 
 	[Benchmark]
-	public F50.FixMessage Fix50_P2_ParseSnapshot()
+	public object Fix50_P2_ParseSnapshot()
 	{
 		return F50.FixParser.ParseMessage(_snapshot50);
 	}
