@@ -35,7 +35,7 @@ namespace DotGram.Tests;
 public sealed class ChoiceRunTests
 {
 	/// <param name="Grammar">The grammar, with <c>{G}</c> where the slow side has its empty literal.</param>
-	/// <param name="Reads">How the fast side passes over the turns: "class", "search", or null for either or neither.</param>
+	/// <param name="Reads">How the immediate reader passes over the turns: "class", "search", or null for either or neither.</param>
 	/// <param name="Slow">The slow side where it is not the grammar with the empty literal in.</param>
 	/// <param name="Reference">Whether the reference semantics read the grammar (they do not read Std's rules).</param>
 	sealed record Row(
@@ -193,7 +193,11 @@ public sealed class ChoiceRunTests
 			// The floor's loop and net8's search (NET8_0_OR_GREATER), both held to the loop.
 			foreach (var net8 in new[] { false, true })
 			{
-				var fast = Build(fastly + "\nparse Start\n", carrier, direct, row.Reads, net8: net8);
+				// What the fast side must read the turns by is asked of the immediate reader, the one
+				// a library's TryParse runs: the engine reads a rule that only recognizes with a scanner
+				// of its own, and a machine with no quiet reading passes no quiet-only turns over.
+				var reads = carrier == CarrierKind.Immediate && direct ? row.Reads : null;
+				var fast  = Build(fastly + "\nparse Start\n", carrier, direct, reads, net8: net8);
 
 				foreach (var input in inputs)
 				{
