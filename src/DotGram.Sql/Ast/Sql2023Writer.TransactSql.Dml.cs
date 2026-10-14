@@ -185,6 +185,8 @@ public static partial class Sql2023Writer
 			if (option.Options.Count > 0)
 				throw Misplaced(option, "Options", "on a bulk option");
 
+			CheckSingleWord(option);
+
 			if (option.Partitions is not null)
 				throw Misplaced(option, "Partitions", "on a bulk option, which reads no ON PARTITIONS");
 

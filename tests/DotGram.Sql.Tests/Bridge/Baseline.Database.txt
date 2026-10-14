@@ -36,7 +36,6 @@ Statement.BackupSymmetricKey = 0/1/0/0/0/0/0
 Statement.BackupTransactionLog = 0/15/0/0/0/0/0
 Statement.Checkpoint = 0/7/0/0/0/0/0
 Statement.CreateDatabase = 0/154/0/0/0/0/0
-Statement.DatabaseAuditSpecificationDefinition = 0/56/0/0/0/0/0
 Statement.FullTextCatalogDefinition = 0/20/0/0/0/0/0
 Statement.FullTextStopListDefinition = 0/19/0/0/0/0/0
 Statement.PartitionFunctionDefinition = 0/21/0/0/0/0/0

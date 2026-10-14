@@ -8,25 +8,17 @@ namespace DotGram.Sql.Tests;
 static partial class Bridge
 {
 	/// <summary>
-	/// The server and what runs beside the databases: external sources, resource governance, audits, event sessions, endpoints, availability groups, Service Broker, and the administrative commands.
+	/// The server and what runs beside the databases: resource governance, server configuration, endpoints, availability groups, and the administrative commands.
 	/// </summary>
 	/// <remarks>No arm yet: every record here throws the gap its inventory row names.</remarks>
 	internal static class Server
 	{
 		public static readonly string[] Owns =
 		[
-			"Statement.ExternalDataSourceDefinition", "Statement.ExternalFileFormatDefinition", "Statement.ExternalLibraryDefinition",
-			"Statement.ExternalResourcePoolDefinition", "Statement.ExternalLanguageDefinition", "Statement.ExternalModelDefinition",
 			"Statement.ResourcePoolDefinition", "Statement.WorkloadGroupDefinition", "Statement.AlterResourceGovernor",
-			"Statement.AlterServerConfiguration", "Statement.ServerAuditDefinition", "Statement.AuditSpecificationDefinition",
-			"Statement.EventSessionDefinition", "Statement.EventNotificationDefinition", "Statement.AvailabilityGroupDefinition",
-			"Statement.EndpointDefinition", "Statement.MessageTypeDefinition", "Statement.ContractDefinition",
-			"Statement.QueueDefinition", "Statement.ServiceDefinition", "Statement.RouteDefinition",
-			"Statement.RemoteServiceBindingDefinition", "Statement.BrokerPriorityDefinition", "Statement.BeginDialog",
-			"Statement.ConversationTimer", "Statement.EndConversation", "Statement.MoveConversation",
-			"Statement.Send", "Statement.Receive", "Statement.GetConversationGroup",
+			"Statement.AlterServerConfiguration", "Statement.AvailabilityGroupDefinition", "Statement.EndpointDefinition",
 			"Statement.Kill", "Statement.Reconfigure", "Statement.Shutdown",
-			"Statement.Dbcc", "Clause.EventPiece",
+			"Statement.Dbcc",
 		];
 
 		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)

@@ -640,6 +640,10 @@ public sealed class Sql2023WriterCoverageTests
 			["SetSearchPropertyList.EqualsOmitted"] = (
 				FullText(new FullTextAlteration.SetSearchPropertyList(null, true)),
 				FullText(new FullTextAlteration.SetSearchPropertyList(null, true) { EqualsOmitted = true })),
+			// T-SQL's options: a value after the name with no =. No place writes it yet, so the writer refuses the flag where it stands.
+			["Option.EqualsOmitted"] = (
+				XmlWith(Set("PAD_INDEX", "ON")),
+				XmlWith(Set("PAD_INDEX", "ON") with { EqualsOmitted = true })),
 			// T-SQL's UPDATE STATISTICS t s, one name without its brackets.
 			["UpdateStatistics.NameUnbracketed"] = (
 				new Statement.UpdateStatistics(T) { Names = [new Identifier("s")] },
@@ -693,7 +697,10 @@ public sealed class Sql2023WriterCoverageTests
 		}
 	}
 
-	/// <summary>What the writer makes of a node, or null where it does not take the node at all.</summary>
+	/// <summary>
+	/// What the writer makes of a node, or null where it does not take the node at all, or refuses a member where it
+	/// stands (<see cref="ArgumentException"/>), as it does a flag no place of the grammar reads yet.
+	/// </summary>
 	static string? Written(ISqlNode node)
 	{
 		try
@@ -701,6 +708,10 @@ public sealed class Sql2023WriterCoverageTests
 			return Sql2023Writer.Write(node);
 		}
 		catch (NotSupportedException)
+		{
+			return null;
+		}
+		catch (ArgumentException)
 		{
 			return null;
 		}
@@ -1128,6 +1139,11 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("a placement with empty columns")]
 	[InlineData("a placement in a national string")]
 	[InlineData("an option with a bulk order")]
+	[InlineData("an option of several words in a table's options")]
+	[InlineData("an option with its = left out in a table's options")]
+	[InlineData("an option of several words in an XML index")]
+	[InlineData("an option with its = left out in a statistics list")]
+	[InlineData("an option of several words in a bulk insert")]
 	[InlineData("ADD of one element")]
 	[InlineData("DROP of one item")]
 	[InlineData("a dropped column without its word after a constraint")]
@@ -1455,6 +1471,12 @@ public sealed class Sql2023WriterCoverageTests
 			"a placement with empty columns" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement(PlacementKind.On, new Identifier("ps"), [])] },
 			"a placement in a national string" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement(PlacementKind.On, new Identifier("fg", IdentifierStyle.NationalString), null)] },
 			"an option with a bulk order" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Options = [new Option(new Identifier("ORDER"), null, []) { Order = new RowOrder([new SortItem(A)], false) }] },
+			// No place reads the further words of an option's name, or a value after the name with no =, yet: each refuses them where it stands.
+			"an option of several words in a table's options" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Options = [new Option(new Identifier("MOVE"), null, []) { Words = [new Identifier("TO")] }] },
+			"an option with its = left out in a table's options" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Options = [new Option(new Identifier("MEMORY_OPTIMIZED"), A, []) { EqualsOmitted = true }] },
+			"an option of several words in an XML index" => XmlWith(new Option(new Identifier("PAD_INDEX"), A, []) { Words = [new Identifier("TO")] }),
+			"an option with its = left out in a statistics list" => StatsWith(new Option(new Identifier("MAXDOP"), Two, []) { EqualsOmitted = true }),
+			"an option of several words in a bulk insert" => new Statement.BulkInsert(T, Str, [new Option(new Identifier("TABLOCK"), null, []) { Words = [new Identifier("TO")] }]),
 			"ADD of one element" => Altered(new AlterTableAction.Add([IntColumn()])),
 			"DROP of one item" => Altered(new AlterTableAction.Drop([new AlterTableAction.DropColumn(new Identifier("c"), null, true)])),
 			"a dropped column without its word after a constraint" => Altered(new AlterTableAction.Drop([new AlterTableAction.DropConstraint(T, null), new AlterTableAction.DropColumn(new Identifier("c"), null, false)])),

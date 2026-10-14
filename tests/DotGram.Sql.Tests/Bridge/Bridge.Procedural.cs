@@ -18,7 +18,7 @@ static partial class Bridge
 			"Statement.Compound", "Statement.If", "Statement.While", "Statement.TryCatch", "Statement.Declare",
 			"Statement.Return", "Statement.Print", "Statement.Throw", "Statement.GoTo", "Statement.Break",
 			"Statement.Continue", "Statement.Label", "Statement.RaiseError", "Statement.WaitFor",
-			"Statement.WaitForStatement", "Statement.Transaction", "Statement.DeclareCursor", "Statement.SetCursor",
+			"Statement.Transaction", "Statement.DeclareCursor", "Statement.SetCursor",
 			"Statement.CursorAction", "Statement.Fetch", "Statement.SetStatement", "Statement.SetVariable",
 			"Statement.Use", "Statement.ExecuteAs", "Statement.Revert", "Statement.SetUser", "Statement.LineNumber",
 			"Clause.VariableDeclaration", "Clause.CursorDefinition", "Clause.CursorFor",

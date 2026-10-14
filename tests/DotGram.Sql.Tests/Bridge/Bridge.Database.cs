@@ -30,7 +30,7 @@ static partial class Bridge
 			"Statement.AlterPartitionFunction", "Statement.PartitionSchemeDefinition", "Statement.AlterPartitionScheme",
 			"Statement.FullTextCatalogDefinition", "Statement.AlterFullTextCatalog", "Statement.FullTextStopListDefinition",
 			"Statement.AlterFullTextStopList", "Statement.SearchPropertyListDefinition", "Statement.AlterSearchPropertyList",
-			"Statement.DatabaseAuditSpecificationDefinition", "Clause.DatabaseFile", "Clause.FileGroup",
+			"Clause.DatabaseFile", "Clause.FileGroup",
 		];
 
 		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
