@@ -262,3 +262,11 @@ of its first `Identifier` and an array of the others, so a one-part name is its 
   among them, which were made from words inside helpers.
 - An optional name is `QualifiedName?`, a `Nullable`. `default(QualifiedName)` is no name: nothing
   builds one, and the writer and the walker refuse it.
+
+**A literal is an expression** (2026-10-13). `Expression.Literal(LiteralValue Value)` wrapped every
+literal standing as a value: two objects where the old tree had one. `LiteralValue` derives from
+`Expression` and the wrapper is gone, so a literal is one node wherever it stands; a position that takes
+only a literal (a default, an option, a length) keeps the type `LiteralValue`. This is the one place the
+tree departs from requirement 6, a family under a family (`Expression` → `LiteralValue` → `Numeric`):
+a literal is both a value and a family of its own, and the extra level costs nothing where the wrapper
+cost a node. `LiteralValue.Binary` hides `Expression.Binary` inside the family (`new`).

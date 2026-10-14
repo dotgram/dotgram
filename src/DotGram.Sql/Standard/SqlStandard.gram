@@ -747,7 +747,7 @@ ArrayElementStep : @Towers.Step = l: LeftBracketOrTrigraph & i: NumericValueExpr
 // method invocation, a routine invocation, a window row pattern measure, an identifier chain -- is read
 // last and as one, the name once and `NameTail` after it.
 PrimaryBase : @Towers.Typed
-	= literal: UnsignedLiteral => @(new Towers.Typed(new Expression.Literal(literal), Towers.Value | Towers.Truth | Towers.Bare))
+	= literal: UnsignedLiteral => @(new Towers.Typed(literal, Towers.Value | Towers.Truth | Towers.Bare))
 	| "ROW"i & '(' & first: ValueNode & (',' & rest: ValueNode)* & ')' => @(new Towers.Typed(new Expression.Row(Nodes.List(first, rest), true), Towers.Row))
 	| v: GeneralValueSpecification => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: CaseExpression => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
@@ -968,7 +968,7 @@ WindowedFunction : @Expression
 	| w: "GROUPING"i & '(' & first: ColumnReference & (',' & rest: ColumnReference)* & ')' => @(Nodes.Invoked(w, first, rest))
 	| w: ("RANK"i | "DENSE_RANK"i | "PERCENT_RANK"i | "CUME_DIST"i | "ROW_NUMBER"i) & '(' & ')' & o: WindowOver => @(Nodes.Call(w) with { Over = o })
 	| w: "NTILE"i & '(' & n: SimpleOrDynamicValue & ')' & o: WindowOver => @(Nodes.Call(w, n) with { Over = o })
-	| w: ("LEAD"i | "LAG"i) & '(' & v: ValueNode & (',' & offset: UnsignedInteger & (',' & otherwise: ValueNode)?)? & ')' & t: NullTreatment? & o: WindowOver => @(Nodes.Call(w, v, offset is null ? null : new Expression.Literal(Nodes.NumericLiteral(offset)), otherwise) with { Nulls = Nodes.NullTreatmentOf(t), Over = o })
+	| w: ("LEAD"i | "LAG"i) & '(' & v: ValueNode & (',' & offset: UnsignedInteger & (',' & otherwise: ValueNode)?)? & ')' & t: NullTreatment? & o: WindowOver => @(Nodes.Call(w, v, offset is null ? null : Nodes.NumericLiteral(offset), otherwise) with { Nulls = Nodes.NullTreatmentOf(t), Over = o })
 	| w: ("FIRST_VALUE"i | "LAST_VALUE"i) & '(' & v: ValueNode & ')' & t: NullTreatment? & o: WindowOver => @(Nodes.Call(w, v) with { Nulls = Nodes.NullTreatmentOf(t), Over = o })
 	| w: "NTH_VALUE"i & '(' & v: ValueNode & ',' & n: SimpleOrDynamicValue & ')' & ("FROM"i & end: ("FIRST"i | "LAST"i))? & t: NullTreatment? & o: WindowOver => @(Nodes.Call(w, v, n) with { From = Nodes.FirstOrLast(end), Nulls = Nodes.NullTreatmentOf(t), Over = o })
 	| w: "ROW_NUMBER"i & '(' & m: RowMarker & ')' => @(Nodes.Call(w, Nodes.Marked(m, null, null)))
@@ -999,7 +999,7 @@ AggregateCall : @Expression
 	| w: ("RANK"i | "DENSE_RANK"i | "PERCENT_RANK"i | "CUME_DIST"i) & '(' & first: ValueNode & (',' & rest: ValueNode)* & ')' & g: WithinGroupSpecification => @(Nodes.Invoked(w, first, rest) with { WithinGroup = g })
 	| w: ("PERCENTILE_CONT"i | "PERCENTILE_DISC"i) & '(' & x: NumericValueExpression & ')' & g: WithinGroupSpecification => @(Nodes.Call(w, x.Node) with { WithinGroup = g })
 	| w: "ARRAY_AGG"i & '(' & v: ValueNode & ("ORDER"i & "BY"i & o: SortSpecificationList)? & ')' => @(Nodes.Call(w, v) with { OrderBy = o })
-	| w: "LISTAGG"i & '(' & q: SetQuantifier? & listed: CharacterValueExpression & ',' & separator: CharacterStringLiteral & l: ListaggOverflowClause? & ')' & g: WithinGroupSpecification => @(Nodes.Call(w, listed.Node, new Expression.Literal(Nodes.StringLiteral(separator, StringLiteralKind.Character))) with { Quantifier = Nodes.Quantifier(q), Overflow = l, WithinGroup = g })
+	| w: "LISTAGG"i & '(' & q: SetQuantifier? & listed: CharacterValueExpression & ',' & separator: CharacterStringLiteral & l: ListaggOverflowClause? & ')' & g: WithinGroupSpecification => @(Nodes.Call(w, listed.Node, Nodes.StringLiteral(separator, StringLiteralKind.Character)) with { Quantifier = Nodes.Quantifier(q), Overflow = l, WithinGroup = g })
 
 ComputationalOperation
 	= "AVG"i | "MAX"i | "MIN"i | "SUM"i | "EVERY"i | "ANY_VALUE"i | "ANY"i | "SOME"i | "COUNT"i
@@ -1052,7 +1052,7 @@ JSONQueryBehavior        = "ERROR"i | "NULL"i | "EMPTY"i & ("ARRAY"i | "OBJECT"i
 
 // <JSON API common syntax>: a context item, a path, the path's name, and what the path is passed.
 JSONAPICommonSyntax : @JsonApiCommon = i: JSONInputExpression & ',' & p: CharacterStringLiteral & ("AS"i & n: Identifier)?
-	  & ("PASSING"i & first: JSONArgument & (',' & rest: JSONArgument)*)? => @(new JsonApiCommon(i.Value, new Expression.Literal(Nodes.StringLiteral(p, StringLiteralKind.Character)), n, Nodes.ListOrEmpty(first, rest), i.Format))
+	  & ("PASSING"i & first: JSONArgument & (',' & rest: JSONArgument)*)? => @(new JsonApiCommon(i.Value, Nodes.StringLiteral(p, StringLiteralKind.Character), n, Nodes.ListOrEmpty(first, rest), i.Format))
 JSONArgument        : @JsonArgument = e: JSONInputExpression & "AS"i & n: Identifier => @(new JsonArgument(e.Value, n, e.Format))
 JSONInputExpression : @JsonElement = v: ValueNode & f: JSONInputClause? => @(new JsonElement(v, f))
 JSONOutputClause    : @JsonOutput = "RETURNING"i & t: DataType & ("FORMAT"i & r: JSONRepresentation)? => @(new JsonOutput(t, r))
@@ -1428,10 +1428,10 @@ WindowFrameExclusion : @WindowFrameExclusion = "EXCLUDE"i & w: ("CURRENT"i & "RO
 
 // <unsigned value specification>, <simple value specification>: an SQL parameter reference is an
 // identifier chain, and a host's embedded variable is written as a host parameter is.
-UnsignedValueSpecification : @Expression = l: UnsignedLiteral => @(new Expression.Literal(l))
+UnsignedValueSpecification : @Expression = l: UnsignedLiteral => @(l)
                                           | g: GeneralValueSpecification => @(g)
                                           | n: IdentifierChain => @(new Expression.Reference(n))
-SimpleValueSpecification   : @Expression = l: Literal => @(new Expression.Literal(l))
+SimpleValueSpecification   : @Expression = l: Literal => @(l)
                                           | ':' & h: Identifier => @(new Expression.Parameter(ParameterKind.Host, h))
                                           | n: IdentifierChain => @(new Expression.Reference(n))
 
@@ -1819,7 +1819,7 @@ ColumnConstraint : @Constraint
 DefaultClause : @Expression = "DEFAULT"i & o: DefaultOption => @(o)
 
 DefaultOption : @Expression
-	= l: Literal => @(new Expression.Literal(l))
+	= l: Literal => @(l)
 	| f: DatetimeValueFunction => @(f)
 	| w: ("USER"i | "CURRENT_USER"i | "CURRENT_ROLE"i | "SESSION_USER"i | "SYSTEM_USER"i) => @(Nodes.Current(w))
 	| w: ("CURRENT_CATALOG"i | "CURRENT_SCHEMA"i | "CURRENT_PATH"i) => @(Nodes.Current(w))
@@ -1905,7 +1905,7 @@ AlterColumnAction : @AlterColumnAction
 	| "DROP"i & "EXPRESSION"i => @(new AlterColumnAction.DropExpression())
 
 AlterIdentityColumnOption : @SequenceOption
-	= "RESTART"i & ("WITH"i & v: SignedNumericLiteral)? => @(new SequenceOption.Restart(Nodes.LiteralOrNull(v)))
+	= "RESTART"i & ("WITH"i & v: SignedNumericLiteral)? => @(new SequenceOption.Restart(v))
 	| "SET"i & o: BasicSequenceGeneratorOption => @(o)
 
 DropTableStatement : @Statement.DropTable = "DROP"i & "TABLE"i & n: TableName & b: DropBehavior => @(new Statement.DropTable { Names = [n], Behavior = b })
@@ -2279,13 +2279,13 @@ SequenceGeneratorOption : @SequenceOption = "AS"i & t: DataType => @(new Sequenc
                                           | o: CommonSequenceGeneratorOption => @(o)
 
 CommonSequenceGeneratorOptions : @Sql.SqlList<SequenceOption> = first: CommonSequenceGeneratorOption & (trivia & rest: CommonSequenceGeneratorOption)* => @(Nodes.List(first, rest))
-CommonSequenceGeneratorOption  : @SequenceOption = "START"i & "WITH"i & v: SignedNumericLiteral => @(new SequenceOption.Start(new Expression.Literal(v)))
+CommonSequenceGeneratorOption  : @SequenceOption = "START"i & "WITH"i & v: SignedNumericLiteral => @(new SequenceOption.Start(v))
                                                  | o: BasicSequenceGeneratorOption => @(o)
 
 BasicSequenceGeneratorOption : @SequenceOption
-	= "INCREMENT"i & "BY"i & v: SignedNumericLiteral => @(new SequenceOption.Increment(new Expression.Literal(v)))
-	| "MAXVALUE"i & v: SignedNumericLiteral => @(new SequenceOption.Max(new Expression.Literal(v)))
-	| "MINVALUE"i & v: SignedNumericLiteral => @(new SequenceOption.Min(new Expression.Literal(v)))
+	= "INCREMENT"i & "BY"i & v: SignedNumericLiteral => @(new SequenceOption.Increment(v))
+	| "MAXVALUE"i & v: SignedNumericLiteral => @(new SequenceOption.Max(v))
+	| "MINVALUE"i & v: SignedNumericLiteral => @(new SequenceOption.Min(v))
 	| "NO"i & "MAXVALUE"i => @(new SequenceOption.Max(null, true))
 	| "NO"i & "MINVALUE"i => @(new SequenceOption.Min(null, true))
 	| "NO"i & "CYCLE"i => @(new SequenceOption.Cycle(false))
@@ -2294,7 +2294,7 @@ BasicSequenceGeneratorOption : @SequenceOption
 // <alter sequence generator statement>: a restart or a basic option, at least one; a start is not
 // altered.
 AlterSequenceGeneratorStatement : @Statement.AlterSequence = "ALTER"i & "SEQUENCE"i & n: SchemaQualifiedName & first: AlterSequenceGeneratorOption & (trivia & rest: AlterSequenceGeneratorOption)* => @(new Statement.AlterSequence { Name = n, Options = Nodes.List(first, rest) })
-AlterSequenceGeneratorOption    : @SequenceOption = "RESTART"i & ("WITH"i & v: SignedNumericLiteral)? => @(new SequenceOption.Restart(Nodes.LiteralOrNull(v)))
+AlterSequenceGeneratorOption    : @SequenceOption = "RESTART"i & ("WITH"i & v: SignedNumericLiteral)? => @(new SequenceOption.Restart(v))
                                                   | o: BasicSequenceGeneratorOption => @(o)
 
 DropSequenceGeneratorStatement : @Statement.DropSequence = "DROP"i & "SEQUENCE"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropSequence { Names = [n], Behavior = b })
@@ -2496,7 +2496,7 @@ SQLSessionStatement : @Statement
 SessionTransactionCharacteristics : @Sql.SqlList<TransactionMode> = "TRANSACTION"i & first: TransactionMode & (',' & rest: TransactionMode)* => @(Nodes.List(first, rest))
 
 // <value specification>.
-ValueSpecification : @Expression = l: Literal => @(new Expression.Literal(l))
+ValueSpecification : @Expression = l: Literal => @(l)
                                  | g: GeneralValueSpecification => @(g)
                                  | n: IdentifierChain => @(new Expression.Reference(n))
 

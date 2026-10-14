@@ -129,7 +129,7 @@ public sealed class Sql2023WriterCoverageTests
 		return new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, [])
 		{
 			Keys               = [new SortItem(A)],
-			Options            = [new Option(new Identifier("FILLFACTOR"), new Expression.Literal(new LiteralValue.Numeric("80", NumericLiteralKind.DecimalInteger)), [])],
+			Options            = [new Option(new Identifier("FILLFACTOR"), new LiteralValue.Numeric("80", NumericLiteralKind.DecimalInteger), [])],
 			OptionsUnbracketed = unbracketed,
 		});
 	}
@@ -308,8 +308,8 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(UnaryOperator)]      = v => new Expression.Unary((UnaryOperator)v, A),
 		[typeof(LikeKind)]           = v => new Expression.Like(A, false, (LikeKind)v, B),
 		[typeof(TriggerScope)]       = v => new Statement.DropTrigger { Names = [T], On = (TriggerScope)v },
-		[typeof(NumericLiteralKind)] = v => new Expression.Literal(new LiteralValue.Numeric("1", (NumericLiteralKind)v)),
-		[typeof(DateTimeLiteralKind)] = v => new Expression.Literal(new LiteralValue.DateTime((DateTimeLiteralKind)v, "2026-09-26")),
+		[typeof(NumericLiteralKind)] = v => new LiteralValue.Numeric("1", (NumericLiteralKind)v),
+		[typeof(DateTimeLiteralKind)] = v => new LiteralValue.DateTime((DateTimeLiteralKind)v, "2026-09-26"),
 		[typeof(NumericTypeKind)]    = v => new DataType.Numeric((NumericTypeKind)v),
 		[typeof(DateTimeTypeKind)]   = v => new DataType.DateTime((DateTimeTypeKind)v),
 		[typeof(CharacterTypeKind)]  = v => new DataType.Character((CharacterTypeKind)v),
@@ -481,8 +481,8 @@ public sealed class Sql2023WriterCoverageTests
 		var claims = new Dictionary<string, (ISqlNode One, ISqlNode Two)>(StringComparer.Ordinal)
 		{
 			["NumericLiteralKind"] = (
-				new Expression.Literal(new LiteralValue.Numeric("1", NumericLiteralKind.Decimal)),
-				new Expression.Literal(new LiteralValue.Numeric("0xFF", NumericLiteralKind.Decimal))),
+				new LiteralValue.Numeric("1", NumericLiteralKind.Decimal),
+				new LiteralValue.Numeric("0xFF", NumericLiteralKind.Decimal)),
 			["IdentifierStyle"] = (
 				new Identifier("a", IdentifierStyle.Delimited),
 				new Identifier("\"my column\"", IdentifierStyle.Delimited)),
@@ -567,8 +567,8 @@ public sealed class Sql2023WriterCoverageTests
 				Combined(SetOperator.Union, distinct: true)),
 			// T-SQL's `0x0A` is the digits after its introducer; the standard's is X and the quoted digits.
 			["Binary.ZeroX"] = (
-				new Expression.Literal(new LiteralValue.Binary("'0A'")),
-				new Expression.Literal(new LiteralValue.Binary("0A") { ZeroX = true })),
+				new LiteralValue.Binary("'0A'"),
+				new LiteralValue.Binary("0A") { ZeroX = true }),
 			// T-SQL's type named as an identifier, the same type as its key word.
 			["DataType.WrittenName"] = (
 				new DataType.Numeric(NumericTypeKind.Int),
@@ -1008,8 +1008,8 @@ public sealed class Sql2023WriterCoverageTests
 	[Fact]
 	public void A_binary_literal_writes_its_own_introducer()
 	{
-		Assert.Equal("X'0A'", Sql2023Writer.Write(new Expression.Literal(new LiteralValue.Binary("'0A'"))));
-		Assert.Equal("0x0A", Sql2023Writer.Write(new Expression.Literal(new LiteralValue.Binary("0A") { ZeroX = true })));
+		Assert.Equal("X'0A'", Sql2023Writer.Write(new LiteralValue.Binary("'0A'")));
+		Assert.Equal("0x0A", Sql2023Writer.Write(new LiteralValue.Binary("0A") { ZeroX = true }));
 	}
 
 	/// <summary>
@@ -1313,7 +1313,7 @@ public sealed class Sql2023WriterCoverageTests
 			"TRY_CAST with a format"                => new Expression.Cast(A, type, "'YYYY'") { Try = true },
 			"an ODBC call without brackets that holds more than its name" =>
 				new Expression.OdbcEscape(new Identifier("fn"), new Expression.Invocation(T, []) { Quantifier = SetQuantifier.Distinct }, false),
-			"a 0x literal in quotes"                => new Expression.Literal(new LiteralValue.Binary("'0A'") { ZeroX = true }),
+			"a 0x literal in quotes"                => new LiteralValue.Binary("'0A'") { ZeroX = true },
 			"a written name that is not the key word" => new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("[integer]", IdentifierStyle.Bracketed)]) },
 			"a written name qualified by other than sys" => new DataType.Numeric(NumericTypeKind.Int) { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("int")]) },
 			"a written name on a type of several words" => new DataType.Numeric(NumericTypeKind.DoublePrecision) { WrittenName = new QualifiedName([new Identifier("[double precision]", IdentifierStyle.Bracketed)]) },
@@ -1379,7 +1379,7 @@ public sealed class Sql2023WriterCoverageTests
 			"JSON_QUERY with no path beside the standard's members" =>
 				new Expression.JsonQuery(new JsonApiCommon(A, null, null, []), null, null, null, null, JsonQueryBehavior.Null),
 			"a written name on xml qualified by dbo" => new DataType.Xml() { WrittenName = new QualifiedName([new Identifier("dbo"), new Identifier("xml")]) },
-			"a 0x literal that is not hex digits"   => new Expression.Literal(new LiteralValue.Binary("0x0A") { ZeroX = true }),
+			"a 0x literal that is not hex digits"   => new LiteralValue.Binary("0x0A") { ZeroX = true },
 			"GraphPath with a WITHIN GROUP order"   => new Expression.Invocation(T, [new Argument(A)]) { GraphPath = true, WithinGroup = new WithinGroupClause(new OrderByClause([new SortItem(A)])) },
 			"a table variable with hints in a FROM" => Joined(new TableSource.Variable(new Identifier("@t")) { Hints = [new TableHint.Named(new Identifier("NOLOCK"), [])] }),
 			"a table variable with a sample in a FROM" => Joined(new TableSource.Variable(new Identifier("@t")) { Sample = new SampleClause(SampleMethod.System, A) }),
@@ -1633,7 +1633,7 @@ public sealed class Sql2023WriterCoverageTests
 				Identity   = IdentityRestart.Restart,
 				Partitions = [new PartitionRange(Two, null)],
 			},
-			_                                       => new Expression.Literal(new LiteralValue.Binary("0A")),
+			_                                       => new LiteralValue.Binary("0A"),
 		};
 
 		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
@@ -1642,13 +1642,13 @@ public sealed class Sql2023WriterCoverageTests
 	/// <summary><c>2</c>.</summary>
 	static readonly Expression Two = Number("2");
 
-	static readonly Expression Null = new Expression.Literal(new LiteralValue.Null());
+	static readonly Expression Null = new LiteralValue.Null();
 
 	static readonly Expression.Variable V = new(new Identifier("@v"));
 
 	static Expression Number(string text, NumericLiteralKind kind = NumericLiteralKind.DecimalInteger)
 	{
-		return new Expression.Literal(new LiteralValue.Numeric(text, kind));
+		return new LiteralValue.Numeric(text, kind);
 	}
 
 	/// <summary>A bulk option that is a word alone.</summary>
@@ -1688,9 +1688,9 @@ public sealed class Sql2023WriterCoverageTests
 	}
 
 	/// <summary><c>'s'</c>, a string written out.</summary>
-	static readonly Expression.Literal Str = new(new LiteralValue.String("'s'", StringLiteralKind.Character));
+	static readonly LiteralValue.String Str = new("'s'", StringLiteralKind.Character);
 
-	static readonly OpenDataSource Server = new(new Expression.Literal(new LiteralValue.String("'p'", StringLiteralKind.Character)), new Expression.Literal(new LiteralValue.String("'i'", StringLiteralKind.Character)));
+	static readonly OpenDataSource Server = new(new LiteralValue.String("'p'", StringLiteralKind.Character), new LiteralValue.String("'i'", StringLiteralKind.Character));
 
 	static RowsetColumn Column(string? path = null, int? ordinal = null, bool typed = true)
 	{
@@ -1796,7 +1796,7 @@ public sealed class Sql2023WriterCoverageTests
 			"a data source with ONLY"                            => Joined(named with { DataSource = Server, Only = true }),
 			"GROUP BY ALL with WITH CUBE"                        => Selected with { GroupBy = new GroupByClause(null, [new GroupingElement.Ordinary([A])]) { AllKeyword = true, With = GroupByWith.Cube } },
 			"GROUP BY ALL with a quantifier"                     => Selected with { GroupBy = new GroupByClause(SetQuantifier.All, [new GroupingElement.Ordinary([A])]) { AllKeyword = true } },
-			"XMLNAMESPACES with RECURSIVE"                       => Selected with { With = new WithClause(true, []) { XmlNamespaces = [new XmlNamespace(new Expression.Literal(new LiteralValue.String("'u'", StringLiteralKind.Character)), null)] } },
+			"XMLNAMESPACES with RECURSIVE"                       => Selected with { With = new WithClause(true, []) { XmlNamespaces = [new XmlNamespace(new LiteralValue.String("'u'", StringLiteralKind.Character), null)] } },
 			"a query hint with arguments in brackets"            => new Statement.Select { Query = Selected, Hints = [new QueryHint.Named(new Identifier("MAXDOP"), [A])] },
 			"a hint written bare with two arguments"             => new Statement.Select { Query = Selected, Hints = [new QueryHint.Named(new Identifier("MAXDOP"), [A, B]) { Form = HintArgumentForm.Bare }] },
 			"a hint written with = and no argument"              => Joined(named with { Hints = [new TableHint.Named(new Identifier("INDEX"), []) { Form = HintArgumentForm.Assigned }] }),

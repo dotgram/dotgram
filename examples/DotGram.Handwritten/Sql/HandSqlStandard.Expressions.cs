@@ -1741,7 +1741,7 @@ partial class HandSqlStandard
 			case SqlTokenKind.UnicodeString:
 			case SqlTokenKind.Binary:
 				if (UnsignedLiteral(ref cursor, out var literal))
-					return Bare(new Expression.Literal(literal), out value);
+					return Bare(literal, out value);
 
 				break;
 
@@ -1753,7 +1753,7 @@ partial class HandSqlStandard
 				// A literal is asked first, as the BNF asks it: `DATE '2020-01-01'`, `INTERVAL '1'
 				// DAY` and the truth values are words, and no name is any of them.
 				if (UnsignedLiteral(ref cursor, out var written))
-					return Bare(new Expression.Literal(written), out value);
+					return Bare(written, out value);
 
 				switch (cursor.Word)
 				{
@@ -2234,7 +2234,7 @@ partial class HandSqlStandard
 
 		if (cursor.Take(SqlWord.Null))
 		{
-			value = new Expression.Literal(new LiteralValue.Null());
+			value = new LiteralValue.Null();
 
 			return true;
 		}
@@ -2297,7 +2297,7 @@ partial class HandSqlStandard
 
 		if (cursor.Take(SqlWord.Null))
 		{
-			value = new Expression.Literal(new LiteralValue.Null());
+			value = new LiteralValue.Null();
 
 			return true;
 		}

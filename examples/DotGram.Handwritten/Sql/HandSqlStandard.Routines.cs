@@ -752,7 +752,7 @@ partial class HandSqlStandard
 			if (cursor.Take(SqlWord.With))
 			{
 				if (SignedNumericLiteral(ref cursor, out var literal))
-					value = new Expression.Literal(literal);
+					value = literal;
 				else
 					cursor = marked;
 			}
@@ -3027,7 +3027,7 @@ partial class HandSqlStandard
 		{
 			if (cursor.Take(SqlWord.With) && SignedNumericLiteral(ref cursor, out var literal))
 			{
-				option = new SequenceOption.Start(new Expression.Literal(literal));
+				option = new SequenceOption.Start(literal);
 
 				return true;
 			}
@@ -3050,7 +3050,7 @@ partial class HandSqlStandard
 		{
 			if (cursor.Take(SqlWord.By) && SignedNumericLiteral(ref cursor, out var literal))
 			{
-				option = new SequenceOption.Increment(new Expression.Literal(literal));
+				option = new SequenceOption.Increment(literal);
 
 				return true;
 			}
@@ -3064,7 +3064,7 @@ partial class HandSqlStandard
 		{
 			if (SignedNumericLiteral(ref cursor, out var literal))
 			{
-				option = new SequenceOption.Max(new Expression.Literal(literal));
+				option = new SequenceOption.Max(literal);
 
 				return true;
 			}
@@ -3078,7 +3078,7 @@ partial class HandSqlStandard
 		{
 			if (SignedNumericLiteral(ref cursor, out var literal))
 			{
-				option = new SequenceOption.Min(new Expression.Literal(literal));
+				option = new SequenceOption.Min(literal);
 
 				return true;
 			}
@@ -3141,7 +3141,7 @@ partial class HandSqlStandard
 			if (cursor.Take(SqlWord.With))
 			{
 				if (SignedNumericLiteral(ref cursor, out var literal))
-					value = new Expression.Literal(literal);
+					value = literal;
 				else
 					cursor = marked;
 			}

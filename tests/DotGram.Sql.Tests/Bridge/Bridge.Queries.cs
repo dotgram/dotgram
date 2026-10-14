@@ -580,7 +580,7 @@ static partial class Bridge
 			{
 				SqlTokens.Kind.String                                => Values.String(token.Text),
 				SqlTokens.Kind.Word when token.Text.StartsWith('@')  => new Ast.Expression.Variable(new Ast.Identifier(token.Text)),
-				SqlTokens.Kind.Word when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase) => new Ast.Expression.Literal(new Ast.LiteralValue.Null()),
+				SqlTokens.Kind.Word when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase) => new Ast.LiteralValue.Null(),
 				SqlTokens.Kind.Word or SqlTokens.Kind.Delimited      => new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, token.Text)])),
 				_                                                    => null,
 			};

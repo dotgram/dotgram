@@ -235,6 +235,10 @@ and `SqlWalker` refuse it. A name keeps no span of its own: its `Span` runs from
 to its last part's end where a reading said where both were, and is unknown otherwise, and the walker
 hands out each part once, after the name.
 
+A literal standing as a value is the `LiteralValue` itself, which is an `Expression`: `1` in
+`a + 1` is a `LiteralValue.Numeric` in the `Expression.Binary`, with no node around it. A position that
+takes only a literal — a default, an option, a length — is typed `LiteralValue`.
+
 ## The nodes
 
 ### `Statement`

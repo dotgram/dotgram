@@ -791,7 +791,6 @@ public abstract partial record Expression : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Literal(LiteralValue Value) : Expression;
 	public record Reference(QualifiedName Name) : Expression;
 
 	// BNF: <host parameter specification>, <embedded variable specification>, <dynamic parameter specification>.
@@ -1059,20 +1058,20 @@ public sealed record ListaggOverflow(bool Truncate, Expression? Filler = null, b
 	}
 }
 
-public abstract partial record LiteralValue : ISqlNode
+/// <summary>
+/// A literal: a value written out. It is an <see cref="Expression"/> itself wherever a value stands, so a
+/// literal costs one node; a position that takes only a literal (a default, an option, a length) is typed
+/// <see cref="LiteralValue"/>.
+/// </summary>
+public abstract partial record LiteralValue : Expression
 {
-	SqlLocation _location;
-	public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-
 	public record Numeric(string Text, NumericLiteralKind Kind) : LiteralValue;
 	// Text is the literal's spelling as written, from its first quote to its last: the segments of `'a' 'b'`
 	// and the separators between them included, the introducer not.
 	public record String(string Text, StringLiteralKind Kind, CharacterSetName? CharacterSet = null, char? UnicodeEscape = null) : LiteralValue;
-	public partial record Binary(string Text) : LiteralValue;
+	// `new`: Expression.Binary, an operator applied to two values, is another node, which a literal's own
+	// Binary hides inside LiteralValue.
+	public new partial record Binary(string Text) : LiteralValue;
 	public record Boolean(BooleanLiteral Value) : LiteralValue;
 	public record DateTime(DateTimeLiteralKind Kind, string Text) : LiteralValue;
 	// Sign is `INTERVAL -'1' DAY`'s, null where none was written.
