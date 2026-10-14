@@ -5201,8 +5201,10 @@ sealed partial class Machine
 
 				// `(?!X & any)*` goes straight to where X may begin (Machine.UntilStops). Where a
 				// turn may be asked back, the turns passed over are one way, as a run's are
-				// (EmitRun); not where the fewest turns would have to be counted against it.
-				if (repeat is not null && (settled || min is null) && machine.UntilStops(repeat) is { } until)
+				// (EmitRun); not where the fewest turns would have to be counted against it. The turns
+				// of a choice (UntilScan.Through) only where none is asked back.
+				if (repeat is not null && (settled || min is null) && machine.UntilStops(repeat) is { } until &&
+					(settled || until.Through is null))
 				{
 					_character = true;
 					machine.EmitUntilSkip(code, until, turns: turn, gave: settled ? null : $"d{_ways++}");
