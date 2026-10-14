@@ -171,7 +171,9 @@ public sealed class ExpressionCarrierTests
 	/// <para>
 	/// The store each carrier rents is the evidence: the immediate carrier keeps what it read in
 	/// <c>ImmediateValues</c>, and the tape's reader keeps its records in <c>DirectValues</c>. A
-	/// grammar compiled on one is never given the other's.
+	/// grammar compiled on one is never given the other's. Since the package itself moved to the
+	/// immediate carrier both readings rent the one <c>ImmediateValues</c> their class shares, and
+	/// neither has a <c>DirectValues</c>; the fixture is where the tape reading goes next.
 	/// </para>
 	/// </remarks>
 	[Fact]
@@ -179,15 +181,16 @@ public sealed class ExpressionCarrierTests
 	{
 		const BindingFlags Nested = BindingFlags.Public | BindingFlags.NonPublic;
 
-		Assert.NotNull(typeof(ImmediateExpressions.Immediate).GetNestedType("ImmediateValues", Nested));
+		Assert.NotNull(typeof(ImmediateExpressions).GetNestedType("ImmediateValues", Nested));
+		Assert.Null(typeof(ImmediateExpressions).GetNestedType("DirectValues", Nested));
 		Assert.Null(typeof(ImmediateExpressions.Immediate).GetNestedType("DirectValues", Nested));
 
-		Assert.NotNull(typeof(ExpressionParser).GetNestedType("DirectValues", Nested));
-		Assert.Null(typeof(ExpressionParser).GetNestedType("ImmediateValues", Nested));
+		Assert.NotNull(typeof(ExpressionParser).GetNestedType("ImmediateValues", Nested));
+		Assert.Null(typeof(ExpressionParser).GetNestedType("DirectValues", Nested));
 	}
 
 	/// <summary>
-	/// The package carries the one reading a scope is given. The immediate copy is compiled only
+	/// The package carries the one reading a scope is given. The second copy is compiled only
 	/// into the fixture this project reads it from (tests/DotGram.ExpressionLanguage.Immediate),
 	/// and a package that carried it again would pay its size for nothing a caller can reach.
 	/// </summary>
@@ -199,7 +202,6 @@ public sealed class ExpressionCarrierTests
 		Assert.Equal("DotGram.ExpressionLanguage", shipped.GetName().Name);
 		Assert.Null(typeof(ExpressionParser).GetNestedType("Immediate", BindingFlags.Public | BindingFlags.NonPublic));
 		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "Immediate");
-		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "ImmediateValues");
 
 		Assert.NotSame(shipped, typeof(ImmediateExpressions.Immediate).Assembly);
 	}
