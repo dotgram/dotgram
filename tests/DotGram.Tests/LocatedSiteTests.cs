@@ -12,9 +12,9 @@ namespace DotGram.Tests;
 /// range, so its call keeps the rule's boundary rather than standing in place of it.
 /// </summary>
 /// <remarks>
-/// A call compiled in place has no range of its own to hand on. Such a callee was compiled in place all
-/// the same, and the call written for it missed the range, which failed the consumer's build with
-/// CS7036. Seen in a located reading of the SQL:2023 grammar, whose character set names end in a
+/// A call compiled in place has no range of its own to hand on, and neither has a rule rendered flat.
+/// Such a callee was compiled either way all the same, and the call written for it missed the range,
+/// which failed the consumer's build with CS7036. Seen in a located reading of the SQL:2023 grammar, whose character set names end in a
 /// language identifier a rule of its own makes.
 /// </remarks>
 public sealed class LocatedSiteTests
@@ -74,8 +74,7 @@ public sealed class LocatedSiteTests
 					trivia = { Spacing* }
 
 					Entry : @Pair = k: Key & '=' & v: Key & eof => @(new Pair(k, v))
-					Key   : @Name = w: Word => @(new Name(w))
-					Word  = ['a'..'z']+
+					Key   : @Name = w: Identifier => @(new Name(w))
 
 					parse Entry
 					""", Lexical = {{(lexical ? "true" : "false")}}, Carrier = GramCarrier.{{carrier}}, LocationType = typeof(ILoc))]
