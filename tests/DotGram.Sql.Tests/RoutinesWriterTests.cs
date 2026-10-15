@@ -259,6 +259,12 @@ public sealed class RoutinesWriterTests
 	/// </summary>
 	[Theory]
 	[InlineData("a bare call inside a block")]
+	[InlineData("a bare call in an IF branch")]
+	[InlineData("a bare call in an ELSE branch")]
+	[InlineData("a bare call in a WHILE body")]
+	[InlineData("a bare call in a TRY")]
+	[InlineData("a bare call in a CATCH")]
+	[InlineData("a bare call in a procedure's body")]
 	[InlineData("a bare call in an INSERT")]
 	[InlineData("a bare call AT a server")]
 	[InlineData("a bare call of a variable")]
@@ -336,6 +342,18 @@ public sealed class RoutinesWriterTests
 		{
 			// BareCall: only a batch's first statement (FirstPiece).
 			"a bare call inside a block" => new Statement.Compound([new Statement.ExecuteModule(new ModuleReference.Named(P), [])]),
+			// BareCall: only a batch's first statement (FirstPiece).
+			"a bare call in an IF branch" => new Statement.If(new Expression.Comparison(V, ComparisonOperator.Less, One), new Statement.ExecuteModule(new ModuleReference.Named(P), []), null),
+			// BareCall: only a batch's first statement (FirstPiece).
+			"a bare call in an ELSE branch" => new Statement.If(new Expression.Comparison(V, ComparisonOperator.Less, One), new Statement.Return(), new Statement.ExecuteModule(new ModuleReference.Named(P), [])),
+			// BareCall: only a batch's first statement (FirstPiece).
+			"a bare call in a WHILE body" => new Statement.While(new Expression.Comparison(V, ComparisonOperator.Less, One), new Statement.ExecuteModule(new ModuleReference.Named(P), [])),
+			// BareCall: only a batch's first statement (FirstPiece).
+			"a bare call in a TRY" => new Statement.TryCatch([new Statement.ExecuteModule(new ModuleReference.Named(P), [])], []),
+			// BareCall: only a batch's first statement (FirstPiece).
+			"a bare call in a CATCH" => new Statement.TryCatch([new Statement.Return()], [new Statement.ExecuteModule(new ModuleReference.Named(P), [])]),
+			// BareCall: only a batch's first statement (FirstPiece).
+			"a bare call in a procedure's body" => Procedure([], new RoutineBody.Statements([new Statement.ExecuteModule(new ModuleReference.Named(P), [])])),
 			// TSqlInsert: EXEC before the call.
 			"a bare call in an INSERT" => Insert(new InsertSource.ExecuteModule(new Statement.ExecuteModule(new ModuleReference.Named(P), []))),
 			// BareCall reads no AT; the engine refuses it there.
