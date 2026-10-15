@@ -432,7 +432,7 @@ public static partial class Sql2023Writer
 					foreach (var word in option.Words)
 						PutIdentifier(word);
 
-					PutExpression(option.Value!);
+					PutPlace(option.Value!);
 					break;
 
 				// WAIT_AT_LOW_PRIORITY (MAX_DURATION = n [MINUTES], ABORT_AFTER_WAIT = NONE | SELF | BLOCKERS).
@@ -468,6 +468,22 @@ public static partial class Sql2023Writer
 					call.Arguments.All(static one => one is { Value: Expression.Reference { Name.Parts.Count: 1 } }),
 				_ => false,
 			};
+		}
+
+		/// <summary>A place, and a scheme's column in brackets after its name, as the grammar writes it: <c>ps (a)</c>.</summary>
+		void PutPlace(Expression place)
+		{
+			if (place is not Expression.Invocation call)
+			{
+				PutExpression(place);
+
+				return;
+			}
+
+			PutName(call.Name);
+			Open();
+			Each(call.Arguments, one => PutExpression(one.Value));
+			Close();
 		}
 
 		/// <summary><c>MAX_DURATION = n [MINUTES]</c> then <c>ABORT_AFTER_WAIT = NONE | SELF | BLOCKERS</c>, and nothing else.</summary>
