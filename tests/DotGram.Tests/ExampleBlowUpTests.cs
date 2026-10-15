@@ -69,7 +69,7 @@ public sealed class ExampleBlowUpTests
 	[Fact]
 	public void A_sum_of_quotients_that_never_ends_is_refused_at_once()
 	{
-		Refused("calculator", () => Calculator.EvaluateInt(Joined("1/0", "+", 512) + "="), 512);
+		Refused("calculator", () => Calculator.EvaluateInt(Joined("1/0", "+", 128) + "="), 128);
 	}
 
 	/// <summary>
