@@ -96,22 +96,32 @@ static class Trees
 		"Statement.Grant.Privileges",
 		"Statement.Grant.On",
 		"Statement.Deny.Privileges",
-		"Statement.Deny.On",
 		"Statement.Revoke.Privileges",
-		"Statement.Revoke.On",
 		// What follows the name of a role, a login, a user, a schema's transfer and an authorization, kept as written.
 		"Statement.CreateRole.Tail",
 		"Statement.AlterRole.Tail",
 		"Statement.CreateServerRole.Tail",
 		"Statement.AlterServerRole.Tail",
-		"Statement.CreateApplicationRole.Tail",
-		"Statement.AlterApplicationRole.Tail",
 		"Statement.CreateLogin.Tail",
-		"Statement.AlterLogin.Tail",
 		"Statement.CreateUser.Tail",
 		"Statement.AlterUser.Tail",
 		"Statement.AlterSchema.Tail",
-		"Statement.AlterAuthorization.Tail",
+		// The keys, certificates, credentials and policies: what follows the name, and an added signature's module.
+		"Statement.AsymmetricKeyDefinition.Tail",
+		"Statement.AlterAsymmetricKey.Tail",
+		"Statement.SymmetricKeyDefinition.Tail",
+		"Statement.AlterSymmetricKey.Tail",
+		"Statement.CertificateDefinition.Tail",
+		"Statement.AlterCertificate.Tail",
+		"Statement.MasterKeyDefinition.Tail",
+		"Statement.AlterMasterKey.Tail",
+		"Statement.AlterServiceMasterKey.Tail",
+		"Statement.ColumnEncryptionKeyDefinition.Tail",
+		"Statement.AlterColumnEncryptionKey.Tail",
+		"Statement.ColumnMasterKeyDefinition.Tail",
+		"Statement.CredentialDefinition.Tail",
+		"Statement.OpenSymmetricKey.Tail",
+		"Statement.AddSignature.To",
 	};
 
 	/// <summary>
@@ -173,9 +183,12 @@ static class Trees
 		"ASYMMETRIC", "CERTIFICATE", "DATABASE", "DEPENDENTS", "IO", "LOG", "NONE", "NOWAIT", "OBJECT", "OUTPUT", "PROFILE",
 		"PROVIDER", "RECOMPILE", "REMOVE", "RESULT", "SERVER", "SETERROR", "SETS", "UNDEFINED",
 		// The Security family: the words of permissions and of securables' classes the old tree keeps as written.
-		"COLLECTION", "CREATE", "CREDENTIAL", "EXTERNAL", "GRANT", "HASHED", "LOGIN", "MEMBER", "MUST_CHANGE", "NAME", "OWNER",
-		"PASSWORD", "PRIVILEGES", "PROCEDURE", "PUBLIC", "REVOKE", "ROLE", "SCHEMA", "SELECT", "TRANSFER", "UNLOCK", "VIEW", "WINDOWS",
-		"WITHOUT",
+		"ACTIVE", "AFTER", "ALGORITHM", "ASSEMBLY", "ATTESTED", "BEFORE", "BEGIN_DIALOG", "BLOCK", "CLASSIFICATION", "COLLECTION",
+		"COUNTER", "CREATE", "CREDENTIAL", "CRYPTOGRAPHIC", "DECRYPTION", "ENCRYPTION", "EXECUTABLE", "EXTERNAL", "FILE", "FILTER",
+		"FORMAT", "GRANT", "HASHED", "INSERT", "LOGIN", "MASTER", "MEMBER", "MUST_CHANGE", "NAME", "NEW_ACCOUNT", "NEW_PASSWORD",
+		"OLD_ACCOUNT", "OLD_PASSWORD", "OPTION", "OWNER", "PASSWORD", "POLICY", "PREDICATE", "PRIVATE", "PRIVILEGES", "PROCEDURE", "PUBLIC",
+		"REGENERATE", "REVOKE", "ROLE", "SCHEMA", "SCOPED", "SECRET", "SECURITY", "SELECT", "SENSITIVITY", "SERVICE", "SIGNATURE",
+		"STATE", "SYMMETRIC", "TRANSFER", "UNLOCK", "VALUES", "VIEW", "WINDOWS", "WITHOUT",
 	};
 
 	/// <summary>
@@ -367,11 +380,12 @@ static class Trees
 	/// </summary>
 	static string? Dropped(object node, List<Step> path)
 	{
-		return node is Expression.ColumnReference && path is [.., { Member: "Names", Index: not null } step]
+		return node is Expression.ColumnReference && path is [.., { Member: "Names" or "By", Index: not null } step]
 			? step.Node switch
 			{
 				Statement.DropIndex     => DropIndexName,
 				Statement.DropSignature => SignerName,
+				Statement.AddSignature  => SignerName,
 				_                       => null,
 			}
 			: null;

@@ -15,8 +15,9 @@ static partial class Bridge
 	/// Permissions, principals, schemas, keys, certificates, credentials and the classifications and signatures on objects.
 	/// </summary>
 	/// <remarks>
-	/// <c>CREATE SCHEMA</c> and <c>CREATE ROLE</c> have arms, as the two A rows here; every other record throws
-	/// the gap its inventory row names.
+	/// Every record has an arm. The old tree keeps what follows the name of a definition as text (<c>Tail</c>), which the arms read
+	/// token by token as the grammar's rules read it; a text the arm does not read to its end is a gap. A text kept as written
+	/// that the writer would print otherwise is a gap too (<see cref="Written"/>), never a difference.
 	/// </remarks>
 	internal static class Security
 	{
@@ -55,6 +56,31 @@ static partial class Bridge
 				Statement.AlterUser alter         => AlterUser(alter),
 				Statement.AlterSchema alter       => AlterSchema(alter),
 				Statement.AlterAuthorization alter => AlterAuthorization(alter),
+				Statement.AsymmetricKeyDefinition create => CreateAsymmetricKey(create),
+				Statement.AlterAsymmetricKey alter => AlterAsymmetricKey(alter),
+				Statement.SymmetricKeyDefinition create => CreateSymmetricKey(create),
+				Statement.AlterSymmetricKey alter => AlterSymmetricKey(alter),
+				Statement.CertificateDefinition create => CreateCertificate(create),
+				Statement.AlterCertificate alter  => AlterCertificate(alter),
+				Statement.MasterKeyDefinition create => CreateMasterKey(create),
+				Statement.AlterMasterKey alter    => AlterMasterKey(alter),
+				Statement.AlterServiceMasterKey alter => AlterServiceMasterKey(alter),
+				Statement.DatabaseEncryptionKeyDefinition create => CreateDatabaseEncryptionKey(create),
+				Statement.AlterDatabaseEncryptionKey alter => AlterDatabaseEncryptionKey(alter),
+				Statement.ColumnEncryptionKeyDefinition create => CreateColumnEncryptionKey(create),
+				Statement.AlterColumnEncryptionKey alter => AlterColumnEncryptionKey(alter),
+				Statement.ColumnMasterKeyDefinition create => CreateColumnMasterKey(create),
+				Statement.CredentialDefinition credential => Credential(credential),
+				Statement.DatabaseScopedCredentialDefinition credential => DatabaseScopedCredential(credential),
+				Statement.SecurityPolicyDefinition policy => SecurityPolicy(policy),
+				Statement.CryptographicProviderDefinition provider => CryptographicProvider(provider),
+				Statement.OpenSymmetricKey open   => OpenSymmetricKey(open),
+				Statement.OpenMasterKey open      => OpenMasterKey(open),
+				Statement.CloseSymmetricKey close => new Ast.Statement.CloseSymmetricKey(Values.Part(close, close.Name)),
+				Statement.CloseAllSymmetricKeys   => new Ast.Statement.CloseAllSymmetricKeys(),
+				Statement.CloseMasterKey          => new Ast.Statement.CloseMasterKey(),
+				Statement.Classification classification => Classification(classification),
+				Statement.AddSignature add        => AddSignature(add),
 				Statement.Grant grant             => Grant(grant),
 				Statement.Deny deny               => Deny(deny),
 				Statement.Revoke revoke           => Revoke(revoke),
@@ -766,6 +792,1057 @@ static partial class Bridge
 			return Is(tokens, 0, "WITH")
 				? new Ast.Statement.AlterUser(Values.Part(old, old.Name), Settings(old, tokens, 1, tail, password: true))
 				: throw Unread(old, tail);
+		}
+
+		// ── Keys, certificates, credentials ────────────────────────────────────────
+
+		/// <summary>
+		/// What follows a definition's name, read from left to right: each step is checked, and a text that is not read to its
+		/// end, or not as the grammar reads it, is a gap.
+		/// </summary>
+		sealed class Reader(object old, string? tail)
+		{
+			readonly List<SqlTokens.Token> _tokens = SqlTokens.Of(tail ?? "");
+			int _at;
+
+			public bool End
+			{
+				get { return _at >= _tokens.Count; }
+			}
+
+			public SqlTokens.Token NextToken()
+			{
+				return _tokens[_at++];
+			}
+
+			public BridgeGap Unread()
+			{
+				return BridgeGap.Open(old, $"inventory {NameOf(old)} (`{tail}` after the name)");
+			}
+
+			public void Finish()
+			{
+				if (!End)
+					throw Unread();
+			}
+
+			bool WordAt(int at, string word)
+			{
+				return at < _tokens.Count && _tokens[at].Kind == SqlTokens.Kind.Word && _tokens[at].Text.Equals(word, StringComparison.OrdinalIgnoreCase);
+			}
+
+			public bool Is(params string[] words)
+			{
+				for (var at = 0; at < words.Length; at++)
+					if (!WordAt(_at + at, words[at]))
+						return false;
+
+				return true;
+			}
+
+			public bool Take(params string[] words)
+			{
+				if (!Is(words))
+					return false;
+
+				_at += words.Length;
+
+				return true;
+			}
+
+			public void Expect(params string[] words)
+			{
+				if (!Take(words))
+					throw Unread();
+			}
+
+			public bool IsPunctuation(string text)
+			{
+				return _at < _tokens.Count && _tokens[_at] is { Kind: SqlTokens.Kind.Punctuation } token && token.Text == text;
+			}
+
+			public bool TakePunctuation(string text)
+			{
+				if (!IsPunctuation(text))
+					return false;
+
+				_at++;
+
+				return true;
+			}
+
+			public void ExpectPunctuation(string text)
+			{
+				if (!TakePunctuation(text))
+					throw Unread();
+			}
+
+			public Ast.Identifier Name()
+			{
+				if (_at >= _tokens.Count || _tokens[_at].Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited))
+					throw Unread();
+
+				return Values.Part(old, _tokens[_at++].Text);
+			}
+
+			public Ast.QualifiedName Qualified()
+			{
+				var start = _at;
+				var dot   = true;
+
+				while (_at < _tokens.Count)
+				{
+					if (_tokens[_at] is { Kind: SqlTokens.Kind.Punctuation, Text: "." })
+						dot = true;
+					else if (dot && _tokens[_at].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited)
+						dot = false;
+					else
+						break;
+
+					_at++;
+				}
+
+				return Dotted(_tokens.GetRange(start, _at - start)) is { } text ? Values.Name(old, text) : throw Unread();
+			}
+
+			public Ast.LiteralValue.String String()
+			{
+				if (_at >= _tokens.Count || _tokens[_at].Kind != SqlTokens.Kind.String)
+					throw Unread();
+
+				return (Ast.LiteralValue.String)Values.String(_tokens[_at++].Text);
+			}
+
+			public Ast.LiteralValue.Binary Hex()
+			{
+				if (_at >= _tokens.Count || _tokens[_at].Kind != SqlTokens.Kind.Number || !_tokens[_at].Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+					throw Unread();
+
+				return (Ast.LiteralValue.Binary)Values.Of(new Expression.Literal(SqlLiteralKind.Hex, _tokens[_at++].Text));
+			}
+
+			public Ast.Identifier? Authorization()
+			{
+				return Take("AUTHORIZATION") ? Name() : null;
+			}
+
+			/// <summary>One setting: its words, and after <c>=</c> a value of one token, or after nothing a bracketed list of its own.</summary>
+			public Ast.Option Setting()
+			{
+				var words = new List<SqlTokens.Token>();
+
+				while (_at < _tokens.Count && _tokens[_at].Kind == SqlTokens.Kind.Word)
+					words.Add(_tokens[_at++]);
+
+				if (words.Count == 0)
+					throw Unread();
+
+				var name  = new Ast.Identifier(words[0].Text);
+				var extra = words.Skip(1).Select(static one => new Ast.Identifier(one.Text)).ToSqlList();
+
+				if (IsPunctuation("("))
+					return new Ast.Option(name, null, Bracketed()) { Words = extra };
+
+				ExpectPunctuation("=");
+
+				if (_at >= _tokens.Count)
+					throw Unread();
+
+				return new Ast.Option(name, SettingValue(old, _tokens[_at++]), []) { Words = extra };
+			}
+
+			/// <summary>Settings joined by commas.</summary>
+			public SqlList<Ast.Option> Settings()
+			{
+				var made = new List<Ast.Option> { Setting() };
+
+				while (TakePunctuation(","))
+					made.Add(Setting());
+
+				return made.ToSqlList();
+			}
+
+			/// <summary>Settings in brackets.</summary>
+			public SqlList<Ast.Option> Bracketed()
+			{
+				ExpectPunctuation("(");
+
+				var made = Settings();
+
+				ExpectPunctuation(")");
+
+				return made;
+			}
+
+			/// <summary><c>PASSWORD = 'p'</c>.</summary>
+			public Ast.KeyEncryptor.Password PasswordEncryptor()
+			{
+				Expect("PASSWORD");
+				ExpectPunctuation("=");
+
+				return new Ast.KeyEncryptor.Password(String());
+			}
+
+			/// <summary>One of the family: a password, a certificate or an asymmetric key (each perhaps with a password, or the server's), a symmetric key, or the service master key.</summary>
+			public Ast.KeyEncryptor Encryptor()
+			{
+				if (Is("PASSWORD"))
+					return PasswordEncryptor();
+
+				var server = Take("SERVER");
+
+				if (Take("CERTIFICATE"))
+				{
+					var name = Qualified();
+
+					return new Ast.KeyEncryptor.Certificate(name) { Server = server, WithPassword = WithPassword() };
+				}
+
+				if (Take("ASYMMETRIC", "KEY"))
+				{
+					var name = Qualified();
+
+					return new Ast.KeyEncryptor.AsymmetricKey(name) { Server = server, WithPassword = WithPassword() };
+				}
+
+				if (!server && Take("SYMMETRIC", "KEY"))
+					return new Ast.KeyEncryptor.SymmetricKey(Qualified());
+
+				if (!server && Take("SERVICE", "MASTER", "KEY"))
+					return new Ast.KeyEncryptor.ServiceMasterKey();
+
+				throw Unread();
+			}
+
+			Ast.LiteralValue.String? WithPassword()
+			{
+				if (!Take("WITH", "PASSWORD"))
+					return null;
+
+				ExpectPunctuation("=");
+
+				return String();
+			}
+
+			public SqlList<Ast.KeyEncryptor> Encryptors()
+			{
+				var made = new List<Ast.KeyEncryptor> { Encryptor() };
+
+				while (TakePunctuation(","))
+					made.Add(Encryptor());
+
+				return made.ToSqlList();
+			}
+
+			public bool? OnOff()
+			{
+				if (Take("ON"))
+					return true;
+
+				if (Take("OFF"))
+					return false;
+
+				throw Unread();
+			}
+		}
+
+		static Ast.Statement CreateAsymmetricKey(Statement.AsymmetricKeyDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var made   = new Ast.Statement.CreateAsymmetricKey(Values.Part(old, old.Name)) { Authorization = reader.Authorization() };
+
+			if (reader.Take("FROM", "PROVIDER"))
+				made = made with { Source = new Ast.AsymmetricKeySource.Provider(reader.Name()), Options = reader.Take("WITH") ? reader.Settings() : [] };
+			else if (reader.Take("FROM", "EXECUTABLE", "FILE"))
+			{
+				reader.ExpectPunctuation("=");
+				made = made with { Source = new Ast.AsymmetricKeySource.File(reader.String()) { Executable = true } };
+			}
+			else if (reader.Take("FROM", "FILE"))
+			{
+				reader.ExpectPunctuation("=");
+				made = made with { Source = new Ast.AsymmetricKeySource.File(reader.String()) };
+			}
+			else if (reader.Take("FROM", "ASSEMBLY"))
+				made = made with { Source = new Ast.AsymmetricKeySource.Assembly(reader.Qualified()) };
+			else if (reader.Take("WITH"))
+				made = made with { Options = reader.Settings() };
+
+			if (reader.Take("ENCRYPTION", "BY"))
+				made = made with { EncryptedBy = reader.PasswordEncryptor() };
+
+			reader.Finish();
+
+			return made;
+		}
+
+		static Ast.Statement AlterAsymmetricKey(Statement.AlterAsymmetricKey old)
+		{
+			var reader = new Reader(old, old.Tail);
+			Ast.AsymmetricKeyChange change;
+
+			if (reader.Take("REMOVE", "PRIVATE", "KEY"))
+				change = new Ast.AsymmetricKeyChange.RemovePrivateKey();
+			else if (reader.Take("WITH", "PRIVATE", "KEY"))
+				change = new Ast.AsymmetricKeyChange.WithPrivateKey(reader.Bracketed());
+			else if (reader.Take("ATTESTED", "BY"))
+				change = new Ast.AsymmetricKeyChange.AttestedBy(reader.String());
+			else if (reader.Take("REMOVE", "ATTESTED", "OPTION"))
+				change = new Ast.AsymmetricKeyChange.RemoveAttestedOption();
+			else
+				throw reader.Unread();
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterAsymmetricKey(Values.Part(old, old.Name), change);
+		}
+
+		static Ast.Statement CreateSymmetricKey(Statement.SymmetricKeyDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var made   = new Ast.Statement.CreateSymmetricKey(Values.Part(old, old.Name)) { Authorization = reader.Authorization() };
+
+			if (reader.Take("FROM", "PROVIDER"))
+				made = made with { Provider = reader.Name(), Options = reader.Take("WITH") ? reader.Settings() : [] };
+			else if (reader.Take("WITH"))
+				made = made with { Options = reader.Settings() };
+
+			if (reader.Take("ENCRYPTION", "BY"))
+				made = made with { EncryptedBy = reader.Encryptors() };
+
+			reader.Finish();
+
+			return made;
+		}
+
+		static Ast.Statement AlterSymmetricKey(Statement.AlterSymmetricKey old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var add    = reader.Take("ADD");
+
+			if (!add)
+				reader.Expect("DROP");
+
+			reader.Expect("ENCRYPTION", "BY");
+
+			var by = reader.Encryptors();
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterSymmetricKey(Values.Part(old, old.Name), add ? new Ast.SymmetricKeyChange.AddEncryption(by) : new Ast.SymmetricKeyChange.DropEncryption(by));
+		}
+
+		static Ast.Statement CreateCertificate(Statement.CertificateDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var made   = new Ast.Statement.CreateCertificate(Values.Part(old, old.Name)) { Authorization = reader.Authorization() };
+
+			if (reader.Take("FROM"))
+				made = made with { Source = CertificateSource(reader) };
+			else
+			{
+				if (reader.Take("ENCRYPTION", "BY"))
+					made = made with { EncryptedBy = reader.PasswordEncryptor() };
+
+				reader.Expect("WITH");
+				made = made with { Options = reader.Settings() };
+			}
+
+			if (reader.Take("ACTIVE", "FOR", "BEGIN_DIALOG"))
+			{
+				reader.ExpectPunctuation("=");
+				made = made with { ActiveForBeginDialog = reader.OnOff() };
+			}
+
+			reader.Finish();
+
+			return made;
+		}
+
+		static Ast.CertificateSource CertificateSource(Reader reader)
+		{
+			if (reader.Take("ASSEMBLY"))
+				return new Ast.CertificateSource.Assembly(reader.Qualified());
+
+			if (reader.Take("BINARY"))
+			{
+				reader.ExpectPunctuation("=");
+
+				var value = reader.Hex();
+
+				return new Ast.CertificateSource.Binary(value) { PrivateKey = PrivateKey(reader, out _) };
+			}
+
+			var executable = reader.Take("EXECUTABLE");
+
+			reader.Expect("FILE");
+			reader.ExpectPunctuation("=");
+
+			var path        = reader.String();
+			var privateKey  = PrivateKey(reader, out var format);
+
+			return new Ast.CertificateSource.File(path) { Executable = executable, Format = format, PrivateKey = privateKey };
+		}
+
+		/// <summary><c>WITH [FORMAT = 'f',] PRIVATE KEY (…)</c>, or nothing.</summary>
+		static SqlList<Ast.Option> PrivateKey(Reader reader, out Ast.LiteralValue.String? format)
+		{
+			format = null;
+
+			if (!reader.Take("WITH"))
+				return [];
+
+			if (reader.Take("FORMAT"))
+			{
+				reader.ExpectPunctuation("=");
+				format = reader.String();
+				reader.ExpectPunctuation(",");
+			}
+
+			reader.Expect("PRIVATE", "KEY");
+
+			return reader.Bracketed();
+		}
+
+		static Ast.Statement AlterCertificate(Statement.AlterCertificate old)
+		{
+			var reader = new Reader(old, old.Tail);
+			Ast.CertificateChange change;
+
+			if (reader.Take("REMOVE", "PRIVATE", "KEY"))
+				change = new Ast.CertificateChange.RemovePrivateKey();
+			else if (reader.Take("WITH", "PRIVATE", "KEY"))
+				change = new Ast.CertificateChange.WithPrivateKey(reader.Bracketed());
+			else if (reader.Take("WITH", "ACTIVE", "FOR", "BEGIN_DIALOG"))
+			{
+				reader.ExpectPunctuation("=");
+				change = new Ast.CertificateChange.ActiveForBeginDialog(reader.OnOff() == true);
+			}
+			else if (reader.Take("ATTESTED", "BY"))
+				change = new Ast.CertificateChange.AttestedBy(reader.String());
+			else if (reader.Take("REMOVE", "ATTESTED", "OPTION"))
+				change = new Ast.CertificateChange.RemoveAttestedOption();
+			else
+				throw reader.Unread();
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterCertificate(Values.Part(old, old.Name), change);
+		}
+
+		static Ast.Statement CreateMasterKey(Statement.MasterKeyDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var made   = new Ast.Statement.CreateMasterKey();
+
+			if (reader.Take("ENCRYPTION", "BY"))
+				made = made with { EncryptedBy = reader.PasswordEncryptor() };
+
+			reader.Finish();
+
+			return made;
+		}
+
+		static Ast.Statement AlterMasterKey(Statement.AlterMasterKey old)
+		{
+			var reader = new Reader(old, old.Tail);
+			Ast.MasterKeyChange change;
+
+			var force = reader.Take("FORCE");
+
+			if (reader.Take("REGENERATE"))
+			{
+				reader.Expect("WITH", "ENCRYPTION", "BY");
+				change = new Ast.MasterKeyChange.Regenerate(reader.PasswordEncryptor()) { Force = force };
+			}
+			else if (!force && reader.Take("ADD", "ENCRYPTION", "BY"))
+				change = new Ast.MasterKeyChange.AddEncryption(reader.Encryptor());
+			else if (!force && reader.Take("DROP", "ENCRYPTION", "BY"))
+				change = new Ast.MasterKeyChange.DropEncryption(reader.Encryptor());
+			else
+				throw reader.Unread();
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterMasterKey(change);
+		}
+
+		static Ast.Statement AlterServiceMasterKey(Statement.AlterServiceMasterKey old)
+		{
+			var reader = new Reader(old, old.Tail);
+			Ast.ServiceMasterKeyChange change;
+
+			var force = reader.Take("FORCE");
+
+			if (reader.Take("REGENERATE"))
+				change = new Ast.ServiceMasterKeyChange.Regenerate { Force = force };
+			else if (!force && (reader.Is("WITH", "OLD_ACCOUNT") || reader.Is("WITH", "NEW_ACCOUNT")))
+			{
+				reader.Expect("WITH");
+
+				var old_ = reader.Take("OLD_ACCOUNT");
+
+				if (!old_)
+					reader.Expect("NEW_ACCOUNT");
+
+				reader.ExpectPunctuation("=");
+
+				var account = reader.String();
+
+				reader.ExpectPunctuation(",");
+				reader.Expect(old_ ? "OLD_PASSWORD" : "NEW_PASSWORD");
+				reader.ExpectPunctuation("=");
+
+				var password = reader.String();
+
+				change = old_ ? new Ast.ServiceMasterKeyChange.OldAccount(account, password) : new Ast.ServiceMasterKeyChange.NewAccount(account, password);
+			}
+			else
+				throw reader.Unread();
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterServiceMasterKey(change);
+		}
+
+		static Ast.DatabaseKeyAlgorithm DatabaseKeyAlgorithm(Reader reader)
+		{
+			reader.Expect("ALGORITHM");
+			reader.ExpectPunctuation("=");
+
+			if (reader.Take("AES_128"))
+				return Ast.DatabaseKeyAlgorithm.Aes128;
+
+			if (reader.Take("AES_192"))
+				return Ast.DatabaseKeyAlgorithm.Aes192;
+
+			if (reader.Take("AES_256"))
+				return Ast.DatabaseKeyAlgorithm.Aes256;
+
+			if (reader.Take("TRIPLE_DES_3KEY"))
+				return Ast.DatabaseKeyAlgorithm.TripleDes3Key;
+
+			throw reader.Unread();
+		}
+
+		static Ast.KeyEncryptor ServerEncryption(Reader reader)
+		{
+			reader.Expect("ENCRYPTION", "BY", "SERVER");
+
+			if (reader.Take("CERTIFICATE"))
+				return new Ast.KeyEncryptor.Certificate(reader.Qualified()) { Server = true };
+
+			reader.Expect("ASYMMETRIC", "KEY");
+
+			return new Ast.KeyEncryptor.AsymmetricKey(reader.Qualified()) { Server = true };
+		}
+
+		static Ast.Statement CreateDatabaseEncryptionKey(Statement.DatabaseEncryptionKeyDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+
+			reader.Expect("WITH");
+
+			var algorithm = DatabaseKeyAlgorithm(reader);
+			var by        = ServerEncryption(reader);
+
+			reader.Finish();
+
+			return new Ast.Statement.CreateDatabaseEncryptionKey(algorithm, by);
+		}
+
+		static Ast.Statement AlterDatabaseEncryptionKey(Statement.AlterDatabaseEncryptionKey old)
+		{
+			var reader = new Reader(old, old.Tail);
+			Ast.DatabaseEncryptionKeyChange change;
+
+			if (reader.Take("REGENERATE", "WITH"))
+				change = new Ast.DatabaseEncryptionKeyChange.Regenerate(DatabaseKeyAlgorithm(reader));
+			else
+				change = new Ast.DatabaseEncryptionKeyChange.EncryptedBy(ServerEncryption(reader));
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterDatabaseEncryptionKey(change);
+		}
+
+		static Ast.ColumnKeyValue ColumnKeyValue(Reader reader)
+		{
+			return new Ast.ColumnKeyValue(reader.Bracketed());
+		}
+
+		static Ast.Statement CreateColumnEncryptionKey(Statement.ColumnEncryptionKeyDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+
+			reader.Expect("WITH", "VALUES");
+
+			var values = new List<Ast.ColumnKeyValue> { ColumnKeyValue(reader) };
+
+			while (reader.TakePunctuation(","))
+				values.Add(ColumnKeyValue(reader));
+
+			reader.Finish();
+
+			return new Ast.Statement.CreateColumnEncryptionKey(Values.Part(old, old.Name), values.ToSqlList());
+		}
+
+		static Ast.Statement AlterColumnEncryptionKey(Statement.AlterColumnEncryptionKey old)
+		{
+			var reader = new Reader(old, old.Tail);
+			Ast.ColumnKeyChange change;
+
+			if (reader.Take("ADD", "VALUE"))
+				change = new Ast.ColumnKeyChange.AddValue(ColumnKeyValue(reader));
+			else if (reader.Take("DROP", "VALUE"))
+				change = new Ast.ColumnKeyChange.DropValue(ColumnKeyValue(reader));
+			else
+				throw reader.Unread();
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterColumnEncryptionKey(Values.Part(old, old.Name), change);
+		}
+
+		static Ast.Statement CreateColumnMasterKey(Statement.ColumnMasterKeyDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+
+			reader.Expect("WITH");
+
+			var options = reader.Bracketed();
+
+			reader.Finish();
+
+			return new Ast.Statement.CreateColumnMasterKey(Values.Part(old, old.Name), options);
+		}
+
+		/// <summary><c>WITH IDENTITY = 'i' [, SECRET = 's']</c>.</summary>
+		static (Ast.LiteralValue.String Identity, Ast.LiteralValue.String? Secret) Credentials(Reader reader)
+		{
+			reader.Expect("WITH", "IDENTITY");
+			reader.ExpectPunctuation("=");
+
+			var identity = reader.String();
+			Ast.LiteralValue.String? secret = null;
+
+			if (reader.TakePunctuation(","))
+			{
+				reader.Expect("SECRET");
+				reader.ExpectPunctuation("=");
+				secret = reader.String();
+			}
+
+			return (identity, secret);
+		}
+
+		static Ast.Statement Credential(Statement.CredentialDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var name   = Values.Part(old, old.Name);
+			var (identity, secret) = Credentials(reader);
+			var provider = reader.Take("FOR", "CRYPTOGRAPHIC", "PROVIDER") ? reader.Name() : null;
+
+			reader.Finish();
+
+			return old.Verb switch
+			{
+				"CREATE" => new Ast.Statement.CreateCredential(name, identity) { Secret = secret, Provider = provider },
+				"ALTER"  => new Ast.Statement.AlterCredential(name, identity) { Secret = secret, Provider = provider },
+				_        => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the verb `{old.Verb}`)"),
+			};
+		}
+
+		static Ast.Statement DatabaseScopedCredential(Statement.DatabaseScopedCredentialDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var name   = Values.Part(old, old.Name);
+			var (identity, secret) = Credentials(reader);
+
+			reader.Finish();
+
+			return old.Verb switch
+			{
+				"CREATE" => new Ast.Statement.CreateDatabaseScopedCredential(name, identity) { Secret = secret },
+				"ALTER"  => new Ast.Statement.AlterDatabaseScopedCredential(name, identity) { Secret = secret },
+				_        => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the verb `{old.Verb}`)"),
+			};
+		}
+
+		static Ast.Statement CryptographicProvider(Statement.CryptographicProviderDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var name   = Values.Part(old, old.Name);
+
+			if (old.Verb == "CREATE")
+			{
+				reader.Expect("FROM", "FILE");
+				reader.ExpectPunctuation("=");
+
+				var file = reader.String();
+
+				reader.Finish();
+
+				return new Ast.Statement.CreateCryptographicProvider(name, file);
+			}
+
+			if (old.Verb != "ALTER")
+				throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the verb `{old.Verb}`)");
+
+			Ast.CryptographicProviderChange change;
+
+			if (reader.Take("ENABLE"))
+				change = new Ast.CryptographicProviderChange.Enable();
+			else if (reader.Take("DISABLE"))
+				change = new Ast.CryptographicProviderChange.Disable();
+			else
+			{
+				reader.Expect("FROM", "FILE");
+				reader.ExpectPunctuation("=");
+				change = new Ast.CryptographicProviderChange.FromFile(reader.String());
+			}
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterCryptographicProvider(name, change);
+		}
+
+		static Ast.Statement OpenSymmetricKey(Statement.OpenSymmetricKey old)
+		{
+			var reader = new Reader(old, old.Tail);
+
+			reader.Expect("DECRYPTION", "BY");
+
+			var by = reader.Encryptor();
+
+			reader.Finish();
+
+			return new Ast.Statement.OpenSymmetricKey(Values.Part(old, old.Name), by);
+		}
+
+		static Ast.Statement OpenMasterKey(Statement.OpenMasterKey old)
+		{
+			var reader = new Reader(old, old.Tail);
+
+			reader.Expect("DECRYPTION", "BY");
+
+			var by = reader.PasswordEncryptor();
+
+			reader.Finish();
+
+			return new Ast.Statement.OpenMasterKey(by);
+		}
+
+		// ── Security policies ──────────────────────────────────────────────────────
+
+		/// <summary>
+		/// A policy's function, <c>dbo.f(a, b)</c>: read again as the one value it is, a call of a name with plain arguments.
+		/// </summary>
+		static Ast.PolicyFunction PolicyFunction(Statement old, Reader reader, string tail)
+		{
+			var name = reader.Qualified();
+
+			// The arguments are the text between the brackets, read again as the values of a call.
+			reader.ExpectPunctuation("(");
+
+			var arguments = new List<string>();
+			var depth     = 0;
+			var current   = new StringBuilder();
+
+			while (true)
+			{
+				if (reader.End)
+					throw reader.Unread();
+
+				var token = reader.NextToken();
+
+				if (token is { Kind: SqlTokens.Kind.Punctuation, Text: ")" } && depth == 0)
+					break;
+
+				if (token is { Kind: SqlTokens.Kind.Punctuation, Text: "(" })
+					depth++;
+				else if (token is { Kind: SqlTokens.Kind.Punctuation, Text: ")" })
+					depth--;
+
+				if (token is { Kind: SqlTokens.Kind.Punctuation, Text: "," } && depth == 0)
+				{
+					arguments.Add(current.ToString());
+					current.Clear();
+
+					continue;
+				}
+
+				current.Append(token.Text).Append(' ');
+			}
+
+			if (current.Length > 0 || arguments.Count > 0)
+				arguments.Add(current.ToString());
+
+			var values = arguments.Select(one => ValueOf(old, one)).ToSqlList();
+
+			return new Ast.PolicyFunction(name, values);
+		}
+
+		/// <summary>A value kept as text, read again as a select list's one value.</summary>
+		static Ast.Expression ValueOf(object owner, string text)
+		{
+			return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+				? Values.Of(value)
+				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a value `{text.Trim()}`)");
+		}
+
+		static Ast.BlockOperation? BlockOperation(Reader reader)
+		{
+			if (reader.Take("AFTER", "INSERT"))
+				return Ast.BlockOperation.AfterInsert;
+
+			if (reader.Take("AFTER", "UPDATE"))
+				return Ast.BlockOperation.AfterUpdate;
+
+			if (reader.Take("BEFORE", "UPDATE"))
+				return Ast.BlockOperation.BeforeUpdate;
+
+			if (reader.Take("BEFORE", "DELETE"))
+				return Ast.BlockOperation.BeforeDelete;
+
+			return null;
+		}
+
+		static Ast.PolicyPredicate PolicyPredicate(Statement old, Reader reader, string tail)
+		{
+			var action = reader.Take("ADD") ? "ADD" : reader.Take("ALTER") ? "ALTER" : reader.Take("DROP") ? "DROP" : throw reader.Unread();
+			var filter = reader.Take("FILTER");
+
+			if (!filter)
+				reader.Expect("BLOCK");
+
+			reader.Expect("PREDICATE");
+
+			if (action == "DROP")
+			{
+				reader.Expect("ON");
+
+				var table = reader.Qualified();
+
+				return filter ? new Ast.PolicyPredicate.DropFilter(table) : new Ast.PolicyPredicate.DropBlock(table, BlockOperation(reader));
+			}
+
+			var function = PolicyFunction(old, reader, tail);
+
+			reader.Expect("ON");
+
+			var on = reader.Qualified();
+
+			return (filter, action) switch
+			{
+				(true, "ADD")    => new Ast.PolicyPredicate.AddFilter(function, on),
+				(true, _)        => new Ast.PolicyPredicate.AlterFilter(function, on),
+				(false, "ADD")   => new Ast.PolicyPredicate.AddBlock(function, on, BlockOperation(reader)),
+				(false, _)       => new Ast.PolicyPredicate.AlterBlock(function, on, BlockOperation(reader)),
+			};
+		}
+
+		static SqlList<Ast.PolicyPredicate> PolicyPredicates(Statement old, Reader reader, string tail)
+		{
+			var made = new List<Ast.PolicyPredicate> { PolicyPredicate(old, reader, tail) };
+
+			while (reader.TakePunctuation(","))
+				made.Add(PolicyPredicate(old, reader, tail));
+
+			return made.ToSqlList();
+		}
+
+		static Ast.Statement SecurityPolicy(Statement.SecurityPolicyDefinition old)
+		{
+			var tail   = old.Tail ?? "";
+			var reader = new Reader(old, tail);
+			var name   = Values.Name(old, old.Name);
+
+			if (old.Verb == "CREATE")
+			{
+				var made = new Ast.Statement.CreateSecurityPolicy(name);
+
+				if (reader.Is("ADD") || reader.Is("ALTER") || reader.Is("DROP"))
+					made = made with { Predicates = PolicyPredicates(old, reader, tail) };
+
+				if (reader.Take("WITH"))
+					made = made with { Options = reader.Bracketed() };
+
+				if (reader.Take("NOT", "FOR", "REPLICATION"))
+					made = made with { NotForReplication = true };
+
+				reader.Finish();
+
+				return made;
+			}
+
+			if (old.Verb != "ALTER")
+				throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the verb `{old.Verb}`)");
+
+			Ast.SecurityPolicyChange change;
+
+			if (reader.Take("ADD", "NOT", "FOR", "REPLICATION"))
+				change = new Ast.SecurityPolicyChange.AddNotForReplication();
+			else if (reader.Take("DROP", "NOT", "FOR", "REPLICATION"))
+				change = new Ast.SecurityPolicyChange.DropNotForReplication();
+			else if (reader.Take("WITH"))
+			{
+				reader.ExpectPunctuation("(");
+				reader.Expect("STATE");
+				reader.ExpectPunctuation("=");
+				change = new Ast.SecurityPolicyChange.State(reader.OnOff() == true);
+				reader.ExpectPunctuation(")");
+			}
+			else
+				change = new Ast.SecurityPolicyChange.Predicates(PolicyPredicates(old, reader, tail));
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterSecurityPolicy(name, change);
+		}
+
+		// ── Classifications and signatures ────────────────────────────────────────
+
+		static Ast.Statement Classification(Statement.Classification old)
+		{
+			if (!old.Add)
+				throw BridgeGap.Open(old, "inventory Statement.Classification (not an ADD)");
+
+			var options = Each(old.Options, one => one is Clause.Option(var name, var value, _, _, _) && value is not null
+				? new Ast.Option(new Ast.Identifier(name), Values.Of(value), [])
+				: throw BridgeGap.Open(old, "inventory Statement.Classification (an option that is not a name and a value)"));
+
+			return new Ast.Statement.AddSensitivityClassification(Each(old.Columns, one => Values.Name(old, one)), options);
+		}
+
+		/// <summary>
+		/// A signed module, which the old tree keeps as text with its class before <c>::</c>: its class and its name, and the text
+		/// as the writer prints it.
+		/// </summary>
+		internal static (Ast.SecurableClass? Class, Ast.QualifiedName Module) SignedModule(object old, string? text, string member)
+		{
+			var module = SqlTokens.Of(text ?? "");
+			Ast.SecurableClass? kind = null;
+			var name = module;
+
+			if (module is [{ Kind: SqlTokens.Kind.Word, Text: var word }, { Text: ":" }, { Text: ":" }, ..])
+			{
+				kind = word.ToUpperInvariant() switch
+				{
+					"OBJECT"   => Ast.SecurableClass.Object,
+					"ASSEMBLY" => Ast.SecurableClass.Assembly,
+					"DATABASE" => Ast.SecurableClass.Database,
+					_          => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the class {word})"),
+				};
+				name = module.Skip(3).ToList();
+			}
+
+			var dotted = Dotted(name) ?? throw BridgeGap.Open(old, $"inventory {NameOf(old)} (`{text}`)");
+
+			Written(old, member, text!, kind is null ? dotted : $"{module[0].Text.ToUpperInvariant()}::{dotted}");
+
+			return (kind, Values.Name(old, dotted));
+		}
+
+		/// <summary>
+		/// A text the old tree keeps as written, which the round trip compares as the oracle does (<see cref="Same"/>): where it
+		/// is written otherwise than the writer prints it, the statement is a gap, never a difference.
+		/// </summary>
+		static void Written(object old, string member, string text, string written)
+		{
+			if (!Same(old, member, written, text))
+				throw BridgeGap.Open(old, $"inventory {NameOf(old)} (`{text}` kept as written, against `{written}` as the writer prints it, which the old tree compares exactly)");
+		}
+
+		/// <summary>
+		/// What signs a module, kept by the old tree as one column reference's text each: <c>CERTIFICATE c WITH PASSWORD = 'p'</c>.
+		/// </summary>
+		internal static SqlList<Ast.SignedBy> Signers(object old, SqlList<Expression> by)
+		{
+			return Each(by, one =>
+			{
+				var text   = one is Expression.ColumnReference(var words) ? words : throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a signer that is {NameOf(one)})");
+				var reader = new Reader(old, text);
+				Ast.SignedBy signed;
+				var written = new List<string>();
+
+				if (reader.Take("CERTIFICATE"))
+				{
+					var name = reader.Name();
+
+					written.Add($"CERTIFICATE {name.Text}");
+					signed = new Ast.SignedBy.Certificate(new Ast.QualifiedName([name])) { Proof = Proof(reader, written) };
+				}
+				else if (reader.Take("ASYMMETRIC", "KEY"))
+				{
+					var name = reader.Name();
+
+					written.Add($"ASYMMETRIC KEY {name.Text}");
+					signed = new Ast.SignedBy.AsymmetricKey(new Ast.QualifiedName([name])) { Proof = Proof(reader, written) };
+				}
+				else if (reader.Take("SYMMETRIC", "KEY"))
+				{
+					var name = reader.Name();
+
+					written.Add($"SYMMETRIC KEY {name.Text}");
+					signed = new Ast.SignedBy.SymmetricKey(name);
+				}
+				else if (reader.Take("PASSWORD"))
+				{
+					reader.ExpectPunctuation("=");
+
+					var password = reader.String();
+
+					written.Add($"PASSWORD = {Printed(password)}");
+					signed = new Ast.SignedBy.Password(password);
+				}
+				else
+					throw reader.Unread();
+
+				reader.Finish();
+				Written(old, Trees.SignerName, text, string.Join(' ', written));
+
+				return signed;
+			});
+		}
+
+		/// <summary>A string as the writer prints it: a national one with its <c>N</c>, which its text leaves out.</summary>
+		static string Printed(Ast.LiteralValue.String value)
+		{
+			return (value.Kind == Ast.StringLiteralKind.National ? "N" : "") + value.Text;
+		}
+
+		static Ast.SignatureProof? Proof(Reader reader, List<string> written)
+		{
+			if (!reader.Take("WITH"))
+				return null;
+
+			if (reader.Take("PASSWORD"))
+			{
+				reader.ExpectPunctuation("=");
+
+				var password = reader.String();
+
+				written.Add($"WITH PASSWORD = {Printed(password)}");
+
+				return new Ast.SignatureProof.Password(password);
+			}
+
+			reader.Expect("SIGNATURE");
+			reader.ExpectPunctuation("=");
+
+			var signature = reader.Hex();
+
+			written.Add($"WITH SIGNATURE = 0x{signature.Text}");
+
+			return new Ast.SignatureProof.Signature(signature);
+		}
+
+		static Ast.Statement AddSignature(Statement.AddSignature old)
+		{
+			var (kind, module) = SignedModule(old, old.To, "Statement.AddSignature.To");
+
+			return new Ast.Statement.AddSignature(old.Counter, module, Signers(old, old.By)) { Class = kind };
 		}
 
 		static Ast.Statement Role(Statement.CreateRole old)
