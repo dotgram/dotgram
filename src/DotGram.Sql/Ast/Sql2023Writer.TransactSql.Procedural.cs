@@ -627,10 +627,11 @@ public static partial class Sql2023Writer
 
 						PutKeyWord(value.Option);
 
+						// SetInteger, SetNumber and SetConstant keep a signed number as one token.
 						if (off)
 							PutOptionValue(value.Argument);
 						else
-							PutExpression(value.Argument);
+							PutSignedNumber(value, value.Argument);
 					});
 
 					return;

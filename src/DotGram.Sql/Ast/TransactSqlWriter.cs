@@ -143,6 +143,40 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
+		/// In T-SQL's reading, a number whose text begins with a sign where an expression is read: T-SQL reads <c>-1</c> there as a
+		/// minus over the number, another tree. A place whose grammar keeps the signed token as one literal writes it through
+		/// <see cref="PutSignedNumber"/>.
+		/// </summary>
+		void CheckUnsigned(LiteralValue literal)
+		{
+			if (transactSql && literal is LiteralValue.Numeric { Text: [ '-' or '+', ..] })
+				throw Misplaced(literal, "Text", "that begins with a sign where T-SQL reads an expression, which reads it as a minus or a plus over the number");
+		}
+
+		/// <summary>
+		/// A place whose grammar keeps a signed number as one token (<c>'-'? &amp; digits</c>: SetInteger, SetConstant, KillNumber,
+		/// …): a number, signed or not, written as its text; a minus over a number is another tree there, which T-SQL does not
+		/// read, and is refused.
+		/// </summary>
+		void PutSignedNumber(ISqlNode owner, Expression number)
+		{
+			switch (number)
+			{
+				// Its text, as PutLiteral writes a number: the sign is the token's.
+				case LiteralValue.Numeric numeric:
+					Word(numeric.Text);
+					break;
+
+				case Expression.Unary { Operator: UnaryOperator.Minus or UnaryOperator.Plus, Operand: LiteralValue.Numeric } when transactSql:
+					throw Misplaced(owner, "a minus or a plus over a number", "where T-SQL reads the signed number as one token");
+
+				default:
+					PutExpression(number);
+					break;
+			}
+		}
+
+		/// <summary>
 		/// The reserved words the grammar reads as a function's name before its bracket (<c>LeftRightCall</c>, the conversions,
 		/// <c>IDENTITY</c>, the CASE abbreviations, the rowset functions, <c>FullTextName</c>, <c>FullTextTableName</c>,
 		/// <c>SemanticName</c>, <c>TSqlPredicate</c>'s TSEQUAL and UPDATE).

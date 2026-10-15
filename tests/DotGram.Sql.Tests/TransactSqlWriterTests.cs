@@ -398,4 +398,75 @@ public sealed class TransactSqlWriterTests
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(select));
 		Assert.Equal("SELECT a > 1", Sql2023Writer.Write(select));
 	}
+
+	// ── Signed numbers ───────────────────────────────────────────────────────────
+
+	static readonly Expression Signed = new LiteralValue.Numeric("-1", NumericLiteralKind.DecimalInteger);
+
+	static readonly Expression Negated = new Expression.Unary(UnaryOperator.Minus, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger));
+
+	/// <summary>
+	/// Every place whose grammar keeps a signed number as one token writes it through PutSignedNumber: the number, -1, is
+	/// written and read back; a minus over the number in its place is refused (T-SQL reads only the token there), where
+	/// the place's own catalogue had not refused it already.
+	/// </summary>
+	[Theory]
+	[InlineData("SET LOCK_TIMEOUT -1")]                                          // SetConstant
+	[InlineData("SET TEXTSIZE -1")]                                              // SetInteger
+	[InlineData("EXECUTE p -1")]                                                 // ExecValue, DbccValue
+	[InlineData("FETCH RELATIVE -1 FROM c")]                                     // FetchRow
+	[InlineData("CREATE SEQUENCE s START WITH -1 INCREMENT BY -1 MINVALUE -1")] // the sequence's numbers
+	[InlineData("ALTER SEQUENCE s RESTART WITH -1")]
+	[InlineData("UPDATETEXT t.c 0 -1 @v")]                                       // the text statements' place
+	[InlineData("CREATE SPATIAL INDEX i ON t (g) WITH (CELLS_PER_OBJECT = -1)")] // SpatialItem
+	public void A_signed_number_place_writes_the_token_and_refuses_a_minus(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+
+		var swapped = (ISqlNode)Swap(tree, Signed, Negated);
+
+		Assert.NotEqual(tree, swapped);
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(swapped));
+	}
+
+	/// <summary>
+	/// <c>SET DEADLOCK_PRIORITY -5</c>, built by hand, is a number with its sign (SetConstant) and reads back so; a minus
+	/// over 5 in its place is refused.
+	/// </summary>
+	[Fact]
+	public void A_signed_number_is_one_token_where_the_grammar_keeps_it()
+	{
+		var tree = new Statement.SetOptions([new SetOption.Value(Plain("DEADLOCK_PRIORITY"), new LiteralValue.Numeric("-5", NumericLiteralKind.DecimalInteger))]);
+		var text = TransactSqlWriter.Write(tree);
+
+		Assert.Equal("SET DEADLOCK_PRIORITY -5", text);
+		Assert.Equal(tree, Read(text));
+
+		var minus = new Statement.SetOptions([new SetOption.Value(Plain("DEADLOCK_PRIORITY"), new Expression.Unary(UnaryOperator.Minus, new LiteralValue.Numeric("5", NumericLiteralKind.DecimalInteger)))]);
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(minus));
+	}
+
+	/// <summary>
+	/// <c>SELECT -1</c> is a minus over 1 where an expression is read, and reads back so; a number whose text begins with a
+	/// sign in its place is refused (T-SQL reads it as the minus), which Sql2023Writer.Write still writes.
+	/// </summary>
+	[Fact]
+	public void A_minus_over_a_number_is_an_expression_where_one_is_read()
+	{
+		Statement.Select Selected(Expression value)
+		{
+			return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(value)] } };
+		}
+
+		var tree = Selected(Negated);
+		var text = TransactSqlWriter.Write(tree);
+
+		Assert.Equal("SELECT -1", text);
+		Assert.Equal(tree, Read(text));
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(Selected(Signed)));
+		Assert.Equal("SELECT -1", Sql2023Writer.Write(Selected(Signed)));
+	}
 }

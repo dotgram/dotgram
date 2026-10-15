@@ -318,7 +318,7 @@ public static partial class Sql2023Writer
 			if (form == 0 || (form & forms) != form)
 				throw Misplaced(statement, member, "in a form the text statements do not read there");
 
-			PutExpression(value);
+			PutSignedNumber(statement, value);
 		}
 
 		/// <summary>T-SQL: WRITETEXT, UPDATETEXT (Transact-SQL). <c>TIMESTAMP = 0x…</c>, a binary string alone.</summary>

@@ -690,6 +690,7 @@ public static partial class Sql2023Writer
 			switch (expression)
 			{
 				case LiteralValue literal:
+					CheckUnsigned(literal);
 					PutLiteral(literal);
 					break;
 

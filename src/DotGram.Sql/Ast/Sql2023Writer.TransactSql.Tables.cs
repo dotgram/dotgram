@@ -230,7 +230,24 @@ public static partial class Sql2023Writer
 						});
 
 					CheckSpatialOptions(spatial);
-					PutOptions(spatial.Options);
+
+					// SpatialItem keeps a signed number, and a signed money, as one token.
+					if (spatial.Options.Count > 0)
+					{
+						Word("WITH");
+						Open();
+						Each(spatial.Options, option =>
+						{
+							PutOptionWord(option.Name);
+							Word("=");
+
+							if (option.Value is LiteralValue.Numeric or Expression.Unary)
+								PutSignedNumber(option, option.Value);
+							else
+								PutOptionValue(option.Value!);
+						});
+						Close();
+					}
 
 					foreach (var placement in spatial.Placements)
 						PutPlacement(placement);
