@@ -2342,12 +2342,14 @@ TranMark    = "WITH"i & "MARK"i & (?!Label & ValueExpression)?
 TranDelayed = "WITH"i & '(' & "DELAYED_DURABILITY"i & '=' & OnOff & ')'
 
 // A name, a variable, or a number and a name of two parts: `SAVE TRANSACTION -5:a.b`, which
-// every transaction statement reads. The number has a sign or not and a fraction or not, and
-// no exponent; the name has two parts and no more, quoted or not, and no empty one.
+// every transaction statement reads. The number is a whole one, with a minus sign or not: a
+// fraction (`1.5:a.b`, `5.:a.b`) is `Msg 1080` whatever follows, and an exponent, a hexadecimal
+// number and a plus sign are `Msg 102`. The name has two parts and no more, quoted or not, and
+// no empty one.
 TranName : @string
 	= t: Identifier                                              => @(t)
 	| t: TSql.Variable                                           => @(t)
-	| t: ('-'? & ExactNumber & ':' & Identifier & '.' & Identifier) => @(Syntax.Spaced(t))
+	| t: ('-'? & Sql92.Lexical.Digits & ':' & Identifier & '.' & Identifier) => @(Syntax.Spaced(t))
 
 // ── Declarations ────────────────────────────────────────────────────────────
 DeclareStatement : @Statement
@@ -3691,7 +3693,7 @@ BulkFormat : @Expression
 SimpleCommand : @Statement
 	= "PRINT"i & v: ValueExpression      => @(Statement.Commanded("PRINT", v))
 	| "RETURN"i & (?!Label & v: ValueExpression)? => @(Statement.Commanded("RETURN", v))
-	| "THROW"i & (?!Label & args: Arguments)?     => @(Statement.Commanded("THROW", SqlList.OwnOrNull(args)))
+	| "THROW"i & (?!Label & args: Arguments & when @(args.Length == 3))? => @(Statement.Commanded("THROW", SqlList.OwnOrNull(args)))
 	| "GOTO"i & name: Identifier         => @(Statement.Commanded("GOTO", new Expression.ColumnReference(name)))
 	| name: Identifier & ':' & ?!':'     => @(new Statement.Label(name))
 	| "BREAK"i                           => @(Statement.Commanded("BREAK", (Expression?)null))
@@ -3702,10 +3704,8 @@ SimpleCommand : @Statement
 	// only that — a variable, `-1`, `1 + 1`, `'a'`, `1.5` and nothing are each `Msg 102`.
 	| "SHUTDOWN"i & w: ("WITH"i & "NOWAIT"i)? => @(new Statement.Shutdown(w is not null))
 	| "LINENO"i & n: Sql92.Lexical.Digits => @(new Statement.LineNumber(new Expression.Literal(SqlLiteralKind.Number, n)))
-	| "USE"i & name: QualifiedName       => @(Statement.Commanded("USE", new Expression.ColumnReference(name)))
+	| "USE"i & name: Identifier          => @(Statement.Commanded("USE", new Expression.ColumnReference(name)))
 	| "RAISERROR"i & '(' & args: Arguments & ')' & how: RaiseWith?
-		=> @(new Statement.RaiseError(SqlList.Own(args), Syntax.Tail(how)))
-	| "RAISERROR"i & args: Arguments & how: RaiseWith?
 		=> @(new Statement.RaiseError(SqlList.Own(args), Syntax.Tail(how)))
 	| "WAITFOR"i & '(' & waited: WaitedFor & ')' & (',' & "TIMEOUT"i & timeout: WaitTimeout)?
 		=> @(new Statement.WaitForStatement(waited, timeout))
@@ -4555,7 +4555,9 @@ RoutineParameters : @Clause[]
 
 // A cursor is passed out and only out, `CURSOR VARYING OUTPUT` and nothing else — without
 // either word `Msg 1051`, with a default, a nullability or `READONLY` refused — and `VARYING`
-// is a cursor's word: `@a INT VARYING OUTPUT` is refused. A function takes no cursor at all
+// is a cursor's word: `@a INT VARYING OUTPUT` is refused. Of the other parameters one word at
+// most follows the type, `OUTPUT`, `OUT` or `READONLY`: a second one, of the same kind or of
+// the other, in either order, is `Msg 102`. A function takes no cursor at all
 // (`Msg 5306`), which `FunctionStatement` asks.
 RoutineParameter : @Clause
 	= name: TSql.Variable & "AS"i? & p: ParameterTail => @(p with { Name = name })
@@ -4564,6 +4566,7 @@ ParameterTail : @Clause.ParameterDeclaration
 	= "CURSOR"i & "VARYING"i & way: ("OUTPUT"i | "OUT"i)
 		=> @(new Clause.ParameterDeclaration("", "CURSOR", null, null, true, [Syntax.Squared(way)]))
 	| type: DataType & n: NullSpec? & ('=' & v: AssignedValue)? & ways: ParameterWay*
+	  & when @(ways is null || ways.Length <= 1)
 		=> @(new Clause.ParameterDeclaration("", type, v, n, false, SqlList.OwnOrNull(ways)))
 
 ParameterWay : @string = t: ("OUTPUT"i | "OUT"i | "READONLY"i) => @(Syntax.Squared(t))
@@ -4594,7 +4597,7 @@ ExecuteAsWho : @string
 // variable and the columns it holds.
 FunctionStatement : @Statement
 	= "FUNCTION"i & name: QualifiedName & parameters: RoutineParameters?
-	  & "RETURNS"i & r: FunctionReturns & when @(!Syntax.HasCursorParameter(parameters))
+	  & "RETURNS"i & r: FunctionReturns & when @(!Syntax.HasCursorParameter(parameters) && !Syntax.HasOutputParameter(parameters))
 		=> @(r with { Name = name, Parameters = SqlList.Own(parameters) })
 
 FunctionReturns : @Statement.CreateFunction
@@ -4633,7 +4636,7 @@ InlineReturn : @Statement[]
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
 TriggerStatement : @Statement
 	= "TRIGGER"i & name: QualifiedName & "ON"i & on: TriggerOn & options: RoutineOptions?
-	  & fires: TriggerWhen & events: TriggerEvents
+	  & fires: TriggerWhen & events: TriggerEvents & when @(Syntax.Fired(fires, events))
 	  & append: ("WITH"i & "APPEND"i)? & replication: ("NOT"i & "FOR"i & "REPLICATION"i)?
 	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | atomic: AtomicBody | body: StatementList)
 	  & when @(Syntax.Natively(options, atomic is not null))
@@ -4647,16 +4650,25 @@ TriggerOn : @string
 
 TriggerWhen : @string = t: ("INSTEAD"i & "OF"i | "AFTER"i | "FOR"i) => @(Syntax.Squared(t))
 
-// A DML trigger names the three statements; a DDL one names events or a group of them,
-// and both are words separated by commas.
+// A DML trigger names the three statements; a DDL one names events or a group of them, and
+// both are words separated by commas. The list is of one kind or the other: `FOR INSERT,
+// CREATE_TABLE` is `Msg 102` and `FOR CREATE_TABLE, INSERT` `Msg 156`, whatever the target is.
+// `INSTEAD OF` takes statements alone (`Msg 102`), which `Syntax.Fired` holds. Which kind a target
+// takes is the engine's answer once the list is read (`Msg 1098`, which `--engine` counts as
+// read, like a name it does not know): statements on `DATABASE` and events on a table are read
+// here. An event is a bare word: `FOR [CREATE_TABLE]` and `FOR "CREATE_TABLE"` are `Msg 102`. A
+// statement named twice is `Msg 1034`.
 TriggerEvents : @string[]
-	= first: TriggerEvent & (',' & rest: TriggerEvent)* => @(Syntax.Named(first, rest))
+	= first: DmlEvent & (',' & rest: DmlEvent)* & when @(Syntax.Distinct(first, rest))
+		=> @(Syntax.Named(first, rest))
+	| named: TriggerEvent & (',' & more: TriggerEvent)* => @(Syntax.Named(named, more))
 
-TriggerEvent : @string
+DmlEvent : @string
 	= "INSERT"i => @("INSERT")
 	| "UPDATE"i => @("UPDATE")
 	| "DELETE"i => @("DELETE")
-	| t: Identifier => @(t)
+
+TriggerEvent : @string = t: Identifier & when @(Syntax.IsBare(t)) => @(t)
 
 // ── CREATE VIEW ─────────────────────────────────────────────────────────────
 ViewStatement : @Statement
