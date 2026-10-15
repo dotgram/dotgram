@@ -288,6 +288,16 @@ public sealed class Sql2023WriterCoverageTests
 		};
 	}
 
+	/// <summary>T-SQL's <c>CREATE FUNCTION t () RETURNS INT AS RETURN 1</c>, or with no AS before its body.</summary>
+	static Statement.CreateRoutine Scalar(bool asOmitted)
+	{
+		return new Statement.CreateRoutine
+		{
+			Definition = new RoutineDefinition(RoutineKind.Function, T, [], new ReturnsDefinition(new DataType.Numeric(NumericTypeKind.Int), null), [],
+				new RoutineBody.Statements([new Statement.Return { Value = new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger) }])) { AsOmitted = asOmitted },
+		};
+	}
+
 	/// <summary>T-SQL's <c>CREATE TRIGGER g ON t AFTER INSERT AS RETURN</c>, or FOR INSERT.</summary>
 	static Statement.CreateTrigger Triggered(bool @for)
 	{
@@ -729,6 +739,16 @@ public sealed class Sql2023WriterCoverageTests
 			["CreateDatabase.Primary"] = (
 				new Statement.CreateDatabase(new Identifier("d")) { Files = [new DatabaseFile([new Option(new Identifier("NAME"), new Expression.Reference(new QualifiedName([new Identifier("f")])), [])])] },
 				new Statement.CreateDatabase(new Identifier("d")) { Files = [new DatabaseFile([new Option(new Identifier("NAME"), new Expression.Reference(new QualifiedName([new Identifier("f")])), [])])], Primary = true }),
+			// Writer round: EXEC AS, a procedure's parameters without brackets, a function's body with no AS.
+			["ExecuteAs.Exec"] = (
+				new Statement.ExecuteAs(new DotGram.Sql.Ast.ExecutionContext(ExecutionContextKind.Caller, null)),
+				new Statement.ExecuteAs(new DotGram.Sql.Ast.ExecutionContext(ExecutionContextKind.Caller, null)) { Exec = true }),
+			["RoutineDefinition.Unbracketed"] = (
+				Procedure(Parameter()),
+				Procedure(Parameter()) with { Definition = Procedure(Parameter()).Definition with { Unbracketed = true } }),
+			["RoutineDefinition.AsOmitted"] = (
+				Scalar(false),
+				Scalar(true)),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

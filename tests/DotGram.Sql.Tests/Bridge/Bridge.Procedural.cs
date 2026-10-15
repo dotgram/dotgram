@@ -383,13 +383,10 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// <c>EXECUTE AS …</c>. The old tree keeps neither <c>EXEC</c> against <c>EXECUTE</c> nor the new one a member for
-		/// it, so a text that wrote EXEC stays a gap.
+		/// <c>EXECUTE AS …</c>. The old tree does not keep <c>EXEC</c> against <c>EXECUTE</c>, which is read from the text.
 		/// </summary>
 		static Ast.Statement ExecuteAs(Statement.ExecuteAs old)
 		{
-			if (Spelled(old) is not { } text || Words(text) is not ["EXECUTE", ..])
-				throw BridgeGap.Missing(old, "Statement.ExecuteAs (EXEC written for EXECUTE)");
 
 			Ast.ExecutionContextKind kind = old.Kind switch
 			{
@@ -406,6 +403,7 @@ static partial class Bridge
 			{
 				NoRevert = old.NoRevert,
 				Cookie   = cookie,
+				Exec     = Recover("Statement.ExecuteAs.Exec", Spelled(old), static text => Words(text) is ["EXEC", ..], false),
 			};
 		}
 

@@ -111,6 +111,9 @@ still applies to it, and only the gate for switching the grammar leaves them out
 - `Statement.ExecuteString.Exec`: `EXEC` against `EXECUTE` before a string run.
 - `RoutineDefinition.Proc`: `PROC` against `PROCEDURE` after CREATE or ALTER.
 - `ParameterDefinition.AsKeyword`: `@a AS INT` against `@a INT`.
+- `Statement.ExecuteAs.Exec`: `EXEC AS` against `EXECUTE AS`.
+- `RoutineDefinition.Unbracketed`: a procedure's parameters without their brackets, `CREATE PROCEDURE p @a INT AS …`.
+- `RoutineDefinition.AsOmitted`: a function's body or inline RETURN with no AS before it.
 
 ## Prefixed pivot and unpivot names
 
@@ -186,7 +189,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Counter | Count |
 | --- | ---: |
 | ByCase Clause.ColumnDefinition.Type | 1666 |
-| ByCase Clause.Dropped.Tail | 0 |
+| ByCase Clause.Dropped.Tail | 5 |
 | ByCase Clause.For.Kind | 20 |
 | ByCase Clause.For.Options | 44 |
 | ByCase Clause.GroupBy.With | 2 |
@@ -258,6 +261,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Recovered SelectColumn.ExpressionItem.AsKeyword | 400 |
 | Recovered Statement.Delete.FromOmitted | 83 |
 | Recovered Statement.DropRoutine.Proc | 24 |
+| Recovered Statement.ExecuteAs.Exec | 20 |
 | Recovered Statement.ExecuteModule.Keyword | 76 |
 | Recovered Statement.ExecuteString.Exec | 22 |
 | Recovered Statement.SetTransaction.Tran | 23 |
@@ -287,7 +291,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.SortSpecification` | Queries | A | — | — | 1303 |
 | `Clause.QualifiedAsterisk` | Queries | A | — | — | 1221 |
 | `Expression.Comparison` | Values | A | — | — | 841 |
-| `Statement.AlterTable` | Tables | B | converted 518, gap 19 | 19: needs decision: inventory Statement.AlterTable (MERGE) (7); needs decision: inventory Statement.AlterTable (SPLIT) (5) | 644 |
+| `Statement.AlterTable` | Tables | B | converted 540, gap 19 | 19: needs decision: inventory Statement.AlterTable (MERGE) (7); needs decision: inventory Statement.AlterTable (SPLIT) (5) | 644 |
 | `Clause.EventPiece` | Monitoring | C | — | — | 514 |
 | `Expression.NamedArgument` | Values | A | gap 43 | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
 | `Statement.CreateIndex` | Tables | C | converted 358, gap 57 | 57: needs decision: inventory Statement.CreateIndex (SELECTIVE XML INDEX, which no record holds) (31); needs decision: inventory Statement.CreateIndex (a secondary XML index FOR a selective index's path) (13) | 495 |
@@ -370,7 +374,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.OdbcEscape` | Values | C | — | — | 56 |
 | `Statement.DatabaseAuditSpecificationDefinition` | Monitoring | C | gap 56 | 56: no target record: Statement.CreateDatabaseAuditSpecification (56) | 56 |
 | `Expression.Collated` | Values | A | — | — | 55 |
-| `Statement.DropIndex` | Drop | C | converted 32, gap 17 | 19: needs decision: inventory Statement.DropIndex (a place `fg1 ( c1 )`, which no value of an option holds) (5); needs decision: inventory Statement.DropIndex (`idX on tableX` kept as written, against `idX ON tableX` as the writer prints it, which the old tree compares exactly) (2) | 53 |
+| `Statement.DropIndex` | Drop | C | converted 40, gap 8 | 10: needs decision: inventory Statement.DropIndex (`idX on tableX` kept as written, against `idX ON tableX` as the writer prints it, which the old tree compares exactly) (2); needs decision: inventory Statement.DropIndex (`i1 on dbo.t1` kept as written, against `i1 ON dbo.t1` as the writer prints it, which the old tree compares exactly) (1) | 53 |
 | `Statement.Merge` | Dml | A | converted 46 | — | 53 |
 | `Expression.IsNull` | Values | A | — | — | 52 |
 | `Statement.AvailabilityGroupDefinition` | Server | C | gap 51 | 51: no target record: Statement.CreateAvailabilityGroup (51) | 51 |
@@ -443,7 +447,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.PartitionFunctionDefinition` | Database | C | converted 14, gap 7 | 7: needs decision: Trees.FreeText (Statement.PartitionFunctionDefinition.Tail, written otherwise than the writer prints it) (7) | 21 |
 | `TableReference.Unpivot` | Tables | C | — | — | 21 |
 | `Statement.CredentialDefinition` | Security | C | gap 20 | 20: no target record: Statement.CreateCredential (20) | 20 |
-| `Statement.ExecuteAs` | Procedural | C | converted 18, gap 2 | 2: no target record: Statement.ExecuteAs (EXEC written for EXECUTE) (2) | 20 |
+| `Statement.ExecuteAs` | Procedural | C | converted 20 | — | 20 |
 | `Statement.FullTextCatalogDefinition` | Database | C | converted 15, gap 5 | 5: needs decision: Trees.FreeText (Statement.FullTextCatalogDefinition.Tail, written otherwise than the writer prints it) (5) | 20 |
 | `Statement.RaiseError` | Procedural | C | converted 12 | — | 20 |
 | `Statement.RuleDefinition` | Routines | C | converted 19, gap 1 | 1: needs decision: Trees.FreeText (Statement.RuleDefinition.Tail, written otherwise than the writer prints it) (1) | 20 |

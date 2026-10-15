@@ -158,6 +158,9 @@ static partial class Bridge
 		"Statement.ExecuteString.Exec",
 		"RoutineDefinition.Proc",
 		"ParameterDefinition.AsKeyword",
+		"Statement.ExecuteAs.Exec",
+		"RoutineDefinition.Unbracketed",
+		"RoutineDefinition.AsOmitted",
 	];
 
 	/// <summary>

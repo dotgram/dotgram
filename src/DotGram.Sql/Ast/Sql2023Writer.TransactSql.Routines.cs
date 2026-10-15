@@ -432,7 +432,7 @@ public static partial class Sql2023Writer
 			if (routine.Body is not (RoutineBody.Statements or RoutineBody.ExternalName or RoutineBody.Inline))
 			{
 				if (create.Verb is not null || TransactSqlMembers(routine))
-					throw Misplaced(create, "Verb, Options, ForReplication, Number, Proc, Order or a T-SQL parameter", "beside the standard's body");
+					throw Misplaced(create, "Verb, Options, ForReplication, Number, Proc, Order, Unbracketed, AsOmitted or a T-SQL parameter", "beside the standard's body");
 
 				return false;
 			}
@@ -469,7 +469,7 @@ public static partial class Sql2023Writer
 		/// <summary>Whether a standard routine carries a member only T-SQL's form writes.</summary>
 		static bool TransactSqlMembers(RoutineDefinition routine)
 		{
-			return routine.Options.Count > 0 || routine.ForReplication || routine.Number is not null || routine.Proc || routine.Order.Count > 0
+			return routine.Options.Count > 0 || routine.ForReplication || routine.Number is not null || routine.Proc || routine.Order.Count > 0 || routine.Unbracketed || routine.AsOmitted
 				|| routine.Returns is { Variable: not null } or { Elements: not null }
 				|| routine.Parameters.Any(static one => one.ShortOutput || one.AsKeyword || one.ReadOnly || one.Varying || one.Nullable is not null);
 		}
@@ -483,6 +483,9 @@ public static partial class Sql2023Writer
 		{
 			if (routine.Returns is not null || routine.Order.Count > 0)
 				throw Misplaced(routine, "Returns or Order", "on a procedure");
+
+			if (routine.AsOmitted)
+				throw Misplaced(routine, "AsOmitted", "on a procedure, whose AS is required (ProcedureStatement)");
 
 			if (routine.Body is RoutineBody.Inline)
 				throw Misplaced(routine, "Body", "an inline query, which only a function returns");
@@ -503,7 +506,7 @@ public static partial class Sql2023Writer
 				PutExpression(number);
 			}
 
-			PutTransactSqlParameters(routine.Parameters, procedure: true);
+			PutTransactSqlParameters(routine, routine.Parameters, procedure: true);
 			PutRoutineOptions(routine, routine.Options);
 
 			if (routine.ForReplication)
@@ -521,8 +524,8 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutTransactSqlFunction(RoutineDefinition routine)
 		{
-			if (routine.ForReplication || routine.Number is not null || routine.Proc)
-				throw Misplaced(routine, "ForReplication, Number or Proc", "on a function");
+			if (routine.ForReplication || routine.Number is not null || routine.Proc || routine.Unbracketed)
+				throw Misplaced(routine, "ForReplication, Number, Proc or Unbracketed", "on a function, whose parameters' brackets are required");
 
 			if (routine.Returns is not { } returns || returns.OnlyPassThrough || returns.Locator || returns.CastFrom is not null || returns.CastFromLocator || returns.TableColumns is not null)
 				throw Misplaced(routine, "Returns", "missing, or with the standard's members beside T-SQL's body");
@@ -554,6 +557,9 @@ public static partial class Sql2023Writer
 					if (!external)
 						throw Misplaced(routine, "Body", "other than EXTERNAL NAME after RETURNS TABLE and its columns");
 
+					if (routine.AsOmitted)
+						throw Misplaced(routine, "AsOmitted", "on a CLR table function, whose AS EXTERNAL NAME is required (FunctionReturns)");
+
 					CheckReturned(routine, columns);
 					break;
 
@@ -577,7 +583,7 @@ public static partial class Sql2023Writer
 
 			Word("FUNCTION");
 			PutName(routine.Name);
-			PutTransactSqlParameters(routine.Parameters, procedure: false);
+			PutTransactSqlParameters(routine, routine.Parameters, procedure: false);
 			Word("RETURNS");
 
 			if (returns.Variable is { } named)
@@ -637,12 +643,20 @@ public static partial class Sql2023Writer
 		/// OUT] [READONLY]</c>, or a cursor's <c>@c [AS] CURSOR VARYING OUTPUT</c> and nothing more (<c>Msg 1051</c>). A
 		/// function's are in brackets; a procedure's are written so as well, which reads the same.
 		/// </summary>
-		void PutTransactSqlParameters(SqlList<ParameterDefinition> parameters, bool procedure)
+		void PutTransactSqlParameters(RoutineDefinition routine, SqlList<ParameterDefinition> parameters, bool procedure)
 		{
+			// RoutineParameters: a procedure's list, where it has one, in brackets or not; no list, no brackets.
 			if (parameters.Count == 0 && procedure)
-				return;
+			{
+				if (routine.Unbracketed)
+					throw Misplaced(routine, "Unbracketed", "on a procedure of no parameters, which has no brackets to leave out");
 
-			Open();
+				return;
+			}
+
+			if (!routine.Unbracketed)
+				Open();
+
 			Each(parameters, parameter =>
 			{
 				if (parameter.Name is not { } name)
@@ -693,7 +707,8 @@ public static partial class Sql2023Writer
 				if (parameter.ReadOnly)
 					Word("READONLY");
 			});
-			Close();
+			if (!routine.Unbracketed)
+				Close();
 		}
 
 		/// <summary>
@@ -771,10 +786,10 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutTransactSqlBody(RoutineDefinition routine)
 		{
-			PutModuleBody(routine, routine.Options, routine.Body);
+			PutModuleBody(routine, routine.Options, routine.Body, asWord: !routine.AsOmitted);
 		}
 
-		void PutModuleBody(ISqlNode routine, SqlList<RoutineOption> options, RoutineBody body)
+		void PutModuleBody(ISqlNode routine, SqlList<RoutineOption> options, RoutineBody body, bool asWord = true)
 		{
 			var native = options.Any(static one => one is RoutineOption.Setting { Option.Name: { Style: IdentifierStyle.Regular } name } && name.Text.Equals("NATIVE_COMPILATION", StringComparison.OrdinalIgnoreCase));
 			var atomic = body is RoutineBody.Statements { List: [Statement.Compound { Atomic: not null }] };
@@ -782,7 +797,8 @@ public static partial class Sql2023Writer
 			if (native != atomic)
 				throw Misplaced(routine, "Body", native ? "other than one atomic block with NATIVE_COMPILATION (Msg 10783)" : "an atomic block without NATIVE_COMPILATION (Msg 10782)");
 
-			Word("AS");
+			if (asWord)
+				Word("AS");
 
 			switch (body)
 			{

@@ -27,8 +27,6 @@ public sealed class DropWriterTests
 	/// <summary><c>.x</c>: a name whose first part is empty.</summary>
 	static readonly QualifiedName Led = new([new Identifier(""), new Identifier("x")]);
 
-	static readonly Expression Str = new LiteralValue.String("'fs'", StringLiteralKind.Character);
-
 	static Expression Number(string text)
 	{
 		return new LiteralValue.Numeric(text, NumericLiteralKind.DecimalInteger);
@@ -44,10 +42,10 @@ public sealed class DropWriterTests
 		return new Option(new Identifier(name), value, []);
 	}
 
-	/// <summary><c>MOVE TO</c> the place given: <c>MOVE</c> with <c>TO</c> among its further words.</summary>
-	static Option Moved(Expression place)
+	/// <summary><c>MOVE TO</c> the place given: <c>MOVE</c> with <c>TO</c> among its further words, the target its place.</summary>
+	static Option Moved(Identifier target, SqlList<Identifier>? columns = null)
 	{
-		return new Option(new Identifier("MOVE"), place, []) { Words = [new Identifier("TO")] };
+		return new Option(new Identifier("MOVE"), null, []) { Words = [new Identifier("TO")], Place = new Placement(PlacementKind.MoveTo, target, columns) };
 	}
 
 	/// <summary><c>WAIT_AT_LOW_PRIORITY (MAX_DURATION = 5 MINUTES, ABORT_AFTER_WAIT = SELF)</c>.</summary>
@@ -122,8 +120,8 @@ public sealed class DropWriterTests
 			"SensitivityClassification" => new Statement.DropSensitivityClassification([Q]),
 			"MasterKey" => new Statement.DropMasterKey(),
 			"DatabaseEncryptionKey" => new Statement.DropDatabaseEncryptionKey(),
-			"Index named" => new Statement.DropIndex([new DroppedIndex.Named(X, Q, [Option("MAXDOP", Number("2")), Option("ONLINE", Ref("ON")), Moved(Ref("fg")), Option("DATA_COMPRESSION", Ref("PAGE")) with { Partitions = [new PartitionRange(Number("1"), Number("3"))] }, Waited()])], true),
-			"Index qualified" => new Statement.DropIndex([new DroppedIndex.Qualified(Q), new DroppedIndex.Named(X, S, [Moved(new LiteralValue.String("'fg'", StringLiteralKind.Character)), new Option(new Identifier("FILESTREAM_ON"), Str, [])])], false),
+			"Index named" => new Statement.DropIndex([new DroppedIndex.Named(X, Q, [Option("MAXDOP", Number("2")), Option("ONLINE", Ref("ON")), Moved(new Identifier("fg")), Option("DATA_COMPRESSION", Ref("PAGE")) with { Partitions = [new PartitionRange(Number("1"), Number("3"))] }, Waited()])], true),
+			"Index qualified" => new Statement.DropIndex([new DroppedIndex.Qualified(Q), new DroppedIndex.Named(X, S, [Moved(new Identifier("fg", IdentifierStyle.String)), new Option(new Identifier("FILESTREAM_ON"), null, []) { Place = new Placement(PlacementKind.FilestreamOn, new Identifier("fs", IdentifierStyle.String), null) }])], false),
 			"Signature" => new Statement.DropSignature(false, Q, [new SignedBy.Certificate(new QualifiedName([X])), new SignedBy.AsymmetricKey(new QualifiedName([Y]))]),
 			"Counter signature" => new Statement.DropSignature(true, Q, [new SignedBy.Certificate(new QualifiedName([X]))]) { Class = SecurableClass.Object },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
@@ -334,15 +332,15 @@ public sealed class DropWriterTests
 			// RowCompression | ColumnstoreCompression.
 			"a compression the index has no word for" => Indexed(Option("DATA_COMPRESSION", Ref("PREFIX"))),
 			// DropIndexOption reads MOVE TO ?!DEFAULT: Msg 156.
-			"MOVE TO a bare DEFAULT" => Indexed(Moved(Ref("DEFAULT"))),
+			"MOVE TO a bare DEFAULT" => Indexed(Moved(new Identifier("DEFAULT"))),
 			// DropIndexOption reads MOVE TO, and MOVE alone is Msg 155.
 			"MOVE without TO" => Indexed(new Option(new Identifier("MOVE"), Ref("fg"), [])),
 			// DropIndexOption: FILESTREAM_ON when p is not { Columns: not null }.
-			"FILESTREAM_ON a scheme with its column" => Indexed(new Option(new Identifier("FILESTREAM_ON"), new Expression.Invocation(new QualifiedName([new Identifier("ps")]), [new Argument(Ref("a"))]), [])),
-			// no value of an option holds a place with columns (an open question), so the scheme and its column are not written.
-			"MOVE TO a scheme with its column" => Indexed(Moved(new Expression.Invocation(new QualifiedName([new Identifier("ps")]), [new Argument(Ref("a"))]))),
+			"FILESTREAM_ON a scheme with its column" => Indexed(new Option(new Identifier("FILESTREAM_ON"), null, []) { Place = new Placement(PlacementKind.FilestreamOn, new Identifier("ps"), [new Identifier("a")]) }),
+			// MOVE TO's target is its place (Option.Place), never its value: DropIndexOption reads no value after MOVE TO.
+			"MOVE TO a scheme with its column" => Indexed(new Option(new Identifier("MOVE"), new Expression.Invocation(new QualifiedName([new Identifier("ps")]), [new Argument(Ref("a"))]), []) { Words = [new Identifier("TO")] }),
 			// DropIndexOption reads MOVE TO ?!DEFAULT, with or without a column after it.
-			"MOVE TO DEFAULT with a column" => Indexed(Moved(new Expression.Invocation(new QualifiedName([new Identifier("DEFAULT")]), [new Argument(Ref("a"))]))),
+			"MOVE TO DEFAULT with a column" => Indexed(Moved(new Identifier("DEFAULT"), [new Identifier("a")])),
 			// DropIndexOption reads MAXDOP = Digits: no sign.
 			"MAXDOP set to a signed number" => Indexed(Option("MAXDOP", Number("-1"))),
 			// Minutes = Number, an UnsignedNumericLiteral: no 0x.

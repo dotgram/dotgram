@@ -104,6 +104,9 @@ public abstract partial record Statement
 
 		/// <summary>T-SQL: EXECUTE AS (Transact-SQL). <c>WITH COOKIE INTO @c</c>: the variable the cookie goes into.</summary>
 		public Expression.Variable? Cookie { get; init; }
+
+		/// <summary>T-SQL: EXECUTE AS (Transact-SQL). <c>EXEC</c> written for <c>EXECUTE</c> (SessionStatement's ExecWord).</summary>
+		[Spelling] public bool Exec { get; init; }
 	}
 
 	/// <summary>T-SQL: REVERT (Transact-SQL). <c>REVERT [WITH COOKIE = value]</c>.</summary>

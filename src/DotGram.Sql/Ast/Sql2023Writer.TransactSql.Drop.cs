@@ -406,7 +406,7 @@ public static partial class Sql2023Writer
 		{
 			var name = option.Name.Style == IdentifierStyle.Regular ? option.Name.Text.ToUpperInvariant() : "";
 
-			if (option.Order is not null || option.EqualsOmitted || option.Words.Count > 0 && name != "MOVE"
+			if (option.Order is not null || option.EqualsOmitted || option.Words.Count > 0 && name != "MOVE" || option.Place is not null && name is not ("MOVE" or "FILESTREAM_ON")
 				|| option.Partitions is not null && name != "DATA_COMPRESSION" || option.Options.Count > 0 && name != "WAIT_AT_LOW_PRIORITY")
 				throw Misplaced(option, "a part", $"that {name} does not take in DROP INDEX's options");
 
@@ -429,15 +429,10 @@ public static partial class Sql2023Writer
 					PutRanges(option.Partitions);
 					break;
 
-				// MOVE TO a place, but not a bare DEFAULT; FILESTREAM_ON a place.
-				case "MOVE" when option is { Words: [{ Style: IdentifierStyle.Regular } to] } && Plain(to, "TO") && Place(option.Value) && KeyWord(option.Value) != "DEFAULT":
-				case "FILESTREAM_ON" when option.Words.Count == 0 && Place(option.Value):
-					PutOptionWord(option.Name);
-
-					foreach (var word in option.Words)
-						PutOptionWord(word);
-
-					PutExpression(option.Value!);
+				// MOVE TO a place, but not a bare DEFAULT; FILESTREAM_ON a place (Option.Place).
+				case "MOVE":
+				case "FILESTREAM_ON":
+					PutPlacedOption(option, filestream: true);
 					break;
 
 				// WAIT_AT_LOW_PRIORITY (MAX_DURATION = n [MINUTES], ABORT_AFTER_WAIT = NONE | SELF | BLOCKERS).
@@ -459,21 +454,6 @@ public static partial class Sql2023Writer
 			return value is Expression.Reference { Name.Parts: [{ Style: IdentifierStyle.Regular } word] } ? word.Text.ToUpperInvariant() : null;
 		}
 
-		/// <summary>
-		/// T-SQL: DROP INDEX (Transact-SQL). Where rows or streams go (<c>PlacementTarget</c>): a filegroup or a scheme by a
-		/// name of one part, or a string. A scheme with its column (<c>MOVE TO ps (a)</c>, <c>MOVE TO 'fg' (a)</c>) has no
-		/// value of an option that holds it yet, and is refused.
-		/// </summary>
-		static bool Place(Expression? value)
-		{
-			return value switch
-			{
-				Expression.Reference { Name.Parts.Count: 1 } => true,
-				LiteralValue.String { Kind: StringLiteralKind.Character, CharacterSet: null, UnicodeEscape: null } => true,
-				_ => false,
-			};
-		}
-
 		/// <summary><c>MAX_DURATION = n [MINUTES]</c> then <c>ABORT_AFTER_WAIT = NONE | SELF | BLOCKERS</c>, and nothing else.</summary>
 		static bool LowPriority(Option duration, Option abort)
 		{
@@ -485,8 +465,8 @@ public static partial class Sql2023Writer
 			};
 
 			return minutes
-				&& duration is { Options.Count: 0, Words.Count: 0, Partitions: null, Order: null, EqualsOmitted: false } && Plain(duration.Name, "MAX_DURATION")
-				&& abort is { Options.Count: 0, Words.Count: 0, Partitions: null, Order: null, EqualsOmitted: false } && Plain(abort.Name, "ABORT_AFTER_WAIT")
+				&& duration is { Options.Count: 0, Words.Count: 0, Partitions: null, Order: null, Place: null, EqualsOmitted: false } && Plain(duration.Name, "MAX_DURATION")
+				&& abort is { Options.Count: 0, Words.Count: 0, Partitions: null, Order: null, Place: null, EqualsOmitted: false } && Plain(abort.Name, "ABORT_AFTER_WAIT")
 				&& KeyWord(abort.Value) is "NONE" or "SELF" or "BLOCKERS";
 		}
 

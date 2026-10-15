@@ -131,6 +131,7 @@ static partial class Bridge
 				ForReplication = old.ForReplication,
 				Number         = old.Number is null ? null : new Ast.LiteralValue.Numeric(old.Number, Ast.NumericLiteralKind.DecimalInteger),
 				Proc           = Recover("RoutineDefinition.Proc", Spelled(old), static text => Words(text) is [.., "PROC"] or ["CREATE" or "ALTER", "PROC", ..] or ["CREATE", "OR", "ALTER", "PROC", ..], false),
+				Unbracketed    = old.Parameters.Length > 0 && Recover("RoutineDefinition.Unbracketed", Spelled(old), static text => !Bracketed(text), false),
 			};
 
 			return new Ast.Statement.CreateRoutine { Definition = definition, Verb = Verb(old, old.Verb) };
@@ -171,13 +172,77 @@ static partial class Bridge
 				body    = old.External is { } external ? new Ast.RoutineBody.ExternalName(Values.Name(old, external)) : new Ast.RoutineBody.Statements(Each(old.Body, StatementOf));
 			}
 
+			if (old.Parameters.Length > 0 && Spelled(old) is { } spelled && !Bracketed(spelled))
+				throw BridgeGap.Open(old, "inventory Statement.CreateFunction (parameters without brackets, which RoutineDefinition.Unbracketed is refused on)");
+
 			var definition = new Ast.RoutineDefinition(Ast.RoutineKind.Function, Values.Name(old, old.Name), Parameters(old, old.Parameters), returns, [], body)
 			{
+				AsOmitted = Recover("RoutineDefinition.AsOmitted", Spelled(old), text => !AsBefore(old, text, body), false),
 				Options = RoutineOptions(old, old.Options),
 				Order   = Each(old.Order ?? [], one => one is Clause.SortSpecification sort ? Queries.Sort(sort) : throw BridgeGap.Open(old, $"inventory {NameOf(one)} (in ORDER)")),
 			};
 
 			return new Ast.Statement.CreateRoutine { Definition = definition, Verb = Verb(old, old.Verb) };
+		}
+
+		/// <summary>
+		/// Whether a routine's parameters are written in brackets: the token after its name, and after <c>;n</c> where it has
+		/// one, opens them.
+		/// </summary>
+		static bool Bracketed(string text)
+		{
+			var tokens = SqlTokens.Of(text);
+			var at     = tokens.FindIndex(static one => one.Kind == SqlTokens.Kind.Word && one.Text.ToUpperInvariant() is "PROC" or "PROCEDURE" or "FUNCTION") + 1;
+
+			// The name: parts between dots, a part left out between two of them.
+			at++;
+
+			while (at < tokens.Count && tokens[at].Text == ".")
+			{
+				at++;
+
+				if (at < tokens.Count && tokens[at].Text != ".")
+					at++;
+			}
+
+			if (at < tokens.Count && tokens[at].Text == ";")
+				at += 2;
+
+			return at < tokens.Count && tokens[at].Text == "(";
+		}
+
+		/// <summary>
+		/// Whether AS stands before a function's body: the last word before its statements, before the RETURN of an inline
+		/// query, or before EXTERNAL NAME.
+		/// </summary>
+		static bool AsBefore(Statement.CreateFunction old, string text, Ast.RoutineBody body)
+		{
+			if (body is Ast.RoutineBody.ExternalName)
+			{
+				var all = Words(text);
+
+				for (var at = all.Length - 2; at > 0; at--)
+				{
+					if (all[at] == "EXTERNAL" && all[at + 1] == "NAME")
+						return all[at - 1] == "AS";
+				}
+
+				return true;
+			}
+
+			// An inline query is built by its rule, unlocated: its RETURN is the text's first, which no query and no option holds.
+			if (body is Ast.RoutineBody.Inline)
+			{
+				var all = Words(text);
+				var at  = Array.IndexOf(all, "RETURN");
+
+				return at <= 0 || all[at - 1] == "AS";
+			}
+
+			if (old.Body is not [var first, ..] || !first.Span.Known || !old.Span.Known)
+				return true;
+
+			return Words(text[..(first.Span.At - old.Span.At)]) is not [.., var last] || last == "AS";
 		}
 
 		/// <summary>
