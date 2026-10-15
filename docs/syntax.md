@@ -1221,8 +1221,8 @@ statement with no left operand, which is why it needs no third marker.
 | `left: E & op << n` | postfix, level `n` |
 | no marker | an atom — a literal, a group, a call |
 
-Higher binds tighter. The numbers are the author's and need not be contiguous: gaps are
-where a level is inserted later without renumbering the rest.
+Higher binds tighter. The numbers are the author's, from 0 to 9999, and need not be
+contiguous: gaps are where a level is inserted later without renumbering the rest.
 
 **A step is taken only where the operand before it could not have taken it.** The rule is
 read as an atom or a prefix followed by any number of infix and postfix steps, and a step is
@@ -1239,11 +1239,13 @@ E : @string = left: E & '+' & right: E                             << 1  => @(le
 ```
 
 reads `12*3`, and refuses `1+2*3`: `*` is stronger than `+`, so the text can only be
-`1+(2*3)`, and the guard refuses `2*3`. It is not read as `(1+2)*3`. The operand read last is
-what counts, at whatever strength it was read: one read at 0 — a prefix written without a
-strength, `'!' & E`, or a middle operand an optional else did not follow — leaves no step to
-take. After a postfix step, or anything else read last, a step may be anything the strength
-being read allows. A strength binds the operand an alternative ends with, a `when` after it
+`1+(2*3)`, and the guard refuses `2*3`. It is not read as `(1+2)*3`. A `when` in a rule that
+calls this one and reads the value is handed only the grouping the strengths say, the same
+way. The operand read last is what counts, at whatever strength it was read: one read at 0 —
+a prefix written without a strength, `'!' & E`, or a middle operand an optional else did not
+follow — leaves no step to take. After a postfix step, or anything else read last, a step may
+be anything the strength being read allows; so may it after an alternative that ends with its
+operand on one reading and with something else on another (`'~' & E & '!'?`). A strength binds the operand an alternative ends with, a `when` after it
 included; an operand the alternative may or may not end with — inside an optional, a choice or
 a repetition — is read at 0, and the compiler says so (`GRAM4042`).
 

@@ -516,10 +516,7 @@ sealed partial class Machine
 		if (_ceils.TryGetValue(rule, out var known))
 			return known;
 
-		// The engine keeps the ceiling in the high half of `power` (Compile), so a strength has to
-		// fit the low half; one that does not is read as it was before there was a ceiling.
 		var ceils = _graph.Climbing.TryGetValue(rule, out var levels) && levels.Count > 0 &&
-			levels.Values.Max() < 0x7FFF &&
 			(!OverKinds || rule.GivesBack ||
 				levels.Keys.Any(static tail => NodeWalk.Descendants(tail).Any(static one => one is Node.Guard)));
 

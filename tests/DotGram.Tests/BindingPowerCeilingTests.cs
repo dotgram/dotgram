@@ -191,6 +191,48 @@ public sealed class BindingPowerCeilingTests
 	}
 
 	/// <summary>
+	/// An alternative that may end with its operand or with something after it leaves the loop
+	/// what it left before there was a ceiling: which of the two was read last is not kept.
+	/// </summary>
+	[Theory]
+	[InlineData("~11*2", "(~(11*2))")]
+	[InlineData("~1!*2", "((~1)*2)")]
+	[InlineData("~1*2", "((~1)*2)")]
+	[InlineData("3[1+1]*2", "((3[(1+1))*2)")]
+	[InlineData("3[11*2", "(3[(11*2))")]
+	[InlineData("3[1*2", "((3[1)*2)")]
+	public void An_alternative_that_may_end_either_way_leaves_the_loop_unlimited(string input, string? expected)
+	{
+		AllRead(
+			"""
+			Start : @string = e: E => @(e)
+			E : @string = l: E & '*' & when @(l.Length > 1) & r: E << 2   => @("(" + l + "*" + r + ")")
+			            | l: E & '+' & r: E << 1                          => @("(" + l + "+" + r + ")")
+			            | l: E & '[' & i: E & ']'? << 9                   => @("(" + l + "[" + i + ")")
+			            | '~' & o: E & '!'?                               => @("(~" + o + ")")
+			            | d: ['0'..'9']+                                  => @(d)
+			""",
+			input,
+			expected,
+			GrammarNormalizer.UnreachedStrength);
+	}
+
+	[Fact]
+	public void A_binding_power_is_at_most_9999()
+	{
+		var result = Compile(
+			"""
+			Start = E
+			E = E & '+' & E << 10000
+			  | ['0'..'9']
+			parse Start
+			""",
+			new GramCompilerOptions());
+
+		Assert.Contains(result.Diagnostics, static one => one.Id == DotGram.Grammar.Parsing.GramParser.InvalidCount);
+	}
+
+	/// <summary>
 	/// A caller's guard that reads the climbed value: the only reading left at each end is
 	/// the one the strengths say.
 	/// </summary>

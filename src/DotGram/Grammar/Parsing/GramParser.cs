@@ -28,6 +28,9 @@ public sealed class GramParser
 	public const string ExpectedExpression  = "GRAM2003";
 	public const string ExpectedName        = "GRAM2004";
 	public const string InvalidCount        = "GRAM2005";
+
+	/// <summary>The largest strength <c>&lt;&lt;</c> or <c>&gt;&gt;</c> may state (GRAM2005).</summary>
+	public const int MaxBindingPower        = 9999;
 	public const string NamespaceNeedsWith  = "GRAM2006";
 	public const string PublicationNeedsName = "GRAM2007";
 	public const string PublicationTypeOnRule = "GRAM2008";
@@ -768,14 +771,19 @@ public sealed class GramParser
 		Take();
 		Take();
 
-		var level = Current.Kind == TokenKind.Integer && Current.Value is { } text &&
-			int.TryParse(text, out var parsed)
-				? parsed
-				: -1;
+		var number = Current.Kind == TokenKind.Integer;
+		var level  = number && Current.Value is { } text && int.TryParse(text, out var parsed) ? parsed : -1;
 
-		if (level < 0)
-			Report(InvalidCount, "A binding power is a whole number: '<< 2', '>> 3'.");
-		else
+		// At most MaxBindingPower: `<< n` reads its operand at n + 1, and the engine keeps that and
+		// the ceiling a loop carries (§4.3.1) side by side in one int.
+		if (level < 0 || level > MaxBindingPower)
+		{
+			Report(InvalidCount, $"A binding power is a whole number from 0 to {MaxBindingPower}: '<< 2', '>> 3'.");
+
+			level = -1;
+		}
+
+		if (number)
 			Take();
 
 		return new Expr.Bound(pattern, isLeft, level) { At = From(start) };
