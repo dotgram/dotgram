@@ -413,6 +413,9 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(DeviceKind)]         = v => new Statement.BackupServer([new BackupDevice.Physical((DeviceKind)v, new LiteralValue.String("'f'", StringLiteralKind.Character))]),
 		[typeof(KeyPlaceKind)]       = v => new Statement.BackupMasterKey(new KeyPlace((KeyPlaceKind)v, new LiteralValue.String("'f'", StringLiteralKind.Character)), new LiteralValue.String("'p'", StringLiteralKind.Character)),
 		[typeof(RangeSide)]          = v => new Statement.CreatePartitionFunction(new Identifier("f"), new DataType.Numeric(NumericTypeKind.Int), []) { Range = (RangeSide)v },
+		// Security: the database encryption key's algorithm, and the change a block predicate blocks.
+		[typeof(DatabaseKeyAlgorithm)] = v => new Statement.AlterDatabaseEncryptionKey(new DatabaseEncryptionKeyChange.Regenerate((DatabaseKeyAlgorithm)v)),
+		[typeof(BlockOperation)]     = v => new Statement.AlterSecurityPolicy(T, new SecurityPolicyChange.Predicates([new PolicyPredicate.DropBlock(T, (BlockOperation)v)])),
 	};
 
 	/// <summary>
