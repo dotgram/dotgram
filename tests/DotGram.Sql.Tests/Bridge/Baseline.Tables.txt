@@ -4,13 +4,13 @@
 # where `converted` falls or any of the last five rises, and prints a gain; this file is rewritten
 # deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
 
-Clause.ColumnDefinition = 0/114/0/0/0/0/0
+Clause.ColumnDefinition = 0/116/0/0/0/0/0
 Clause.ColumnOption = 0/107/0/0/0/0/0
 Clause.Connection = 0/0/0/0/0/0/0
 Clause.ConstraintDefinition = 0/36/0/0/0/0/0
 Clause.Dropped = 0/2/0/0/0/0/0
 Clause.JsonColumn = 0/1/0/0/0/0/0
-Clause.Option = 0/153/0/0/0/0/0
+Clause.Option = 0/157/0/0/0/0/0
 Clause.Placement = 0/0/0/0/0/0/0
 Clause.References = 0/0/0/0/0/0/0
 Clause.SystemTime = 0/0/0/0/0/0/0
@@ -19,7 +19,7 @@ Statement.AlterFullTextIndex = 70/22/0/0/0/0/0
 Statement.AlterIndex = 134/14/0/0/0/0/0
 Statement.AlterTable = 518/19/0/0/0/0/0
 Statement.CreateIndex = 358/57/0/0/0/0/0
-Statement.CreateTableAsSelect = 22/29/0/0/0/0/0
+Statement.CreateTableAsSelect = 22/31/0/0/0/0/0
 Statement.FullTextIndexDefinition = 45/3/0/0/0/0/0
 Statement.SequenceDefinition = 46/1/0/0/0/0/0
 Statement.StatisticsDefinition = 43/0/0/0/0/0/0

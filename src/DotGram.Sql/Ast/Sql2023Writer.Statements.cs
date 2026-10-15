@@ -617,6 +617,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.CreateRoutine routine:
+					if (PutTransactSqlRoutine(routine))
+						break;
+
 					Word("CREATE");
 					PutRoutine(routine.Definition);
 					break;

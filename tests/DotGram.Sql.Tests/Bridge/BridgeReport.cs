@@ -132,6 +132,8 @@ static class BridgeReport
 		  are written; a delete rule alone is first, as the standard's parser has it.
 		- `Statement.ExecuteModule.Keyword`: `EXEC` against `EXECUTE` before a module; a bare call has neither.
 		- `Statement.ExecuteString.Exec`: `EXEC` against `EXECUTE` before a string run.
+		- `RoutineDefinition.Proc`: `PROC` against `PROCEDURE` after CREATE or ALTER.
+		- `ParameterDefinition.AsKeyword`: `@a AS INT` against `@a INT`.
 
 		## Prefixed pivot and unpivot names
 

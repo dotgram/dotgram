@@ -31,6 +31,8 @@ static partial class Bridge
 			made = old switch
 			{
 				Statement.Execute execute => Execute(execute),
+				Statement.CreateProcedure procedure => Procedure(procedure),
+				Statement.CreateFunction function => Function(function),
 				Query.FromExecute         => throw BridgeGap.Open(old, "inventory Query.FromExecute (outside an INSERT)"),
 				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
 				_                       => null,
@@ -106,6 +108,165 @@ static partial class Bridge
 				At           = old.At is null ? null : Values.Part(old, old.At),
 				Options      = options,
 			};
+		}
+
+		/// <summary>
+		/// <c>CREATE [OR ALTER] | ALTER PROC[EDURE] p[;n] @a … WITH … FOR REPLICATION AS …</c>. PROC against PROCEDURE is read
+		/// from the text.
+		/// </summary>
+		static Ast.Statement Procedure(Statement.CreateProcedure old)
+		{
+			var definition = new Ast.RoutineDefinition(Ast.RoutineKind.Procedure, Values.Name(old, old.Name), Parameters(old, old.Parameters), null, [],
+				old.External is { } external ? new Ast.RoutineBody.ExternalName(Values.Name(old, external)) : new Ast.RoutineBody.Statements(Each(old.Body, StatementOf)))
+			{
+				Options        = RoutineOptions(old, old.Options),
+				ForReplication = old.ForReplication,
+				Number         = old.Number is null ? null : new Ast.LiteralValue.Numeric(old.Number, Ast.NumericLiteralKind.DecimalInteger),
+				Proc           = Recover("RoutineDefinition.Proc", Spelled(old), static text => Words(text) is [.., "PROC"] or ["CREATE" or "ALTER", "PROC", ..] or ["CREATE", "OR", "ALTER", "PROC", ..], false),
+			};
+
+			return new Ast.Statement.CreateRoutine { Definition = definition, Verb = Verb(old, old.Verb) };
+		}
+
+		/// <summary>
+		/// <c>CREATE FUNCTION f (…) RETURNS …</c>: a type and a body or an external name; TABLE and RETURN a query; TABLE and
+		/// its columns, ORDER and an external name; or a variable and its table, and a body.
+		/// </summary>
+		static Ast.Statement Function(Statement.CreateFunction old)
+		{
+			Ast.ReturnsDefinition returns;
+			Ast.RoutineBody body;
+
+			if (old.Returns is not { } type)
+				throw BridgeGap.Open(old, "inventory Statement.CreateFunction (no RETURNS)");
+
+			if (old.Variable is { } variable)
+			{
+				returns = new Ast.ReturnsDefinition(null, null) { Variable = new Ast.Identifier(variable), Elements = Elements(old, old.Columns ?? []) };
+				body    = new Ast.RoutineBody.Statements(Each(old.Body, StatementOf));
+			}
+			else if (type.Equals("TABLE", StringComparison.OrdinalIgnoreCase) && old.Columns is { } columns)
+			{
+				returns = new Ast.ReturnsDefinition(null, null) { TableKeyword = true, Elements = Elements(old, columns) };
+				body    = old.External is { } external ? new Ast.RoutineBody.ExternalName(Values.Name(old, external)) : throw BridgeGap.Open(old, "inventory Statement.CreateFunction (a CLR table without EXTERNAL NAME)");
+			}
+			else if (type.Equals("TABLE", StringComparison.OrdinalIgnoreCase))
+			{
+				returns = new Ast.ReturnsDefinition(null, null) { TableKeyword = true };
+				body    = old.Body is [Statement.Select select] && StatementOf(select) is Ast.Statement.Select query
+					? new Ast.RoutineBody.Inline(query)
+					: throw BridgeGap.Open(old, "inventory Statement.CreateFunction (an inline body that is not one query)");
+			}
+			else
+			{
+				returns = new Ast.ReturnsDefinition(Printed(old, type, "Statement.CreateFunction.Returns"), null);
+				body    = old.External is { } external ? new Ast.RoutineBody.ExternalName(Values.Name(old, external)) : new Ast.RoutineBody.Statements(Each(old.Body, StatementOf));
+			}
+
+			var definition = new Ast.RoutineDefinition(Ast.RoutineKind.Function, Values.Name(old, old.Name), Parameters(old, old.Parameters), returns, [], body)
+			{
+				Options = RoutineOptions(old, old.Options),
+				Order   = Each(old.Order ?? [], one => one is Clause.SortSpecification sort ? Queries.Sort(sort) : throw BridgeGap.Open(old, $"inventory {NameOf(one)} (in ORDER)")),
+			};
+
+			return new Ast.Statement.CreateRoutine { Definition = definition, Verb = Verb(old, old.Verb) };
+		}
+
+		/// <summary>A routine's verb: null for the plain CREATE, the standard's.</summary>
+		static Ast.DefinitionVerb? Verb(Statement old, string verb)
+		{
+			return string.Join(' ', Words(verb)) switch
+			{
+				"CREATE"          => null,
+				"ALTER"           => Ast.DefinitionVerb.Alter,
+				"CREATE OR ALTER" => Ast.DefinitionVerb.CreateOrAlter,
+				_                 => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the verb {verb})"),
+			};
+		}
+
+		/// <summary>
+		/// A type the old tree keeps as written and compares exactly: only one written as the writer prints it carries over.
+		/// </summary>
+		static Ast.DataType Printed(Statement old, string text, string member)
+		{
+			var type = Values.Type(old, text);
+
+			return Ast.Sql2023Writer.Write(type) == text ? type : throw BridgeGap.Open(old, $"Trees.FreeText ({member}, a type written otherwise than the writer prints it)");
+		}
+
+		/// <summary>A returned table's columns, read as CREATE TABLE's body is.</summary>
+		static SqlList<Ast.TableElement> Elements(Statement old, SqlList<Clause> columns)
+		{
+			return StatementOf(new Statement.TableDefinition("t", null, columns, [], [])) is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var items) }
+				? items
+				: throw BridgeGap.Open(old, "inventory Statement.CreateFunction (a returned table)");
+		}
+
+		/// <summary>
+		/// The parameters: <c>@a [AS] type [NULL] [= v] [OUTPUT | OUT] [READONLY]</c>, or a cursor's <c>CURSOR VARYING
+		/// OUTPUT</c>. AS is read from the text; the words after the value carry over only in the order the writer prints.
+		/// </summary>
+		static SqlList<Ast.ParameterDefinition> Parameters(Statement old, SqlList<Clause> parameters)
+		{
+			return Each(parameters, one =>
+			{
+				if (one is not Clause.ParameterDeclaration(var name, { } type, var value, var nullability, var varying, var ways))
+					throw BridgeGap.Open(one, "inventory Clause.ParameterDeclaration");
+
+				var words = ways ?? [];
+				var back  = words.Where(static word => word is "OUTPUT" or "OUT").ToArray();
+				var only  = words.Count(static word => word == "READONLY");
+
+				if (back.Length > 1 || only > 1 || words.Length > 0 && !words.SequenceEqual([.. back, .. words.Where(static word => word == "READONLY")]))
+					throw BridgeGap.Lost(one, "Clause.ParameterDeclaration (OUTPUT and READONLY in another order, or twice)");
+
+				var cursor = varying && type == "CURSOR";
+
+				return new Ast.ParameterDefinition(
+					back.Length > 0 ? Ast.ParameterMode.Out : null,
+					new Ast.Identifier(name),
+					cursor ? new Ast.DataType.Named(new Ast.QualifiedName([new Ast.Identifier("CURSOR")]), []) : Printed(old, type, "Clause.ParameterDeclaration.Type"),
+					false,
+					value is null ? null : Values.Of(value),
+					ReadOnly: only > 0,
+					Varying: varying,
+					Nullable: nullability is null ? null : Words(nullability) switch
+					{
+						["NULL"]        => true,
+						["NOT", "NULL"] => false,
+						_               => throw BridgeGap.Open(one, $"inventory Clause.ParameterDeclaration (`{nullability}`)"),
+					})
+				{
+					ShortOutput = back is ["OUT"],
+					AsKeyword   = Recover("ParameterDefinition.AsKeyword", Spelled(one), static text => Words(text) is [_, "AS", ..], false),
+				};
+			});
+		}
+
+		/// <summary>
+		/// A module's WITH: EXECUTE AS, the two ON NULL INPUT forms, and every other a setting. The old tree keeps EXECUTE
+		/// AS's word as written and compares it exactly, so only one in capitals carries over.
+		/// </summary>
+		static SqlList<Ast.RoutineOption> RoutineOptions(Statement old, SqlList<Clause>? options)
+		{
+			return Each<Clause, Ast.RoutineOption>(options ?? [], one => one switch
+			{
+				Clause.Option { Name: var name, Value: Expression.ColumnReference(var who) } when Words(name) is ["EXECUTE", "AS"] => new Ast.RoutineOption.ExecuteAs(who switch
+				{
+					"CALLER" => new Ast.ExecutionContext(Ast.ExecutionContextKind.Caller, null),
+					"SELF"   => new Ast.ExecutionContext(Ast.ExecutionContextKind.Self, null),
+					"OWNER"  => new Ast.ExecutionContext(Ast.ExecutionContextKind.Owner, null),
+					_ when who.StartsWith('\'') || who.StartsWith("N'", StringComparison.OrdinalIgnoreCase)
+						=> new Ast.ExecutionContext(Ast.ExecutionContextKind.User, Values.String(who)),
+					_ => throw BridgeGap.Open(one, $"Trees.FreeText (EXECUTE AS `{who}`, a word not in capitals)"),
+				}),
+				Clause.Option { Name: var name, Value: null } when Words(name) is ["RETURNS", "NULL", "ON", "NULL", "INPUT"] => new Ast.RoutineOption.NullCall(Ast.NullCallMode.ReturnsNullOnNullInput),
+				Clause.Option { Name: var name, Value: null } when Words(name) is ["CALLED", "ON", "NULL", "INPUT"]          => new Ast.RoutineOption.NullCall(Ast.NullCallMode.CalledOnNullInput),
+				// INLINE ON: a value after the name with no =, which the catalogue's reading leaves to the place that has it.
+				Clause.Option { Bare: true, Value: not null } option => new Ast.RoutineOption.Setting(Tables.Option(option with { Bare = false }) with { EqualsOmitted = true }),
+				Clause.Option option => new Ast.RoutineOption.Setting(Tables.Option(option)),
+				_ => throw BridgeGap.Open(one, $"inventory {NameOf(one)} (a module's option)"),
+			});
 		}
 
 		/// <summary>A string's context, <c>AS LOGIN = 'x'</c> or <c>AS USER = N'u'</c>.</summary>

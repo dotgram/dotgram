@@ -279,6 +279,20 @@ public sealed class Sql2023WriterCoverageTests
 			: new PrivilegeObject.Named(PrivilegeObjectKind.Table, name);
 	}
 
+	/// <summary>T-SQL's <c>CREATE PROCEDURE p (@a INT) AS RETURN</c> with the parameter given.</summary>
+	static Statement.CreateRoutine Procedure(ParameterDefinition parameter)
+	{
+		return new Statement.CreateRoutine
+		{
+			Definition = new RoutineDefinition(RoutineKind.Procedure, T, [parameter], null, [], new RoutineBody.Statements([new Statement.Return()])),
+		};
+	}
+
+	static ParameterDefinition Parameter()
+	{
+		return new ParameterDefinition(null, new Identifier("@a"), new DataType.Numeric(NumericTypeKind.Int), false, null);
+	}
+
 	/// <summary>A cursor's properties with NO SCROLL, written as that or as T-SQL's FORWARD_ONLY.</summary>
 	static CursorProperties Scrolling(bool forwardOnly)
 	{
@@ -668,6 +682,16 @@ public sealed class Sql2023WriterCoverageTests
 			["ExecuteString.Exec"] = (
 				new Statement.ExecuteString(new LiteralValue.String("'SELECT 1'", StringLiteralKind.Character), []),
 				new Statement.ExecuteString(new LiteralValue.String("'SELECT 1'", StringLiteralKind.Character), []) { Exec = true }),
+			// Routines: PROC for PROCEDURE, and a parameter's OUT for OUTPUT and AS before its type.
+			["RoutineDefinition.Proc"] = (
+				Procedure(Parameter()),
+				Procedure(Parameter()) with { Definition = Procedure(Parameter()).Definition with { Proc = true } }),
+			["ParameterDefinition.ShortOutput"] = (
+				Procedure(Parameter() with { Mode = ParameterMode.Out }),
+				Procedure(Parameter() with { Mode = ParameterMode.Out, ShortOutput = true })),
+			["ParameterDefinition.AsKeyword"] = (
+				Procedure(Parameter()),
+				Procedure(Parameter() with { AsKeyword = true })),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

@@ -6,7 +6,7 @@
 
 Clause.CursorDefinition = 0/0/0/0/0/0/0
 Clause.CursorFor = 0/0/0/0/0/0/0
-Clause.VariableDeclaration = 0/101/0/0/0/0/0
+Clause.VariableDeclaration = 0/102/0/0/0/0/0
 SetExpression.DateAndTime.DateFirst = 0/0/0/0/0/0/0
 SetExpression.DateAndTime.DateFormat = 0/0/0/0/0/0/0
 SetExpression.IsoSettings.Switch = 0/0/0/0/0/0/0

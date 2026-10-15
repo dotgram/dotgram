@@ -162,3 +162,109 @@ public abstract partial record InsertSource
 	/// <summary>T-SQL: INSERT (Transact-SQL). <c>INSERT t EXEC ('…')</c>: the rows a string run returns.</summary>
 	public sealed record ExecuteString(Statement.ExecuteString Statement) : InsertSource;
 }
+
+public abstract partial record Statement
+{
+	public partial record CreateRoutine
+	{
+		/// <summary>
+		/// T-SQL: CREATE PROCEDURE (Transact-SQL), CREATE FUNCTION (Transact-SQL). <c>ALTER</c> or <c>CREATE OR ALTER</c>;
+		/// null for the plain <c>CREATE</c>, which is the standard's.
+		/// </summary>
+		public DefinitionVerb? Verb { get; init; }
+	}
+}
+
+public sealed partial record RoutineDefinition
+{
+	/// <summary>
+	/// T-SQL: CREATE PROCEDURE (Transact-SQL), CREATE FUNCTION (Transact-SQL). <c>WITH option, …</c> before the body.
+	/// </summary>
+	public SqlList<RoutineOption> Options { get; init; } = [];
+
+	/// <summary>T-SQL: CREATE PROCEDURE (Transact-SQL). <c>FOR REPLICATION</c>.</summary>
+	public bool ForReplication { get; init; }
+
+	/// <summary>T-SQL: CREATE PROCEDURE (Transact-SQL). <c>;n</c>, one of a group of procedures sharing a name.</summary>
+	public LiteralValue.Numeric? Number { get; init; }
+
+	/// <summary>T-SQL: CREATE PROCEDURE (Transact-SQL). <c>PROC</c> written for <c>PROCEDURE</c>.</summary>
+	[Spelling] public bool Proc { get; init; }
+
+	/// <summary>T-SQL: CREATE FUNCTION (Transact-SQL). A CLR table-valued function's <c>ORDER (column, …)</c>.</summary>
+	public SqlList<SortItem> Order { get; init; } = [];
+}
+
+public abstract partial record RoutineBody
+{
+	/// <summary>
+	/// T-SQL: CREATE PROCEDURE (Transact-SQL), CREATE FUNCTION (Transact-SQL). <c>AS s1; s2 …</c>: the statements, one
+	/// at least; <c>AS BEGIN … END</c> is a list of one block.
+	/// </summary>
+	public sealed record Statements(SqlList<Statement> List) : RoutineBody;
+
+	/// <summary>
+	/// T-SQL: CREATE PROCEDURE (Transact-SQL), CREATE FUNCTION (Transact-SQL). <c>AS EXTERNAL NAME assembly.class.method</c>.
+	/// </summary>
+	public sealed record ExternalName(QualifiedName Name) : RoutineBody;
+
+	/// <summary>
+	/// T-SQL: CREATE FUNCTION (Transact-SQL). An inline table-valued function's <c>RETURN query</c>, or <c>RETURN
+	/// (query)</c>, whose brackets are a <see cref="Query.Parenthesized"/>.
+	/// </summary>
+	public sealed record Inline(Statement.Select Query) : RoutineBody;
+}
+
+public sealed partial record ReturnsDefinition
+{
+	/// <summary>T-SQL: CREATE FUNCTION (Transact-SQL). <c>RETURNS @t TABLE (…)</c>: the table's variable, with its @.</summary>
+	public Identifier? Variable { get; init; }
+
+	/// <summary>
+	/// T-SQL: CREATE FUNCTION (Transact-SQL). The returned table's columns, the table CREATE TABLE's body holds: a table
+	/// variable's, or a CLR function's after <c>RETURNS TABLE</c>.
+	/// </summary>
+	public SqlList<TableElement>? Elements { get; init; }
+}
+
+public sealed partial record ParameterDefinition
+{
+	/// <summary>T-SQL: CREATE PROCEDURE (Transact-SQL). <c>OUT</c> written for <c>OUTPUT</c>, with Mode Out only.</summary>
+	[Spelling] public bool ShortOutput { get; init; }
+
+	/// <summary>T-SQL: CREATE PROCEDURE (Transact-SQL). <c>@a AS INT</c>: <c>AS</c> written between the name and the type.</summary>
+	[Spelling] public bool AsKeyword { get; init; }
+}
+
+/// <summary>
+/// T-SQL: CREATE PROCEDURE (Transact-SQL), CREATE FUNCTION (Transact-SQL), CREATE TRIGGER (Transact-SQL). One option of
+/// a module's <c>WITH</c>.
+/// </summary>
+public abstract record RoutineOption : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE PROCEDURE (Transact-SQL). One word, <c>ENCRYPTION</c>, <c>RECOMPILE</c>, <c>SCHEMABINDING</c>, or one
+	/// with a value, <c>INLINE = ON</c>: the grammar's open list.
+	/// </summary>
+	public sealed record Setting(Option Option) : RoutineOption;
+
+	/// <summary>
+	/// T-SQL: EXECUTE AS Clause (Transact-SQL). <c>EXECUTE AS CALLER | SELF | OWNER | 'user'</c>: the kind with no name, or
+	/// a user's name as a string.
+	/// </summary>
+	public sealed record ExecuteAs(ExecutionContext Context) : RoutineOption;
+
+	/// <summary>
+	/// T-SQL: CREATE FUNCTION (Transact-SQL). <c>RETURNS NULL ON NULL INPUT</c> or <c>CALLED ON NULL INPUT</c>, written in
+	/// the WITH list.
+	/// </summary>
+	public sealed record NullCall(NullCallMode Mode) : RoutineOption;
+}

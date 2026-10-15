@@ -34,6 +34,24 @@ public sealed class RoutinesBridgeTests
 	[InlineData("EXEC p WITH RESULT SETS ((a INT))", "described")]
 	[InlineData("INSERT t EXEC p", "INSERT EXEC")]
 	[InlineData("INSERT t EXEC ('SELECT 1')", "INSERT EXEC a string")]
+	[InlineData("CREATE PROCEDURE p AS RETURN", "PROCEDURE")]
+	[InlineData("CREATE PROC p AS RETURN", "PROC")]
+	[InlineData("ALTER PROC p AS RETURN", "ALTER")]
+	[InlineData("CREATE OR ALTER PROCEDURE p AS RETURN", "CREATE OR ALTER")]
+	[InlineData("CREATE PROCEDURE p @a AS INT AS RETURN", "a parameter's AS")]
+	[InlineData("CREATE PROCEDURE p @a INT OUT AS RETURN", "a parameter OUT")]
+	[InlineData("CREATE PROCEDURE p @a INT OUTPUT AS RETURN", "a parameter OUTPUT")]
+	[InlineData("CREATE PROCEDURE p @c CURSOR VARYING OUTPUT AS RETURN", "a cursor")]
+	[InlineData("CREATE PROCEDURE p AS BEGIN RETURN END", "a block")]
+	[InlineData("CREATE PROCEDURE p AS EXTERNAL NAME a.c.m", "EXTERNAL NAME")]
+	[InlineData("CREATE FUNCTION f () RETURNS INT WITH RETURNS NULL ON NULL INPUT AS BEGIN RETURN 1 END", "ON NULL INPUT in WITH")]
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE AS RETURN SELECT 1", "inline")]
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE AS RETURN (SELECT 1)", "inline in brackets")]
+	[InlineData("CREATE FUNCTION f () RETURNS @t TABLE (a INT) AS BEGIN RETURN END", "a table variable")]
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE (a INT) AS EXTERNAL NAME a.c.m", "a CLR table")]
+	[InlineData("CREATE FUNCTION f () RETURNS INT WITH EXECUTE AS CALLER AS BEGIN RETURN 1 END", "EXECUTE AS CALLER")]
+	[InlineData("CREATE FUNCTION f () RETURNS INT WITH INLINE = ON AS BEGIN RETURN 1 END", "INLINE = ON")]
+	[InlineData("CREATE FUNCTION f () RETURNS INT WITH INLINE ON AS BEGIN RETURN 1 END", "INLINE ON")]
 	public void The_bridge_builds_the_routine_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -59,6 +77,24 @@ public sealed class RoutinesBridgeTests
 			"described" => made is Ast.Statement.ExecuteModule { Options: [Ast.ExecuteOption.ResultSets { Kind: Ast.ResultSetsKind.Described, Sets: [Ast.ResultSet.Columns { Elements.Count: 1 }] }] },
 			"INSERT EXEC" => made is Ast.Statement.Insert { SourceValue: Ast.InsertSource.ExecuteModule { Statement.Keyword: Ast.ExecuteKeyword.Exec } },
 			"INSERT EXEC a string" => made is Ast.Statement.Insert { SourceValue: Ast.InsertSource.ExecuteString },
+			"PROCEDURE" => made is Ast.Statement.CreateRoutine { Verb: null, Definition: { Kind: Ast.RoutineKind.Procedure, Proc: false, Body: Ast.RoutineBody.Statements { List.Count: 1 } } },
+			"PROC" => made is Ast.Statement.CreateRoutine { Definition.Proc: true },
+			"ALTER" => made is Ast.Statement.CreateRoutine { Verb: Ast.DefinitionVerb.Alter, Definition.Proc: true },
+			"CREATE OR ALTER" => made is Ast.Statement.CreateRoutine { Verb: Ast.DefinitionVerb.CreateOrAlter },
+			"a parameter's AS" => made is Ast.Statement.CreateRoutine { Definition.Parameters: [{ AsKeyword: true, Mode: null }] },
+			"a parameter OUT" => made is Ast.Statement.CreateRoutine { Definition.Parameters: [{ AsKeyword: false, Mode: Ast.ParameterMode.Out, ShortOutput: true }] },
+			"a parameter OUTPUT" => made is Ast.Statement.CreateRoutine { Definition.Parameters: [{ Mode: Ast.ParameterMode.Out, ShortOutput: false }] },
+			"a cursor" => made is Ast.Statement.CreateRoutine { Definition.Parameters: [{ Varying: true, Type: Ast.DataType.Named { Name.First.Text: "CURSOR" } }] },
+			"a block" => made is Ast.Statement.CreateRoutine { Definition.Body: Ast.RoutineBody.Statements { List: [Ast.Statement.Compound] } },
+			"EXTERNAL NAME" => made is Ast.Statement.CreateRoutine { Definition.Body: Ast.RoutineBody.ExternalName },
+			"ON NULL INPUT in WITH" => made is Ast.Statement.CreateRoutine { Definition: { Characteristics.Count: 0, Options: [Ast.RoutineOption.NullCall { Mode: Ast.NullCallMode.ReturnsNullOnNullInput }] } },
+			"inline" => made is Ast.Statement.CreateRoutine { Definition: { Returns: { TableKeyword: true, Elements: null, Variable: null }, Body: Ast.RoutineBody.Inline } },
+			"inline in brackets" => made is Ast.Statement.CreateRoutine { Definition.Body: Ast.RoutineBody.Inline { Query.Query: Ast.Query.Parenthesized } },
+			"a table variable" => made is Ast.Statement.CreateRoutine { Definition.Returns: { TableKeyword: false, Variable.Text: "@t", Elements.Count: 1 } },
+			"a CLR table" => made is Ast.Statement.CreateRoutine { Definition: { Returns: { TableKeyword: true, Variable: null, Elements.Count: 1 }, Body: Ast.RoutineBody.ExternalName } },
+			"EXECUTE AS CALLER" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.ExecuteAs { Context: { Kind: Ast.ExecutionContextKind.Caller, Name: null } }] },
+			"INLINE = ON" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.Setting { Option: { EqualsOmitted: false, Value: not null } }] },
+			"INLINE ON" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.Setting { Option.EqualsOmitted: true }] },
 			_ => false,
 		};
 
@@ -67,5 +103,21 @@ public sealed class RoutinesBridgeTests
 		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	/// <summary>
+	/// The standard's null call is a characteristic its parser reads, never T-SQL's option in WITH, and the writer
+	/// writes each in its own dialect's form only.
+	/// </summary>
+	[Fact]
+	public void The_standard_reads_its_null_call_as_a_characteristic()
+	{
+		var read = DotGram.Sql.Standard.SqlStandardParser.TryParseStatement("CREATE FUNCTION f () RETURNS INT RETURNS NULL ON NULL INPUT RETURN 1");
+
+		Assert.True(read.IsSuccess);
+		Assert.True(read.Value is Ast.Statement.CreateRoutine
+		{
+			Definition: { Options.Count: 0, Characteristics: [Ast.RoutineCharacteristic.NullCall { Value: Ast.NullCallMode.ReturnsNullOnNullInput }] },
+		}, $"{read.Value}");
 	}
 }

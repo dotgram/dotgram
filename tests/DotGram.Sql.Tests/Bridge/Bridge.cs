@@ -156,6 +156,8 @@ static partial class Bridge
 		"ReferencesSpecification.DeleteRuleFirst",
 		"Statement.ExecuteModule.Keyword",
 		"Statement.ExecuteString.Exec",
+		"RoutineDefinition.Proc",
+		"ParameterDefinition.AsKeyword",
 	];
 
 	/// <summary>

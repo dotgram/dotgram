@@ -41,6 +41,389 @@ public static partial class Sql2023Writer
 			}
 		}
 
+		/// <summary>
+		/// T-SQL: CREATE PROCEDURE (Transact-SQL), CREATE FUNCTION (Transact-SQL). A routine whose body is one of T-SQL's —
+		/// statements, an external name, an inline query — written in T-SQL's form throughout; true then. Any other body is
+		/// the standard's, and false comes back once no T-SQL member is set beside it.
+		/// </summary>
+		bool PutTransactSqlRoutine(Statement.CreateRoutine create)
+		{
+			var routine = create.Definition;
+
+			if (routine.Body is not (RoutineBody.Statements or RoutineBody.ExternalName or RoutineBody.Inline))
+			{
+				if (create.Verb is not null || TransactSqlMembers(routine))
+					throw Misplaced(create, "Verb, Options, ForReplication, Number, Proc, Order or a T-SQL parameter", "beside the standard's body");
+
+				return false;
+			}
+
+			if (routine.Characteristics.Count > 0 || routine.MethodModifier is not null || routine.ForType is not null || routine.StaticDispatch || routine.SpecificMethod)
+				throw Misplaced(create, "Characteristics or a method's members", "beside T-SQL's body; T-SQL writes its options in WITH");
+
+			Word(create.Verb switch
+			{
+				null                         => "CREATE",
+				DefinitionVerb.Alter         => "ALTER",
+				DefinitionVerb.CreateOrAlter => "CREATE OR ALTER",
+				DefinitionVerb.Create        => throw Misplaced(create, "Verb", "Create, which is the same text as null"),
+				var verb                     => throw NoText(verb.Value),
+			});
+
+			switch (routine.Kind)
+			{
+				case RoutineKind.Procedure:
+					PutTransactSqlProcedure(routine);
+					break;
+
+				case RoutineKind.Function:
+					PutTransactSqlFunction(routine);
+					break;
+
+				default:
+					throw Misplaced(create, "Kind", "other than a procedure or a function, with T-SQL's body");
+			}
+
+			return true;
+		}
+
+		/// <summary>Whether a standard routine carries a member only T-SQL's form writes.</summary>
+		static bool TransactSqlMembers(RoutineDefinition routine)
+		{
+			return routine.Options.Count > 0 || routine.ForReplication || routine.Number is not null || routine.Proc || routine.Order.Count > 0
+				|| routine.Returns is { Variable: not null } or { Elements: not null }
+				|| routine.Parameters.Any(static one => one.ShortOutput || one.AsKeyword || one.ReadOnly || one.Varying || one.Nullable is not null);
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE PROCEDURE (Transact-SQL). ProcedureStatement: the name and <c>;n</c>, the parameters, WITH, FOR
+		/// REPLICATION, and AS a body of statements, an atomic block or an external name; an external name takes EXECUTE AS
+		/// alone (<c>Syntax.Externally</c>, <c>Msg 155</c>).
+		/// </summary>
+		void PutTransactSqlProcedure(RoutineDefinition routine)
+		{
+			if (routine.Returns is not null || routine.Order.Count > 0)
+				throw Misplaced(routine, "Returns or Order", "on a procedure");
+
+			if (routine.Body is RoutineBody.Inline)
+				throw Misplaced(routine, "Body", "an inline query, which only a function returns");
+
+			if (routine.Body is RoutineBody.ExternalName && routine.Options.Any(static one => one is not RoutineOption.ExecuteAs))
+				throw Misplaced(routine, "Options", "other than EXECUTE AS beside EXTERNAL NAME (Syntax.Externally, Msg 155)");
+
+			Word(routine.Proc ? "PROC" : "PROCEDURE");
+			PutName(routine.Name);
+
+			if (routine.Number is { } number)
+			{
+				if (number.Kind != NumericLiteralKind.DecimalInteger || !Unsigned(number.Text, NumericLiteralKind.DecimalInteger))
+					throw Misplaced(routine, "Number", "other than digits (ProcedureStatement)");
+
+				Tight(";");
+				Hold();
+				PutExpression(number);
+			}
+
+			PutTransactSqlParameters(routine.Parameters, procedure: true);
+			PutRoutineOptions(routine, routine.Options);
+
+			if (routine.ForReplication)
+				Word("FOR REPLICATION");
+
+			PutTransactSqlBody(routine);
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE FUNCTION (Transact-SQL). FunctionStatement's four shapes, by what RETURNS says: a type; TABLE and an
+		/// inline query, told nothing of a null argument (<c>Syntax.Inlined</c>, <c>Msg 487</c>); TABLE and its columns, a
+		/// CLR function's, with ORDER; or a variable and its table, a body of statements (<c>Syntax.Declared</c>). No
+		/// parameter is a cursor (<c>Syntax.HasCursorParameter</c>, <c>Msg 5306</c>), and a returned table keeps no
+		/// column sparse, FILESTREAM or REFERENCES alone (<c>Syntax.Returned</c>).
+		/// </summary>
+		void PutTransactSqlFunction(RoutineDefinition routine)
+		{
+			if (routine.ForReplication || routine.Number is not null || routine.Proc)
+				throw Misplaced(routine, "ForReplication, Number or Proc", "on a function");
+
+			if (routine.Returns is not { } returns || returns.OnlyPassThrough || returns.Locator || returns.CastFrom is not null || returns.CastFromLocator || returns.TableColumns is not null)
+				throw Misplaced(routine, "Returns", "missing, or with the standard's members beside T-SQL's body");
+
+			if (routine.Parameters.Any(static one => one.Varying))
+				throw Misplaced(routine, "Parameters", "a cursor, which a function takes none of (Syntax.HasCursorParameter, Msg 5306)");
+
+			var inline   = routine.Body is RoutineBody.Inline;
+			var external = routine.Body is RoutineBody.ExternalName;
+
+			switch (returns)
+			{
+				case { Variable: null, Elements: null, TableKeyword: false, Type: not null }:
+					if (inline)
+						throw Misplaced(routine, "Body", "an inline query, which a scalar function does not return");
+
+					break;
+
+				case { Variable: null, Elements: null, TableKeyword: true, Type: null }:
+					if (!inline)
+						throw Misplaced(routine, "Body", "other than RETURN and a query after RETURNS TABLE");
+
+					if (routine.Options.Any(static one => one is RoutineOption.NullCall))
+						throw Misplaced(routine, "Options", "ON NULL INPUT of an inline function (Syntax.Inlined, Msg 487)");
+
+					break;
+
+				case { Variable: null, Elements: { Count: > 0 } columns, TableKeyword: true, Type: null }:
+					if (!external)
+						throw Misplaced(routine, "Body", "other than EXTERNAL NAME after RETURNS TABLE and its columns");
+
+					CheckReturned(routine, columns);
+					break;
+
+				case { Variable: { } variable, Elements: { Count: > 0 } columns, TableKeyword: false, Type: null }:
+					if (inline || external)
+						throw Misplaced(routine, "Body", "other than statements after RETURNS a table variable");
+
+					if (!variable.Text.StartsWith("@", StringComparison.Ordinal) || variable.Style != IdentifierStyle.Regular)
+						throw Misplaced(routine, "Returns.Variable", "that is not a variable");
+
+					CheckDeclared(new VariableDeclaration.Table(variable, columns));
+					CheckReturned(routine, columns);
+					break;
+
+				default:
+					throw Misplaced(routine, "Returns", "of none of the four shapes FunctionReturns reads");
+			}
+
+			if (routine.Order.Count > 0 && !(external && returns.Elements is not null))
+				throw Misplaced(routine, "Order", "on other than a CLR table-valued function");
+
+			Word("FUNCTION");
+			PutName(routine.Name);
+			PutTransactSqlParameters(routine.Parameters, procedure: false);
+			Word("RETURNS");
+
+			if (returns.Variable is { } named)
+			{
+				PutIdentifier(named);
+				Word("TABLE");
+				PutElements(returns.Elements!.Value);
+			}
+			else if (returns.TableKeyword)
+			{
+				Word("TABLE");
+
+				if (returns.Elements is { } elements)
+					PutElements(elements);
+			}
+			else
+				PutType(returns.Type!);
+
+			PutRoutineOptions(routine, routine.Options);
+
+			if (routine.Order.Count > 0)
+			{
+				Word("ORDER");
+				Open();
+				Each(routine.Order, item =>
+				{
+					// IndexColumns: a column by its name and its direction, never NULLS FIRST or LAST.
+					if (item is not { Key: Expression.Reference { Name.Count: 1 }, NullOrdering: null })
+						throw Misplaced(item, "Key or NullOrdering", "other than a column's name and its direction (IndexColumns)");
+
+					PutExpression(item.Key);
+
+					if (item.Direction is { } direction)
+						Word(direction == SortDirection.Asc ? "ASC" : "DESC");
+				});
+				Close();
+			}
+
+			PutTransactSqlBody(routine);
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE FUNCTION (Transact-SQL). <c>Syntax.Returned</c> restated: a returned table's column is not sparse,
+		/// not FILESTREAM, takes no identity's NOT FOR REPLICATION and no REFERENCES without FOREIGN KEY (<c>Msg 102</c>).
+		/// </summary>
+		static void CheckReturned(ISqlNode owner, SqlList<TableElement> columns)
+		{
+			foreach (var element in columns)
+				if (element is TableElement.Column { Definition.Options: var options }
+					&& options.Any(static one => one is ColumnOption.Sparse or ColumnOption.Filestream or ColumnOption.NotForReplication
+						|| one is ColumnOption.Constraint { Value: Constraint.ForeignKey { ForeignKeyWords: false } }))
+					throw Misplaced(owner, "Returns.Elements", "a column sparse, FILESTREAM, NOT FOR REPLICATION or with REFERENCES alone (Syntax.Returned)");
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE PROCEDURE (Transact-SQL). RoutineParameters: <c>@a [AS] type [NULL | NOT NULL] [= value] [OUTPUT |
+		/// OUT] [READONLY]</c>, or a cursor's <c>@c [AS] CURSOR VARYING OUTPUT</c> and nothing more (<c>Msg 1051</c>). A
+		/// function's are in brackets; a procedure's are written so as well, which reads the same.
+		/// </summary>
+		void PutTransactSqlParameters(SqlList<ParameterDefinition> parameters, bool procedure)
+		{
+			if (parameters.Count == 0 && procedure)
+				return;
+
+			Open();
+			Each(parameters, parameter =>
+			{
+				if (parameter.Name is not { } name)
+					throw Misplaced(parameter, "Name", "missing; every T-SQL parameter is named");
+
+				if (parameter.Mode is ParameterMode.In or ParameterMode.InOut || parameter.Result || parameter.Locator)
+					throw Misplaced(parameter, "Mode, Result or Locator", "the standard's, beside T-SQL's form");
+
+				if (parameter.ShortOutput && parameter.Mode != ParameterMode.Out)
+					throw Misplaced(parameter, "ShortOutput", "without Mode Out, which it is the spelling of");
+
+				var cursor = parameter.Type is DataType.Named { Name: [{ Text: "CURSOR", Style: IdentifierStyle.Regular }], Arguments.Count: 0 };
+
+				if (cursor != parameter.Varying
+					|| cursor && (parameter.Mode != ParameterMode.Out || parameter.Default is not null || parameter.Nullable is not null || parameter.ReadOnly))
+					throw Misplaced(parameter, "Varying", "other than on CURSOR VARYING OUTPUT alone, which a cursor parameter is and nothing else (Msg 1051)");
+
+				if (!cursor && TypeWord(parameter.Type) is not null)
+					throw Misplaced(parameter, "Type", "named CURSOR or TABLE other than as the one-part Named CURSOR, which reads back as the word");
+
+				PutVariableName(parameter, name);
+
+				if (parameter.AsKeyword)
+					Word("AS");
+
+				if (cursor)
+					Word("CURSOR VARYING");
+				else
+				{
+					PutType(parameter.Type);
+
+					if (parameter.Nullable is { } nullable)
+						Word(nullable ? "NULL" : "NOT NULL");
+
+					if (parameter.Default is { } value)
+					{
+						if (value is Expression.Comparison)
+							throw Misplaced(parameter, "Default", "a comparison, which no value is");
+
+						Word("=");
+						PutExpression(value);
+					}
+				}
+
+				if (parameter.Mode == ParameterMode.Out)
+					Word(parameter.ShortOutput ? "OUT" : "OUTPUT");
+
+				if (parameter.ReadOnly)
+					Word("READONLY");
+			});
+			Close();
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE PROCEDURE (Transact-SQL). RoutineOptions: <c>WITH</c> and the options, unbracketed. EXECUTE AS is
+		/// CALLER, SELF or OWNER with no name, or a user's name as a string (ExecuteAsWho); a setting is one word and what
+		/// OptionTail reads after it, never a word that begins the other forms.
+		/// </summary>
+		void PutRoutineOptions(ISqlNode owner, SqlList<RoutineOption> options)
+		{
+			if (options.Count == 0)
+				return;
+
+			Word("WITH");
+			Each(options, option =>
+			{
+				switch (option)
+				{
+					case RoutineOption.ExecuteAs { Context: var context }:
+						Word("EXECUTE AS");
+
+						switch (context)
+						{
+							case { Kind: ExecutionContextKind.Caller, Name: null }:
+								Word("CALLER");
+								break;
+
+							case { Kind: ExecutionContextKind.Self, Name: null }:
+								Word("SELF");
+								break;
+
+							case { Kind: ExecutionContextKind.Owner, Name: null }:
+								Word("OWNER");
+								break;
+
+							case { Kind: ExecutionContextKind.User, Name: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } user }:
+								PutExpression(user);
+								break;
+
+							default:
+								throw Misplaced(option, "Context", "other than CALLER, SELF, OWNER or a user's name as a string (ExecuteAsWho)");
+						}
+
+						break;
+
+					case RoutineOption.NullCall call:
+						Word(call.Mode switch
+						{
+							NullCallMode.ReturnsNullOnNullInput => "RETURNS NULL ON NULL INPUT",
+							NullCallMode.CalledOnNullInput      => "CALLED ON NULL INPUT",
+							_                                   => throw NoText(call.Mode),
+						});
+						break;
+
+					case RoutineOption.Setting { Option: var setting }:
+						if (setting.Name.Style == IdentifierStyle.Regular && setting.Name.Text.ToUpperInvariant() is "EXECUTE" or "RETURNS" or "CALLED")
+							throw Misplaced(option, "Option", "named " + setting.Name.Text + ", which begins another of RoutineOption's forms");
+
+						// One word, unlike a bracketed list's (the AS would be taken); a value may stand with no =, INLINE ON.
+						if (setting.Words.Count > 0 || setting.EqualsOmitted && setting.Options.Count > 0)
+							throw Misplaced(option, "Option", "of several words, or with its = left out before a list (RoutineOption)");
+
+						PutOption(setting, multiWord: true);
+						break;
+
+					default:
+						throw Unwritten(option);
+				}
+			});
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE PROCEDURE (Transact-SQL). <c>AS</c> and the body: statements, each ended by <c>;</c>, one at least;
+		/// an atomic block alone exactly where NATIVE_COMPILATION is set (<c>Syntax.Natively</c>, <c>Msg 10783</c>,
+		/// <c>10782</c>); <c>EXTERNAL NAME</c>; or <c>RETURN</c> and a query.
+		/// </summary>
+		void PutTransactSqlBody(RoutineDefinition routine)
+		{
+			var native = routine.Options.Any(static one => one is RoutineOption.Setting { Option.Name: { Style: IdentifierStyle.Regular } name } && name.Text.Equals("NATIVE_COMPILATION", StringComparison.OrdinalIgnoreCase));
+			var atomic = routine.Body is RoutineBody.Statements { List: [Statement.Compound { Atomic: not null }] };
+
+			if (native != atomic)
+				throw Misplaced(routine, "Body", native ? "other than one atomic block with NATIVE_COMPILATION (Msg 10783)" : "an atomic block without NATIVE_COMPILATION (Msg 10782)");
+
+			Word("AS");
+
+			switch (routine.Body)
+			{
+				case RoutineBody.Statements statements:
+					if (statements.List.Count == 0)
+						throw Empty(statements, "List");
+
+					if (statements.List.Count > 1 && statements.List.Any(static one => one is Statement.Compound { Atomic: not null }))
+						throw Misplaced(routine, "Body", "an atomic block among other statements (Msg 10782)");
+
+					PutStatements(statements.List);
+					break;
+
+				case RoutineBody.ExternalName external:
+					Word("EXTERNAL NAME");
+					PutName(external.Name);
+					break;
+
+				case RoutineBody.Inline inline:
+					Word("RETURN");
+					PutStatement(inline.Query);
+					break;
+			}
+		}
+
 		void PutExecuteModule(Statement.ExecuteModule execute)
 		{
 			if (execute.Keyword is { } keyword)
