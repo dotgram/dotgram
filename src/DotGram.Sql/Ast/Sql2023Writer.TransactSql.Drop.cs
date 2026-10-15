@@ -416,33 +416,33 @@ public static partial class Sql2023Writer
 				case "MAXDOP" when option.Value is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger, Text: { Length: > 0 } digits } && digits.All(static one => one is >= '0' and <= '9'):
 				// ONLINE = ON | OFF.
 				case "ONLINE" when KeyWord(option.Value) is "ON" or "OFF":
-					PutIdentifier(option.Name);
+					PutOptionWord(option.Name);
 					Word("=");
-					PutExpression(option.Value!);
+					PutOptionValue(option.Value!);
 					break;
 
 				// DATA_COMPRESSION = NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE [ON PARTITIONS (…)].
 				case "DATA_COMPRESSION" when KeyWord(option.Value) is "NONE" or "ROW" or "PAGE" or "COLUMNSTORE" or "COLUMNSTORE_ARCHIVE":
-					PutIdentifier(option.Name);
+					PutOptionWord(option.Name);
 					Word("=");
-					PutExpression(option.Value!);
+					PutOptionValue(option.Value!);
 					PutRanges(option.Partitions);
 					break;
 
 				// MOVE TO a place, but not a bare DEFAULT; FILESTREAM_ON a place.
 				case "MOVE" when option is { Words: [{ Style: IdentifierStyle.Regular } to] } && Plain(to, "TO") && Place(option.Value) && KeyWord(option.Value) != "DEFAULT":
 				case "FILESTREAM_ON" when option.Words.Count == 0 && Place(option.Value):
-					PutIdentifier(option.Name);
+					PutOptionWord(option.Name);
 
 					foreach (var word in option.Words)
-						PutIdentifier(word);
+						PutOptionWord(word);
 
 					PutExpression(option.Value!);
 					break;
 
 				// WAIT_AT_LOW_PRIORITY (MAX_DURATION = n [MINUTES], ABORT_AFTER_WAIT = NONE | SELF | BLOCKERS).
 				case "WAIT_AT_LOW_PRIORITY" when option is { Value: null, Options: [var duration, var abort] } && LowPriority(duration, abort):
-					PutIdentifier(option.Name);
+					PutOptionWord(option.Name);
 					Open();
 					Each(option.Options, PutOption);
 					Close();

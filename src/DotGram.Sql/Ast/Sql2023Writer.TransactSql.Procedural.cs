@@ -556,7 +556,7 @@ public static partial class Sql2023Writer
 						if (switched.Option.Style != IdentifierStyle.Regular || !SetSwitches.Contains(switched.Option.Text))
 							throw Misplaced(switched, "Option", "that is not one of SetSwitchName's switches");
 
-						PutIdentifier(switched.Option);
+						PutKeyWord(switched.Option);
 					});
 
 					Word(on ? "ON" : "OFF");
@@ -592,7 +592,7 @@ public static partial class Sql2023Writer
 						if (offsets.Keyword.Style != IdentifierStyle.Regular || !SetOffsets.Contains(offsets.Keyword.Text))
 							throw Misplaced(offsets, "Keyword", "that is not one of SetOffsetName's words");
 
-						PutIdentifier(offsets.Keyword);
+						PutKeyWord(offsets.Keyword);
 					});
 
 					Word(on ? "ON" : "OFF");
@@ -625,8 +625,12 @@ public static partial class Sql2023Writer
 						if (!off && !takes.Form(value.Argument))
 							throw Misplaced(value, "Argument", "of a form " + value.Option.Text + " does not take (SettingValue)");
 
-						PutIdentifier(value.Option);
-						PutExpression(value.Argument);
+						PutKeyWord(value.Option);
+
+						if (off)
+							PutOptionValue(value.Argument);
+						else
+							PutExpression(value.Argument);
 					});
 
 					return;
@@ -989,9 +993,14 @@ public static partial class Sql2023Writer
 						|| !AtomicSettings.TryGetValue(setting.Name.Style == IdentifierStyle.Regular ? setting.Name.Text : "", out var reads) || !reads(value))
 						throw Misplaced(option, "Option", "that AtomicSetting does not read: one of its five names, set to the value it takes (Msg 102)");
 
-					PutIdentifier(setting.Name);
+					PutKeyWord(setting.Name);
 					Word("=");
-					PutExpression(value);
+
+					// DELAYED_DURABILITY's ON or OFF is a word the setting reads; every other value is written as one.
+					if (Plain(setting.Name, "DELAYED_DURABILITY"))
+						PutOptionValue(value);
+					else
+						PutExpression(value);
 					break;
 
 				default:
