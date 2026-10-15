@@ -13883,6 +13883,26 @@ public sealed class TransactSqlTests
 		Assert.Equal(reads, TransactSqlParser.TryParseScript("SELECT 1\nGO\n" + comment + "\nGO\nSELECT 2").IsSuccess);
 	}
 
+	/// <summary>
+	/// The edges of a comment in brackets: a quote inside one means nothing, a `*/` outside one is
+	/// no comment, and `/*/` opens one without closing it.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT /* ' */ 1", true)]
+	[InlineData("SELECT 1 /* x /* ' */ ' */", true)]
+	[InlineData("SELECT 1 /* ' ", false)]
+	[InlineData("SELECT 1 /**/", true)]
+	[InlineData("SELECT 1 */", false)]
+	[InlineData("*/ SELECT 1", false)]
+	[InlineData("SELECT 1 /*/", false)]
+	[InlineData("SELECT 1 /*/ */", true)]
+	[InlineData("SELECT 'a' /* x /* y */ 'b'", false)]
+	[InlineData("SELECT 'a' /* x /* y */ z */", true)]
+	public void A_comment_ends_where_its_levels_balance(string input, bool reads)
+	{
+		Assert.Equal(reads, TransactSqlParser.TryParseStatement(input).IsSuccess);
+	}
+
 	/// <summary>A string run, its context and where it runs, as the engine answers it with its variables declared.</summary>
 	[Theory]
 	[InlineData("EXEC ('SELECT 1', 5, @a)")]

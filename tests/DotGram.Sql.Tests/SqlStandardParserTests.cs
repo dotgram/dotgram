@@ -112,6 +112,51 @@ public sealed class SqlStandardParserTests
 	}
 
 	/// <summary>
+	/// Between the quoted parts of a literal a comment nests as it does in the trivia: at any depth,
+	/// and one that does not close is no separator, so the literal ends before it and it is refused.
+	/// </summary>
+	[Theory]
+	[InlineData(1, 1, true)]
+	[InlineData(7, 7, true)]
+	[InlineData(50, 50, true)]
+	[InlineData(7, 6, false)]
+	[InlineData(50, 49, false)]
+	public void A_comment_between_parts_holds_others_at_any_depth(int opens, int closes, bool reads)
+	{
+		var comment = string.Concat(System.Linq.Enumerable.Repeat("/* ", opens)) + string.Concat(System.Linq.Enumerable.Repeat("*/ ", closes));
+
+		Assert.Equal(reads, Both.TryParseLiteral("'a' " + comment + "\n'b'").IsSuccess);
+		Assert.Equal(reads, Both.TryParseLiteral("X'0A' " + comment + "'0B'").IsSuccess);
+	}
+
+	/// <summary>
+	/// The edges of a bracketed comment, in the trivia and between the parts of a literal: a quote
+	/// inside one means nothing, a `*/` outside one is no comment, and `/*/` opens one without
+	/// closing it.
+	/// </summary>
+	[Theory]
+	[InlineData("'a' /* x /* y */ z */ 'b'", true)]
+	[InlineData("'a' /* x /* y */ 'b'", false)]
+	[InlineData("'a' /* ' */ 'b'", true)]
+	[InlineData("'a' /* x /* ' */ 'b' */ 'c'", true)]
+	[InlineData("'a' /* ' 'b'", false)]
+	[InlineData("'a' /**/ 'b'", true)]
+	[InlineData("'a' */ 'b'", false)]
+	[InlineData("'a' /*/ 'b'", false)]
+	[InlineData("'a' /*/ */ 'b'", true)]
+	[InlineData("/* ' */ 1", true)]
+	[InlineData("/* x /* ' */ ' */ 1", true)]
+	[InlineData("*/ 1", false)]
+	[InlineData("1 */", false)]
+	[InlineData("/*/ 1", false)]
+	[InlineData("/*/ */ 1", true)]
+	[InlineData("1 /*/", false)]
+	public void A_comment_ends_where_its_levels_balance(string input, bool reads)
+	{
+		Assert.Equal(reads, Both.TryParseLiteral(input).IsSuccess);
+	}
+
+	/// <summary>
 	/// A `/*` inside a comment always opens one, where the BNF would also let it be two characters.
 	/// </summary>
 	/// <remarks>

@@ -238,21 +238,6 @@ struct SqlCursor
 	/// <summary>Past the comments and whitespace that begin at <paramref name="at"/>.</summary>
 	int Trivia(int at)
 	{
-		return Trivia(at, false);
-	}
-
-	/// <summary>
-	/// The same, with every bracketed comment closed at the first <c>*/</c> instead of at the one a
-	/// nested reading finds.
-	/// </summary>
-	/// <remarks>
-	/// Where a comment closes is a choice, and the BNF makes it inside a rule the parser may go back
-	/// into: a separator that leaves no literal to read is read again the other way. Only a comment
-	/// left open makes the two differ — `/* a /* b */ c */ '...'` reads the same either way — so the
-	/// second reading is asked for only where the first one fails, and real SQL never asks.
-	/// </remarks>
-	int Trivia(int at, bool earliest)
-	{
 		var text = Text;
 
 		while (at < text.Length)
@@ -274,7 +259,7 @@ struct SqlCursor
 			}
 			else if (ch == '/' && at + 1 < text.Length && text[at + 1] == '*')
 			{
-				var end = earliest ? Plain(at) : Bracketed(at);
+				var end = Bracketed(at);
 
 				// A comment that closes nowhere is no separator, and the reading stops in front of
 				// it rather than passing over it.
@@ -331,18 +316,6 @@ struct SqlCursor
 
 			at++;
 		}
-
-		return -1;
-	}
-
-	/// <summary>Past a bracketed comment closed at the first <c>*/</c> in it, or -1.</summary>
-	readonly int Plain(int at)
-	{
-		var text = Text;
-
-		for (at += 2; at + 1 < text.Length; at++)
-			if (text[at] == '*' && text[at + 1] == '/')
-				return at + 2;
 
 		return -1;
 	}
@@ -726,43 +699,34 @@ struct SqlCursor
 	/// refused where it stands rather than here.
 	/// </summary>
 	/// <remarks>
-	/// Where a separator holds a comment that closes nowhere, its two readings end in different
-	/// places and each may leave a different literal behind. The BNF writes the runs as a repetition
-	/// the parser may go back into, so it takes whichever reading leaves the longest literal — which
-	/// is what this searches for. The two readings differ only after an unclosed comment, so the
-	/// search branches nowhere else.
+	/// A separator between runs reads its comments as the trivia does, nested and counted, so a
+	/// comment that closes nowhere is no separator: <c>'a' /* b /* c */ 'd'</c> ends the literal
+	/// after <c>'a'</c>, and the unclosed comment is refused where it stands, as the generated
+	/// parser refuses it.
 	/// </remarks>
 	(int End, int Parts) Tail(int end, bool hexits)
 	{
-		var nested   = Continuation(end, hexits, false);
-		var earliest = Continuation(end, hexits, true);
-		var best     = (End: end, Parts: 0);
+		var parts = 0;
 
-		if (nested >= 0)
+		while (true)
 		{
-			var rest = Tail(nested, hexits);
+			var next = Continuation(end, hexits);
 
-			best = (rest.End, rest.Parts + 1);
+			if (next < 0)
+				return (end, parts);
+
+			end = next;
+			parts++;
 		}
-
-		if (earliest >= 0 && earliest != nested)
-		{
-			var rest = Tail(earliest, hexits);
-
-			if (rest.End > best.End)
-				best = (rest.End, rest.Parts + 1);
-		}
-
-		return best;
 	}
 
 	/// <summary>
 	/// Past the separator that stands after <paramref name="end"/> and the run after it, or -1
 	/// where no further run is written there.
 	/// </summary>
-	int Continuation(int end, bool hexits, bool earliest)
+	int Continuation(int end, bool hexits)
 	{
-		var next = Trivia(end, earliest);
+		var next = Trivia(end);
 
 		return next >= Text.Length || Text[next] != '\'' ? -1 : Run(next, hexits);
 	}
