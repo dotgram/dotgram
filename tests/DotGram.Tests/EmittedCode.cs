@@ -60,10 +60,11 @@ static class EmittedCode
 	/// reads the list itself.
 	/// </para>
 	/// <para>
-	/// GRAM4043 is let through for a reason of its own: a test of how a spaced grammar reads
-	/// is written over single characters (<c>'a' &amp; [^ 'b']</c>), which is the shape that
-	/// warning tells, and spacing them is what the test is about. It is asserted on where it
-	/// is the subject, in <c>SpacedLexemeTests</c>.
+	/// GRAM4043 is let through for a reason of its own: the grammars of these tests are small
+	/// ones over single characters (<c>'a' &amp; [^ 'b']</c>) whose inner seams are the point of
+	/// the test, and that is the shape the warning tells. Nothing that should see the warning
+	/// goes through here: it is asserted on, from the list itself, in <c>SpacedLexemeTests</c>,
+	/// and the examples are built by the compiler with warnings as errors.
 	/// </para>
 	/// </remarks>
 	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics)
