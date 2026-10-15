@@ -71,7 +71,7 @@ namespace DotGram.Examples.Formats;
 
 	Member : @JsonMember = name: Text & ':' & value: Value => @(new JsonMember(name.Text, value))
 
-	Text   : @JsonText = '"' & body: Lexical.Body & '"' => @(new JsonText(body))
+	Text   : @JsonText = '"' ~ body: Lexical.Body ~ '"' => @(new JsonText(body))
 
 	// The fraction is an optional tail rather than a second alternative: written as two,
 	// the digits are read once for each and GRAM4016 says so. Reading them once is the

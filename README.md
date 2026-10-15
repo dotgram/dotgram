@@ -309,7 +309,7 @@ using DotGram;
 	trivia = Std.Spacing?
 
 	Value : @int = d: Std.Digits => @(int.Parse(d))
-	Point        = { Std.Digits & ('.' & Std.Digits)? }
+	Point        = { Std.Digits ~ ('.' ~ Std.Digits)? }
 
 	Expr : Value = left: Expr & '+' & right: Expr  << 1 => @(left + right)
 	             | left: Expr & '-' & right: Expr  << 1 => @(left - right)
@@ -398,6 +398,12 @@ names no carrier runs each construction as soon as its alternative is read, whic
 and would divide, and throw, in `1/0=` before the parse refused the `=`. With the option, what
 a construction throws is held and thrown only where the tape — which runs every construction
 once the parse has accepted — would have thrown it: `1/0=` is refused, and `1/0` throws.
+
+`Point` joins its parts with `~` and not `&`. The grammar skips spaces between the operands of
+every sequence, so with `&` a number could hold a space (`1 .5`), and a string written
+`'"' & body & '"'` would lose the space just inside its quotes. `~` says that nothing may stand
+between two parts, which is what a number or a string needs; the compiler warns (GRAM4043) when
+a rule is spelled from single characters where spaces are skipped.
 
 ## Something much smaller
 

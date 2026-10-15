@@ -25,10 +25,11 @@ namespace DotGram.Tests;
 /// <para>
 /// Each has a construction that throws for some of what it may be handed — Calculator's `/` on a
 /// zero divisor, `int.Parse` on digits past <c>int.MaxValue</c>, Filter's <c>decimal.Parse</c> on a
-/// number read with a space inside it — and a reading that builds it before the parse has decided
-/// whether it stands: `1/0=` divides before the `=` is refused, `cpu=0 .75 mem=2048` parses
-/// `0 .75` before the text is. The tape's reading of each (tests/DotGram.Examples.Tape) runs every
-/// construction once the parse has accepted, so the two must agree on every text, throwers
+/// number too large for it — and a reading that builds it before the parse has decided whether it
+/// stands: `1/0=` divides before the `=` is refused, and `cpu=` followed by twenty-nine nines
+/// builds that number before the text is refused. The tape's reading of each
+/// (tests/DotGram.Examples.Tape) runs every construction once the parse has accepted, so the
+/// two must agree on every text, throwers
 /// included; without the option the immediate reading would throw where the tape refuses.
 /// </para>
 /// <para>
@@ -61,6 +62,9 @@ public sealed class ExampleCarrierTests
 		"cpu=0.75 mem=2048",
 		"cpu=0 .75 mem=2048",
 		"cpu=0 .75",
+		"cpu=99999999999999999999999999999 mem=2048",
+		"cpu=99999999999999999999999999999",
+		"cpu=99999999999999999999999999999.5 mem",
 		"Note = null OR Note <> 'it''s'",
 		"(Price < 1 OR Price > 10) AND Country = 'FR'",
 		"Size IN (1, 2 .5, 3)",

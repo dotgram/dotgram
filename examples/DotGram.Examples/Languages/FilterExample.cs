@@ -34,14 +34,13 @@ namespace DotGram.Examples.Languages;
 // with it. Turning the same tree into a SQL `WHERE` or an `Expression<Func<T, bool>>` is
 // the same walk over the same records.
 //
-// `decimal.Parse` throws on what it cannot read, and a number's text is read with the trivia
-// the grammar skips inside it, so `0 .75` is a reading of `Number` that `decimal.Parse`
-// refuses; the grammar says so: `ConstructionsMayThrow`. Carried immediately, as a grammar that
-// names no carrier is, a construction runs as soon as its alternative is read: in
-// `cpu=0 .75 mem=2048` that reading is built, and throws, before the parse refuses the text.
-// With the option the exception is held and dropped with the refused reading (docs/syntax.md
-// §7.5), so the answer is the refusal, as on the tape, where every construction waits until
-// the parse has accepted.
+// `decimal.Parse` throws on what it cannot hold, a number too large for it among them, so the
+// grammar says its constructions may throw: `ConstructionsMayThrow`. Carried immediately, as a
+// grammar that names no carrier is, a construction runs as soon as its alternative is read: in
+// `cpu=99999999999999999999999999999 mem=1` that number is built, and throws, before the parse
+// refuses the text. With the option the exception is held and dropped with the refused reading
+// (docs/syntax.md §7.5), so the answer is the refusal, as on the tape, where every construction
+// waits until the parse has accepted.
 
 [Gram("""
 	@using DotGram.Examples.Languages;
@@ -78,17 +77,14 @@ namespace DotGram.Examples.Languages;
 	                // a type — so the one alternative that means absence says so with `null!`.
 	                | "null"       => @((object)null!)
 
-	// The braces read a number once. Without them a number with no fraction could end before
-	// the space after it or after it — the seam before the optional takes the space, or the
-	// next seam does — two readings of every number, which a refused filter of n of them tried
-	// 2^n times: twenty comparisons took over ten seconds. Committed, the first reading stands,
-	// spaces before a point included, and nothing after a number begins with a point for a
-	// shorter one to be wanted. The text a number keeps may end in that space, which
-	// `decimal.Parse` reads past.
-	Number : @object = digits: { ['0'..'9']+ & ('.' & ['0'..'9']+)? }
+	// A number is a lexeme: `~` keeps trivia out of it, so `0 .75` is two numbers and not a
+	// number with a space in it (docs/syntax.md §4.5). The braces read it once, committed, so
+	// that a digit is never given back to a shorter reading.
+	Number : @object = digits: { ['0'..'9']+ ~ ('.' ~ ['0'..'9']+)? }
 	                     => @(decimal.Parse(digits, CultureInfo.InvariantCulture))
 
-	Text : @object = '\'' & body: Body & '\'' => @(body)
+	// `~` here too: a space after the quote is part of the string, and trivia would have eaten it.
+	Text : @object = '\'' ~ body: Body ~ '\'' => @(body)
 
 	Body : @string = text: ([^ '\''] | "''")* => @(text.Replace("''", "'"))
 
