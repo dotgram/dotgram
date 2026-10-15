@@ -91,6 +91,44 @@ public static partial class Sql2023Writer
 					Tight(":");
 					return true;
 
+				// T-SQL: DECLARE @local_variable (Transact-SQL). One variable at least (Declaration).
+				case Statement.DeclareVariables declare:
+					if (declare.Variables.Count == 0)
+						throw Empty(declare, "Variables");
+
+					Word("DECLARE");
+					Each(declare.Variables, PutVariableDeclaration);
+					return true;
+
+				// T-SQL: SET @local_variable (Transact-SQL). A property is a property's or the variable's, and a method the
+				// variable's own (MemberTail): Operator null is a method called, nothing else.
+				case Statement.SetVariable set:
+					Word("SET");
+
+					if (set.Operator is not { } op)
+					{
+						if (set.Members.Count > 0
+							|| set.Value is not Expression.Member { Kind: MemberAccessKind.Dot, Arguments: not null } call
+							|| call.Target != set.Variable)
+							throw Misplaced(set, "Operator", "null with anything but a method called on the variable itself");
+
+						PutExpression(call);
+						return true;
+					}
+
+					PutExpression(set.Variable);
+
+					foreach (var member in set.Members)
+					{
+						Tight(".");
+						Hold();
+						PutIdentifier(member);
+					}
+
+					Word(AssignmentText(op));
+					PutVariableValue(set, set.Value);
+					return true;
+
 				default:
 					return false;
 			}
@@ -107,6 +145,129 @@ public static partial class Sql2023Writer
 				PutStatement(statement);
 				Tight(";");
 			}
+		}
+
+		/// <summary>
+		/// T-SQL: DECLARE @local_variable (Transact-SQL). One variable (Declaration, DeclaredAs): a table's body as a table
+		/// variable takes it (<c>Syntax.Declared</c>, <c>Syntax.Stored</c>), or a type and a value; <c>CURSOR</c> takes no
+		/// value, and a type named <c>CURSOR</c> or <c>TABLE</c> otherwise reads back as those words.
+		/// </summary>
+		void PutVariableDeclaration(VariableDeclaration declaration)
+		{
+			switch (declaration)
+			{
+				case VariableDeclaration.Typed typed:
+					PutVariableName(typed, typed.Name);
+
+					if (typed.AsKeyword)
+						Word("AS");
+
+					switch (TypeWord(typed.Type))
+					{
+						case "CURSOR" when typed.Type is DataType.Named { Name.First.Text: "CURSOR", Arguments.Count: 0 }:
+							if (typed.Value is not null)
+								throw Misplaced(typed, "Value", "on a CURSOR variable (Msg 102)");
+
+							Word("CURSOR");
+							return;
+
+						case not null:
+							throw Misplaced(typed, "Type", "named CURSOR or TABLE other than as the one-part Named CURSOR, which reads back as the word");
+					}
+
+					PutType(typed.Type);
+
+					if (typed.Value is { } value)
+					{
+						Word("=");
+						PutVariableValue(typed, value);
+					}
+
+					return;
+
+				case VariableDeclaration.Table table:
+					PutVariableName(table, table.Name);
+
+					if (table.AsKeyword)
+						Word("AS");
+
+					CheckDeclared(table);
+					Word("TABLE");
+					PutElements(table.Elements);
+					return;
+
+				default:
+					throw Unwritten(declaration);
+			}
+		}
+
+		/// <summary>The word a one-part plain type name is, upper-cased, where it is CURSOR or TABLE; else null.</summary>
+		static string? TypeWord(DataType type)
+		{
+			QualifiedName? name = type switch
+			{
+				DataType.Named named      => named.Name,
+				DataType.UserDefined user => user.Name,
+				_                         => null,
+			};
+
+			var word = name is { Count: 1 } one && one[0].Style == IdentifierStyle.Regular ? one[0].Text.ToUpperInvariant() : null;
+
+			return word is "CURSOR" or "TABLE" ? word : null;
+		}
+
+		/// <summary>
+		/// T-SQL: SET @local_variable (Transact-SQL). A value given to a variable (<c>SetValue</c>): never DEFAULT
+		/// (<c>Msg 4119</c>), and never a comparison, which reads as a column assigned beside the variable.
+		/// </summary>
+		void PutVariableValue(ISqlNode owner, Expression value)
+		{
+			if (value is Expression.Default or Expression.Comparison)
+				throw Misplaced(owner, "Value", "DEFAULT or a comparison, which no variable is given");
+
+			PutExpression(value);
+		}
+
+		/// <summary>
+		/// T-SQL: DECLARE @local_variable (Transact-SQL). What a table variable's body may not hold (<c>Syntax.Declared</c>,
+		/// <c>Syntax.Stored</c>, restated over this tree): a named constraint, a name on a column's DEFAULT or NULL,
+		/// FILESTREAM, an identity's NOT FOR REPLICATION, a column's REFERENCES without FOREIGN KEY; and computed
+		/// columns with no stored one beside them.
+		/// </summary>
+		static void CheckDeclared(VariableDeclaration.Table table)
+		{
+			if (table.Elements.Count == 0)
+				throw Empty(table, "Elements");
+
+			var computed = false;
+			var stored   = false;
+
+			foreach (var element in table.Elements)
+				switch (element)
+				{
+					case TableElement.TableConstraint { Value.Name: not null } constraint:
+						throw Misplaced(constraint, "Name", "on a table variable's constraint (Syntax.Declared)");
+
+					case TableElement.Column { Definition: var column }:
+						if (column.Constraints.Any(static one => one.Name is not null))
+							throw Misplaced(column, "Constraints", "named, on a table variable's column (Syntax.Declared)");
+
+						foreach (var option in column.Options)
+							if (option.Name is not null
+								|| option is ColumnOption.Filestream or ColumnOption.NotForReplication
+								|| option is ColumnOption.Constraint { Value: var held } && (held.Name is not null || held is Constraint.ForeignKey { ForeignKeyWords: false }))
+								throw Misplaced(option, "Name, Filestream, NotForReplication or References", "on a table variable's column (Syntax.Declared)");
+
+						if (column.Type is null && column.Options is [ColumnOption.Computed, ..])
+							computed = true;
+						else
+							stored = true;
+
+						break;
+				}
+
+			if (computed && !stored)
+				throw Misplaced(table, "Elements", "computed columns with none stored beside them (Syntax.Stored)");
 		}
 
 		/// <summary>Whether a statement ends in an IF without an ELSE, which an ELSE written after it would take.</summary>

@@ -22,6 +22,16 @@ public sealed class ProceduralBridgeTests
 	[InlineData("BEGIN TRY SELECT 1 END TRY BEGIN CATCH END CATCH", "TRY")]
 	[InlineData("GOTO done", "GOTO")]
 	[InlineData("done:", "Label")]
+	[InlineData("DECLARE @a AS INT", "AS")]
+	[InlineData("DECLARE @a INT", "no AS")]
+	[InlineData("DECLARE @t AS TABLE (c INT)", "TABLE with AS")]
+	[InlineData("DECLARE @t TABLE (c INT)", "TABLE")]
+	[InlineData("DECLARE @c cursor", "CURSOR")]
+	[InlineData("DECLARE @c [cursor]", "a type named cursor")]
+	[InlineData("SET @a = 1", "=")]
+	[InlineData("SET @a += 1", "+=")]
+	[InlineData("SET @a.m = 1", "a property")]
+	[InlineData("SET @a.m(1)", "a method")]
 	public void The_bridge_builds_the_procedural_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -35,6 +45,16 @@ public sealed class ProceduralBridgeTests
 			"TRY" => made is Ast.Statement.TryCatch { Try.Count: 1, Catch.Count: 0 },
 			"GOTO" => made is Ast.Statement.GoTo { Name.Text: "done" },
 			"Label" => made is Ast.Statement.Label { Name.Text: "done" },
+			"AS" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { AsKeyword: true, Value: null, Type: Ast.DataType.Numeric }] },
+			"no AS" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { AsKeyword: false }] },
+			"TABLE with AS" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Table { AsKeyword: true, Elements.Count: 1 }] },
+			"TABLE" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Table { AsKeyword: false }] },
+			"CURSOR" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { Type: Ast.DataType.Named { Name.First: { Text: "CURSOR", Style: Ast.IdentifierStyle.Regular }, Arguments.Count: 0 }, Value: null }] },
+			"a type named cursor" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { Type: Ast.DataType.Named { Name.First: { Text: "[cursor]", Style: Ast.IdentifierStyle.Bracketed } } }] },
+			"=" => made is Ast.Statement.SetVariable { Operator: Ast.AssignmentOperator.Assign, Members.Count: 0 },
+			"+=" => made is Ast.Statement.SetVariable { Operator: Ast.AssignmentOperator.Add },
+			"a property" => made is Ast.Statement.SetVariable { Operator: Ast.AssignmentOperator.Assign, Members: [{ Text: "m" }], Value: Ast.LiteralValue.Numeric },
+			"a method" => made is Ast.Statement.SetVariable { Operator: null, Members.Count: 0, Value: Ast.Expression.Member { Kind: Ast.MemberAccessKind.Dot, Name.Text: "m", Arguments.Count: 1, Target: Ast.Expression.Variable { Name.Text: "@a" } } },
 			_ => false,
 		};
 
