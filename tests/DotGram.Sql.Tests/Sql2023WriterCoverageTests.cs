@@ -369,6 +369,7 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(AttachKind)]         = v => new Statement.CreateDatabase(new Identifier("d")) { Files = [new DatabaseFile([new Option(new Identifier("FILENAME"), new LiteralValue.String("'f'", StringLiteralKind.Character), [])])], Source = new DatabaseSource.ForAttach((AttachKind)v) },
 		[typeof(DeviceKind)]         = v => new Statement.BackupServer([new BackupDevice.Physical((DeviceKind)v, new LiteralValue.String("'f'", StringLiteralKind.Character))]),
 		[typeof(KeyPlaceKind)]       = v => new Statement.BackupMasterKey(new KeyPlace((KeyPlaceKind)v, new LiteralValue.String("'f'", StringLiteralKind.Character)), new LiteralValue.String("'p'", StringLiteralKind.Character)),
+		[typeof(RangeSide)]          = v => new Statement.CreatePartitionFunction(new Identifier("f"), new DataType.Numeric(NumericTypeKind.Int), []) { Range = (RangeSide)v },
 	};
 
 	/// <summary>

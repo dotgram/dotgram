@@ -243,6 +243,224 @@ public abstract partial record Statement
 		/// <summary>T-SQL: RESTORE SYMMETRIC KEY (Transact-SQL). <c>FORCE</c>.</summary>
 		public bool Force { get; init; }
 	}
+
+	/// <summary>
+	/// T-SQL: CREATE PARTITION FUNCTION (Transact-SQL). <c>CREATE PARTITION FUNCTION f (type [COLLATE c]) AS RANGE [LEFT |
+	/// RIGHT] FOR VALUES (boundary, …)</c>: the boundaries, which may be none.
+	/// </summary>
+	public sealed record CreatePartitionFunction(Identifier Name, DataType Type, SqlList<Expression> Boundaries) : Statement
+	{
+		/// <summary>T-SQL: CREATE PARTITION FUNCTION (Transact-SQL). <c>COLLATE c</c> after the type.</summary>
+		public CollationName? Collation { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE PARTITION FUNCTION (Transact-SQL). <c>LEFT</c> or <c>RIGHT</c>: which side of a boundary its value
+		/// belongs to; null where neither is said.
+		/// </summary>
+		public RangeSide? Range { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER PARTITION FUNCTION (Transact-SQL). <c>ALTER PARTITION FUNCTION f () { SPLIT | MERGE } [RANGE
+	/// (boundary)]</c>.
+	/// </summary>
+	public sealed record AlterPartitionFunction(Identifier Name, PartitionFunctionAction Action) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE PARTITION SCHEME (Transact-SQL). <c>CREATE PARTITION SCHEME s AS PARTITION f [ALL] TO (filegroup,
+	/// …)</c>: the filegroups, one at least, each a name or a string.
+	/// </summary>
+	public sealed record CreatePartitionScheme(Identifier Name, Identifier Function, SqlList<Expression> FileGroups) : Statement
+	{
+		/// <summary>T-SQL: CREATE PARTITION SCHEME (Transact-SQL). <c>ALL</c>: every partition to the one filegroup.</summary>
+		public bool All { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER PARTITION SCHEME (Transact-SQL). <c>ALTER PARTITION SCHEME s NEXT USED [filegroup]</c>: the filegroup, a
+	/// name or a string; null where none is named.
+	/// </summary>
+	public sealed record AlterPartitionScheme(Identifier Name, Expression? NextUsed) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE FULLTEXT CATALOG (Transact-SQL). <c>CREATE FULLTEXT CATALOG c [ON FILEGROUP fg] [IN PATH 'p'] [WITH
+	/// ACCENT_SENSITIVITY = …] [AS DEFAULT] [AUTHORIZATION owner]</c>.
+	/// </summary>
+	public sealed record CreateFullTextCatalog(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: CREATE FULLTEXT CATALOG (Transact-SQL). <c>ON FILEGROUP fg</c>.</summary>
+		public Identifier? FileGroup { get; init; }
+
+		/// <summary>T-SQL: CREATE FULLTEXT CATALOG (Transact-SQL). <c>IN PATH 'rootpath'</c>.</summary>
+		public Expression? Path { get; init; }
+
+		/// <summary>T-SQL: CREATE FULLTEXT CATALOG (Transact-SQL). <c>WITH ACCENT_SENSITIVITY = ON | OFF</c>; null where unsaid.</summary>
+		public bool? AccentSensitivity { get; init; }
+
+		/// <summary>T-SQL: CREATE FULLTEXT CATALOG (Transact-SQL). <c>AS DEFAULT</c>.</summary>
+		public bool Default { get; init; }
+
+		/// <summary>T-SQL: CREATE FULLTEXT CATALOG (Transact-SQL). <c>AUTHORIZATION owner</c>.</summary>
+		public Identifier? Authorization { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT CATALOG (Transact-SQL). <c>ALTER FULLTEXT CATALOG c { REBUILD [WITH ACCENT_SENSITIVITY = …] |
+	/// REORGANIZE | AS DEFAULT }</c>.
+	/// </summary>
+	public sealed record AlterFullTextCatalog(Identifier Name, FullTextCatalogAction Action) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE FULLTEXT STOPLIST (Transact-SQL). <c>CREATE FULLTEXT STOPLIST s [FROM { [db.]source | SYSTEM STOPLIST
+	/// }] [AUTHORIZATION owner]</c>.
+	/// </summary>
+	public sealed record CreateFullTextStopList(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: CREATE FULLTEXT STOPLIST (Transact-SQL). What the stoplist is copied from; null for an empty one.</summary>
+		public StopListSource? From { get; init; }
+
+		/// <summary>T-SQL: CREATE FULLTEXT STOPLIST (Transact-SQL). <c>AUTHORIZATION owner</c>.</summary>
+		public Identifier? Authorization { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT STOPLIST (Transact-SQL). <c>ALTER FULLTEXT STOPLIST s { ADD 'word' LANGUAGE l | DROP { 'word'
+	/// LANGUAGE l | ALL [LANGUAGE l] } }</c>.
+	/// </summary>
+	public sealed record AlterFullTextStopList(Identifier Name, StopListAction Action) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE SEARCH PROPERTY LIST (Transact-SQL). <c>CREATE SEARCH PROPERTY LIST l [FROM [db.]source]
+	/// [AUTHORIZATION owner]</c>.
+	/// </summary>
+	public sealed record CreateSearchPropertyList(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: CREATE SEARCH PROPERTY LIST (Transact-SQL). <c>FROM [database_name.]source_list_name</c>.</summary>
+		public QualifiedName? From { get; init; }
+
+		/// <summary>T-SQL: CREATE SEARCH PROPERTY LIST (Transact-SQL). <c>AUTHORIZATION owner</c>.</summary>
+		public Identifier? Authorization { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER SEARCH PROPERTY LIST (Transact-SQL). <c>ALTER SEARCH PROPERTY LIST l { ADD 'property' WITH (…) | DROP
+	/// 'property' }</c>.
+	/// </summary>
+	public sealed record AlterSearchPropertyList(Identifier Name, SearchPropertyListAction Action) : Statement;
+
+	/// <summary>T-SQL: CHECKPOINT (Transact-SQL). <c>CHECKPOINT [checkpoint_duration]</c>.</summary>
+	public sealed record Checkpoint(Expression? Duration) : Statement;
+}
+
+/// <summary>T-SQL: CREATE PARTITION FUNCTION (Transact-SQL). Which side of a boundary its value belongs to.</summary>
+public enum RangeSide { Left, Right }
+
+/// <summary>T-SQL: ALTER PARTITION FUNCTION (Transact-SQL). What an <c>ALTER PARTITION FUNCTION</c> does.</summary>
+public abstract record PartitionFunctionAction : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER PARTITION FUNCTION (Transact-SQL). <c>SPLIT [RANGE (boundary)]</c>; the boundary null where
+	/// <c>RANGE</c> is left out, which the grammar reads.
+	/// </summary>
+	public sealed record Split(Expression? Boundary) : PartitionFunctionAction;
+
+	/// <summary>T-SQL: ALTER PARTITION FUNCTION (Transact-SQL). <c>MERGE [RANGE (boundary)]</c>, likewise.</summary>
+	public sealed record Merge(Expression? Boundary) : PartitionFunctionAction;
+}
+
+/// <summary>T-SQL: ALTER FULLTEXT CATALOG (Transact-SQL). What an <c>ALTER FULLTEXT CATALOG</c> does.</summary>
+public abstract record FullTextCatalogAction : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT CATALOG (Transact-SQL). <c>REBUILD [WITH ACCENT_SENSITIVITY = ON | OFF]</c>; null where the
+	/// sensitivity is unsaid.
+	/// </summary>
+	public sealed record Rebuild(bool? AccentSensitivity) : FullTextCatalogAction;
+
+	/// <summary>T-SQL: ALTER FULLTEXT CATALOG (Transact-SQL). <c>REORGANIZE</c>.</summary>
+	public sealed record Reorganize : FullTextCatalogAction;
+
+	/// <summary>T-SQL: ALTER FULLTEXT CATALOG (Transact-SQL). <c>AS DEFAULT</c>.</summary>
+	public sealed record AsDefault : FullTextCatalogAction;
+}
+
+/// <summary>T-SQL: CREATE FULLTEXT STOPLIST (Transact-SQL). What a stoplist is copied from.</summary>
+public abstract record StopListSource : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>T-SQL: CREATE FULLTEXT STOPLIST (Transact-SQL). <c>FROM SYSTEM STOPLIST</c>.</summary>
+	public sealed record SystemStopList : StopListSource;
+
+	/// <summary>T-SQL: CREATE FULLTEXT STOPLIST (Transact-SQL). <c>FROM [database_name.]source_stoplist_name</c>.</summary>
+	public sealed record Named(QualifiedName Name) : StopListSource;
+}
+
+/// <summary>T-SQL: ALTER FULLTEXT STOPLIST (Transact-SQL). What an <c>ALTER FULLTEXT STOPLIST</c> does.</summary>
+public abstract record StopListAction : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>T-SQL: ALTER FULLTEXT STOPLIST (Transact-SQL). <c>ADD 'stopword' LANGUAGE language_term</c>.</summary>
+	public sealed record Add(Expression Word, Expression Language) : StopListAction;
+
+	/// <summary>T-SQL: ALTER FULLTEXT STOPLIST (Transact-SQL). <c>DROP 'stopword' LANGUAGE language_term</c>.</summary>
+	public sealed record Drop(Expression Word, Expression Language) : StopListAction;
+
+	/// <summary>
+	/// T-SQL: ALTER FULLTEXT STOPLIST (Transact-SQL). <c>DROP ALL [LANGUAGE language_term]</c>; the language null for every
+	/// one.
+	/// </summary>
+	public sealed record DropAll(Expression? Language) : StopListAction;
+}
+
+/// <summary>T-SQL: ALTER SEARCH PROPERTY LIST (Transact-SQL). What an <c>ALTER SEARCH PROPERTY LIST</c> does.</summary>
+public abstract record SearchPropertyListAction : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER SEARCH PROPERTY LIST (Transact-SQL). <c>ADD 'property_name' WITH (PROPERTY_SET_GUID = …, PROPERTY_INT_ID
+	/// = … [, PROPERTY_DESCRIPTION = …])</c>: the settings, in that order.
+	/// </summary>
+	public sealed record Add(Expression Property, SqlList<Option> Options) : SearchPropertyListAction;
+
+	/// <summary>T-SQL: ALTER SEARCH PROPERTY LIST (Transact-SQL). <c>DROP 'property_name'</c>.</summary>
+	public sealed record Drop(Expression Property) : SearchPropertyListAction;
 }
 
 /// <summary>

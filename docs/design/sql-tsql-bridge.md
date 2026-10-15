@@ -370,7 +370,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.QueueDefinition` | Broker | C | gap 48 | 48: no target record: Statement.CreateQueue (48) | 48 |
 | `Statement.If` | Procedural | C | converted 17 | — | 47 |
 | `Statement.SequenceDefinition` | Tables | A | converted 46, gap 1 | 1: needs decision: inventory cross-cutting gaps, identifier styles (a name part ` TestSeq`) (1) | 47 |
-| `Statement.AlterFullTextStopList` | Database | C | gap 46 | 46: no target record: Statement.AlterFullTextStopList (46) | 46 |
+| `Statement.AlterFullTextStopList` | Database | C | converted 46 | — | 46 |
 | `Statement.RestoreDatabase` | Database | C | converted 26, gap 20 | 20: needs decision: Trees.FreeText (Statement.RestoreDatabase.Tail, written otherwise than the writer prints it) (11); no target record: Option (RESTORE … MOVE 'file' TO 'path': two values) (5) | 46 |
 | `Statement.AuditSpecificationDefinition` | Monitoring | C | gap 45 | 45: no target record: Statement.CreateServerAuditSpecification (45) | 45 |
 | `Statement.AssemblyDefinition` | Routines | C | gap 44 | 44: no target record: Statement.CreateAssembly (44) | 44 |
@@ -432,17 +432,17 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.Break` | Procedural | C | converted 3 | — | 22 |
 | `Statement.OpenSymmetricKey` | Security | C | gap 22 | 22: no target record: Statement.OpenSymmetricKey (22) | 22 |
 | `Statement.AlterAsymmetricKey` | Security | C | gap 21 | 21: no target record: Statement.AlterAsymmetricKey (21) | 21 |
-| `Statement.PartitionFunctionDefinition` | Database | C | gap 21 | 21: no target record: Statement.CreatePartitionFunction (21) | 21 |
+| `Statement.PartitionFunctionDefinition` | Database | C | converted 14, gap 7 | 7: needs decision: Trees.FreeText (Statement.PartitionFunctionDefinition.Tail, written otherwise than the writer prints it) (7) | 21 |
 | `TableReference.Unpivot` | Tables | C | — | — | 21 |
 | `Statement.CredentialDefinition` | Security | C | gap 20 | 20: no target record: Statement.CreateCredential (20) | 20 |
 | `Statement.ExecuteAs` | Procedural | C | converted 18, gap 2 | 2: no target record: Statement.ExecuteAs (EXEC written for EXECUTE) (2) | 20 |
-| `Statement.FullTextCatalogDefinition` | Database | C | gap 20 | 20: no target record: Statement.CreateFullTextCatalog (20) | 20 |
+| `Statement.FullTextCatalogDefinition` | Database | C | converted 15, gap 5 | 5: needs decision: Trees.FreeText (Statement.FullTextCatalogDefinition.Tail, written otherwise than the writer prints it) (5) | 20 |
 | `Statement.RuleDefinition` | Routines | C | gap 20 | 20: no target record: Statement.CreateRule (20) | 20 |
 | `Statement.WaitFor` | Procedural | C | converted 20 | — | 20 |
 | `Expression.BitwiseNot` | Values | C | — | — | 19 |
 | `Statement.CertificateDefinition` | Security | C | gap 19 | 19: no target record: Statement.CreateCertificate (19) | 19 |
 | `Statement.DropDatabase` | Drop | C | converted 19 | — | 19 |
-| `Statement.FullTextStopListDefinition` | Database | C | gap 19 | 19: no target record: Statement.CreateFullTextStopList (19) | 19 |
+| `Statement.FullTextStopListDefinition` | Database | C | converted 19 | — | 19 |
 | `Statement.TryCatch` | Procedural | C | converted 7 | — | 19 |
 | `Statement.AggregateDefinition` | Routines | C | gap 18 | 18: no target record: Statement.CreateAggregate (18) | 18 |
 | `Statement.AlterLogin` | Security | C | gap 18 | 18: no target record: Statement.AlterLogin (18) | 18 |
@@ -451,7 +451,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.RaiseError` | Procedural | C | converted 10 | — | 18 |
 | `Statement.ServiceDefinition` | Broker | C | gap 18 | 18: no target record: Statement.CreateService (18) | 18 |
 | `Expression.Plus` | Values | A | — | — | 17 |
-| `Statement.AlterPartitionFunction` | Database | C | gap 17 | 17: no target record: Statement.AlterPartitionFunction (17) | 17 |
+| `Statement.AlterPartitionFunction` | Database | C | converted 6, gap 11 | 11: needs decision: Trees.FreeText (Statement.AlterPartitionFunction.Tail, written otherwise than the writer prints it) (11) | 17 |
 | `Statement.BackupCertificate` | Database | C | converted 14, gap 3 | 3: needs decision: Trees.FreeText (Statement.BackupCertificate.Tail, written otherwise than the writer prints it) (3) | 17 |
 | `Statement.Classification` | Security | C | gap 17 | 17: no target record: Statement.AddSensitivityClassification (17) | 17 |
 | `Statement.DropTable` | Drop | B | converted 16 | — | 17 |
@@ -476,7 +476,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.RestoreLog` | Database | C | converted 12, gap 2 | 2: needs decision: Trees.FreeText (Statement.RestoreLog.Tail, written otherwise than the writer prints it) (1); no target record: Option (RESTORE … STOPATMARK = mark AFTER datetime: two values) (1) | 14 |
 | `Expression.ShiftRight` | Values | C | — | — | 13 |
 | `Statement.AlterDatabaseScopedConfiguration` | Database | C | converted 13 | — | 13 |
-| `Statement.AlterFullTextCatalog` | Database | C | gap 13 | 13: no target record: Statement.AlterFullTextCatalog (13) | 13 |
+| `Statement.AlterFullTextCatalog` | Database | C | converted 8, gap 5 | 5: needs decision: Trees.FreeText (Statement.AlterFullTextCatalog.Tail, written otherwise than the writer prints it) (5) | 13 |
 | `Statement.AlterServiceMasterKey` | Security | C | gap 13 | 13: no target record: Statement.AlterServiceMasterKey (13) | 13 |
 | `Statement.AlterUser` | Security | C | gap 13 | 13: no target record: Statement.AlterUser (13) | 13 |
 | `Statement.CryptographicProviderDefinition` | Security | C | gap 13 | 13: no target record: Statement.CreateCryptographicProvider (13) | 13 |
@@ -493,15 +493,15 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterAuthorization` | Security | C | gap 11 | 11: no target record: Statement.AlterAuthorization (11) | 11 |
 | `Statement.AlterDatabaseRebuildLog` | Database | C | converted 5, gap 6 | 6: no target record: AlterDatabaseAction.RebuildLog (REBUILD LOG ON a file) (6) | 11 |
 | `Statement.AlterSchema` | Security | C | gap 11 | 11: no target record: Statement.AlterSchema (11) | 11 |
-| `Statement.AlterSearchPropertyList` | Database | C | gap 11 | 11: no target record: Statement.AlterSearchPropertyList (11) | 11 |
+| `Statement.AlterSearchPropertyList` | Database | C | converted 5, gap 6 | 6: needs decision: Trees.FreeText (Statement.AlterSearchPropertyList.Tail, written otherwise than the writer prints it) (6) | 11 |
 | `Statement.DropEventNotification` | Drop | C | converted 7, gap 4 | 4: needs decision: inventory Statement.DropEventNotification (`on database` kept as written, against `ON DATABASE` as the writer prints it, which the old tree compares exactly) (1); needs decision: inventory Statement.DropEventNotification (`on queue dbo.q1` kept as written, against `ON QUEUE dbo.q1` as the writer prints it, which the old tree compares exactly) (1) | 11 |
 | `Statement.DropQueue` | Drop | C | converted 11 | — | 11 |
 | `Statement.DropSecurityPolicy` | Drop | C | converted 11 | — | 11 |
-| `Statement.PartitionSchemeDefinition` | Database | C | gap 11 | 11: no target record: Statement.CreatePartitionScheme (11) | 11 |
+| `Statement.PartitionSchemeDefinition` | Database | C | converted 9, gap 2 | 2: needs decision: Trees.FreeText (Statement.PartitionSchemeDefinition.Tail, written otherwise than the writer prints it) (2) | 11 |
 | `Statement.Revert` | Procedural | C | converted 11 | — | 11 |
 | `Statement.XmlSchemaCollectionDefinition` | Routines | C | gap 11 | 11: no target record: Statement.CreateXmlSchemaCollection (11) | 11 |
 | `Expression.Between` | Values | A | — | — | 10 |
-| `Statement.AlterPartitionScheme` | Database | C | gap 10 | 10: no target record: Statement.AlterPartitionScheme (10) | 10 |
+| `Statement.AlterPartitionScheme` | Database | C | converted 7, gap 3 | 3: needs decision: Trees.FreeText (Statement.AlterPartitionScheme.Tail, written otherwise than the writer prints it) (3) | 10 |
 | `Statement.DatabaseScopedCredentialDefinition` | Security | C | gap 10 | 10: no target record: Statement.CreateDatabaseScopedCredential (10) | 10 |
 | `Statement.DropEventSession` | Drop | C | converted 8, gap 2 | 2: needs decision: inventory Statement.DropEventSession (`on SERVER` kept as written, against `ON SERVER` as the writer prints it, which the old tree compares exactly) (2) | 10 |
 | `Statement.GetConversationGroup` | Broker | C | gap 4 | 10: no target record: Statement.GetConversationGroup (10) | 10 |
@@ -530,7 +530,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `SetExpression.Miscellaneous.IdentityInsert` | Procedural | C | — | — | 7 |
 | `Statement.AlterDatabaseAddFile` | Database | C | converted 7 | — | 7 |
 | `Statement.AlterServerRole` | Security | C | gap 7 | 7: no target record: Statement.AlterServerRole (7) | 7 |
-| `Statement.Checkpoint` | Database | C | gap 7 | 7: no target record: Statement.Checkpoint (7) | 7 |
+| `Statement.Checkpoint` | Database | C | converted 7 | — | 7 |
 | `Statement.Continue` | Procedural | C | converted 2 | — | 7 |
 | `Statement.DropAsymmetricKey` | Drop | C | converted 6, gap 1 | 1: needs decision: inventory Statement.DropAsymmetricKey (`remove provider key` kept as written, against `REMOVE PROVIDER KEY` as the writer prints it, which the old tree compares exactly) (1) | 7 |
 | `Statement.DropContract` | Drop | C | converted 7 | — | 7 |
@@ -541,7 +541,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropSymmetricKey` | Drop | C | converted 6, gap 1 | 1: needs decision: inventory Statement.DropSymmetricKey (`remove provider key` kept as written, against `REMOVE PROVIDER KEY` as the writer prints it, which the old tree compares exactly) (1) | 7 |
 | `Statement.RestoreMasterKey` | Database | C | converted 6, gap 1 | 1: needs decision: Trees.FreeText (Statement.RestoreMasterKey.Tail, written otherwise than the writer prints it) (1) | 7 |
 | `Statement.RouteDefinition` | Broker | C | gap 7 | 7: no target record: Statement.CreateRoute (7) | 7 |
-| `Statement.SearchPropertyListDefinition` | Database | C | gap 7 | 7: no target record: Statement.CreateSearchPropertyList (7) | 7 |
+| `Statement.SearchPropertyListDefinition` | Database | C | converted 7 | — | 7 |
 | `Statement.Throw` | Procedural | C | converted 5 | — | 7 |
 | `Statement.Use` | Procedural | C | converted 7 | — | 7 |
 | `Query.Except` | Queries | B | — | — | 6 |
