@@ -374,12 +374,12 @@ static partial class Bridge
 						$"{tokens[0].Text} = {tokens[2].Text} ON PARTITIONS ({spelled})");
 
 				case ["MOVE", "TO", ..]:
-					var (moved, to) = Place(old, tokens.Skip(2).ToList(), columns: true);
+					var (moved, to) = Place(old, tokens.Skip(2).ToList());
 
 					return (new Ast.Option(name, moved, []) { Words = [new Ast.Identifier(tokens[1].Text)] }, $"{tokens[0].Text} {tokens[1].Text} {to}");
 
 				case ["FILESTREAM_ON", ..]:
-					var (streamed, on) = Place(old, tokens.Skip(1).ToList(), columns: false);
+					var (streamed, on) = Place(old, tokens.Skip(1).ToList());
 
 					return (new Ast.Option(name, streamed, []), $"{tokens[0].Text} {on}");
 
@@ -402,10 +402,11 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// Where an index's rows or streams go (<c>PlacementTarget</c>): a name of one part, a string, and for the rows a
-		/// scheme and its column, which is a call; and how the writer prints it.
+		/// Where an index's rows or streams go (<c>PlacementTarget</c>): a name of one part or a string, and how the writer
+		/// prints it. A scheme or a string with its column (<c>ps (a)</c>, <c>'fg' (a)</c>) is a gap: no value of an option
+		/// holds a place with columns yet.
 		/// </summary>
-		static (Ast.Expression Made, string Written) Place(object old, List<SqlTokens.Token> tokens, bool columns)
+		static (Ast.Expression Made, string Written) Place(object old, List<SqlTokens.Token> tokens)
 		{
 			switch (tokens)
 			{
@@ -414,17 +415,6 @@ static partial class Bridge
 
 				case [{ Kind: SqlTokens.Kind.String } text]:
 					return (Values.Of(new Expression.Literal(SqlLiteralKind.Text, text.Text)), text.Text);
-
-				case [{ Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited } scheme, { Text: "(" }, .., { Text: ")" }] when columns:
-					var named = Listed(tokens.Skip(2).Take(tokens.Count - 3).ToList());
-
-					if (named.Any(static one => one is not [{ Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited }]))
-						break;
-
-					var call = new Ast.Expression.Invocation(new Ast.QualifiedName([Values.Part(old, scheme.Text)]),
-						named.Select(one => new Ast.Argument(new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, one[0].Text)])))).ToSqlList());
-
-					return (call, $"{scheme.Text} ({string.Join(", ", named.Select(static one => one[0].Text))})");
 			}
 
 			throw BridgeGap.Open(old, $"inventory Statement.DropIndex (a place `{string.Join(" ", tokens.Select(static one => one.Text))}`, which no value of an option holds)");

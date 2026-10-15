@@ -33,7 +33,7 @@ public sealed class DropBridgeTests
 	[InlineData("DROP DATABASE AUDIT SPECIFICATION a",                    "Database audit specification")]
 	[InlineData("DROP DATABASE ENCRYPTION KEY",                           "Database encryption key")]
 	[InlineData("DROP DATABASE SCOPED CREDENTIAL c",                      "Database scoped credential")]
-	[InlineData("DROP INDEX i ON dbo.t WITH (MOVE TO ps (a), MAXDOP = 2)", "Index named")]
+	[InlineData("DROP INDEX i ON dbo.t WITH (MOVE TO fg, MAXDOP = 2)",     "Index named")]
 	[InlineData("DROP INDEX dbo.t.i",                                     "Index qualified")]
 	[InlineData("DROP SIGNATURE FROM OBJECT::dbo.p BY CERTIFICATE c",     "Signature")]
 	[InlineData("DROP COUNTER SIGNATURE FROM p BY ASYMMETRIC KEY k",      "Counter signature")]
@@ -68,7 +68,7 @@ public sealed class DropBridgeTests
 			"Database audit specification" => made is Ast.Statement.DropDatabaseAuditSpecification { Name.Text: "a" },
 			"Database encryption key" => made is Ast.Statement.DropDatabaseEncryptionKey,
 			"Database scoped credential" => made is Ast.Statement.DropDatabaseScopedCredential { Name.Text: "c" },
-			"Index named" => made is Ast.Statement.DropIndex { IfExists: false, Indexes: [Ast.DroppedIndex.Named { Name.Text: "i", On.Parts.Count: 2, Options: [{ Name.Text: "MOVE", Words: [{ Text: "TO" }], Value: Ast.Expression.Invocation }, { Name.Text: "MAXDOP" }] }] },
+			"Index named" => made is Ast.Statement.DropIndex { IfExists: false, Indexes: [Ast.DroppedIndex.Named { Name.Text: "i", On.Parts.Count: 2, Options: [{ Name.Text: "MOVE", Words: [{ Text: "TO" }], Value: Ast.Expression.Reference }, { Name.Text: "MAXDOP" }] }] },
 			"Index qualified" => made is Ast.Statement.DropIndex { Indexes: [Ast.DroppedIndex.Qualified { Name.Parts.Count: 3 }] },
 			"Signature" => made is Ast.Statement.DropSignature { Counter: false, Class: Ast.SecurableClass.Object, By: [Ast.SignedBy.Certificate] },
 			"Counter signature" => made is Ast.Statement.DropSignature { Counter: true, Class: null, By: [Ast.SignedBy.AsymmetricKey] },

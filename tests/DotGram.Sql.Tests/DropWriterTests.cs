@@ -123,7 +123,7 @@ public sealed class DropWriterTests
 			"MasterKey" => new Statement.DropMasterKey(),
 			"DatabaseEncryptionKey" => new Statement.DropDatabaseEncryptionKey(),
 			"Index named" => new Statement.DropIndex([new DroppedIndex.Named(X, Q, [Option("MAXDOP", Number("2")), Option("ONLINE", Ref("ON")), Moved(Ref("fg")), Option("DATA_COMPRESSION", Ref("PAGE")) with { Partitions = [new PartitionRange(Number("1"), Number("3"))] }, Waited()])], true),
-			"Index qualified" => new Statement.DropIndex([new DroppedIndex.Qualified(Q), new DroppedIndex.Named(X, S, [Moved(new Expression.Invocation(new QualifiedName([new Identifier("ps")]), [new Argument(Ref("a"))])), new Option(new Identifier("FILESTREAM_ON"), Str, [])])], false),
+			"Index qualified" => new Statement.DropIndex([new DroppedIndex.Qualified(Q), new DroppedIndex.Named(X, S, [Moved(new LiteralValue.String("'fg'", StringLiteralKind.Character)), new Option(new Identifier("FILESTREAM_ON"), Str, [])])], false),
 			"Signature" => new Statement.DropSignature(false, Q, [new SignedBy.Certificate(new QualifiedName([X])), new SignedBy.AsymmetricKey(new QualifiedName([Y]))]),
 			"Counter signature" => new Statement.DropSignature(true, Q, [new SignedBy.Certificate(new QualifiedName([X]))]) { Class = SecurableClass.Object },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
@@ -187,7 +187,7 @@ public sealed class DropWriterTests
 	[InlineData("MasterKey", "DROP MASTER KEY")]
 	[InlineData("DatabaseEncryptionKey", "DROP DATABASE ENCRYPTION KEY")]
 	[InlineData("Index named", "DROP INDEX IF EXISTS x ON dbo.q WITH (MAXDOP = 2, ONLINE = ON, MOVE TO fg, DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 3), WAIT_AT_LOW_PRIORITY (MAX_DURATION = 5 MINUTES, ABORT_AFTER_WAIT = SELF))")]
-	[InlineData("Index qualified", "DROP INDEX dbo.q, x ON s WITH (MOVE TO ps (a), FILESTREAM_ON 'fs')")]
+	[InlineData("Index qualified", "DROP INDEX dbo.q, x ON s WITH (MOVE TO 'fg', FILESTREAM_ON 'fs')")]
 	[InlineData("Signature", "DROP SIGNATURE FROM dbo.q BY CERTIFICATE x, ASYMMETRIC KEY y")]
 	[InlineData("Counter signature", "DROP COUNTER SIGNATURE FROM OBJECT::dbo.q BY CERTIFICATE x")]
 	public void Each_record_writes_its_kind(string which, string text)
@@ -287,6 +287,12 @@ public sealed class DropWriterTests
 	[InlineData("MOVE TO a bare DEFAULT")]
 	[InlineData("MOVE without TO")]
 	[InlineData("FILESTREAM_ON a scheme with its column")]
+	[InlineData("MOVE TO a scheme with its column")]
+	[InlineData("MOVE TO DEFAULT with a column")]
+	[InlineData("MAXDOP set to a signed number")]
+	[InlineData("a low priority wait of a hexadecimal number")]
+	[InlineData("a low priority wait of money")]
+	[InlineData("a server audit named SPECIFICATION")]
 	[InlineData("words on an option other than MOVE")]
 	[InlineData("an = left out of an index option")]
 	[InlineData("partitions on an option other than DATA_COMPRESSION")]
@@ -333,6 +339,18 @@ public sealed class DropWriterTests
 			"MOVE without TO" => Indexed(new Option(new Identifier("MOVE"), Ref("fg"), [])),
 			// DropIndexOption: FILESTREAM_ON when p is not { Columns: not null }.
 			"FILESTREAM_ON a scheme with its column" => Indexed(new Option(new Identifier("FILESTREAM_ON"), new Expression.Invocation(new QualifiedName([new Identifier("ps")]), [new Argument(Ref("a"))]), [])),
+			// no value of an option holds a place with columns (an open question), so the scheme and its column are not written.
+			"MOVE TO a scheme with its column" => Indexed(Moved(new Expression.Invocation(new QualifiedName([new Identifier("ps")]), [new Argument(Ref("a"))]))),
+			// DropIndexOption reads MOVE TO ?!DEFAULT, with or without a column after it.
+			"MOVE TO DEFAULT with a column" => Indexed(Moved(new Expression.Invocation(new QualifiedName([new Identifier("DEFAULT")]), [new Argument(Ref("a"))]))),
+			// DropIndexOption reads MAXDOP = Digits: no sign.
+			"MAXDOP set to a signed number" => Indexed(Option("MAXDOP", Number("-1"))),
+			// Minutes = Number, an UnsignedNumericLiteral: no 0x.
+			"a low priority wait of a hexadecimal number" => Indexed(new Option(new Identifier("WAIT_AT_LOW_PRIORITY"), null, [Option("MAX_DURATION", new LiteralValue.Numeric("0x1F", NumericLiteralKind.HexInteger)), Option("ABORT_AFTER_WAIT", Ref("NONE"))])),
+			// Minutes = Number, an UnsignedNumericLiteral: no $.
+			"a low priority wait of money" => Indexed(new Option(new Identifier("WAIT_AT_LOW_PRIORITY"), null, [Option("MAX_DURATION", new LiteralValue.Numeric("$5", NumericLiteralKind.Money)), Option("ABORT_AFTER_WAIT", Ref("NONE"))])),
+			// DropNamedKind reads SERVER AUDIT SPECIFICATION first and then wants a name: the text does not read.
+			"a server audit named SPECIFICATION" => new Statement.DropServerAudit(new Identifier("SPECIFICATION")),
 			// only MOVE TO is two words in DropIndexOption.
 			"words on an option other than MOVE" => Indexed(Option("ONLINE", Ref("ON")) with { Words = [new Identifier("TO")] }),
 			// DropIndexOption reads MAXDOP with its =.

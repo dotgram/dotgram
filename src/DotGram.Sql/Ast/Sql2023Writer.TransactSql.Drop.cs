@@ -170,6 +170,11 @@ public static partial class Sql2023Writer
 					return true;
 
 				case Statement.DropServerAudit drop:
+					// DropNamedKind reads SERVER AUDIT SPECIFICATION before SERVER AUDIT, and ordered choice does not come back
+					// to the shorter kind when no name follows: an audit named SPECIFICATION is written delimited or not at all.
+					if (Plain(drop.Name, "SPECIFICATION"))
+						throw Misplaced(drop, "Name", "SPECIFICATION as a plain word, which DropNamedKind reads as SERVER AUDIT SPECIFICATION");
+
 					PutDropped("SERVER AUDIT", false, drop.Name);
 					return true;
 
@@ -408,7 +413,7 @@ public static partial class Sql2023Writer
 			switch (name)
 			{
 				// MAXDOP = digits.
-				case "MAXDOP" when option.Value is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger }:
+				case "MAXDOP" when option.Value is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger, Text: { Length: > 0 } digits } && digits.All(static one => one is >= '0' and <= '9'):
 				// ONLINE = ON | OFF.
 				case "ONLINE" when KeyWord(option.Value) is "ON" or "OFF":
 					PutIdentifier(option.Name);
@@ -424,15 +429,15 @@ public static partial class Sql2023Writer
 					PutRanges(option.Partitions);
 					break;
 
-				// MOVE TO a place, but not a bare DEFAULT; FILESTREAM_ON a place that names no column.
-				case "MOVE" when option is { Words: [{ Style: IdentifierStyle.Regular } to] } && Plain(to, "TO") && Place(option.Value, columns: true) && KeyWord(option.Value) != "DEFAULT":
-				case "FILESTREAM_ON" when option.Words.Count == 0 && Place(option.Value, columns: false):
+				// MOVE TO a place, but not a bare DEFAULT; FILESTREAM_ON a place.
+				case "MOVE" when option is { Words: [{ Style: IdentifierStyle.Regular } to] } && Plain(to, "TO") && Place(option.Value) && KeyWord(option.Value) != "DEFAULT":
+				case "FILESTREAM_ON" when option.Words.Count == 0 && Place(option.Value):
 					PutIdentifier(option.Name);
 
 					foreach (var word in option.Words)
 						PutIdentifier(word);
 
-					PutPlace(option.Value!);
+					PutExpression(option.Value!);
 					break;
 
 				// WAIT_AT_LOW_PRIORITY (MAX_DURATION = n [MINUTES], ABORT_AFTER_WAIT = NONE | SELF | BLOCKERS).
@@ -456,44 +461,27 @@ public static partial class Sql2023Writer
 
 		/// <summary>
 		/// T-SQL: DROP INDEX (Transact-SQL). Where rows or streams go (<c>PlacementTarget</c>): a filegroup or a scheme by a
-		/// name of one part, a string, and for the rows a scheme with its column, written as a call.
+		/// name of one part, or a string. A scheme with its column (<c>MOVE TO ps (a)</c>, <c>MOVE TO 'fg' (a)</c>) has no
+		/// value of an option that holds it yet, and is refused.
 		/// </summary>
-		static bool Place(Expression? value, bool columns)
+		static bool Place(Expression? value)
 		{
 			return value switch
 			{
 				Expression.Reference { Name.Parts.Count: 1 } => true,
 				LiteralValue.String { Kind: StringLiteralKind.Character, CharacterSet: null, UnicodeEscape: null } => true,
-				Expression.Invocation { Name.Parts.Count: 1, Quantifier: null, Arguments.Count: > 0 } call when columns =>
-					call.Arguments.All(static one => one is { Value: Expression.Reference { Name.Parts.Count: 1 } }),
 				_ => false,
 			};
-		}
-
-		/// <summary>A place, and a scheme's column in brackets after its name, as the grammar writes it: <c>ps (a)</c>.</summary>
-		void PutPlace(Expression place)
-		{
-			if (place is not Expression.Invocation call)
-			{
-				PutExpression(place);
-
-				return;
-			}
-
-			PutName(call.Name);
-			Open();
-			Each(call.Arguments, one => PutExpression(one.Value));
-			Close();
 		}
 
 		/// <summary><c>MAX_DURATION = n [MINUTES]</c> then <c>ABORT_AFTER_WAIT = NONE | SELF | BLOCKERS</c>, and nothing else.</summary>
 		static bool LowPriority(Option duration, Option abort)
 		{
+			// Minutes = Number & "MINUTES"i?, and Number is an unsigned number literal.
 			var minutes = duration.Value switch
 			{
-				LiteralValue.Numeric                                                => true,
-				Expression.Measured { Value: LiteralValue.Numeric, Unit: var unit } => Plain(unit, "MINUTES"),
-				_                                                                   => false,
+				Expression.Measured { Value: var number, Unit: var unit } => IsNumber(number) && Plain(unit, "MINUTES"),
+				var number                                                => IsNumber(number),
 			};
 
 			return minutes
