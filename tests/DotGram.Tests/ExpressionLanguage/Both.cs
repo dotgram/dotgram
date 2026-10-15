@@ -24,7 +24,7 @@ namespace DotGram.Tests.ExpressionLanguage;
 /// <para>
 /// What comes back is the generated parser's own answer, so the assertions after the call are
 /// about the parser the tests were written for. The handwritten one is held to it, not the other
-/// way round, and to the tape, which is what ships.
+/// way round, and to the immediate reading, which is what ships.
 /// </para>
 /// </remarks>
 static class Both

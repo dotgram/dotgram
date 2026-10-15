@@ -1,6 +1,5 @@
 Examples	DotGram.Examples.Expressions.ArithmeticTree.g.cs	0649
 Examples	DotGram.Examples.Expressions.Calculator.g.cs	0649
-Examples	DotGram.Examples.Expressions.Calculator.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	0649
 Examples	DotGram.Examples.Expressions.LocaleNumber.g.cs	0649
 Examples	DotGram.Examples.Feeds.Logbook.g.cs	0649
@@ -13,15 +12,12 @@ Examples	DotGram.Examples.Formats.FixedWidth.Tape.g.cs	0649
 Examples	DotGram.Examples.Formats.FixedWidth.Tape.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Formats.FixedWidth.g.cs	0649
 Examples	DotGram.Examples.Formats.Netstrings.g.cs	0649
-Examples	DotGram.Examples.Languages.Filter.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.FilterFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
 Examples	DotGram.Examples.Languages.Lexemes.g.cs	0649
 Examples	DotGram.Examples.Languages.Scoped.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.Selectors.g.cs	0649
 Examples	DotGram.Examples.Languages.SettingsFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
 Examples	DotGram.Examples.Languages.TokenizedQuery.g.cs	0649
-ExpressionLanguage	DotGram.ExpressionLanguage.ExpressionParser.g.cs	CS0649 // a table nothing writes still declares the field
-Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	CS0649 // a table nothing writes still declares the field
 Finance	DotGram.Finance.Fix.FixGrammar.g.cs	0649
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	0649
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	0649

@@ -29,9 +29,9 @@ static partial class Stand
 		Console.WriteLine("| parser | shape | unit | sizes | points | input chars at the largest | time at the largest | exponent | shape of the growth | widest gap between the two passes | projected at 64 KiB | KB a call at the largest | allocation exponent | |");
 		Console.WriteLine("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: | ---: | --- |");
 
-		// The stand can reach the immediate reading of the expression language through the internals; the slow suite cannot, and reads the tape alone.
-		if (RefusalLadders.ExpressionForms.All(static one => one.Form != "immediate"))
-			RefusalLadders.ExpressionForms.Add(("immediate", static text => ImmediateExpression.Reads(text, Caller)));
+		// The stand can reach the tape's reading of the expression language through the fixture; the slow suite cannot, and reads the package's immediate one alone.
+		if (RefusalLadders.ExpressionForms.All(static one => one.Form != "tape"))
+			RefusalLadders.ExpressionForms.Add(("tape", static text => TapeExpression.Reads(text, Caller)));
 
 		var problems = new List<string>();
 		var lines    = new List<string>();

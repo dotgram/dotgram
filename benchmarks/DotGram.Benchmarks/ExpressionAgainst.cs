@@ -258,12 +258,12 @@ static class ExpressionAgainst
 	{
 		try
 		{
-			// The immediate reading is the fixture's, with a state of its own type (ImmediateExpression).
+			// The tape's reading is the fixture's, with a state of its own type (TapeExpression).
 			return which switch
 			{
 				Reading.Hand      => HandExpression.TryParseLambda(_input, Fresh(_input)).IsSuccess,
-				Reading.Immediate => ImmediateExpression.Reads(_input, Caller),
-				_                 => ExpressionParser.TryParseLambda(_input, Fresh(_input)).IsSuccess,
+				Reading.Immediate => ExpressionParser.TryParseLambda(_input, Fresh(_input)).IsSuccess,
+				_                 => TapeExpression.Reads(_input, Caller),
 			};
 		}
 		catch (Exception exception) when (exception is FormatException or ArgumentException or InvalidOperationException)
@@ -280,15 +280,15 @@ static class ExpressionAgainst
 	/// The hand-written parser is held to the tape over the whole shared corpus and over what
 	/// is timed, answer for answer — the tree, or where and how the text was refused
 	/// (<see cref="ExpressionCorpus.Answer"/>). The immediate carrier is held to the tape over the
-	/// same, with one allowance its contract makes: it runs the constructions of a derivation it
-	/// then abandons, so on text the tape refuses it may throw one of the refusals the host
-	/// throws instead of refusing (<see cref="Agrees"/>).
+	/// same, answer for answer too: it runs the constructions of a derivation it then abandons,
+	/// and the grammar says `ConstructionsMayThrow`, so what one of them throws there is held and
+	/// dropped with the derivation rather than thrown instead of the tape's refusal.
 	/// </remarks>
 	public static void Agree()
 	{
 		foreach (var text in ExpressionCorpus.Shapes.Concat(Inputs))
 		{
-			var tape   = ExpressionCorpus.Answer(text, ExpressionParser.TryParseLambda, Fresh(text));
+			var tape   = TapeExpression.Answer(text, Caller);
 			var handed = ExpressionCorpus.Answer(text, HandExpression.TryParseLambda, Fresh(text));
 
 			if (tape != handed)
@@ -300,10 +300,10 @@ static class ExpressionAgainst
 
 		foreach (var text in ExpressionCorpus.Shapes.Concat(Inputs))
 		{
-			var tape      = ExpressionCorpus.Answer(text, ExpressionParser.TryParseLambda, Fresh(text));
+			var tape      = TapeExpression.Answer(text, Caller);
 			var immediate = ImmediateExpression.Answer(text, Caller);
 
-			if (!Agrees(tape, immediate))
+			if (tape != immediate)
 				throw new InvalidOperationException(
 					$"About \"{text}\": the tape and the immediate carrier read one grammar differently.\n" +
 					$"  tape      {tape}\n" +
@@ -313,19 +313,6 @@ static class ExpressionAgainst
 		Console.WriteLine(
 			$"The hand-written parser answers as the tape over {ExpressionCorpus.Shapes.Length + Inputs.Length} shapes, " +
 			"and so does the immediate carrier.");
-	}
-
-	/// <summary>Whether the immediate carrier answers as the tape does.</summary>
-	/// <remarks>
-	/// The same tree where the tape builds one, and the same refusal where it refuses — or a
-	/// refusal thrown instead: the carrier runs the constructions of a derivation it then
-	/// abandons, and one of them may throw what the host throws for text it refuses
-	/// (CarrierKind.Immediate; the architect's ruling of 2026-09-18).
-	/// </remarks>
-	static bool Agrees(string tape, string immediate)
-	{
-		return tape == immediate ||
-		tape.StartsWith("refused ", StringComparison.Ordinal) && immediate.StartsWith("threw ", StringComparison.Ordinal);
 	}
 
 	enum Reading { Tape, Immediate, Hand }

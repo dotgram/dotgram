@@ -56,11 +56,14 @@ $projects = 'src/DotGram.Finance/DotGram.Finance.csproj', 'src/DotGram.Expressio
 	'src/DotGram.Web/DotGram.Web.csproj', 'examples/DotGram.Examples/DotGram.Examples.csproj', 'src/DotGram.Sql/DotGram.Sql.csproj',
 	# The document grammar the config rows read (Documents.cs, Config) is compiled into the benchmarks assembly, so a side without it has no config rows: window 79 of 2026-09-20 asked for config/ and got nothing.
 	'benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj'
-# The expression language's immediate reading, which left the package for a fixture of its own: the benchmarks project builds it
-# through its reference, and it is named here so that its DLL is copied beside the others. A commit from before the move has no such
-# project, and its side reads that reading from the package (Stand.cs, PairedSide).
-$fixture  = 'tests/DotGram.ExpressionLanguage.Immediate/DotGram.ExpressionLanguage.Immediate.csproj'
-if (Test-Path (Join-Path $Tree $fixture)) { $projects += $fixture }
+# The expression language's second reading, compiled into a fixture of its own: the benchmarks project builds it through its
+# reference, and it is named here so that its DLL is copied beside the others. Which one a commit has says which reading the package
+# carries (Stand.cs, PairedSide): the tape's fixture since the package moved to the immediate carrier, the immediate one's before
+# that, and neither before the immediate reading left the package.
+foreach ($fixture in 'tests/DotGram.ExpressionLanguage.Tape/DotGram.ExpressionLanguage.Tape.csproj',
+	'tests/DotGram.ExpressionLanguage.Immediate/DotGram.ExpressionLanguage.Immediate.csproj') {
+	if (Test-Path (Join-Path $Tree $fixture)) { $projects += $fixture }
+}
 # The output of every project goes under the tree's .build, named by the property and not left to the tree's own Directory.Build.props: a side may be a commit from before the build output moved there.
 $artifacts = Join-Path $Tree '.build'
 $flags    = @("-p:ArtifactsPath=$artifacts") + @($Property | ForEach-Object { "-p:$_" })

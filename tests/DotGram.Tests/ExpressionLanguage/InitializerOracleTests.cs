@@ -1,4 +1,4 @@
-﻿extern alias immediate;
+﻿extern alias tape;
 
 using System;
 using System.Collections;
@@ -10,7 +10,7 @@ using System.Text;
 
 using DotGram.ExpressionLanguage;
 
-using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
+using TapeExpressions = tape::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -33,8 +33,8 @@ namespace DotGram.Tests.ExpressionLanguage;
 /// C#'s order and not only to its result.
 /// </para>
 /// <para>
-/// Read by all three: the generated parser on the tape, the same grammar on the immediate
-/// carrier, and the hand-written parser, which <see cref="Both"/> holds to the first.
+/// Read by all three: the generated parser on the immediate carrier, the same grammar on the
+/// tape, and the hand-written parser, which <see cref="Both"/> holds to the first.
 /// </para>
 /// </remarks>
 public sealed class InitializerOracleTests
@@ -90,10 +90,10 @@ public sealed class InitializerOracleTests
 
 		var expected  = WhatCSharpSays(expression);
 		var generated = Both.Compile<Func<string>>(text, typeof(Box).Assembly)();
-		var immediate = Run(Immediately(text));
+		var tape      = Run(OnTheTape(text));
 
 		Assert.Equal(expected, generated);
-		Assert.Equal(expected, immediate);
+		Assert.Equal(expected, tape);
 	}
 
 	[Theory]
@@ -187,10 +187,10 @@ public sealed class InitializerOracleTests
 
 		var expected  = WhatCSharpRuns(body);
 		var generated = Both.Compile<Func<string>>(text, typeof(Box).Assembly)();
-		var immediate = Run(Immediately(text));
+		var tape      = Run(OnTheTape(text));
 
 		Assert.Equal(expected, generated);
-		Assert.Equal(expected, immediate);
+		Assert.Equal(expected, tape);
 	}
 
 	[Theory]
@@ -353,24 +353,24 @@ public sealed class InitializerOracleTests
 		return Both.Parse(text, typeof(Box).Assembly).Body;
 	}
 
-	/// <summary>The text read on the immediate carrier, where constructions run as they are read.</summary>
-	static LambdaExpression Immediately(string text)
+	/// <summary>The text read on the tape, where constructions run once the parse has accepted.</summary>
+	static LambdaExpression OnTheTape(string text)
 	{
-		var match = ImmediateExpressions.Immediate.TryParseLambda(
-			text, new ImmediateExpressions.State(typeof(Box).Assembly) { Text = text });
+		var match = TapeExpressions.Tape.TryParseLambda(
+			text, new TapeExpressions.State(typeof(Box).Assembly) { Text = text });
 
 		Assert.True(match.IsSuccess, match.Error);
 
 		return match.Value!;
 	}
 
-	/// <summary>What the immediate carrier makes of a text C# refuses: why, or null where it read it.</summary>
+	/// <summary>What the tape makes of a text C# refuses: why, or null where it read it.</summary>
 	static string? Refused(string text)
 	{
 		try
 		{
-			var match = ImmediateExpressions.Immediate.TryParseLambda(
-				text, new ImmediateExpressions.State(typeof(Box).Assembly) { Text = text });
+			var match = TapeExpressions.Tape.TryParseLambda(
+				text, new TapeExpressions.State(typeof(Box).Assembly) { Text = text });
 
 			return match.IsSuccess ? null : match.Error;
 		}

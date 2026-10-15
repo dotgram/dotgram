@@ -183,7 +183,7 @@ static partial class Stand
 		var chain = (int n) => "(int x) => x" + string.Concat(Enumerable.Repeat(" + x", n));
 
 		yield return new Series("expression", "hand",      "terms", [10, 100, 1000], n => { var t = chain(n); return () => HandExpression.TryParseLambda(t, new ExpressionParser.State(Caller) { Text = t }).IsSuccess; });
-		yield return new Series("expression", "tape",      "terms", [10, 100, 1000], n => { var t = chain(n); return () => ExpressionParser.TryParseLambda(t, new ExpressionParser.State(Caller) { Text = t }).IsSuccess; });
+		yield return new Series("expression", "tape",      "terms", [10, 100, 1000], n => { var t = chain(n); return () => TapeExpression.Reads(t, Caller); });
 		yield return new Series("expression", "immediate", "terms", [10, 100, 1000], n => { var t = chain(n); return () => ImmediateExpression.Reads(t, Caller); });
 	}
 

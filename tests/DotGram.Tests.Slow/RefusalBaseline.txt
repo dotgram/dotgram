@@ -3,7 +3,8 @@
 # (the first pass warms the tiering) and the faster reading of the two taken at every size. Process = DotGram.Tests.Slow.exe -class DotGram.Tests.RefusalGuardTests, Release, cores 0-15 at high priority,
 # DOTGRAM_RECORD_BASELINE set: the class written is the WORST of three runs of the series, in the process that later reads it (a fresh audit process reads a curve flatter than a warm one).
 # Taken 2026-09-20 20:33-20:40, machine quiet (8-11% CPU before it started), on THESE binaries (the first 12 hex digits of their SHA-256, which no rebase changes; the branch that carried them is not named on purpose): DotGram.Web a7c97503a5f0, DotGram.Sql a49ae42e0f56, DotGram.ExpressionLanguage 2cb67f559235, DotGram.Finance 17f5050bc747, DotGram.Examples 7217e7a803e0, DotGram.Tests.Slow 816f66500e94.
-# It holds the TAPE reading of the expression language only: the immediate reading is reachable only through internals, and the stand's audit covers it. It only ever tightens; an explosive series is never here.
+# It holds the package's reading of the expression language only, which is the IMMEDIATE one since 2026-10-14 (the TAPE one before): the other reading is in a test fixture, and the stand's audit covers it. It only ever tightens; an explosive series is never here.
+# The sixteen expression series were renamed `expression, tape` -> `expression, immediate` on 2026-10-14, when the package moved to the immediate carrier; the guard's own run measured each Linear on the immediate reading, as each was on the tape.
 # Unstable lines: at most four (Few_series_are_held_as_unstable). Two today, both with two cliffs in the tail (the exponent is the wrong summary of a step; D67).
 # Two lines tightened 2026-10-04 by the same procedure (worst of three runs, DOTGRAM_RECORD_BASELINE, not pinned to cores) once Rfc9110 read a token to its end: `MediaType | a long subtype, then a slash` (was Quadratic) and `MediaRange.TryParseAccept | a long token, then a weight with no value` (was Superlinear) both measured Linear.
 # Five series added 2026-10-04, one long token before a control character in each of the Forwarded, Link (name and value), Cookie and Content-Disposition readers, once those read a token to its end. The two Link series measured Quadratic before it (time, not bytes: 192 bytes a character at every size) and Linear after; the other three Linear both before and after.
@@ -82,19 +83,19 @@ SQL:2023 query | joins, then a JOIN with nothing after it = Unstable # class fli
 SQL:2023 search condition | predicates, then a dangling AND = Linear
 SQL:2023 search condition | predicates, then an unclosed ( = Linear
 SQL:2023 search condition | nested parentheses, never closed (the closed form is as dear: a cost of nesting) = Quadratic
-expression, tape | terms, then a dangling + = Linear
-expression, tape | parentheses opened and not closed = Linear
-expression, tape | an unclosed string = Linear
-expression, tape | an unclosed verbatim string = Linear
-expression, tape | an unclosed interpolated string = Linear
-expression, tape | an interpolated string, an unclosed hole = Linear
-expression, tape | an unclosed interpolated verbatim string = Linear
-expression, tape | an interpolated verbatim string, an unclosed hole = Linear
-expression, tape | an unclosed raw interpolated string = Linear
-expression, tape | a raw interpolated string, an unclosed hole = Linear
-expression, tape | an unclosed raw interpolated string, two dollars = Linear
-expression, tape | an interpolated string ending in a backslash = Linear
-expression, tape | an interpolated string with holes, then no closing quote = Linear
-expression, tape | an unclosed character literal = Linear
-expression, tape | member accesses, then a dangling . = Linear
-expression, tape | conditionals, then a cut one = Linear
+expression, immediate | terms, then a dangling + = Linear
+expression, immediate | parentheses opened and not closed = Linear
+expression, immediate | an unclosed string = Linear
+expression, immediate | an unclosed verbatim string = Linear
+expression, immediate | an unclosed interpolated string = Linear
+expression, immediate | an interpolated string, an unclosed hole = Linear
+expression, immediate | an unclosed interpolated verbatim string = Linear
+expression, immediate | an interpolated verbatim string, an unclosed hole = Linear
+expression, immediate | an unclosed raw interpolated string = Linear
+expression, immediate | a raw interpolated string, an unclosed hole = Linear
+expression, immediate | an unclosed raw interpolated string, two dollars = Linear
+expression, immediate | an interpolated string ending in a backslash = Linear
+expression, immediate | an interpolated string with holes, then no closing quote = Linear
+expression, immediate | an unclosed character literal = Linear
+expression, immediate | member accesses, then a dangling . = Linear
+expression, immediate | conditionals, then a cut one = Linear

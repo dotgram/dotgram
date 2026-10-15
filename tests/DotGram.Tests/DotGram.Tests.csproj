@@ -47,11 +47,16 @@
 		<ProjectReference Include="..\..\src\DotGram.Web\DotGram.Web.csproj" />
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
 
-		<!-- The language's second reading, on the immediate carrier, which the package does not
-		     carry: the same sources compiled again with it (the project says how). Its types share
-		     every full name with the package's, so it is reached only through its alias. -->
-		<ProjectReference Include="..\DotGram.ExpressionLanguage.Immediate\DotGram.ExpressionLanguage.Immediate.csproj"
-		                  Aliases="immediate" />
+		<!-- The language's second reading, on the tape, which the package does not carry: the
+		     same sources compiled again with it (the project says how). Its types share every
+		     full name with the package's, so it is reached only through its alias. -->
+		<ProjectReference Include="..\DotGram.ExpressionLanguage.Tape\DotGram.ExpressionLanguage.Tape.csproj"
+		                  Aliases="tape" />
+
+		<!-- And the tape's reading of the two examples that name the immediate carrier for a
+		     construction that throws, under the same alias for the same reason. -->
+		<ProjectReference Include="..\DotGram.Examples.Tape\DotGram.Examples.Tape.csproj"
+		                  Aliases="tape" />
 
 		<!-- The hand-written parsers, held here to the grammars they are measured against
 		     (docs/design/architecture-decisions.md, D1). -->
