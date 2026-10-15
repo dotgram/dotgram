@@ -10,7 +10,7 @@ static partial class Bridge
 {
 	/// <summary>
 	/// The sixty-five <c>DROP</c> statements. The standard's take a list, <c>IF EXISTS</c> and a behavior that
-	/// may be left out (decided 2026-09-15); the rest are to be a record each, not declared yet.
+	/// may be left out (decided 2026-09-15); the rest have a record each (SqlAst.TransactSql.Drop.cs).
 	/// </summary>
 	internal static class Drop
 	{
@@ -19,29 +19,12 @@ static partial class Bridge
 			.. typeof(Statement).GetNestedTypes().Where(static one => one.IsSubclassOf(typeof(Statement.Removal))).Select(NameOf),
 		];
 
-		/// <summary>
-		/// The old drops <c>Statement.DropObject</c> was declared for, by the name of its kind: one record for many, which is rejected.
-		/// </summary>
-		static readonly string[] Objects = Enum.GetNames<Ast.DropObjectKind>();
-
-		/// <summary>
-		/// The old drops a record of their own in <c>SqlAst.TransactSql.cs</c> stands for.
-		/// </summary>
-		static readonly string[] Own =
-		[
-			"Statement.DropAssembly", "Statement.DropEventSession", "Statement.DropEventNotification", "Statement.DropExternalLibrary",
-			"Statement.DropFulltextIndex", "Statement.DropSensitivityClassification", "Statement.DropMasterKey",
-			"Statement.DropDatabaseEncryptionKey", "Statement.DropIndex", "Statement.DropSignature",
-		];
-
 		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
 		{
 			made = null;
 
 			if (old is not Statement.Removal removal)
 				return false;
-
-			var name = NameOf(old);
 
 			made = removal switch
 			{
@@ -54,13 +37,6 @@ static partial class Bridge
 				Statement.DropFunction => Routines(removal, Ast.RoutineKind.Function),
 				Statement.DropProcedure => Routines(removal, Ast.RoutineKind.Procedure),
 				Statement.DropTrigger  => Trigger(removal),
-
-				// Statement.DropObject, one record for many kinds, is rejected: each kind is to have a record of its own, not declared yet.
-				_ when Array.Exists(Objects, one => name.Equals("Statement.Drop" + one, StringComparison.OrdinalIgnoreCase)) =>
-					throw BridgeGap.Missing(old, $"{name} (one record per kind, not declared yet)"),
-
-				_ when Array.IndexOf(Own, name) >= 0 && Inventory.Declared(name) is { } type =>
-					throw (Inventory.Written(type) ? BridgeGap.Unbridged(old, name) : BridgeGap.Unwritten(old, name)),
 
 				_ => throw Inventory.Unconverted(old),
 			};
