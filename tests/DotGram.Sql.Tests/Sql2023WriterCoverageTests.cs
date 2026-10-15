@@ -712,6 +712,10 @@ public sealed class Sql2023WriterCoverageTests
 			["CreateTrigger.For"] = (
 				Triggered(false),
 				Triggered(true)),
+			// Database: SECONDS written after the number of a ROLLBACK AFTER.
+			["RollbackAfter.Seconds"] = (
+				new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.Set([new Option(new Identifier("SINGLE_USER"), null, [])]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("5", NumericLiteralKind.DecimalInteger)) }),
+				new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.Set([new Option(new Identifier("SINGLE_USER"), null, [])]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("5", NumericLiteralKind.DecimalInteger)) { Seconds = true } })),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()
