@@ -30,9 +30,16 @@ namespace DotGram.Sql.Ast;
 /// </remarks>
 public static partial class Sql2023Writer
 {
+	/// <summary>The tree's text, as the standard reads it. For text T-SQL reads, use <see cref="TransactSqlWriter.Write"/>.</summary>
 	public static string Write(ISqlNode node)
 	{
-		var text = new Text();
+		return Write(node, transactSql: false);
+	}
+
+	/// <summary>The one writer, for the standard's reading or for T-SQL's (<see cref="TransactSqlWriter"/>).</summary>
+	internal static string Write(ISqlNode node, bool transactSql)
+	{
+		var text = new Text(transactSql);
 
 		text.PutNode(node);
 
@@ -42,6 +49,17 @@ public static partial class Sql2023Writer
 	sealed partial class Text
 	{
 		readonly StringBuilder written = new();
+
+		/// <summary>
+		/// Whether the text is for T-SQL, which refuses besides what every reading refuses the trees T-SQL would read as
+		/// others (<see cref="TransactSqlWriter"/>). Set once, by the entry that makes the writer.
+		/// </summary>
+		readonly bool transactSql;
+
+		public Text(bool transactSql)
+		{
+			this.transactSql = transactSql;
+		}
 
 		bool held = true;
 

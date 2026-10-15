@@ -2037,7 +2037,7 @@ public sealed class Sql2023WriterCoverageTests
 			Assert.Equal(text, Sql2023Writer.Write(SqlStandardParser.ParseStatement(text)));
 
 		if (transactSql)
-			Assert.Equal(text, Sql2023Writer.Write(Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text)));
+			Assert.Equal(text, TransactSqlWriter.Write(Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text)));
 	}
 
 	/// <summary>

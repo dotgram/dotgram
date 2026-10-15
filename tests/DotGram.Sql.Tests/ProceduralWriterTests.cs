@@ -315,7 +315,7 @@ public sealed class ProceduralWriterTests
 	public void Each_record_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
-		var text = Sql2023Writer.Write(tree);
+		var text = TransactSqlWriter.Write(tree);
 
 		if (tree is Statement.Compound { Atomic: not null })
 		{

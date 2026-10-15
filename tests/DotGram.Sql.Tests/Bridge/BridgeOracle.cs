@@ -15,7 +15,7 @@ namespace DotGram.Sql.Tests;
 
 /// <summary>
 /// The round trip the bridge is held by: an old tree carried onto the new one, written by
-/// <c>Sql2023Writer</c>, read back by <c>TransactSqlParser</c> and held to the tree it came from — and,
+/// <c>TransactSqlWriter</c>, read back by <c>TransactSqlParser</c> and held to the tree it came from — and,
 /// where the standard's parser reads the same text, the new tree held to the one that parser builds.
 /// </summary>
 static class BridgeOracle
@@ -100,7 +100,7 @@ static class BridgeOracle
 
 		try
 		{
-			written = Ast.Sql2023Writer.Write(made);
+			written = Ast.TransactSqlWriter.Write(made);
 		}
 		catch (Exception thrown)
 		{

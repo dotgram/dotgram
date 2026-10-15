@@ -51,7 +51,7 @@ public sealed class WriterRecursionTests
 		var token = TestContext.Current.CancellationToken;
 
 		var (compilation, trees) = Compiled();
-		var tree   = trees.Single(one => one.FilePath.EndsWith(file.Replace('/', Path.DirectorySeparatorChar), StringComparison.Ordinal));
+		var tree   = trees.Single(one => one.FilePath.EndsWith(Path.DirectorySeparatorChar + file.Replace('/', Path.DirectorySeparatorChar), StringComparison.Ordinal));
 		var model  = compilation.GetSemanticModel(tree);
 		var writer = model.GetDeclaredSymbol(tree.GetRoot(token).DescendantNodes().OfType<ClassDeclarationSyntax>().First(), token)!;
 
