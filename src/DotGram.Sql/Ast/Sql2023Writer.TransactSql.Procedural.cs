@@ -129,6 +129,12 @@ public static partial class Sql2023Writer
 					PutVariableValue(set, set.Value);
 					return true;
 
+				// T-SQL: SET Statements (Transact-SQL). One of SetExpressions' forms: the engine refuses a switch among values,
+				// and a list of anything but switches, words or values.
+				case Statement.SetOptions set:
+					PutSetOptions(set);
+					return true;
+
 				default:
 					return false;
 			}
@@ -270,6 +276,204 @@ public static partial class Sql2023Writer
 				throw Misplaced(table, "Elements", "computed columns with none stored beside them (Syntax.Stored)");
 		}
 
+		/// <summary>
+		/// T-SQL: SET Statements (Transact-SQL). <c>SetExpressions</c>: switches from its list sharing one ON or OFF;
+		/// STATISTICS words sharing one; OFFSETS words sharing one; IDENTITY_INSERT alone; ROWCOUNT, TEXTSIZE, ERRLVL
+		/// and FIPS_FLAGGER OFF alone; or settings given values from <see cref="SetValues"/>, each of the form its
+		/// name takes, any of them twice.
+		/// </summary>
+		void PutSetOptions(Statement.SetOptions set)
+		{
+			var options = set.Options;
+
+			if (options.Count == 0)
+				throw Empty(set, "Options");
+
+			Word("SET");
+
+			switch (options[0])
+			{
+				case SetOption.Switch { On: var on }:
+					Each(options, option =>
+					{
+						if (option is not SetOption.Switch switched || switched.On != on)
+							throw Misplaced(option, "Options", "beside switches, or a switch set the other way (SetExpressions)");
+
+						if (switched.Option.Style != IdentifierStyle.Regular || !SetSwitches.Contains(switched.Option.Text))
+							throw Misplaced(switched, "Option", "that is not one of SetSwitchName's switches");
+
+						PutIdentifier(switched.Option);
+					});
+
+					Word(on ? "ON" : "OFF");
+					return;
+
+				case SetOption.Statistics { On: var on }:
+					Word("STATISTICS");
+					Each(options, option =>
+					{
+						if (option is not SetOption.Statistics statistics || statistics.On != on)
+							throw Misplaced(option, "Options", "beside STATISTICS words, or one set the other way (SetExpressions)");
+
+						Word(statistics.Kind switch
+						{
+							StatisticsKind.Io      => "IO",
+							StatisticsKind.Profile => "PROFILE",
+							StatisticsKind.Time    => "TIME",
+							StatisticsKind.Xml     => "XML",
+							_                      => throw NoText(statistics.Kind),
+						});
+					});
+
+					Word(on ? "ON" : "OFF");
+					return;
+
+				case SetOption.Offsets { On: var on }:
+					Word("OFFSETS");
+					Each(options, option =>
+					{
+						if (option is not SetOption.Offsets offsets || offsets.On != on)
+							throw Misplaced(option, "Options", "beside OFFSETS words, or one set the other way (SetExpressions)");
+
+						if (offsets.Keyword.Style != IdentifierStyle.Regular || !SetOffsets.Contains(offsets.Keyword.Text))
+							throw Misplaced(offsets, "Keyword", "that is not one of SetOffsetName's words");
+
+						PutIdentifier(offsets.Keyword);
+					});
+
+					Word(on ? "ON" : "OFF");
+					return;
+
+				case SetOption.IdentityInsert identity:
+					if (options.Count > 1)
+						throw Misplaced(options[1], "Options", "beside IDENTITY_INSERT, which stands alone (SetExpressions)");
+
+					Word("IDENTITY_INSERT");
+					PutName(identity.Table);
+					Word(identity.On ? "ON" : "OFF");
+					return;
+
+				case SetOption.Value:
+					Each(options, option =>
+					{
+						if (option is not SetOption.Value value)
+							throw Misplaced(option, "Options", "beside settings given values (SetExpressions)");
+
+						if (value.Option.Style != IdentifierStyle.Regular || !SetValues.TryGetValue(value.Option.Text, out var takes))
+							throw Misplaced(value, "Option", "that is not one of SettingValue's names, written in capitals as the bridge reads them");
+
+						// FIPS_FLAGGER OFF stands alone, and so do the three names SetExpressions reads apart.
+						var off = value.Option.Text == "FIPS_FLAGGER" && value.Argument is Expression.Reference { Name: [{ Text: "OFF", Style: IdentifierStyle.Regular }] };
+
+						if ((off || takes.Alone) && options.Count > 1)
+							throw Misplaced(value, "Option", "that stands alone, in a list (SetExpressions)");
+
+						if (!off && !takes.Form(value.Argument))
+							throw Misplaced(value, "Argument", "of a form " + value.Option.Text + " does not take (SettingValue)");
+
+						PutIdentifier(value.Option);
+						PutExpression(value.Argument);
+					});
+
+					return;
+
+				default:
+					throw Unwritten(options[0]);
+			}
+		}
+
+		/// <summary>T-SQL: SET Statements (Transact-SQL). <c>SetSwitchName</c>, which the old tree keeps as written.</summary>
+		static readonly HashSet<string> SetSwitches = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"ANSI_DEFAULTS", "ANSI_NULL_DFLT_OFF", "ANSI_NULL_DFLT_ON", "ANSI_NULLS", "AUTOCOMMIT", "ANSI_PADDING", "ANSI_WARNINGS",
+			"ARITHABORT", "ARITHIGNORE", "CONCAT_NULL_YIELDS_NULL", "CURSOR_CLOSE_ON_COMMIT", "FMTONLY", "FORCEPLAN",
+			"IMPLICIT_TRANSACTIONS", "NO_BROWSETABLE", "NOCOUNT", "NOEXEC", "NUMERIC_ROUNDABORT", "PARSEONLY", "QUOTED_IDENTIFIER",
+			"RECOMMENDATIONS", "REMOTE_PROC_TRANSACTIONS", "RESULT_SET_CACHING", "SHOWPLAN_ALL", "SHOWPLAN_TEXT", "SHOWPLAN_XML",
+			"XACT_ABORT",
+		};
+
+		/// <summary>T-SQL: SET OFFSETS (Transact-SQL). <c>SetOffsetName</c>.</summary>
+		static readonly HashSet<string> SetOffsets = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"SELECT", "FROM", "ORDER", "COMPUTE", "TABLE", "PROCEDURE", "PROC", "STATEMENT", "PARAM", "EXECUTE", "EXEC",
+		};
+
+		/// <summary>
+		/// T-SQL: SET Statements (Transact-SQL). The settings given values (<c>SettingValue</c>, and the three
+		/// <c>SetExpressions</c> reads alone), each with the form of value it takes: <c>SetConstant</c>,
+		/// <c>SetInteger</c>, <c>SetNumber</c>, <c>SetRowCount</c>, <c>SetFipsLevel</c>.
+		/// </summary>
+		static readonly Dictionary<string, (Func<Expression, bool> Form, bool Alone)> SetValues = new(StringComparer.Ordinal)
+		{
+			["DATEFIRST"]                 = (SetConstant, false),
+			["DATEFORMAT"]                = (SetConstant, false),
+			["DEADLOCK_PRIORITY"]         = (SetConstant, false),
+			["LOCK_TIMEOUT"]              = (static value => SetNumber(value, whole: true), false),
+			["LANGUAGE"]                  = (SetConstant, false),
+			["FIPS_FLAGGER"]              = (static value => value is LiteralValue.String { Kind: StringLiteralKind.Character, CharacterSet: null, UnicodeEscape: null }, false),
+			["CONTEXT_INFO"]              = (SetConstant, false),
+			["QUERY_GOVERNOR_COST_LIMIT"] = (static value => SetNumber(value, whole: false), false),
+			["ROWCOUNT"]                  = (static value => value is Expression.Variable || SetNumber(value, whole: false, signed: false), true),
+			["TEXTSIZE"]                  = (static value => SetNumber(value, whole: true), true),
+			["ERRLVL"]                    = (static value => SetNumber(value, whole: true), true),
+		};
+
+		/// <summary>
+		/// T-SQL: SET Statements (Transact-SQL). <c>SetConstant</c>: a number, negative or not, a string, a binary string, a
+		/// variable or a name of one part that is not a reserved word; not an expression.
+		/// </summary>
+		static bool SetConstant(Expression value)
+		{
+			return value switch
+			{
+				LiteralValue.Numeric => SetNumber(value, whole: false),
+				LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } => true,
+				LiteralValue.Binary { ZeroX: true } or Expression.Variable => true,
+				Expression.Reference { Name: [{ Style: IdentifierStyle.Regular or IdentifierStyle.Bracketed or IdentifierStyle.Delimited } name] }
+					=> name.Text.Length > 0 && (name.Style != IdentifierStyle.Regular || !Reserved.Contains(name.Text)),
+				_ => false,
+			};
+		}
+
+		/// <summary>
+		/// T-SQL: SET Statements (Transact-SQL). <c>SetNumber</c>, a number with a point or an exponent or not, and
+		/// <c>SetInteger</c> where it is whole: a literal whose text has its minus sign in it, as the grammar reads it
+		/// (<c>Syntax.Compacted</c>), and never an expression; <paramref name="signed"/> false for <c>SetRowCount</c>.
+		/// </summary>
+		static bool SetNumber(Expression value, bool whole, bool signed = true)
+		{
+			if (value is not LiteralValue.Numeric { Kind: var kind, Text: var text })
+				return false;
+
+			var digits = signed && text.StartsWith('-') ? text[1..] : text;
+
+			return digits.Length > 0 && (char.IsDigit(digits[0]) || digits[0] == '.')
+				&& (kind == NumericLiteralKind.DecimalInteger || !whole && kind is NumericLiteralKind.Decimal or NumericLiteralKind.Approximate);
+		}
+
+		/// <summary>
+		/// T-SQL: Reserved Keywords (Transact-SQL). <c>TSqlReserved</c>: the words the grammar never reads as a plain name.
+		/// </summary>
+		static readonly HashSet<string> Reserved = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"ADD", "ALL", "ALTER", "AND", "ANY", "AS", "ASC", "AUTHORIZATION", "BACKUP", "BEGIN", "BETWEEN", "BREAK", "BROWSE", "BULK",
+			"BY", "CASCADE", "CASE", "CHECK", "CHECKPOINT", "CLOSE", "CLUSTERED", "COALESCE", "COLLATE", "COLUMN", "COMMIT", "COMPUTE",
+			"CONSTRAINT", "CONTAINS", "CONTAINSTABLE", "CONTINUE", "CONVERT", "CREATE", "CROSS", "CURRENT", "CURRENT_DATE",
+			"CURRENT_TIME", "CURRENT_TIMESTAMP", "CURRENT_USER", "CURSOR", "DATABASE", "DBCC", "DEALLOCATE", "DECLARE", "DEFAULT",
+			"DELETE", "DENY", "DESC", "DISTINCT", "DISTRIBUTED", "DOUBLE", "DROP", "ELSE", "END", "ERRLVL", "ESCAPE", "EXCEPT", "EXEC",
+			"EXECUTE", "EXISTS", "EXIT", "FETCH", "FILE", "FILLFACTOR", "FOR", "FOREIGN", "FREETEXT", "FREETEXTTABLE", "FROM", "FULL",
+			"FUNCTION", "GOTO", "GRANT", "GROUP", "HAVING", "HOLDLOCK", "IDENTITY", "IDENTITYCOL", "IDENTITY_INSERT", "IF", "IN", "INDEX",
+			"INNER", "INSERT", "INTERSECT", "INTO", "IS", "JOIN", "KEY", "KILL", "LEFT", "LIKE", "LINENO", "NATIONAL", "NOCHECK",
+			"NONCLUSTERED", "NOT", "NULL", "NULLIF", "OF", "OFF", "OFFSETS", "ON", "OPEN", "OPENDATASOURCE", "OPENQUERY", "OPENROWSET",
+			"OPENXML", "OPTION", "OR", "ORDER", "OUTER", "OVER", "PERCENT", "PLAN", "PRIMARY", "PRINT", "PROC", "PROCEDURE", "PUBLIC",
+			"RAISERROR", "READ", "READTEXT", "RECONFIGURE", "REFERENCES", "REPLICATION", "RESTORE", "RESTRICT", "RETURN", "REVOKE",
+			"RIGHT", "ROLLBACK", "ROWCOUNT", "ROWGUIDCOL", "RULE", "SAVE", "SCHEMA", "SELECT", "SESSION_USER", "SET", "SETUSER",
+			"SHUTDOWN", "SOME", "STATISTICS", "SYSTEM_USER", "TABLE", "TEXTSIZE", "THEN", "TO", "TOP", "TRAN", "TRANSACTION", "TRIGGER",
+			"TRUNCATE", "TSEQUAL", "UNION", "UNIQUE", "UPDATE", "UPDATETEXT", "USE", "USER", "VALUES", "VARYING", "VIEW", "WAITFOR",
+			"WHEN", "WHERE", "WHILE", "WITH", "WRITETEXT", "EXTERNAL", "MERGE", "PIVOT", "REVERT", "SEMANTICKEYPHRASETABLE",
+			"SEMANTICSIMILARITYDETAILSTABLE", "SEMANTICSIMILARITYTABLE", "TABLESAMPLE", "TRY_CONVERT", "UNPIVOT",
+		};
+
 		/// <summary>Whether a statement ends in an IF without an ELSE, which an ELSE written after it would take.</summary>
 		static bool Dangling(Statement statement)
 		{
@@ -366,7 +570,7 @@ public static partial class Sql2023Writer
 
 		/// <summary>
 		/// T-SQL: CREATE PROCEDURE (Transact-SQL). <c>AtomicConstant</c>: a number or money, negated or not, a string, a binary
-		/// string, a name, a variable, NULL, or an ODBC date or time; never DEFAULT, ON or a name of two parts.
+		/// string, a name that is not a reserved word, a variable, NULL, or an ODBC date or time; never a name of two parts.
 		/// </summary>
 		static bool AtomicConstant(Expression value)
 		{
@@ -377,7 +581,7 @@ public static partial class Sql2023Writer
 				LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } => true,
 				LiteralValue.Binary or LiteralValue.Null or Expression.Variable => true,
 				Expression.OdbcEscape { Called: false, Value: LiteralValue.String } => true,
-				Expression.Reference { Name.Parts: [var name] } => name.Style != IdentifierStyle.Regular || Bare(value) is not ("DEFAULT" or "ON" or "OFF" or "NULL"),
+				Expression.Reference { Name.Parts: [var name] } => name.Text.Length > 0 && (name.Style != IdentifierStyle.Regular || !Reserved.Contains(name.Text)),
 				_ => false,
 			};
 		}

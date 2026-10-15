@@ -118,7 +118,7 @@ static partial class Bridge
 		static Ast.Statement Set(Statement.SetStatement old)
 		{
 			if (old.Items is not [SetExpression.Transactions.IsolationLevel(var level)])
-				throw Inventory.Unconverted(old);
+				return new Ast.Statement.SetOptions(Each(old.Items, one => SetOption(old, one)));
 
 			Ast.IsolationLevel isolation = string.Join(' ', Words(level)) switch
 			{
@@ -133,6 +133,54 @@ static partial class Bridge
 			var tran = Recover("Statement.SetTransaction.Tran", Spelled(old), static text => Words(text) is [_, "TRAN", ..], false);
 
 			return new Ast.Statement.SetTransaction { Modes = [new Ast.TransactionMode.Isolation(isolation)], Tran = tran };
+		}
+
+		/// <summary>
+		/// One option of the session's <c>SET</c>: a switch or a STATISTICS or OFFSETS word as written, IDENTITY_INSERT,
+		/// or a setting given a value, whose name the old tree keeps in its record and not as written.
+		/// </summary>
+		static Ast.SetOption SetOption(Statement old, SetExpression option)
+		{
+			return option switch
+			{
+				SetExpression.QueryExecution.Switch(var name, var on) => new Ast.SetOption.Switch(new Ast.Identifier(name), on),
+				SetExpression.IsoSettings.Switch(var name, var on)    => new Ast.SetOption.Switch(new Ast.Identifier(name), on),
+				SetExpression.Statistics.Switch(var name, var on)     => new Ast.SetOption.Switch(new Ast.Identifier(name), on),
+				SetExpression.Transactions.Switch(var name, var on)   => new Ast.SetOption.Switch(new Ast.Identifier(name), on),
+				SetExpression.Miscellaneous.Switch(var name, var on)  => new Ast.SetOption.Switch(new Ast.Identifier(name), on),
+
+				// The kind is an enum, and the old tree keeps the word as written and compares it exactly.
+				SetExpression.Statistics.Report(var kind, var on) => kind switch
+				{
+					"IO"      => new Ast.SetOption.Statistics(Ast.StatisticsKind.Io, on),
+					"PROFILE" => new Ast.SetOption.Statistics(Ast.StatisticsKind.Profile, on),
+					"TIME"    => new Ast.SetOption.Statistics(Ast.StatisticsKind.Time, on),
+					"XML"     => new Ast.SetOption.Statistics(Ast.StatisticsKind.Xml, on),
+					_         => throw BridgeGap.Open(old, "Trees.FreeText (SetExpression.Statistics.Report.Kind, a word not in capitals)"),
+				},
+
+				SetExpression.Miscellaneous.Offset(var keyword, var on)       => new Ast.SetOption.Offsets(new Ast.Identifier(keyword), on),
+				SetExpression.Miscellaneous.IdentityInsert(var table, var on) => new Ast.SetOption.IdentityInsert(Values.Name(old, table), on),
+
+				SetExpression.DateAndTime.DateFirst(var value)                 => Valued("DATEFIRST", value),
+				SetExpression.DateAndTime.DateFormat(var value)                => Valued("DATEFORMAT", value),
+				SetExpression.Locking.DeadlockPriority(var value)              => Valued("DEADLOCK_PRIORITY", value),
+				SetExpression.Locking.LockTimeout(var value)                   => Valued("LOCK_TIMEOUT", value),
+				SetExpression.QueryExecution.RowCount(var value)               => Valued("ROWCOUNT", value),
+				SetExpression.QueryExecution.TextSize(var value)               => Valued("TEXTSIZE", value),
+				SetExpression.QueryExecution.QueryGovernorCostLimit(var value) => Valued("QUERY_GOVERNOR_COST_LIMIT", value),
+				SetExpression.Miscellaneous.Language(var value)                => Valued("LANGUAGE", value),
+				SetExpression.Miscellaneous.FipsFlagger(var value)             => Valued("FIPS_FLAGGER", value),
+				SetExpression.Miscellaneous.ContextInfo(var value)             => Valued("CONTEXT_INFO", value),
+				SetExpression.Miscellaneous.ErrorLevel(var value)              => Valued("ERRLVL", value),
+
+				_ => throw Inventory.Unconverted(option),
+			};
+
+			static Ast.SetOption Valued(string name, Expression value)
+			{
+				return new Ast.SetOption.Value(new Ast.Identifier(name), Values.Of(value));
+			}
 		}
 
 		static Ast.CursorReference Reference(Statement old, Expression cursor, bool global)

@@ -32,6 +32,14 @@ public sealed class ProceduralBridgeTests
 	[InlineData("SET @a += 1", "+=")]
 	[InlineData("SET @a.m = 1", "a property")]
 	[InlineData("SET @a.m(1)", "a method")]
+	[InlineData("SET NOCOUNT ON", "a switch")]
+	[InlineData("SET STATISTICS TIME ON", "a STATISTICS word")]
+	[InlineData("SET OFFSETS SELECT ON", "an OFFSETS word")]
+	[InlineData("SET IDENTITY_INSERT t OFF", "IDENTITY_INSERT")]
+	[InlineData("SET FIPS_FLAGGER OFF", "FIPS_FLAGGER OFF")]
+	[InlineData("SET FIPS_FLAGGER 'OFF'", "FIPS_FLAGGER a string")]
+	[InlineData("SET datefirst -1", "a value")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "the standard's SET TRANSACTION")]
 	public void The_bridge_builds_the_procedural_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -55,6 +63,14 @@ public sealed class ProceduralBridgeTests
 			"+=" => made is Ast.Statement.SetVariable { Operator: Ast.AssignmentOperator.Add },
 			"a property" => made is Ast.Statement.SetVariable { Operator: Ast.AssignmentOperator.Assign, Members: [{ Text: "m" }], Value: Ast.LiteralValue.Numeric },
 			"a method" => made is Ast.Statement.SetVariable { Operator: null, Members.Count: 0, Value: Ast.Expression.Member { Kind: Ast.MemberAccessKind.Dot, Name.Text: "m", Arguments.Count: 1, Target: Ast.Expression.Variable { Name.Text: "@a" } } },
+			"a switch" => made is Ast.Statement.SetOptions { Options: [Ast.SetOption.Switch { Option.Text: "NOCOUNT", On: true }] },
+			"a STATISTICS word" => made is Ast.Statement.SetOptions { Options: [Ast.SetOption.Statistics { Kind: Ast.StatisticsKind.Time, On: true }] },
+			"an OFFSETS word" => made is Ast.Statement.SetOptions { Options: [Ast.SetOption.Offsets { Keyword.Text: "SELECT", On: true }] },
+			"IDENTITY_INSERT" => made is Ast.Statement.SetOptions { Options: [Ast.SetOption.IdentityInsert { On: false }] },
+			"FIPS_FLAGGER OFF" => made is Ast.Statement.SetOptions { Options: [Ast.SetOption.Value { Option.Text: "FIPS_FLAGGER", Argument: Ast.Expression.Reference }] },
+			"FIPS_FLAGGER a string" => made is Ast.Statement.SetOptions { Options: [Ast.SetOption.Value { Option.Text: "FIPS_FLAGGER", Argument: Ast.LiteralValue.String }] },
+			"a value" => made is Ast.Statement.SetOptions { Options: [Ast.SetOption.Value { Option.Text: "DATEFIRST", Argument: Ast.LiteralValue.Numeric { Text: "-1" } }] },
+			"the standard's SET TRANSACTION" => made is Ast.Statement.SetTransaction,
 			_ => false,
 		};
 
