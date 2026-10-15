@@ -77,7 +77,7 @@ namespace DotGram.Examples.Formats;
 	// the digits are read once for each and GRAM4016 says so. Reading them once is the
 	// same language here because a fraction begins with '.', which digits cannot contain
 	// — no shorter reading of the digits lets a fraction fit that a longer one refuses.
-	Number : @JsonValue = digits: Lexical.Digits & fraction: Lexical.Fraction?
+	Number : @JsonValue = digits: Lexical.Digits ~ fraction: Lexical.Fraction?
 	                        => @(new JsonNumber(double.Parse(digits + fraction, CultureInfo.InvariantCulture)))
 
 	parse Json

@@ -50,6 +50,21 @@ public sealed class ExampleLexemeTests
 	}
 
 	[Theory]
+	[InlineData("[1 .5]")]
+	[InlineData("[1. 5]")]
+	[InlineData("[1 . 5]")]
+	public void A_number_of_JSON_has_no_space_inside_it(string text)
+	{
+		Assert.False(JsonParser.TryParseJson(text).IsSuccess, text);
+	}
+
+	[Fact]
+	public void And_a_number_beside_spaces_is_still_a_number_in_JSON()
+	{
+		Assert.True(JsonParser.TryParseJson("[ 1.5 , 2 ]").IsSuccess);
+	}
+
+	[Theory]
 	[InlineData("[\" a\"]", " a")]
 	[InlineData("[\"a \"]", "a ")]
 	[InlineData("[\" \"]", " ")]
