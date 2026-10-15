@@ -2686,16 +2686,6 @@ public static partial class CSharpEmitter
 
 		file.Write(seam.RenderScanners());
 
-		// The pairs the trivia counts, asked where it stopped: one the text ends inside of is
-		// refused where it opened (NestedPair.WriteRunsOut).
-		IReadOnlyList<NestedPair.Delimiters> counted = skipping.Name is null ? [] : NestedPair.Reached(skipping.Rule, lexical.Source);
-
-		if (counted.Count > 0)
-		{
-			NestedPair.WriteRunsOut(file, "Trivia_RunsOut_DotGram", counted);
-			file.Line();
-		}
-
 		if (valuing is not null)
 			file.Write(Rereading(lexical, valuing));
 
@@ -3019,32 +3009,36 @@ file.Line("return spare;");
 			file.Line("var count   = 0;");
 			file.Line("var p       = from;");
 			file.Line("var stopped = -1;");
+
+			// Where a pair the trivia counts opened at or after the place the trivia stopped, and the
+			// text ended inside it (Machine.RecordsRunOut).
+			var runsOut = skipping.Name is not null && seam.ScannerRunsOut(skipping.Rule);
+
+			if (runsOut)
+				file.Line("var ranOut  = -1;");
+
 			file.Line();
 
 			using (file.Block("while (true)"))
 			{
 				if (skipping.Name is { } scanner)
 				{
-					file.Line($"var skipped = {scanner}(text, p{(seam.ScannerReports(skipping.Rule) ? ", out _" : "")});");
+					file.Line($"var skipped = {scanner}(text, p{(runsOut ? ", ref ranOut" : "")}{(seam.ScannerReports(skipping.Rule) ? ", out _" : "")});");
 					file.Line();
 					file.Line("if (skipped > p)");
 					file.Then("p = skipped;");
 					file.Line();
 				}
 
-				file.Line("if (p >= text.Length)");
-				file.Then("break;");
-				file.Line();
-
-				// Where the trivia stopped at a pair it counts and the text ends inside that pair, the
-				// tokens stop there, as at a character no token begins with: the pair is refused where
-				// it opened. Read as the tokens its opening spells instead, every unclosed opening
-				// inside it would be asked again, each one reading to the end. Where the tokens go on
-				// through such a character, the rest of the text is one token of no kind, since all
-				// of it is inside the pair.
-				if (counted.Count > 0)
+				// The trivia's reading from here reached the end of the text inside a pair it counts:
+				// everything from here on is inside that pair or the trivia before it, and the tokens
+				// stop here, as at a character no token begins with, so the pair is refused where the
+				// trivia that opened it began. Read on as tokens instead, the trivia would be asked
+				// again inside the pair, at every opening it holds, each asking reading to the end.
+				// Where the tokens go on past such a character, the rest is one token of no kind.
+				if (runsOut)
 				{
-					using (file.Block($"if ({NestedPair.MayOpen(counted, "p")} && Trivia_RunsOut_DotGram(text, p))"))
+					using (file.Block("if (ranOut >= p)"))
 					{
 						using (file.Block("if (!through)"))
 						{
@@ -3080,6 +3074,10 @@ file.Line("return spare;");
 
 					file.Line();
 				}
+
+				file.Line("if (p >= text.Length)");
+				file.Then("break;");
+				file.Line();
 
 				// The terminals the lexer does not measure, asked before it and in the order
 				// the grammar names them: there is no automaton to run them together, so there
@@ -5447,7 +5445,10 @@ file.Line("return spare;");
 			// stands in a file another machine has already filled: without it the seam's
 			// character tables collide with the syntax's, name for name.
 			tag: "_Seam",
-			expectedSets: expectedSets);
+			expectedSets: expectedSets)
+		{
+			RecordsRunOut = true,
+		};
 	}
 
 	/// <summary>The rules that measure the rest of a terminal the lexer only begins, each once.</summary>

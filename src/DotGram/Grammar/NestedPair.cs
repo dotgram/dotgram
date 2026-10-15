@@ -223,60 +223,6 @@ static class NestedPair
 		}
 	}
 
-	/// <summary>
-	/// The counted pairs a rule reaches — the ones a scanner of it reads with the counter — each once.
-	/// </summary>
-	public static IReadOnlyList<Delimiters> Reached(RuleSymbol rule, RecognitionGraph graph)
-	{
-		return [.. graph.Reaches(rule).Where(Is).Select(one => Of(one, graph)).OfType<Delimiters>().Distinct()];
-	}
-
-	/// <summary>
-	/// A method that says whether one of <paramref name="pairs"/> opens at <c>pos</c> and the text
-	/// ends inside it.
-	/// </summary>
-	/// <remarks>
-	/// Asked by a tokenizer where its trivia stopped. A pair the trivia counts that the text ends
-	/// inside of stops the tokens where it opened, as a character no token begins with does,
-	/// rather than having the characters of its <c>open</c> read as tokens: the trivia would be
-	/// asked again at every one of its own unclosed opens, and each asking reads to the end of the
-	/// text — a cost the square of the text's length on a text of unclosed opens.
-	/// </remarks>
-	public static void WriteRunsOut(Writer code, string name, IReadOnlyList<Delimiters> pairs)
-	{
-		using (code.Block($"static bool {name}(global::System.ReadOnlySpan<char> text, int pos)"))
-		{
-			for (var i = 0; i < pairs.Count; i++)
-			{
-				var pair = pairs[i];
-
-				using (code.Block($"if ({At(pair.Open, pair.OpenFolds, "pos")})"))
-				{
-					code.Line($"var p = pos + {pair.Open.Length};");
-					code.Line();
-					WriteRest(code, pair, "p", "Out" + i.ToString(System.Globalization.CultureInfo.InvariantCulture), ["return true;"]);
-					code.Line();
-					code.Line("return false;");
-				}
-
-				code.Line();
-			}
-
-			code.Line("return false;");
-		}
-	}
-
-	/// <summary>
-	/// A test of the character at <c>text[p]</c> that every <c>open</c> of <paramref name="pairs"/>
-	/// passes: cheap enough to ask before calling <see cref="WriteRunsOut"/>'s method on every token.
-	/// </summary>
-	public static string MayOpen(IReadOnlyList<Delimiters> pairs, string p)
-	{
-		var firsts = pairs.SelectMany(pair => Begins(pair.Open[0], pair.OpenFolds)).Distinct();
-
-		return "(" + string.Join(" || ", firsts.Select(one => $"text[{p}] == {CSharpEmitter.Char(one)}")) + ")";
-	}
-
 	/// <summary>The test that <paramref name="literal"/> stands at <paramref name="p"/>.</summary>
 	static string At(string literal, bool folds, string p)
 	{

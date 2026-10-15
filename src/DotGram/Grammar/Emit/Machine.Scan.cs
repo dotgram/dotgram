@@ -293,6 +293,39 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// Whether this machine's scanners say where a pair they count was left open by the end of the
+	/// text: set on the seam of a grammar cut into a lexer, whose tokenizer refuses there.
+	/// </summary>
+	/// <remarks>
+	/// The counter of <c>Std.Nested</c> reads to the end of the text before it knows a pair is
+	/// unclosed. Where the trivia stopped short of such a pair, the tokenizer would otherwise read
+	/// on and ask the trivia again inside it, each asking reading to the end again: the square of
+	/// the text's length on a text of unclosed openings. A scanner that records it takes
+	/// <c>ref int ranOut</c>, raised to where the pair opened.
+	/// </remarks>
+	internal bool RecordsRunOut { get; init; }
+
+	/// <summary>Whether the scanner of <paramref name="rule"/> takes <c>ranOut</c>: it reads a counted pair.</summary>
+	internal bool ScannerRunsOut(RuleSymbol rule)
+	{
+		if (!RecordsRunOut)
+			return false;
+
+		if (_scannerRunsOut.TryGetValue(rule, out var known))
+			return known;
+
+		var runsOut = new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters, recordsRunOut: true)
+			.Render(ScanBody(rule))
+			.Contains("ranOut", StringComparison.Ordinal);
+
+		_scannerRunsOut[rule] = runsOut;
+
+		return runsOut;
+	}
+
+	readonly Dictionary<RuleSymbol, bool> _scannerRunsOut = [];
+
+	/// <summary>
 	/// Whether the scanner of <paramref name="rule"/> can match short of where it read to: it gives
 	/// input back to itself, so the furthest it reached is worth handing back on a match too.
 	/// </summary>
@@ -359,7 +392,7 @@ sealed partial class Machine
 			var rule = pair.Key;
 			var body = ScanBody(rule);
 
-			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves, StopCharacters);
+			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves, StopCharacters, RecordsRunOut);
 			var inner = scan.Render(body, ScannerReports(rule));
 
 			reaches |= scan.Reaches;
@@ -368,6 +401,7 @@ sealed partial class Machine
 
 			using (file.Block(
 				$"static int {name}(global::System.ReadOnlySpan<char> text, int pos{ScannerParameters}" +
+				(ScannerRunsOut(rule) ? ", ref int ranOut" : "") +
 				(ScannerReports(rule) ? ", out int reachedAt)" : ")")))
 			{
 				file.Write(inner);
@@ -743,7 +777,8 @@ sealed partial class Machine
 		Func<IReadOnlyList<CharRange>, string> ranges,
 		string tag = "",
 		bool starves = false,
-		Func<Node, char[]?>? stops = null)
+		Func<Node, char[]?>? stops = null,
+		bool recordsRunOut = false)
 	{
 		static string Short(int count)
 		{
@@ -1201,6 +1236,7 @@ sealed partial class Machine
 				NestedPair.WriteRest(code, pair, "p", _labels++.ToString(System.Globalization.CultureInfo.InvariantCulture),
 				[
 					"if (text.Length > furthest) furthest = text.Length;",
+					.. recordsRunOut ? (string[])[$"if (mark{mark} > ranOut) ranOut = mark{mark};"] : [],
 					$"p = mark{mark};",
 					$"goto {fail};",
 				]);

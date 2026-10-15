@@ -306,6 +306,49 @@ public sealed class NestedPairTests
 		}
 	}
 
+	/// <summary>
+	/// Cut into a lexer, trivia that reaches the end of the text inside a pair it counts ends the
+	/// tokens where the trivia began, and only then: an opening the trivia never took for a pair's
+	/// is a token like any other.
+	/// </summary>
+	/// <remarks>
+	/// Here a pair is trivia only after a <c>#</c>, so <c>(</c> alone is a token, and so is a run
+	/// of them that never closes. Where the trivia did open one and the text ended inside it, the
+	/// tokens stop at the <c>#</c>, and the reading is refused there. A hundred thousand openings
+	/// and as many closings read in one pass, since the trivia, never opening a pair at them, is
+	/// not asked to read to the end.
+	/// </remarks>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void A_guarded_pair_is_refused_only_where_the_trivia_opened_it(bool direct)
+	{
+		const string grammar =
+			"trivia = { (Std.Spacing | '#' & Std.Nested(\"(\", \")\"))* }\n" +
+			"Start : @string = 'x' & ('(' | ')')* & 'y' & eof => @(\"read\")\n" +
+			"parse Start\n";
+
+		var cut = Build(grammar, CarrierKind.Auto, direct, lexical: true);
+
+		foreach (var input in new[] { "x ( y", "x ( ) y", "x (( y", "x ) ( y", "x #( ) y", "x #(()) ( y" })
+			Assert.True(EmittedCode.Match(cut, "Grammar", "TryParseStart", input).IsSuccess, input);
+
+		foreach (var (input, at) in new[] { ("x #( y", 2), ("x #(() y", 2), ("x ( #( y", 4), ("x (( #((", 5) })
+		{
+			var refused = EmittedCode.Match(cut, "Grammar", "TryParseStart", input);
+
+			Assert.False(refused.IsSuccess, input);
+			Assert.Equal(at, refused.Position);
+		}
+
+		var many  = "x " + new string('(', 100_000) + new string(')', 100_000) + " y";
+		var watch = System.Diagnostics.Stopwatch.StartNew();
+
+		Assert.True(EmittedCode.Match(cut, "Grammar", "TryParseStart", many).IsSuccess);
+		Assert.False(EmittedCode.Match(cut, "Grammar", "TryParseStart", "x " + new string('(', 100_000) + " #( y").IsSuccess);
+		Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"took {watch.Elapsed.TotalMilliseconds:F0} ms");
+	}
+
 	/// <summary>The counter is what is written, in trivia and in a token alike.</summary>
 	[Fact]
 	public void The_counter_is_what_is_emitted()

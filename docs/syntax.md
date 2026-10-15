@@ -2284,8 +2284,9 @@ reads it, as over characters, where the reading of that token runs out of input 
 complete token the window's end leaves room to lengthen is read as it stands, and a comment that
 is trivia is skipped rather than cut, so one left unclosed is read as whatever tokens its
 characters make, or refused at the first no token begins with. A pair the trivia reads with
-`Std.Nested` (§5.2) is the exception: one the text or the window ends inside of ends the tokens
-where it opened, as a character no token begins with does, and is refused there. Its counter
+`Std.Nested` (§5.2) is the exception: where the trivia, reading from where it stops, opened
+such a pair and the text or the window ended inside it, the tokens end where the trivia
+stopped, as at a character no token begins with, and the reading is refused there. Its counter
 reads to the end before it knows the pair is open, and every opening inside it would be asked
 again if its characters were tokens, each reading to the end: the square of the text's length. A
 character no token begins with ends
