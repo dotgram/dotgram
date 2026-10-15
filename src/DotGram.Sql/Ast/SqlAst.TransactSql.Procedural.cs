@@ -70,6 +70,57 @@ public abstract partial record Statement
 	/// is the standard's <see cref="SetTransaction"/>.
 	/// </summary>
 	public sealed record SetOptions(SqlList<SetOption> Options) : Statement;
+
+	/// <summary>T-SQL: PRINT (Transact-SQL). <c>PRINT value</c>.</summary>
+	public sealed record Print(Expression Value) : Statement;
+
+	/// <summary>
+	/// T-SQL: RAISERROR (Transact-SQL). <c>RAISERROR (message, severity, state [, argument …]) [WITH option, …]</c>: the
+	/// arguments as the grammar reads them, one at least, and the options in the order written.
+	/// </summary>
+	public sealed record RaiseError(SqlList<Expression> Arguments) : Statement
+	{
+		/// <summary>T-SQL: RAISERROR (Transact-SQL). <c>WITH LOG, NOWAIT, SETERROR</c>, in the order written.</summary>
+		public SqlList<RaiseErrorOption> Options { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: THROW (Transact-SQL). <c>THROW [number, message, state]</c>: all three, or none to throw again the error a
+	/// CATCH caught.
+	/// </summary>
+	public sealed record Throw(Expression? Number, Expression? Message, Expression? State) : Statement;
+
+	/// <summary>T-SQL: WAITFOR (Transact-SQL). <c>WAITFOR DELAY value</c> or <c>WAITFOR TIME value</c>.</summary>
+	public sealed record WaitFor(WaitForKind Kind, Expression Value) : Statement;
+
+	/// <summary>
+	/// T-SQL: EXECUTE AS (Transact-SQL). <c>EXECUTE AS { CALLER | USER = name | LOGIN = name } [WITH NO REVERT | WITH
+	/// COOKIE INTO @c]</c>: whom the session runs as from here.
+	/// </summary>
+	public sealed record ExecuteAs(ExecutionContext Context) : Statement
+	{
+		/// <summary>T-SQL: EXECUTE AS (Transact-SQL). <c>WITH NO REVERT</c>.</summary>
+		public bool NoRevert { get; init; }
+
+		/// <summary>T-SQL: EXECUTE AS (Transact-SQL). <c>WITH COOKIE INTO @c</c>: the variable the cookie goes into.</summary>
+		public Expression.Variable? Cookie { get; init; }
+	}
+
+	/// <summary>T-SQL: REVERT (Transact-SQL). <c>REVERT [WITH COOKIE = value]</c>.</summary>
+	public sealed record Revert(Expression? Cookie) : Statement;
+
+	/// <summary>T-SQL: SETUSER (Transact-SQL). <c>SETUSER [name [WITH NORESET]]</c>.</summary>
+	public sealed record SetUser(Expression? Name) : Statement
+	{
+		/// <summary>T-SQL: SETUSER (Transact-SQL). <c>WITH NORESET</c>.</summary>
+		public bool NoReset { get; init; }
+	}
+
+	/// <summary>T-SQL: USE (Transact-SQL). <c>USE database</c>.</summary>
+	public sealed record Use(Identifier Database) : Statement;
+
+	/// <summary>T-SQL: LINENO (no syntax block in syntax.md). <c>LINENO n</c>: the line the errors after it are counted from.</summary>
+	public sealed record LineNumber(LiteralValue.Numeric Line) : Statement;
 }
 
 /// <summary>
@@ -134,3 +185,9 @@ public abstract record AtomicOption : ISqlNode
 	/// </summary>
 	public sealed record Setting(Option Option) : AtomicOption;
 }
+
+/// <summary>T-SQL: RAISERROR (Transact-SQL). An option after <c>WITH</c>.</summary>
+public enum RaiseErrorOption { Log, NoWait, SetError }
+
+/// <summary>T-SQL: WAITFOR (Transact-SQL). Whether the value is how long to wait, or until when.</summary>
+public enum WaitForKind { Delay, Time }

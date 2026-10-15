@@ -11,6 +11,7 @@ using ColumnDefinition = DotGram.Sql.Ast.ColumnDefinition;
 using ColumnOption = DotGram.Sql.Ast.ColumnOption;
 using Constraint = DotGram.Sql.Ast.Constraint;
 using DataType = DotGram.Sql.Ast.DataType;
+using ExecutionContext = DotGram.Sql.Ast.ExecutionContext;
 using Expression = DotGram.Sql.Ast.Expression;
 using Identifier = DotGram.Sql.Ast.Identifier;
 using LiteralValue = DotGram.Sql.Ast.LiteralValue;
@@ -120,6 +121,11 @@ public sealed class ProceduralWriterTests
 		return new CursorProperties(null, scrollability, null, null);
 	}
 
+	static Expression Text(string text)
+	{
+		return new LiteralValue.String("'" + text + "'", StringLiteralKind.Character);
+	}
+
 	static readonly AtomicOption Level = new AtomicOption.Isolation(IsolationLevel.Snapshot);
 	static readonly AtomicOption English = Set("LANGUAGE", new LiteralValue.String("'us_english'", StringLiteralKind.National));
 
@@ -165,6 +171,22 @@ public sealed class ProceduralWriterTests
 			"DECLARE CURSOR T-SQL's way" => Declared(Words(CursorScrollability.NoScroll) with { Scope = CursorScope.Local, ForwardOnly = true, Type = CursorType.Static, Concurrency = CursorConcurrency.ReadOnly, TypeWarning = true }, Over()),
 			"DECLARE CURSOR FOR UPDATE before the hints" => Declared(Words(CursorScrollability.Scroll) with { Scope = CursorScope.Global, Type = CursorType.Keyset, Concurrency = CursorConcurrency.Optimistic }, Over(new UpdatabilityClause(false, [Name("a")]), recompiled: true, before: true)),
 			"DECLARE CURSOR FOR UPDATE after the hints" => Declared(Words() with { Type = CursorType.Dynamic, Concurrency = CursorConcurrency.ScrollLocks }, Over(new UpdatabilityClause(false, []), recompiled: true)),
+			"PRINT" => new Statement.Print(Text("a")),
+			"RAISERROR" => new Statement.RaiseError([Text("m"), Number("16"), One, V]) { Options = [RaiseErrorOption.Log, RaiseErrorOption.NoWait, RaiseErrorOption.SetError] },
+			"RAISERROR alone" => new Statement.RaiseError([V]),
+			"THROW" => new Statement.Throw(Number("50000"), Text("m"), One),
+			"THROW again" => new Statement.Throw(null, null, null),
+			"WAITFOR DELAY" => new Statement.WaitFor(WaitForKind.Delay, Text("00:00:01")),
+			"WAITFOR TIME" => new Statement.WaitFor(WaitForKind.Time, V),
+			"EXECUTE AS CALLER" => new Statement.ExecuteAs(new ExecutionContext(ExecutionContextKind.Caller, null)) { NoRevert = true },
+			"EXECUTE AS USER" => new Statement.ExecuteAs(new ExecutionContext(ExecutionContextKind.User, Text("u"))) { Cookie = V },
+			"EXECUTE AS LOGIN" => new Statement.ExecuteAs(new ExecutionContext(ExecutionContextKind.Login, V)),
+			"REVERT" => new Statement.Revert(V),
+			"REVERT alone" => new Statement.Revert(null),
+			"SETUSER" => new Statement.SetUser(new LiteralValue.String("'u'", StringLiteralKind.National)) { NoReset = true },
+			"SETUSER alone" => new Statement.SetUser(null),
+			"USE" => new Statement.Use(Name("master")),
+			"LINENO" => new Statement.LineNumber(new LiteralValue.Numeric("7", NumericLiteralKind.DecimalInteger)),
 			"SET a cursor" => new Statement.SetCursorVariable(V, Words(CursorScrollability.NoScroll) with { ForwardOnly = true, Type = CursorType.FastForward, Concurrency = CursorConcurrency.ReadOnly }, Over(ReadOnly)),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
@@ -209,6 +231,22 @@ public sealed class ProceduralWriterTests
 	[InlineData("DECLARE CURSOR T-SQL's way", "DECLARE c CURSOR LOCAL FORWARD_ONLY STATIC READ_ONLY TYPE_WARNING FOR SELECT 1")]
 	[InlineData("DECLARE CURSOR FOR UPDATE before the hints", "DECLARE c CURSOR GLOBAL SCROLL KEYSET OPTIMISTIC FOR SELECT 1 FOR UPDATE OF a OPTION (RECOMPILE)")]
 	[InlineData("DECLARE CURSOR FOR UPDATE after the hints", "DECLARE c CURSOR DYNAMIC SCROLL_LOCKS FOR SELECT 1 OPTION (RECOMPILE) FOR UPDATE")]
+	[InlineData("PRINT", "PRINT 'a'")]
+	[InlineData("RAISERROR", "RAISERROR('m', 16, 1, @a) WITH LOG, NOWAIT, SETERROR")]
+	[InlineData("RAISERROR alone", "RAISERROR(@a)")]
+	[InlineData("THROW", "THROW 50000, 'm', 1")]
+	[InlineData("THROW again", "THROW")]
+	[InlineData("WAITFOR DELAY", "WAITFOR DELAY '00:00:01'")]
+	[InlineData("WAITFOR TIME", "WAITFOR TIME @a")]
+	[InlineData("EXECUTE AS CALLER", "EXECUTE AS CALLER WITH NO REVERT")]
+	[InlineData("EXECUTE AS USER", "EXECUTE AS USER = 'u' WITH COOKIE INTO @a")]
+	[InlineData("EXECUTE AS LOGIN", "EXECUTE AS LOGIN = @a")]
+	[InlineData("REVERT", "REVERT WITH COOKIE = @a")]
+	[InlineData("REVERT alone", "REVERT")]
+	[InlineData("SETUSER", "SETUSER N'u' WITH NORESET")]
+	[InlineData("SETUSER alone", "SETUSER")]
+	[InlineData("USE", "USE master")]
+	[InlineData("LINENO", "LINENO 7")]
 	[InlineData("SET a cursor", "SET @a = CURSOR FORWARD_ONLY FAST_FORWARD READ_ONLY FOR SELECT 1 FOR READ ONLY")]
 	public void Each_record_writes_its_text(string which, string text)
 	{
@@ -257,6 +295,22 @@ public sealed class ProceduralWriterTests
 	[InlineData("DECLARE CURSOR T-SQL's way")]
 	[InlineData("DECLARE CURSOR FOR UPDATE before the hints")]
 	[InlineData("DECLARE CURSOR FOR UPDATE after the hints")]
+	[InlineData("PRINT")]
+	[InlineData("RAISERROR")]
+	[InlineData("RAISERROR alone")]
+	[InlineData("THROW")]
+	[InlineData("THROW again")]
+	[InlineData("WAITFOR DELAY")]
+	[InlineData("WAITFOR TIME")]
+	[InlineData("EXECUTE AS CALLER")]
+	[InlineData("EXECUTE AS USER")]
+	[InlineData("EXECUTE AS LOGIN")]
+	[InlineData("REVERT")]
+	[InlineData("REVERT alone")]
+	[InlineData("SETUSER")]
+	[InlineData("SETUSER alone")]
+	[InlineData("USE")]
+	[InlineData("LINENO")]
 	[InlineData("SET a cursor")]
 	public void Each_record_reads_back_as_itself(string which)
 	{
@@ -357,6 +411,21 @@ public sealed class ProceduralWriterTests
 	[InlineData("SET a cursor INSENSITIVE")]
 	[InlineData("SET a cursor of a name")]
 	[InlineData("SET a cursor FOR READ_ONLY")]
+	[InlineData("PRINT of DEFAULT")]
+	[InlineData("RAISERROR of nothing")]
+	[InlineData("RAISERROR with no text for its option")]
+	[InlineData("THROW of two")]
+	[InlineData("WAITFOR a number")]
+	[InlineData("WAITFOR with no text for its kind")]
+	[InlineData("EXECUTE AS SELF")]
+	[InlineData("EXECUTE AS OWNER")]
+	[InlineData("EXECUTE AS CALLER of a name")]
+	[InlineData("EXECUTE AS USER of no name")]
+	[InlineData("EXECUTE AS with NO REVERT and a cookie")]
+	[InlineData("SETUSER NORESET with no name")]
+	[InlineData("SETUSER of a name")]
+	[InlineData("LINENO below nought")]
+	[InlineData("LINENO of a fraction")]
 	public void A_procedural_statement_with_no_text_is_refused(string which)
 	{
 		ISqlNode node = which switch
@@ -513,6 +582,36 @@ public sealed class ProceduralWriterTests
 			"SET a cursor of a name" => new Statement.SetCursorVariable(Ref("c"), Words(), Over()),
 			// CursorFor: READ ONLY, two words.
 			"SET a cursor FOR READ_ONLY" => new Statement.SetCursorVariable(V, Words(), Over(new UpdatabilityClause(true, [], Underscored: true))),
+			// ValueExpression: not DEFAULT.
+			"PRINT of DEFAULT" => new Statement.Print(new Expression.Default()),
+			// SimpleCommand: RAISERROR takes Arguments, Msg 102.
+			"RAISERROR of nothing" => new Statement.RaiseError([]),
+			// RaiseWith: LOG, NOWAIT, SETERROR.
+			"RAISERROR with no text for its option" => new Statement.RaiseError([V]) { Options = [(RaiseErrorOption)9] },
+			// THROW: three values or none, Msg 102.
+			"THROW of two" => new Statement.Throw(One, Text("m"), null),
+			// WaitValue: WAITFOR DELAY 1 is refused.
+			"WAITFOR a number" => new Statement.WaitFor(WaitForKind.Delay, One),
+			// WaitKind: DELAY or TIME.
+			"WAITFOR with no text for its kind" => new Statement.WaitFor((WaitForKind)9, V),
+			// SessionWho: SELF is a module's.
+			"EXECUTE AS SELF" => new Statement.ExecuteAs(new ExecutionContext(ExecutionContextKind.Self, null)),
+			// SessionWho: OWNER is a module's.
+			"EXECUTE AS OWNER" => new Statement.ExecuteAs(new ExecutionContext(ExecutionContextKind.Owner, null)),
+			// SessionWho: CALLER alone.
+			"EXECUTE AS CALLER of a name" => new Statement.ExecuteAs(new ExecutionContext(ExecutionContextKind.Caller, V)),
+			// SessionWho: USER = name.
+			"EXECUTE AS USER of no name" => new Statement.ExecuteAs(new ExecutionContext(ExecutionContextKind.User, null)),
+			// SessionWith: one of the two.
+			"EXECUTE AS with NO REVERT and a cookie" => new Statement.ExecuteAs(new ExecutionContext(ExecutionContextKind.Caller, null)) { NoRevert = true, Cookie = V },
+			// SessionNoReset only after SessionUser.
+			"SETUSER NORESET with no name" => new Statement.SetUser(null) { NoReset = true },
+			// SessionUser: a string or a variable.
+			"SETUSER of a name" => new Statement.SetUser(Ref("u")),
+			// LINENO: Digits, -1 is Msg 102.
+			"LINENO below nought" => new Statement.LineNumber(new LiteralValue.Numeric("-1", NumericLiteralKind.DecimalInteger)),
+			// LINENO: Digits, 1.5 is Msg 102.
+			"LINENO of a fraction" => new Statement.LineNumber(new LiteralValue.Numeric("1.5", NumericLiteralKind.Decimal)),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 

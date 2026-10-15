@@ -127,7 +127,7 @@ public static partial class Sql2023Writer
 					}
 
 					Word(AssignmentText(op));
-					PutVariableValue(set, set.Value);
+					PutValue(set, set.Value);
 					return true;
 
 				// T-SQL: SET Statements (Transact-SQL). One of SetExpressions' forms: the engine refuses a switch among values,
@@ -222,6 +222,147 @@ public static partial class Sql2023Writer
 					PutCursorSource(cursor, cursor.Properties, source, declared: false);
 					return true;
 
+				// T-SQL: PRINT (Transact-SQL).
+				case Statement.Print print:
+					Word("PRINT");
+					PutValue(print, print.Value);
+					return true;
+
+				// T-SQL: RAISERROR (Transact-SQL). The arguments in brackets, one at least, and the options after WITH.
+				case Statement.RaiseError raise:
+					if (raise.Arguments.Count == 0)
+						throw Empty(raise, "Arguments");
+
+					Word("RAISERROR");
+					Call();
+					Each(raise.Arguments, argument => PutValue(raise, argument));
+					Close();
+
+					if (raise.Options.Count > 0)
+					{
+						Word("WITH");
+						Each(raise.Options, option => Word(option switch
+						{
+							RaiseErrorOption.Log      => "LOG",
+							RaiseErrorOption.NoWait   => "NOWAIT",
+							RaiseErrorOption.SetError => "SETERROR",
+							_                         => throw NoText(option),
+						}));
+					}
+
+					return true;
+
+				// T-SQL: THROW (Transact-SQL). All three, or none (Msg 102 for one or two).
+				case Statement.Throw @throw:
+					Word("THROW");
+
+					if (@throw is { Number: null, Message: null, State: null })
+						return true;
+
+					if (@throw is not { Number: { } number, Message: { } message, State: { } state })
+						throw Misplaced(@throw, "Number, Message or State", "without the other two");
+
+					PutValue(@throw, number);
+					Tight(",");
+					PutValue(@throw, message);
+					Tight(",");
+					PutValue(@throw, state);
+					return true;
+
+				// T-SQL: WAITFOR (Transact-SQL). A string, a national one or a variable (WaitValue).
+				case Statement.WaitFor wait:
+					if (wait.Value is not (LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } or Expression.Variable))
+						throw Misplaced(wait, "Value", "other than a string or a variable (WaitValue)");
+
+					Word("WAITFOR");
+					Word(wait.Kind switch { WaitForKind.Delay => "DELAY", WaitForKind.Time => "TIME", _ => throw NoText(wait.Kind) });
+					PutExpression(wait.Value);
+					return true;
+
+				// T-SQL: EXECUTE AS (Transact-SQL). CALLER alone, USER or LOGIN with a name; SELF and OWNER are a module's
+				// (SessionWho); then NO REVERT or a cookie, one of the two (SessionWith).
+				case Statement.ExecuteAs executeAs:
+					var context = executeAs.Context;
+
+					if (context.Kind is not (ExecutionContextKind.Caller or ExecutionContextKind.User or ExecutionContextKind.Login))
+						throw Misplaced(executeAs, "Context", "SELF or OWNER, which only a module's EXECUTE AS takes (SessionWho)");
+
+					if ((context.Kind == ExecutionContextKind.Caller) != (context.Name is null))
+						throw Misplaced(executeAs, "Context.Name", "set for CALLER or left out for USER or LOGIN (SessionWho)");
+
+					if (executeAs is { NoRevert: true, Cookie: not null })
+						throw Both(executeAs, "NoRevert", "Cookie");
+
+					Word("EXECUTE AS");
+
+					if (context.Name is { } who)
+					{
+						Word(context.Kind == ExecutionContextKind.User ? "USER =" : "LOGIN =");
+						PutValue(executeAs, who);
+					}
+					else
+						Word("CALLER");
+
+					if (executeAs.NoRevert)
+						Word("WITH NO REVERT");
+
+					if (executeAs.Cookie is { } cookie)
+					{
+						Word("WITH COOKIE INTO");
+						PutExpression(cookie);
+					}
+
+					return true;
+
+				// T-SQL: REVERT (Transact-SQL).
+				case Statement.Revert revert:
+					Word("REVERT");
+
+					if (revert.Cookie is { } kept)
+					{
+						Word("WITH COOKIE =");
+						PutValue(revert, kept);
+					}
+
+					return true;
+
+				// T-SQL: SETUSER (Transact-SQL). A string, a national one or a variable (SessionUser), and NORESET only after one.
+				case Statement.SetUser setUser:
+					Word("SETUSER");
+
+					if (setUser.Name is null)
+					{
+						if (setUser.NoReset)
+							throw Misplaced(setUser, "NoReset", "without a name (SessionNoReset)");
+
+						return true;
+					}
+
+					if (setUser.Name is not (LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } or Expression.Variable))
+						throw Misplaced(setUser, "Name", "other than a string or a variable (SessionUser)");
+
+					PutExpression(setUser.Name);
+
+					if (setUser.NoReset)
+						Word("WITH NORESET");
+
+					return true;
+
+				// T-SQL: USE (Transact-SQL).
+				case Statement.Use use:
+					Word("USE");
+					PutIdentifier(use.Database);
+					return true;
+
+				// T-SQL: LINENO. Digits, and only that: a sign, a point, a variable are each Msg 102.
+				case Statement.LineNumber line:
+					if (line.Line is not { Kind: NumericLiteralKind.DecimalInteger, Text: var digits } || !Unsigned(digits, NumericLiteralKind.DecimalInteger))
+						throw Misplaced(line, "Line", "other than digits (LINENO)");
+
+					Word("LINENO");
+					PutExpression(line.Line);
+					return true;
+
 				default:
 					return false;
 			}
@@ -273,7 +414,7 @@ public static partial class Sql2023Writer
 					if (typed.Value is { } value)
 					{
 						Word("=");
-						PutVariableValue(typed, value);
+						PutValue(typed, value);
 					}
 
 					return;
@@ -310,13 +451,13 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// T-SQL: SET @local_variable (Transact-SQL). A value given to a variable (<c>SetValue</c>): never DEFAULT
-		/// (<c>Msg 4119</c>), and never a comparison, which reads as a column assigned beside the variable.
+		/// T-SQL: SET @local_variable (Transact-SQL). A value (<c>SetValue</c>, <c>ValueExpression</c>): never DEFAULT
+		/// (<c>Msg 4119</c>), and never a comparison, which no value reads and a variable's SET reads as a column.
 		/// </summary>
-		void PutVariableValue(ISqlNode owner, Expression value)
+		void PutValue(ISqlNode owner, Expression value)
 		{
 			if (value is Expression.Default or Expression.Comparison)
-				throw Misplaced(owner, "Value", "DEFAULT or a comparison, which no variable is given");
+				throw Misplaced(owner, "Value", "DEFAULT or a comparison, which no value is");
 
 			PutExpression(value);
 		}
