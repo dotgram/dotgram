@@ -45,6 +45,8 @@ static partial class Bridge
 				Statement.Declare declare    => new Ast.Statement.DeclareVariables(Each(declare.Variables, Declaration)),
 				Statement.SetVariable set    => SetVariable(set),
 				Statement.Transaction ended  => Transaction(ended),
+				Statement.DeclareCursor(var name, var cursor) declared => DeclareCursor(declared, name, cursor),
+				Statement.SetCursor(var name, var cursor) set => SetCursor(set, name, cursor),
 				Statement.CursorAction acted => Cursor(acted),
 				Statement.Fetch fetch        => Fetch(fetch),
 				Statement.SetStatement set   => Set(set),
@@ -62,12 +64,24 @@ static partial class Bridge
 		static Ast.Statement Transaction(Statement.Transaction old)
 		{
 			var kind = string.Join(' ', Words(old.Kind));
+			var name = TransactionName(old);
 
-			if (kind is "BEGIN" or "BEGIN DISTRIBUTED")
-				throw BridgeGap.Unwritten(old, "Statement.BeginTransaction");
+			if (kind is "BEGIN" or "BEGIN DISTRIBUTED" or "SAVE")
+			{
+				var tran = old.Word?.ToUpperInvariant() switch
+				{
+					"TRAN"        => true,
+					"TRANSACTION" => false,
+					_             => throw BridgeGap.Open(old, $"inventory Statement.Transaction (the word `{old.Word}`)"),
+				};
 
-			if (kind == "SAVE")
-				throw BridgeGap.Unwritten(old, "Statement.SaveTransaction");
+				if (kind == "SAVE")
+					return name is not null && old.Tail is null
+						? new Ast.Statement.SaveTransaction(name, tran)
+						: throw BridgeGap.Open(old, "inventory Statement.Transaction (SAVE without a name, or with a tail)");
+
+				return new Ast.Statement.BeginTransaction(kind == "BEGIN DISTRIBUTED", tran, name, Mark(old));
+			}
 
 			var word = old.Word?.ToUpperInvariant();
 
@@ -82,8 +96,6 @@ static partial class Bridge
 
 			if (word is not null && keyword is null && !work)
 				throw BridgeGap.Open(old, $"inventory Statement.Transaction (the word `{old.Word}`)");
-
-			var name = old.Name is null ? null : new Ast.TransactionName(Values.Part(old, old.Name));
 
 			switch (kind)
 			{
@@ -183,6 +195,127 @@ static partial class Bridge
 			}
 		}
 
+		/// <summary>
+		/// A transaction's name: an identifier, or a variable. The grammar's third form, a number and a name of two parts
+		/// (<c>-5:a.b</c>), has no member.
+		/// </summary>
+		static Ast.TransactionName? TransactionName(Statement.Transaction old)
+		{
+			return old.Name switch
+			{
+				null                         => null,
+				var name when name.Contains(':') => throw BridgeGap.Missing(old, "TransactionName (a number and a name of two parts, `-5:a.b`)"),
+				var name when name.StartsWith('@') => new Ast.TransactionName(null, new Ast.Expression.Variable(new Ast.Identifier(name))),
+				var name                     => new Ast.TransactionName(Values.Part(old, name)),
+			};
+		}
+
+		/// <summary>
+		/// <c>WITH MARK</c> and its description, which the old tree keeps as the text of the tail: a string, a variable, or none.
+		/// </summary>
+		static Ast.TransactionMark? Mark(Statement.Transaction old)
+		{
+			if (old.Tail is null)
+				return null;
+
+			var tokens = SqlTokens.Of(old.Tail).ToArray();
+
+			return Words(old.Tail) switch
+			{
+				["WITH", "MARK"] => new Ast.TransactionMark(),
+				["WITH", "MARK", _] when tokens[2].Kind == SqlTokens.Kind.String => new Ast.TransactionMark(Values.String(tokens[2].Text)),
+				["WITH", "MARK", _] when tokens[2].Text.StartsWith('@') => new Ast.TransactionMark(new Ast.Expression.Variable(new Ast.Identifier(tokens[2].Text))),
+				_ => throw BridgeGap.Lost(old, $"Statement.Transaction (a mark's description other than a string or a variable, kept as text: `{old.Tail}`)"),
+			};
+		}
+
+		/// <summary>
+		/// <c>DECLARE c CURSOR …</c>: the ISO form's words before CURSOR, or T-SQL's after it, and the query.
+		/// </summary>
+		static Ast.Statement DeclareCursor(Statement old, string name, Clause.CursorDefinition cursor)
+		{
+			var (properties, extended) = CursorProperties(old, cursor);
+
+			return new Ast.Statement.DeclareCursor
+			{
+				Cursor      = new Ast.CursorReference(Values.Name(old, name)),
+				Properties  = properties,
+				SourceValue = CursorSource(old, cursor),
+				Extended    = extended,
+			};
+		}
+
+		/// <summary><c>SET @c = CURSOR … FOR …</c>: T-SQL's words, and the query.</summary>
+		static Ast.Statement SetCursor(Statement old, string name, Clause.CursorDefinition cursor)
+		{
+			var (properties, _) = CursorProperties(old, cursor);
+
+			return new Ast.Statement.SetCursorVariable(new Ast.Expression.Variable(new Ast.Identifier(name)), properties, CursorSource(old, cursor));
+		}
+
+		/// <summary>
+		/// The words of a cursor. The tree holds what they say and not their order or a word said twice, so only words in
+		/// the order the writer prints them carry over; any other order is kept by the old tree alone.
+		/// </summary>
+		static (Ast.CursorProperties Properties, bool Extended) CursorProperties(Statement old, Clause.CursorDefinition cursor)
+		{
+			if (cursor.Before.Length > 0)
+			{
+				var iso = new Ast.CursorProperties(
+					cursor.Before.Contains("INSENSITIVE") ? Ast.CursorSensitivity.Insensitive : null,
+					cursor.Before.Contains("SCROLL") ? Ast.CursorScrollability.Scroll : null,
+					null,
+					null);
+
+				string[] printed = [.. cursor.Before.Where(static one => one == "INSENSITIVE").Take(1), .. cursor.Before.Where(static one => one == "SCROLL").Take(1)];
+
+				return printed.SequenceEqual(cursor.Before)
+					? (iso, false)
+					: throw BridgeGap.Lost(old, "Clause.CursorDefinition (the ISO form's words in another order, or twice)");
+			}
+
+			string[] order = ["LOCAL", "GLOBAL", "FORWARD_ONLY", "SCROLL", "STATIC", "KEYSET", "DYNAMIC", "FAST_FORWARD", "READ_ONLY", "SCROLL_LOCKS", "OPTIMISTIC", "TYPE_WARNING"];
+
+			if (!cursor.Options.All(order.Contains) || !order.Where(cursor.Options.Contains).SequenceEqual(cursor.Options))
+				throw BridgeGap.Lost(old, "Clause.CursorDefinition (T-SQL's words in another order, or twice)");
+
+			var words = cursor.Options;
+
+			var properties = new Ast.CursorProperties(
+				null,
+				words.Contains("SCROLL") ? Ast.CursorScrollability.Scroll : words.Contains("FORWARD_ONLY") ? Ast.CursorScrollability.NoScroll : null,
+				null,
+				null)
+			{
+				Scope       = words.Contains("LOCAL") ? Ast.CursorScope.Local : words.Contains("GLOBAL") ? Ast.CursorScope.Global : null,
+				Type        = words.Contains("STATIC") ? Ast.CursorType.Static : words.Contains("KEYSET") ? Ast.CursorType.Keyset
+					: words.Contains("DYNAMIC") ? Ast.CursorType.Dynamic : words.Contains("FAST_FORWARD") ? Ast.CursorType.FastForward : null,
+				Concurrency = words.Contains("READ_ONLY") ? Ast.CursorConcurrency.ReadOnly : words.Contains("SCROLL_LOCKS") ? Ast.CursorConcurrency.ScrollLocks
+					: words.Contains("OPTIMISTIC") ? Ast.CursorConcurrency.Optimistic : null,
+				TypeWarning = words.Contains("TYPE_WARNING"),
+				ForwardOnly = words.Contains("FORWARD_ONLY"),
+			};
+
+			return (properties, words.Length > 0);
+		}
+
+		/// <summary>The query a cursor is over, as a SELECT statement with its hints, and FOR READ ONLY or FOR UPDATE.</summary>
+		static Ast.CursorSource CursorSource(Statement old, Clause.CursorDefinition cursor)
+		{
+			if (StatementOf(new Statement.Select(cursor.With, cursor.Query, null, [], cursor.Hints)) is not Ast.Statement.Select select)
+				throw BridgeGap.Open(old, "inventory Clause.CursorDefinition (a query)");
+
+			var updatability = cursor.Access switch
+			{
+				null => null,
+				Clause.CursorFor(false, null) => new Ast.UpdatabilityClause(true, []),
+				Clause.CursorFor(true, var columns) => new Ast.UpdatabilityClause(false, Each(columns ?? [], one => Values.Part(old, one))),
+				_ => throw BridgeGap.Open(old, $"inventory {NameOf(cursor.Access)}"),
+			};
+
+			return new Ast.CursorSource.Query(select, updatability, cursor.AccessFirst);
+		}
+
 		static Ast.CursorReference Reference(Statement old, Expression cursor, bool global)
 		{
 			return cursor is Expression.ColumnReference(var name)
@@ -196,7 +329,7 @@ static partial class Bridge
 			{
 				"OPEN"       => new Ast.Statement.OpenCursor { Cursor = Reference(old, old.Cursor, old.Global) },
 				"CLOSE"      => new Ast.Statement.CloseCursor { Cursor = Reference(old, old.Cursor, old.Global) },
-				"DEALLOCATE" => throw BridgeGap.Unwritten(old, "Statement.DeallocateCursor"),
+				"DEALLOCATE" => new Ast.Statement.DeallocateCursor(Reference(old, old.Cursor, old.Global)),
 				_            => throw BridgeGap.Open(old, $"inventory Statement.CursorAction (`{old.Verb}`)"),
 			};
 		}

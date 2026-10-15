@@ -221,7 +221,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.SynonymDefinition.Tail | 18 |
 | ByCase Statement.TableDefinition.Kind | 8 |
 | ByCase Statement.Transaction.Kind | 0 |
-| ByCase Statement.Transaction.Tail | 8 |
+| ByCase Statement.Transaction.Tail | 15 |
 | ByCase Statement.Transaction.Word | 0 |
 | ByCase Statement.TypeDefinition.Tail | 133 |
 | ByCase Statement.UpdateStatistics.Tail | 8 |
@@ -242,14 +242,14 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Projected a key's T-SQL columns as the standard's names | 6 |
 | Recovered Alias.AsKeyword of MERGE's target | 19 |
 | Recovered Alias.AsKeyword of a table source | 931 |
-| Recovered Clause.DerivedColumn alias = expression | 389 |
+| Recovered Clause.DerivedColumn alias = expression | 391 |
 | Recovered Expression.Invocation without brackets | 34 |
 | Recovered Expression.Trim.FromKeyword | 0 |
 | Recovered Limit.FetchRowWord | 23 |
-| Recovered Limit.OffsetRowWord | 26 |
+| Recovered Limit.OffsetRowWord | 27 |
 | Recovered Limit.Position | 23 |
 | Recovered ReferencesSpecification.DeleteRuleFirst | 44 |
-| Recovered SelectColumn.ExpressionItem.AsKeyword | 384 |
+| Recovered SelectColumn.ExpressionItem.AsKeyword | 386 |
 | Recovered Statement.Delete.FromOmitted | 82 |
 | Recovered Statement.DropRoutine.Proc | 24 |
 | Recovered Statement.SetTransaction.Tran | 23 |
@@ -316,14 +316,14 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateDatabase` | Database | C | gap 154 | 154: no target record: Statement.CreateDatabase (154) | 154 |
 | `Clause.Set` | Dml | B | — | — | 151 |
 | `Statement.AlterIndex` | Tables | C | converted 134, gap 14 | 14: needs decision: inventory Statement.AlterIndex (a selective XML index's paths) (14) | 148 |
-| `Statement.Execute` | Routines | B | gap 137 | 147: needs decision: inventory Statement.Execute (147) | 147 |
+| `Statement.Execute` | Routines | B | gap 139 | 147: needs decision: inventory Statement.Execute (147) | 147 |
 | `Clause.References` | Tables | A | — | — | 145 |
 | `Statement.Return` | Procedural | A | converted 3 | — | 145 |
 | `Statement.Update` | Dml | A | converted 114 | — | 140 |
 | `Expression.GraphMatch` | Values | C | — | — | 131 |
 | `Expression.Hinted` | Values | C | gap 27 | 127: needs decision: inventory Expression.Hinted (127) | 127 |
 | `Expression.And` | Values | A | — | — | 122 |
-| `Statement.Transaction` | Procedural | B | converted 45, gap 67 | 67: target exists, no writer arm: Statement.BeginTransaction (33); target exists, no writer arm: Statement.SaveTransaction (21) | 119 |
+| `Statement.Transaction` | Procedural | B | converted 86, gap 23 | 23: no target record: TransactionName (a number and a name of two parts, `-5:a.b`) (23) | 119 |
 | `Statement.ServerAuditDefinition` | Monitoring | C | gap 118 | 118: no target record: Statement.CreateServerAudit (118) | 118 |
 | `Statement.Delete` | Dml | A | converted 64 | — | 114 |
 | `Expression.Subquery` | Values | A | — | — | 113 |
@@ -346,7 +346,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.Dropped` | Tables | B | gap 2 | 2: needs decision: inventory Clause.Dropped (a period or an index, which no action holds) (2) | 82 |
 | `Clause.For` | Queries | C | — | — | 82 |
 | `Statement.ExternalResourcePoolDefinition` | External | C | gap 79 | 79: no target record: Statement.CreateExternalResourcePool (79) | 79 |
-| `Statement.Print` | Procedural | C | gap 47 | 70: no target record: Statement.Print (70) | 75 |
+| `Statement.Print` | Procedural | C | gap 48 | 70: no target record: Statement.Print (70) | 75 |
 | `Statement.Dbcc` | Server | C | gap 73 | 73: no target record: Statement.Dbcc (73) | 73 |
 | `Expression.Not` | Values | A | — | — | 71 |
 | `Statement.CreateTableAsSelect` | Tables | B | converted 22, gap 29 | 31: needs decision: inventory Statement.CreateTableAsSelect (CREATE EXTERNAL TABLE AS SELECT, which another task owns) (30); needs decision: inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold) (1) | 70 |
@@ -416,10 +416,10 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.SchemaDefinition` | Security | A | converted 12, gap 15 | 15: needs decision: inventory Statement.SchemaDefinition (elements kept as text) (15) | 27 |
 | `Statement.SymmetricKeyDefinition` | Security | C | gap 27 | 27: no target record: Statement.CreateSymmetricKey (27) | 27 |
 | `Clause.VariableAssignment` | Queries | C | — | — | 26 |
-| `Statement.DeclareCursor` | Procedural | B | gap 26 | 26: needs decision: inventory Statement.DeclareCursor (26) | 26 |
+| `Statement.DeclareCursor` | Procedural | B | converted 22, gap 4 | 4: not kept by the old tree: Clause.CursorDefinition (the ISO form's words in another order, or twice) (2); needs decision: inventory cross-cutting gaps, identifier styles (a qualified name `dbo.t.a` where one name stands) (1) | 26 |
 | `Expression.Like` | Values | A | — | — | 25 |
 | `SetExpression.IsoSettings.Switch` | Procedural | C | — | — | 25 |
-| `Statement.CursorAction` | Procedural | A | converted 19, gap 6 | 6: target exists, no writer arm: Statement.DeallocateCursor (6) | 25 |
+| `Statement.CursorAction` | Procedural | A | converted 25 | — | 25 |
 | `Statement.Truncate` | Dml | A | converted 25 | — | 25 |
 | `SetExpression.Statistics.Report` | Procedural | C | — | — | 24 |
 | `Statement.DropProcedure` | Drop | B | converted 24 | — | 24 |
@@ -558,7 +558,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropServerAuditSpecification` | Drop | C | converted 6 | — | 6 |
 | `Statement.DropWorkloadClassifier` | Drop | C | converted 6 | — | 6 |
 | `Statement.RestoreServiceMasterKey` | Database | C | gap 6 | 6: no target record: Statement.RestoreServiceMasterKey (6) | 6 |
-| `Statement.SetCursor` | Procedural | C | gap 6 | 6: target exists, no writer arm: Statement.SetCursorVariable (6) | 6 |
+| `Statement.SetCursor` | Procedural | C | converted 6 | — | 6 |
 | `Statement.Shutdown` | Server | C | gap 6 | 6: no target record: Statement.Shutdown (6) | 6 |
 | `Statement.While` | Procedural | C | converted 6 | — | 6 |
 | `Query.FromExecute` | Dml | C | gap 5 | 5: no target record: InsertSource.Execute (inventory Query.FromExecute) (5) | 5 |

@@ -98,6 +98,28 @@ public sealed class ProceduralWriterTests
 
 	static readonly Expression MinusOne = Number("-1");
 
+	static readonly CursorReference C = new(new QualifiedName([new Identifier("c")]));
+
+	/// <summary><c>SELECT 1</c> as a cursor's source, its FOR and its hints as given.</summary>
+	static CursorSource.Query Over(UpdatabilityClause? updatability = null, bool recompiled = false, bool before = false)
+	{
+		var select = new Statement.Select { Query = ((Statement.Select)Selected).Query, Hints = recompiled ? [new QueryHint.Named(Name("RECOMPILE"), [])] : [] };
+
+		return new CursorSource.Query(select, updatability, before);
+	}
+
+	static readonly UpdatabilityClause ReadOnly = new(true, []);
+
+	static Statement.DeclareCursor Declared(CursorProperties properties, CursorSource.Query source, bool extended = true)
+	{
+		return new Statement.DeclareCursor { Cursor = C, Properties = properties, SourceValue = source, Extended = extended };
+	}
+
+	static CursorProperties Words(CursorScrollability? scrollability = null)
+	{
+		return new CursorProperties(null, scrollability, null, null);
+	}
+
 	static readonly AtomicOption Level = new AtomicOption.Isolation(IsolationLevel.Snapshot);
 	static readonly AtomicOption English = Set("LANGUAGE", new LiteralValue.String("'us_english'", StringLiteralKind.National));
 
@@ -131,6 +153,19 @@ public sealed class ProceduralWriterTests
 			"SET TEXTSIZE" => Options(Val("TEXTSIZE", MinusOne)),
 			"SET ERRLVL" => Options(Val("ERRLVL", Number("5"))),
 			"SET FIPS_FLAGGER OFF" => Options(Val("FIPS_FLAGGER", Ref("OFF"))),
+			"BEGIN TRAN" => new Statement.BeginTransaction(false, true, new TransactionName(Name("t")), new TransactionMark(new LiteralValue.String("'m'", StringLiteralKind.Character))),
+			"BEGIN DISTRIBUTED" => new Statement.BeginTransaction(true, false, new TransactionName(null, V)),
+			"BEGIN alone" => new Statement.BeginTransaction(),
+			"BEGIN with a bare mark" => new Statement.BeginTransaction(Mark: new TransactionMark()),
+			"SAVE" => new Statement.SaveTransaction(new TransactionName(Name("s")), true),
+			"DEALLOCATE GLOBAL" => new Statement.DeallocateCursor(C with { Global = true }),
+			"DEALLOCATE a variable" => new Statement.DeallocateCursor(new CursorReference(null, V)),
+			"DECLARE CURSOR the ISO way" => Declared(new CursorProperties(CursorSensitivity.Insensitive, CursorScrollability.Scroll, null, null), Over(ReadOnly), extended: false),
+			"DECLARE CURSOR with no word" => Declared(Words(), Over(), extended: false),
+			"DECLARE CURSOR T-SQL's way" => Declared(Words(CursorScrollability.NoScroll) with { Scope = CursorScope.Local, ForwardOnly = true, Type = CursorType.Static, Concurrency = CursorConcurrency.ReadOnly, TypeWarning = true }, Over()),
+			"DECLARE CURSOR FOR UPDATE before the hints" => Declared(Words(CursorScrollability.Scroll) with { Scope = CursorScope.Global, Type = CursorType.Keyset, Concurrency = CursorConcurrency.Optimistic }, Over(new UpdatabilityClause(false, [Name("a")]), recompiled: true, before: true)),
+			"DECLARE CURSOR FOR UPDATE after the hints" => Declared(Words() with { Type = CursorType.Dynamic, Concurrency = CursorConcurrency.ScrollLocks }, Over(new UpdatabilityClause(false, []), recompiled: true)),
+			"SET a cursor" => new Statement.SetCursorVariable(V, Words(CursorScrollability.NoScroll) with { ForwardOnly = true, Type = CursorType.FastForward, Concurrency = CursorConcurrency.ReadOnly }, Over(ReadOnly)),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 	}
@@ -162,6 +197,19 @@ public sealed class ProceduralWriterTests
 	[InlineData("SET TEXTSIZE", "SET TEXTSIZE -1")]
 	[InlineData("SET ERRLVL", "SET ERRLVL 5")]
 	[InlineData("SET FIPS_FLAGGER OFF", "SET FIPS_FLAGGER OFF")]
+	[InlineData("BEGIN TRAN", "BEGIN TRAN t WITH MARK 'm'")]
+	[InlineData("BEGIN DISTRIBUTED", "BEGIN DISTRIBUTED TRANSACTION @a")]
+	[InlineData("BEGIN alone", "BEGIN TRANSACTION")]
+	[InlineData("BEGIN with a bare mark", "BEGIN TRANSACTION WITH MARK")]
+	[InlineData("SAVE", "SAVE TRAN s")]
+	[InlineData("DEALLOCATE GLOBAL", "DEALLOCATE GLOBAL c")]
+	[InlineData("DEALLOCATE a variable", "DEALLOCATE @a")]
+	[InlineData("DECLARE CURSOR the ISO way", "DECLARE c INSENSITIVE SCROLL CURSOR FOR SELECT 1 FOR READ ONLY")]
+	[InlineData("DECLARE CURSOR with no word", "DECLARE c CURSOR FOR SELECT 1")]
+	[InlineData("DECLARE CURSOR T-SQL's way", "DECLARE c CURSOR LOCAL FORWARD_ONLY STATIC READ_ONLY TYPE_WARNING FOR SELECT 1")]
+	[InlineData("DECLARE CURSOR FOR UPDATE before the hints", "DECLARE c CURSOR GLOBAL SCROLL KEYSET OPTIMISTIC FOR SELECT 1 FOR UPDATE OF a OPTION (RECOMPILE)")]
+	[InlineData("DECLARE CURSOR FOR UPDATE after the hints", "DECLARE c CURSOR DYNAMIC SCROLL_LOCKS FOR SELECT 1 OPTION (RECOMPILE) FOR UPDATE")]
+	[InlineData("SET a cursor", "SET @a = CURSOR FORWARD_ONLY FAST_FORWARD READ_ONLY FOR SELECT 1 FOR READ ONLY")]
 	public void Each_record_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
@@ -197,6 +245,19 @@ public sealed class ProceduralWriterTests
 	[InlineData("SET TEXTSIZE")]
 	[InlineData("SET ERRLVL")]
 	[InlineData("SET FIPS_FLAGGER OFF")]
+	[InlineData("BEGIN TRAN")]
+	[InlineData("BEGIN DISTRIBUTED")]
+	[InlineData("BEGIN alone")]
+	[InlineData("BEGIN with a bare mark")]
+	[InlineData("SAVE")]
+	[InlineData("DEALLOCATE GLOBAL")]
+	[InlineData("DEALLOCATE a variable")]
+	[InlineData("DECLARE CURSOR the ISO way")]
+	[InlineData("DECLARE CURSOR with no word")]
+	[InlineData("DECLARE CURSOR T-SQL's way")]
+	[InlineData("DECLARE CURSOR FOR UPDATE before the hints")]
+	[InlineData("DECLARE CURSOR FOR UPDATE after the hints")]
+	[InlineData("SET a cursor")]
 	public void Each_record_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -272,6 +333,30 @@ public sealed class ProceduralWriterTests
 	[InlineData("DATEFIRST of an expression")]
 	[InlineData("FIPS_FLAGGER of a national string")]
 	[InlineData("FIPS_FLAGGER OFF in a list")]
+	[InlineData("a transaction's name and variable both")]
+	[InlineData("a transaction's name starting with @")]
+	[InlineData("a transaction's name an expression")]
+	[InlineData("a SAVE of no name")]
+	[InlineData("a DEALLOCATE of a LOCAL name")]
+	[InlineData("a DEALLOCATE of GLOBAL and a variable")]
+	[InlineData("a DEALLOCATE of two parts")]
+	[InlineData("a DEALLOCATE of the server's variable")]
+	[InlineData("a cursor named in two parts")]
+	[InlineData("T-SQL's form with no word")]
+	[InlineData("FORWARD_ONLY that is not NoScroll")]
+	[InlineData("INSENSITIVE after CURSOR")]
+	[InlineData("FAST_FORWARD and SCROLL")]
+	[InlineData("FAST_FORWARD and OPTIMISTIC")]
+	[InlineData("STATIC FOR UPDATE")]
+	[InlineData("INSENSITIVE FOR UPDATE")]
+	[InlineData("READ_ONLY FOR READ ONLY declared")]
+	[InlineData("OPTIMISTIC FOR READ ONLY")]
+	[InlineData("READ ONLY of columns")]
+	[InlineData("a FOR before hints with no FOR")]
+	[InlineData("a cursor over VALUES")]
+	[InlineData("SET a cursor INSENSITIVE")]
+	[InlineData("SET a cursor of a name")]
+	[InlineData("SET a cursor FOR READ_ONLY")]
 	public void A_procedural_statement_with_no_text_is_refused(string which)
 	{
 		ISqlNode node = which switch
@@ -380,6 +465,54 @@ public sealed class ProceduralWriterTests
 			"FIPS_FLAGGER of a national string" => Options(Val("FIPS_FLAGGER", new LiteralValue.String("'FULL'", StringLiteralKind.National))),
 			// SetExpressions: FIPS_FLAGGER OFF stands alone.
 			"FIPS_FLAGGER OFF in a list" => Options(Val("FIPS_FLAGGER", Ref("OFF")), Val("DATEFIRST", One)),
+			// TranName: a name or a variable.
+			"a transaction's name and variable both" => new Statement.BeginTransaction(Name: new TransactionName(Name("t"), V)),
+			// TranName reads @t as TSql.Variable.
+			"a transaction's name starting with @" => new Statement.SaveTransaction(new TransactionName(Name("@t"))),
+			// TranName: Identifier or TSql.Variable.
+			"a transaction's name an expression" => new Statement.SaveTransaction(new TransactionName(null, One)),
+			// TranName: SAVE TRAN alone is Msg 102.
+			"a SAVE of no name" => new Statement.SaveTransaction(new TransactionName(null)),
+			// CursorName: GLOBAL or nothing.
+			"a DEALLOCATE of a LOCAL name" => new Statement.DeallocateCursor(C with { Local = true }),
+			// CursorName: GLOBAL never stands before a variable.
+			"a DEALLOCATE of GLOBAL and a variable" => new Statement.DeallocateCursor(new CursorReference(null, V, Global: true)),
+			// CursorName: one part.
+			"a DEALLOCATE of two parts" => new Statement.DeallocateCursor(new CursorReference(new QualifiedName([Name("a"), Name("c")]))),
+			// LocalVariable: Syntax.IsServerVariable, Msg 102.
+			"a DEALLOCATE of the server's variable" => new Statement.DeallocateCursor(new CursorReference(null, new Expression.Variable(Name("@@ROWCOUNT")))),
+			// DeclareStatement: name: Identifier.
+			"a cursor named in two parts" => new Statement.DeclareCursor { Cursor = new CursorReference(new QualifiedName([Name("a"), Name("c")])), Properties = Words(), SourceValue = Over() },
+			// CursorDefinition: no word after CURSOR reads as the ISO form.
+			"T-SQL's form with no word" => Declared(Words(), Over()),
+			// CursorOption: FORWARD_ONLY and SCROLL, Syntax.CursorAgrees.
+			"FORWARD_ONLY that is not NoScroll" => Declared(Words(CursorScrollability.Scroll) with { ForwardOnly = true }, Over()),
+			// CursorOption has no INSENSITIVE.
+			"INSENSITIVE after CURSOR" => Declared(new CursorProperties(CursorSensitivity.Insensitive, null, null, null) { Scope = CursorScope.Local }, Over()),
+			// Syntax.CursorAgrees: FAST_FORWARD with SCROLL, Msg 1048.
+			"FAST_FORWARD and SCROLL" => Declared(Words(CursorScrollability.Scroll) with { Type = CursorType.FastForward }, Over()),
+			// Syntax.CursorAgrees: FAST_FORWARD with OPTIMISTIC, Msg 1048.
+			"FAST_FORWARD and OPTIMISTIC" => Declared(Words() with { Type = CursorType.FastForward, Concurrency = CursorConcurrency.Optimistic }, Over()),
+			// Syntax.CursorAgrees: FOR UPDATE on a STATIC cursor, Msg 16957.
+			"STATIC FOR UPDATE" => Declared(Words() with { Type = CursorType.Static }, Over(new UpdatabilityClause(false, []))),
+			// Syntax.CursorAgrees: FOR UPDATE on an INSENSITIVE cursor.
+			"INSENSITIVE FOR UPDATE" => Declared(new CursorProperties(CursorSensitivity.Insensitive, null, null, null), Over(new UpdatabilityClause(false, [])), extended: false),
+			// Syntax.CursorAgrees: READ_ONLY and FOR READ ONLY declared, Msg 1058.
+			"READ_ONLY FOR READ ONLY declared" => Declared(Words() with { Concurrency = CursorConcurrency.ReadOnly }, Over(ReadOnly)),
+			// Syntax.CursorAgrees: OPTIMISTIC and FOR READ ONLY.
+			"OPTIMISTIC FOR READ ONLY" => Declared(Words() with { Concurrency = CursorConcurrency.Optimistic }, Over(ReadOnly)),
+			// CursorFor: READ ONLY takes no columns.
+			"READ ONLY of columns" => Declared(Words(), Over(new UpdatabilityClause(true, [Name("a")])), extended: false),
+			// CursorQuery: the first form has a FOR.
+			"a FOR before hints with no FOR" => Declared(Words(), Over(null, recompiled: true, before: true), extended: false),
+			// Syntax.Cursorable: VALUES is Msg 156.
+			"a cursor over VALUES" => Declared(Words(), new CursorSource.Query(new Statement.Select { Query = new Query.Select { Values = [new RowValue([One])] } }, null), extended: false),
+			// CursorInPlace: T-SQL's words only.
+			"SET a cursor INSENSITIVE" => new Statement.SetCursorVariable(V, new CursorProperties(CursorSensitivity.Insensitive, null, null, null), Over()),
+			// SetStatement: TSql.Variable.
+			"SET a cursor of a name" => new Statement.SetCursorVariable(Ref("c"), Words(), Over()),
+			// CursorFor: READ ONLY, two words.
+			"SET a cursor FOR READ_ONLY" => new Statement.SetCursorVariable(V, Words(), Over(new UpdatabilityClause(true, [], Underscored: true))),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 
