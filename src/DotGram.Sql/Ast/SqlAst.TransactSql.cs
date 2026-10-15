@@ -300,8 +300,8 @@ public sealed record EdgeConnection(QualifiedName From, QualifiedName To) : ISql
 /// <summary>T-SQL: SET Statements (Transact-SQL). One option of a <c>SET</c> statement.</summary>
 /// <remarks>
 /// One level rather than two: Microsoft groups the options by what they affect, and the old tree made
-/// a family of each group, so the same <c>SET x ON</c> was five records. The group is a property here
-/// (proposal 24), and the switches are one member.
+/// a family of each group, so the same <c>SET x ON</c> was five records. The option's name says its
+/// group (proposal 24); a setting named from an open catalogue is a name and a value, one record.
 /// </remarks>
 public abstract record SetOption : ISqlNode
 {
@@ -315,59 +315,24 @@ public abstract record SetOption : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	/// <summary>An option that is only turned on or off, such as <c>SET ANSI_NULLS ON</c>.</summary>
-	public sealed record Switch(Identifier Option, bool On, SetCategory Category) : SetOption;
+	/// <summary>T-SQL: SET Statements (Transact-SQL). An option that is only turned on or off, such as <c>SET ANSI_NULLS ON</c>.</summary>
+	public sealed record Switch(Identifier Option, bool On) : SetOption;
 
-	/// <summary>T-SQL: SET DATEFIRST (Transact-SQL). Which day the week starts on.</summary>
-	public sealed record DateFirst(Expression Value) : SetOption;
-
-	/// <summary>T-SQL: SET DATEFORMAT (Transact-SQL). The order of the parts of a date.</summary>
-	public sealed record DateFormat(Expression Value) : SetOption;
-
-	/// <summary>T-SQL: SET DEADLOCK_PRIORITY (Transact-SQL). Which session gives way in a deadlock.</summary>
-	public sealed record DeadlockPriority(Expression Value) : SetOption;
-
-	/// <summary>T-SQL: SET LOCK_TIMEOUT (Transact-SQL). How long a statement waits for a lock.</summary>
-	public sealed record LockTimeout(Expression Value) : SetOption;
-
-	/// <summary>T-SQL: SET ROWCOUNT (Transact-SQL). How many rows a statement stops after.</summary>
-	public sealed record RowCount(Expression Value) : SetOption;
-
-	/// <summary>T-SQL: SET TEXTSIZE (Transact-SQL). How much of a large value is returned.</summary>
-	public sealed record TextSize(Expression Value) : SetOption;
-
-	/// <summary>T-SQL: SET QUERY_GOVERNOR_COST_LIMIT (Transact-SQL). The cost a query may not exceed.</summary>
-	public sealed record QueryGovernorCostLimit(Expression Value) : SetOption;
+	/// <summary>
+	/// T-SQL: SET Statements (Transact-SQL). An option given a value: <c>SET DATEFIRST 7</c>, <c>SET LANGUAGE us_english</c>,
+	/// <c>SET ROWCOUNT @n</c>, <c>SET FIPS_FLAGGER OFF</c>.
+	/// </summary>
+	public sealed record Value(Identifier Option, Expression Argument) : SetOption;
 
 	/// <summary>T-SQL: SET STATISTICS IO, PROFILE, TIME, XML (Transact-SQL). Which report a statement returns.</summary>
 	public sealed record Statistics(StatisticsKind Kind, bool On) : SetOption;
-
-	/// <summary>T-SQL: SET LANGUAGE (Transact-SQL). The language of the messages and the date names.</summary>
-	public sealed record Language(Expression Value) : SetOption;
-
-	/// <summary>T-SQL: SET FIPS_FLAGGER (Transact-SQL). Which standard to warn against departing from.</summary>
-	public sealed record FipsFlagger(Expression Level) : SetOption;
-
-	/// <summary>T-SQL: SET CONTEXT_INFO (Transact-SQL). A binary value the session carries.</summary>
-	public sealed record ContextInfo(Expression Value) : SetOption;
 
 	/// <summary>T-SQL: SET IDENTITY_INSERT (Transact-SQL). Whether a table takes explicit identity values.</summary>
 	public sealed record IdentityInsert(QualifiedName Table, bool On) : SetOption;
 
 	/// <summary>T-SQL: SET OFFSETS (Transact-SQL). Which key words the offsets are returned for.</summary>
 	public sealed record Offsets(Identifier Keyword, bool On) : SetOption;
-
-	/// <summary>T-SQL: SET Statements (Transact-SQL). Above which severity an error is returned.</summary>
-	public sealed record ErrorLevel(Expression Value) : SetOption;
 }
-
-/// <summary>T-SQL: SET Statements (Transact-SQL). What a <see cref="SetOption.Switch"/> affects.</summary>
-/// <remarks>
-/// Microsoft's own grouping of the pages, kept because it is how a reader finds the option in the
-/// reference. It is derivable from the option's name, so it is a convenience rather than a fact only
-/// the text holds.
-/// </remarks>
-public enum SetCategory { DateAndTime, Locking, QueryExecution, IsoSettings, Statistics, Transactions, Miscellaneous }
 
 /// <summary>T-SQL: SET STATISTICS IO, PROFILE, TIME, XML (Transact-SQL). Which statistics report is asked for.</summary>
 public enum StatisticsKind { Io, Profile, Time, Xml }

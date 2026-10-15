@@ -86,6 +86,18 @@ public sealed class ProceduralWriterTests
 		return new Expression.Member(on, MemberAccessKind.Dot, Name("m"), [new Argument(One)]);
 	}
 
+	static SetOption Val(string name, Expression argument)
+	{
+		return new SetOption.Value(Name(name), argument);
+	}
+
+	static Statement.SetOptions Options(params SetOption[] options)
+	{
+		return new Statement.SetOptions([.. options]);
+	}
+
+	static readonly Expression MinusOne = Number("-1");
+
 	static readonly AtomicOption Level = new AtomicOption.Isolation(IsolationLevel.Snapshot);
 	static readonly AtomicOption English = Set("LANGUAGE", new LiteralValue.String("'us_english'", StringLiteralKind.National));
 
@@ -110,6 +122,15 @@ public sealed class ProceduralWriterTests
 			"SET +=" => new Statement.SetVariable(V, One) { Operator = AssignmentOperator.Add },
 			"SET a property" => new Statement.SetVariable(V, One) { Members = [Name("x"), Name("y")] },
 			"SET a method" => new Statement.SetVariable(V, Call(V)) { Operator = null },
+			"SET switches" => Options(new SetOption.Switch(Name("ANSI_NULLS"), true), new SetOption.Switch(Name("nocount"), true)),
+			"SET STATISTICS" => Options(new SetOption.Statistics(StatisticsKind.Io, false), new SetOption.Statistics(StatisticsKind.Profile, false), new SetOption.Statistics(StatisticsKind.Time, false), new SetOption.Statistics(StatisticsKind.Xml, false)),
+			"SET OFFSETS" => Options(new SetOption.Offsets(Name("SELECT"), true), new SetOption.Offsets(Name("proc"), true)),
+			"SET IDENTITY_INSERT" => Options(new SetOption.IdentityInsert(new QualifiedName([Name("dbo"), Name("t")]), false)),
+			"SET values" => Options(Val("DATEFIRST", Number("7")), Val("LANGUAGE", Ref("us_english")), Val("DATEFIRST", MinusOne), Val("DEADLOCK_PRIORITY", V), Val("CONTEXT_INFO", new LiteralValue.Binary("01") { ZeroX = true }), Val("FIPS_FLAGGER", new LiteralValue.String("'FULL'", StringLiteralKind.Character)), Val("QUERY_GOVERNOR_COST_LIMIT", new LiteralValue.Numeric("1.5", NumericLiteralKind.Decimal)), Val("LOCK_TIMEOUT", MinusOne), Val("DATEFORMAT", new LiteralValue.String("'dmy'", StringLiteralKind.National))),
+			"SET ROWCOUNT" => Options(Val("ROWCOUNT", V)),
+			"SET TEXTSIZE" => Options(Val("TEXTSIZE", MinusOne)),
+			"SET ERRLVL" => Options(Val("ERRLVL", Number("5"))),
+			"SET FIPS_FLAGGER OFF" => Options(Val("FIPS_FLAGGER", Ref("OFF"))),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 	}
@@ -132,6 +153,15 @@ public sealed class ProceduralWriterTests
 	[InlineData("SET +=", "SET @a += 1")]
 	[InlineData("SET a property", "SET @a.x.y = 1")]
 	[InlineData("SET a method", "SET @a.m(1)")]
+	[InlineData("SET switches", "SET ANSI_NULLS, nocount ON")]
+	[InlineData("SET STATISTICS", "SET STATISTICS IO, PROFILE, TIME, XML OFF")]
+	[InlineData("SET OFFSETS", "SET OFFSETS SELECT, proc ON")]
+	[InlineData("SET IDENTITY_INSERT", "SET IDENTITY_INSERT dbo.t OFF")]
+	[InlineData("SET values", "SET DATEFIRST 7, LANGUAGE us_english, DATEFIRST -1, DEADLOCK_PRIORITY @a, CONTEXT_INFO 0x01, FIPS_FLAGGER 'FULL', QUERY_GOVERNOR_COST_LIMIT 1.5, LOCK_TIMEOUT -1, DATEFORMAT N'dmy'")]
+	[InlineData("SET ROWCOUNT", "SET ROWCOUNT @a")]
+	[InlineData("SET TEXTSIZE", "SET TEXTSIZE -1")]
+	[InlineData("SET ERRLVL", "SET ERRLVL 5")]
+	[InlineData("SET FIPS_FLAGGER OFF", "SET FIPS_FLAGGER OFF")]
 	public void Each_record_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
@@ -158,6 +188,15 @@ public sealed class ProceduralWriterTests
 	[InlineData("SET +=")]
 	[InlineData("SET a property")]
 	[InlineData("SET a method")]
+	[InlineData("SET switches")]
+	[InlineData("SET STATISTICS")]
+	[InlineData("SET OFFSETS")]
+	[InlineData("SET IDENTITY_INSERT")]
+	[InlineData("SET values")]
+	[InlineData("SET ROWCOUNT")]
+	[InlineData("SET TEXTSIZE")]
+	[InlineData("SET ERRLVL")]
+	[InlineData("SET FIPS_FLAGGER OFF")]
 	public void Each_record_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -211,6 +250,26 @@ public sealed class ProceduralWriterTests
 	[InlineData("a SET calling a property's method")]
 	[InlineData("a SET calling another variable's method")]
 	[InlineData("a SET of a variable with no @")]
+	[InlineData("a SET of nothing")]
+	[InlineData("a switch beside a value")]
+	[InlineData("switches set two ways")]
+	[InlineData("a switch not in the list")]
+	[InlineData("a switch in brackets")]
+	[InlineData("a STATISTICS word beside a switch")]
+	[InlineData("a STATISTICS kind with no word")]
+	[InlineData("an OFFSETS word not in the list")]
+	[InlineData("IDENTITY_INSERT beside another")]
+	[InlineData("a value named in small letters")]
+	[InlineData("a value not in the list")]
+	[InlineData("ROWCOUNT in a list")]
+	[InlineData("ROWCOUNT below nought")]
+	[InlineData("TEXTSIZE of a variable")]
+	[InlineData("LOCK_TIMEOUT of a fraction")]
+	[InlineData("DATEFIRST of a negation")]
+	[InlineData("DATEFIRST of an expression")]
+	[InlineData("DATEFIRST of a reserved word")]
+	[InlineData("FIPS_FLAGGER of a national string")]
+	[InlineData("FIPS_FLAGGER OFF in a list")]
 	public void A_procedural_statement_with_no_text_is_refused(string which)
 	{
 		ISqlNode node = which switch
@@ -275,6 +334,46 @@ public sealed class ProceduralWriterTests
 			"a SET calling another variable's method" => new Statement.SetVariable(V, Call(new Expression.Variable(Name("@b")))) { Operator = null },
 			// TSql.Variable starts with @.
 			"a SET of a variable with no @" => new Statement.SetVariable(new Expression.Variable(Name("a")), One),
+			// SetStatement: SET alone is Msg 102.
+			"a SET of nothing" => Options(),
+			// SetExpressions: a switch among values, Msg 195.
+			"a switch beside a value" => Options(new SetOption.Switch(Name("NOCOUNT"), true), Val("DATEFIRST", One)),
+			// SetExpressions: the switches share one ON or OFF.
+			"switches set two ways" => Options(new SetOption.Switch(Name("NOCOUNT"), true), new SetOption.Switch(Name("ANSI_NULLS"), false)),
+			// SetSwitchName, Msg 195.
+			"a switch not in the list" => Options(new SetOption.Switch(Name("NO_SUCH"), true)),
+			// SetSwitchName reads the word, not a name.
+			"a switch in brackets" => Options(new SetOption.Switch(new Identifier("[NOCOUNT]", IdentifierStyle.Bracketed), true)),
+			// SetExpressions: STATISTICS reads SetReport words.
+			"a STATISTICS word beside a switch" => Options(new SetOption.Statistics(StatisticsKind.Io, true), new SetOption.Switch(Name("NOCOUNT"), true)),
+			// SetReportName: IO, TIME, PROFILE, XML.
+			"a STATISTICS kind with no word" => Options(new SetOption.Statistics((StatisticsKind)9, true)),
+			// SetOffsetName, Msg 195.
+			"an OFFSETS word not in the list" => Options(new SetOption.Offsets(Name("WHERE"), true)),
+			// SetExpressions: IDENTITY_INSERT stands alone, Msg 102.
+			"IDENTITY_INSERT beside another" => Options(new SetOption.IdentityInsert(new QualifiedName([Name("t")]), true), new SetOption.IdentityInsert(new QualifiedName([Name("u")]), true)),
+			// SettingValue reads the word, which the bridge keeps in capitals.
+			"a value named in small letters" => Options(Val("datefirst", One)),
+			// SettingValue, Msg 195.
+			"a value not in the list" => Options(Val("NO_SUCH", One)),
+			// SetExpressions: ROWCOUNT stands alone.
+			"ROWCOUNT in a list" => Options(Val("ROWCOUNT", One), Val("DATEFIRST", One)),
+			// SetRowCount: ROWCOUNT -1 is refused.
+			"ROWCOUNT below nought" => Options(Val("ROWCOUNT", MinusOne)),
+			// SetInteger: no variable.
+			"TEXTSIZE of a variable" => Options(Val("TEXTSIZE", V)),
+			// SetInteger: a whole number.
+			"LOCK_TIMEOUT of a fraction" => Options(Val("LOCK_TIMEOUT", new LiteralValue.Numeric("1.5", NumericLiteralKind.Decimal))),
+			// SetConstant: the sign is the literal's (Syntax.Compacted), read back as one.
+			"DATEFIRST of a negation" => Options(Val("DATEFIRST", new Expression.Unary(UnaryOperator.Minus, One))),
+			// SetConstant: DATEFIRST 7 + 1 is refused.
+			"DATEFIRST of an expression" => Options(Val("DATEFIRST", new Expression.Binary(One, BinaryOperator.Add, One))),
+			// SetConstant: Identifier is not TSqlReserved, Msg 195.
+			"DATEFIRST of a reserved word" => Options(Val("DATEFIRST", Ref("ON"))),
+			// SetFipsLevel: never a national string.
+			"FIPS_FLAGGER of a national string" => Options(Val("FIPS_FLAGGER", new LiteralValue.String("'FULL'", StringLiteralKind.National))),
+			// SetExpressions: FIPS_FLAGGER OFF stands alone.
+			"FIPS_FLAGGER OFF in a list" => Options(Val("FIPS_FLAGGER", Ref("OFF")), Val("DATEFIRST", One)),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 

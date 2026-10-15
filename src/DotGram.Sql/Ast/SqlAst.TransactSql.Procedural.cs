@@ -63,6 +63,13 @@ public abstract partial record Statement
 		/// <summary>T-SQL: SET @local_variable (Transact-SQL). The property assigned, <c>@g.a.b</c>: <c>a</c>, <c>b</c>.</summary>
 		public SqlList<Identifier> Members { get; init; } = [];
 	}
+
+	/// <summary>
+	/// T-SQL: SET Statements (Transact-SQL). <c>SET option …</c>: the options of one form, switches sharing an ON or OFF,
+	/// STATISTICS or OFFSETS words, IDENTITY_INSERT, or settings given values. <c>SET TRANSACTION ISOLATION LEVEL</c>
+	/// is the standard's <see cref="SetTransaction"/>.
+	/// </summary>
+	public sealed record SetOptions(SqlList<SetOption> Options) : Statement;
 }
 
 /// <summary>

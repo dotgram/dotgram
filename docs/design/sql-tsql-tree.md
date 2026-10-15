@@ -150,11 +150,13 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
     catalogue); a securable gains its class (`OBJECT::`, `SCHEMA::`); `DENY` is a statement sharing the
     shape; `AS principal` is a name.
 24. **`SET` options.** One flat `SetOption` family on `Statement.SetOptions`, the group an enum rather than a
-    level.
+    level. Ruled since: a setting named from an open catalogue is a name and a value, `SetOption.Value`, one
+    record for now, and the group is not kept, the option's name saying it.
 25. **Procedural statements.** SQL/PSM's names where SQL/PSM has the statement (compound, `IF`, `WHILE`,
     variable declaration, assignment); T-SQL's own for the rest (`TRY … CATCH`, `PRINT`, `RAISERROR`,
     `THROW`, `GOTO`, labels, `BREAK`, `CONTINUE`, `WAITFOR`).
-26. **Batches.** `Batch` and `GO` move into `DotGram.Sql.Ast` beside the statements.
+26. **Batches.** `Batch` and `GO` move into `DotGram.Sql.Ast` beside the statements. Batch and GO move with
+    the script reader, in the stage that switches the parsers' entries.
 27. **`StatementCategory`.** Leaves the tree; what reads it asks an extension method outside.
 28. **The node map.** The standard's nodes answer to `SqlAst.BnfMap.csv`; T-SQL's to a map of their own
     against the reference's pages, which takes over from `docs/ast.md`'s tables and `AstReferenceTests`.
