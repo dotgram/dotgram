@@ -127,6 +127,10 @@ public sealed class RoutinesWriterTests
 
 	static readonly QualifiedName G = new([new Identifier("g")]);
 
+	static readonly Identifier A = new("a");
+	static readonly QualifiedName R = new([new Identifier("dbo"), new Identifier("r")]);
+	static readonly Expression Less = new Expression.Comparison(V, ComparisonOperator.Less, One);
+
 	static Statement.Insert Insert(InsertSource source)
 	{
 		return new Statement.Insert { Target = new TableSource.Named(new QualifiedName([Name("t")])), SourceValue = source, Into = IntoKeyword.Into };
@@ -166,6 +170,16 @@ public sealed class RoutinesWriterTests
 			"ENABLE TRIGGER" => new Statement.EnableTrigger([G, new QualifiedName([Name("s"), Name("h")])]) { On = new QualifiedName([Name("t")]) },
 			"DISABLE TRIGGER ALL" => new Statement.DisableTrigger([]) { All = true, Scope = TriggerScope.AllServer },
 			"ENABLE TRIGGER ON DATABASE" => new Statement.EnableTrigger([G]) { Scope = TriggerScope.Database },
+			"CREATE ASSEMBLY" => new Statement.CreateAssembly(A, [Text("a.dll"), new LiteralValue.Binary("01") { ZeroX = true }]) { Authorization = Name("o"), PermissionSet = AssemblyPermissionSet.ExternalAccess },
+			"ALTER ASSEMBLY" => new Statement.AlterAssembly(A) { From = V, PermissionSet = AssemblyPermissionSet.Safe, Visibility = false, UncheckedData = true, DropAllFiles = true, AddFiles = [new AssemblyFile(Text("p")), new AssemblyFile(new LiteralValue.Binary("10") { ZeroX = true }) { Name = Text("f") }] },
+			"ALTER ASSEMBLY DROP FILE" => new Statement.AlterAssembly(A) { DropFiles = [Text("x"), new LiteralValue.String("'y'", StringLiteralKind.National)] },
+			"CREATE RULE" => new Statement.CreateRule(R, new Expression.Binary(Less, BinaryOperator.And, new Expression.Comparison(V, ComparisonOperator.Greater, One))),
+			"CREATE RULE of a subquery" => new Statement.CreateRule(R, new Expression.Exists(((Statement.Select)Selected).Query)),
+			"CREATE DEFAULT" => new Statement.CreateDefault(R, new LiteralValue.Null()),
+			"CREATE AGGREGATE" => new Statement.CreateAggregate(R, [Parameter() with { AsKeyword = true, Nullable = false }, Parameter("@b")], Int, new QualifiedName([Name("asm"), Name("cls")])),
+			"CREATE XML SCHEMA COLLECTION" => new Statement.CreateXmlSchemaCollection(R, V),
+			"ALTER XML SCHEMA COLLECTION" => new Statement.AlterXmlSchemaCollection(R, Text("<s/>")),
+			"CREATE TYPE EXTERNAL NAME" => new Statement.CreateClrType(R, new QualifiedName([Name("asm"), new Identifier("[a.b]", IdentifierStyle.Bracketed)])),
 			"INSERT EXEC" => Insert(new InsertSource.ExecuteModule(Exec(Arg(One)))),
 			"INSERT EXEC a string" => Insert(new InsertSource.ExecuteString(Run())),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
@@ -203,6 +217,16 @@ public sealed class RoutinesWriterTests
 	[InlineData("ENABLE TRIGGER", "ENABLE TRIGGER g, s.h ON t")]
 	[InlineData("DISABLE TRIGGER ALL", "DISABLE TRIGGER ALL ON ALL SERVER")]
 	[InlineData("ENABLE TRIGGER ON DATABASE", "ENABLE TRIGGER g ON DATABASE")]
+	[InlineData("CREATE ASSEMBLY", "CREATE ASSEMBLY a AUTHORIZATION o FROM 'a.dll', 0x01 WITH PERMISSION_SET = EXTERNAL_ACCESS")]
+	[InlineData("ALTER ASSEMBLY", "ALTER ASSEMBLY a FROM @a WITH PERMISSION_SET = SAFE, VISIBILITY = OFF, UNCHECKED DATA DROP FILE ALL ADD FILE FROM 'p', 0x10 AS 'f'")]
+	[InlineData("ALTER ASSEMBLY DROP FILE", "ALTER ASSEMBLY a DROP FILE 'x', N'y'")]
+	[InlineData("CREATE RULE", "CREATE RULE dbo.r AS @a < 1 AND @a > 1")]
+	[InlineData("CREATE RULE of a subquery", "CREATE RULE dbo.r AS EXISTS (SELECT 1)")]
+	[InlineData("CREATE DEFAULT", "CREATE DEFAULT dbo.r AS NULL")]
+	[InlineData("CREATE AGGREGATE", "CREATE AGGREGATE dbo.r (@a AS INT NOT NULL, @b INT) RETURNS INT EXTERNAL NAME asm.cls")]
+	[InlineData("CREATE XML SCHEMA COLLECTION", "CREATE XML SCHEMA COLLECTION dbo.r AS @a")]
+	[InlineData("ALTER XML SCHEMA COLLECTION", "ALTER XML SCHEMA COLLECTION dbo.r ADD '<s/>'")]
+	[InlineData("CREATE TYPE EXTERNAL NAME", "CREATE TYPE dbo.r EXTERNAL NAME asm.[a.b]")]
 	[InlineData("INSERT EXEC", "INSERT INTO t EXEC p 1")]
 	[InlineData("INSERT EXEC a string", "INSERT INTO t EXECUTE ('SELECT 1')")]
 	public void Each_record_writes_its_text(string which, string text)
@@ -243,6 +267,16 @@ public sealed class RoutinesWriterTests
 	[InlineData("ENABLE TRIGGER")]
 	[InlineData("DISABLE TRIGGER ALL")]
 	[InlineData("ENABLE TRIGGER ON DATABASE")]
+	[InlineData("CREATE ASSEMBLY")]
+	[InlineData("ALTER ASSEMBLY")]
+	[InlineData("ALTER ASSEMBLY DROP FILE")]
+	[InlineData("CREATE RULE")]
+	[InlineData("CREATE RULE of a subquery")]
+	[InlineData("CREATE DEFAULT")]
+	[InlineData("CREATE AGGREGATE")]
+	[InlineData("CREATE XML SCHEMA COLLECTION")]
+	[InlineData("ALTER XML SCHEMA COLLECTION")]
+	[InlineData("CREATE TYPE EXTERNAL NAME")]
 	[InlineData("INSERT EXEC")]
 	[InlineData("INSERT EXEC a string")]
 	public void Each_record_reads_back_as_itself(string which)
@@ -336,6 +370,25 @@ public sealed class RoutinesWriterTests
 	[InlineData("ENABLE TRIGGER ALL and names")]
 	[InlineData("DISABLE TRIGGER on two")]
 	[InlineData("DISABLE TRIGGER on nothing")]
+	[InlineData("an assembly from nothing")]
+	[InlineData("an assembly from DEFAULT")]
+	[InlineData("an assembly with no text for its permission")]
+	[InlineData("an ALTER ASSEMBLY of nothing")]
+	[InlineData("DROP FILE ALL and names")]
+	[InlineData("DROP FILE of a variable")]
+	[InlineData("a file added AS a variable")]
+	[InlineData("a rule of three parts")]
+	[InlineData("a rule of no variable")]
+	[InlineData("a rule of two variables")]
+	[InlineData("a rule drawing from a sequence")]
+	[InlineData("a default drawing from a sequence")]
+	[InlineData("a default of DEFAULT")]
+	[InlineData("an aggregate of no parameter")]
+	[InlineData("an aggregate's parameter with a default")]
+	[InlineData("an aggregate's parameter OUTPUT")]
+	[InlineData("an aggregate's class of three parts")]
+	[InlineData("a schema collection of DEFAULT")]
+	[InlineData("a CLR type's class of three parts")]
 	public void A_routine_tree_with_no_text_is_refused(string which)
 	{
 		ISqlNode node = which switch
@@ -496,6 +549,44 @@ public sealed class RoutinesWriterTests
 			"DISABLE TRIGGER on two" => new Statement.DisableTrigger([G]) { On = G, Scope = TriggerScope.Database },
 			// MaintenanceStatement: ON TriggerScope.
 			"DISABLE TRIGGER on nothing" => new Statement.DisableTrigger([G]),
+			// CodeStatement: FROM one value at least.
+			"an assembly from nothing" => new Statement.CreateAssembly(A, []),
+			// SetValue: NULL or a value.
+			"an assembly from DEFAULT" => new Statement.CreateAssembly(A, [new Expression.Default()]),
+			// AssemblyPermission: SAFE, EXTERNAL_ACCESS, UNSAFE.
+			"an assembly with no text for its permission" => new Statement.CreateAssembly(A, [Text("a")]) { PermissionSet = (AssemblyPermissionSet)9 },
+			// Syntax.Tail(tail) is not null: one part at least.
+			"an ALTER ASSEMBLY of nothing" => new Statement.AlterAssembly(A),
+			// AssemblyDrop: ALL or names.
+			"DROP FILE ALL and names" => new Statement.AlterAssembly(A) { DropAllFiles = true, DropFiles = [Text("x")] },
+			// AssemblyDrop: Quoted.
+			"DROP FILE of a variable" => new Statement.AlterAssembly(A) { DropFiles = [V] },
+			// AssemblyFile: AS Quoted.
+			"a file added AS a variable" => new Statement.AlterAssembly(A) { AddFiles = [new AssemblyFile(Text("p")) { Name = V }] },
+			// TwoPartName, Msg 166.
+			"a rule of three parts" => new Statement.CreateRule(new QualifiedName([Name("d"), Name("s"), Name("r")]), Less),
+			// Syntax.Binds, Msg 160.
+			"a rule of no variable" => new Statement.CreateRule(R, new Expression.Comparison(One, ComparisonOperator.Less, One)),
+			// Syntax.Binds, Msg 161.
+			"a rule of two variables" => new Statement.CreateRule(R, new Expression.Comparison(V, ComparisonOperator.Less, new Expression.Variable(Name("@b")))),
+			// Syntax.Binds, Msg 11719.
+			"a rule drawing from a sequence" => new Statement.CreateRule(R, new Expression.Comparison(V, ComparisonOperator.Less, new Expression.NextValue(new QualifiedName([Name("s")])))),
+			// Syntax.Binds, Msg 11719.
+			"a default drawing from a sequence" => new Statement.CreateDefault(R, new Expression.NextValue(new QualifiedName([Name("s")]))),
+			// SetValue: NULL or a value.
+			"a default of DEFAULT" => new Statement.CreateDefault(R, new Expression.Default()),
+			// CodeStatement: one AggregateParameter at least.
+			"an aggregate of no parameter" => new Statement.CreateAggregate(R, [], Int, new QualifiedName([Name("asm")])),
+			// AggregateParameter, Msg 10726.
+			"an aggregate's parameter with a default" => new Statement.CreateAggregate(R, [Parameter() with { Default = One }], Int, new QualifiedName([Name("asm")])),
+			// AggregateParameter, Msg 181.
+			"an aggregate's parameter OUTPUT" => new Statement.CreateAggregate(R, [Parameter() with { Mode = ParameterMode.Out }], Int, new QualifiedName([Name("asm")])),
+			// EXTERNAL NAME Identifier ('.' Identifier)?.
+			"an aggregate's class of three parts" => new Statement.CreateAggregate(R, [Parameter()], Int, new QualifiedName([Name("a"), Name("b"), Name("c")])),
+			// ValueExpression: not DEFAULT.
+			"a schema collection of DEFAULT" => new Statement.CreateXmlSchemaCollection(R, new Expression.Default()),
+			// TypeStatement: EXTERNAL NAME Identifier ('.' Identifier)?.
+			"a CLR type's class of three parts" => new Statement.CreateClrType(R, new QualifiedName([Name("a"), Name("b"), Name("c")])),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 

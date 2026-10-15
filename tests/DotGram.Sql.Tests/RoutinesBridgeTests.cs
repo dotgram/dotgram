@@ -61,6 +61,17 @@ public sealed class RoutinesBridgeTests
 	[InlineData("CREATE TRIGGER g ON [DATABASE] AFTER INSERT AS RETURN", "a table called DATABASE")]
 	[InlineData("ENABLE TRIGGER ALL ON t", "ENABLE ALL")]
 	[InlineData("DISABLE TRIGGER g ON DATABASE", "DISABLE ON DATABASE")]
+	[InlineData("CREATE ASSEMBLY a FROM 'x'", "CREATE ASSEMBLY")]
+	[InlineData("ALTER ASSEMBLY a FROM 'x'", "ALTER ASSEMBLY")]
+	[InlineData("ALTER ASSEMBLY a ADD FILE FROM 'x'", "ALTER ASSEMBLY ADD FILE")]
+	[InlineData("ALTER ASSEMBLY a DROP FILE ALL", "DROP FILE ALL")]
+	[InlineData("ALTER ASSEMBLY a WITH VISIBILITY = ON", "VISIBILITY")]
+	[InlineData("CREATE RULE r AS @x > 1", "CREATE RULE")]
+	[InlineData("CREATE DEFAULT d AS 1", "CREATE DEFAULT")]
+	[InlineData("CREATE AGGREGATE a (@x INT NULL) RETURNS INT EXTERNAL NAME asm", "CREATE AGGREGATE")]
+	[InlineData("CREATE XML SCHEMA COLLECTION c AS 'x'", "CREATE XML SCHEMA COLLECTION")]
+	[InlineData("ALTER XML SCHEMA COLLECTION c ADD 'x'", "ALTER XML SCHEMA COLLECTION")]
+	[InlineData("CREATE TYPE t EXTERNAL NAME asm.cls", "CREATE TYPE EXTERNAL NAME")]
 	public void The_bridge_builds_the_routine_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -113,6 +124,17 @@ public sealed class RoutinesBridgeTests
 			"a table called DATABASE" => made is Ast.Statement.CreateTrigger { Scope: null, Table: not null },
 			"ENABLE ALL" => made is Ast.Statement.EnableTrigger { All: true, Names.Count: 0, Scope: null, On: not null },
 			"DISABLE ON DATABASE" => made is Ast.Statement.DisableTrigger { All: false, Scope: Ast.TriggerScope.Database, On: null },
+			"CREATE ASSEMBLY" => made is Ast.Statement.CreateAssembly { From.Count: 1, PermissionSet: null, Authorization: null },
+			"ALTER ASSEMBLY" => made is Ast.Statement.AlterAssembly { From: Ast.LiteralValue.String, AddFiles.Count: 0 },
+			"ALTER ASSEMBLY ADD FILE" => made is Ast.Statement.AlterAssembly { From: null, AddFiles: [{ Name: null }] },
+			"DROP FILE ALL" => made is Ast.Statement.AlterAssembly { DropAllFiles: true, DropFiles.Count: 0 },
+			"VISIBILITY" => made is Ast.Statement.AlterAssembly { Visibility: true, PermissionSet: null, UncheckedData: false },
+			"CREATE RULE" => made is Ast.Statement.CreateRule { Condition: Ast.Expression.Comparison },
+			"CREATE DEFAULT" => made is Ast.Statement.CreateDefault { Value: Ast.LiteralValue.Numeric },
+			"CREATE AGGREGATE" => made is Ast.Statement.CreateAggregate { Parameters: [{ Nullable: true, AsKeyword: false }], ExternalName.Count: 1 },
+			"CREATE XML SCHEMA COLLECTION" => made is Ast.Statement.CreateXmlSchemaCollection,
+			"ALTER XML SCHEMA COLLECTION" => made is Ast.Statement.AlterXmlSchemaCollection,
+			"CREATE TYPE EXTERNAL NAME" => made is Ast.Statement.CreateClrType { ExternalName.Count: 2 },
 			_ => false,
 		};
 

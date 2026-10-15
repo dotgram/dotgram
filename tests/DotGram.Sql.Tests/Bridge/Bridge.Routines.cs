@@ -34,6 +34,12 @@ static partial class Bridge
 				Statement.CreateProcedure procedure => Procedure(procedure),
 				Statement.CreateFunction function => Function(function),
 				Statement.CreateTrigger trigger => Trigger(trigger),
+				Statement.AssemblyDefinition assembly => Assembly(assembly),
+				Statement.RuleDefinition rule => Rule(rule),
+				Statement.DefaultDefinition @default => Default(@default),
+				Statement.AggregateDefinition aggregate => Aggregate(aggregate),
+				Statement.XmlSchemaCollectionDefinition collection => SchemaCollection(collection, alter: false),
+				Statement.AlterXmlSchemaCollection collection => SchemaCollection(collection, alter: true),
 				Statement.TriggerSwitch(var enable, var names, var on) => Switch(old, enable, names, on),
 				Query.FromExecute         => throw BridgeGap.Open(old, "inventory Query.FromExecute (outside an INSERT)"),
 				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
@@ -242,6 +248,320 @@ static partial class Bridge
 			return enable
 				? new Ast.Statement.EnableTrigger(triggers) { All = all, On = target, Scope = scope }
 				: new Ast.Statement.DisableTrigger(triggers) { All = all, On = target, Scope = scope };
+		}
+
+		// ── The module-like objects, which the old tree keeps as a name and the text after it ──────────────
+
+		/// <summary>
+		/// <c>CREATE ASSEMBLY a [AUTHORIZATION o] FROM v, … [WITH PERMISSION_SET = …]</c>, or ALTER ASSEMBLY's parts in their
+		/// order: FROM, WITH, DROP FILE, ADD FILE.
+		/// </summary>
+		static Ast.Statement Assembly(Statement.AssemblyDefinition old)
+		{
+			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.AssemblyDefinition (nothing after the name)");
+			var tokens = Located(tail);
+			var name   = Values.Part(old, old.Name);
+
+			if (old.Verb == "CREATE")
+			{
+				var from  = Index(tokens, "FROM");
+				var with  = Index(tokens, "WITH");
+				var owner = Words(tail) is ["AUTHORIZATION", _, ..] ? Values.Part(old, tokens[1].Token.Text) : null;
+
+				if (from < 0)
+					throw BridgeGap.Open(old, $"inventory Statement.AssemblyDefinition ({tail})");
+
+				var values = Slice(tail, tokens, from + 1, with < 0 ? tokens.Count : with);
+
+				return Checked(old, new Ast.Statement.CreateAssembly(name, [.. Listed(values).Select(one => ValueOf(old, one))])
+				{
+					Authorization = owner,
+					PermissionSet = with < 0 ? null : Permission(old, tokens[^1].Token.Text),
+				});
+			}
+
+			// ALTER's own FROM stands first; the FROM of ADD FILE FROM is ADD's.
+			var parts = new[] { Words(tail) is ["FROM", ..] ? 0 : -1, Index(tokens, "WITH"), Index(tokens, "DROP"), Index(tokens, "ADD") };
+			var made  = new Ast.Statement.AlterAssembly(name);
+
+			string Part(int which)
+			{
+				var end = parts.Skip(which + 1).Where(static one => one >= 0).DefaultIfEmpty(tokens.Count).First();
+
+				return Slice(tail, tokens, parts[which] + 1, end);
+			}
+
+			if (parts[0] >= 0)
+				made = made with { From = ValueOf(old, Part(0)) };
+
+			if (parts[1] >= 0)
+			{
+				var options = (old.Options ?? []).Select(static one => one is Clause.Option { Name: var named, Value: var value } ? (named, value) : ("", null)).ToArray();
+
+				if (!options.Select(static one => one.Item1).SequenceEqual(new[] { "PERMISSION_SET", "VISIBILITY", "UNCHECKED DATA" }.Where(word => options.Any(one => one.Item1 == word))))
+					throw BridgeGap.Lost(old, "Statement.AssemblyDefinition (its options in another order)");
+
+				foreach (var (named, value) in options)
+					made = named switch
+					{
+						"PERMISSION_SET" when value is Expression.ColumnReference(var word) => made with { PermissionSet = Permission(old, word) },
+						"VISIBILITY" when value is Expression.ColumnReference(var word)     => made with { Visibility = word == "ON" },
+						"UNCHECKED DATA"                                                    => made with { UncheckedData = true },
+						_ => throw BridgeGap.Open(old, $"inventory Statement.AssemblyDefinition (the option {named})"),
+					};
+			}
+
+			if (parts[2] >= 0)
+			{
+				var files = Part(2);
+
+				made = Words(files) switch
+				{
+					["FILE", "ALL"] => made with { DropAllFiles = true },
+					["FILE", ..]    => made with { DropFiles = [.. Listed(Slice(files, Located(files), 1, Located(files).Count)).Select(one => ValueOf(old, one))] },
+					_               => throw BridgeGap.Open(old, $"inventory Statement.AssemblyDefinition (DROP {files})"),
+				};
+			}
+
+			if (parts[3] >= 0)
+			{
+				var files = Part(3);
+				var read  = Located(files);
+
+				if (Words(files) is not ["FILE", "FROM", ..])
+					throw BridgeGap.Open(old, $"inventory Statement.AssemblyDefinition (ADD {files})");
+
+				made = made with
+				{
+					AddFiles = [.. Listed(Slice(files, read, 2, read.Count)).Select(one =>
+					{
+						var each = Located(one);
+						var @as  = Index(each, "AS");
+
+						return @as < 0
+							? new Ast.AssemblyFile(ValueOf(old, one))
+							: new Ast.AssemblyFile(ValueOf(old, Slice(one, each, 0, @as))) { Name = Values.String(Slice(one, each, @as + 1, each.Count)) };
+					})],
+				};
+			}
+
+			return Checked(old, made);
+		}
+
+		static Ast.AssemblyPermissionSet Permission(Statement old, string word)
+		{
+			return word.ToUpperInvariant() switch
+			{
+				"SAFE"            => Ast.AssemblyPermissionSet.Safe,
+				"EXTERNAL_ACCESS" => Ast.AssemblyPermissionSet.ExternalAccess,
+				"UNSAFE"          => Ast.AssemblyPermissionSet.Unsafe,
+				_                 => throw BridgeGap.Open(old, $"inventory Statement.AssemblyDefinition (PERMISSION_SET = {word})"),
+			};
+		}
+
+		/// <summary><c>CREATE RULE r AS condition</c>, the condition read again as a WHERE.</summary>
+		static Ast.Statement Rule(Statement.RuleDefinition old)
+		{
+			var tail = old.Tail ?? "";
+
+			return Words(tail) is ["AS", ..]
+				? Checked(old, new Ast.Statement.CreateRule(Values.Name(old, old.Name), ConditionOf(old, Slice(tail, Located(tail), 1, Located(tail).Count))))
+				: throw BridgeGap.Open(old, $"inventory Statement.RuleDefinition ({tail})");
+		}
+
+		/// <summary><c>CREATE DEFAULT d AS value</c>, the value read again as a select list's.</summary>
+		static Ast.Statement Default(Statement.DefaultDefinition old)
+		{
+			var tail = old.Tail ?? "";
+
+			return Words(tail) is ["AS", ..]
+				? Checked(old, new Ast.Statement.CreateDefault(Values.Name(old, old.Name), ValueOf(old, Slice(tail, Located(tail), 1, Located(tail).Count))))
+				: throw BridgeGap.Open(old, $"inventory Statement.DefaultDefinition ({tail})");
+		}
+
+		/// <summary><c>CREATE AGGREGATE a (@p [AS] type [NULL | NOT NULL], …) RETURNS type EXTERNAL NAME asm[.class]</c>.</summary>
+		static Ast.Statement Aggregate(Statement.AggregateDefinition old)
+		{
+			var tail    = old.Tail ?? "";
+			var tokens  = Located(tail);
+			var close   = tokens.Count > 0 && tokens[0].Token.Text == "(" ? Closing(tokens, 0) : -1;
+			var returns = Index(tokens, "RETURNS");
+			var name    = Index(tokens, "EXTERNAL");
+
+			if (close < 0 || returns != close + 1 || name < 0 || tokens.Count <= name + 2 || !tokens[name + 1].Token.Text.Equals("NAME", StringComparison.OrdinalIgnoreCase))
+				throw BridgeGap.Open(old, $"inventory Statement.AggregateDefinition ({tail})");
+
+			var parameters = Listed(Slice(tail, tokens, 1, close)).Select(one =>
+			{
+				var each  = Located(one);
+				var words = Words(one);
+				var @as   = words is [_, "AS", ..];
+				var end   = words is [.., "NOT", "NULL"] ? each.Count - 2 : words is [.., "NULL"] ? each.Count - 1 : each.Count;
+				var type  = Slice(one, each, @as ? 2 : 1, end);
+
+				return new Ast.ParameterDefinition(null, new Ast.Identifier(each[0].Token.Text), Printed(old, type, "Statement.AggregateDefinition.Tail"), false, null,
+					Nullable: end == each.Count ? null : end == each.Count - 1)
+				{
+					AsKeyword = @as,
+				};
+			}).ToSqlList();
+
+			return Checked(old, new Ast.Statement.CreateAggregate(
+				Values.Name(old, old.Name),
+				parameters,
+				Printed(old, Slice(tail, tokens, returns + 1, name), "Statement.AggregateDefinition.Tail"),
+				Values.Name(old, Slice(tail, tokens, name + 2, tokens.Count))));
+		}
+
+		/// <summary><c>CREATE XML SCHEMA COLLECTION c AS value</c> and <c>ALTER … ADD value</c>.</summary>
+		static Ast.Statement SchemaCollection(Statement.Definition old, bool alter)
+		{
+			var tail   = old.Tail ?? "";
+			var tokens = Located(tail);
+
+			if (Words(tail) is not [var word, ..] || word != (alter ? "ADD" : "AS"))
+				throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})");
+
+			var schema = ValueOf(old, Slice(tail, tokens, 1, tokens.Count));
+
+			return Checked(old, alter
+				? new Ast.Statement.AlterXmlSchemaCollection(Values.Name(old, old.Name), schema)
+				: new Ast.Statement.CreateXmlSchemaCollection(Values.Name(old, old.Name), schema));
+		}
+
+		/// <summary><c>CREATE TYPE t EXTERNAL NAME asm[.class]</c>, which the Tables family hands on.</summary>
+		internal static Ast.Statement ClrType(Statement.TypeDefinition old)
+		{
+			var tail   = old.Tail ?? "";
+			var tokens = Located(tail);
+
+			return Checked(old, new Ast.Statement.CreateClrType(Values.Name(old, old.Name), Values.Name(old, Slice(tail, tokens, 2, tokens.Count))));
+		}
+
+		/// <summary>
+		/// A statement made of a tail the old tree keeps as written and compares exactly: only one whose text, written and
+		/// read again, keeps the same tail carries over.
+		/// </summary>
+		static Ast.Statement Checked(Statement.Definition old, Ast.Statement made)
+		{
+			string text;
+
+			try
+			{
+				text = Ast.Sql2023Writer.Write(made);
+			}
+			catch (Exception refused) when (refused is ArgumentException or NotSupportedException)
+			{
+				return made;
+			}
+
+			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] } && tail == old.Tail
+				? made
+				: throw BridgeGap.Open(old, $"Trees.FreeText ({NameOf(old)}.Tail, written otherwise than the writer prints it)");
+		}
+
+		/// <summary>A value kept as text, read again as a select list's one value.</summary>
+		static Ast.Expression ValueOf(object owner, string text)
+		{
+			return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+				? Values.Of(value)
+				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a value `{text.Trim()}`)");
+		}
+
+		/// <summary>A search condition kept as text, read again as a query's WHERE.</summary>
+		static Ast.Expression ConditionOf(object owner, string text)
+		{
+			return TransactSql.TransactSqlParser.TryParseSql("SELECT 1 WHERE " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
+				? Values.Of(where)
+				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a condition `{text.Trim()}`)");
+		}
+
+		/// <summary>The tokens of a text and where each begins.</summary>
+		static List<(SqlTokens.Token Token, int At)> Located(string text)
+		{
+			var located = new List<(SqlTokens.Token, int)>();
+			var at      = 0;
+
+			foreach (var token in SqlTokens.Of(text))
+			{
+				var found = text.IndexOf(token.Text, at, StringComparison.Ordinal);
+
+				located.Add((token, found));
+				at = found + token.Text.Length;
+			}
+
+			return located;
+		}
+
+		/// <summary>The first word outside brackets that is <paramref name="word"/>, or -1.</summary>
+		static int Index(List<(SqlTokens.Token Token, int At)> tokens, string word)
+		{
+			var depth = 0;
+
+			for (var at = 0; at < tokens.Count; at++)
+			{
+				var token = tokens[at].Token;
+
+				if (token is { Kind: SqlTokens.Kind.Punctuation, Text: "(" })
+					depth++;
+				else if (token is { Kind: SqlTokens.Kind.Punctuation, Text: ")" })
+					depth--;
+				else if (depth == 0 && token.Kind == SqlTokens.Kind.Word && token.Text.Equals(word, StringComparison.OrdinalIgnoreCase))
+					return at;
+			}
+
+			return -1;
+		}
+
+		static int Closing(List<(SqlTokens.Token Token, int At)> tokens, int open)
+		{
+			var depth = 0;
+
+			for (var at = open; at < tokens.Count; at++)
+			{
+				if (tokens[at].Token is { Kind: SqlTokens.Kind.Punctuation, Text: "(" })
+					depth++;
+				else if (tokens[at].Token is { Kind: SqlTokens.Kind.Punctuation, Text: ")" } && --depth == 0)
+					return at;
+			}
+
+			return -1;
+		}
+
+		/// <summary>The text from the token <paramref name="from"/> up to the token <paramref name="to"/>, trimmed.</summary>
+		static string Slice(string text, List<(SqlTokens.Token Token, int At)> tokens, int from, int to)
+		{
+			if (from >= tokens.Count || from >= to)
+				return "";
+
+			var end = to < tokens.Count ? tokens[to].At : text.Length;
+
+			return text[tokens[from].At..end].Trim();
+		}
+
+		/// <summary>A text cut at its commas outside brackets.</summary>
+		static List<string> Listed(string text)
+		{
+			var pieces = new List<string>();
+			var depth  = 0;
+			var from   = 0;
+
+			foreach (var (token, at) in Located(text))
+			{
+				if (token is { Kind: SqlTokens.Kind.Punctuation, Text: "(" })
+					depth++;
+				else if (token is { Kind: SqlTokens.Kind.Punctuation, Text: ")" })
+					depth--;
+				else if (depth == 0 && token is { Kind: SqlTokens.Kind.Punctuation, Text: "," })
+				{
+					pieces.Add(text[from..at].Trim());
+					from = at + 1;
+				}
+			}
+
+			pieces.Add(text[from..].Trim());
+
+			return pieces;
 		}
 
 		/// <summary>A routine's verb: null for the plain CREATE, the standard's.</summary>

@@ -340,3 +340,87 @@ public abstract partial record Statement
 		public TriggerScope? Scope { get; init; }
 	}
 }
+
+public abstract partial record Statement
+{
+	/// <summary>
+	/// T-SQL: CREATE ASSEMBLY (Transact-SQL). <c>CREATE ASSEMBLY a [AUTHORIZATION owner] FROM value, … [WITH PERMISSION_SET =
+	/// …]</c>.
+	/// </summary>
+	public sealed record CreateAssembly(Identifier Name, SqlList<Expression> From) : Statement
+	{
+		/// <summary>T-SQL: CREATE ASSEMBLY (Transact-SQL). <c>AUTHORIZATION owner</c>.</summary>
+		public Identifier? Authorization { get; init; }
+
+		/// <summary>T-SQL: CREATE ASSEMBLY (Transact-SQL). <c>WITH PERMISSION_SET = …</c>.</summary>
+		public AssemblyPermissionSet? PermissionSet { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER ASSEMBLY (Transact-SQL). <c>ALTER ASSEMBLY a [FROM value] [WITH …] [DROP FILE …] [ADD FILE FROM …]</c>, one
+	/// part at least, in that order.
+	/// </summary>
+	public sealed record AlterAssembly(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). <c>FROM value</c>, the assembly's new bits.</summary>
+		public Expression? From { get; init; }
+
+		/// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). <c>WITH PERMISSION_SET = …</c>.</summary>
+		public AssemblyPermissionSet? PermissionSet { get; init; }
+
+		/// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). <c>WITH VISIBILITY = ON | OFF</c>.</summary>
+		public bool? Visibility { get; init; }
+
+		/// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). <c>WITH UNCHECKED DATA</c>.</summary>
+		public bool UncheckedData { get; init; }
+
+		/// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). <c>DROP FILE ALL</c>.</summary>
+		public bool DropAllFiles { get; init; }
+
+		/// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). <c>DROP FILE 'name', …</c>.</summary>
+		public SqlList<Expression> DropFiles { get; init; } = [];
+
+		/// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). <c>ADD FILE FROM value [AS 'name'], …</c>.</summary>
+		public SqlList<AssemblyFile> AddFiles { get; init; } = [];
+	}
+
+	/// <summary>T-SQL: CREATE RULE (Transact-SQL). <c>CREATE RULE r AS condition</c>.</summary>
+	public sealed record CreateRule(QualifiedName Name, Expression Condition) : Statement;
+
+	/// <summary>T-SQL: CREATE DEFAULT (Transact-SQL). <c>CREATE DEFAULT d AS value</c>.</summary>
+	public sealed record CreateDefault(QualifiedName Name, Expression Value) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE AGGREGATE (Transact-SQL). <c>CREATE AGGREGATE a (@p type [NULL | NOT NULL], …) RETURNS type EXTERNAL NAME
+	/// assembly[.class]</c>.
+	/// </summary>
+	public sealed record CreateAggregate(QualifiedName Name, SqlList<ParameterDefinition> Parameters, DataType Returns, QualifiedName ExternalName) : Statement;
+
+	/// <summary>T-SQL: CREATE XML SCHEMA COLLECTION (Transact-SQL). <c>CREATE XML SCHEMA COLLECTION c AS value</c>.</summary>
+	public sealed record CreateXmlSchemaCollection(QualifiedName Name, Expression Schema) : Statement;
+
+	/// <summary>T-SQL: ALTER XML SCHEMA COLLECTION (Transact-SQL). <c>ALTER XML SCHEMA COLLECTION c ADD value</c>.</summary>
+	public sealed record AlterXmlSchemaCollection(QualifiedName Name, Expression Schema) : Statement;
+
+	/// <summary>T-SQL: CREATE TYPE (Transact-SQL). <c>CREATE TYPE t EXTERNAL NAME assembly[.class]</c>, a CLR type.</summary>
+	public sealed record CreateClrType(QualifiedName Name, QualifiedName ExternalName) : Statement;
+}
+
+/// <summary>T-SQL: CREATE ASSEMBLY (Transact-SQL). <c>PERMISSION_SET = SAFE | EXTERNAL_ACCESS | UNSAFE</c>.</summary>
+public enum AssemblyPermissionSet { Safe, ExternalAccess, Unsafe }
+
+/// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). A file added: <c>value [AS 'name']</c>.</summary>
+public sealed record AssemblyFile(Expression Value) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). <c>AS 'name'</c>, the name it is called by.</summary>
+	public Expression? Name { get; init; }
+}

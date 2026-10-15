@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DotGram.Sql.Ast;
 
@@ -45,9 +46,260 @@ public static partial class Sql2023Writer
 					PutTriggerSwitch(disable, "DISABLE TRIGGER", disable.Names, disable.All, disable.On, disable.Scope);
 					return true;
 
+				// T-SQL: CREATE ASSEMBLY (Transact-SQL). One value at least after FROM, each NULL or a value (SetValue).
+				case Statement.CreateAssembly create:
+					if (create.From.Count == 0)
+						throw Empty(create, "From");
+
+					Word("CREATE ASSEMBLY");
+					PutIdentifier(create.Name);
+
+					if (create.Authorization is { } owner)
+					{
+						Word("AUTHORIZATION");
+						PutIdentifier(owner);
+					}
+
+					Word("FROM");
+					Each(create.From, value => PutValue(create, value));
+
+					if (create.PermissionSet is { } permission)
+					{
+						Word("WITH PERMISSION_SET =");
+						Word(PermissionSet(permission));
+					}
+
+					return true;
+
+				// T-SQL: ALTER ASSEMBLY (Transact-SQL). One part at least, in the grammar's order; the options each once;
+				// DROP FILE ALL or names, never both; the names and a file's name strings (Quoted).
+				case Statement.AlterAssembly alter:
+					if (alter is { From: null, PermissionSet: null, Visibility: null, UncheckedData: false, DropAllFiles: false, DropFiles.Count: 0, AddFiles.Count: 0 })
+						throw Empty(alter, "From", "PermissionSet", "Visibility", "UncheckedData", "DropAllFiles", "DropFiles", "AddFiles");
+
+					if (alter.DropAllFiles && alter.DropFiles.Count > 0)
+						throw Both(alter, "DropAllFiles", "DropFiles");
+
+					if (alter.DropFiles.Any(static one => !Quoted(one)) || alter.AddFiles.Any(static one => one.Name is { } name && !Quoted(name)))
+						throw Misplaced(alter, "DropFiles or AddFiles", "a file named other than by a string (Quoted)");
+
+					Word("ALTER ASSEMBLY");
+					PutIdentifier(alter.Name);
+
+					if (alter.From is { } from)
+					{
+						Word("FROM");
+						PutValue(alter, from);
+					}
+
+					if (alter.PermissionSet is not null || alter.Visibility is not null || alter.UncheckedData)
+					{
+						Word("WITH");
+						var first = true;
+
+						if (alter.PermissionSet is { } altered)
+						{
+							Word("PERMISSION_SET =");
+							Word(PermissionSet(altered));
+							first = false;
+						}
+
+						if (alter.Visibility is { } visible)
+						{
+							if (!first)
+								Tight(",");
+
+							Word(visible ? "VISIBILITY = ON" : "VISIBILITY = OFF");
+							first = false;
+						}
+
+						if (alter.UncheckedData)
+						{
+							if (!first)
+								Tight(",");
+
+							Word("UNCHECKED DATA");
+						}
+					}
+
+					if (alter.DropAllFiles)
+						Word("DROP FILE ALL");
+					else if (alter.DropFiles.Count > 0)
+					{
+						Word("DROP FILE");
+						Each(alter.DropFiles, PutExpression);
+					}
+
+					if (alter.AddFiles.Count > 0)
+					{
+						Word("ADD FILE FROM");
+						Each(alter.AddFiles, file =>
+						{
+							PutValue(alter, file.Value);
+
+							if (file.Name is { } name)
+							{
+								Word("AS");
+								PutExpression(name);
+							}
+						});
+					}
+
+					return true;
+
+				// T-SQL: CREATE RULE (Transact-SQL). Two parts at most (TwoPartName, Msg 166); one variable, or a subquery
+				// where there is none, and nothing drawn from a sequence outside one (Syntax.Binds, Msg 160, 161, 11719).
+				case Statement.CreateRule rule:
+					CheckTwoParts(rule, rule.Name);
+
+					if (!Binds(rule.Condition, rule: true))
+						throw Misplaced(rule, "Condition", "with no variable and no subquery, two variables, or NEXT VALUE FOR outside a subquery (Syntax.Binds)");
+
+					Word("CREATE RULE");
+					PutName(rule.Name);
+					Word("AS");
+					PutExpression(rule.Condition);
+					return true;
+
+				// T-SQL: CREATE DEFAULT (Transact-SQL). Two parts at most; NULL or a value (SetValue), drawing from no sequence
+				// outside a subquery (Syntax.Binds, Msg 11719).
+				case Statement.CreateDefault @default:
+					CheckTwoParts(@default, @default.Name);
+
+					if (!Binds(@default.Value, rule: false))
+						throw Misplaced(@default, "Value", "with NEXT VALUE FOR outside a subquery (Syntax.Binds, Msg 11719)");
+
+					Word("CREATE DEFAULT");
+					PutName(@default.Name);
+					Word("AS");
+					PutValue(@default, @default.Value);
+					return true;
+
+				// T-SQL: CREATE AGGREGATE (Transact-SQL). Two parts at most; one parameter at least, a name, AS or not, a type
+				// and a nullability and nothing else (AggregateParameter, Msg 10726, 181); the class by one part or two.
+				case Statement.CreateAggregate aggregate:
+					CheckTwoParts(aggregate, aggregate.Name);
+					CheckTwoParts(aggregate, aggregate.ExternalName);
+
+					if (aggregate.Parameters.Count == 0)
+						throw Empty(aggregate, "Parameters");
+
+					Word("CREATE AGGREGATE");
+					PutName(aggregate.Name);
+					Open();
+					Each(aggregate.Parameters, parameter =>
+					{
+						if (parameter is not { Name: { } name, Mode: null, Default: null, Result: false, Locator: false, ReadOnly: false, Varying: false, ShortOutput: false })
+							throw Misplaced(parameter, "Mode, Default or a T-SQL word", "on an aggregate's parameter, which has a name, a type and a nullability (AggregateParameter)");
+
+						PutVariableName(parameter, name);
+
+						if (parameter.AsKeyword)
+							Word("AS");
+
+						PutType(parameter.Type);
+
+						if (parameter.Nullable is { } nullable)
+							Word(nullable ? "NULL" : "NOT NULL");
+					});
+					Close();
+					Word("RETURNS");
+					PutType(aggregate.Returns);
+					Word("EXTERNAL NAME");
+					PutName(aggregate.ExternalName);
+					return true;
+
+				// T-SQL: CREATE XML SCHEMA COLLECTION (Transact-SQL), ALTER XML SCHEMA COLLECTION (Transact-SQL). Any value.
+				case Statement.CreateXmlSchemaCollection collection:
+					Word("CREATE XML SCHEMA COLLECTION");
+					PutName(collection.Name);
+					Word("AS");
+					PutValue(collection, collection.Schema);
+					return true;
+
+				case Statement.AlterXmlSchemaCollection collection:
+					Word("ALTER XML SCHEMA COLLECTION");
+					PutName(collection.Name);
+					Word("ADD");
+					PutValue(collection, collection.Schema);
+					return true;
+
+				// T-SQL: CREATE TYPE (Transact-SQL). An assembly's class by one part or two.
+				case Statement.CreateClrType type:
+					CheckTwoParts(type, type.ExternalName);
+					Word("CREATE TYPE");
+					PutName(type.Name);
+					Word("EXTERNAL NAME");
+					PutName(type.ExternalName);
+					return true;
+
 				default:
 					return false;
 			}
+		}
+
+		/// <summary>T-SQL: CREATE ASSEMBLY (Transact-SQL). AssemblyPermission.</summary>
+		static string PermissionSet(AssemblyPermissionSet permission)
+		{
+			return permission switch
+			{
+				AssemblyPermissionSet.Safe           => "SAFE",
+				AssemblyPermissionSet.ExternalAccess => "EXTERNAL_ACCESS",
+				AssemblyPermissionSet.Unsafe         => "UNSAFE",
+				_                                    => throw NoText(permission),
+			};
+		}
+
+		/// <summary>The grammar's <c>Quoted</c>: a string, national or not.</summary>
+		static bool Quoted(Expression value)
+		{
+			return value is LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null };
+		}
+
+		/// <summary>TwoPartName: one part or two, neither empty (<c>Msg 166</c>).</summary>
+		static void CheckTwoParts(ISqlNode owner, QualifiedName name)
+		{
+			if (name.Count > 2 || name.Parts.Any(static part => part.Text.Length == 0))
+				throw Misplaced(owner, "Name", "of more than two parts or an empty one (TwoPartName, Msg 166)");
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE RULE (Transact-SQL), CREATE DEFAULT (Transact-SQL). <c>Syntax.Binds</c> restated over this tree:
+		/// outside every subquery, nothing drawn from a sequence; and a rule's condition names one variable, whatever its
+		/// case and never an <c>@@</c> one, or none and holds a subquery.
+		/// </summary>
+		static bool Binds(Expression value, bool rule)
+		{
+			var inside    = new HashSet<ISqlSpan>();
+			var variables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			var queried   = false;
+			var drawn     = false;
+
+			SqlWalker.Walk(value, node =>
+			{
+				if (inside.Contains(node))
+					return true;
+
+				switch (node)
+				{
+					case Query query:
+						queried = true;
+						SqlWalker.Walk(query, held => inside.Add(held) || true);
+						break;
+
+					case Expression.Variable { Name.Text: var name } when !name.StartsWith("@@", StringComparison.Ordinal):
+						variables.Add(name);
+						break;
+
+					case Expression.NextValue:
+						drawn = true;
+						break;
+				}
+
+				return true;
+			});
+
+			return !drawn && (!rule || variables.Count == 1 || variables.Count == 0 && queried);
 		}
 
 		/// <summary>

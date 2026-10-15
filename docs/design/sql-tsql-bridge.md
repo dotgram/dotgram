@@ -314,7 +314,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateFunction` | Routines | B | converted 102, gap 75 | 75: needs decision: Trees.FreeText (Statement.CreateFunction.Returns, a type written otherwise than the writer prints it) (58); needs decision: Trees.FreeText (Clause.ParameterDeclaration.Type, a type written otherwise than the writer prints it) (15) | 181 |
 | `Clause.OrderBy` | Queries | B | — | — | 177 |
 | `Clause.Placement` | Tables | C | — | — | 177 |
-| `Statement.TypeDefinition` | Tables | B | converted 148, gap 21 | 21: needs decision: inventory Statement.TypeDefinition (a CLR type, EXTERNAL NAME) (2); needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1) | 174 |
+| `Statement.TypeDefinition` | Tables | B | converted 150, gap 19 | 19: needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1); needs decision: inventory DataType (`bit(max)`: a word in the brackets of a type) (1) | 174 |
 | `Expression.Negate` | Values | A | — | — | 173 |
 | `Statement.SetStatement` | Procedural | C | converted 153, gap 1 | 1: needs decision: Trees.FreeText (SetExpression.Statistics.Report.Kind, a word not in capitals) (1) | 165 |
 | `TableReference.Parenthesized` | Tables | A | — | — | 162 |
@@ -381,7 +381,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterFullTextStopList` | Database | C | gap 46 | 46: no target record: Statement.AlterFullTextStopList (46) | 46 |
 | `Statement.RestoreDatabase` | Database | C | gap 46 | 46: no target record: Statement.RestoreDatabase (46) | 46 |
 | `Statement.AuditSpecificationDefinition` | Monitoring | C | gap 45 | 45: no target record: Statement.CreateServerAuditSpecification (45) | 45 |
-| `Statement.AssemblyDefinition` | Routines | C | gap 44 | 44: no target record: Statement.CreateAssembly (44) | 44 |
+| `Statement.AssemblyDefinition` | Routines | C | converted 41, gap 3 | 3: needs decision: Trees.FreeText (Statement.AssemblyDefinition.Tail, written otherwise than the writer prints it) (3) | 44 |
 | `Statement.AsymmetricKeyDefinition` | Security | C | gap 43 | 43: no target record: Statement.CreateAsymmetricKey (43) | 43 |
 | `Statement.StatisticsDefinition` | Tables | C | converted 43 | — | 43 |
 | `Statement.UpdateStatistics` | Tables | C | converted 41 | — | 43 |
@@ -445,14 +445,14 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CredentialDefinition` | Security | C | gap 20 | 20: no target record: Statement.CreateCredential (20) | 20 |
 | `Statement.ExecuteAs` | Procedural | C | converted 18, gap 2 | 2: no target record: Statement.ExecuteAs (EXEC written for EXECUTE) (2) | 20 |
 | `Statement.FullTextCatalogDefinition` | Database | C | gap 20 | 20: no target record: Statement.CreateFullTextCatalog (20) | 20 |
-| `Statement.RuleDefinition` | Routines | C | gap 20 | 20: no target record: Statement.CreateRule (20) | 20 |
+| `Statement.RuleDefinition` | Routines | C | converted 19, gap 1 | 1: needs decision: Trees.FreeText (Statement.RuleDefinition.Tail, written otherwise than the writer prints it) (1) | 20 |
 | `Statement.WaitFor` | Procedural | C | converted 20 | — | 20 |
 | `Expression.BitwiseNot` | Values | C | — | — | 19 |
 | `Statement.CertificateDefinition` | Security | C | gap 19 | 19: no target record: Statement.CreateCertificate (19) | 19 |
 | `Statement.DropDatabase` | Drop | C | converted 19 | — | 19 |
 | `Statement.FullTextStopListDefinition` | Database | C | gap 19 | 19: no target record: Statement.CreateFullTextStopList (19) | 19 |
 | `Statement.TryCatch` | Procedural | C | converted 7 | — | 19 |
-| `Statement.AggregateDefinition` | Routines | C | gap 18 | 18: no target record: Statement.CreateAggregate (18) | 18 |
+| `Statement.AggregateDefinition` | Routines | C | converted 5, gap 13 | 13: needs decision: Trees.FreeText (Statement.AggregateDefinition.Tail, a type written otherwise than the writer prints it) (13) | 18 |
 | `Statement.AlterLogin` | Security | C | gap 18 | 18: no target record: Statement.AlterLogin (18) | 18 |
 | `Statement.DropAssembly` | Drop | C | converted 17, gap 1 | 1: needs decision: inventory Statement.DropAssembly (`with no dependents` kept as written, against `WITH NO DEPENDENTS` as the writer prints it, which the old tree compares exactly) (1) | 18 |
 | `Statement.MessageTypeDefinition` | Broker | C | gap 18 | 18: no target record: Statement.CreateMessageType (18) | 18 |
@@ -468,7 +468,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.RemoteServiceBindingDefinition` | Broker | C | gap 17 | 17: no target record: Statement.CreateRemoteServiceBinding (17) | 17 |
 | `Statement.AddSignature` | Security | C | gap 16 | 16: no target record: Statement.AddSignature (16) | 16 |
 | `Statement.AlterMasterKey` | Security | C | gap 16 | 16: no target record: Statement.AlterMasterKey (16) | 16 |
-| `Statement.DefaultDefinition` | Routines | C | gap 16 | 16: no target record: Statement.CreateDefault (16) | 16 |
+| `Statement.DefaultDefinition` | Routines | C | converted 14, gap 2 | 2: needs decision: Trees.FreeText (Statement.DefaultDefinition.Tail, written otherwise than the writer prints it) (2) | 16 |
 | `Statement.DropFunction` | Drop | B | converted 16 | — | 16 |
 | `Clause.PartitionRange` | Dml | C | — | — | 15 |
 | `Statement.BackupTransactionLog` | Database | C | gap 15 | 15: no target record: Statement.BackupLog (15) | 15 |
@@ -507,7 +507,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropSecurityPolicy` | Drop | C | converted 11 | — | 11 |
 | `Statement.PartitionSchemeDefinition` | Database | C | gap 11 | 11: no target record: Statement.CreatePartitionScheme (11) | 11 |
 | `Statement.Revert` | Procedural | C | converted 11 | — | 11 |
-| `Statement.XmlSchemaCollectionDefinition` | Routines | C | gap 11 | 11: no target record: Statement.CreateXmlSchemaCollection (11) | 11 |
+| `Statement.XmlSchemaCollectionDefinition` | Routines | C | converted 11 | — | 11 |
 | `Expression.Between` | Values | A | — | — | 10 |
 | `Statement.AlterPartitionScheme` | Database | C | gap 10 | 10: no target record: Statement.AlterPartitionScheme (10) | 10 |
 | `Statement.DatabaseScopedCredentialDefinition` | Security | C | gap 10 | 10: no target record: Statement.CreateDatabaseScopedCredential (10) | 10 |
@@ -527,7 +527,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterDatabaseAddFileGroup` | Database | C | gap 8 | 8: target exists, no writer arm: AlterDatabaseAction.AddFileGroup (8) | 8 |
 | `Statement.AlterDatabaseAddLogFile` | Database | C | gap 8 | 8: target exists, no writer arm: AlterDatabaseAction.AddLogFile (8) | 8 |
 | `Statement.AlterRole` | Security | C | gap 8 | 8: no target record: Statement.AlterRole (8) | 8 |
-| `Statement.AlterXmlSchemaCollection` | Routines | C | gap 8 | 8: no target record: Statement.AlterXmlSchemaCollection (8) | 8 |
+| `Statement.AlterXmlSchemaCollection` | Routines | C | converted 8 | — | 8 |
 | `Statement.ColumnMasterKeyDefinition` | Security | C | gap 8 | 8: no target record: Statement.CreateColumnMasterKey (8) | 8 |
 | `Statement.DatabaseEncryptionKeyDefinition` | Security | C | gap 8 | 8: no target record: Statement.CreateDatabaseEncryptionKey (8) | 8 |
 | `Statement.DropExternalLanguage` | Drop | C | converted 8 | — | 8 |
