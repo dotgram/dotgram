@@ -208,8 +208,12 @@ readonly record struct Report(
 	/// </remarks>
 	Location? Inline(Func<string, SyntaxTree?> treeOf, Site site)
 	{
+		// The file the literal is in, which is not always the file of the attribute that names
+		// the host: a second declaration of the class that carries only options reads the grammar
+		// the first one wrote, and its offsets are the first one's.
 		if (Written is not { } spelling || Grammar is not { } grammar ||
-			site.PlaceOf(Anchor)?.Path is not { } path || treeOf(path) is not { } tree)
+			(Anchor == Site.Attribute ? site.Path : site.PlaceOf(Anchor)?.Path) is not { } path ||
+			treeOf(path) is not { } tree)
 			return null;
 
 		var from = grammar.LastIndexOf('\n', Math.Min(Position, grammar.Length - 1)) + 1;
