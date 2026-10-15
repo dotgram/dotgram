@@ -664,6 +664,10 @@ public static partial class Sql2023Writer
 			if (option.Words.Any(static word => word.Style != IdentifierStyle.Regular || word.UnicodeEscape is not null))
 				throw Misplaced(option, "Words", $"that are not plain words, in {place}");
 
+			// One word each: a word that holds a blank would read back as two.
+			if (option.Words.Prepend(option.Name).Any(static word => word.Text.Length == 0 || word.Text.Any(char.IsWhiteSpace)))
+				throw Misplaced(option, "Words", $"that hold a blank, in {place}, where a name is words and each is one");
+
 			return string.Join(" ", option.Words.Select(static word => word.Text).Prepend(option.Name.Text)).ToUpperInvariant();
 		}
 

@@ -418,6 +418,8 @@ public sealed class SecurityWriterTests
 	[InlineData("a setting written without its =")]
 	[InlineData("a setting with a value it has none of")]
 	[InlineData("a setting in brackets")]
+	[InlineData("a setting name with a blank")]
+	[InlineData("a setting word with a blank")]
 	[InlineData("a setting with an order")]
 	[InlineData("a login password that is a name")]
 	[InlineData("a login hash without HASHED")]
@@ -477,6 +479,10 @@ public sealed class SecurityWriterTests
 			"a setting with a value it has none of" => new Statement.AlterLogin(X, new AlterLoginAction.With([new Option(new Identifier("NO"), Str("p"), []) { Words = [new Identifier("CREDENTIAL")] }])),
 			// A setting is read as words: `[PASSWORD]` is no key word.
 			"a setting in brackets" => new Statement.CreateApplicationRole(X, [new Option(new Identifier("[PASSWORD]", IdentifierStyle.Bracketed), Str("p"), [])]),
+			// A setting is words: `NO CREDENTIAL` as one word would read back as two.
+			"a setting name with a blank" => new Statement.AlterLogin(X, new AlterLoginAction.With([new Option(new Identifier("NO CREDENTIAL"), null, [])])),
+			// ENCRYPTION BY PASSWORD is three words, never one that holds a blank.
+			"a setting word with a blank" => new Statement.AlterAsymmetricKey(X, new AsymmetricKeyChange.WithPrivateKey([new Option(new Identifier("DECRYPTION"), Str("a"), []) { Words = [new Identifier("BY PASSWORD")] }])),
 			// A setting is a name and a value: ORDER (…) is OPENROWSET's.
 			"a setting with an order" => new Statement.CreateApplicationRole(X, [Opt("PASSWORD", Str("p")) with { Order = new RowOrder([], false) }]),
 			// CreatePassword reads a string, or a hash in hex.
