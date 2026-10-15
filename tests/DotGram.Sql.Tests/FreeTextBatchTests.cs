@@ -57,6 +57,11 @@ public sealed class FreeTextBatchTests
 		Assert.NotNull(Trees.Difference(Old("SELECT a FROM t"), Old("SELECT A FROM t")));
 		Assert.NotNull(Trees.Difference(Old("SELECT 1 FROM t WHERE x = 1"), Old("SELECT 1 FROM t WHERE X = 1")));
 
+		// A column named as a key word is a name outside the drops, whose case is kept: `date` against `DATE`.
+		Assert.NotNull(Trees.Difference(Old("SELECT date FROM t"), Old("SELECT DATE FROM t")));
+		Assert.NotNull(Trees.Difference(Old("SELECT a FROM t ORDER BY date"), Old("SELECT a FROM t ORDER BY DATE")));
+		Assert.NotNull(Trees.Difference(Old("DROP TABLE date"), Old("DROP TABLE DATE")));
+
 		var byCase = new List<string>();
 
 		Assert.Null(Trees.Difference(Old("DROP INDEX i on t"), Old("DROP INDEX i ON t"), byCase: byCase));
