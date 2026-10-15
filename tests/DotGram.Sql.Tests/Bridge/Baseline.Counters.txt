@@ -44,7 +44,7 @@ ByCase Statement.StatisticsDefinition.Tail = 26
 ByCase Statement.SynonymDefinition.Tail = 18
 ByCase Statement.TableDefinition.Kind = 8
 ByCase Statement.Transaction.Kind = 0
-ByCase Statement.Transaction.Tail = 8
+ByCase Statement.Transaction.Tail = 15
 ByCase Statement.Transaction.Word = 0
 ByCase Statement.TypeDefinition.Tail = 133
 ByCase Statement.UpdateStatistics.Tail = 8
@@ -65,14 +65,14 @@ Projected a T-SQL column's options as the standard's members = 234
 Projected a key's T-SQL columns as the standard's names = 6
 Recovered Alias.AsKeyword of MERGE's target = 19
 Recovered Alias.AsKeyword of a table source = 931
-Recovered Clause.DerivedColumn alias = expression = 389
+Recovered Clause.DerivedColumn alias = expression = 391
 Recovered Expression.Invocation without brackets = 34
 Recovered Expression.Trim.FromKeyword = 0
 Recovered Limit.FetchRowWord = 23
-Recovered Limit.OffsetRowWord = 26
+Recovered Limit.OffsetRowWord = 27
 Recovered Limit.Position = 23
 Recovered ReferencesSpecification.DeleteRuleFirst = 44
-Recovered SelectColumn.ExpressionItem.AsKeyword = 384
+Recovered SelectColumn.ExpressionItem.AsKeyword = 386
 Recovered Statement.Delete.FromOmitted = 82
 Recovered Statement.DropRoutine.Proc = 24
 Recovered Statement.SetTransaction.Tran = 23

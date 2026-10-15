@@ -40,6 +40,22 @@ public sealed class ProceduralBridgeTests
 	[InlineData("SET FIPS_FLAGGER 'OFF'", "FIPS_FLAGGER a string")]
 	[InlineData("SET datefirst -1", "a value")]
 	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "the standard's SET TRANSACTION")]
+	[InlineData("BEGIN TRAN", "BEGIN TRAN")]
+	[InlineData("BEGIN TRANSACTION t", "BEGIN TRANSACTION")]
+	[InlineData("BEGIN DISTRIBUTED TRAN", "BEGIN DISTRIBUTED")]
+	[InlineData("BEGIN TRAN t WITH MARK N'm'", "a mark")]
+	[InlineData("SAVE TRAN @s", "SAVE a variable")]
+	[InlineData("COMMIT TRAN @t", "COMMIT a variable")]
+	[InlineData("DEALLOCATE c", "DEALLOCATE")]
+	[InlineData("DEALLOCATE GLOBAL c", "DEALLOCATE GLOBAL")]
+	[InlineData("DECLARE c CURSOR FOR SELECT 1", "no word")]
+	[InlineData("DECLARE c SCROLL CURSOR FOR SELECT 1", "SCROLL before")]
+	[InlineData("DECLARE c CURSOR SCROLL FOR SELECT 1", "SCROLL after")]
+	[InlineData("DECLARE c CURSOR FORWARD_ONLY FOR SELECT 1", "FORWARD_ONLY")]
+	[InlineData("DECLARE c CURSOR FOR SELECT 1 FOR UPDATE OPTION (RECOMPILE)", "FOR before the hints")]
+	[InlineData("DECLARE c CURSOR FOR SELECT 1 OPTION (RECOMPILE) FOR UPDATE", "FOR after the hints")]
+	[InlineData("SET @c = CURSOR FOR SELECT 1", "SET a cursor")]
+	[InlineData("SET @c = @d", "SET a cursor variable")]
 	public void The_bridge_builds_the_procedural_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -71,6 +87,22 @@ public sealed class ProceduralBridgeTests
 			"FIPS_FLAGGER a string" => made is Ast.Statement.SetOptions { Options: [Ast.SetOption.Value { Option.Text: "FIPS_FLAGGER", Argument: Ast.LiteralValue.String }] },
 			"a value" => made is Ast.Statement.SetOptions { Options: [Ast.SetOption.Value { Option.Text: "DATEFIRST", Argument: Ast.LiteralValue.Numeric { Text: "-1" } }] },
 			"the standard's SET TRANSACTION" => made is Ast.Statement.SetTransaction,
+			"BEGIN TRAN" => made is Ast.Statement.BeginTransaction { Tran: true, Distributed: false, Name: null, Mark: null },
+			"BEGIN TRANSACTION" => made is Ast.Statement.BeginTransaction { Tran: false, Name.Name.Text: "t" },
+			"BEGIN DISTRIBUTED" => made is Ast.Statement.BeginTransaction { Distributed: true },
+			"a mark" => made is Ast.Statement.BeginTransaction { Mark.Description: Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.National } },
+			"SAVE a variable" => made is Ast.Statement.SaveTransaction { Tran: true, Name: { Name: null, Variable: Ast.Expression.Variable } },
+			"COMMIT a variable" => made is Ast.Statement.Commit { Name.Variable: Ast.Expression.Variable },
+			"DEALLOCATE" => made is Ast.Statement.DeallocateCursor { Cursor: { Global: false, ExtendedName: null } },
+			"DEALLOCATE GLOBAL" => made is Ast.Statement.DeallocateCursor { Cursor.Global: true },
+			"no word" => made is Ast.Statement.DeclareCursor { Extended: false, SourceValue: Ast.CursorSource.Query { Updatability: null } },
+			"SCROLL before" => made is Ast.Statement.DeclareCursor { Extended: false, Properties.Scrollability: Ast.CursorScrollability.Scroll },
+			"SCROLL after" => made is Ast.Statement.DeclareCursor { Extended: true, Properties.Scrollability: Ast.CursorScrollability.Scroll },
+			"FORWARD_ONLY" => made is Ast.Statement.DeclareCursor { Extended: true, Properties: { Scrollability: Ast.CursorScrollability.NoScroll, ForwardOnly: true } },
+			"FOR before the hints" => made is Ast.Statement.DeclareCursor { SourceValue: Ast.CursorSource.Query { UpdatabilityBeforeOptions: true, Updatability.ReadOnly: false } },
+			"FOR after the hints" => made is Ast.Statement.DeclareCursor { SourceValue: Ast.CursorSource.Query { UpdatabilityBeforeOptions: false, Updatability.ReadOnly: false } },
+			"SET a cursor" => made is Ast.Statement.SetCursorVariable { Variable: Ast.Expression.Variable },
+			"SET a cursor variable" => made is Ast.Statement.SetVariable { Value: Ast.Expression.Variable },
 			_ => false,
 		};
 

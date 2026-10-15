@@ -136,6 +136,92 @@ public static partial class Sql2023Writer
 					PutSetOptions(set);
 					return true;
 
+				// T-SQL: BEGIN TRANSACTION, BEGIN DISTRIBUTED TRANSACTION (Transact-SQL). A name or not, and a mark after it
+				// or not (TransactionStatement).
+				case Statement.BeginTransaction begin:
+					Word("BEGIN");
+
+					if (begin.Distributed)
+						Word("DISTRIBUTED");
+
+					Word(begin.Tran ? "TRAN" : "TRANSACTION");
+					PutTranName(begin, begin.Name);
+
+					if (begin.Mark is { } mark)
+					{
+						Word("WITH MARK");
+
+						if (mark.Description is { } description)
+							PutExpression(description);
+					}
+
+					return true;
+
+				// T-SQL: SAVE TRANSACTION (Transact-SQL). The name is not optional.
+				case Statement.SaveTransaction save:
+					Word("SAVE");
+					Word(save.Tran ? "TRAN" : "TRANSACTION");
+					PutTranName(save, save.Name);
+					return true;
+
+				// T-SQL: DEALLOCATE (Transact-SQL). One part, GLOBAL before it or not, or a variable (CursorName).
+				case Statement.DeallocateCursor deallocate:
+					Word("DEALLOCATE");
+					PutCursorName(deallocate, deallocate.Cursor);
+					return true;
+
+				// T-SQL: DECLARE CURSOR (Transact-SQL). The T-SQL arm takes a cursor whose form T-SQL reads; a standard
+				// one — NO SCROLL, WITH HOLD, WITH RETURN, SENSITIVE, a prepared statement — is the standard's to write.
+				case Statement.DeclareCursor declare:
+					if (!TransactSqlCursor(declare))
+						return false;
+
+					if (declare.Cursor is not { Name: { Count: 1 } name, ExtendedName: null, Global: false, Local: false, Ptf: false })
+						throw Misplaced(declare, "Cursor", "other than a name of one part (DeclareStatement)");
+
+					Word("DECLARE");
+					PutName(name);
+
+					if (declare.Extended)
+					{
+						Word("CURSOR");
+
+						if (!PutCursorWords(declare.Properties))
+							throw Misplaced(declare, "Extended", "with no word after CURSOR, which reads back as the ISO form");
+					}
+					else
+					{
+						if (declare.Properties.Sensitivity is not null)
+							Word("INSENSITIVE");
+
+						if (declare.Properties.Scrollability is not null)
+							Word("SCROLL");
+
+						Word("CURSOR");
+					}
+
+					PutCursorSource(declare, declare.Properties, (CursorSource.Query)declare.SourceValue, declared: true);
+					return true;
+
+				// T-SQL: SET @local_variable (Transact-SQL). <c>SET @c = CURSOR words FOR query</c> (CursorInPlace).
+				case Statement.SetCursorVariable cursor:
+					if (cursor.Variable is not Expression.Variable)
+						throw Misplaced(cursor, "Variable", "that is not a variable");
+
+					if (cursor.SourceValue is not CursorSource.Query source)
+						throw Misplaced(cursor, "SourceValue", "other than a query (CursorInPlace)");
+
+					if (cursor.Properties is { Sensitivity: not null } or { Holdability: not null } or { Returnability: not null }
+						|| cursor.Properties is { Scrollability: CursorScrollability.NoScroll, ForwardOnly: false })
+						throw Misplaced(cursor, "Properties", "with a word of the standard's, which only T-SQL's words follow (CursorOption)");
+
+					Word("SET");
+					PutExpression(cursor.Variable);
+					Word("= CURSOR");
+					PutCursorWords(cursor.Properties);
+					PutCursorSource(cursor, cursor.Properties, source, declared: false);
+					return true;
+
 				default:
 					return false;
 			}
@@ -445,7 +531,7 @@ public static partial class Sql2023Writer
 			if (value is not LiteralValue.Numeric { Kind: var kind, Text: var text })
 				return false;
 
-			var digits = signed && text.StartsWith('-') ? text[1..] : text;
+			var digits = signed && text.StartsWith("-", StringComparison.Ordinal) ? text[1..] : text;
 
 			return (kind == NumericLiteralKind.DecimalInteger || !whole) && Unsigned(digits, kind);
 		}
@@ -463,6 +549,196 @@ public static partial class Sql2023Writer
 				NumericLiteralKind.Approximate    => Regex.IsMatch(text, @"^([0-9]+\.?[0-9]*|\.[0-9]+)[eE][+-]?[0-9]+$"),
 				_                                 => false,
 			};
+		}
+
+		/// <summary>
+		/// T-SQL: BEGIN TRANSACTION (Transact-SQL), SAVE TRANSACTION (Transact-SQL). <c>TranName</c>: a name, or a
+		/// variable, never both; a name that starts with <c>@</c> reads back as a variable.
+		/// </summary>
+		void PutTranName(ISqlNode owner, TransactionName? name)
+		{
+			switch (name)
+			{
+				case null:
+					return;
+
+				case { Name: not null, Variable: not null }:
+					throw Both(name, "Name", "Variable");
+
+				case { Name: { } named } when named.Style == IdentifierStyle.Regular && named.Text.StartsWith("@", StringComparison.Ordinal):
+					throw Misplaced(owner, "Name", "starting with @, which reads back as a variable");
+
+				case { Variable: { } variable } when variable is not Expression.Variable:
+					throw Misplaced(owner, "Name", "held as an expression other than a variable (TranName)");
+			}
+
+			PutTransactionName(name);
+		}
+
+		/// <summary>
+		/// T-SQL: DEALLOCATE (Transact-SQL). <c>CursorName</c>: <c>[GLOBAL] name</c> of one part, or a variable that is
+		/// not one of the server's (<c>LocalVariable</c>).
+		/// </summary>
+		void PutCursorName(ISqlNode owner, CursorReference cursor)
+		{
+			if (cursor.Local || cursor.Ptf)
+				throw Misplaced(owner, "Cursor", "with LOCAL or PTF, which no T-SQL cursor's name takes");
+
+			if (cursor.Name is { } name)
+			{
+				if (name.Count != 1 || cursor.ExtendedName is not null)
+					throw Misplaced(owner, "Cursor", "a name of more than one part, or a name and a variable");
+
+				if (cursor.Global)
+					Word("GLOBAL");
+
+				PutName(name);
+				return;
+			}
+
+			if (cursor.Global || cursor.ExtendedName is not Expression.Variable variable || Syntax.IsServerVariable(variable.Name.Text))
+				throw Misplaced(owner, "Cursor", "other than a name, or a variable of the batch's own without GLOBAL (LocalVariable)");
+
+			PutExpression(variable);
+		}
+
+		/// <summary>
+		/// Whether a DECLARE CURSOR is T-SQL's to write: its properties words a form of the T-SQL page reads, its source a
+		/// query, its FOR spelt READ ONLY, and a FOR before the hints only where there are hints.
+		/// </summary>
+		static bool TransactSqlCursor(Statement.DeclareCursor declare)
+		{
+			var properties = declare.Properties;
+
+			if (properties is { Holdability: not null } or { Returnability: not null } or { Sensitivity: CursorSensitivity.Sensitive or CursorSensitivity.Asensitive }
+				|| properties is { Scrollability: CursorScrollability.NoScroll, ForwardOnly: false })
+				return false;
+
+			if (!declare.Extended && (properties.Scope is not null || properties.Type is not null || properties.Concurrency is not null
+				|| properties.TypeWarning || properties.ForwardOnly))
+				return false;
+
+			return declare.SourceValue is CursorSource.Query source && source.Updatability is not { Underscored: true }
+				&& (!source.UpdatabilityBeforeOptions || source.Select.Hints.Count > 0);
+		}
+
+		/// <summary>
+		/// T-SQL: DECLARE CURSOR (Transact-SQL). The words after CURSOR in the page's order (CursorOption): the scope, the
+		/// scrolling, the kind, the concurrency, TYPE_WARNING. False where there are none.
+		/// </summary>
+		bool PutCursorWords(CursorProperties properties)
+		{
+			var any = false;
+
+			void Put(string word)
+			{
+				Word(word);
+				any = true;
+			}
+
+			if (properties.Sensitivity is not null)
+				throw Misplaced(properties, "Sensitivity", "after CURSOR, where INSENSITIVE is not a word");
+
+			if (properties.ForwardOnly && properties.Scrollability != CursorScrollability.NoScroll)
+				throw Misplaced(properties, "ForwardOnly", "without NoScroll, which it is the spelling of");
+
+			if (properties.Scope is { } scope)
+				Put(scope switch { CursorScope.Local => "LOCAL", CursorScope.Global => "GLOBAL", _ => throw NoText(scope) });
+
+			if (properties.Scrollability is { } scrollability)
+				Put(scrollability == CursorScrollability.Scroll ? "SCROLL" : "FORWARD_ONLY");
+
+			if (properties.Type is { } type)
+				Put(type switch
+				{
+					CursorType.Static      => "STATIC",
+					CursorType.Keyset      => "KEYSET",
+					CursorType.Dynamic     => "DYNAMIC",
+					CursorType.FastForward => "FAST_FORWARD",
+					_                      => throw NoText(type),
+				});
+
+			if (properties.Concurrency is { } concurrency)
+				Put(concurrency switch
+				{
+					CursorConcurrency.ReadOnly    => "READ_ONLY",
+					CursorConcurrency.ScrollLocks => "SCROLL_LOCKS",
+					CursorConcurrency.Optimistic  => "OPTIMISTIC",
+					_                             => throw NoText(concurrency),
+				});
+
+			if (properties.TypeWarning)
+				Put("TYPE_WARNING");
+
+			return any;
+		}
+
+		/// <summary>
+		/// T-SQL: DECLARE CURSOR (Transact-SQL). <c>FOR query</c> and what may be done through it (CursorQuery): a select
+		/// that makes no table and has no shape (<c>Syntax.Cursorable</c>, <c>Msg 154</c>, <c>6819</c>), FOR READ ONLY or
+		/// FOR UPDATE before the hints or after them; and the words that agree with it (<c>Syntax.CursorAgrees</c>,
+		/// restated over this tree).
+		/// </summary>
+		void PutCursorSource(ISqlNode owner, CursorProperties properties, CursorSource.Query source, bool declared)
+		{
+			var select = source.Select;
+
+			if (select.Query.For is not null || select.Query.Locking.Count > 0
+				|| select.Query.Operands().Any(static one => one.Values.Count > 0 || one.Into is not null || one.IntoTable is not null))
+				throw Misplaced(owner, "SourceValue", "a query with FOR, a locking clause, INTO or VALUES, which no cursor reads (Syntax.Cursorable)");
+
+			var fast = properties.Type == CursorType.FastForward;
+
+			if (fast && (properties.Scrollability == CursorScrollability.Scroll || properties.Concurrency is CursorConcurrency.ScrollLocks or CursorConcurrency.Optimistic))
+				throw Misplaced(owner, "Properties", "FAST_FORWARD beside SCROLL, SCROLL_LOCKS or OPTIMISTIC (Syntax.CursorAgrees)");
+
+			if (source.Updatability is { } updatability)
+			{
+				if (updatability.ReadOnly && updatability.UpdateColumns.Count > 0)
+					throw Misplaced(updatability, "UpdateColumns", "beside READ ONLY");
+
+				if (updatability.Underscored)
+					throw Misplaced(updatability, "Underscored", "where CursorFor reads READ ONLY");
+
+				var agrees = updatability.ReadOnly
+					? properties.Concurrency is not (CursorConcurrency.ScrollLocks or CursorConcurrency.Optimistic) && (!declared || properties.Concurrency != CursorConcurrency.ReadOnly)
+					: properties.Type is not (CursorType.Static or CursorType.FastForward) && properties.Concurrency != CursorConcurrency.ReadOnly
+						&& properties.Sensitivity != CursorSensitivity.Insensitive;
+
+				if (!agrees)
+					throw Misplaced(owner, "Properties", "a word that disagrees with FOR " + (updatability.ReadOnly ? "READ ONLY" : "UPDATE") + " (Syntax.CursorAgrees)");
+			}
+
+			if (source.UpdatabilityBeforeOptions && (source.Updatability is null || select.Hints.Count == 0))
+				throw Misplaced(source, "UpdatabilityBeforeOptions", "with no FOR or no hints to stand before");
+
+			Word("FOR");
+			PutQuery(select.Query);
+
+			if (source.UpdatabilityBeforeOptions)
+				PutUpdatability(source.Updatability!);
+
+			PutQueryHints(select.Hints);
+
+			if (!source.UpdatabilityBeforeOptions && source.Updatability is { } after)
+				PutUpdatability(after);
+		}
+
+		void PutUpdatability(UpdatabilityClause updatability)
+		{
+			if (updatability.ReadOnly)
+			{
+				Word("FOR READ ONLY");
+				return;
+			}
+
+			Word("FOR UPDATE");
+
+			if (updatability.UpdateColumns.Count > 0)
+			{
+				Word("OF");
+				Each(updatability.UpdateColumns, PutIdentifier);
+			}
 		}
 
 		/// <summary>Whether a statement ends in an IF without an ELSE, which an ELSE written after it would take.</summary>
