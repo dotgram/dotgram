@@ -2686,6 +2686,16 @@ public static partial class CSharpEmitter
 
 		file.Write(seam.RenderScanners());
 
+		// The pairs the trivia counts, asked where it stopped: one the text ends inside of is
+		// refused where it opened (NestedPair.WriteRunsOut).
+		IReadOnlyList<NestedPair.Delimiters> counted = skipping.Name is null ? [] : NestedPair.Reached(skipping.Rule, lexical.Source);
+
+		if (counted.Count > 0)
+		{
+			NestedPair.WriteRunsOut(file, "Trivia_RunsOut_DotGram", counted);
+			file.Line();
+		}
+
 		if (valuing is not null)
 			file.Write(Rereading(lexical, valuing));
 
@@ -3025,6 +3035,51 @@ file.Line("return spare;");
 				file.Line("if (p >= text.Length)");
 				file.Then("break;");
 				file.Line();
+
+				// Where the trivia stopped at a pair it counts and the text ends inside that pair, the
+				// tokens stop there, as at a character no token begins with: the pair is refused where
+				// it opened. Read as the tokens its opening spells instead, every unclosed opening
+				// inside it would be asked again, each one reading to the end. Where the tokens go on
+				// through such a character, the rest of the text is one token of no kind, since all
+				// of it is inside the pair.
+				if (counted.Count > 0)
+				{
+					using (file.Block($"if ({NestedPair.MayOpen(counted, "p")} && Trivia_RunsOut_DotGram(text, p))"))
+					{
+						using (file.Block("if (!through)"))
+						{
+							file.Line("tokens.Count   = count;");
+							file.Line("tokens.Stopped = p;");
+							file.Line();
+							file.Line("return tokens;");
+						}
+
+						file.Line();
+						file.Line("if (stopped < 0)");
+						file.Then("stopped = p;");
+						file.Line();
+						file.Line("if (count == kinds.Length)");
+
+						using (file.Block(""))
+						{
+							file.Line("tokens.Grow(count);");
+							file.Line();
+							file.Line("kinds   = tokens.Kinds;");
+							file.Line("starts  = tokens.Starts;");
+							file.Line("lengths = tokens.Lengths;");
+						}
+
+						file.Line();
+						file.Line("kinds  [count] = (char)0;");
+						file.Line("starts [count] = p;");
+						file.Line("lengths[count] = text.Length - p;");
+						file.Line("count++;");
+						file.Line();
+						file.Line("break;");
+					}
+
+					file.Line();
+				}
 
 				// The terminals the lexer does not measure, asked before it and in the order
 				// the grammar names them: there is no automaton to run them together, so there

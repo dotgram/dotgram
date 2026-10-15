@@ -14657,7 +14657,7 @@ public sealed class TransactSqlTests
 	[Theory]
 	[InlineData("SELECT 1\nGO\nSELECT 2 ` x", 21)]
 	[InlineData("SELECT 1\nGO\nSELECT 2 FROM", 25)]
-	[InlineData("SELECT 1 /*", 10)]
+	[InlineData("SELECT 1 /*", 9)]
 	public void A_batch_is_read_to_its_end(string input, int at)
 	{
 		var script = SqlScript.Read(input);

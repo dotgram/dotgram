@@ -2283,7 +2283,11 @@ reading that reaches it, a whole reading among them, is `Starved` whether it is 
 reads it, as over characters, where the reading of that token runs out of input (§7.5). A
 complete token the window's end leaves room to lengthen is read as it stands, and a comment that
 is trivia is skipped rather than cut, so one left unclosed is read as whatever tokens its
-characters make, or refused at the first no token begins with. A
+characters make, or refused at the first no token begins with. A pair the trivia reads with
+`Std.Nested` (§5.2) is the exception: one the text or the window ends inside of ends the tokens
+where it opened, as a character no token begins with does, and is refused there. Its counter
+reads to the end before it knows the pair is open, and every opening inside it would be asked
+again if its characters were tokens, each reading to the end: the square of the text's length. A
 character no token begins with ends
 the tokens rather than refusing the reading — in all of these forms, since none of them is
 required to reach the end of the input, and a reading must not be refused by what it never
