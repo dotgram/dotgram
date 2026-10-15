@@ -1224,6 +1224,29 @@ statement with no left operand, which is why it needs no third marker.
 Higher binds tighter. The numbers are the author's and need not be contiguous: gaps are
 where a level is inserted later without renumbering the rest.
 
+**A step is taken only where the operand before it could not have taken it.** The rule is
+read as an atom or a prefix followed by any number of infix and postfix steps, and a step is
+entered only at a strength its level allows. After an operand read at strength `k` — the right
+side of an infix, the operand of a prefix — the next step's level must also be below `k`: an
+operator of level `k` or more is one that operand would have taken itself, and taking it in
+the enclosing loop would read the same text grouped the other way. So the grouping is the
+strengths' own, whatever a `when` in a step accepts:
+
+```dotgram
+E : @string = left: E & '+' & right: E                             << 1  => @(left + "+" + right)
+            | left: E & '*' & when @(left.Length > 1) & right: E   << 2  => @(left + "*" + right)
+            | digits: ['0'..'9']+                                        => @(digits)
+```
+
+reads `12*3`, and refuses `1+2*3`: `*` is stronger than `+`, so the text can only be
+`1+(2*3)`, and the guard refuses `2*3`. It is not read as `(1+2)*3`. The operand read last is
+what counts, at whatever strength it was read: one read at 0 — a prefix written without a
+strength, `'!' & E`, or a middle operand an optional else did not follow — leaves no step to
+take. After a postfix step, or anything else read last, a step may be anything the strength
+being read allows. A strength binds the operand an alternative ends with, a `when` after it
+included; an operand the alternative may or may not end with — inside an optional, a choice or
+a repetition — is read at 0, and the compiler says so (`GRAM4042`).
+
 A rule uses one convention or the other. Levels as rules and binding powers in one rule
 would be two answers to the same question, and the compiler refuses it rather than
 choosing.
@@ -1325,7 +1348,9 @@ choice means a failing parse may re-read a comment's interior as syntax, one giv
 a time — legal, useless, and expensive. With them the engine can also prove that a spaced
 list never needs to hand a completed element back, which is the difference between a
 syntax error reported in milliseconds and one reported in minutes. Whitespace-only trivia
-needs no braces: single characters leave nothing to re-read.
+needs them too: before an optional part a lexeme may end with, the spaces can be read by the
+seam inside the lexeme or by the one after it, two readings of every such lexeme unless the
+trivia or the lexeme is braced.
 
 Braced trivia is read by a scanner, which reads what it calls in place and so cannot follow
 a rule that reaches itself. A comment that holds others is the one such rule trivia needs,

@@ -313,6 +313,9 @@ sealed partial class Machine
 
 		var call = $"MemoFailed(pos, {slot / 64}, {MemoBit(slot)});";
 
+		// `power` is the strength the rule was entered at, as at the top of the method: the
+		// ceiling a climbing rule carries across its turns is a local of its own (Machine.Ceils)
+		// and never folded into it, so a failure after a turn has set one is still remembered.
 		if (_graph.Climbing.ContainsKey(rule))
 		{
 			file.Line("if (power == 0)");

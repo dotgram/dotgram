@@ -490,6 +490,60 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// Whether a climbing rule carries a ceiling across the turns of its loop (§4.3.1): after an
+	/// operand read at k, the next turn takes only operators weaker than k.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Without it a turn may take an operator the operand before it gave back, which reads the
+	/// same text grouped the other way: every such operator is a second reading, so a refusal
+	/// costs two to the power of their count, and a guard in a tail can accept the grouping
+	/// it was written to exclude. The ceiling refuses the second reading, and the first — the
+	/// operand having taken all it could — is never one it refuses.
+	/// </para>
+	/// <para>
+	/// So it is written only where the second reading can be reached, judged on this
+	/// compilation: where the rule gives back (every rule over characters, and over kinds the
+	/// one marked <c>?</c>), or where a tail has a guard, which may refuse in the operand's
+	/// loop what it accepts in the enclosing one. A guard reached through a call the tail makes
+	/// cannot read the value so far, and differs between the two only through state a
+	/// construction changed in between, which §7.2 leaves to the author. Elsewhere the ceiling
+	/// could never refuse anything, and the rule is written as it was before there was one.
+	/// </para>
+	/// </remarks>
+	internal bool Ceils(RuleSymbol rule)
+	{
+		if (_ceils.TryGetValue(rule, out var known))
+			return known;
+
+		// The engine keeps the ceiling in the high half of `power` (Compile), so a strength has to
+		// fit the low half; one that does not is read as it was before there was a ceiling.
+		var ceils = _graph.Climbing.TryGetValue(rule, out var levels) && levels.Count > 0 &&
+			levels.Values.Max() < 0x7FFF &&
+			(!OverKinds || rule.GivesBack ||
+				levels.Keys.Any(static tail => NodeWalk.Descendants(tail).Any(static one => one is Node.Guard)));
+
+		_ceils[rule] = ceils;
+
+		return ceils;
+	}
+
+	readonly Dictionary<RuleSymbol, bool> _ceils = [];
+
+	/// <summary>
+	/// The ceiling an alternative of a climbing rule leaves the next turn, as C#: the strength
+	/// its last operand was read at, or <c>int.MaxValue</c> where it left none. Null for a node
+	/// that is no alternative of one.
+	/// </summary>
+	string? CeilingAfter(Node alternative)
+	{
+		if (!_graph.Ceilings.TryGetValue(alternative, out var after))
+			return null;
+
+		return after >= 0 ? after.ToString(System.Globalization.CultureInfo.InvariantCulture) : "int.MaxValue";
+	}
+
+	/// <summary>
 	/// The capture slots of a rule that a turn of a loop writes again — a fold's loop
 	/// excepted, whose turns are steps that each consume what they captured (§4.3).
 	/// </summary>

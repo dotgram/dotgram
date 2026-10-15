@@ -3316,6 +3316,8 @@ namespace DotGram.Snapshots
 				var p = pos;
 				var c = '\0';
 				int fold = default!;
+				var ceiling = int.MaxValue;
+				var ceiled  = int.MaxValue;
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;
@@ -3335,6 +3337,8 @@ namespace DotGram.Snapshots
 				fold = last1 = Construct_Sum((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				while (true)
 				{
+					ceiling = ceiled;
+
 					var o1 = (uint)p < (uint)text.Length;
 
 					if (o1)
@@ -3371,7 +3375,7 @@ namespace DotGram.Snapshots
 
 					while (true)
 					{
-						q0 = Read_Sum_Sum_Part0(p, ref fold, power);
+						q0 = Read_Sum_Sum_Part0(p, ref fold, power, ceiling, ref ceiled);
 
 						if (q0 >= 0)
 							break;
@@ -3396,11 +3400,11 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Sum_Sum_Part0(int pos, ref int fold, int power)
+			public int Read_Sum_Sum_Part0(int pos, ref int fold, int power, int ceiling, ref int ceiled)
 			{
 				var p = pos;
 				int r1 = default!;
-				if (1 < power)
+				if (1 < power || 1 >= ceiling)
 					return -1;
 
 				if ((uint)p >= (uint)text.Length || text[p] != '+')
@@ -3414,6 +3418,7 @@ namespace DotGram.Snapshots
 				p = q0;
 				r1 = last1;
 				fold = last1 = Construct_Sum_1(fold, r1!);
+				ceiled = 2;
 				return p;
 			}
 

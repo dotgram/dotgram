@@ -59,6 +59,19 @@ public sealed class ExampleBlowUpTests
 		Refused("calculator", () => Calculator.EvaluateDecimal(Joined("1", " + ", 64) + " ="));
 	}
 
+	/// <remarks>
+	/// A quotient read as the right side of a `+` at strength 3 could give its `/0` back and the
+	/// loop take it, the same text grouped the other way: two readings a quotient, and twenty
+	/// of them took seconds. The loop takes only what the operand before it could not have
+	/// taken now (§4.3.1), and what is left is a way back per term, read again from the start:
+	/// quadratic, and five hundred and twelve terms well inside the bound.
+	/// </remarks>
+	[Fact]
+	public void A_sum_of_quotients_that_never_ends_is_refused_at_once()
+	{
+		Refused("calculator", () => Calculator.EvaluateInt(Joined("1/0", "+", 512) + "="), 512);
+	}
+
 	/// <summary>
 	/// Runs it, expects it not to finish, and holds how long it took.
 	/// </summary>
@@ -67,7 +80,7 @@ public sealed class ExampleBlowUpTests
 	/// and far below what the shape cost, which doubles with every further character. A loaded
 	/// machine cannot fail it and the shape cannot pass it.
 	/// </remarks>
-	static void Refused(string what, Action read)
+	static void Refused(string what, Action read, int count = 64)
 	{
 		var watch = Stopwatch.StartNew();
 
@@ -75,7 +88,7 @@ public sealed class ExampleBlowUpTests
 
 		Assert.True(
 			watch.Elapsed.TotalSeconds < 5,
-			$"The {what} example took {watch.Elapsed.TotalSeconds:F1} s to refuse 64 of them.");
+			$"The {what} example took {watch.Elapsed.TotalSeconds:F1} s to refuse {count} of them.");
 	}
 
 	static string Joined(string piece, string separator, int times)

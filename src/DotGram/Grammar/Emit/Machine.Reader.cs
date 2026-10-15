@@ -1733,6 +1733,21 @@ sealed partial class Machine
 		/// </summary>
 		readonly bool _climbs = machine._graph.Climbing.ContainsKey(owner);
 
+		/// <summary>
+		/// Whether the rule carries a ceiling across the turns of its loop (<see cref="Machine.Ceils"/>):
+		/// two locals of the body handed to every part — <c>ceiling</c>, what the turn before left,
+		/// which an alternative is checked against where it is entered, and <c>ceiled</c>, by
+		/// reference, what an alternative leaves where it ends, which the loop takes up at its
+		/// next turn.
+		/// </summary>
+		/// <remarks>
+		/// Two and not one, because a turn may be read more than once — retried after a part of it
+		/// failed, read again once it stood where the loop defers (<c>Stood_DotGram</c>) — and each
+		/// reading has to be checked against what the turn found, not what an earlier reading of
+		/// the same turn left.
+		/// </remarks>
+		readonly bool _ceils = machine.Ceils(owner);
+
 		/// <summary>Whether this is the entry's own reading, which calls the rule at the strength it was asked.</summary>
 		bool _entry;
 
@@ -1956,6 +1971,14 @@ sealed partial class Machine
 
 						break;
 					}
+
+			// No ceiling where the rule begins: the first turn after a base that is an atom may
+			// take any operator its strength allows (§4.3.1).
+			if (_ceils && !_part && code.Contains("ceiled", prefix))
+			{
+				Declare("var ceiling = int.MaxValue;");
+				Declare("var ceiled  = int.MaxValue;");
+			}
 
 			// Where the log stood when the rule began, for a guard that builds a value from
 			// what has been recorded since.
@@ -2187,7 +2210,9 @@ sealed partial class Machine
 				_graph.Climbing.TryGetValue(climbs, out var levels) &&
 				levels.TryGetValue(node, out var level))
 			{
-				code.Line($"if ({level} < power)");
+				// And not above the ceiling the turn before left: an operator its operand would
+				// have taken, and gave back, is not this loop's to take (§4.3.1).
+				code.Line(_ceils ? $"if ({level} < power || {level} >= ceiling)" : $"if ({level} < power)");
 				code.Then(Fails());
 				code.Line();
 			}
@@ -2388,6 +2413,17 @@ sealed partial class Machine
 				default:
 					throw new InvalidOperationException(
 						$"{node.GetType().Name} passed CanRead and the reader has no statement for it.");
+			}
+
+			// An alternative of a climbing rule, read: what it read last says what the next turn
+			// may take. Written where it ends and nowhere before, so that an alternative that
+			// fails part way leaves the ceiling as the turn found it for the next to be checked
+			// against. A base that leaves none has nothing to say: there was none before it.
+			if (_ceils && machine.CeilingAfter(node) is { } after &&
+				machine._owners.TryGetValue(node, out var alternativeOf) && ReferenceEquals(alternativeOf, owner) &&
+				(after != "int.MaxValue" || _graph.Climbing[owner].ContainsKey(node)))
+			{
+				code.Line($"ceiled = {after};");
 			}
 		}
 
@@ -4085,6 +4121,10 @@ sealed partial class Machine
 			if (_climbs)
 				text.Append(", ").Append(type).Append("power");
 
+			// And the ceiling the turn before left, which a turn reads, and the one it leaves.
+			if (_ceils)
+				text.Append(", ").Append(type).Append("ceiling, ref ").Append(type).Append("ceiled");
+
 			// Where the rule gathers across turns, what a record collects is everything pushed
 			// since the rule began — not since the part did — so the rule's mark is handed on.
 			if (_gathers)
@@ -4279,6 +4319,19 @@ sealed partial class Machine
 			return used;
 		}
 
+		/// <summary>
+		/// At the top of each turn of a climbing rule's loop, the ceiling the base or the turn
+		/// before left becomes the one this turn is checked against (<see cref="_ceils"/>).
+		/// </summary>
+		void TakeUpCeiling(Writer code, Node.Repeat? repeat)
+		{
+			if (_ceils && repeat is not null && _graph.Folds.TryGetValue(owner, out var fold) && ReferenceEquals(fold.Loop, repeat))
+			{
+				code.Line("ceiling = ceiled;");
+				code.Line();
+			}
+		}
+
 		void EmitRepeat(Writer code, Node.Repeat repeat, FollowSets.Continuation following)
 		{
 			if (machine._recoveryReads.TryGetValue(repeat, out var recovery))
@@ -4359,6 +4412,8 @@ sealed partial class Machine
 
 			using (code.Block("while (true)"))
 			{
+				TakeUpCeiling(code, repeat);
+
 				if (max is { } limit)
 				{
 					code.Line($"if ({turns} >= {limit})");
@@ -5272,6 +5327,8 @@ sealed partial class Machine
 
 			using (code.Block("while (true)"))
 			{
+				TakeUpCeiling(code, repeat);
+
 				if (max is { } limit)
 				{
 					code.Line($"if ({turn} >= {limit})");

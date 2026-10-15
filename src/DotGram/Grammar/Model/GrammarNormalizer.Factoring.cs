@@ -506,6 +506,7 @@ public sealed partial class GrammarNormalizer
 			Says = _says,
 			Climbing = _climbing,
 			Powers = _powers,
+			Ceilings = _ceilings,
 		};
 	}
 

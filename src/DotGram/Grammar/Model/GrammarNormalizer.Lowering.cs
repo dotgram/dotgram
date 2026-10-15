@@ -387,6 +387,7 @@ public sealed partial class GrammarNormalizer
 
 	readonly Dictionary<RuleSymbol, IReadOnlyDictionary<Node, int>> _climbing = [];
 	readonly Dictionary<Node, int>                                  _powers   = new(NodeIdentity.Instance);
+	readonly Dictionary<Node, int>                                  _ceilings = new(NodeIdentity.Instance);
 
 	/// <summary>
 	/// <c>… &lt;&lt; 2</c> — the alternative, with what it said about its own strength
