@@ -231,6 +231,8 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.CreateIndex.Using | 6 |
 | ByCase Statement.CursorAction.Verb | 0 |
 | ByCase Statement.DefaultDefinition.Tail | 2 |
+| ByCase Statement.Deny.On | 0 |
+| ByCase Statement.Deny.Privileges | 6 |
 | ByCase Statement.DropAssembly.Tail | 1 |
 | ByCase Statement.DropAsymmetricKey.Tail | 1 |
 | ByCase Statement.DropEventNotification.Tail | 2 |
@@ -241,8 +243,12 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.Execute.Tail | 8 |
 | ByCase Statement.Fetch.Orientation | 0 |
 | ByCase Statement.FullTextIndexDefinition.Tail | 7 |
+| ByCase Statement.Grant.On | 2 |
+| ByCase Statement.Grant.Privileges | 6 |
 | ByCase Statement.Insert.Into | 7 |
 | ByCase Statement.RaiseError.Tail | 0 |
+| ByCase Statement.Revoke.On | 0 |
+| ByCase Statement.Revoke.Privileges | 10 |
 | ByCase Statement.RuleDefinition.Tail | 1 |
 | ByCase Statement.SchemaDefinition.Tail | 2 |
 | ByCase Statement.SequenceDefinition.Tail | 1 |
@@ -364,7 +370,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.ServerAuditDefinition` | Monitoring | C | gap 118 | 118: no target record: Statement.CreateServerAudit (118) | 118 |
 | `Statement.Delete` | Dml | A | converted 64 | — | 114 |
 | `Expression.Subquery` | Values | A | — | — | 113 |
-| `Statement.Grant` | Security | B | gap 108 | 108: needs decision: inventory Statement.Grant (108) | 108 |
+| `Statement.Grant` | Security | B | converted 108 | — | 108 |
 | `Statement.ExternalFileFormatDefinition` | External | C | gap 101 | 101: no target record: Statement.CreateExternalFileFormat (101) | 101 |
 | `Statement.FullTextIndexDefinition` | Tables | C | converted 45, gap 3 | 3: needs decision: inventory Statement.FullTextIndexDefinition (a catalog after its filegroup, or a place of other words) (2); needs decision: inventory Statement.FullTextIndexDefinition (ON (catalog) in brackets without a filegroup) (1) | 99 |
 | `Expression.Member` | Values | A | — | — | 98 |
@@ -427,11 +433,11 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateUser` | Security | C | gap 37 | 37: no target record: Statement.CreateUser (37) | 37 |
 | `Statement.SecurityPolicyDefinition` | Security | C | gap 37 | 37: no target record: Statement.CreateSecurityPolicy (37) | 37 |
 | `Statement.Label` | Procedural | C | converted 30 | — | 36 |
-| `Statement.Revoke` | Security | B | gap 36 | 36: needs decision: inventory Statement.Revoke (36) | 36 |
+| `Statement.Revoke` | Security | B | converted 36 | — | 36 |
 | `SetExpression.Miscellaneous.Offset` | Procedural | C | — | — | 35 |
 | `Statement.WriteText` | Dml | C | converted 35 | — | 35 |
 | `Query.Union` | Queries | B | — | — | 34 |
-| `Statement.Deny` | Security | C | gap 34 | 34: bridge arm missing: Statement.Deny (34) | 34 |
+| `Statement.Deny` | Security | C | converted 34 | — | 34 |
 | `Statement.ExternalModelDefinition` | External | C | gap 34 | 34: no target record: Statement.CreateExternalModel (34) | 34 |
 | `Statement.Fetch` | Procedural | A | converted 34 | — | 34 |
 | `Clause.CursorDefinition` | Procedural | B | — | — | 32 |
