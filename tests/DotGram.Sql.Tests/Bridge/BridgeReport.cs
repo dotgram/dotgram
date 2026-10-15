@@ -130,6 +130,8 @@ static class BridgeReport
 		- `Statement.Delete.FromOmitted`: `DELETE t` against `DELETE FROM t`.
 		- `ReferencesSpecification.DeleteRuleFirst`: `ON DELETE … ON UPDATE …` against the other order, where both
 		  are written; a delete rule alone is first, as the standard's parser has it.
+		- `Statement.ExecuteModule.Keyword`: `EXEC` against `EXECUTE` before a module; a bare call has neither.
+		- `Statement.ExecuteString.Exec`: `EXEC` against `EXECUTE` before a string run.
 
 		## Prefixed pivot and unpivot names
 

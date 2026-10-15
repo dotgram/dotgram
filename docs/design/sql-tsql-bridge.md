@@ -107,6 +107,8 @@ still applies to it, and only the gate for switching the grammar leaves them out
 - `Statement.Delete.FromOmitted`: `DELETE t` against `DELETE FROM t`.
 - `ReferencesSpecification.DeleteRuleFirst`: `ON DELETE … ON UPDATE …` against the other order, where both
   are written; a delete rule alone is first, as the standard's parser has it.
+- `Statement.ExecuteModule.Keyword`: `EXEC` against `EXECUTE` before a module; a bare call has neither.
+- `Statement.ExecuteString.Exec`: `EXEC` against `EXECUTE` before a string run.
 
 ## Prefixed pivot and unpivot names
 
@@ -203,7 +205,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Expression.OdbcEscape.Kind | 1 |
 | ByCase Expression.Prefixed.Word | 23 |
 | ByCase Expression.Quantified.Quantifier | 0 |
-| ByCase Expression.RoutineInvocation.Name | 117 |
+| ByCase Expression.RoutineInvocation.Name | 118 |
 | ByCase Expression.RoutineInvocation.Word | 114 |
 | ByCase Expression.WindowFunction.Within | 16 |
 | ByCase Query.Specification.Quantifier | 5 |
@@ -252,6 +254,8 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Recovered SelectColumn.ExpressionItem.AsKeyword | 386 |
 | Recovered Statement.Delete.FromOmitted | 83 |
 | Recovered Statement.DropRoutine.Proc | 24 |
+| Recovered Statement.ExecuteModule.Keyword | 74 |
+| Recovered Statement.ExecuteString.Exec | 22 |
 | Recovered Statement.SetTransaction.Tran | 23 |
 | Recovered WindowReference.NameRef against (name) | 14 |
 
@@ -295,7 +299,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateProcedure` | Routines | B | gap 279 | 279: needs decision: inventory Statement.CreateProcedure (279) | 279 |
 | `Clause.Connection` | Tables | C | — | — | 270 |
 | `Statement.EndpointDefinition` | Server | C | gap 249 | 249: no target record: Statement.CreateEndpoint (249) | 249 |
-| `Statement.Insert` | Dml | A | converted 187, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
+| `Statement.Insert` | Dml | A | converted 192, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
 | `Expression.Measured` | Values | C | — | 190: target exists, no writer arm: Expression.Measured (190) | 234 |
 | `Statement.AlterDatabaseSet` | Database | C | gap 218 | 218: no target record: Statement.AlterDatabase (218) | 218 |
 | `Expression.Add` | Values | A | — | — | 198 |
@@ -316,7 +320,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateDatabase` | Database | C | gap 154 | 154: no target record: Statement.CreateDatabase (154) | 154 |
 | `Clause.Set` | Dml | B | — | — | 151 |
 | `Statement.AlterIndex` | Tables | C | converted 134, gap 14 | 14: needs decision: inventory Statement.AlterIndex (a selective XML index's paths) (14) | 148 |
-| `Statement.Execute` | Routines | B | gap 139 | 147: needs decision: inventory Statement.Execute (147) | 147 |
+| `Statement.Execute` | Routines | B | converted 126, gap 13 | 15: needs decision: Trees.FreeText (Statement.Execute.Tail, written otherwise than the writer prints it) (8); needs decision: needs decision: EXECUTE name alone is also the standard's EXECUTE of a prepared statement (shape) (7) | 147 |
 | `Clause.References` | Tables | A | — | — | 145 |
 | `Statement.Return` | Procedural | A | converted 3 | — | 145 |
 | `Statement.Update` | Dml | A | converted 114 | — | 140 |
@@ -561,7 +565,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.SetCursor` | Procedural | C | converted 6 | — | 6 |
 | `Statement.Shutdown` | Server | C | gap 6 | 6: no target record: Statement.Shutdown (6) | 6 |
 | `Statement.While` | Procedural | C | converted 6 | — | 6 |
-| `Query.FromExecute` | Dml | C | gap 5 | 5: no target record: InsertSource.Execute (inventory Query.FromExecute) (5) | 5 |
+| `Query.FromExecute` | Routines | C | — | 5: needs decision: inventory Query.FromExecute (outside an INSERT) (5) | 5 |
 | `SetExpression.Transactions.Switch` | Procedural | C | — | — | 5 |
 | `Statement.AlterColumnEncryptionKey` | Security | C | gap 5 | 5: no target record: Statement.AlterColumnEncryptionKey (5) | 5 |
 | `Statement.AlterDatabaseModifyFile` | Database | C | gap 5 | 5: target exists, no writer arm: AlterDatabaseAction.ModifyFile (5) | 5 |

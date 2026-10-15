@@ -154,6 +154,8 @@ static partial class Bridge
 		"Statement.SetTransaction.Tran",
 		"Statement.Delete.FromOmitted",
 		"ReferencesSpecification.DeleteRuleFirst",
+		"Statement.ExecuteModule.Keyword",
+		"Statement.ExecuteString.Exec",
 	];
 
 	/// <summary>

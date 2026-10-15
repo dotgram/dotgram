@@ -361,6 +361,9 @@ public sealed class Sql2023WriterCoverageTests
 		},
 		// Drop: the DROP family (SqlAst.TransactSql.Drop.cs).
 		[typeof(EventScope)]         = v => new Statement.DropEventSession(new Identifier("s"), (EventScope)v),
+		// Routines: EXECUTE's word, and the word that passes a variable back.
+		[typeof(ExecuteKeyword)]     = v => new Statement.ExecuteModule(new ModuleReference.Named(T), []) { Keyword = (ExecuteKeyword)v },
+		[typeof(OutputKeyword)]      = v => new Statement.ExecuteModule(new ModuleReference.Named(T), [new ExecuteArgument(new Expression.Variable(new Identifier("@a"))) { Output = (OutputKeyword)v }]) { Keyword = ExecuteKeyword.Exec },
 	};
 
 	/// <summary>
@@ -661,6 +664,10 @@ public sealed class Sql2023WriterCoverageTests
 			["Table.AsKeyword"] = (
 				new Statement.DeclareVariables([new VariableDeclaration.Table(new Identifier("@t"), [new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [], null))])]),
 				new Statement.DeclareVariables([new VariableDeclaration.Table(new Identifier("@t"), [new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [], null))]) { AsKeyword = true }])),
+			// Routines: EXEC written for EXECUTE before a string run.
+			["ExecuteString.Exec"] = (
+				new Statement.ExecuteString(new LiteralValue.String("'SELECT 1'", StringLiteralKind.Character), []),
+				new Statement.ExecuteString(new LiteralValue.String("'SELECT 1'", StringLiteralKind.Character), []) { Exec = true }),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

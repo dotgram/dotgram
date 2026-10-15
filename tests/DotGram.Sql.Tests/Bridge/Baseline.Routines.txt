@@ -6,6 +6,7 @@
 
 Clause.ExecutionContext = 0/0/0/0/0/0/0
 Clause.ParameterDeclaration = 0/0/0/0/0/0/0
+Query.FromExecute = 0/0/0/0/0/0/0
 Statement.AggregateDefinition = 0/18/0/0/0/0/0
 Statement.AlterXmlSchemaCollection = 0/8/0/0/0/0/0
 Statement.AssemblyDefinition = 0/44/0/0/0/0/0
@@ -13,7 +14,7 @@ Statement.CreateFunction = 0/181/0/0/0/0/0
 Statement.CreateProcedure = 0/279/0/0/0/0/0
 Statement.CreateTrigger = 0/62/0/0/0/0/0
 Statement.DefaultDefinition = 0/16/0/0/0/0/0
-Statement.Execute = 0/139/0/0/0/0/0
+Statement.Execute = 126/13/0/0/0/0/0
 Statement.RuleDefinition = 0/20/0/0/0/0/0
 Statement.TriggerSwitch = 0/45/0/0/0/0/0
 Statement.XmlSchemaCollectionDefinition = 0/11/0/0/0/0/0

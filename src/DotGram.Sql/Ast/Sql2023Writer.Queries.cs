@@ -1557,8 +1557,10 @@ public static partial class Sql2023Writer
 						Word("VALUES");
 						Each(values.Rows, PutRow);
 					}
-					else
-						PutInsertQuery(((InsertSource.Subquery)insert.SourceValue).Query);
+					else if (insert.SourceValue is InsertSource.Subquery subquery)
+						PutInsertQuery(subquery.Query);
+					else if (!TryPutTransactSql(insert.SourceValue))
+						throw Unwritten(insert.SourceValue);
 
 					PutQueryHints(insert.Hints);
 					break;
