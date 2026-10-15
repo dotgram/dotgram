@@ -317,6 +317,15 @@ static class BridgeOracle
 
 			if (node is Statement.Insert { Rows: Query.DefaultValues or Query.FromFile or Query.FromStream } insert)
 				parts.Add(insert.Rows);
+
+			// A signature's signers are carried with it as signers, never alone as values.
+			if (node is Statement.AddSignature add)
+				foreach (var one in add.By)
+					parts.Add(one);
+
+			if (node is Statement.DropSignature drop)
+				foreach (var one in drop.Names)
+					parts.Add(one);
 		}
 
 		foreach (var node in Trees.Nodes(old))

@@ -117,6 +117,7 @@ still applies to it, and only the gate for switching the grammar leaves them out
 - `Statement.ExecuteAs.Exec`: `EXEC AS` against `EXECUTE AS`.
 - `RoutineDefinition.Unbracketed`: a procedure's parameters without their brackets, `CREATE PROCEDURE p @a INT AS …`.
 - `RoutineDefinition.AsOmitted`: a function's body or inline RETURN with no AS before it.
+- `Statement.Classification.Options`: the names of ADD SENSITIVITY CLASSIFICATION's options and the RANK word, as written (the old tree upper-cases them).
 
 ## Prefixed pivot and unpivot names
 
@@ -311,6 +312,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Recovered RoutineDefinition.Proc | 246 |
 | Recovered RoutineDefinition.Unbracketed | 70 |
 | Recovered SelectColumn.ExpressionItem.AsKeyword | 403 |
+| Recovered Statement.Classification.Options | 5 |
 | Recovered Statement.Delete.FromOmitted | 85 |
 | Recovered Statement.DropRoutine.Proc | 24 |
 | Recovered Statement.ExecuteAs.Exec | 20 |
@@ -329,7 +331,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | Old record | Family | Category | Counted | Gaps | Occurrences |
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9361 |
-| `Expression.ColumnReference` | Values | B | — | 139: needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7); needs decision: inventory cross-cutting gaps, identifier styles (a name part `READ COMMITTED`) (6) | 9237 |
+| `Expression.ColumnReference` | Values | B | — | 103: needs decision: inventory cross-cutting gaps, identifier styles (a name part `READ COMMITTED`) (6); needs decision: inventory cross-cutting gaps, identifier styles (a name part `REPEATABLE READ`) (6) | 9237 |
 | `Clause.Option` | Tables | C | gap 144 | 144: needs decision: inventory Clause.Option (a bracketed list of values) (34); needs decision: inventory Clause.Option (a bracketed list after =) (21) | 6517 |
 | `Clause.ColumnDefinition` | Tables | B | gap 116 | 116: needs decision: inventory DataType (`decimal(max)`: a word in the brackets of a type) (24); needs decision: inventory Clause.ConstraintDefinition (a default added WITH VALUES) (11) | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3369 |
@@ -517,7 +519,11 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Plus` | Values | A | — | — | 17 |
 | `Statement.AlterPartitionFunction` | Database | C | converted 6, gap 11 | 11: needs decision: Trees.FreeText (Statement.AlterPartitionFunction.Tail, written otherwise than the writer prints it) (11) | 17 |
 | `Statement.BackupCertificate` | Database | C | converted 14, gap 3 | 3: needs decision: Trees.FreeText (Statement.BackupCertificate.Tail, written otherwise than the writer prints it) (3) | 17 |
-| `Statement.Classification` | Security | C | converted 17 | — | 17 |
+| `Statement.Classification` | Security | C | converted 5, gap 12 | 12: needs decision: inventory Statement.Classification (`ADD SENSITIVITY CLASSIFICATION TO
+    T1.C1, DBO.T1.C3
+    WITH (LABEL = 'Highly Confidential', LABEL_ID = '90b059b2-53a3-465d-a2bb-224ca685d7bd', INFORMATION_TYPE = 'Financial', INFORMATION_TYPE_ID = '24431cb7-a3b7-475d-ac04-47b00836fea0', RANK = HIGH);` after the name) (3); needs decision: inventory Statement.Classification (`ADD SENSITIVITY CLASSIFICATION TO
+    T1.C1, T1.C2, DBO.T1.C3
+    WITH (LABEL = 'Highly Confidential', INFORMATION_TYPE = 'Financial');` after the name) (3) | 17 |
 | `Statement.DropTable` | Drop | B | converted 16 | — | 17 |
 | `Statement.EventNotificationDefinition` | Monitoring | C | gap 17 | 17: no target record: Statement.CreateEventNotification (17) | 17 |
 | `Statement.Receive` | Broker | C | gap 13 | 17: no target record: Statement.Receive (17) | 17 |

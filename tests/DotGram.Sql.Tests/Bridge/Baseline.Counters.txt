@@ -124,6 +124,7 @@ Recovered RoutineDefinition.AsOmitted = 174
 Recovered RoutineDefinition.Proc = 246
 Recovered RoutineDefinition.Unbracketed = 70
 Recovered SelectColumn.ExpressionItem.AsKeyword = 403
+Recovered Statement.Classification.Options = 5
 Recovered Statement.Delete.FromOmitted = 85
 Recovered Statement.DropRoutine.Proc = 24
 Recovered Statement.ExecuteAs.Exec = 20
