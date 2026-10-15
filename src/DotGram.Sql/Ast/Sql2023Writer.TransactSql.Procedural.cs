@@ -52,7 +52,7 @@ public static partial class Sql2023Writer
 						Unnested(@if, "Else", branch);
 
 					Word("IF");
-					PutExpression(@if.Condition);
+					PutCondition(@if, @if.Condition);
 					PutStatement(@if.Then);
 
 					if (@if.Else is { } other)
@@ -67,7 +67,7 @@ public static partial class Sql2023Writer
 				case Statement.While loop:
 					Unnested(loop, "Body", loop.Body);
 					Word("WHILE");
-					PutExpression(loop.Condition);
+					PutCondition(loop, loop.Condition);
 					PutStatement(loop.Body);
 					return true;
 

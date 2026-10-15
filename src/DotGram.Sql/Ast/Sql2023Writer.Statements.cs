@@ -300,7 +300,7 @@ public static partial class Sql2023Writer
 					PutName(assertion.Name);
 					Word("CHECK");
 					Open();
-					PutExpression(assertion.Condition);
+					PutCondition(assertion, assertion.Condition);
 					Close();
 					PutCharacteristics(assertion.Characteristics);
 					break;
@@ -1011,7 +1011,7 @@ public static partial class Sql2023Writer
 						Word("NOT FOR REPLICATION");
 
 					Open();
-					PutExpression(check.Condition);
+					PutCondition(check, check.Condition);
 					Close();
 					break;
 
@@ -1575,7 +1575,7 @@ public static partial class Sql2023Writer
 			{
 				Word("WHEN");
 				Open();
-				PutExpression(when);
+				PutCondition(action, when);
 				Close();
 			}
 

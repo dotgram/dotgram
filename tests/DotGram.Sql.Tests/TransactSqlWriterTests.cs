@@ -254,4 +254,148 @@ public sealed class TransactSqlWriterTests
 
 		Assert.Equal(text, TransactSqlWriter.Write(tree));
 	}
+
+	// ── Condition against value ──────────────────────────────────────────────────
+
+	/// <summary>The condition every row's text holds at its place, <c>@a = 1</c>, and the value put in its stead, <c>@a</c>.</summary>
+	static readonly Expression Marker = new Expression.Comparison(new Expression.Variable(Plain("@a")), ComparisonOperator.Equal, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger));
+
+	static readonly Expression Value = new Expression.Variable(Plain("@a"));
+
+	/// <summary>
+	/// A tree with every node equal to <paramref name="from"/> replaced by <paramref name="to"/>: a record copied through its
+	/// clone and its properties set, a list rebuilt item by item.
+	/// </summary>
+	static object Swap(object node, object from, object to)
+	{
+		if (node.Equals(from))
+			return to;
+
+		var type = node.GetType();
+
+		if (type.Namespace != typeof(Statement).Namespace || !type.IsClass || type.GetMethod("<Clone>$") is not { } clone)
+			return node;
+
+		var copy = clone.Invoke(node, null)!;
+
+		foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+		{
+			if (!property.CanWrite || property.GetIndexParameters().Length > 0 || property.GetValue(node) is not { } value)
+				continue;
+
+			if (value is ISqlNode)
+				property.SetValue(copy, Swap(value, from, to));
+			else if (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(SqlList<>))
+			{
+				var item  = property.PropertyType.GetGenericArguments()[0];
+				var items = ((System.Collections.IEnumerable)value).Cast<object>().Select(one => Swap(one, from, to)).ToArray();
+				var typed = Array.CreateInstance(item, items.Length);
+
+				Array.Copy(items, typed, items.Length);
+				property.SetValue(copy, typeof(SqlList).GetMethod(nameof(SqlList.From))!.MakeGenericMethod(item).Invoke(null, [typed]));
+			}
+		}
+
+		return copy;
+	}
+
+	static ISqlNode Read(string text)
+	{
+		return Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+	}
+
+	/// <summary>
+	/// Every place T-SQL reads a search condition at writes it through PutCondition: the condition is written and read
+	/// back; a value in its place is refused (Msg 4145, "An expression of non-boolean type specified in a context where a
+	/// condition is expected"), and Sql2023Writer.Write, which has no such check, writes it.
+	/// </summary>
+	[Theory]
+	[InlineData("IF @a = 1 PRINT 1")]
+	[InlineData("WHILE @a = 1 BREAK")]
+	[InlineData("SELECT a FROM t WHERE @a = 1")]
+	[InlineData("SELECT a FROM t GROUP BY a HAVING @a = 1")]
+	[InlineData("SELECT a FROM t INNER JOIN u ON @a = 1")]
+	[InlineData("SELECT CASE WHEN @a = 1 THEN 2 END")]
+	[InlineData("SELECT IIF(@a = 1, 2, 3)")]
+	[InlineData("CREATE TABLE t (a INT, CHECK (@a = 1))")]
+	[InlineData("CREATE INDEX i ON t (a) WHERE @a = 1")]
+	[InlineData("CREATE STATISTICS s ON t (a) WHERE @a = 1")]
+	[InlineData("CREATE RULE r AS @a = 1")]
+	[InlineData("MERGE INTO t USING u ON @a = 1 WHEN MATCHED THEN DELETE")]
+	[InlineData("MERGE INTO t USING u ON t.a = u.a WHEN MATCHED AND @a = 1 THEN DELETE")]
+	[InlineData("DELETE FROM t WHERE @a = 1")]
+	[InlineData("UPDATE t SET a = 1 WHERE @a = 1")]
+	public void A_condition_place_writes_a_condition_and_refuses_a_value(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+
+		var swapped = (ISqlNode)Swap(tree, Marker, Value);
+
+		Assert.NotEqual(tree, swapped);
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(swapped));
+		Assert.NotEmpty(Sql2023Writer.Write(swapped));
+	}
+
+	/// <summary>
+	/// A condition where T-SQL reads a value is refused: a SET's value, a select column, a comparison's operand, PRINT's
+	/// value (each read by ValueExpression, which reads no predicate); the value itself is written and read back.
+	/// </summary>
+	[Theory]
+	[InlineData("SET @v = @a")]
+	[InlineData("SELECT @a")]
+	[InlineData("SELECT a FROM t WHERE @a = 2")]
+	[InlineData("PRINT @a")]
+	public void A_value_place_refuses_a_condition(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+
+		var swapped = (ISqlNode)Swap(tree, Value, Marker);
+
+		Assert.NotEqual(tree, swapped);
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(swapped));
+	}
+
+	/// <summary>A hand-built IF whose condition is AND, OR, NOT and brackets of conditions, written and read back.</summary>
+	[Fact]
+	public void A_logical_condition_is_written_and_read_back()
+	{
+		var a   = new Expression.Variable(Plain("@a"));
+		var one = new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger);
+		var tree = new Statement.If(
+			new Expression.Binary(
+				new Expression.Unary(UnaryOperator.Not, new Expression.Comparison(a, ComparisonOperator.Equal, one)),
+				BinaryOperator.Or,
+				new Expression.Parenthesized(new Expression.Binary(new Expression.IsNull(a, true), BinaryOperator.And, new Expression.Exists(new Query.Select { Columns = [new SelectColumn.ExpressionItem(one)] })))),
+			new Statement.Print(one),
+			null);
+		var text = TransactSqlWriter.Write(tree);
+
+		Assert.Equal("IF NOT @a = 1 OR (@a IS NOT NULL AND EXISTS (SELECT 1)) PRINT 1", text);
+		Assert.Equal(tree, Read(text));
+	}
+
+	/// <summary>
+	/// AND and NOT of values, and a bracket of a value, where a condition stands, are refused (Msg 4145); the standard's
+	/// writer still writes a predicate as a select column.
+	/// </summary>
+	[Fact]
+	public void A_logical_operator_over_values_is_refused()
+	{
+		var a   = new Expression.Variable(Plain("@a"));
+		var one = new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger);
+		var print = new Statement.Print(one);
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(new Statement.If(new Expression.Binary(a, BinaryOperator.And, one), print, null)));
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(new Statement.If(new Expression.Unary(UnaryOperator.Not, a), print, null)));
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(new Statement.If(new Expression.Parenthesized(a), print, null)));
+
+		var select = new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.Comparison(new Expression.Reference(Q(Plain("a"))), ComparisonOperator.Greater, one))] } };
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(select));
+		Assert.Equal("SELECT a > 1", Sql2023Writer.Write(select));
+	}
 }
