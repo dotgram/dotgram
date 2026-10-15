@@ -1262,6 +1262,8 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			counters["ByCase " + member] = 0;
 
 		counters["ByCase " + Trees.DatePartWord] = 0;
+		counters["ByCase " + Trees.DropIndexName] = 0;
+		counters["ByCase " + Trees.SignerName] = 0;
 
 		foreach (var member in Bridge.Recoverable)
 			counters["Recovered " + member] = 0;

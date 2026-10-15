@@ -76,7 +76,7 @@ static class BridgeReport
 		and `Collation` and no collation inside its type, and every PRIMARY KEY and UNIQUE for empty `Columns`
 		(`BridgeOracle.Unprojected`). A tree in the standard's form there is counted **different**.
 
-		Every place the two trees differ is then collected. A difference inside one of twelve subtrees, found by its
+		Every place the two trees differ is then collected. A difference inside one of thirteen subtrees, found by its
 		construct and never by the statement's text, is the two dialects reading the text with different meanings,
 		and is exempted (`BridgeOracle.Meaning`); any other difference makes the statement a **shape** mismatch.
 
@@ -109,6 +109,9 @@ static class BridgeReport
 		  `ColumnDefinition` whose default is an `Expression.Collate`: the default's value against the standard's,
 		  which must be the collated value, and the column's `Collation`, which must be the value's collation. Only
 		  both together are exempted; either alone is a shape mismatch.
+		- `EXECUTE p`: a procedure call in T-SQL, a prepared statement in the standard. The whole statement, where it is
+		  an `ExecuteModule` with the keyword `EXECUTE`, a one-part name and nothing else, and the standard's `Execute`
+		  of the same name with nothing else.
 
 		## Words read from the text
 

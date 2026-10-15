@@ -154,8 +154,8 @@ static partial class Bridge
 				_                           => throw BridgeGap.Open(old, $"inventory Statement.DropTrigger (`{tail}`)"),
 			};
 
-			// The old tree keeps the scope as written and compares it exactly: only one in capitals reads back as itself.
-			if (tail != tail.ToUpperInvariant())
+			// The old tree keeps the scope as written, which compares as the oracle does.
+			if (!Same(old, "Statement.DropTrigger.Tail", scope == Ast.TriggerScope.Database ? "ON DATABASE" : "ON ALL SERVER", tail))
 				throw BridgeGap.Open(old, "Trees.FreeText (Statement.DropTrigger.Tail, a scope not in capitals)");
 
 			return new Ast.Statement.DropTrigger { Names = Names(old with { Tail = null }), IfExists = old.IfExists, On = scope };
@@ -177,8 +177,8 @@ static partial class Bridge
 
 		/// <summary>
 		/// Whether the words given are the tail, or there is none. The old tree keeps the tail as it was written and the
-		/// round trip compares it exactly, so a tail written otherwise than the writer prints it — <c>remove provider
-		/// key</c> — is a gap (open question: the tails in <c>Trees.FreeText</c>).
+		/// round trip compares it as the oracle does, so a tail written otherwise than the writer prints it, beyond the case
+		/// of its key words and its blanks where it is free text, is a gap.
 		/// </summary>
 		static bool Said(Statement.Removal old, string words)
 		{
@@ -188,18 +188,18 @@ static partial class Bridge
 			if (string.Join(" ", Words(tail)) != words)
 				throw BridgeGap.Open(old, $"inventory {NameOf(old)} (`{tail}` after the names)");
 
-			Written(old, tail, words);
+			Written(old, NameOf(old) + ".Tail", tail, words);
 
 			return true;
 		}
 
 		/// <summary>
-		/// A text the old tree keeps as written, which the round trip compares exactly: where it is written otherwise than
-		/// the writer prints it, the statement is a gap, never a difference.
+		/// A text the old tree keeps as written, which the round trip compares as the oracle does (<see cref="Same"/>): where it
+		/// is written otherwise than the writer prints it, the statement is a gap, never a difference.
 		/// </summary>
-		static void Written(object old, string text, string written)
+		static void Written(object old, string member, string text, string written)
 		{
-			if (text != written)
+			if (!Same(old, member, written, text))
 				throw BridgeGap.Open(old, $"inventory {NameOf(old)} (`{text}` kept as written, against `{written}` as the writer prints it, which the old tree compares exactly)");
 		}
 
@@ -235,7 +235,7 @@ static partial class Bridge
 			if (tokens is not [{ Kind: SqlTokens.Kind.Word, Text: var word }, { Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited } owner] || !word.Equals("AUTHORIZATION", StringComparison.OrdinalIgnoreCase))
 				throw BridgeGap.Open(old, $"inventory {NameOf(old)} (`{tail}` after the name)");
 
-			Written(old, tail, "AUTHORIZATION " + owner.Text);
+			Written(old, NameOf(old) + ".Tail", tail, "AUTHORIZATION " + owner.Text);
 
 			return Values.Part(old, owner.Text);
 		}
@@ -252,7 +252,7 @@ static partial class Bridge
 				_             => throw BridgeGap.Open(old, $"inventory Statement.DropEventSession (`{old.Tail}`)"),
 			};
 
-			Written(old, old.Tail!, scope);
+			Written(old, NameOf(old) + ".Tail", old.Tail!, scope);
 
 			return made;
 		}
@@ -266,17 +266,17 @@ static partial class Bridge
 			switch (words)
 			{
 				case ["ON", "SERVER"]:
-					Written(old, old.Tail!, "ON SERVER");
+					Written(old, NameOf(old) + ".Tail", old.Tail!, "ON SERVER");
 
 					return new Ast.NotificationScope.Server();
 
 				case ["ON", "DATABASE"]:
-					Written(old, old.Tail!, "ON DATABASE");
+					Written(old, NameOf(old) + ".Tail", old.Tail!, "ON DATABASE");
 
 					return new Ast.NotificationScope.Database();
 
 				case ["ON", "QUEUE", ..] when Dotted(tokens.Skip(2)) is { } queue:
-					Written(old, old.Tail!, "ON QUEUE " + queue);
+					Written(old, NameOf(old) + ".Tail", old.Tail!, "ON QUEUE " + queue);
 
 					return new Ast.NotificationScope.Queue(Values.Name(old, queue));
 
@@ -327,7 +327,7 @@ static partial class Bridge
 				}
 			}
 
-			Written(old, text, $"{name.Text} ON {table}" + (with < 0 ? "" : $" WITH ({string.Join(", ", written)})"));
+			Written(old, Trees.DropIndexName, text, $"{name.Text} ON {table}" + (with < 0 ? "" : $" WITH ({string.Join(", ", written)})"));
 
 			return new Ast.DroppedIndex.Named(Values.Part(old, name.Text), Values.Name(old, table), options.ToSqlList());
 		}
@@ -479,7 +479,7 @@ static partial class Bridge
 
 			var dotted = Dotted(name) ?? throw BridgeGap.Open(old, $"inventory Statement.DropSignature (`{old.From}`)");
 
-			Written(old, old.From!, kind is null ? dotted : $"{module[0].Text.ToUpperInvariant()}::{dotted}");
+			Written(old, "Statement.DropSignature.From", old.From!, kind is null ? dotted : $"{module[0].Text.ToUpperInvariant()}::{dotted}");
 
 			var by = Each(old.Names, one =>
 			{
@@ -495,7 +495,7 @@ static partial class Bridge
 					_ => throw BridgeGap.Open(old, $"inventory Statement.DropSignature (`{text}`, a proof, a symmetric key or a password, which SignedBy has no member for)"),
 				};
 
-				Written(old, text, signed is Ast.SignedBy.Certificate ? $"CERTIFICATE {tokens[1].Text}" : $"ASYMMETRIC KEY {tokens[2].Text}");
+				Written(old, Trees.SignerName, text, signed is Ast.SignedBy.Certificate ? $"CERTIFICATE {tokens[1].Text}" : $"ASYMMETRIC KEY {tokens[2].Text}");
 
 				return signed;
 			});

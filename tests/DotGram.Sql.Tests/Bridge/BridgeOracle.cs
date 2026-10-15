@@ -345,7 +345,7 @@ static class BridgeOracle
 	}
 
 	/// <summary>
-	/// The twelve constructs the two dialects read with different meanings. Each exempts one subtree of the
+	/// The thirteen constructs the two dialects read with different meanings. Each exempts one subtree of the
 	/// bridge's tree, found by its construct and never by the statement's text:
 	/// <list type="bullet">
 	/// <item><c>TOP (n) a</c> is a row count in T-SQL, and the standard reads a call to <c>TOP</c> aliased <c>a</c>:
@@ -375,6 +375,9 @@ static class BridgeOracle
 	/// standard: the statement's <c>Target</c>.</item>
 	/// <item><c>c t DEFAULT v COLLATE x</c> collates the default value in T-SQL, and the column in the standard: the
 	/// <c>ColumnDefinition</c> whose default is an <c>Expression.Collate</c>.</item>
+	/// <item><c>EXECUTE p</c> calls a procedure in T-SQL, and runs a prepared statement in the standard: the whole
+	/// statement, an <c>ExecuteModule</c> with the keyword EXECUTE, a one-part name and nothing else, against the
+	/// standard's <c>Execute</c> of that name with nothing else.</item>
 	/// </list>
 	/// A difference outside every exempted subtree is unexplained, and makes the statement a shape mismatch.
 	/// </summary>
@@ -419,14 +422,35 @@ static class BridgeOracle
 	public const string Named    = "SELECT x = a: an alias in T-SQL, a comparison in the standard";
 	public const string Only     = "UPDATE ONLY (t): a call to a function ONLY in T-SQL, the table t alone in the standard";
 	public const string Collated = "c t DEFAULT v COLLATE x: the default's collation in T-SQL, the column's in the standard";
+	public const string Execute  = "EXECUTE p: a procedure call in T-SQL, a prepared statement in the standard";
 
-	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName, GroupAll, Into, Option, Named, Only, Collated];
+	public static readonly string[] Patterns = [Top, SetTc, Global, FullText, DatePart, TypeName, GroupAll, Into, Option, Named, Only, Collated, Execute];
+
+	/// <summary>
+	/// The call, where T-SQL's tree is <c>EXECUTE p</c> and nothing else and the standard's runs the prepared statement
+	/// <c>p</c> and nothing else; or null.
+	/// </summary>
+	static Ast.Statement.ExecuteModule? Called(object? left, object? right)
+	{
+		if (left is not Ast.Statement.ExecuteModule { Module: Ast.ModuleReference.Named { Name.Parts: [var name] } } call || right is not Ast.Statement.Execute prepared)
+			return null;
+
+		var alone    = new Ast.Statement.ExecuteModule(new Ast.ModuleReference.Named(new Ast.QualifiedName([name])), []) { Keyword = Ast.ExecuteKeyword.Execute };
+		var standard = new Ast.Statement.Execute { Statement = new Ast.StatementReference(name) };
+
+		return call.Equals(alone) && prepared.Equals(standard) ? call : null;
+	}
 
 	/// <summary>
 	/// The pattern whose subtree a difference lies in, and the node at the subtree's root, or null.
 	/// </summary>
 	static (string Pattern, object Subtree)? Exempting(Trees.Diff difference)
 	{
+		// EXECUTE p: the whole statement, a call of a one-part name with nothing else set, where the standard runs the
+		// prepared statement of that name with nothing else.
+		if (difference.Path is [] && Called(difference.Left, difference.Right) is { } call)
+			return (Execute, call);
+
 		// Two patterns are of one node each, which differs from the standard's in a known way and in no other.
 		if (TypeNamed(difference) || DateParted(difference))
 			return (TypeNamed(difference) ? TypeName : DatePart, difference.Left!);

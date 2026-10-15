@@ -103,11 +103,6 @@ static partial class Bridge
 			var keyword = old.Bare ? (Ast.ExecuteKeyword?)null
 				: Recover("Statement.ExecuteModule.Keyword", spelled, static text => Words(text) is ["EXEC", ..] ? Ast.ExecuteKeyword.Exec : Ast.ExecuteKeyword.Execute, Ast.ExecuteKeyword.Execute);
 
-			// SQL:2023 reads `EXECUTE name` alone as its EXECUTE of a prepared statement: another meaning, not one tree.
-			if (inside is null && keyword == Ast.ExecuteKeyword.Execute && module is Ast.ModuleReference.Named { DataSource: null }
-				&& old is { Arguments.Length: 0, Into: null, Number: null, At: null, Tail: null })
-				throw BridgeGap.Open(old, "EXECUTE name alone is also the standard's EXECUTE of a prepared statement (shape)");
-
 			return new Ast.Statement.ExecuteModule(module, Each(old.Arguments, one => ExecuteArgument(old, one)))
 			{
 				Keyword      = keyword,
@@ -504,8 +499,8 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// A statement made of a tail the old tree keeps as written and compares exactly: only one whose text, written and
-		/// read again, keeps the same tail carries over.
+		/// A statement made of a tail the old tree keeps as written and compares as the oracle does: only one whose text,
+		/// written and read again, keeps the same tail carries over.
 		/// </summary>
 		static Ast.Statement Checked(Statement.Definition old, Ast.Statement made)
 		{
@@ -520,7 +515,8 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] } && tail == old.Tail
+			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] }
+				&& (tail == old.Tail || tail is not null && old.Tail is not null && Same(old, NameOf(old) + ".Tail", tail, old.Tail))
 				? made
 				: throw BridgeGap.Open(old, $"Trees.FreeText ({NameOf(old)}.Tail, written otherwise than the writer prints it)");
 		}
@@ -642,13 +638,14 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// A type the old tree keeps as written and compares exactly: only one written as the writer prints it carries over.
+		/// A type the old tree keeps as written and compares as the oracle does: only one written as the writer prints it,
+		/// token by token where the member is free text, carries over.
 		/// </summary>
 		static Ast.DataType Printed(Statement old, string text, string member)
 		{
 			var type = Values.Type(old, text);
 
-			return Ast.TransactSqlWriter.Write(type) == text ? type : throw BridgeGap.Open(old, $"Trees.FreeText ({member}, a type written otherwise than the writer prints it)");
+			return Same(old, member, Ast.TransactSqlWriter.Write(type), text) ? type : throw BridgeGap.Open(old, $"Trees.FreeText ({member}, a type written otherwise than the writer prints it)");
 		}
 
 		/// <summary>A returned table's columns, read as CREATE TABLE's body is.</summary>
@@ -793,7 +790,7 @@ static partial class Bridge
 			var made    = options.ToSqlList();
 			var printed = Ast.TransactSqlWriter.Write(new Ast.Statement.ExecuteModule(new Ast.ModuleReference.Named(new Ast.QualifiedName([new Ast.Identifier("p")])), []) { Keyword = Ast.ExecuteKeyword.Exec, Options = made });
 
-			if (printed != "EXEC p " + tail)
+			if (!printed.StartsWith("EXEC p ", StringComparison.Ordinal) || !Same(old, "Statement.Execute.Tail", printed["EXEC p ".Length..], tail))
 				throw BridgeGap.Open(old, "Trees.FreeText (Statement.Execute.Tail, written otherwise than the writer prints it)");
 
 			return made;

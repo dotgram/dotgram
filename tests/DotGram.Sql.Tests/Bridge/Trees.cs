@@ -73,7 +73,44 @@ static class Trees
 		"Clause.Dropped.Tail",
 		"TableReference.Joined.Hint",
 		"SetExpression.Transactions.IsolationLevel.Level",
+		// The writer round's batch: types, routine and module tails, and the tails of the drops, written as the writer
+		// prints them but for the case of their key words and their blanks.
+		"Clause.VariableDeclaration.Type",
+		"Clause.ParameterDeclaration.Type",
+		"Statement.CreateFunction.Returns",
+		"SetExpression.Statistics.Report.Kind",
+		"Statement.RaiseError.Tail",
+		"Statement.Execute.Tail",
+		"Statement.AssemblyDefinition.Tail",
+		"Statement.RuleDefinition.Tail",
+		"Statement.DefaultDefinition.Tail",
+		"Statement.AggregateDefinition.Tail",
+		"Statement.DropAsymmetricKey.Tail",
+		"Statement.DropSymmetricKey.Tail",
+		"Statement.DropAssembly.Tail",
+		"Statement.DropTrigger.Tail",
+		"Statement.DropEventSession.Tail",
+		"Statement.DropEventNotification.Tail",
+		"Statement.DropSignature.From",
 	};
+
+	/// <summary>
+	/// What DROP INDEX's index text counts as among the members compared without the case of key words: the old tree keeps
+	/// <c>i ON t WITH (…)</c> as one column reference's text, which compares so under <c>Statement.DropIndex</c> alone.
+	/// </summary>
+	public const string DropIndexName = "Expression.ColumnReference.Text under Statement.DropIndex";
+
+	/// <summary>
+	/// What DROP SIGNATURE's signer text counts as: the old tree keeps <c>CERTIFICATE c</c> as one column reference's text,
+	/// which compares so under <c>Statement.DropSignature</c> alone.
+	/// </summary>
+	public const string SignerName = "Expression.ColumnReference.Text under Statement.DropSignature";
+
+	/// <summary>Whether a member, or a scoped member above, compares token by token.</summary>
+	public static bool Free(string member)
+	{
+		return FreeText.Contains(member) || member is DropIndexName or SignerName;
+	}
 
 	/// <summary>
 	/// The key words <c>Sql2023Writer</c> prints in capitals where the old tree keeps what was written: the
@@ -112,6 +149,9 @@ static class Trees
 		"IS", "KEY", "LIKE", "LIST", "MANUAL", "MASKED", "MOVE", "NONCLUSTERED", "OR", "PARTITIONS", "PAUSE", "PERSISTED",
 		"POPULATION", "PRIMARY", "PROPERTY", "REFERENCES", "REPLICATION", "RESUME", "ROWGUIDCOL", "SEARCH", "SPARSE",
 		"STATISTICAL_SEMANTICS", "STOP", "STOPLIST", "SYSTEM", "UPDATE", "USING", "WHERE",
+		// The words of the writer round's batch: routine and module tails, the drops' tails, a parameter's OUTPUT.
+		"ASYMMETRIC", "CERTIFICATE", "DATABASE", "DEPENDENTS", "IO", "LOG", "NONE", "NOWAIT", "OBJECT", "OUTPUT", "PROFILE",
+		"PROVIDER", "RECOMPILE", "REMOVE", "RESULT", "SERVER", "SETERROR", "SETS", "UNDEFINED",
 	};
 
 	/// <summary>
@@ -216,12 +256,16 @@ static class Trees
 				continue;
 			}
 
-			if (old && a is string first && b is string second && first != second
-				&& (FreeText.Contains(member) || DatePart(left, path)) && SameTokens(left, member, first, second))
+			if (old && a is string first && b is string second && first != second)
 			{
-				byCase?.Add(FreeText.Contains(member) ? member : DatePartWord);
+				var scoped = FreeText.Contains(member) ? member : DatePart(left, path) ? DatePartWord : Dropped(left, path);
 
-				continue;
+				if (scoped is not null && SameTokens(left, scoped, first, second))
+				{
+					byCase?.Add(scoped);
+
+					continue;
+				}
 			}
 
 			Compare(a, b, [.. path, new Step(left, property.Name, null)], old, byCase, found);
@@ -291,6 +335,22 @@ static class Trees
 		return node is Expression.ColumnReference
 			&& path is [.., { Node: Expression.RoutineInvocation call, Member: "Arguments", Index: 0 }]
 			&& Syntax.IsDatePartFunction(call.Name.ToUpperInvariant());
+	}
+
+	/// <summary>
+	/// The scoped member an old column reference's text counts as where it is an index DROP INDEX names or a signer DROP
+	/// SIGNATURE names, or null: everywhere else a column reference's text compares exactly.
+	/// </summary>
+	static string? Dropped(object node, List<Step> path)
+	{
+		return node is Expression.ColumnReference && path is [.., { Member: "Names", Index: not null } step]
+			? step.Node switch
+			{
+				Statement.DropIndex     => DropIndexName,
+				Statement.DropSignature => SignerName,
+				_                       => null,
+			}
+			: null;
 	}
 
 	/// <summary>
