@@ -187,6 +187,10 @@ public sealed partial class GrammarNormalizer
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
 
+		// Right after lowering, for the same reason as the checks below: it asks about the rules as
+		// the author declared them, before a specialization or a clone is made of any.
+		normalizer.CheckSpacedLexemes();
+
 		// Straight after lowering: whether every route to a reference bound its text is a
 		// question about the routes the author wrote, and every pass below may reshape them.
 		normalizer.CheckBoundTexts();
