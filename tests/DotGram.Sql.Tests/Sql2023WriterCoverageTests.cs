@@ -650,6 +650,10 @@ public sealed class Sql2023WriterCoverageTests
 			["UpdateStatistics.NameUnbracketed"] = (
 				new Statement.UpdateStatistics(T) { Names = [new Identifier("s")] },
 				new Statement.UpdateStatistics(T) { Names = [new Identifier("s")], NameUnbracketed = true }),
+			// Procedural: a natively compiled block's isolation level, written TRAN or TRANSACTION.
+			["Isolation.Tran"] = (
+				new Statement.Compound([new Statement.Break()]) { Atomic = [new AtomicOption.Isolation(IsolationLevel.Snapshot), new AtomicOption.Setting(new Option(new Identifier("LANGUAGE"), new Expression.Reference(new QualifiedName([new Identifier("us_english")])), []))] },
+				new Statement.Compound([new Statement.Break()]) { Atomic = [new AtomicOption.Isolation(IsolationLevel.Snapshot) { Tran = true }, new AtomicOption.Setting(new Option(new Identifier("LANGUAGE"), new Expression.Reference(new QualifiedName([new Identifier("us_english")])), []))] }),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

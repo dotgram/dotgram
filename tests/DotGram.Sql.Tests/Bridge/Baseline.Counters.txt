@@ -4,7 +4,7 @@
 #   Meaning <pattern>   - a difference exempted from the shape check, inside the subtree the pattern names
 # Rewritten deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1.
 
-ByCase Clause.ColumnDefinition.Type = 1488
+ByCase Clause.ColumnDefinition.Type = 1490
 ByCase Clause.Dropped.Tail = 0
 ByCase Clause.For.Kind = 20
 ByCase Clause.For.Options = 44
@@ -65,14 +65,14 @@ Projected a T-SQL column's options as the standard's members = 234
 Projected a key's T-SQL columns as the standard's names = 6
 Recovered Alias.AsKeyword of MERGE's target = 19
 Recovered Alias.AsKeyword of a table source = 931
-Recovered Clause.DerivedColumn alias = expression = 388
+Recovered Clause.DerivedColumn alias = expression = 389
 Recovered Expression.Invocation without brackets = 34
 Recovered Expression.Trim.FromKeyword = 0
 Recovered Limit.FetchRowWord = 23
 Recovered Limit.OffsetRowWord = 26
 Recovered Limit.Position = 23
 Recovered ReferencesSpecification.DeleteRuleFirst = 44
-Recovered SelectColumn.ExpressionItem.AsKeyword = 383
+Recovered SelectColumn.ExpressionItem.AsKeyword = 384
 Recovered Statement.Delete.FromOmitted = 82
 Recovered Statement.DropRoutine.Proc = 24
 Recovered Statement.SetTransaction.Tran = 23
