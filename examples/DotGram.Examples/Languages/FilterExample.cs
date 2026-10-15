@@ -78,14 +78,24 @@ namespace DotGram.Examples.Languages;
 	                // a type — so the one alternative that means absence says so with `null!`.
 	                | "null"       => @((object)null!)
 
-	Number : @object = digits: (['0'..'9']+ & ('.' & ['0'..'9']+)?)
+	// The braces read a number once. Without them a number with no fraction could end before
+	// the space after it or after it — the seam before the optional takes the space, or the
+	// next seam does — two readings of every number, which a refused filter of n of them tried
+	// 2^n times: twenty comparisons took over ten seconds. Committed, the first reading stands,
+	// spaces before a point included, and nothing after a number begins with a point for a
+	// shorter one to be wanted. The text a number keeps may end in that space, which
+	// `decimal.Parse` reads past.
+	Number : @object = digits: { ['0'..'9']+ & ('.' & ['0'..'9']+)? }
 	                     => @(decimal.Parse(digits, CultureInfo.InvariantCulture))
 
 	Text : @object = '\'' & body: Body & '\'' => @(body)
 
 	Body : @string = text: ([^ '\''] | "''")* => @(text.Replace("''", "'"))
 
-	Name : @string = text: { ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '.']* }
+	// `~` and not `&`: braces commit a reading, they do not withhold the seam (docs/syntax.md
+	// §4.5), so with `&` a name took the spaces after its first letter — `a = 1` compared `a `,
+	// and `a bc` was one name.
+	Name : @string = text: { ['a'..'z' | 'A'..'Z' | '_'] ~ ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '.']* }
 	                   => @(text)
 
 	parse Filter

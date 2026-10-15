@@ -2,7 +2,9 @@
 using System.Diagnostics;
 using System.Text;
 
+using DotGram.Examples.Expressions;
 using DotGram.Examples.Formats;
+using DotGram.Examples.Languages;
 
 using Xunit;
 
@@ -40,6 +42,23 @@ public sealed class ExampleBlowUpTests
 		Refused("xml", () => XmlParser.Read("<a>" + new string('t', 64)));
 	}
 
+	/// <remarks>
+	/// A number could end before the space after it or after it, the next seam taking the space
+	/// either way, so a refused text was read two ways per number: twenty took over ten seconds.
+	/// </remarks>
+	[Fact]
+	public void A_filter_of_comparisons_that_never_closes_is_refused_at_once()
+	{
+		Refused("filter", () => Filter.Read(Joined("a = 1", " AND ", 64) + " )"));
+	}
+
+	/// <remarks>The same shape in the calculator's decimal number, `Point`.</remarks>
+	[Fact]
+	public void A_sum_of_decimals_that_never_ends_is_refused_at_once()
+	{
+		Refused("calculator", () => Calculator.EvaluateDecimal(Joined("1", " + ", 64) + " ="));
+	}
+
 	/// <summary>
 	/// Runs it, expects it not to finish, and holds how long it took.
 	/// </summary>
@@ -57,6 +76,16 @@ public sealed class ExampleBlowUpTests
 		Assert.True(
 			watch.Elapsed.TotalSeconds < 5,
 			$"The {what} example took {watch.Elapsed.TotalSeconds:F1} s to refuse 64 of them.");
+	}
+
+	static string Joined(string piece, string separator, int times)
+	{
+		var built = new StringBuilder();
+
+		for (var at = 0; at < times; at++)
+			built.Append(at > 0 ? separator : "").Append(piece);
+
+		return built.ToString();
 	}
 
 	static string Repeated(string piece, int times)

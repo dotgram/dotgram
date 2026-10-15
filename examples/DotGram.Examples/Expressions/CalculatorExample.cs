@@ -40,6 +40,12 @@ namespace DotGram.Examples.Expressions;
 // expression is refused, and only an expression that divides by zero throws, as on the tape,
 // where every construction waits until the parse has accepted — and at the immediate
 // carrier's speed.
+//
+// `Point` is in braces, which read a number once. Without them a number with no fraction
+// could end before the space after it or after it, one seam or the next taking the space:
+// two readings of every number, and a refused `1 + 1 + … =` of sixteen of them took a third
+// of a second, doubling with each more. Nothing after a number begins with a point, so the
+// first reading is the only one wanted, and `1 .5` is still a number.
 
 [Gram("""
 	@using System.Globalization;
@@ -47,7 +53,7 @@ namespace DotGram.Examples.Expressions;
 	trivia = Std.Spacing?
 
 	Value : @int = d: Std.Digits => @(int.Parse(d))
-	Point        = Std.Digits & ('.' & Std.Digits)?
+	Point        = { Std.Digits & ('.' & Std.Digits)? }
 
 	Expr : Value = left: Expr & '+' & right: Expr  << 1 => @(left + right)
 	             | left: Expr & '-' & right: Expr  << 1 => @(left - right)

@@ -1582,6 +1582,16 @@ public sealed class ExampleTests
 			Assert.IsType<Compare>(Filter.Read("Note = 'it''s'")).Value);
 	}
 
+	[Fact]
+	public void And_a_name_is_its_characters_without_the_space_after_them()
+	{
+		// A name of one letter took the space after it, the seam between its first character
+		// and the rest standing inside its braces, and a space between letters was part of it.
+		Assert.Equal("a", Assert.IsType<Compare>(Filter.Read("a = 1")).Field);
+		Assert.Equal("a", Assert.IsType<Truth>(Filter.Read("a ")).Field);
+		Assert.ThrowsAny<Exception>(() => Filter.Read("a bc = 1"));
+	}
+
 	// ── FIX ──────────────────────────────────────────────────────────────────────
 
 	const string Order = "8=FIX.4.4|9=65|35=D|49=SENDER|56=TARGET|11=ORD1|55=AAPL|54=1|38=100|44=150.25|10=040|";
