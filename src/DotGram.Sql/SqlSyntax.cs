@@ -4361,6 +4361,26 @@ public static class Syntax
 		Array.Exists(parameters, static one => one is Clause.ParameterDeclaration(_, "CURSOR", _, _, _, _));
 	}
 
+	/// <summary>Whether a routine's parameters hand a value out, which a function may not.</summary>
+	public static bool HasOutputParameter(Clause[]? parameters)
+	{
+		return parameters is not null &&
+		Array.Exists(parameters, static one => one is Clause.ParameterDeclaration { Ways: { } ways }
+			&& ways.Any(static way => way is "OUTPUT" or "OUT"));
+	}
+
+	/// <summary>Whether a trigger's events are of the kind its time takes: <c>INSTEAD OF</c> takes statements alone.</summary>
+	public static bool Fired(string time, string[] events)
+	{
+		return time != "INSTEAD OF" || events.All(static one => one is "INSERT" or "UPDATE" or "DELETE");
+	}
+
+	/// <summary>Whether no word of a list is repeated.</summary>
+	public static bool Distinct(string first, string[]? rest)
+	{
+		return Listed(first, rest).Distinct(StringComparer.Ordinal).Count() == 1 + (rest?.Length ?? 0);
+	}
+
 	/// <summary>Whether a name was written bare, rather than in brackets or quotes.</summary>
 	public static bool IsBare(string? name)
 	{

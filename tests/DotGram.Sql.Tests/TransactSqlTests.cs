@@ -11224,7 +11224,6 @@ public sealed class TransactSqlTests
 	[InlineData("SAVE TRANSACTION -100:a.b")]
 	[InlineData("SAVE TRANSACTION 5 : a.b")]
 	[InlineData("SAVE TRANSACTION 5:[a].[b]")]
-	[InlineData("SAVE TRANSACTION 1.5:a.b")]
 	[InlineData("SAVE TRAN 5:a.b")]
 	[InlineData("BEGIN TRANSACTION 5:a.b")]
 	[InlineData("COMMIT TRANSACTION 5:a.b")]
@@ -13392,6 +13391,109 @@ public sealed class TransactSqlTests
 	[InlineData("OPEN mastery")]
 	[InlineData("OPEN keys")]
 	public void Cursors_read_what_the_engine_does(string input)
+	{
+		var match = TransactSqlParser.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
+	/// A THROW of one, two or four values, a database named in two parts, a RAISERROR without
+	/// brackets, a transaction number that is not whole, a trigger whose events are of two kinds
+	/// or of the wrong kind for its target, and a parameter or a function that says too much:
+	/// each is a syntax error to the engine, at every compatibility level.
+	/// </summary>
+	[Theory]
+	[InlineData("THROW 50001")]
+	[InlineData("THROW 50001, 'm'")]
+	[InlineData("THROW 50001, 'm', 1, 2")]
+	[InlineData("THROW 1, 'a', 1, 2, 3")]
+	[InlineData("USE master.dbo")]
+	[InlineData("USE [master].[dbo]")]
+	[InlineData("RAISERROR 'm', 16, 1")]
+	[InlineData("RAISERROR 50001")]
+	[InlineData("RAISERROR 50001, 'm'")]
+	[InlineData("RAISERROR 'm', 16, 1 WITH NOWAIT")]
+	[InlineData("ROLLBACK TRAN 1.5:a.b")]
+	[InlineData("SAVE TRANSACTION 1.5:a.b")]
+	[InlineData("BEGIN TRAN -5.0:a.b")]
+	[InlineData("BEGIN TRAN 5.:a.b")]
+	[InlineData("COMMIT TRAN 1e2:a.b")]
+	[InlineData("BEGIN TRAN +5:a.b")]
+	[InlineData("BEGIN TRAN -0x5:a.b")]
+	[InlineData("BEGIN TRAN -5:a")]
+	[InlineData("BEGIN TRAN -5:a.b.c")]
+	[InlineData("BEGIN TRAN -5:@v")]
+	[InlineData("BEGIN TRAN a:b.c")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR INSERT, CREATE_TABLE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR CREATE_TABLE, INSERT AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE FOR CREATE_TABLE, INSERT AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE FOR INSERT, CREATE_TABLE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON ALL SERVER FOR LOGON, DELETE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t INSTEAD OF CREATE_TABLE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE INSTEAD OF CREATE_TABLE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON ALL SERVER INSTEAD OF LOGON AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE FOR [CREATE_TABLE] AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE FOR \"CREATE_TABLE\" AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR [INSERT] AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR INSERT, INSERT AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR DELETE, DELETE, UPDATE AS PRINT 1")]
+	[InlineData("CREATE PROC p @a INT OUTPUT OUTPUT AS SELECT 1")]
+	[InlineData("CREATE PROC p @a INT OUT OUTPUT AS SELECT 1")]
+	[InlineData("CREATE PROC p @a INT OUT OUT AS SELECT 1")]
+	[InlineData("CREATE PROC p @t dbo.tt READONLY READONLY AS SELECT 1")]
+	[InlineData("CREATE PROC p @a INT READONLY OUTPUT AS SELECT 1")]
+	[InlineData("CREATE PROC p @a dbo.tt OUTPUT READONLY AS SELECT 1")]
+	[InlineData("CREATE PROC p @a INT OUTPUT, @b INT OUT OUT AS SELECT 1")]
+	[InlineData("CREATE FUNCTION f (@a INT OUTPUT) RETURNS INT AS BEGIN RETURN 1 END")]
+	[InlineData("CREATE FUNCTION f (@a INT OUT) RETURNS TABLE AS RETURN SELECT 1 x")]
+	public void Statements_the_engine_refuses_by_their_shape_are_refused(string input)
+	{
+		Assert.False(TransactSqlParser.TryParseStatement(input).IsSuccess, input);
+	}
+
+	/// <summary>And the forms beside them, which it reads.</summary>
+	[Theory]
+	// The kind of event does not go with the target in the syntax: the engine answers `Msg 1098` once the
+	// list is read, and `--engine` counts that answer as read.
+	[InlineData("CREATE TRIGGER tr ON DATABASE FOR INSERT AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE AFTER UPDATE, DELETE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON ALL SERVER FOR INSERT AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR CREATE_TABLE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR LOGON AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t AFTER CREATE_TABLE, CREATE_VIEW AS PRINT 1")]
+	[InlineData("THROW")]
+	[InlineData("THROW 50001, 'm', 1")]
+	[InlineData("THROW @n, @m, @s")]
+	[InlineData("USE master")]
+	[InlineData("USE [master]")]
+	[InlineData("USE \"master\"")]
+	[InlineData("RAISERROR ('m', 16, 1)")]
+	[InlineData("RAISERROR (50001, 16, 1) WITH NOWAIT")]
+	[InlineData("BEGIN TRAN -5:a.b")]
+	[InlineData("BEGIN TRAN 5:a.b")]
+	[InlineData("BEGIN TRANSACTION - 5 : a . b")]
+	[InlineData("BEGIN TRAN -5:[a].[b]")]
+	[InlineData("COMMIT TRAN -5:a.b")]
+	[InlineData("ROLLBACK TRAN -5:a.b")]
+	[InlineData("SAVE TRAN 5:a.b")]
+	[InlineData("BEGIN TRAN @v")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR INSERT AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR INSERT, UPDATE, DELETE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t AFTER DELETE, INSERT AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t INSTEAD OF UPDATE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE FOR CREATE_TABLE AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE FOR DDL_TABLE_EVENTS, CREATE_VIEW AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE AFTER CREATE_TABLE, CREATE_VIEW AS PRINT 1")]
+	[InlineData("CREATE TRIGGER tr ON ALL SERVER FOR LOGON AS PRINT 1")]
+	[InlineData("CREATE PROC p @a INT OUTPUT AS SELECT 1")]
+	[InlineData("CREATE PROC p @a INT OUT AS SELECT 1")]
+	[InlineData("CREATE PROC p @t dbo.tt READONLY AS SELECT 1")]
+	[InlineData("CREATE PROC p @a INT = NULL OUTPUT AS SELECT 1")]
+	[InlineData("CREATE PROC p @a CURSOR VARYING OUTPUT AS SELECT 1")]
+	[InlineData("CREATE PROC p @a INT OUTPUT, @b INT OUT AS SELECT 1")]
+	[InlineData("CREATE FUNCTION f (@t dbo.tt READONLY) RETURNS INT AS BEGIN RETURN 1 END")]
+	public void Statements_the_engine_reads_by_their_shape_are_read(string input)
 	{
 		var match = TransactSqlParser.TryParseStatement(input);
 
