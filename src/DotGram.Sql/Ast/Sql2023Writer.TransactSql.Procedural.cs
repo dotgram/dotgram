@@ -1025,7 +1025,7 @@ public static partial class Sql2023Writer
 		/// <summary>
 		/// T-SQL: CREATE PROCEDURE (Transact-SQL). <c>AtomicConstant</c>: a number or money, negated or not, a string, a binary
 		/// string, a name, a variable, NULL, or an ODBC date or time; never a name of two parts. A reserved word as a plain
-		/// name is the cross-cutting question, not this place's.
+		/// name is refused by <see cref="PutIdentifier"/> in T-SQL's reading, not by this place.
 		/// </summary>
 		static bool AtomicConstant(Expression value)
 		{
