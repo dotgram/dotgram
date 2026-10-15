@@ -652,6 +652,19 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public IReadOnlyDictionary<Node, int> Powers { get; init; } = new Dictionary<Node, int>();
 
+	/// <summary>
+	/// What each alternative of a climbing rule leaves the next turn of its loop: the strength
+	/// the call of the rule it read last was read at, or -1 where it did not end with one.
+	/// </summary>
+	/// <remarks>
+	/// After an operand read at k, the loop takes only operators weaker than k: one at k or
+	/// stronger, the operand would have taken itself, and taking it here once the operand gave
+	/// it back reads the same text grouped the other way (§4.3.1). Keyed by the alternative —
+	/// a base, or a tail the loop goes round with — and emitted only where a reading can give
+	/// back or a guard can refuse a tail in one place and not another (<c>Machine.Ceils</c>).
+	/// </remarks>
+	public IReadOnlyDictionary<Node, int> Ceilings { get; init; } = new Dictionary<Node, int>();
+
 	/// <summary>Every rule's lowered body, one node to a line.</summary>
 	/// <remarks>
 	/// <para>
@@ -1130,6 +1143,9 @@ public sealed class RecognitionGraph(
 
 		foreach (var node in Powers.Keys)
 			Check(node, "binding power");
+
+		foreach (var node in Ceilings.Keys)
+			Check(node, "ceiling");
 
 		foreach (var levels in Climbing)
 			foreach (var node in levels.Value.Keys)

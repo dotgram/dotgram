@@ -196,6 +196,7 @@ public sealed partial class GrammarNormalizer
 		[
 			Moving(_bounds),
 			Moving(_powers),
+			Moving(_ceilings),
 			Moving(_recoveries),
 
 			// What a collapsed call stood for, which a trace build reports around it.

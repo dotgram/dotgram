@@ -299,6 +299,7 @@ public sealed class LexicalSplit
 				Recoveries = Resynced(graph.Recoveries),
 				Forwarded  = Remapped(graph.Forwarded),
 				Powers     = Remapped(graph.Powers),
+				Ceilings   = Remapped(graph.Ceilings),
 				Climbing   = Kept(graph.Climbing, rules).ToDictionary(
 					one => one.Key,
 					one => (IReadOnlyDictionary<Node, int>)Remapped(one.Value)),

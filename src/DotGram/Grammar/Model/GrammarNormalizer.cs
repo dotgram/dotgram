@@ -79,6 +79,12 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
 
+	/// <summary>
+	/// A strength on an alternative of a climbing rule whose operand it cannot reach: the call of
+	/// the rule the alternative may end with is inside an optional, a choice or a repetition.
+	/// </summary>
+	public const string UnreachedStrength   = "GRAM4042";
+
 	/// <summary><c>word</c> in a grammar that never said what continues a word.</summary>
 	public const string WordWithoutBoundary = "GRAM4019";
 
@@ -318,6 +324,7 @@ public sealed partial class GrammarNormalizer
 			Forwarded  = normalizer._forwarded,
 			Climbing   = normalizer._climbing,
 			Powers     = normalizer._powers,
+			Ceilings   = normalizer._ceilings,
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),
 			Context    = (normalizer._context ?? model.Context)?.Name,
 			State      = (normalizer._state ?? model.State)?.Name,
@@ -766,6 +773,13 @@ public sealed partial class GrammarNormalizer
 	/// <c>&gt;&gt;</c> parses it at the same strength, so it can, and the grouping goes
 	/// right.
 	/// </para>
+	/// <para>
+	/// That is said of the operand, and the loop around it needs saying too: an operand that
+	/// gives an operator back — over characters every one can — must not have it taken by the
+	/// enclosing loop, which would read the same text grouped the other way. What each
+	/// alternative leaves the next turn is recorded beside the strengths (<see cref="LastReads"/>,
+	/// <see cref="RecognitionGraph.Ceilings"/>).
+	/// </para>
 	/// </remarks>
 	bool RewriteBindingPowers(RuleSymbol rule, IReadOnlyList<Node> alternatives)
 	{
@@ -783,6 +797,7 @@ public sealed partial class GrammarNormalizer
 		var accumulators = new Dictionary<Node, string>(NodeIdentity.Instance);
 		var levels       = new Dictionary<Node, int>(NodeIdentity.Instance);
 		var powers       = new Dictionary<Node, int>(NodeIdentity.Instance);
+		var ceilings     = new Dictionary<Node, int>(NodeIdentity.Instance);
 		var refused      = false;
 
 		foreach (var alternative in alternatives)
@@ -791,12 +806,41 @@ public sealed partial class GrammarNormalizer
 			var known    = bind is not null;
 			var strength = bind ?? default;
 			var head     = Tail(alternative, rule);
+			var read     = head is var (tail0, _) ? tail0 : alternative;
 
 			// An operand of the rule itself, at the end: the right side of an infix or the
 			// operand of a prefix. `<<` parses it one tighter, `>>` at the same strength —
 			// which is the whole of what the two markers say.
-			if (known && SelfCallAt(head is var (tail0, _) ? tail0 : alternative, rule) is { } operand)
+			var operand = known ? SelfCallAt(read, rule) : null;
+
+			if (operand is not null)
 				powers[operand] = strength.IsLeft ? strength.Level + 1 : strength.Level;
+
+			var (last, other) = LastReads(read, rule);
+
+			// A strength that cannot reach the operand it was written for: the call of the rule
+			// the alternative may end with is inside an optional, a choice or a repetition, so it
+			// is read at strength 0 and the marker says only where the alternative is entered.
+			// Once, as Report says it: the copies a specialization made of the rule say the same.
+			if (known && head is not null && operand is null && last.Count > 0)
+			{
+				var at   = rule.Declaration!.At;
+				var told = new GramDiagnostic(
+					UnreachedStrength,
+					$"An alternative of '{rule.Name}' states a strength that reaches no operand: the call " +
+					$"of '{rule.Name}' it may end with is inside an optional, a choice or a repetition, so " +
+					"it is read at strength 0. A strength binds the operand an alternative ends with; " +
+					"write the alternative twice, once ending with the operand and once without it, to " +
+					"give the operand its strength (docs/syntax.md §4.3.1).",
+					at.Position,
+					at.Length,
+					GramSeverity.Warning);
+
+				if (!_diagnostics.Contains(told))
+					_diagnostics.Add(told);
+			}
+
+			ceilings[read] = Ceiling(last, other, powers);
 
 			if (head is var (tail, accumulator))
 			{
@@ -872,6 +916,9 @@ public sealed partial class GrammarNormalizer
 		foreach (var power in powers)
 			_powers[power.Key] = power.Value;
 
+		foreach (var ceiling in ceilings)
+			_ceilings[ceiling.Key] = ceiling.Value;
+
 		return true;
 	}
 
@@ -896,6 +943,11 @@ public sealed partial class GrammarNormalizer
 	/// <remarks>
 	/// The node itself and not merely whether there is one: it is what the strength is
 	/// recorded against, and what the machine reads when it emits the call.
+	/// <para>
+	/// A guard after the operand reads nothing (§4.5), so the operand before it is still the
+	/// one the alternative ends with: <c>left: E &amp; '*' &amp; right: E &amp; when @(…) &lt;&lt; 2</c>
+	/// reads <c>right</c> at 3, as it would without the guard.
+	/// </para>
 	/// </remarks>
 	static Node.Call? SelfCallAt(Node node, RuleSymbol rule)
 	{
@@ -905,10 +957,141 @@ public sealed partial class GrammarNormalizer
 				case Node.Construct(var built,  _)           : node = built; break;
 				case Node.Capture  (_,          var captured): node = captured; break;
 				case Node.Bind     (_,          var bound, _): node = bound; break;
-				case Node.Sequence (var operands)            : node = operands[^1]; break;
+				case Node.Sequence (var operands)            : node = operands[LastRead(operands)]; break;
 				case Node.Call     (var called, _) call      : return ReferenceEquals(called, rule) ? call : null;
 				default                                      : return null;
 			}
+
+		static int LastRead(IReadOnlyList<Node> operands)
+		{
+			var last = operands.Count - 1;
+
+			while (last > 0 && operands[last] is Node.Guard or Node.Condition)
+				last--;
+
+			return last;
+		}
+	}
+
+	/// <summary>
+	/// What an alternative of a climbing rule may have read last: the calls of the rule itself
+	/// among them, and whether anything else may be.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// It is what the next turn of the loop may take (§4.3.1). A call of the rule read last, at
+	/// strength k, took every operator of strength k or more that it could; one it gave back
+	/// is not for the enclosing loop to take, which would read the same text grouped the other
+	/// way. So after it the loop takes only operators weaker than k. After anything else — an
+	/// operator with no operand after it, a closing bracket — nothing was given back and the
+	/// loop may take any operator its own strength allows.
+	/// </para>
+	/// <para>
+	/// Said of what was read and not of the alternative's shape, so a guard after the operand,
+	/// a ternary whose else is optional, and a prefix written without a strength are all
+	/// covered: each ends having read a call of the rule, at whatever strength it was read.
+	/// What reads nothing — a guard, a lookahead, an empty match — is passed over.
+	/// </para>
+	/// </remarks>
+	/// <returns>
+	/// The calls of <paramref name="rule"/> that may be read last, and whether something else
+	/// may be read last instead, or nothing at all.
+	/// </returns>
+	static (List<Node.Call> Calls, bool Other) LastReads(Node node, RuleSymbol rule)
+	{
+		var calls = new List<Node.Call>();
+		var other = false;
+
+		// An alternative that may read nothing at all ends having read no call of the rule.
+		if (Into(node))
+			other = true;
+
+		return (calls, other);
+
+		// Notes what the node may read last, and answers whether it may read nothing, so that
+		// what stands before it may be read last instead.
+		bool Into(Node one)
+		{
+			switch (one)
+			{
+				case Node.Construct(var built, _):
+					return Into(built);
+
+				case Node.Capture(_, var captured):
+					return Into(captured);
+
+				case Node.Bind(_, var bound, _):
+					return Into(bound);
+
+				case Node.Atomic(var kept):
+					return Into(kept);
+
+				case Node.Marked(var marked, _):
+					return Into(marked);
+
+				case Node.Sequence(var operands):
+					for (var i = operands.Count - 1; i >= 0; i--)
+						if (!Into(operands[i]))
+							return false;
+
+					return true;
+
+				case Node.Choice(var alternatives):
+				{
+					var empty = false;
+
+					foreach (var alternative in alternatives)
+						empty |= Into(alternative);
+
+					return empty;
+				}
+
+				case Node.Repeat(var body, var min, _):
+					return Into(body) || min == 0;
+
+				case Node.Counted(var body, _, _):
+					Into(body);
+
+					return true;
+
+				case Node.Guard or Node.Condition or Node.Lookahead or Node.Behind or Node.Empty or Node.Glue:
+					return true;
+
+				case Node.Call(var called, _) call when ReferenceEquals(called, rule):
+					calls.Add(call);
+
+					return false;
+
+				default:
+					other = true;
+
+					return false;
+			}
+		}
+	}
+
+	/// <summary>
+	/// The ceiling an alternative leaves the next turn of its loop: the strength the call of the
+	/// rule it read last was read at, or -1 for none.
+	/// </summary>
+	/// <remarks>
+	/// Only where that is the same whichever way the alternative was read. Where it ends with a
+	/// call of the rule on one reading and with something else, or a call at another strength,
+	/// on another, it leaves none: the loop then takes what it took before there was a ceiling,
+	/// which is never less than it should.
+	/// </remarks>
+	static int Ceiling(List<Node.Call> last, bool other, IReadOnlyDictionary<Node, int> powers)
+	{
+		if (other || last.Count == 0)
+			return -1;
+
+		var strength = powers.TryGetValue(last[0], out var first) ? first : 0;
+
+		foreach (var call in last)
+			if ((powers.TryGetValue(call, out var each) ? each : 0) != strength)
+				return -1;
+
+		return strength;
 	}
 
 	/// <summary>

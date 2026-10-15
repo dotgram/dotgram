@@ -2171,6 +2171,8 @@ sealed partial class Machine
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
 						file.Line("lookahead = entry.LookaheadIndex;");
+						if (Ceiled)
+							file.Line("power  = entry.Power;");
 						if (Tracing is not null)
 							file.Line("failure.Trace?.Resumed(call);");
 						file.Line("Step_DotGram(\"resume\", state, p, entries.Count, text, \"\");");
@@ -2214,6 +2216,8 @@ sealed partial class Machine
 							file.Line("atomic = entry.AtomicIndex;");
 							file.Line("repeat = entry.RepeatIndex;");
 							file.Line("lookahead = entry.LookaheadIndex;");
+							if (Ceiled)
+								file.Line("power  = entry.Power;");
 							if (Tracing is not null)
 								file.Line("failure.Trace?.Resumed(call);");
 							file.Line("Step_DotGram(\"resume exit\", state, p, entries.Count, text, \"\");");
@@ -2233,10 +2237,12 @@ sealed partial class Machine
 							file.Line("atomic = entry.AtomicIndex;");
 							file.Line("repeat = entry.RepeatIndex;");
 							file.Line("lookahead = entry.LookaheadIndex;");
+							if (Ceiled)
+								file.Line("power  = entry.Power;");
 							file.Line(
 								"entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, " +
 								"entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, " +
-								"entry.LookaheadIndex, p));");
+								$"entry.LookaheadIndex, p{(Ceiled ? ", -1, power" : "")}));");
 							if (Tracing is not null)
 								file.Line("failure.Trace?.Resumed(call);");
 							file.Line("Step_DotGram(\"shorten run\", state, p, entries.Count, text, \"\");");
@@ -2503,20 +2509,55 @@ sealed partial class Machine
 	int Compile(Node node, int next, FollowSets.Continuation following)
 	{
 		if (_owners.TryGetValue(node, out var owner) &&
-			_graph.Climbing.TryGetValue(owner, out var levels) &&
-			levels.TryGetValue(node, out var level))
+			_graph.Climbing.TryGetValue(owner, out var levels))
 		{
-			var inner = CompileUnguarded(node, next, following);
-			var state = Reserve(out var writer);
+			var tail  = levels.TryGetValue(node, out var level);
+			var after = Ceils(owner) ? CeilingAfter(node) : null;
 
-			writer.Line($"if ({level} < power) {{ expected = null; goto Fail; }}");
-			writer.Line($"goto {Label(writer, inner)};");
+			// The ceiling an alternative leaves the next turn, set where it ends (§4.3.1): in
+			// the high half of `power`, so that the arena's entries keep and restore it with the
+			// strength. A base that leaves none has nothing to say.
+			if (after is not null && (tail || after != "int.MaxValue"))
+			{
+				var set  = Reserve(out var setting);
+				var high = after == "int.MaxValue" ? "0" : $"{int.Parse(after, System.Globalization.CultureInfo.InvariantCulture) + 1} << 16";
 
-			return state;
+				setting.Line($"power = (power & 0xFFFF) | {high};");
+				setting.Line($"goto {Label(setting, next)};");
+
+				next = set;
+			}
+
+			if (tail)
+			{
+				var inner = CompileUnguarded(node, next, following);
+				var state = Reserve(out var writer);
+
+				// Not above the ceiling either: the high half is one more than the strength the
+				// last operand was read at, and 0 — no ceiling — wraps to the largest unsigned.
+				writer.Line(after is not null
+					? $"if ({level} < (power & 0xFFFF) || (uint)((power >> 16) - 1) <= {level}u) {{ expected = null; goto Fail; }}"
+					: $"if ({level} < power) {{ expected = null; goto Fail; }}");
+				writer.Line($"goto {Label(writer, inner)};");
+
+				return state;
+			}
 		}
 
 		return CompileUnguarded(node, next, following);
 	}
+
+	/// <summary>
+	/// Whether a rule this machine compiles carries a ceiling (<see cref="Ceils"/>): then `power`
+	/// changes within a reading of a rule, not only across a call, and every entry a failure
+	/// resumes at keeps it, to be put back with the position.
+	/// </summary>
+	bool Ceiled => _ceiled ??= _rules.Any(Ceils);
+
+	bool? _ceiled;
+
+	/// <summary>The strength an entry a failure resumes at keeps, where <see cref="Ceiled"/>; nothing otherwise.</summary>
+	string KeptPower => Ceiled ? ", -1, power" : "";
 
 	/// <summary>The nodes being compiled, or asked about, inside the braces they stand in over kinds.</summary>
 	readonly HashSet<Node> _standing = NodeWalk.ByIdentity([]);
@@ -4334,7 +4375,7 @@ sealed partial class Machine
 			atLoop.Line("if (repeating.Value >= bounds.Position)");
 			atLoop.Then(
 				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atLoop, exit)}, p, call, atomic, repeat, " +
-				"lookahead, 0));");
+				$"lookahead, 0{KeptPower}));");
 		}
 
 		atLoop.Line($"goto {Label(atLoop, inner)};");
@@ -4465,7 +4506,7 @@ sealed partial class Machine
 		writer.Line($"if (p > {floor})");
 		writer.Then(
 			$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, next)}, {floor}, " +
-			"call, atomic, repeat, lookahead, p));");
+			$"call, atomic, repeat, lookahead, p{KeptPower}));");
 		writer.Line($"Step_DotGram(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, next)};");
 
@@ -4781,7 +4822,7 @@ sealed partial class Machine
 
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, carry)}, p, call, atomic, " +
-						"repeat, lookahead, 0));");
+						$"repeat, lookahead, 0{KeptPower}));");
 					writer.Line($"Step_DotGram(\"push choice\", {Mark(Lands, carry)}, p, entries.Count{Traced});");
 				}
 
@@ -5025,7 +5066,7 @@ sealed partial class Machine
 
 			writer.Line(
 				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, target)}, p, call, atomic, " +
-				"repeat, lookahead, 0));");
+				$"repeat, lookahead, 0{KeptPower}));");
 			writer.Line($"Step_DotGram(\"push choice\", {Mark(Lands, target)}, p, entries.Count{Traced});");
 			writer.Line($"goto {Label(writer, first)};");
 
@@ -5478,7 +5519,7 @@ sealed partial class Machine
 			writer.Line($"if (p > {floor})");
 			writer.Then(
 				$"entries.Add(new ParserEntry(ParserEntry.Run, {Resuming(writer, next)}, {floor}, " +
-				"call, atomic, repeat, lookahead, p));");
+				$"call, atomic, repeat, lookahead, p{KeptPower}));");
 		}
 
 		writer.Line($"Step_DotGram(\"run\", {Mark(Lands, next)}, p, entries.Count{Traced});");
@@ -5918,7 +5959,7 @@ sealed partial class Machine
 			{
 				atLoop.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.LoopExit, {Resuming(atLoop, exit)}, p, call, atomic, " +
-					"repeat, lookahead, 0));");
+					$"repeat, lookahead, 0{KeptPower}));");
 				atLoop.Line(
 					"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, " +
 					"repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, " +
@@ -5933,7 +5974,7 @@ sealed partial class Machine
 			atLoop.Line($"if (repeating.Value >= {min})");
 			atLoop.Then(
 				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atLoop, exit)}, p, call, atomic, repeat, " +
-				"lookahead, 0));");
+				$"lookahead, 0{KeptPower}));");
 		}
 
 		atLoop.Line($"goto {Label(atLoop, inner)};");
@@ -7699,7 +7740,7 @@ sealed partial class Machine
 	void PushRepeatExit(Writer writer, int exit)
 	{
 		writer.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, exit)}, p, call, atomic, repeat, lookahead, 0));");
+			$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, exit)}, p, call, atomic, repeat, lookahead, 0{KeptPower}));");
 	}
 
 	static string Label(int state)
