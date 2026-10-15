@@ -1047,11 +1047,15 @@ public sealed partial class GrammarNormalizer
 	/// other kind: an alternative of a climbing rule carries a binding power, and a step of a
 	/// left-recursive fold carries the name of the accumulator it takes — facts about *that*
 	/// alternative, which folding a run of them into one would not move but destroy. So those
-	/// are left where they are, and the rest of the rule is still walked.
+	/// are left where they are, and the rest of the rule is still walked. So is a base of a
+	/// climbing rule that ends with its operand: what it leaves the loop is said of it (§4.3.1),
+	/// and shared with a base that reads on after the operand, it would end either way and say
+	/// nothing.
 	/// </remarks>
 	bool Spoken(Node alternative, RuleSymbol owner)
 	{
 		return _climbing.TryGetValue(owner, out var levels) && levels.ContainsKey(alternative) ||
+		_ceilings.TryGetValue(alternative, out var ceiling) && ceiling >= 0 ||
 		_folds.TryGetValue(owner, out var fold) &&
 			(fold.Accumulators.ContainsKey(alternative) || ReferenceEquals(fold.Loop, alternative));
 	}
