@@ -22,6 +22,11 @@ public static partial class Sql2023Writer
 					PutDatabaseAction(alter.Action);
 					return true;
 
+				// T-SQL: CREATE DATABASE (Transact-SQL).
+				case Statement.CreateDatabase create:
+					PutCreateDatabase(create);
+					return true;
+
 				// T-SQL: ALTER DATABASE SCOPED CONFIGURATION. FOR SECONDARY only before SET (AlterDatabaseStatement).
 				case Statement.AlterDatabaseScopedConfiguration scoped:
 					Word("ALTER DATABASE SCOPED CONFIGURATION");
@@ -70,22 +75,8 @@ public static partial class Sql2023Writer
 
 				// T-SQL: ALTER DATABASE (Transact-SQL), the Azure syntax. EditionOptions in brackets, one at least.
 				case AlterDatabaseAction.Modify modify:
-					if (modify.Options.Count == 0)
-						throw Empty(modify, "Options");
-
 					Word("MODIFY");
-					Open();
-					Each(modify.Options, option =>
-					{
-						// SERVICE_OBJECTIVE = ELASTIC_POOL (NAME = pool): the one value of the list with options of its own.
-						if (option is { Name: var named, Value: Expression.Reference { Name: [{ } pool] }, Options: [{ Name: var inner, Value: var value, Options.Count: 0, Words.Count: 0, EqualsOmitted: false }] }
-							&& Plain(named, "SERVICE_OBJECTIVE") && Plain(pool, "ELASTIC_POOL") && Plain(inner, "NAME") && NameValue(value)
-							&& option is { Words.Count: 0, EqualsOmitted: false, Partitions: null, Order: null })
-							PutOption(option);
-						else
-							PutCatalogued(option, EditionOptions, "EditionOption");
-					});
-					Close();
+					PutEditionOptions(modify, modify.Options);
 
 					if (modify.ManualCutover)
 						Word("WITH MANUAL_CUTOVER");
@@ -210,6 +201,206 @@ public static partial class Sql2023Writer
 					throw Unwritten(action);
 			}
 		}
+
+		/// <summary>
+		/// T-SQL: ALTER DATABASE (Transact-SQL), CREATE DATABASE (Transact-SQL), the Azure syntax. EditionOptions in brackets,
+		/// one at least.
+		/// </summary>
+		void PutEditionOptions(ISqlNode owner, SqlList<Option> options)
+		{
+			if (options.Count == 0)
+				throw Empty(owner, "Options");
+
+			Open();
+			Each(options, option =>
+			{
+				// SERVICE_OBJECTIVE = ELASTIC_POOL (NAME = pool): the one value of the list with options of its own.
+				if (option is { Name: var named, Value: Expression.Reference { Name: [{ } pool] }, Options: [{ Name: var inner, Value: var value, Options.Count: 0, Words.Count: 0, EqualsOmitted: false }] }
+					&& Plain(named, "SERVICE_OBJECTIVE") && Plain(pool, "ELASTIC_POOL") && Plain(inner, "NAME") && NameValue(value)
+					&& option is { Words.Count: 0, EqualsOmitted: false, Partitions: null, Order: null })
+					PutOption(option);
+				else
+					PutCatalogued(option, EditionOptions, "EditionOption");
+			});
+			Close();
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE DATABASE (Transact-SQL). CreateDatabaseStatement: Azure's form, a name, a collation and the edition
+		/// options, when they are written with no source; else the files, the collation and the tail (DatabaseTail).
+		/// </summary>
+		void PutCreateDatabase(Statement.CreateDatabase create)
+		{
+			Word("CREATE DATABASE");
+			PutIdentifier(create.Name);
+
+			if (create.EditionOptions.Count > 0 && create.Source is null)
+			{
+				if (create.Containment is not null || create.Primary || create.Files.Count > 0 || create.FileGroups.Count > 0 || create.LogFiles.Count > 0)
+					throw Both(create, "EditionOptions", "Containment, Files, FileGroups or LogFiles");
+
+				if (create.Collation is { } azure)
+				{
+					Word("COLLATE");
+					PutCollation(azure);
+				}
+
+				PutEditionOptions(create, create.EditionOptions);
+				PutDatabaseWith(create, create.Options, CreateOptions, "CreateDatabaseOption");
+				return;
+			}
+
+			if (create.Containment is { } containment)
+			{
+				Word("CONTAINMENT =");
+				Word(containment switch
+				{
+					DatabaseContainment.None    => "NONE",
+					DatabaseContainment.Partial => "PARTIAL",
+					_                           => throw Misplaced(create, "Containment", "of no word (NONE or PARTIAL)"),
+				});
+			}
+
+			// DatabaseFiles: the primary's files first, one at least, and only then the filegroups.
+			if (create.Files.Count == 0 && (create.Primary || create.FileGroups.Count > 0))
+				throw Empty(create, "Files");
+
+			if (create.Files.Count > 0)
+			{
+				Word("ON");
+
+				if (create.Primary)
+					Word("PRIMARY");
+
+				Each(create.Files, PutDatabaseFile);
+
+				foreach (var group in create.FileGroups)
+				{
+					Tight(",");
+					PutFileGroup(group);
+				}
+			}
+
+			if (create.LogFiles.Count > 0)
+			{
+				Word("LOG ON");
+				Each(create.LogFiles, PutDatabaseFile);
+			}
+
+			if (create.Collation is { } collation)
+			{
+				Word("COLLATE");
+				PutCollation(collation);
+			}
+
+			switch (create.Source)
+			{
+				case null:
+					PutDatabaseWith(create, create.Options, CreateOptions, "CreateDatabaseOption");
+					break;
+
+				// AttachOption and RebuildLogOption: each option once, and one broker option at most (Syntax.Attached).
+				case DatabaseSource.ForAttach attach:
+					Word(attach.Kind switch
+					{
+						AttachKind.Attach                => "FOR ATTACH",
+						AttachKind.AttachRebuildLog      => "FOR ATTACH_REBUILD_LOG",
+						AttachKind.AttachForceRebuildLog => "FOR ATTACH_FORCE_REBUILD_LOG",
+						_                                => throw Misplaced(attach, "Kind", "of no word (DatabaseTail)"),
+					});
+
+					var keys = create.Options.Select(static option => Key(option)).ToList();
+
+					if (keys.Distinct(StringComparer.OrdinalIgnoreCase).Count() < keys.Count)
+						throw Misplaced(create, "Options", "naming an option twice (Syntax.NamedOnce, Msg 102)");
+
+					if (attach.Kind != AttachKind.AttachRebuildLog && keys.Count(static key => Brokers.Contains(key)) > 1)
+						throw Misplaced(create, "Options", "naming two broker options (Syntax.Attached, Msg 102)");
+
+					PutDatabaseWith(create, create.Options, attach.Kind == AttachKind.AttachRebuildLog ? RebuildLogOptions : AttachOptions, attach.Kind == AttachKind.AttachRebuildLog ? "RebuildLogOption" : "AttachOption");
+					break;
+
+				case DatabaseSource.AsSnapshotOf snapshot:
+					Word("AS SNAPSHOT OF");
+					PutIdentifier(snapshot.Database);
+					PutDatabaseWith(create, create.Options, CreateOptions, "CreateDatabaseOption");
+					break;
+
+				// [server.]database, its edition options, and WITH (BACKUP_STORAGE_REDUNDANCY = …) in brackets, alone.
+				case DatabaseSource.AsCopyOf copy:
+					if (copy.Database.Count is < 1 or > 2)
+						throw Misplaced(copy, "Database", "of other than one or two parts (DatabaseTail)");
+
+					Word("AS COPY OF");
+					PutName(copy.Database);
+
+					if (create.EditionOptions.Count > 0)
+						PutEditionOptions(create, create.EditionOptions);
+
+					if (create.Options.Count > 1)
+						throw Misplaced(create, "Options", "of more than one (DatabaseTail: WITH (BackupRedundancy))");
+
+					if (create.Options is [var redundancy])
+					{
+						Word("WITH");
+						Open();
+						PutSetting(redundancy, CopyOptions, "BackupRedundancy");
+						Close();
+					}
+
+					break;
+
+				default:
+					throw Unwritten(create.Source);
+			}
+
+			if (create.Source is not DatabaseSource.AsCopyOf && create.EditionOptions.Count > 0)
+				throw Both(create, "EditionOptions", "Source");
+		}
+
+		/// <summary>T-SQL: CREATE DATABASE (Transact-SQL). FileGroupSpec: a name, what it holds, DEFAULT, and its files, one at least.</summary>
+		void PutFileGroup(FileGroup group)
+		{
+			if (group.Files.Count == 0)
+				throw Empty(group, "Files");
+
+			Word("FILEGROUP");
+			PutIdentifier(group.Name);
+
+			if (group.Contains is { } contains)
+			{
+				Word("CONTAINS");
+				Word(contains switch
+				{
+					FileGroupContents.Filestream          => "FILESTREAM",
+					FileGroupContents.MemoryOptimizedData => "MEMORY_OPTIMIZED_DATA",
+					_                                     => throw Misplaced(group, "Contains", "of no word (FileGroupHolds)"),
+				});
+			}
+
+			if (group.Default)
+				Word("DEFAULT");
+
+			Each(group.Files, PutDatabaseFile);
+		}
+
+		/// <summary><c>WITH option, …</c> from a catalogue, where any is written.</summary>
+		void PutDatabaseWith(ISqlNode owner, SqlList<Option> options, Dictionary<string, Setting[]> catalogue, string rule)
+		{
+			if (options.Count == 0)
+				return;
+
+			Word("WITH");
+			Each(options, option => PutSetting(option, catalogue, rule));
+		}
+
+		/// <summary>A setting's name and further words, as its catalogue keys it.</summary>
+		static string Key(Option option)
+		{
+			return string.Join(" ", new[] { option.Name.Text }.Concat(option.Words.Select(static word => word.Text)));
+		}
+
+		static readonly string[] Brokers = ["ENABLE_BROKER", "NEW_BROKER", "ERROR_BROKER_CONVERSATIONS"];
 
 		/// <summary>
 		/// T-SQL: ALTER DATABASE SET Options (Transact-SQL). DatabaseTermination: whole seconds, <c>SECONDS</c> written or
@@ -371,7 +562,7 @@ public static partial class Sql2023Writer
 			if (option.Name.Style != IdentifierStyle.Regular || option.Words.Any(static word => word.Style != IdentifierStyle.Regular))
 				throw Misplaced(option, "Name or Words", "quoted (" + rule + " reads its names as words)");
 
-			var key   = string.Join(" ", new[] { option.Name.Text }.Concat(option.Words.Select(static word => word.Text)));
+			var key   = Key(option);
 			var forms = catalogue.TryGetValue(key, out var all) ? all.Where(form => form.Takes(option.Value) && Fits(option, form.Nest)).ToList() : [];
 
 			if (forms.Count == 0)
@@ -475,6 +666,55 @@ public static partial class Sql2023Writer
 
 			return catalogue;
 		}
+
+		/// <summary>
+		/// T-SQL: CREATE DATABASE (Transact-SQL). CreateDatabaseOption: the settings of CreateDatabaseNames, written as SET
+		/// writes them, and LEDGER, CATALOG_COLLATION and BACKUP_STORAGE_REDUNDANCY, a creation's own.
+		/// </summary>
+		static readonly Dictionary<string, Setting[]> CreateOptions = CreateCatalogue();
+
+		static Dictionary<string, Setting[]> CreateCatalogue()
+		{
+			var catalogue = new Dictionary<string, Setting[]>(StringComparer.OrdinalIgnoreCase)
+			{
+				["LEDGER"]                    = [new(true, Words("ON", "OFF"))],
+				["CATALOG_COLLATION"]         = [new(true, NameValue)],
+				["BACKUP_STORAGE_REDUNDANCY"] = [new(true, StringValue)],
+			};
+
+			foreach (var name in new[] { "TRUSTWORTHY", "DB_CHAINING", "NESTED_TRIGGERS", "TRANSFORM_NOISE_WORDS", "DEFAULT_LANGUAGE", "DEFAULT_FULLTEXT_LANGUAGE", "TWO_DIGIT_YEAR_CUTOFF", "FILESTREAM", "PERSISTENT_LOG_BUFFER" })
+				catalogue.Add(name, DatabaseSettings[name]);
+
+			return catalogue;
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE DATABASE (Transact-SQL). AttachOption: a creation's settings, the broker's words and
+		/// RESTRICTED_USER, and a FILESTREAM that says only where its directory is.
+		/// </summary>
+		static readonly Dictionary<string, Setting[]> AttachOptions = AttachCatalogue(broker: true);
+
+		/// <summary>T-SQL: CREATE DATABASE (Transact-SQL). RebuildLogOption: AttachOption without the attaching's own words.</summary>
+		static readonly Dictionary<string, Setting[]> RebuildLogOptions = AttachCatalogue(broker: false);
+
+		static Dictionary<string, Setting[]> AttachCatalogue(bool broker)
+		{
+			var catalogue = new Dictionary<string, Setting[]>(CreateOptions, StringComparer.OrdinalIgnoreCase)
+			{
+				["FILESTREAM"] = [new(false, None, new(Settings(("DIRECTORY_NAME", true, static value => StringValue(value) || value is LiteralValue.Null)), Required: true, Single: true))],
+			};
+
+			if (broker)
+			{
+				foreach (var word in new[] { "RESTRICTED_USER", "ENABLE_BROKER", "NEW_BROKER", "ERROR_BROKER_CONVERSATIONS" })
+					catalogue.Add(word, [new(false, None)]);
+			}
+
+			return catalogue;
+		}
+
+		/// <summary>T-SQL: CREATE DATABASE (Transact-SQL), the Azure syntax. BackupRedundancy: a copy's one option.</summary>
+		static readonly Dictionary<string, Setting[]> CopyOptions = Settings(("BACKUP_STORAGE_REDUNDANCY", true, StringValue));
 
 		/// <summary>T-SQL: ALTER DATABASE SET Options (Transact-SQL). TrackingNest: AUTO_CLEANUP, and a retention in days, hours or minutes.</summary>
 		static Nest Tracking()

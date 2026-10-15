@@ -41,6 +41,7 @@ static partial class Bridge
 				Statement.AlterDatabaseModify modify => AlterModify(modify),
 				Statement.AlterDatabaseSet set => Target(set, set.Name, new Ast.AlterDatabaseAction.Set(Each(set.Settings, one => Setting(set, one))) { Termination = Termination(set, set.Termination) }),
 				Statement.AlterDatabaseScopedConfiguration scoped => Scoped(scoped),
+				Statement.CreateDatabase create => Create(create),
 				Statement.Definition definition when definition.GetType().Name.StartsWith("AlterDatabase", StringComparison.Ordinal)
 					=> Alter(definition),
 				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
@@ -199,6 +200,92 @@ static partial class Bridge
 			};
 
 			return new Ast.Statement.AlterDatabaseScopedConfiguration(action);
+		}
+
+		/// <summary>
+		/// CREATE DATABASE: the files and filegroups the old tree keeps in one list, the log's, the containment and
+		/// collation as their words, the edition options, and the tail that says what the database is made from: empty
+		/// for Azure's form, the attach's words, or the words of a snapshot or a copy and the database they name.
+		/// </summary>
+		static Ast.Statement Create(Statement.CreateDatabase old)
+		{
+			var files  = new List<Ast.DatabaseFile>();
+			var groups = new List<Ast.FileGroup>();
+
+			foreach (var one in old.Files)
+			{
+				switch (one)
+				{
+					case Clause.DatabaseFile file when groups.Count == 0:
+						files.Add(File(old, file));
+						break;
+
+					case Clause.FileGroup(var name, var contains, var fallback, var held):
+						groups.Add(new Ast.FileGroup(Values.Part(old, name), Each(held, file => file is Clause.DatabaseFile each ? File(old, each) : throw BridgeGap.Open(old, $"inventory {NameOf(file)} (in a filegroup)")))
+						{
+							Contains = contains is null ? null : Words(contains) switch
+							{
+								["FILESTREAM"]            => Ast.FileGroupContents.Filestream,
+								["MEMORY_OPTIMIZED_DATA"] => Ast.FileGroupContents.MemoryOptimizedData,
+								_                         => throw BridgeGap.Open(old, $"inventory Clause.FileGroup (CONTAINS {contains})"),
+							},
+							Default = fallback,
+						});
+						break;
+
+					default:
+						throw BridgeGap.Open(old, $"inventory {NameOf(one)} (in CREATE DATABASE's files)");
+				}
+			}
+
+			var tokens = SqlTokens.Of(old.Tail ?? "").ToList();
+
+			Ast.DatabaseSource? source = Words(old.Tail ?? "") switch
+			{
+				[]                               => null,
+				["FOR", "ATTACH"]                => new Ast.DatabaseSource.ForAttach(Ast.AttachKind.Attach),
+				["FOR", "ATTACH_REBUILD_LOG"]    => new Ast.DatabaseSource.ForAttach(Ast.AttachKind.AttachRebuildLog),
+				["FOR", "ATTACH_FORCE_REBUILD_LOG"] => new Ast.DatabaseSource.ForAttach(Ast.AttachKind.AttachForceRebuildLog),
+				["AS", "SNAPSHOT", "OF", _]      => new Ast.DatabaseSource.AsSnapshotOf(Values.Part(old, tokens[3].Text)),
+				["AS", "COPY", "OF", ..]         => new Ast.DatabaseSource.AsCopyOf(Values.Name(old, string.Concat(tokens.Skip(3).Select(static one => one.Text)))),
+				_                                => throw BridgeGap.Open(old, $"inventory Statement.CreateDatabase (tail `{old.Tail}`)"),
+			};
+
+			var made = new Ast.Statement.CreateDatabase(Values.Part(old, old.Name))
+			{
+				Containment = old.Containment is null ? null : Words(old.Containment) switch
+				{
+					["NONE"]    => Ast.DatabaseContainment.None,
+					["PARTIAL"] => Ast.DatabaseContainment.Partial,
+					_           => throw BridgeGap.Open(old, $"inventory Statement.CreateDatabase (CONTAINMENT = {old.Containment})"),
+				},
+				Primary        = old.Primary,
+				Files          = [.. files],
+				FileGroups     = [.. groups],
+				LogFiles       = Each(old.Log ?? [], one => one is Clause.DatabaseFile file ? File(old, file) : throw BridgeGap.Open(old, $"inventory {NameOf(one)} (in LOG ON)")),
+				Collation      = old.Collation is null ? null : new Ast.CollationName(Values.Name(old, old.Collation)),
+				EditionOptions = Each(old.Options ?? [], one => one is Clause.Option option ? Tables.Option(option) : throw BridgeGap.Open(one, $"inventory {NameOf(one)}")),
+				Source         = source,
+				Options        = Each(old.With ?? [], one => Setting(old, one)),
+			};
+
+			// The containment and the tail are kept as written and compared exactly, so a text in another case than the
+			// writer's capitals stays a gap.
+			string text;
+
+			try
+			{
+				text = Ast.Sql2023Writer.Write(made);
+			}
+			catch (Exception refused) when (refused is ArgumentException or NotSupportedException)
+			{
+				return made;
+			}
+
+			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.CreateDatabase again] }
+				&& again.Containment == old.Containment && again.Tail == old.Tail
+				? made
+				: throw BridgeGap.Open(old, "Trees.FreeText (Statement.CreateDatabase.Containment or Tail, written otherwise than the writer prints it)");
 		}
 
 		/// <summary>ALTER DATABASE's target: CURRENT, the word, or a name.</summary>
