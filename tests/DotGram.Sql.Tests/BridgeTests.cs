@@ -1075,20 +1075,19 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// A schema's owner is one name; what follows it is a schema element the old tree keeps as text.
+	/// A schema's owner is one name; what follows it is a schema element the old tree keeps as text, and the bridge reads it
+	/// again as a statement.
 	/// </summary>
 	[Theory]
-	[InlineData("CREATE SCHEMA s AUTHORIZATION [dbo]", false)]
-	[InlineData("CREATE SCHEMA s AUTHORIZATION [dbo] CREATE TABLE t (c int)", true)]
-	[InlineData("CREATE SCHEMA s AUTHORIZATION dbo CREATE TABLE t (c int)", true)]
-	public void A_schema_owner_is_one_name(string text, bool gap)
+	[InlineData("CREATE SCHEMA s AUTHORIZATION [dbo]", "[dbo]", 0)]
+	[InlineData("CREATE SCHEMA s AUTHORIZATION [dbo] CREATE TABLE t (c int)", "[dbo]", 1)]
+	[InlineData("CREATE SCHEMA s AUTHORIZATION dbo CREATE TABLE t (c int)", "dbo", 1)]
+	public void A_schema_owner_is_one_name(string text, string owner, int elements)
 	{
-		var old = TransactSqlParser.Located.ParseStatement(text);
+		var made = (Ast.Statement.CreateSchema)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
 
-		if (gap)
-			Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
-		else
-			Assert.Equal("[dbo]", ((Ast.Statement.CreateSchema)Bridge.ToAst(old, text)).Authorization!.Name.Text);
+		Assert.Equal(owner, made.Authorization!.Name.Text);
+		Assert.Equal(elements, made.Elements.Count);
 	}
 
 	/// <summary>

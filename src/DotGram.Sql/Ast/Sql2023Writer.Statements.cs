@@ -16,6 +16,7 @@ public static partial class Sql2023Writer
 			switch (statement)
 			{
 				case Statement.CreateSchema schema:
+					CheckSecurity(schema);
 					Word("CREATE SCHEMA");
 
 					if (schema.Name is { } schemaName)
@@ -421,8 +422,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.CreateRole role:
+					CheckSecurity(role);
 					Word("CREATE ROLE");
 					PutIdentifier(role.Name);
+					PutAuthorization(role.Authorization);
 
 					if (role.Admin is { } admin)
 						Word(admin == Grantor.CurrentUser ? "WITH ADMIN CURRENT_USER" : "WITH ADMIN CURRENT_ROLE");

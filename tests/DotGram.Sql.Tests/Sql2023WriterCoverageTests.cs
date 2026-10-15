@@ -749,6 +749,22 @@ public sealed class Sql2023WriterCoverageTests
 			["RoutineDefinition.AsOmitted"] = (
 				Scalar(false),
 				Scalar(true)),
+			// Security: FROM written for FOR in a user's source, and a login's password words in the other order.
+			["Login.From"] = (
+				new Statement.CreateUser(new Identifier("u")) { Source = new UserSource.Login(new Identifier("l")) },
+				new Statement.CreateUser(new Identifier("u")) { Source = new UserSource.Login(new Identifier("l")) { From = true } }),
+			["Certificate.From"] = (
+				new Statement.CreateUser(new Identifier("u")) { Source = new UserSource.Certificate(new Identifier("c")) },
+				new Statement.CreateUser(new Identifier("u")) { Source = new UserSource.Certificate(new Identifier("c")) { From = true } }),
+			["AsymmetricKey.From"] = (
+				new Statement.CreateUser(new Identifier("u")) { Source = new UserSource.AsymmetricKey(new Identifier("k")) },
+				new Statement.CreateUser(new Identifier("u")) { Source = new UserSource.AsymmetricKey(new Identifier("k")) { From = true } }),
+			["ExternalProvider.From"] = (
+				new Statement.CreateUser(new Identifier("u")) { Source = new UserSource.ExternalProvider() },
+				new Statement.CreateUser(new Identifier("u")) { Source = new UserSource.ExternalProvider() { From = true } }),
+			["Password.MustChangeFirst"] = (
+				new Statement.CreateLogin(new Identifier("l"), new LoginSource.Password(new LiteralValue.String("'p'", StringLiteralKind.Character)) { Hashed = true, MustChange = true }),
+				new Statement.CreateLogin(new Identifier("l"), new LoginSource.Password(new LiteralValue.String("'p'", StringLiteralKind.Character)) { Hashed = true, MustChange = true, MustChangeFirst = true })),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()
