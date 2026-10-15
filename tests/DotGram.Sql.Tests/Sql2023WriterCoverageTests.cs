@@ -359,6 +359,8 @@ public sealed class Sql2023WriterCoverageTests
 				? new ForClause.Json(JsonMode.Auto, [new ForDirective((ForDirectiveKind)v)])
 				: new ForClause.Xml(XmlMode.Auto, null, [new ForDirective((ForDirectiveKind)v)]),
 		},
+		// Drop: the DROP family (SqlAst.TransactSql.Drop.cs).
+		[typeof(EventScope)]         = v => new Statement.DropEventSession(new Identifier("s"), (EventScope)v),
 	};
 
 	/// <summary>
