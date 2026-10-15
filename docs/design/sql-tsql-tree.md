@@ -49,6 +49,8 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
   `ALL` and `EXEC` are `[Spelling] Privilege.Abbreviated`, `NULL` among the principals is `Grantee.Null`,
   and DENY is its own statement sharing these parts (b66d31d4). `PermissionCatalogueTests` holds the enums, the catalogue
   and the grammar's lists to one another; D148 says when the enum would give way to strings.
+- A word that names what — a statement, an object kind, an action — is a record; a word that says how is an enum
+  member. So every DROP has a record of its own kind, even where the slots coincide.
 
 ## Principles proposed
 
@@ -123,9 +125,12 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
 17. **`ALTER TABLE`.** `Action` becomes a list in both dialects — the standard's is a list of one — and the
     T-SQL actions (`SWITCH`, `SET (…)`, `REBUILD`, `CHECK CONSTRAINT`, `ENABLE TRIGGER`, several columns
     added or dropped) are T-SQL members of `AlterTableAction`.
-18. **Other drops.** The 56 T-SQL drops that differ only by what they drop are one record,
-    `Statement.DropObject` (the kind as an enum, names, `IF EXISTS`); drops with parts of their own
-    (`DROP INDEX … ON`, `DROP SIGNATURE`, `DROP TRIGGER … ON DATABASE`) have their own records.
+18. **Other drops.** Decided: every T-SQL drop is a record of its own kind, `Statement.Drop<Kind>`
+    (`DropAggregate`, `DropFullTextCatalog`, …, in `SqlAst.TransactSql.Drop.cs`), with the slots the grammar
+    reads for that kind — a list or one name, of one part or qualified, `IF EXISTS` where it is read — even
+    where two kinds' slots coincide. The one record for many kinds, `Statement.DropObject` with its kind as an
+    enum, is withdrawn. Drops with parts of their own (`DROP INDEX … ON`, `DROP SIGNATURE`, `DROP TRIGGER … ON
+    DATABASE`) have their own records as before.
 19. **Routines and triggers.** A T-SQL body `AS s1; s2` is a list, `RoutineBody.Statements`; `BEGIN … END` is
     SQL/PSM's compound statement. `ParameterDefinition` gains `OUTPUT`, `READONLY`, `VARYING` and
     nullability; a routine gains its options, `CREATE`/`ALTER`/`CREATE OR ALTER` as an enum, and `;n`. A
