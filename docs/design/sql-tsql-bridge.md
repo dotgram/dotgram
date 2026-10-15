@@ -297,7 +297,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.EndpointDefinition` | Server | C | gap 249 | 249: no target record: Statement.CreateEndpoint (249) | 249 |
 | `Statement.Insert` | Dml | A | converted 187, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
 | `Expression.Measured` | Values | C | — | 190: target exists, no writer arm: Expression.Measured (190) | 234 |
-| `Statement.AlterDatabaseSet` | Database | C | gap 218 | 218: bridge arm missing: Statement.AlterDatabase (218) | 218 |
+| `Statement.AlterDatabaseSet` | Database | C | converted 218 | — | 218 |
 | `Expression.Add` | Values | A | — | — | 198 |
 | `Expression.RowValueConstructor` | Values | A | — | — | 186 |
 | `Expression.WindowFunction` | Values | B | gap 4 | 4: needs decision: inventory Expression.WindowFunction (a window over something that is not a call) (3); needs decision: inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for) (1) | 184 |
@@ -475,7 +475,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropType` | Drop | B | converted 14 | — | 14 |
 | `Statement.RestoreLog` | Database | C | gap 14 | 14: no target record: Statement.RestoreLog (14) | 14 |
 | `Expression.ShiftRight` | Values | C | — | — | 13 |
-| `Statement.AlterDatabaseScopedConfiguration` | Database | C | gap 13 | 13: no target record: Statement.AlterDatabaseScopedConfiguration (13) | 13 |
+| `Statement.AlterDatabaseScopedConfiguration` | Database | C | converted 13 | — | 13 |
 | `Statement.AlterFullTextCatalog` | Database | C | gap 13 | 13: no target record: Statement.AlterFullTextCatalog (13) | 13 |
 | `Statement.AlterServiceMasterKey` | Security | C | gap 13 | 13: no target record: Statement.AlterServiceMasterKey (13) | 13 |
 | `Statement.AlterUser` | Security | C | gap 13 | 13: no target record: Statement.AlterUser (13) | 13 |

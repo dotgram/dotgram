@@ -661,6 +661,10 @@ public sealed class Sql2023WriterCoverageTests
 			["Table.AsKeyword"] = (
 				new Statement.DeclareVariables([new VariableDeclaration.Table(new Identifier("@t"), [new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [], null))])]),
 				new Statement.DeclareVariables([new VariableDeclaration.Table(new Identifier("@t"), [new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [], null))]) { AsKeyword = true }])),
+			// Database: SECONDS written after the number of a ROLLBACK AFTER.
+			["RollbackAfter.Seconds"] = (
+				new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.Set([new Option(new Identifier("SINGLE_USER"), null, [])]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("5", NumericLiteralKind.DecimalInteger)) }),
+				new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.Set([new Option(new Identifier("SINGLE_USER"), null, [])]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("5", NumericLiteralKind.DecimalInteger)) { Seconds = true } })),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

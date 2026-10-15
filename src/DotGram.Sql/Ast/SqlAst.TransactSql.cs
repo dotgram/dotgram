@@ -492,8 +492,8 @@ public abstract partial record LiteralValue
 
 /// <summary>T-SQL: ALTER DATABASE (Transact-SQL). What an <c>ALTER DATABASE</c> does.</summary>
 /// <remarks>
-/// One action a statement, as the published syntax has it. <c>SET</c> is not here: it carries its own
-/// catalogue of options and is a family of its own.
+/// One action a statement, as the published syntax has it. <c>SET</c> is one of them: its options are one closed
+/// catalogue, which the writer holds, and the termination after it is a record of its own.
 /// </remarks>
 public abstract record AlterDatabaseAction : ISqlNode
 {
@@ -554,6 +554,19 @@ public abstract record AlterDatabaseAction : ISqlNode
 
 	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>REMOVE FILEGROUP g</c>.</summary>
 	public sealed record RemoveFileGroup(Identifier Name) : AlterDatabaseAction;
+
+	/// <summary>
+	/// T-SQL: ALTER DATABASE SET Options (Transact-SQL). <c>SET option_spec [,…n] [WITH termination]</c>: the settings, one
+	/// at least, in the order written.
+	/// </summary>
+	public sealed record Set(SqlList<Option> Options) : AlterDatabaseAction
+	{
+		/// <summary>
+		/// T-SQL: ALTER DATABASE SET Options (Transact-SQL). <c>WITH ROLLBACK AFTER n [SECONDS]</c>, <c>WITH ROLLBACK
+		/// IMMEDIATE</c> or <c>WITH NO_WAIT</c>: what is done with the sessions in the way; null where none is said.
+		/// </summary>
+		public Termination? Termination { get; init; }
+	}
 }
 
 /// <summary>T-SQL: ALTER DATABASE File and Filegroups. A file, as its <c>(NAME = ..., SIZE = ...)</c> says it.</summary>

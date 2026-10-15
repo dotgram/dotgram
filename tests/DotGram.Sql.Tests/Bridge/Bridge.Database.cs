@@ -39,6 +39,8 @@ static partial class Bridge
 			made = old switch
 			{
 				Statement.AlterDatabaseModify modify => AlterModify(modify),
+				Statement.AlterDatabaseSet set => Target(set, set.Name, new Ast.AlterDatabaseAction.Set(Each(set.Settings, one => Setting(set, one))) { Termination = Termination(set, set.Termination) }),
+				Statement.AlterDatabaseScopedConfiguration scoped => Scoped(scoped),
 				Statement.Definition definition when definition.GetType().Name.StartsWith("AlterDatabase", StringComparison.Ordinal)
 					=> Alter(definition),
 				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
@@ -130,6 +132,73 @@ static partial class Bridge
 			var action = new Ast.AlterDatabaseAction.Modify(Each(old.Options ?? [], one => one is Clause.Option option ? Tables.Option(option) : throw BridgeGap.Open(one, $"inventory {NameOf(one)}")), old.With is { Length: > 0 });
 
 			return Target(old, old.Name, action);
+		}
+
+		/// <summary>
+		/// One setting of ALTER DATABASE … SET or of a scoped configuration, which the old tree keeps as a name of words, a
+		/// value and the list in brackets after it. A word the setting takes with no <c>=</c> and nothing after it is kept in
+		/// the name: the last word is the value, but for <c>QUERY_STORE CLEAR [ALL]</c>, which is a name of several words
+		/// and nothing more. The form, <c>=</c> or none, is the catalogue's but for the one setting read both ways.
+		/// </summary>
+		static Ast.Option Setting(Statement old, Clause clause)
+		{
+			if (clause is not Clause.Option(var name, var value, var options, null, var bare))
+				throw BridgeGap.Open(old, $"inventory {NameOf(clause)} (in {NameOf(old)})");
+
+			var words = SqlTokens.Of(name).Select(static one => one.Text).ToList();
+			var upper = Words(name);
+			Ast.Expression? made;
+
+			if (value is null && options.Length == 0 && words.Count >= 2 && upper is not ["QUERY_STORE", "CLEAR", ..])
+			{
+				made  = new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, words[^1])]));
+				words = words[..^1];
+			}
+			else
+				made = value switch
+				{
+					null                                => null,
+					Expression.Measured(var v, var unit) => new Ast.Expression.Measured(Values.Of(v), new Ast.Identifier(unit)),
+					_                                   => Values.Of(value),
+				};
+
+			return new Ast.Option(Values.Part(old, words[0]), made, Each(options, one => Setting(old, one)))
+			{
+				Words         = [.. words.Skip(1).Select(word => Values.Part(old, word))],
+				EqualsOmitted = bare && upper is ["MEMORY_OPTIMIZED_ELEVATE_TO_SNAPSHOT"],
+			};
+		}
+
+		/// <summary>The termination after SET, which the old tree keeps as its words.</summary>
+		static Ast.Termination? Termination(Statement old, string? text)
+		{
+			if (text is null)
+				return null;
+
+			var tokens = SqlTokens.Of(text).ToList();
+
+			return Words(text) switch
+			{
+				["WITH", "ROLLBACK", "IMMEDIATE"] => new Ast.Termination.RollbackImmediate(),
+				["WITH", "NO_WAIT"]               => new Ast.Termination.NoWait(),
+				["WITH", "ROLLBACK", "AFTER", _, .. var rest] when rest is [] or ["SECONDS"]
+					=> new Ast.Termination.RollbackAfter(new Ast.LiteralValue.Numeric(tokens[3].Text, Ast.NumericLiteralKind.DecimalInteger)) { Seconds = rest.Length == 1 },
+				_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (termination `{text}`)"),
+			};
+		}
+
+		/// <summary>ALTER DATABASE SCOPED CONFIGURATION: SET and its one setting, or CLEAR PROCEDURE_CACHE and its plan handle.</summary>
+		static Ast.Statement Scoped(Statement.AlterDatabaseScopedConfiguration old)
+		{
+			Ast.ScopedConfigurationAction action = old switch
+			{
+				{ Action: "SET", Settings: [var setting], Argument: null } => new Ast.ScopedConfigurationAction.Set(Setting(old, setting)) { Secondary = old.Secondary },
+				{ Action: "CLEAR PROCEDURE_CACHE", Settings: [], Secondary: false } => new Ast.ScopedConfigurationAction.ClearProcedureCache(
+					old.Argument is null ? null : Values.Of(old.Argument) as Ast.LiteralValue.Binary ?? throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a plan handle that is not binary)")),
+				_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({old.Action})"),
+			};
+
+			return new Ast.Statement.AlterDatabaseScopedConfiguration(action);
 		}
 
 		/// <summary>ALTER DATABASE's target: CURRENT, the word, or a name.</summary>
