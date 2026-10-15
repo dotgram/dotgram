@@ -85,6 +85,13 @@ public sealed class DatabaseWriterTests
 		return new Option(Name(name), value, []) { Words = [.. Array.ConvertAll(words, Name)] };
 	}
 
+	static Statement.CreateDatabase Create(string name = "d")
+	{
+		return new Statement.CreateDatabase(Name(name));
+	}
+
+	static readonly DatabaseFile F = File(Set("NAME", Ref("f")), Set("FILENAME", Text("f.mdf")));
+
 	static Statement.AlterDatabaseScopedConfiguration Scoped(Option option, bool secondary = false)
 	{
 		return new Statement.AlterDatabaseScopedConfiguration(new ScopedConfigurationAction.Set(option) { Secondary = secondary });
@@ -135,6 +142,15 @@ public sealed class DatabaseWriterTests
 			"SCOPED DW_COMPATIBILITY_LEVEL" => Scoped(Set("DW_COMPATIBILITY_LEVEL", Ref("AUTO"))),
 			"CLEAR PROCEDURE_CACHE" => new Statement.AlterDatabaseScopedConfiguration(new ScopedConfigurationAction.ClearProcedureCache(null)),
 			"CLEAR PROCEDURE_CACHE of a plan" => new Statement.AlterDatabaseScopedConfiguration(new ScopedConfigurationAction.ClearProcedureCache(new LiteralValue.Binary("0102") { ZeroX = true })),
+			"CREATE DATABASE alone" => Create(),
+			"CREATE DATABASE whole" => Create() with { Containment = DatabaseContainment.Partial, Primary = true, Files = [F, File(Set("NAME", Ref("g")), Set("SIZE", Sized("10", "MB")))], FileGroups = [new FileGroup(Name("fs"), [File(Set("NAME", Ref("h")))]) { Contains = FileGroupContents.Filestream, Default = true }, new FileGroup(Name("mo"), [F]) { Contains = FileGroupContents.MemoryOptimizedData }], LogFiles = [File(Set("NAME", Ref("l")), Set("FILEGROWTH", Sized("10", "%")))], Collation = new CollationName(new QualifiedName([Name("Latin1_General_CI_AS")])), Options = [Set("TRUSTWORTHY", Ref("ON")), Set("NESTED_TRIGGERS", Ref("OFF")), Set("DEFAULT_LANGUAGE", Ref("us_english")), Set("TWO_DIGIT_YEAR_CUTOFF", Number("2049")), Set("LEDGER", Ref("ON")), Set("CATALOG_COLLATION", Ref("DATABASE_DEFAULT")), Nested("FILESTREAM", null, Set("NON_TRANSACTED_ACCESS", Ref("FULL"))), Nested("PERSISTENT_LOG_BUFFER", Ref("ON"), Set("DIRECTORY_NAME", Text("x")))] },
+			"CREATE DATABASE log only" => Create() with { LogFiles = [F], Containment = DatabaseContainment.None },
+			"CREATE DATABASE FOR ATTACH" => Create() with { Files = [F], Source = new DatabaseSource.ForAttach(AttachKind.Attach), Options = [Set("NEW_BROKER"), Set("RESTRICTED_USER"), Nested("FILESTREAM", null, Set("DIRECTORY_NAME", new LiteralValue.Null()))] },
+			"CREATE DATABASE FOR ATTACH_REBUILD_LOG" => Create() with { Files = [F], Source = new DatabaseSource.ForAttach(AttachKind.AttachRebuildLog), Options = [Set("DB_CHAINING", Ref("ON"))] },
+			"CREATE DATABASE FOR ATTACH_FORCE_REBUILD_LOG" => Create() with { Files = [F], Source = new DatabaseSource.ForAttach(AttachKind.AttachForceRebuildLog) },
+			"CREATE DATABASE AS SNAPSHOT OF" => Create("s") with { Files = [F], Source = new DatabaseSource.AsSnapshotOf(D), Options = [Set("TRUSTWORTHY", Ref("OFF"))] },
+			"CREATE DATABASE AS COPY OF" => Create("c") with { Source = new DatabaseSource.AsCopyOf(new QualifiedName([Name("s"), D])), EditionOptions = [new Option(Name("SERVICE_OBJECTIVE"), Ref("ELASTIC_POOL"), [Set("NAME", Ref("p"))])], Options = [Set("BACKUP_STORAGE_REDUNDANCY", Text("GEO"))] },
+			"CREATE DATABASE Azure" => Create() with { Collation = new CollationName(new QualifiedName([Name("Latin1_General_CI_AS")])), EditionOptions = [Set("EDITION", Text("Premium")), Set("MAXSIZE", Sized("500", "GB"))], Options = [Set("BACKUP_STORAGE_REDUNDANCY", Text("LOCAL")), Set("LEDGER", Ref("OFF"))] },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 	}
@@ -181,6 +197,15 @@ public sealed class DatabaseWriterTests
 	[InlineData("SCOPED DW_COMPATIBILITY_LEVEL", "ALTER DATABASE SCOPED CONFIGURATION SET DW_COMPATIBILITY_LEVEL = AUTO")]
 	[InlineData("CLEAR PROCEDURE_CACHE", "ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE")]
 	[InlineData("CLEAR PROCEDURE_CACHE of a plan", "ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE 0x0102")]
+	[InlineData("CREATE DATABASE alone", "CREATE DATABASE d")]
+	[InlineData("CREATE DATABASE whole", "CREATE DATABASE d CONTAINMENT = PARTIAL ON PRIMARY (NAME = f, FILENAME = 'f.mdf'), (NAME = g, SIZE = 10 MB), FILEGROUP fs CONTAINS FILESTREAM DEFAULT (NAME = h), FILEGROUP mo CONTAINS MEMORY_OPTIMIZED_DATA (NAME = f, FILENAME = 'f.mdf') LOG ON (NAME = l, FILEGROWTH = 10 %) COLLATE Latin1_General_CI_AS WITH TRUSTWORTHY ON, NESTED_TRIGGERS = OFF, DEFAULT_LANGUAGE = us_english, TWO_DIGIT_YEAR_CUTOFF = 2049, LEDGER = ON, CATALOG_COLLATION = DATABASE_DEFAULT, FILESTREAM (NON_TRANSACTED_ACCESS = FULL), PERSISTENT_LOG_BUFFER = ON (DIRECTORY_NAME = 'x')")]
+	[InlineData("CREATE DATABASE log only", "CREATE DATABASE d CONTAINMENT = NONE LOG ON (NAME = f, FILENAME = 'f.mdf')")]
+	[InlineData("CREATE DATABASE FOR ATTACH", "CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf') FOR ATTACH WITH NEW_BROKER, RESTRICTED_USER, FILESTREAM (DIRECTORY_NAME = NULL)")]
+	[InlineData("CREATE DATABASE FOR ATTACH_REBUILD_LOG", "CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf') FOR ATTACH_REBUILD_LOG WITH DB_CHAINING ON")]
+	[InlineData("CREATE DATABASE FOR ATTACH_FORCE_REBUILD_LOG", "CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf') FOR ATTACH_FORCE_REBUILD_LOG")]
+	[InlineData("CREATE DATABASE AS SNAPSHOT OF", "CREATE DATABASE s ON (NAME = f, FILENAME = 'f.mdf') AS SNAPSHOT OF d WITH TRUSTWORTHY OFF")]
+	[InlineData("CREATE DATABASE AS COPY OF", "CREATE DATABASE c AS COPY OF s.d (SERVICE_OBJECTIVE = ELASTIC_POOL (NAME = p)) WITH (BACKUP_STORAGE_REDUNDANCY = 'GEO')")]
+	[InlineData("CREATE DATABASE Azure", "CREATE DATABASE d COLLATE Latin1_General_CI_AS (EDITION = 'Premium', MAXSIZE = 500 GB) WITH BACKUP_STORAGE_REDUNDANCY = 'LOCAL', LEDGER = OFF")]
 	public void Each_record_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
@@ -230,6 +255,15 @@ public sealed class DatabaseWriterTests
 	[InlineData("SCOPED DW_COMPATIBILITY_LEVEL")]
 	[InlineData("CLEAR PROCEDURE_CACHE")]
 	[InlineData("CLEAR PROCEDURE_CACHE of a plan")]
+	[InlineData("CREATE DATABASE alone")]
+	[InlineData("CREATE DATABASE whole")]
+	[InlineData("CREATE DATABASE log only")]
+	[InlineData("CREATE DATABASE FOR ATTACH")]
+	[InlineData("CREATE DATABASE FOR ATTACH_REBUILD_LOG")]
+	[InlineData("CREATE DATABASE FOR ATTACH_FORCE_REBUILD_LOG")]
+	[InlineData("CREATE DATABASE AS SNAPSHOT OF")]
+	[InlineData("CREATE DATABASE AS COPY OF")]
+	[InlineData("CREATE DATABASE Azure")]
 	public void Each_record_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -286,6 +320,24 @@ public sealed class DatabaseWriterTests
 	[InlineData("SCOPED MAXDOP with a plus")]
 	[InlineData("SCOPED switch without =")]
 	[InlineData("CLEAR PROCEDURE_CACHE of an X literal")]
+	[InlineData("CREATE DATABASE PRIMARY with no files")]
+	[InlineData("CREATE DATABASE filegroups with no files")]
+	[InlineData("CREATE DATABASE a filegroup of no file")]
+	[InlineData("CREATE DATABASE a containment of no word")]
+	[InlineData("CREATE DATABASE an option SET takes and a creation does not")]
+	[InlineData("CREATE DATABASE TRUSTWORTHY with =")]
+	[InlineData("CREATE DATABASE a broker word on a new database")]
+	[InlineData("CREATE DATABASE FOR ATTACH two broker words")]
+	[InlineData("CREATE DATABASE FOR ATTACH an option twice")]
+	[InlineData("CREATE DATABASE FOR ATTACH_REBUILD_LOG a broker word")]
+	[InlineData("CREATE DATABASE FOR ATTACH a FILESTREAM of NON_TRANSACTED_ACCESS")]
+	[InlineData("CREATE DATABASE an attach of no word")]
+	[InlineData("CREATE DATABASE AS COPY OF three parts")]
+	[InlineData("CREATE DATABASE AS COPY OF two options")]
+	[InlineData("CREATE DATABASE AS COPY OF a LEDGER")]
+	[InlineData("CREATE DATABASE Azure with files")]
+	[InlineData("CREATE DATABASE edition options on a snapshot")]
+	[InlineData("CREATE DATABASE a filegroup holding no word")]
 	public void A_database_tree_with_no_text_is_refused(string which)
 	{
 		ISqlNode node = which switch
@@ -376,6 +428,42 @@ public sealed class DatabaseWriterTests
 			"SCOPED switch without =" => Scoped(Set("IDENTITY_CACHE", Ref("OFF")) with { EqualsOmitted = true }),
 			// PlanHandle: TSql.BinaryLiteral.
 			"CLEAR PROCEDURE_CACHE of an X literal" => new Statement.AlterDatabaseScopedConfiguration(new ScopedConfigurationAction.ClearProcedureCache(new LiteralValue.Binary("'0102'"))),
+			// DatabaseFiles: ON PRIMARY FileSpec.
+			"CREATE DATABASE PRIMARY with no files" => Create() with { Primary = true },
+			// DatabaseFiles: a FileSpec before the filegroups.
+			"CREATE DATABASE filegroups with no files" => Create() with { FileGroups = [new FileGroup(Name("g"), [F])] },
+			// FileGroupSpec: FileSpec, one at least.
+			"CREATE DATABASE a filegroup of no file" => Create() with { Files = [F], FileGroups = [new FileGroup(Name("g"), [])] },
+			// CreateDatabaseStatement: NONE or PARTIAL.
+			"CREATE DATABASE a containment of no word" => Create() with { Containment = (DatabaseContainment)9 },
+			// CreateDatabaseNames: AUTO_CLOSE is refused.
+			"CREATE DATABASE an option SET takes and a creation does not" => Create() with { Options = [Set("AUTO_CLOSE", Ref("ON"))] },
+			// DatabaseSwitch: TRUSTWORTHY takes no =, the flag says nothing there.
+			"CREATE DATABASE TRUSTWORTHY with =" => Create() with { Options = [Set("TRUSTWORTHY", Ref("ON")) with { EqualsOmitted = true }] },
+			// CreateDatabaseOption: ENABLE_BROKER only when attached.
+			"CREATE DATABASE a broker word on a new database" => Create() with { Options = [Set("ENABLE_BROKER")] },
+			// Syntax.Attached, Msg 102.
+			"CREATE DATABASE FOR ATTACH two broker words" => Create() with { Files = [F], Source = new DatabaseSource.ForAttach(AttachKind.Attach), Options = [Set("ENABLE_BROKER"), Set("NEW_BROKER")] },
+			// Syntax.NamedOnce, Msg 102.
+			"CREATE DATABASE FOR ATTACH an option twice" => Create() with { Files = [F], Source = new DatabaseSource.ForAttach(AttachKind.Attach), Options = [Set("TRUSTWORTHY", Ref("ON")), Set("trustworthy", Ref("OFF"))] },
+			// RebuildLogOption: ENABLE_BROKER is 102.
+			"CREATE DATABASE FOR ATTACH_REBUILD_LOG a broker word" => Create() with { Files = [F], Source = new DatabaseSource.ForAttach(AttachKind.AttachRebuildLog), Options = [Set("ENABLE_BROKER")] },
+			// AttachOption: FILESTREAM (DIRECTORY_NAME = …) only.
+			"CREATE DATABASE FOR ATTACH a FILESTREAM of NON_TRANSACTED_ACCESS" => Create() with { Files = [F], Source = new DatabaseSource.ForAttach(AttachKind.Attach), Options = [Nested("FILESTREAM", null, Set("NON_TRANSACTED_ACCESS", Ref("FULL")))] },
+			// DatabaseTail.
+			"CREATE DATABASE an attach of no word" => Create() with { Files = [F], Source = new DatabaseSource.ForAttach((AttachKind)9) },
+			// DatabaseTail: Identifier [. Identifier].
+			"CREATE DATABASE AS COPY OF three parts" => Create() with { Source = new DatabaseSource.AsCopyOf(new QualifiedName([Name("a"), Name("b"), Name("c")])) },
+			// DatabaseTail: WITH ( BackupRedundancy ).
+			"CREATE DATABASE AS COPY OF two options" => Create() with { Source = new DatabaseSource.AsCopyOf(new QualifiedName([D])), Options = [Set("BACKUP_STORAGE_REDUNDANCY", Text("GEO")), Set("BACKUP_STORAGE_REDUNDANCY", Text("LOCAL"))] },
+			// BackupRedundancy.
+			"CREATE DATABASE AS COPY OF a LEDGER" => Create() with { Source = new DatabaseSource.AsCopyOf(new QualifiedName([D])), Options = [Set("LEDGER", Ref("ON"))] },
+			// CreateDatabaseStatement: the edition options follow the name and a collation.
+			"CREATE DATABASE Azure with files" => Create() with { Files = [F], EditionOptions = [Set("EDITION", Text("Basic"))] },
+			// DatabaseTail: AS SNAPSHOT OF takes no edition options.
+			"CREATE DATABASE edition options on a snapshot" => Create() with { Files = [F], Source = new DatabaseSource.AsSnapshotOf(D), EditionOptions = [Set("EDITION", Text("Basic"))] },
+			// FileGroupHolds.
+			"CREATE DATABASE a filegroup holding no word" => Create() with { Files = [F], FileGroups = [new FileGroup(Name("g"), [F]) { Contains = (FileGroupContents)9 }] },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 

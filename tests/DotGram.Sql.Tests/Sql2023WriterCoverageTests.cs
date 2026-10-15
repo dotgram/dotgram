@@ -361,6 +361,12 @@ public sealed class Sql2023WriterCoverageTests
 		},
 		// Drop: the DROP family (SqlAst.TransactSql.Drop.cs).
 		[typeof(EventScope)]         = v => new Statement.DropEventSession(new Identifier("s"), (EventScope)v),
+		// Database: the database family (SqlAst.TransactSql.Database.cs).
+		[typeof(FileGroupContents)]  = v => new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.AddFileGroup(new Identifier("g"), (FileGroupContents)v)),
+		[typeof(FileGroupUpdatability)] = v => new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.ModifyFileGroup(new Identifier("g"), new FileGroupChange.Updatability((FileGroupUpdatability)v, false))),
+		[typeof(FileGroupAutoGrow)]  = v => new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.ModifyFileGroup(new Identifier("g"), new FileGroupChange.AutoGrow((FileGroupAutoGrow)v))),
+		[typeof(DatabaseContainment)] = v => new Statement.CreateDatabase(new Identifier("d")) { Containment = (DatabaseContainment)v },
+		[typeof(AttachKind)]         = v => new Statement.CreateDatabase(new Identifier("d")) { Files = [new DatabaseFile([new Option(new Identifier("FILENAME"), new LiteralValue.String("'f'", StringLiteralKind.Character), [])])], Source = new DatabaseSource.ForAttach((AttachKind)v) },
 	};
 
 	/// <summary>
@@ -665,6 +671,10 @@ public sealed class Sql2023WriterCoverageTests
 			["RollbackAfter.Seconds"] = (
 				new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.Set([new Option(new Identifier("SINGLE_USER"), null, [])]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("5", NumericLiteralKind.DecimalInteger)) }),
 				new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.Set([new Option(new Identifier("SINGLE_USER"), null, [])]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("5", NumericLiteralKind.DecimalInteger)) { Seconds = true } })),
+			// Database: PRIMARY written after ON.
+			["CreateDatabase.Primary"] = (
+				new Statement.CreateDatabase(new Identifier("d")) { Files = [new DatabaseFile([new Option(new Identifier("NAME"), new Expression.Reference(new QualifiedName([new Identifier("f")])), [])])] },
+				new Statement.CreateDatabase(new Identifier("d")) { Files = [new DatabaseFile([new Option(new Identifier("NAME"), new Expression.Reference(new QualifiedName([new Identifier("f")])), [])])], Primary = true }),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

@@ -313,7 +313,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.GroupBy` | Queries | B | — | — | 158 |
 | `Clause.JsonColumn` | Tables | C | gap 1 | 1: no target record: RowsetColumn.Ordinal is a number, and keeps no spelling of it such as `00` (1) | 155 |
 | `Statement.WorkloadGroupDefinition` | Server | C | gap 155 | 155: no target record: Statement.CreateWorkloadGroup (155) | 155 |
-| `Statement.CreateDatabase` | Database | C | gap 154 | 154: no target record: Statement.CreateDatabase (154) | 154 |
+| `Statement.CreateDatabase` | Database | C | converted 146, gap 8 | 8: needs decision: Trees.FreeText (Statement.CreateDatabase.Containment or Tail, written otherwise than the writer prints it) (8) | 154 |
 | `Clause.Set` | Dml | B | — | — | 151 |
 | `Statement.AlterIndex` | Tables | C | converted 134, gap 14 | 14: needs decision: inventory Statement.AlterIndex (a selective XML index's paths) (14) | 148 |
 | `Statement.Execute` | Routines | B | gap 139 | 147: needs decision: inventory Statement.Execute (147) | 147 |

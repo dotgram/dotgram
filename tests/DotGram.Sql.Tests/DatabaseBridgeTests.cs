@@ -45,6 +45,20 @@ public sealed class DatabaseBridgeTests
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = 4", "not for the secondary")]
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE", "the whole cache")]
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE 0x01", "one plan")]
+	[InlineData("CREATE DATABASE d ON PRIMARY (NAME = f)", "ON PRIMARY")]
+	[InlineData("CREATE DATABASE d ON (NAME = f)", "ON")]
+	[InlineData("CREATE DATABASE d ON (NAME = f), FILEGROUP g (NAME = h), (NAME = i)", "a filegroup's files")]
+	[InlineData("CREATE DATABASE d ON (NAME = f), FILEGROUP g CONTAINS FILESTREAM DEFAULT (NAME = h)", "a filegroup's words")]
+	[InlineData("CREATE DATABASE d ON (NAME = f) LOG ON (NAME = l)", "LOG ON")]
+	[InlineData("CREATE DATABASE d CONTAINMENT = NONE", "CONTAINMENT = NONE")]
+	[InlineData("CREATE DATABASE d", "no containment")]
+	[InlineData("CREATE DATABASE d ON (NAME = f) FOR ATTACH", "FOR ATTACH")]
+	[InlineData("CREATE DATABASE d ON (NAME = f) FOR ATTACH_REBUILD_LOG", "FOR ATTACH_REBUILD_LOG")]
+	[InlineData("CREATE DATABASE s ON (NAME = f) AS SNAPSHOT OF d", "AS SNAPSHOT OF")]
+	[InlineData("CREATE DATABASE c AS COPY OF s.d", "AS COPY OF")]
+	[InlineData("CREATE DATABASE c AS COPY OF d (EDITION = 'Basic')", "a copy's edition options")]
+	[InlineData("CREATE DATABASE d (EDITION = 'Basic')", "Azure's form")]
+	[InlineData("CREATE DATABASE d WITH TRUSTWORTHY ON", "WITH")]
 	public void The_bridge_builds_the_database_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -81,6 +95,20 @@ public sealed class DatabaseBridgeTests
 			"not for the secondary" => made is Ast.Statement.AlterDatabaseScopedConfiguration { Action: Ast.ScopedConfigurationAction.Set { Secondary: false } },
 			"the whole cache" => made is Ast.Statement.AlterDatabaseScopedConfiguration { Action: Ast.ScopedConfigurationAction.ClearProcedureCache { PlanHandle: null } },
 			"one plan" => made is Ast.Statement.AlterDatabaseScopedConfiguration { Action: Ast.ScopedConfigurationAction.ClearProcedureCache { PlanHandle.ZeroX: true } },
+			"ON PRIMARY" => made is Ast.Statement.CreateDatabase { Primary: true, Files.Count: 1 },
+			"ON" => made is Ast.Statement.CreateDatabase { Primary: false, Files.Count: 1 },
+			"a filegroup's files" => made is Ast.Statement.CreateDatabase { Files.Count: 1, FileGroups: [{ Name.Text: "g", Files.Count: 2, Contains: null, Default: false }] },
+			"a filegroup's words" => made is Ast.Statement.CreateDatabase { FileGroups: [{ Contains: Ast.FileGroupContents.Filestream, Default: true }] },
+			"LOG ON" => made is Ast.Statement.CreateDatabase { Files.Count: 1, LogFiles.Count: 1 },
+			"CONTAINMENT = NONE" => made is Ast.Statement.CreateDatabase { Containment: Ast.DatabaseContainment.None },
+			"no containment" => made is Ast.Statement.CreateDatabase { Containment: null, Source: null, Options.Count: 0 },
+			"FOR ATTACH" => made is Ast.Statement.CreateDatabase { Source: Ast.DatabaseSource.ForAttach { Kind: Ast.AttachKind.Attach } },
+			"FOR ATTACH_REBUILD_LOG" => made is Ast.Statement.CreateDatabase { Source: Ast.DatabaseSource.ForAttach { Kind: Ast.AttachKind.AttachRebuildLog } },
+			"AS SNAPSHOT OF" => made is Ast.Statement.CreateDatabase { Source: Ast.DatabaseSource.AsSnapshotOf { Database.Text: "d" } },
+			"AS COPY OF" => made is Ast.Statement.CreateDatabase { Source: Ast.DatabaseSource.AsCopyOf { Database.Count: 2 } },
+			"a copy's edition options" => made is Ast.Statement.CreateDatabase { Source: Ast.DatabaseSource.AsCopyOf, EditionOptions.Count: 1 },
+			"Azure's form" => made is Ast.Statement.CreateDatabase { Source: null, EditionOptions.Count: 1 },
+			"WITH" => made is Ast.Statement.CreateDatabase { Options: [{ Name.Text: "TRUSTWORTHY", EqualsOmitted: false }] },
 			_ => false,
 		};
 
