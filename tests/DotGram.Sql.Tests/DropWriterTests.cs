@@ -187,12 +187,82 @@ public sealed class DropWriterTests
 	[InlineData("MasterKey", "DROP MASTER KEY")]
 	[InlineData("DatabaseEncryptionKey", "DROP DATABASE ENCRYPTION KEY")]
 	[InlineData("Index named", "DROP INDEX IF EXISTS x ON dbo.q WITH (MAXDOP = 2, ONLINE = ON, MOVE TO fg, DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 3), WAIT_AT_LOW_PRIORITY (MAX_DURATION = 5 MINUTES, ABORT_AFTER_WAIT = SELF))")]
-	[InlineData("Index qualified", "DROP INDEX dbo.q, x ON s WITH (MOVE TO ps(a), FILESTREAM_ON 'fs')")]
+	[InlineData("Index qualified", "DROP INDEX dbo.q, x ON s WITH (MOVE TO ps (a), FILESTREAM_ON 'fs')")]
 	[InlineData("Signature", "DROP SIGNATURE FROM dbo.q BY CERTIFICATE x, ASYMMETRIC KEY y")]
 	[InlineData("Counter signature", "DROP COUNTER SIGNATURE FROM OBJECT::dbo.q BY CERTIFICATE x")]
 	public void Each_record_writes_its_kind(string which, string text)
 	{
 		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
+	}
+
+	/// <summary>
+	/// Each record's tree, written and read back by TransactSqlParser, carried by the bridge to the same tree.
+	/// </summary>
+	[Theory]
+	[InlineData("Aggregate")]
+	[InlineData("Default")]
+	[InlineData("Rule")]
+	[InlineData("SecurityPolicy")]
+	[InlineData("Synonym")]
+	[InlineData("User")]
+	[InlineData("Contract")]
+	[InlineData("ExternalTable")]
+	[InlineData("MessageType")]
+	[InlineData("Queue")]
+	[InlineData("RemoteServiceBinding")]
+	[InlineData("Route")]
+	[InlineData("Service")]
+	[InlineData("XmlSchemaCollection")]
+	[InlineData("Statistics")]
+	[InlineData("WorkloadClassifier")]
+	[InlineData("ApplicationRole")]
+	[InlineData("AvailabilityGroup")]
+	[InlineData("BrokerPriority")]
+	[InlineData("Certificate")]
+	[InlineData("ColumnEncryptionKey")]
+	[InlineData("ColumnMasterKey")]
+	[InlineData("Credential")]
+	[InlineData("CryptographicProvider")]
+	[InlineData("DatabaseAuditSpecification")]
+	[InlineData("DatabaseScopedCredential")]
+	[InlineData("Endpoint")]
+	[InlineData("ExternalDataSource")]
+	[InlineData("ExternalFileFormat")]
+	[InlineData("ExternalModel")]
+	[InlineData("ExternalResourcePool")]
+	[InlineData("FullTextCatalog")]
+	[InlineData("FullTextStopList")]
+	[InlineData("Login")]
+	[InlineData("PartitionFunction")]
+	[InlineData("PartitionScheme")]
+	[InlineData("ResourcePool")]
+	[InlineData("SearchPropertyList")]
+	[InlineData("ServerAudit")]
+	[InlineData("ServerAuditSpecification")]
+	[InlineData("ServerRole")]
+	[InlineData("WorkloadGroup")]
+	[InlineData("AsymmetricKey")]
+	[InlineData("SymmetricKey")]
+	[InlineData("ExternalLanguage")]
+	[InlineData("Database")]
+	[InlineData("Assembly")]
+	[InlineData("EventSession")]
+	[InlineData("EventNotification")]
+	[InlineData("ExternalLibrary")]
+	[InlineData("FullTextIndex")]
+	[InlineData("SensitivityClassification")]
+	[InlineData("MasterKey")]
+	[InlineData("DatabaseEncryptionKey")]
+	[InlineData("Index named")]
+	[InlineData("Index qualified")]
+	[InlineData("Signature")]
+	[InlineData("Counter signature")]
+	public void Each_record_reads_back_as_itself(string which)
+	{
+		var tree = Tree(which);
+		var text = Sql2023Writer.Write(tree);
+
+		Assert.Equal(tree, Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
 	}
 
 	/// <summary>
