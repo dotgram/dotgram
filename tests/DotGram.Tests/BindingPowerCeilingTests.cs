@@ -217,6 +217,49 @@ public sealed class BindingPowerCeilingTests
 			GrammarNormalizer.UnreachedStrength);
 	}
 
+	/// <summary>
+	/// Two bases that begin alike are not shared where one of them ends with its operand: shared,
+	/// the one alternative would end either way, and the ceiling would be lost.
+	/// </summary>
+	[Theory]
+	[InlineData("~1!", "1")]
+	[InlineData("~12+3", "(~(12+3))")]
+	[InlineData("~1+2", null)]
+	public void A_base_that_ends_with_its_operand_keeps_its_ceiling_beside_one_that_begins_alike(string input, string? expected)
+	{
+		AllRead(
+			"""
+			Start : @string = e: E => @(e)
+			E : @string = l: E & '+' & when @(l.Length > 1) & r: E << 2 => @("(" + l + "+" + r + ")")
+			            | '~' & o: E                                     => @("(~" + o + ")")
+			            | '~' & o: E & '!'                               => @(o)
+			            | d: ['0'..'9']+                                 => @(d)
+			""",
+			input,
+			expected);
+	}
+
+	/// <summary>
+	/// A lookahead after the operand reads nothing, so the operand is still what the prefix
+	/// read last: what it gave back for the lookahead to see is not the loop's to take.
+	/// </summary>
+	[Theory]
+	[InlineData("~1", null)]
+	[InlineData("~1+2", null)]
+	[InlineData("1+2", "(1+2)")]
+	public void A_lookahead_after_the_operand_does_not_hand_the_loop_what_the_operand_gave_back(string input, string? expected)
+	{
+		AllRead(
+			"""
+			Start : @string = e: E => @(e)
+			E : @string = l: E & '+' & r: E << 1  => @("(" + l + "+" + r + ")")
+			            | '~' & o: E & ?='+'      => @("(~" + o + ")")
+			            | d: ['0'..'9']           => @(d)
+			""",
+			input,
+			expected);
+	}
+
 	[Fact]
 	public void A_binding_power_is_at_most_9999()
 	{
