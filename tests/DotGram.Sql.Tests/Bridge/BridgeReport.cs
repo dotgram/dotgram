@@ -134,6 +134,9 @@ static class BridgeReport
 		- `Statement.ExecuteString.Exec`: `EXEC` against `EXECUTE` before a string run.
 		- `RoutineDefinition.Proc`: `PROC` against `PROCEDURE` after CREATE or ALTER.
 		- `ParameterDefinition.AsKeyword`: `@a AS INT` against `@a INT`.
+		- `Statement.ExecuteAs.Exec`: `EXEC AS` against `EXECUTE AS`.
+		- `RoutineDefinition.Unbracketed`: a procedure's parameters without their brackets, `CREATE PROCEDURE p @a INT AS …`.
+		- `RoutineDefinition.AsOmitted`: a function's body or inline RETURN with no AS before it.
 
 		## Prefixed pivot and unpivot names
 

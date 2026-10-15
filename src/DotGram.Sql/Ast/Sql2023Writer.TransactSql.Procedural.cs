@@ -319,7 +319,7 @@ public static partial class Sql2023Writer
 					if (executeAs is { NoRevert: true, Cookie: not null })
 						throw Both(executeAs, "NoRevert", "Cookie");
 
-					Word("EXECUTE AS");
+					Word(executeAs.Exec ? "EXEC AS" : "EXECUTE AS");
 
 					if (context.Name is { } who)
 					{
@@ -990,7 +990,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case AtomicOption.Setting { Option: var setting }:
-					if (setting is not { Order: null, Partitions: null, Options.Count: 0, Words.Count: 0, EqualsOmitted: false, Value: { } value }
+					if (setting is not { Order: null, Place: null, Partitions: null, Options.Count: 0, Words.Count: 0, EqualsOmitted: false, Value: { } value }
 						|| !AtomicSettings.TryGetValue(setting.Name.Style == IdentifierStyle.Regular ? setting.Name.Text : "", out var reads) || !reads(value))
 						throw Misplaced(option, "Option", "that AtomicSetting does not read: one of its five names, set to the value it takes (Msg 102)");
 

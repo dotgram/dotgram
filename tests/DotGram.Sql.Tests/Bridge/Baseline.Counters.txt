@@ -5,7 +5,7 @@
 # Rewritten deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1.
 
 ByCase Clause.ColumnDefinition.Type = 1666
-ByCase Clause.Dropped.Tail = 0
+ByCase Clause.Dropped.Tail = 5
 ByCase Clause.For.Kind = 20
 ByCase Clause.For.Options = 44
 ByCase Clause.GroupBy.With = 2
@@ -73,10 +73,13 @@ Recovered Limit.OffsetRowWord = 28
 Recovered Limit.Position = 23
 Recovered ParameterDefinition.AsKeyword = 90
 Recovered ReferencesSpecification.DeleteRuleFirst = 44
-Recovered RoutineDefinition.Proc = 197
+Recovered RoutineDefinition.AsOmitted = 102
+Recovered RoutineDefinition.Proc = 198
+Recovered RoutineDefinition.Unbracketed = 25
 Recovered SelectColumn.ExpressionItem.AsKeyword = 400
 Recovered Statement.Delete.FromOmitted = 83
 Recovered Statement.DropRoutine.Proc = 24
+Recovered Statement.ExecuteAs.Exec = 20
 Recovered Statement.ExecuteModule.Keyword = 76
 Recovered Statement.ExecuteString.Exec = 22
 Recovered Statement.SetTransaction.Tran = 23

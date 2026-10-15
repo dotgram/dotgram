@@ -2421,6 +2421,11 @@ public static partial class Sql2023Writer
 			if (name is null)
 				return;
 
+			// T-SQL: COMMIT TRANSACTION, ROLLBACK TRANSACTION (Transact-SQL). TranName: a name or a variable, never both, as
+			// BEGIN and SAVE already refuse.
+			if (name is { Name: not null, Variable: not null })
+				throw Both(name, nameof(name.Name), nameof(name.Variable));
+
 			if (name.Name is { } named)
 				PutIdentifier(named);
 			else if (name.Variable is { } variable)

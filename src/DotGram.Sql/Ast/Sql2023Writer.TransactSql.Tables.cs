@@ -767,7 +767,7 @@ public static partial class Sql2023Writer
 		/// <summary>T-SQL: table_constraint (Transact-SQL). An option a key may write without brackets.</summary>
 		static bool Unbracketed(Option option)
 		{
-			if (option is not { Order: null, Options.Count: 0, Name.Style: IdentifierStyle.Regular })
+			if (option is not { Order: null, Place: null, Options.Count: 0, Name.Style: IdentifierStyle.Regular })
 				return false;
 
 			var name = option.Name.Text;
@@ -946,6 +946,13 @@ public static partial class Sql2023Writer
 			if (option.Order is not null)
 				throw Misplaced(option, "Order", "outside a bulk insert's options");
 
+			// OptionSetting: MOVE TO and its place, and only MOVE TO, in a list of options.
+			if (option.Place is not null || Moved(option))
+			{
+				PutPlacedOption(option, filestream: false);
+				return;
+			}
+
 			if (!multiWord)
 				CheckSingleWord(option);
 
@@ -980,6 +987,51 @@ public static partial class Sql2023Writer
 				Each(option.Options, one => PutOption(one, multiWord));
 				Close();
 			}
+		}
+
+		/// <summary>Whether an option is named MOVE TO.</summary>
+		static bool Moved(Option option)
+		{
+			return Plain(option.Name, "MOVE") && option.Words is [var to] && Plain(to, "TO");
+		}
+
+		/// <summary>
+		/// T-SQL: DROP INDEX (Transact-SQL), ALTER TABLE (Transact-SQL). An option that puts what it moves (<see cref="Option.Place"/>):
+		/// <c>MOVE TO target [(column)]</c> (<c>PlacementKind.MoveTo</c>), and, where <paramref name="filestream"/> says the
+		/// place reads it (DropIndexOption), <c>FILESTREAM_ON target</c>. Its words, then the target and columns as
+		/// <see cref="PutPlacement(Placement)"/> writes them; never a value or options beside the place, never a kind its words
+		/// do not say, never a plain DEFAULT to move to (DropOption's <c>?!"DEFAULT"</c>), never columns on FILESTREAM_ON.
+		/// </summary>
+		void PutPlacedOption(Option option, bool filestream)
+		{
+			var kind = Moved(option) ? PlacementKind.MoveTo
+				: filestream && Plain(option.Name, "FILESTREAM_ON") && option.Words.Count == 0 ? PlacementKind.FilestreamOn
+				: throw Misplaced(option, "Place", "on an option other than MOVE TO" + (filestream ? " or FILESTREAM_ON" : "") + ", which has no place here");
+
+			if (option.Place is not { } place)
+				throw Misplaced(option, "Place", "missing on " + (kind == PlacementKind.MoveTo ? "MOVE TO" : "FILESTREAM_ON") + ", whose target is its place");
+
+			if (option.Value is not null || option.Options.Count > 0)
+				throw Both(option, "Place", "Value or Options");
+
+			if (option.Partitions is not null || option.Order is not null || option.EqualsOmitted)
+				throw Misplaced(option, "Partitions, Order or EqualsOmitted", "beside a place");
+
+			if (place.Kind != kind)
+				throw Misplaced(place, "Kind", $"{place.Kind} where the option's words say {kind}");
+
+			if (kind == PlacementKind.MoveTo && Plain(place.Target, "DEFAULT"))
+				throw Misplaced(place, "Target", "DEFAULT written plain, which MOVE TO does not read (DropOption's ?!\"DEFAULT\"); quoted, \"default\", it reads");
+
+			if (kind == PlacementKind.FilestreamOn && place.Columns is not null)
+				throw Misplaced(place, "Columns", "on FILESTREAM_ON in DROP INDEX's options, which reads a filegroup or a scheme alone");
+
+			PutOptionWord(option.Name);
+
+			foreach (var word in option.Words)
+				PutOptionWord(word);
+
+			PutPlacementTarget(place);
 		}
 
 		/// <summary>
@@ -1017,6 +1069,12 @@ public static partial class Sql2023Writer
 				_                          => throw NoText(placement.Kind),
 			});
 
+			PutPlacementTarget(placement);
+		}
+
+		/// <summary>A placement's target and the columns of a scheme (<c>PlacementTarget</c>), after its word.</summary>
+		void PutPlacementTarget(Placement placement)
+		{
 			if (placement.Target.Style == IdentifierStyle.String)
 				Word("'" + placement.Target.Text.Replace("'", "''") + "'");
 			else if (Plain(placement.Target, "DEFAULT"))
@@ -1274,7 +1332,7 @@ public static partial class Sql2023Writer
 		{
 			foreach (var option in index.Options)
 			{
-				var read = option.Options.Count == 0 && option.Order is null && option.Partitions is null && option.Words.Count == 0 && !option.EqualsOmitted
+				var read = option.Options.Count == 0 && option.Order is null && option.Place is null && option.Partitions is null && option.Words.Count == 0 && !option.EqualsOmitted
 					&& (Plain(option.Name, "CHANGE_TRACKING") && IsWord(option.Value, "MANUAL", "AUTO", "OFF")
 						|| Plain(option.Name, "STOPLIST") && IsName(option.Value));
 
@@ -1294,7 +1352,7 @@ public static partial class Sql2023Writer
 		{
 			foreach (var option in index.Options)
 			{
-				if (option.Options.Count > 0 || option.Order is not null || option.Partitions is not null || option.Words.Count > 0 || option.EqualsOmitted || !SpatialAtom(option.Value))
+				if (option.Options.Count > 0 || option.Order is not null || option.Place is not null || option.Partitions is not null || option.Words.Count > 0 || option.EqualsOmitted || !SpatialAtom(option.Value))
 					throw Misplaced(index, "Options", "set to other than a number, a string, a binary string, NULL, ON, OFF or a name of one part, the values a spatial option reads");
 
 				if (!Syntax.Spatial(option.Name.Text, SpatialRead(option)))
@@ -1330,7 +1388,7 @@ public static partial class Sql2023Writer
 		{
 			foreach (var option in index.Options)
 			{
-				var read = option.Options.Count == 0 && option.Order is null && option.Words.Count == 0 && !option.EqualsOmitted
+				var read = option.Options.Count == 0 && option.Order is null && option.Place is null && option.Words.Count == 0 && !option.EqualsOmitted
 					&& (option.Partitions is null || Plain(option.Name, "DATA_COMPRESSION"))
 					&& (Plain(option.Name, "DROP_EXISTING", "ONLINE") && IsWord(option.Value, "ON", "OFF")
 						|| Plain(option.Name, "MAXDOP") && IsOptionNumber(option.Value)
@@ -1353,7 +1411,7 @@ public static partial class Sql2023Writer
 		{
 			foreach (var option in index.Options)
 			{
-				var read = option.Options.Count == 0 && option.Order is null && option.Words.Count == 0 && !option.EqualsOmitted
+				var read = option.Options.Count == 0 && option.Order is null && option.Place is null && option.Words.Count == 0 && !option.EqualsOmitted
 					&& (option.Partitions is null || Plain(option.Name, "XML_COMPRESSION"))
 					&& (Plain(option.Name, "PAD_INDEX", "SORT_IN_TEMPDB", "DROP_EXISTING", "ALLOW_ROW_LOCKS", "ALLOW_PAGE_LOCKS", "STATISTICS_NORECOMPUTE", "XML_COMPRESSION") && IsWord(option.Value, "ON", "OFF")
 						|| Plain(option.Name, "IGNORE_DUP_KEY", "ONLINE") && IsWord(option.Value, "OFF")
@@ -1671,7 +1729,7 @@ public static partial class Sql2023Writer
 				// SAMPLE and RESAMPLE are written below without the shared option writer, so its check is made here.
 				CheckSingleWord(option);
 
-				if (option.Options.Count > 0 || option.Order is not null)
+				if (option.Options.Count > 0 || option.Order is not null || option.Place is not null)
 					throw Misplaced(option, "Options or Order", "on a statistics option");
 
 				var name  = option.Name.Style == IdentifierStyle.Regular ? option.Name.Text.ToUpperInvariant() : "";

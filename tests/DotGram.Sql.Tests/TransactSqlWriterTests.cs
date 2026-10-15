@@ -469,4 +469,243 @@ public sealed class TransactSqlWriterTests
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(Selected(Signed)));
 		Assert.Equal("SELECT -1", Sql2023Writer.Write(Selected(Signed)));
 	}
+
+	// ── Option placement and the round's spellings ───────────────────────────────
+
+	/// <summary>Every node of type <typeparamref name="T"/> in a tree, in the order its properties hold them.</summary>
+	static IEnumerable<T> All<T>(object node)
+	{
+		if (node is T found)
+			yield return found;
+
+		var type = node.GetType();
+
+		if (type.Namespace != typeof(Statement).Namespace || !type.IsClass)
+			yield break;
+
+		foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+		{
+			if (property.GetIndexParameters().Length > 0 || property.Name == "Span" || property.GetValue(node) is not { } value)
+				continue;
+
+			if (value is ISqlNode)
+			{
+				foreach (var one in All<T>(value))
+					yield return one;
+			}
+			else if (value is System.Collections.IEnumerable items and not string)
+			{
+				foreach (var item in items)
+				{
+					if (item is ISqlNode)
+					{
+						foreach (var one in All<T>(item))
+							yield return one;
+					}
+				}
+			}
+		}
+	}
+
+	/// <summary>The tree <paramref name="text"/> reads as, its one placed option changed so.</summary>
+	static ISqlNode Placed(string text, Func<Option, Option> change)
+	{
+		var tree   = Read(text);
+		var option = All<Option>(tree).Single(static one => one.Place is not null);
+
+		return (ISqlNode)Swap(tree, option, change(option));
+	}
+
+	/// <summary>The tree <paramref name="text"/> reads as, its routine changed so.</summary>
+	static ISqlNode Defined(string text, Func<RoutineDefinition, RoutineDefinition> change)
+	{
+		var tree    = Read(text);
+		var routine = All<RoutineDefinition>(tree).Single();
+
+		return (ISqlNode)Swap(tree, routine, change(routine));
+	}
+
+	/// <summary>
+	/// <c>MOVE TO</c> and DROP INDEX's <c>FILESTREAM_ON</c> put their target in the option's place (DropOption,
+	/// DropIndexOption), never in its value: a filegroup, a scheme and its column, a quoted name. Written and read back.
+	/// </summary>
+	[Theory]
+	[InlineData("DROP INDEX i ON t WITH (MOVE TO fg)",                         PlacementKind.MoveTo,       false)]
+	[InlineData("DROP INDEX i ON t WITH (MOVE TO ps (c))",                     PlacementKind.MoveTo,       true)]
+	[InlineData("DROP INDEX i ON t WITH (MOVE TO 'fg')",                       PlacementKind.MoveTo,       false)]
+	[InlineData("DROP INDEX i ON t WITH (FILESTREAM_ON fg)",                   PlacementKind.FilestreamOn, false)]
+	[InlineData("ALTER TABLE t DROP CONSTRAINT k WITH (MOVE TO fg)",           PlacementKind.MoveTo,       false)]
+	[InlineData("ALTER TABLE t DROP CONSTRAINT k WITH (MOVE TO ps (c))",       PlacementKind.MoveTo,       true)]
+	[InlineData("ALTER TABLE t DROP CONSTRAINT k WITH (MOVE TO 'fg')",         PlacementKind.MoveTo,       false)]
+	public void An_option_that_moves_puts_its_target_in_its_place(string text, PlacementKind kind, bool columns)
+	{
+		var tree = Read(text);
+
+		Assert.True(All<Option>(tree).ToList() is [{ Place: { } place, Value: null, Options.Count: 0 }] && place.Kind == kind && (place.Columns is not null) == columns, $"{text} built {tree}");
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+	}
+
+	/// <summary>
+	/// ALTER TABLE's DROP CONSTRAINT … WITH reads MAXDOP, ONLINE, MOVE TO and WAIT_AT_LOW_PRIORITY (DropOption), not
+	/// FILESTREAM_ON, which is DROP INDEX's alone; so the writer has no FILESTREAM_ON place there.
+	/// </summary>
+	[Fact]
+	public void A_dropped_constraint_reads_no_filestream_place()
+	{
+		Assert.ThrowsAny<FormatException>(() => TransactSqlParser.Located.ParseStatement("ALTER TABLE t DROP CONSTRAINT k WITH (FILESTREAM_ON fg)"));
+
+		var tree = Placed("ALTER TABLE t DROP CONSTRAINT k WITH (MOVE TO fg)", static option => new Option(new Identifier("FILESTREAM_ON"), null, [])
+		{
+			Place = new Placement(PlacementKind.FilestreamOn, new Identifier("fg"), null),
+		});
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+	}
+
+	/// <summary>A MOVE TO a scheme and its column, built by hand: written, and read back to the same tree.</summary>
+	[Fact]
+	public void A_hand_built_move_reads_back()
+	{
+		var move = new Option(Plain("MOVE"), null, [])
+		{
+			Words = [Plain("TO")],
+			Place = new Placement(PlacementKind.MoveTo, Plain("ps"), [Plain("c")]),
+		};
+		var tree = new Statement.DropIndex([new DroppedIndex.Named(Plain("i"), Q(Plain("t")), [move])], false);
+		var text = TransactSqlWriter.Write(tree);
+
+		Assert.Equal("DROP INDEX i ON t WITH (MOVE TO ps (c))", text);
+		Assert.Equal(tree, Read(text));
+	}
+
+	/// <summary>
+	/// What an option's place cannot be: beside a value or options of its own (Both), of a kind the option's words do not
+	/// say, the DEFAULT filegroup written plain after MOVE TO (DropOption's <c>?!"DEFAULT"</c>), columns after FILESTREAM_ON
+	/// (DropIndexOption reads a target alone), missing on MOVE TO, or on an option that has none.
+	/// </summary>
+	[Theory]
+	[InlineData("a value beside the place")]
+	[InlineData("options beside the place")]
+	[InlineData("a place of kind On")]
+	[InlineData("a place of kind TextImageOn")]
+	[InlineData("MOVE TO DEFAULT written plain")]
+	[InlineData("FILESTREAM_ON with columns")]
+	[InlineData("MOVE TO with no place")]
+	[InlineData("a place on ONLINE")]
+	[InlineData("a place on an option of CREATE INDEX")]
+	[InlineData("a place on an option of ALTER DATABASE")]
+	public void A_place_where_none_reads_is_refused(string which)
+	{
+		var target = new Placement(PlacementKind.MoveTo, Plain("fg"), null);
+		var one    = new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger);
+
+		ISqlNode tree = which switch
+		{
+			"a value beside the place"              => Placed("DROP INDEX i ON t WITH (MOVE TO fg)", option => option with { Value = one }),
+			"options beside the place"              => Placed("DROP INDEX i ON t WITH (MOVE TO fg)", option => option with { Options = [new Option(Plain("x"), one, [])] }),
+			"a place of kind On"                    => Placed("DROP INDEX i ON t WITH (MOVE TO fg)", option => option with { Place = target with { Kind = PlacementKind.On } }),
+			"a place of kind TextImageOn"           => Placed("ALTER TABLE t DROP CONSTRAINT k WITH (MOVE TO fg)", option => option with { Place = target with { Kind = PlacementKind.TextImageOn } }),
+			"MOVE TO DEFAULT written plain"         => Placed("DROP INDEX i ON t WITH (MOVE TO fg)", option => option with { Place = target with { Target = Plain("DEFAULT") } }),
+			"FILESTREAM_ON with columns"            => Placed("DROP INDEX i ON t WITH (FILESTREAM_ON fg)", option => option with { Place = option.Place! with { Columns = [Plain("c")] } }),
+			"MOVE TO with no place"                 => Placed("DROP INDEX i ON t WITH (MOVE TO fg)", option => option with { Place = null }),
+			"a place on ONLINE"                     => (ISqlNode)Swap(Read("DROP INDEX i ON t WITH (ONLINE = ON)"), All<Option>(Read("DROP INDEX i ON t WITH (ONLINE = ON)")).Single(), All<Option>(Read("DROP INDEX i ON t WITH (ONLINE = ON)")).Single() with { Place = target }),
+			"a place on an option of CREATE INDEX"  => (ISqlNode)Swap(Read("CREATE INDEX i ON t (a) WITH (ONLINE = ON)"), All<Option>(Read("CREATE INDEX i ON t (a) WITH (ONLINE = ON)")).Single(), All<Option>(Read("CREATE INDEX i ON t (a) WITH (ONLINE = ON)")).Single() with { Place = target }),
+			"a place on an option of ALTER DATABASE" => (ISqlNode)Swap(Read("ALTER DATABASE d SET ENCRYPTION ON"), All<Option>(Read("ALTER DATABASE d SET ENCRYPTION ON")).Single(), All<Option>(Read("ALTER DATABASE d SET ENCRYPTION ON")).Single() with { Place = target }),
+			_                                       => throw new ArgumentOutOfRangeException(nameof(which), which, null),
+		};
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+	}
+
+	/// <summary>
+	/// A quoted <c>"default"</c> after MOVE TO is the name DropOption reads (it refuses only the plain word), and is
+	/// written so.
+	/// </summary>
+	[Fact]
+	public void A_move_to_a_quoted_default_is_a_name()
+	{
+		const string text = "DROP INDEX i ON t WITH (MOVE TO \"default\")";
+
+		var tree = Read(text);
+
+		Assert.True(All<Option>(tree).Single().Place is { Kind: PlacementKind.MoveTo, Target.Style: IdentifierStyle.Delimited }, $"{text} built {tree}");
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+	}
+
+	/// <summary>
+	/// COMMIT and ROLLBACK name their transaction by a name or by a variable, never both (TransactionName): PutTransactionName
+	/// refuses the two together.
+	/// </summary>
+	[Theory]
+	[InlineData("COMMIT TRANSACTION")]
+	[InlineData("ROLLBACK TRANSACTION")]
+	public void A_transaction_named_both_ways_is_refused(string verb)
+	{
+		var both = new TransactionName(Plain("x"), new Expression.Variable(Plain("@x")));
+
+		ISqlNode tree = verb == "COMMIT TRANSACTION"
+			? (Statement.Commit)Read("COMMIT TRANSACTION x") with { Name = both }
+			: (Statement.Rollback)Read("ROLLBACK TRANSACTION x") with { Name = both };
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(tree));
+	}
+
+	/// <summary>
+	/// The round's spellings, each pinned both ways: EXEC AS against EXECUTE AS (SessionStatement's ExecWord), a procedure's
+	/// parameters without their brackets against with them (ProcedureStatement), a function's body and inline RETURN with no
+	/// AS against with it (FunctionStatement). The flag the text says, and the text written back.
+	/// </summary>
+	[Theory]
+	[InlineData("EXEC AS USER = 'u'",                                                false, "Exec")]
+	[InlineData("EXECUTE AS USER = 'u'",                                             true,  "Exec")]
+	[InlineData("CREATE PROCEDURE p @a INT AS SELECT 1;",                             false, "Unbracketed")]
+	[InlineData("CREATE PROCEDURE p (@a INT) AS SELECT 1;",                           true,  "Unbracketed")]
+	[InlineData("CREATE PROCEDURE p AS SELECT 1;",                                    true,  "Unbracketed")]
+	[InlineData("CREATE FUNCTION f () RETURNS INT BEGIN RETURN 1; END;",               false, "AsOmitted")]
+	[InlineData("CREATE FUNCTION f () RETURNS INT AS BEGIN RETURN 1; END;",            true,  "AsOmitted")]
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE RETURN SELECT 1 AS a",             false, "AsOmitted")]
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE AS RETURN SELECT 1 AS a",          true,  "AsOmitted")]
+	public void A_spelling_of_the_round_reads_and_writes_as_written(string text, bool fixedForm, string flag)
+	{
+		var tree = Read(text);
+		var set  = flag switch
+		{
+			"Exec"        => ((Statement.ExecuteAs)tree).Exec,
+			"Unbracketed" => All<RoutineDefinition>(tree).Single().Unbracketed,
+			"AsOmitted"   => All<RoutineDefinition>(tree).Single().AsOmitted,
+			_             => throw new ArgumentOutOfRangeException(nameof(flag), flag, null),
+		};
+
+		Assert.Equal(!fixedForm, set);
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+	}
+
+	/// <summary>
+	/// Where a spelling of the round has no text to say: brackets left out of a function's parameters (FunctionStatement
+	/// requires them) or of a procedure with none; AS left out of a procedure (ProcedureStatement requires it) or of a CLR
+	/// table function's EXTERNAL NAME (FunctionReturns); either beside the standard's body.
+	/// </summary>
+	[Theory]
+	[InlineData("Unbracketed on a function")]
+	[InlineData("Unbracketed on a procedure of no parameters")]
+	[InlineData("AsOmitted on a procedure")]
+	[InlineData("AsOmitted on a CLR table function")]
+	[InlineData("Unbracketed beside the standard's body")]
+	[InlineData("AsOmitted beside the standard's body")]
+	public void A_spelling_where_none_reads_is_refused(string which)
+	{
+		var tree = which switch
+		{
+			"Unbracketed on a function"                   => Defined("CREATE FUNCTION f(@a INT) RETURNS INT AS BEGIN RETURN 1; END;", static one => one with { Unbracketed = true }),
+			"Unbracketed on a procedure of no parameters" => Defined("CREATE PROCEDURE p AS SELECT 1;", static one => one with { Unbracketed = true }),
+			"AsOmitted on a procedure"                    => Defined("CREATE PROCEDURE p AS SELECT 1;", static one => one with { AsOmitted = true }),
+			"AsOmitted on a CLR table function"           => Defined("CREATE FUNCTION f () RETURNS TABLE (a INT) AS EXTERNAL NAME x.y.z", static one => one with { AsOmitted = true }),
+			"Unbracketed beside the standard's body"      => Defined("CREATE FUNCTION f(@a INT) RETURNS INT AS BEGIN RETURN 1; END;", static one => one with { Unbracketed = true, Body = new RoutineBody.Sql(new Statement.Return { Value = new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger) }) }),
+			"AsOmitted beside the standard's body"        => Defined("CREATE FUNCTION f(@a INT) RETURNS INT AS BEGIN RETURN 1; END;", static one => one with { AsOmitted = true, Body = new RoutineBody.Sql(new Statement.Return { Value = new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger) }) }),
+			_                                             => throw new ArgumentOutOfRangeException(nameof(which), which, null),
+		};
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+	}
 }

@@ -953,11 +953,15 @@ static partial class Bridge
 				_               => throw BridgeGap.Open(old, $"inventory Clause.Placement ({kind})"),
 			};
 
-			var named = target.StartsWith('\'')
+			return new Ast.Placement(placed, PlaceTarget(old, target), columns is null ? null : Values.Parts(old, columns));
+		}
+
+		/// <summary>A placement's target: a string as the string-style name it is, any other as a name of one part.</summary>
+		internal static Ast.Identifier PlaceTarget(object old, string target)
+		{
+			return target.StartsWith('\'')
 				? new Ast.Identifier(target[1..^1].Replace("''", "'"), Ast.IdentifierStyle.String)
 				: Values.Part(old, target);
-
-			return new Ast.Placement(placed, named, columns is null ? null : Values.Parts(old, columns));
 		}
 
 		/// <summary>
@@ -971,6 +975,18 @@ static partial class Bridge
 		{
 			if (old is not Clause.Option(var name, var value, var options, var partitions, var bare))
 				throw BridgeGap.Open(old, $"inventory Clause.Option (an option that is a {NameOf(old)})");
+
+			// MOVE TO and where it moves to (OptionSetting): the option's place, a placement of kind MoveTo.
+			if (Words(name) is ["MOVE", "TO"] && value is null && options is [Clause.Placement(_, var target, var columns)] && partitions is null)
+			{
+				var words = SqlTokens.Of(name);
+
+				return new Ast.Option(Values.Part(old, words[0].Text), null, [])
+				{
+					Words = [Values.Part(old, words[1].Text)],
+					Place = new Ast.Placement(Ast.PlacementKind.MoveTo, PlaceTarget(old, target), columns is null ? null : Values.Parts(old, columns)),
+				};
+			}
 
 			if (name.Any(char.IsWhiteSpace) || name.Contains('.') || name.Contains('('))
 				throw BridgeGap.Open(old, $"inventory Clause.Option (a name of several words, `{name}`)");

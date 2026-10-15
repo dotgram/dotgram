@@ -191,6 +191,18 @@ public sealed partial record RoutineDefinition
 	/// <summary>T-SQL: CREATE PROCEDURE (Transact-SQL). <c>PROC</c> written for <c>PROCEDURE</c>.</summary>
 	[Spelling] public bool Proc { get; init; }
 
+	/// <summary>
+	/// T-SQL: CREATE PROCEDURE (Transact-SQL). A procedure's parameters written without their brackets, <c>CREATE PROCEDURE p
+	/// @a int AS …</c>; a function's brackets are required.
+	/// </summary>
+	[Spelling] public bool Unbracketed { get; init; }
+
+	/// <summary>
+	/// T-SQL: CREATE FUNCTION (Transact-SQL). A function's body or inline <c>RETURN</c> with no <c>AS</c> before it; a
+	/// procedure's <c>AS</c> is required.
+	/// </summary>
+	[Spelling] public bool AsOmitted { get; init; }
+
 	/// <summary>T-SQL: CREATE FUNCTION (Transact-SQL). A CLR table-valued function's <c>ORDER (column, …)</c>.</summary>
 	public SqlList<SortItem> Order { get; init; } = [];
 }

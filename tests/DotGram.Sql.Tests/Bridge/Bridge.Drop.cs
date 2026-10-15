@@ -378,14 +378,14 @@ static partial class Bridge
 						$"{tokens[0].Text} = {tokens[2].Text} ON PARTITIONS ({spelled})");
 
 				case ["MOVE", "TO", ..]:
-					var (moved, to) = Place(old, tokens.Skip(2).ToList());
+					var (moved, to) = Place(old, Ast.PlacementKind.MoveTo, tokens.Skip(2).ToList());
 
-					return (new Ast.Option(name, moved, []) { Words = [new Ast.Identifier(tokens[1].Text)] }, $"{tokens[0].Text} {tokens[1].Text} {to}");
+					return (new Ast.Option(name, null, []) { Words = [new Ast.Identifier(tokens[1].Text)], Place = moved }, $"{tokens[0].Text} {tokens[1].Text} {to}");
 
 				case ["FILESTREAM_ON", ..]:
-					var (streamed, on) = Place(old, tokens.Skip(1).ToList());
+					var (streamed, on) = Place(old, Ast.PlacementKind.FilestreamOn, tokens.Skip(1).ToList());
 
-					return (new Ast.Option(name, streamed, []), $"{tokens[0].Text} {on}");
+					return (new Ast.Option(name, null, []) { Place = streamed }, $"{tokens[0].Text} {on}");
 
 				case ["WAIT_AT_LOW_PRIORITY", "(", "MAX_DURATION", "=", _, ..] when tokens[4].Kind == SqlTokens.Kind.Number:
 					var minutes = words is [_, _, _, _, _, "MINUTES", ",", ..];
@@ -406,19 +406,18 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// Where an index's rows or streams go (<c>PlacementTarget</c>): a name of one part or a string, and how the writer
-		/// prints it. A scheme or a string with its column (<c>ps (a)</c>, <c>'fg' (a)</c>) is a gap: no value of an option
-		/// holds a place with columns yet.
+		/// Where an index's rows or streams go (<c>PlacementTarget</c>): a name of one part or a string, with a scheme's column in
+		/// brackets for MOVE TO, and how the writer prints it.
 		/// </summary>
-		static (Ast.Expression Made, string Written) Place(object old, List<SqlTokens.Token> tokens)
+		static (Ast.Placement Made, string Written) Place(object old, Ast.PlacementKind kind, List<SqlTokens.Token> tokens)
 		{
 			switch (tokens)
 			{
-				case [{ Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited } one]:
-					return (Values.Of(new Expression.ColumnReference(one.Text)), one.Text);
+				case [{ Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited or SqlTokens.Kind.String } one]:
+					return (new Ast.Placement(kind, Tables.PlaceTarget(old, one.Text), null), one.Text);
 
-				case [{ Kind: SqlTokens.Kind.String } text]:
-					return (Values.Of(new Expression.Literal(SqlLiteralKind.Text, text.Text)), text.Text);
+				case [{ Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited or SqlTokens.Kind.String } one, { Text: "(" }, { Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited } column, { Text: ")" }] when kind == Ast.PlacementKind.MoveTo:
+					return (new Ast.Placement(kind, Tables.PlaceTarget(old, one.Text), [Values.Part(old, column.Text)]), $"{one.Text} ({column.Text})");
 			}
 
 			throw BridgeGap.Open(old, $"inventory Statement.DropIndex (a place `{string.Join(" ", tokens.Select(static one => one.Text))}`, which no value of an option holds)");

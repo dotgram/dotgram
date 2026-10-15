@@ -232,6 +232,13 @@ public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> 
 	/// <c>PAD_INDEX = ON</c>), the flag stays false and that place's writer prints the fixed form.
 	/// </summary>
 	[Spelling] public bool EqualsOmitted { get; init; }
+
+	/// <summary>
+	/// T-SQL: DROP INDEX (Transact-SQL), ALTER TABLE (Transact-SQL). Where an option puts what it moves: <c>MOVE TO fg</c>,
+	/// <c>MOVE TO ps (c)</c> and <c>MOVE TO 'fg'</c> (the name <c>MOVE</c>, the further word <c>TO</c>, no value) and DROP
+	/// INDEX's <c>FILESTREAM_ON fg</c>; null for every other option, which has no place.
+	/// </summary>
+	public Placement? Place { get; init; }
 }
 
 /// <summary>
@@ -253,8 +260,11 @@ public sealed record Placement(PlacementKind Kind, Identifier Target, SqlList<Id
 	}
 }
 
-/// <summary>T-SQL: CREATE TABLE (Transact-SQL). Which placement a <see cref="Placement"/> is.</summary>
-public enum PlacementKind { On, TextImageOn, FilestreamOn }
+/// <summary>
+/// T-SQL: CREATE TABLE (Transact-SQL), DROP INDEX (Transact-SQL). Which placement a <see cref="Placement"/> is; <c>MoveTo</c>
+/// is an option's <c>MOVE TO</c> (<see cref="Option.Place"/>).
+/// </summary>
+public enum PlacementKind { On, TextImageOn, FilestreamOn, MoveTo }
 
 /// <summary>
 /// T-SQL: OUTPUT clause (Transact-SQL). What a data change statement gives back, and where it puts it.
@@ -848,8 +858,8 @@ public abstract record DroppedIndex : ISqlNode
 	/// </summary>
 	/// <remarks>
 	/// The options are <c>MAXDOP</c>, <c>ONLINE</c>, <c>MOVE TO</c> and <c>FILESTREAM_ON</c>, which are
-	/// names and values, so <see cref="Option"/> holds them: <c>MOVE TO scheme (column)</c> is a name
-	/// with an invocation for its value and <c>"default"</c> is a name with a literal.
+	/// names and values, so <see cref="Option"/> holds them: <c>MOVE TO</c> and <c>FILESTREAM_ON</c> put
+	/// their target in the option's <see cref="Option.Place"/>, a scheme's column with it.
 	/// </remarks>
 	public sealed record Named(Identifier Name, QualifiedName On, SqlList<Option> Options) : DroppedIndex;
 

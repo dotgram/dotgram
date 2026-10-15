@@ -68,7 +68,7 @@ public sealed class DropBridgeTests
 			"Database audit specification" => made is Ast.Statement.DropDatabaseAuditSpecification { Name.Text: "a" },
 			"Database encryption key" => made is Ast.Statement.DropDatabaseEncryptionKey,
 			"Database scoped credential" => made is Ast.Statement.DropDatabaseScopedCredential { Name.Text: "c" },
-			"Index named" => made is Ast.Statement.DropIndex { IfExists: false, Indexes: [Ast.DroppedIndex.Named { Name.Text: "i", On.Parts.Count: 2, Options: [{ Name.Text: "MOVE", Words: [{ Text: "TO" }], Value: Ast.Expression.Reference }, { Name.Text: "MAXDOP" }] }] },
+			"Index named" => made is Ast.Statement.DropIndex { IfExists: false, Indexes: [Ast.DroppedIndex.Named { Name.Text: "i", On.Parts.Count: 2, Options: [{ Name.Text: "MOVE", Words: [{ Text: "TO" }], Value: null, Place.Kind: Ast.PlacementKind.MoveTo }, { Name.Text: "MAXDOP" }] }] },
 			"Index qualified" => made is Ast.Statement.DropIndex { Indexes: [Ast.DroppedIndex.Qualified { Name.Parts.Count: 3 }] },
 			"Signature" => made is Ast.Statement.DropSignature { Counter: false, Class: Ast.SecurableClass.Object, By: [Ast.SignedBy.Certificate] },
 			"Counter signature" => made is Ast.Statement.DropSignature { Counter: true, Class: null, By: [Ast.SignedBy.AsymmetricKey] },

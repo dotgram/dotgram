@@ -890,7 +890,7 @@ public static partial class Sql2023Writer
 				// SERVICE_OBJECTIVE = ELASTIC_POOL (NAME = pool): the one value of the list with options of its own.
 				if (option is { Name: var named, Value: Expression.Reference { Name: [{ } pool] }, Options: [{ Name: var inner, Value: var value, Options.Count: 0, Words.Count: 0, EqualsOmitted: false }] }
 					&& Plain(named, "SERVICE_OBJECTIVE") && Plain(pool, "ELASTIC_POOL") && Plain(inner, "NAME") && NameValue(value)
-					&& option is { Words.Count: 0, EqualsOmitted: false, Partitions: null, Order: null })
+					&& option is { Words.Count: 0, EqualsOmitted: false, Partitions: null, Order: null, Place: null })
 					PutOption(option);
 				else
 					PutCatalogued(option, EditionOptions, "EditionOption");
@@ -1169,7 +1169,7 @@ public static partial class Sql2023Writer
 		void PutCatalogued(Option option, Dictionary<string, Func<Expression?, bool>> catalogue, string rule)
 		{
 			if (option.Name.Style != IdentifierStyle.Regular || !catalogue.TryGetValue(option.Name.Text, out var takes)
-				|| option.Words.Count > 0 || option.EqualsOmitted || option.Options.Count > 0 || option.Partitions is not null || option.Order is not null
+				|| option.Words.Count > 0 || option.EqualsOmitted || option.Options.Count > 0 || option.Partitions is not null || option.Order is not null || option.Place is not null
 				|| !takes(option.Value))
 				throw Misplaced(option, "Name or Value", "of a name or a value form " + rule + " does not read");
 
@@ -1229,8 +1229,8 @@ public static partial class Sql2023Writer
 				return;
 			}
 
-			if (option.Partitions is not null || option.Order is not null)
-				throw Misplaced(option, "Partitions or Order", "in " + rule);
+			if (option.Partitions is not null || option.Order is not null || option.Place is not null)
+				throw Misplaced(option, "Partitions, Order or Place", "in " + rule);
 
 			if (option.Name.Style != IdentifierStyle.Regular || option.Words.Any(static word => word.Style != IdentifierStyle.Regular))
 				throw Misplaced(option, "Name or Words", "quoted (" + rule + " reads its names as words)");
