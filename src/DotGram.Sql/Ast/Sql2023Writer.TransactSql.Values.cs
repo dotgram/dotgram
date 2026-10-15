@@ -72,8 +72,10 @@ public static partial class Sql2023Writer
 						if (!bare.Equals(new Expression.Invocation(bare.Name, [])))
 							throw Misplaced(escape, "Called", "false on a call that holds more than its name");
 
-						PutName(bare.Name);
+						PutCallName(bare.Name, anyWord: true);
 					}
+					else if (escape.Called && escape.Value is Expression.Invocation call)
+						PutInvocation(call, anyWord: true);
 					else
 						PutExpression(escape.Value);
 

@@ -177,6 +177,7 @@ public static partial class Sql2023Writer
 			if (identifier.Style is IdentifierStyle.String or IdentifierStyle.NationalString)
 				throw Misplaced(identifier, "Style", "a string, which only a select column's alias is written as");
 
+			CheckReserved(identifier);
 			Word(identifier.Text);
 
 			if (identifier.UnicodeEscape is { } escape)
@@ -690,7 +691,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Reference reference:
-					PutName(reference.Name);
+					PutReference(reference.Name);
 					break;
 
 				case Expression.Parameter parameter:
@@ -1706,8 +1707,17 @@ public static partial class Sql2023Writer
 
 		void PutInvocation(Expression.Invocation invocation)
 		{
+			PutInvocation(invocation, anyWord: false);
+		}
+
+		/// <summary>
+		/// A call. Its name of one part is written through <see cref="PutCallName"/>: a reserved word the grammar reads as a
+		/// function's name, or any word where <paramref name="anyWord"/> says the place reads one (ODBC's name in <c>{fn …}</c>).
+		/// </summary>
+		void PutInvocation(Expression.Invocation invocation, bool anyWord)
+		{
 			PutSemantics(invocation.Semantics);
-			PutName(invocation.Name);
+			PutCallName(invocation.Name, anyWord);
 
 			if (!invocation.WithoutParentheses)
 			{

@@ -861,7 +861,7 @@ public static partial class Sql2023Writer
 			if (form != HintArgumentForm.Brackets && arguments.Count != 1)
 				throw Misplaced(hint, "Form", $"{form} with other than one argument");
 
-			PutIdentifier(name);
+			PutOptionWord(name);
 
 			if (arguments.Count == 0)
 				return;

@@ -17,7 +17,7 @@ public static partial class Sql2023Writer
 				// T-SQL: the WITH clause of the CREATE and ALTER statements. A value and its unit, `10 MINUTES`.
 				case Expression.Measured measured:
 					PutExpression(measured.Value);
-					PutIdentifier(measured.Unit);
+					PutOptionWord(measured.Unit);
 					return true;
 
 				// T-SQL: CREATE TABLE (Transact-SQL). An index written at the table.
@@ -932,17 +932,17 @@ public static partial class Sql2023Writer
 			if (!multiWord)
 				CheckSingleWord(option);
 
-			PutIdentifier(option.Name);
+			PutOptionWord(option.Name);
 
 			foreach (var word in option.Words)
-				PutIdentifier(word);
+				PutOptionWord(word);
 
 			if (option.Value is { } value)
 			{
 				if (!option.EqualsOmitted)
 					Word("=");
 
-				PutExpression(value);
+				PutOptionValue(value);
 			}
 			else if (option.EqualsOmitted)
 				throw Misplaced(option, "EqualsOmitted", "on an option with no value, which has no = to leave out");
@@ -1002,6 +1002,8 @@ public static partial class Sql2023Writer
 
 			if (placement.Target.Style == IdentifierStyle.String)
 				Word("'" + placement.Target.Text.Replace("'", "''") + "'");
+			else if (Plain(placement.Target, "DEFAULT"))
+				PutKeyWord(placement.Target);    // PlacementTarget: the DEFAULT filegroup is the word.
 			else
 				PutIdentifier(placement.Target);
 
@@ -1524,7 +1526,7 @@ public static partial class Sql2023Writer
 
 					Word("SET CHANGE_TRACKING");
 					PutEquals(tracking.EqualsOmitted);
-					PutIdentifier(tracking.Mode);
+					PutKeyWord(tracking.Mode);
 					break;
 
 				case FullTextAlteration.AddColumns add:
@@ -1690,12 +1692,12 @@ public static partial class Sql2023Writer
 			{
 				if (Plain(option.Name, "SAMPLE"))
 				{
-					PutIdentifier(option.Name);
+					PutOptionWord(option.Name);
 					PutExpression(option.Value!);
 				}
 				else if (Plain(option.Name, "RESAMPLE"))
 				{
-					PutIdentifier(option.Name);
+					PutOptionWord(option.Name);
 					PutRanges(option.Partitions);
 				}
 				else

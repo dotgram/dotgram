@@ -1,4 +1,4 @@
-# T-SQL on the SQL:2023 tree
+﻿# T-SQL on the SQL:2023 tree
 
 A proposal, not a description. T-SQL moves from the tree in `SqlSyntax.cs` onto the SQL:2023 tree in
 `Ast/SqlAst.cs` (`design/sql-parsers.md`, decided 2026-09-15). Every node of the old tree is held
@@ -51,6 +51,7 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
   and the grammar's lists to one another; D148 says when the enum would give way to strings.
 - A word that names what — a statement, an object kind, an action — is a record; a word that says how is an enum
   member. So every DROP has a record of its own kind, even where the slots coincide.
+- The T-SQL writer's checks (writer round): `TransactSqlWriter.Write` is `Sql2023Writer`'s text with T-SQL's refusals besides, and its first is that a name written plain is never one of the grammar's `TSqlReserved` words, while a place whose grammar reads a key word into a name or value slot writes it through `PutKeyWord`.
 
 ## Principles proposed
 

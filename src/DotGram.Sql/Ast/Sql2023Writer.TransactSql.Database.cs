@@ -1173,7 +1173,7 @@ public static partial class Sql2023Writer
 				|| !takes(option.Value))
 				throw Misplaced(option, "Name or Value", "of a name or a value form " + rule + " does not read");
 
-			PutIdentifier(option.Name);
+			PutOptionWord(option.Name);
 
 			if (option.Value is { } value)
 			{
@@ -1248,16 +1248,16 @@ public static partial class Sql2023Writer
 
 			var form = both ? forms.First(form => form.Assigned != option.EqualsOmitted) : forms[0];
 
-			PutIdentifier(option.Name);
+			PutOptionWord(option.Name);
 
 			foreach (var further in option.Words)
-				PutIdentifier(further);
+				PutOptionWord(further);
 
 			if (form.Assigned)
 				Word("=");
 
 			if (option.Value is Expression.Reference { Name: [var word] })
-				PutIdentifier(word);
+				PutOptionWord(word);
 			else if (option.Value is { } value)
 				PutExpression(value);
 

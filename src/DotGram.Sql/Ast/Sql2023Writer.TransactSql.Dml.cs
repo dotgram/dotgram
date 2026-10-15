@@ -190,7 +190,7 @@ public static partial class Sql2023Writer
 			if (option.Partitions is not null)
 				throw Misplaced(option, "Partitions", "on a bulk option, which reads no ON PARTITIONS");
 
-			PutIdentifier(option.Name);
+			PutOptionWord(option.Name);
 
 			// T-SQL: BULK INSERT (Transact-SQL), OPENROWSET BULK (Transact-SQL). `ORDER (…) [UNIQUE]`.
 			if (option.Order is { } order)
