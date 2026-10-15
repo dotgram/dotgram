@@ -60,6 +60,20 @@ public sealed class SecurityWriterTests
 		return new Option(new Identifier(name), value, [.. options]);
 	}
 
+	static Statement Procedure()
+	{
+		const string text = "CREATE PROCEDURE p AS SELECT 1";
+
+		return Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+	}
+
+	static Statement Trigger()
+	{
+		const string text = "CREATE TRIGGER tr ON t AFTER INSERT AS SELECT 1";
+
+		return Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+	}
+
 	static Grantee Principal(string name)
 	{
 		return new Grantee.Identifier(new AuthorizationIdentifier(new Identifier(name)));
@@ -395,6 +409,8 @@ public sealed class SecurityWriterTests
 	[InlineData("a schema named by two parts")]
 	[InlineData("a schema with a character set")]
 	[InlineData("a schema with an element of another kind")]
+	[InlineData("a procedure that is not the last element")]
+	[InlineData("a trigger that is not the last element")]
 	[InlineData("an application role of no setting")]
 	[InlineData("an application role with a setting it has not")]
 	[InlineData("an application role password that is a name")]
@@ -441,6 +457,10 @@ public sealed class SecurityWriterTests
 			"a schema named by two parts" => new Statement.CreateSchema { Name = Q },
 			// The standard's DEFAULT CHARACTER SET is no part of T-SQL's schema.
 			"a schema with a character set" => new Statement.CreateSchema { Name = T, DefaultCharacterSet = new CharacterSetName(new QualifiedName([X])) },
+			// A procedure's body is a StatementList, which reads on: the GRANT after it would be part of it.
+			"a procedure that is not the last element" => new Statement.CreateSchema { Name = T, Elements = [Procedure(), Tree("Grant")] },
+			// A trigger's body is a StatementList, which reads on.
+			"a trigger that is not the last element" => new Statement.CreateSchema { Name = T, Elements = [Trigger(), Tree("Grant")] },
 			// SchemaElement reads a table, a routine or a permission statement.
 			"a schema with an element of another kind" => new Statement.CreateSchema { Name = T, Elements = [new Statement.DropTable { Names = [T] }] },
 			// CreateRoleOptions reads one setting at least.

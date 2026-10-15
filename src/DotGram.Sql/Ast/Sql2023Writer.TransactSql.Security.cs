@@ -347,8 +347,14 @@ public static partial class Sql2023Writer
 			if (schema.PathFirst || schema.DefaultCharacterSet is not null || schema.Path is not null)
 				throw Misplaced(schema, "a character set or a path", "in T-SQL's CREATE SCHEMA, which reads an owner and elements only");
 
-			foreach (var element in schema.Elements)
+			for (var at = 0; at < schema.Elements.Count; at++)
 			{
+				var element = schema.Elements[at];
+
+				// A procedure's or a trigger's body is a statement list that reads on to the end: what follows would be part of it.
+				if (at < schema.Elements.Count - 1 && element is Statement.CreateTrigger or Statement.CreateRoutine { Definition.Kind: RoutineKind.Procedure })
+					throw Misplaced(schema, "a procedure or a trigger that is not the last element", "in T-SQL's CREATE SCHEMA, where its body (StatementList) reads the elements after it");
+
 				// SchemaElement is CreateTableStatement, CreateRoutine or PermissionStatement.
 				if (element is not (Statement.CreateTable or Statement.CreateView or Statement.CreateRoutine or Statement.CreateTrigger or Statement.Grant or Statement.Deny or Statement.Revoke))
 					throw Misplaced(schema, "an element of another kind", "in T-SQL's CREATE SCHEMA, whose elements are a table, a routine, a view, a trigger or a permission (SchemaElement)");
