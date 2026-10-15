@@ -341,7 +341,8 @@ public static partial class Sql2023Writer
 					PutBehavior(drop.Behavior);
 					break;
 
-				case Statement.Grant { Body: GrantBody.Privileges privileges }:
+				case Statement.Grant { Body: GrantBody.Privileges privileges } grantPrivileges:
+					CheckSecurity(grantPrivileges);
 					Word("GRANT");
 					PutPrivileges(privileges.Items, privileges.Object);
 					Word("TO");
@@ -358,6 +359,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.Deny deny:
+					CheckSecurity(deny);
 					Word("DENY");
 					PutPrivileges(deny.Items, deny.Object);
 					Word("TO");
@@ -370,6 +372,8 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.Grant grant:
+					CheckSecurity(grant);
+
 					var roles = (GrantBody.Roles)grant.Body;
 
 					Word("GRANT");
@@ -383,7 +387,8 @@ public static partial class Sql2023Writer
 					PutGrantedBy(roles.GrantedBy);
 					break;
 
-				case Statement.Revoke { Body: RevokeBody.Privileges revoked }:
+				case Statement.Revoke { Body: RevokeBody.Privileges revoked } revokePrivileges:
+					CheckSecurity(revokePrivileges);
 					Word("REVOKE");
 
 					if (revoked.Option is { } revokeOption)
@@ -399,6 +404,8 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.Revoke revoke:
+					CheckSecurity(revoke);
+
 					var revokedRoles = (RevokeBody.Roles)revoke.Body;
 
 					Word("REVOKE");

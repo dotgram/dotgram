@@ -92,6 +92,13 @@ static class Trees
 		"Statement.DropEventSession.Tail",
 		"Statement.DropEventNotification.Tail",
 		"Statement.DropSignature.From",
+		// The Security family: a permission and the securable it is on, which the old tree keeps as the words written.
+		"Statement.Grant.Privileges",
+		"Statement.Grant.On",
+		"Statement.Deny.Privileges",
+		"Statement.Deny.On",
+		"Statement.Revoke.Privileges",
+		"Statement.Revoke.On",
 	};
 
 	/// <summary>
@@ -152,6 +159,8 @@ static class Trees
 		// The words of the writer round's batch: routine and module tails, the drops' tails, a parameter's OUTPUT.
 		"ASYMMETRIC", "CERTIFICATE", "DATABASE", "DEPENDENTS", "IO", "LOG", "NONE", "NOWAIT", "OBJECT", "OUTPUT", "PROFILE",
 		"PROVIDER", "RECOMPILE", "REMOVE", "RESULT", "SERVER", "SETERROR", "SETS", "UNDEFINED",
+		// The Security family: the words of permissions and of securables' classes the old tree keeps as written.
+		"CREATE", "ROLE", "SELECT", "VIEW",
 	};
 
 	/// <summary>
