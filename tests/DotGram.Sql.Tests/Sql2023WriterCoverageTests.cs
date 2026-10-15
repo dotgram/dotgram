@@ -279,6 +279,36 @@ public sealed class Sql2023WriterCoverageTests
 			: new PrivilegeObject.Named(PrivilegeObjectKind.Table, name);
 	}
 
+	/// <summary>T-SQL's <c>CREATE PROCEDURE p (@a INT) AS RETURN</c> with the parameter given.</summary>
+	static Statement.CreateRoutine Procedure(ParameterDefinition parameter)
+	{
+		return new Statement.CreateRoutine
+		{
+			Definition = new RoutineDefinition(RoutineKind.Procedure, T, [parameter], null, [], new RoutineBody.Statements([new Statement.Return()])),
+		};
+	}
+
+	/// <summary>T-SQL's <c>CREATE TRIGGER g ON t AFTER INSERT AS RETURN</c>, or FOR INSERT.</summary>
+	static Statement.CreateTrigger Triggered(bool @for)
+	{
+		return new Statement.CreateTrigger
+		{
+			Name   = T,
+			Time   = TriggerTime.After,
+			Event  = null,
+			Table  = T,
+			Action = null,
+			Events = [new TriggerEvent(TriggerEventKind.Insert, [])],
+			For    = @for,
+			Body   = new RoutineBody.Statements([new Statement.Return()]),
+		};
+	}
+
+	static ParameterDefinition Parameter()
+	{
+		return new ParameterDefinition(null, new Identifier("@a"), new DataType.Numeric(NumericTypeKind.Int), false, null);
+	}
+
 	/// <summary>A cursor's properties with NO SCROLL, written as that or as T-SQL's FORWARD_ONLY.</summary>
 	static CursorProperties Scrolling(bool forwardOnly)
 	{
@@ -361,6 +391,9 @@ public sealed class Sql2023WriterCoverageTests
 		},
 		// Drop: the DROP family (SqlAst.TransactSql.Drop.cs).
 		[typeof(EventScope)]         = v => new Statement.DropEventSession(new Identifier("s"), (EventScope)v),
+		// Routines: EXECUTE's word, and the word that passes a variable back.
+		[typeof(ExecuteKeyword)]     = v => new Statement.ExecuteModule(new ModuleReference.Named(T), []) { Keyword = (ExecuteKeyword)v },
+		[typeof(OutputKeyword)]      = v => new Statement.ExecuteModule(new ModuleReference.Named(T), [new ExecuteArgument(new Expression.Variable(new Identifier("@a"))) { Output = (OutputKeyword)v }]) { Keyword = ExecuteKeyword.Exec },
 		// Database: the database family (SqlAst.TransactSql.Database.cs).
 		[typeof(FileGroupContents)]  = v => new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.AddFileGroup(new Identifier("g"), (FileGroupContents)v)),
 		[typeof(FileGroupUpdatability)] = v => new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.ModifyFileGroup(new Identifier("g"), new FileGroupChange.Updatability((FileGroupUpdatability)v, false))),
@@ -670,6 +703,24 @@ public sealed class Sql2023WriterCoverageTests
 			["Table.AsKeyword"] = (
 				new Statement.DeclareVariables([new VariableDeclaration.Table(new Identifier("@t"), [new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [], null))])]),
 				new Statement.DeclareVariables([new VariableDeclaration.Table(new Identifier("@t"), [new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [], null))]) { AsKeyword = true }])),
+			// Routines: EXEC written for EXECUTE before a string run.
+			["ExecuteString.Exec"] = (
+				new Statement.ExecuteString(new LiteralValue.String("'SELECT 1'", StringLiteralKind.Character), []),
+				new Statement.ExecuteString(new LiteralValue.String("'SELECT 1'", StringLiteralKind.Character), []) { Exec = true }),
+			// Routines: PROC for PROCEDURE, and a parameter's OUT for OUTPUT and AS before its type.
+			["RoutineDefinition.Proc"] = (
+				Procedure(Parameter()),
+				Procedure(Parameter()) with { Definition = Procedure(Parameter()).Definition with { Proc = true } }),
+			["ParameterDefinition.ShortOutput"] = (
+				Procedure(Parameter() with { Mode = ParameterMode.Out }),
+				Procedure(Parameter() with { Mode = ParameterMode.Out, ShortOutput = true })),
+			["ParameterDefinition.AsKeyword"] = (
+				Procedure(Parameter()),
+				Procedure(Parameter() with { AsKeyword = true })),
+			// Routines: a T-SQL trigger's FOR written for AFTER.
+			["CreateTrigger.For"] = (
+				Triggered(false),
+				Triggered(true)),
 			// Database: SECONDS written after the number of a ROLLBACK AFTER.
 			["RollbackAfter.Seconds"] = (
 				new Statement.AlterDatabase(new Identifier("d"), new AlterDatabaseAction.Set([new Option(new Identifier("SINGLE_USER"), null, [])]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("5", NumericLiteralKind.DecimalInteger)) }),

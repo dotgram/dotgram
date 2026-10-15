@@ -135,7 +135,9 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
     SQL/PSM's compound statement. `ParameterDefinition` gains `OUTPUT`, `READONLY`, `VARYING` and
     nullability; a routine gains its options, `CREATE`/`ALTER`/`CREATE OR ALTER` as an enum, and `;n`. A
     trigger's event becomes a list, with `FOR` as a spelling of `AFTER`, and a DDL trigger's target
-    (`ON DATABASE`, `ON ALL SERVER`) with event groups.
+    (`ON DATABASE`, `ON ALL SERVER`) with event groups. T-SQL's EXECUTE is `Statement.ExecuteModule` of a
+    procedure and `Statement.ExecuteString` of a string, and `InsertSource.ExecuteModule` and `ExecuteString` in an
+    INSERT, beside the standard's `Statement.Execute` of a prepared statement.
 20. **The DDL option catalogue.** One T-SQL `Option` record — a name and a value from a small family: a
     value, a list of options, a name — for every `WITH (…)` of the ~140 T-SQL DDL statements, which become
     typed records whose own parts are properties. Nothing stays as a tail of text.

@@ -617,6 +617,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case Statement.CreateRoutine routine:
+					if (PutTransactSqlRoutine(routine))
+						break;
+
 					Word("CREATE");
 					PutRoutine(routine.Definition);
 					break;
@@ -1520,19 +1523,25 @@ public static partial class Sql2023Writer
 
 		void PutTrigger(Statement.CreateTrigger trigger)
 		{
+			// T-SQL's trigger, or the standard's checked for its Event, Table and Action, which T-SQL's leaves out.
+			if (PutTransactSqlTrigger(trigger))
+				return;
+
 			Word("CREATE TRIGGER");
 			PutName(trigger.Name);
 			Word(trigger.Time switch { TriggerTime.Before => "BEFORE", TriggerTime.After => "AFTER", TriggerTime.InsteadOf => "INSTEAD OF", _ => throw NoText(trigger.Time) });
-			Word(trigger.Event.Kind switch { TriggerEventKind.Insert => "INSERT", TriggerEventKind.Delete => "DELETE", TriggerEventKind.Update => "UPDATE", _ => throw NoText(trigger.Event.Kind) });
+			var @event = trigger.Event!;
 
-			if (trigger.Event.Columns.Count > 0)
+			Word(@event.Kind switch { TriggerEventKind.Insert => "INSERT", TriggerEventKind.Delete => "DELETE", TriggerEventKind.Update => "UPDATE", _ => throw NoText(@event.Kind) });
+
+			if (@event.Columns.Count > 0)
 			{
 				Word("OF");
-				Each(trigger.Event.Columns, PutIdentifier);
+				Each(@event.Columns, PutIdentifier);
 			}
 
 			Word("ON");
-			PutName(trigger.Table);
+			PutName(trigger.Table!.Value);
 
 			if (trigger.Referencing.Count > 0)
 			{
@@ -1557,7 +1566,7 @@ public static partial class Sql2023Writer
 				}
 			}
 
-			var action = trigger.Action;
+			var action = trigger.Action!;
 
 			if (action.Granularity is { } granularity)
 				Word(granularity == TriggerGranularity.Row ? "FOR EACH ROW" : "FOR EACH STATEMENT");

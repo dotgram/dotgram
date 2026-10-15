@@ -1724,7 +1724,7 @@ static partial class Bridge
 					return Inside(body, () => new Ast.Statement.CreateTableType(name, Elements(table.Elements)) { Options = Each(table.Options, Option) });
 
 				case ["EXTERNAL", "NAME", ..]:
-					throw BridgeGap.Open(old, "inventory Statement.TypeDefinition (a CLR type, EXTERNAL NAME)");
+					return Routines.ClrType(old);
 
 				default:
 					throw BridgeGap.Open(old, $"inventory Statement.TypeDefinition ({tail})");

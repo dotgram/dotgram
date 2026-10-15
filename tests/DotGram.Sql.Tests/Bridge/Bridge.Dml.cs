@@ -17,7 +17,7 @@ static partial class Bridge
 		[
 			"Statement.Insert", "Statement.Update", "Statement.Delete", "Statement.Merge", "Statement.Truncate",
 			"Statement.ReadText", "Statement.WriteText", "Statement.UpdateText",
-			"Query.DefaultValues", "Query.FromFile", "Query.FromStream", "Query.FromExecute",
+			"Query.DefaultValues", "Query.FromFile", "Query.FromStream",
 			"Clause.Set", "Clause.Output", "Clause.MergeWhen", "Clause.PartitionRange",
 			"TableReference.Changed",
 		];
@@ -41,7 +41,6 @@ static partial class Bridge
 					update.SourcePointer is null ? null : Values.Of(update.SourcePointer), update.Bulk, update.Log,
 					update.Timestamp is null ? null : Values.Of(update.Timestamp)),
 				TableReference.Changed changed => Changed(changed),
-				Query.FromExecute           => throw BridgeGap.Missing(old, "InsertSource.Execute (inventory Query.FromExecute)"),
 				Query.DefaultValues         => throw BridgeGap.Open(old, "inventory Query.DefaultValues (outside an INSERT)"),
 				_ when Owned(Owns, old)     => throw Inventory.Unconverted(old),
 				_                           => null,
@@ -161,7 +160,7 @@ static partial class Bridge
 						Each(options ?? [], BulkOption));
 
 				case Query.FromExecute:
-					throw BridgeGap.Missing(old.Rows, "InsertSource.Execute (inventory Query.FromExecute)");
+					break;
 			}
 
 			if (old.Target is null)
@@ -179,6 +178,7 @@ static partial class Bridge
 			{
 				Query.DefaultValues                => new Ast.InsertSource.DefaultValues(),
 				Query.TableValueConstructor(var r) => new Ast.InsertSource.Values(Each(r, Queries.Row)),
+				Query.FromExecute execute          => Routines.InsertSource(execute),
 				_                                  => new Ast.InsertSource.Subquery(QueryOf(old.Rows)),
 			};
 

@@ -202,14 +202,14 @@ public abstract partial record Statement : ISqlNode
 	public record DropAssertion : Statement { public required QualifiedName Name { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: trigger definition/drop trigger
-	public record CreateTrigger : Statement
+	public partial record CreateTrigger : Statement
 	{
 		public required QualifiedName Name { get; init; }
 		public required TriggerTime Time { get; init; }
-		public required TriggerEvent Event { get; init; }
-		public required QualifiedName Table { get; init; }
+		public required TriggerEvent? Event { get; init; }
+		public required QualifiedName? Table { get; init; }
 		public SqlList<TransitionReference> Referencing { get; init; } = [];
-		public required TriggerAction Action { get; init; }
+		public required TriggerAction? Action { get; init; }
 	}
 	// T-SQL: DROP TRIGGER (Transact-SQL). `On` is the DDL trigger's scope, which the page publishes as
 	// `ON { DATABASE | ALL SERVER }` and requires there; null is the DML form, which has no scope.
@@ -228,7 +228,7 @@ public abstract partial record Statement : ISqlNode
 	public record DropTransform : Statement { public bool PluralKeyword { get; init; } public required TransformDropTarget Target { get; init; } public required QualifiedName TypeName { get; init; } public required DropBehavior Behavior { get; init; } }
 
 	// BNF: schema routine, alter/drop routine
-	public record CreateRoutine : Statement { public required RoutineDefinition Definition { get; init; } }
+	public partial record CreateRoutine : Statement { public required RoutineDefinition Definition { get; init; } }
 	public record AlterRoutine : Statement { public required RoutineDesignator Routine { get; init; } public SqlList<RoutineCharacteristic> Characteristics { get; init; } = []; public required AlterRoutineBehavior Behavior { get; init; } }
 	// T-SQL: DROP PROCEDURE (Transact-SQL). The page publishes `DROP { PROC | PROCEDURE }`, two words for
 	// one statement, so which was written is kept beside it or `DROP PROC p` writes back as
@@ -2025,7 +2025,7 @@ public sealed record MethodDesignator(MethodModifier? Modifier, Identifier Name,
 }
 
 // BNF: <schema procedure>, <schema function>, <method specification designator>. StaticDispatch is <dispatch clause>.
-public sealed record RoutineDefinition(RoutineKind Kind, QualifiedName Name, SqlList<ParameterDefinition> Parameters, ReturnsDefinition? Returns, SqlList<RoutineCharacteristic> Characteristics, RoutineBody Body, MethodModifier? MethodModifier = null, QualifiedName? ForType = null, bool StaticDispatch = false, bool SpecificMethod = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record RoutineDefinition(RoutineKind Kind, QualifiedName Name, SqlList<ParameterDefinition> Parameters, ReturnsDefinition? Returns, SqlList<RoutineCharacteristic> Characteristics, RoutineBody Body, MethodModifier? MethodModifier = null, QualifiedName? ForType = null, bool StaticDispatch = false, bool SpecificMethod = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2035,7 +2035,7 @@ public enum RoutineKind { Routine, Procedure, Function, Method }
 // BNF: <SQL parameter declaration>. Locator is <locator indication>, `AS LOCATOR`.
 // T-SQL: CREATE PROCEDURE, CREATE FUNCTION (Transact-SQL). `ReadOnly`, `Varying` and `Nullable` are T-SQL's;
 // its `OUTPUT` is `ParameterMode.Out` and needs nothing of its own.
-public sealed record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default, bool Locator = false, bool ReadOnly = false, bool Varying = false, bool? Nullable = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default, bool Locator = false, bool ReadOnly = false, bool Varying = false, bool? Nullable = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2043,7 +2043,7 @@ public sealed record ParameterDefinition(ParameterMode? Mode, Identifier? Name, 
 }
 public enum ParameterMode { In, Out, InOut }
 // BNF: <returns clause>, <returns type>, <result cast>. `RETURNS TABLE` with no columns is TableKeyword alone.
-public sealed record ReturnsDefinition(DataType? Type, SqlList<FieldDefinition>? TableColumns, bool OnlyPassThrough = false) : ISqlNode
+public sealed partial record ReturnsDefinition(DataType? Type, SqlList<FieldDefinition>? TableColumns, bool OnlyPassThrough = false) : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
@@ -2082,7 +2082,7 @@ public enum ParameterStyleKind { Sql, General }
 public enum SqlDataAccess { NoSql, ContainsSql, ReadsSqlData, ModifiesSqlData }
 public enum NullCallMode { ReturnsNullOnNullInput, CalledOnNullInput }
 public enum SavepointLevelKind { New, Old }
-public abstract record RoutineBody : ISqlNode
+public abstract partial record RoutineBody : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;

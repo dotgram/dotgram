@@ -154,6 +154,10 @@ static partial class Bridge
 				_                           => throw BridgeGap.Open(old, $"inventory Statement.DropTrigger (`{tail}`)"),
 			};
 
+			// The old tree keeps the scope as written and compares it exactly: only one in capitals reads back as itself.
+			if (tail != tail.ToUpperInvariant())
+				throw BridgeGap.Open(old, "Trees.FreeText (Statement.DropTrigger.Tail, a scope not in capitals)");
+
 			return new Ast.Statement.DropTrigger { Names = Names(old with { Tail = null }), IfExists = old.IfExists, On = scope };
 		}
 

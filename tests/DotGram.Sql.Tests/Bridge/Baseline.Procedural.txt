@@ -6,7 +6,7 @@
 
 Clause.CursorDefinition = 0/0/0/0/0/0/0
 Clause.CursorFor = 0/0/0/0/0/0/0
-Clause.VariableDeclaration = 0/101/0/0/0/0/0
+Clause.VariableDeclaration = 0/102/0/0/0/0/0
 SetExpression.DateAndTime.DateFirst = 0/0/0/0/0/0/0
 SetExpression.DateAndTime.DateFormat = 0/0/0/0/0/0/0
 SetExpression.IsoSettings.Switch = 0/0/0/0/0/0/0
@@ -28,7 +28,7 @@ SetExpression.Statistics.Switch = 0/0/0/0/0/0/0
 SetExpression.Transactions.IsolationLevel = 0/0/0/0/0/0/0
 SetExpression.Transactions.Switch = 0/0/0/0/0/0/0
 Statement.Break = 3/0/0/0/0/0/0
-Statement.Compound = 16/0/0/0/0/0/0
+Statement.Compound = 17/0/0/0/0/0/0
 Statement.Continue = 2/0/0/0/0/0/0
 Statement.CursorAction = 25/0/0/0/0/0/0
 Statement.Declare = 199/0/0/0/0/0/0
