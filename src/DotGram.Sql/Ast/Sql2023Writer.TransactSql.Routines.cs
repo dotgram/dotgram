@@ -15,7 +15,8 @@ public static partial class Sql2023Writer
 			switch (node)
 			{
 				// T-SQL: EXECUTE (Transact-SQL). ExecuteBody's second form, or BareCall: without the word only as the
-				// statement being written, a batch's first, with no AT and a module held by name (?!TSql.Variable).
+				// statement being written, a batch's first, with no AT, no return status and a module held by name
+				// (?!TSql.Variable), never THROW, which reads as that statement.
 				case Statement.ExecuteModule execute:
 					PutExecuteModule(execute);
 					return true;
@@ -801,6 +802,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case RoutineBody.Inline inline:
+					if (inline.Query.Hints.Count > 0)
+						throw Misplaced(routine, "Body", "an inline query with OPTION (…), which InlineReturn does not read");
+
 					Word("RETURN");
 					PutStatement(inline.Query);
 					break;
@@ -813,8 +817,10 @@ public static partial class Sql2023Writer
 				Word(keyword switch { ExecuteKeyword.Exec => "EXEC", ExecuteKeyword.Execute => "EXECUTE", _ => throw NoText(keyword) });
 			else if (written.Length > 0)
 				throw Misplaced(execute, "Keyword", "null inside another statement, where only a batch's first statement is a bare call");
-			else if (execute.At is not null || execute.Module is ModuleReference.Variable)
-				throw Misplaced(execute, "Keyword", "null with AT or a module held in a variable, which BareCall does not read");
+			else if (execute.At is not null || execute.ReturnStatus is not null || execute.Module is ModuleReference.Variable)
+				throw Misplaced(execute, "Keyword", "null with AT, a return status or a module held in a variable, which BareCall does not read (?!TSql.Variable)");
+			else if (execute.Module is ModuleReference.Named { DataSource: null, Name: [{ Style: IdentifierStyle.Regular } first, ..] } && first.Text.Equals("THROW", StringComparison.OrdinalIgnoreCase))
+				throw Misplaced(execute, "Keyword", "null before a module named THROW, which reads as the THROW statement (FirstPiece tries a statement first)");
 
 			if (execute.ReturnStatus is { } status)
 			{

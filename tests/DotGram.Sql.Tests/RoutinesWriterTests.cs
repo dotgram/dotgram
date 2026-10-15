@@ -302,6 +302,9 @@ public sealed class RoutinesWriterTests
 	[InlineData("a bare call in an INSERT")]
 	[InlineData("a bare call AT a server")]
 	[InlineData("a bare call of a variable")]
+	[InlineData("a bare call with a return status")]
+	[InlineData("a bare call of THROW")]
+	[InlineData("a bare call of THROW's two-part name")]
 	[InlineData("a module variable with a number")]
 	[InlineData("a number that is not digits")]
 	[InlineData("a return status that is no variable")]
@@ -326,6 +329,7 @@ public sealed class RoutinesWriterTests
 	[InlineData("the verb Create")]
 	[InlineData("a procedure returning")]
 	[InlineData("a procedure's inline query")]
+	[InlineData("an inline query with OPTION")]
 	[InlineData("RECOMPILE beside EXTERNAL NAME")]
 	[InlineData("a procedure number that is not digits")]
 	[InlineData("NATIVE_COMPILATION over statements")]
@@ -413,6 +417,11 @@ public sealed class RoutinesWriterTests
 			"a bare call AT a server" => new Statement.ExecuteModule(new ModuleReference.Named(P), []) { At = Name("srv") },
 			// BareCall: ?!TSql.Variable, @p 1 is Msg 102.
 			"a bare call of a variable" => new Statement.ExecuteModule(new ModuleReference.Variable(Name("@m")), []),
+			// BareCall: ?!TSql.Variable, which ExecReturn's @rc = begins with; @rc = p is Msg 102.
+			"a bare call with a return status" => new Statement.ExecuteModule(new ModuleReference.Named(P), []) { ReturnStatus = Name("@rc") },
+			// FirstPiece reads a statement first: THROW, unreserved, is the THROW statement there.
+			"a bare call of THROW" => new Statement.ExecuteModule(new ModuleReference.Named(new QualifiedName([Name("throw")])), [Arg(One), Arg(Text("a")), Arg(One)]),
+			"a bare call of THROW's two-part name" => new Statement.ExecuteModule(new ModuleReference.Named(new QualifiedName([Name("THROW"), Name("p")])), []),
 			// ExecTarget: ExecNumber follows a name only.
 			"a module variable with a number" => new Statement.ExecuteModule(new ModuleReference.Variable(Name("@m")), []) { Keyword = ExecuteKeyword.Exec, Number = new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger) },
 			// ExecNumber: Digits, ;1.5 is Msg 102.
@@ -461,6 +470,8 @@ public sealed class RoutinesWriterTests
 			"a procedure returning" => Procedure([]) with { Definition = Procedure([]).Definition with { Returns = Scalar } },
 			// InlineReturn is FunctionReturns' only.
 			"a procedure's inline query" => Procedure([], Inline),
+			// InlineReturn: a query, its order and window, and no OPTION (…).
+			"an inline query with OPTION" => Function(Table, new RoutineBody.Inline((Statement.Select)Selected with { Hints = [new QueryHint.Named(Name("RECOMPILE"), [])] })),
 			// Syntax.Externally, Msg 155.
 			"RECOMPILE beside EXTERNAL NAME" => With(Procedure([], External), Setting("RECOMPILE")),
 			// ProcedureStatement: ; Digits.
