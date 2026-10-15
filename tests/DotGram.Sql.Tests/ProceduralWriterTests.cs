@@ -229,7 +229,7 @@ public sealed class ProceduralWriterTests
 	[InlineData("an atomic block without a level")]
 	[InlineData("a SET word as an atomic setting")]
 	[InlineData("an atomic TEXTSIZE that is not whole")]
-	[InlineData("an atomic DATEFIRST set to DEFAULT")]
+	[InlineData("an atomic TEXTSIZE of a hexadecimal number")]
 	[InlineData("an atomic DELAYED_DURABILITY set to a number")]
 	[InlineData("an atomic setting of several words")]
 	[InlineData("a DECLARE of nothing")]
@@ -266,8 +266,10 @@ public sealed class ProceduralWriterTests
 	[InlineData("TEXTSIZE of a variable")]
 	[InlineData("LOCK_TIMEOUT of a fraction")]
 	[InlineData("DATEFIRST of a negation")]
+	[InlineData("DATEFIRST of money")]
+	[InlineData("LOCK_TIMEOUT of a hexadecimal number")]
+	[InlineData("TEXTSIZE of a decimal integer that is not digits")]
 	[InlineData("DATEFIRST of an expression")]
-	[InlineData("DATEFIRST of a reserved word")]
 	[InlineData("FIPS_FLAGGER of a national string")]
 	[InlineData("FIPS_FLAGGER OFF in a list")]
 	public void A_procedural_statement_with_no_text_is_refused(string which)
@@ -292,8 +294,8 @@ public sealed class ProceduralWriterTests
 			"a SET word as an atomic setting" => Atomic(Level, English, Set("ANSI_NULLS", Ref("ON"))),
 			// AtomicSetting: TEXTSIZE = '-'? Digits.
 			"an atomic TEXTSIZE that is not whole" => Atomic(Level, English, Set("TEXTSIZE", new LiteralValue.Numeric("1.5", NumericLiteralKind.Decimal))),
-			// AtomicConstant: not DEFAULT.
-			"an atomic DATEFIRST set to DEFAULT" => Atomic(Level, English, Set("DATEFIRST", Ref("DEFAULT"))),
+			// AtomicSetting: TEXTSIZE = '-'? Digits.
+			"an atomic TEXTSIZE of a hexadecimal number" => Atomic(Level, English, Set("TEXTSIZE", new LiteralValue.Numeric("0x1F", NumericLiteralKind.HexInteger))),
 			// AtomicSetting: DELAYED_DURABILITY = OnOff.
 			"an atomic DELAYED_DURABILITY set to a number" => Atomic(Level, English, Set("DELAYED_DURABILITY", One)),
 			// AtomicSetting: a name of one word.
@@ -366,10 +368,14 @@ public sealed class ProceduralWriterTests
 			"LOCK_TIMEOUT of a fraction" => Options(Val("LOCK_TIMEOUT", new LiteralValue.Numeric("1.5", NumericLiteralKind.Decimal))),
 			// SetConstant: the sign is the literal's (Syntax.Compacted), read back as one.
 			"DATEFIRST of a negation" => Options(Val("DATEFIRST", new Expression.Unary(UnaryOperator.Minus, One))),
+			// SetConstant: UnsignedNumericLiteral, not money.
+			"DATEFIRST of money" => Options(Val("DATEFIRST", new LiteralValue.Numeric("$5", NumericLiteralKind.Money))),
+			// SetInteger: Digits.
+			"LOCK_TIMEOUT of a hexadecimal number" => Options(Val("LOCK_TIMEOUT", new LiteralValue.Numeric("0x1F", NumericLiteralKind.HexInteger))),
+			// SetInteger: Digits.
+			"TEXTSIZE of a decimal integer that is not digits" => Options(Val("TEXTSIZE", new LiteralValue.Numeric("1e1", NumericLiteralKind.DecimalInteger))),
 			// SetConstant: DATEFIRST 7 + 1 is refused.
 			"DATEFIRST of an expression" => Options(Val("DATEFIRST", new Expression.Binary(One, BinaryOperator.Add, One))),
-			// SetConstant: Identifier is not TSqlReserved, Msg 195.
-			"DATEFIRST of a reserved word" => Options(Val("DATEFIRST", Ref("ON"))),
 			// SetFipsLevel: never a national string.
 			"FIPS_FLAGGER of a national string" => Options(Val("FIPS_FLAGGER", new LiteralValue.String("'FULL'", StringLiteralKind.National))),
 			// SetExpressions: FIPS_FLAGGER OFF stands alone.

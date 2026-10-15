@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace DotGram.Sql.Ast;
 
@@ -420,7 +421,7 @@ public static partial class Sql2023Writer
 
 		/// <summary>
 		/// T-SQL: SET Statements (Transact-SQL). <c>SetConstant</c>: a number, negative or not, a string, a binary string, a
-		/// variable or a name of one part that is not a reserved word; not an expression.
+		/// variable or a name of one part; not an expression.
 		/// </summary>
 		static bool SetConstant(Expression value)
 		{
@@ -429,8 +430,7 @@ public static partial class Sql2023Writer
 				LiteralValue.Numeric => SetNumber(value, whole: false),
 				LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } => true,
 				LiteralValue.Binary { ZeroX: true } or Expression.Variable => true,
-				Expression.Reference { Name: [{ Style: IdentifierStyle.Regular or IdentifierStyle.Bracketed or IdentifierStyle.Delimited } name] }
-					=> name.Text.Length > 0 && (name.Style != IdentifierStyle.Regular || !Reserved.Contains(name.Text)),
+				Expression.Reference { Name: [{ Style: IdentifierStyle.Regular or IdentifierStyle.Bracketed or IdentifierStyle.Delimited } name] } => name.Text.Length > 0,
 				_ => false,
 			};
 		}
@@ -447,32 +447,23 @@ public static partial class Sql2023Writer
 
 			var digits = signed && text.StartsWith('-') ? text[1..] : text;
 
-			return digits.Length > 0 && (char.IsDigit(digits[0]) || digits[0] == '.')
-				&& (kind == NumericLiteralKind.DecimalInteger || !whole && kind is NumericLiteralKind.Decimal or NumericLiteralKind.Approximate);
+			return (kind == NumericLiteralKind.DecimalInteger || !whole) && Unsigned(digits, kind);
 		}
 
 		/// <summary>
-		/// T-SQL: Reserved Keywords (Transact-SQL). <c>TSqlReserved</c>: the words the grammar never reads as a plain name.
+		/// The text of an unsigned number of its kind (<c>UnsignedNumericLiteral</c>): digits, digits with a point, or
+		/// either with an exponent; never a hexadecimal number, money or a sign.
 		/// </summary>
-		static readonly HashSet<string> Reserved = new(StringComparer.OrdinalIgnoreCase)
+		static bool Unsigned(string text, NumericLiteralKind kind)
 		{
-			"ADD", "ALL", "ALTER", "AND", "ANY", "AS", "ASC", "AUTHORIZATION", "BACKUP", "BEGIN", "BETWEEN", "BREAK", "BROWSE", "BULK",
-			"BY", "CASCADE", "CASE", "CHECK", "CHECKPOINT", "CLOSE", "CLUSTERED", "COALESCE", "COLLATE", "COLUMN", "COMMIT", "COMPUTE",
-			"CONSTRAINT", "CONTAINS", "CONTAINSTABLE", "CONTINUE", "CONVERT", "CREATE", "CROSS", "CURRENT", "CURRENT_DATE",
-			"CURRENT_TIME", "CURRENT_TIMESTAMP", "CURRENT_USER", "CURSOR", "DATABASE", "DBCC", "DEALLOCATE", "DECLARE", "DEFAULT",
-			"DELETE", "DENY", "DESC", "DISTINCT", "DISTRIBUTED", "DOUBLE", "DROP", "ELSE", "END", "ERRLVL", "ESCAPE", "EXCEPT", "EXEC",
-			"EXECUTE", "EXISTS", "EXIT", "FETCH", "FILE", "FILLFACTOR", "FOR", "FOREIGN", "FREETEXT", "FREETEXTTABLE", "FROM", "FULL",
-			"FUNCTION", "GOTO", "GRANT", "GROUP", "HAVING", "HOLDLOCK", "IDENTITY", "IDENTITYCOL", "IDENTITY_INSERT", "IF", "IN", "INDEX",
-			"INNER", "INSERT", "INTERSECT", "INTO", "IS", "JOIN", "KEY", "KILL", "LEFT", "LIKE", "LINENO", "NATIONAL", "NOCHECK",
-			"NONCLUSTERED", "NOT", "NULL", "NULLIF", "OF", "OFF", "OFFSETS", "ON", "OPEN", "OPENDATASOURCE", "OPENQUERY", "OPENROWSET",
-			"OPENXML", "OPTION", "OR", "ORDER", "OUTER", "OVER", "PERCENT", "PLAN", "PRIMARY", "PRINT", "PROC", "PROCEDURE", "PUBLIC",
-			"RAISERROR", "READ", "READTEXT", "RECONFIGURE", "REFERENCES", "REPLICATION", "RESTORE", "RESTRICT", "RETURN", "REVOKE",
-			"RIGHT", "ROLLBACK", "ROWCOUNT", "ROWGUIDCOL", "RULE", "SAVE", "SCHEMA", "SELECT", "SESSION_USER", "SET", "SETUSER",
-			"SHUTDOWN", "SOME", "STATISTICS", "SYSTEM_USER", "TABLE", "TEXTSIZE", "THEN", "TO", "TOP", "TRAN", "TRANSACTION", "TRIGGER",
-			"TRUNCATE", "TSEQUAL", "UNION", "UNIQUE", "UPDATE", "UPDATETEXT", "USE", "USER", "VALUES", "VARYING", "VIEW", "WAITFOR",
-			"WHEN", "WHERE", "WHILE", "WITH", "WRITETEXT", "EXTERNAL", "MERGE", "PIVOT", "REVERT", "SEMANTICKEYPHRASETABLE",
-			"SEMANTICSIMILARITYDETAILSTABLE", "SEMANTICSIMILARITYTABLE", "TABLESAMPLE", "TRY_CONVERT", "UNPIVOT",
-		};
+			return kind switch
+			{
+				NumericLiteralKind.DecimalInteger => Regex.IsMatch(text, @"^[0-9]+$"),
+				NumericLiteralKind.Decimal        => Regex.IsMatch(text, @"^([0-9]+\.[0-9]*|\.[0-9]+)$"),
+				NumericLiteralKind.Approximate    => Regex.IsMatch(text, @"^([0-9]+\.?[0-9]*|\.[0-9]+)[eE][+-]?[0-9]+$"),
+				_                                 => false,
+			};
+		}
 
 		/// <summary>Whether a statement ends in an IF without an ELSE, which an ELSE written after it would take.</summary>
 		static bool Dangling(Statement statement)
@@ -563,25 +554,28 @@ public static partial class Sql2023Writer
 			["DATEFIRST"]          = AtomicConstant,
 			["DATEFORMAT"]         = AtomicConstant,
 			["LANGUAGE"]           = AtomicConstant,
-			["TEXTSIZE"]           = static value => value is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger }
-									or Expression.Unary { Operator: UnaryOperator.Minus, Operand: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger } },
+			["TEXTSIZE"]           = static value => (value is Expression.Unary { Operator: UnaryOperator.Minus, Operand: var operand } ? operand : value)
+									is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger, Text: var digits } && Unsigned(digits, NumericLiteralKind.DecimalInteger),
 			["DELAYED_DURABILITY"] = static value => Bare(value) is "ON" or "OFF",
 		};
 
 		/// <summary>
 		/// T-SQL: CREATE PROCEDURE (Transact-SQL). <c>AtomicConstant</c>: a number or money, negated or not, a string, a binary
-		/// string, a name that is not a reserved word, a variable, NULL, or an ODBC date or time; never a name of two parts.
+		/// string, a name, a variable, NULL, or an ODBC date or time; never a name of two parts. A reserved word as a plain
+		/// name is the cross-cutting question, not this place's.
 		/// </summary>
 		static bool AtomicConstant(Expression value)
 		{
 			return value switch
 			{
-				Expression.Unary { Operator: UnaryOperator.Minus, Operand: LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money } } => true,
-				LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money } => true,
+				Expression.Unary { Operator: UnaryOperator.Minus, Operand: LiteralValue.Numeric { Kind: NumericLiteralKind.Money } } => true,
+				Expression.Unary { Operator: UnaryOperator.Minus, Operand: LiteralValue.Numeric number } => Unsigned(number.Text, number.Kind),
+				LiteralValue.Numeric { Kind: NumericLiteralKind.Money } => true,
+				LiteralValue.Numeric number => Unsigned(number.Text, number.Kind),
 				LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } => true,
 				LiteralValue.Binary or LiteralValue.Null or Expression.Variable => true,
 				Expression.OdbcEscape { Called: false, Value: LiteralValue.String } => true,
-				Expression.Reference { Name.Parts: [var name] } => name.Text.Length > 0 && (name.Style != IdentifierStyle.Regular || !Reserved.Contains(name.Text)),
+				Expression.Reference { Name.Parts: [var name] } => name.Text.Length > 0 && name.Style is not (IdentifierStyle.String or IdentifierStyle.NationalString),
 				_ => false,
 			};
 		}
