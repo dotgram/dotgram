@@ -64,7 +64,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM2002` | Expected a rule, a namespace or a publication directive. | Only those four things stand at the top of a grammar: a rule, `namespace`, `parse`/`find`, and the `context`/`state`/`trivia` declarations. |
 | `GRAM2003` | Expected a literal, a reference, an element set, a group or an atomic group. | An operand is missing where one has to stand — often after a `&` or a `\|`. Said in its own words for `when:`, a capture called `when`: `when` begins a guard, so rename the capture. |
 | `GRAM2004` | Expected a name. | |
-| `GRAM2005` | A binding power is a whole number. | `<< 2`, `>> 3` (§4.3.1). |
+| `GRAM2005` | A binding power is a whole number from 0 to 9999. | `<< 2`, `>> 3` (§4.3.1). |
 | `GRAM2006` | A namespace header's rebindings need `with`. | `namespace Name with (A = B) { … }` (§5.1). |
 | `GRAM2007` | A publication of anything but a rule's name needs `as`. | `parse` and `find` name the method after the rule; an expression has no name to make one from, so give it one: `parse X & Y as Both`. |
 | `GRAM2008` | A named yield publication places a result type before `yield`. | Write the element contract after `yield : @T` (§6). |
