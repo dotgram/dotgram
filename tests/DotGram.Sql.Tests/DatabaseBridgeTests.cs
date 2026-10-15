@@ -79,6 +79,27 @@ public sealed class DatabaseBridgeTests
 	[InlineData("RESTORE HEADERONLY FROM a", "HEADERONLY")]
 	[InlineData("RESTORE LABELONLY FROM a", "LABELONLY")]
 	[InlineData("RESTORE VERIFYONLY FROM a", "VERIFYONLY")]
+	[InlineData("CREATE PARTITION FUNCTION f (INT) AS RANGE LEFT FOR VALUES (1)", "RANGE LEFT")]
+	[InlineData("CREATE PARTITION FUNCTION f (INT) AS RANGE FOR VALUES (1)", "RANGE alone")]
+	[InlineData("CREATE PARTITION FUNCTION f (CHAR(10) COLLATE Estonian_CS_AS) AS RANGE RIGHT FOR VALUES ()", "a collation")]
+	[InlineData("ALTER PARTITION FUNCTION f () SPLIT RANGE (1)", "SPLIT")]
+	[InlineData("ALTER PARTITION FUNCTION f () MERGE RANGE (1)", "MERGE")]
+	[InlineData("ALTER PARTITION FUNCTION f () SPLIT", "SPLIT alone")]
+	[InlineData("CREATE PARTITION SCHEME s AS PARTITION f ALL TO (fg)", "ALL")]
+	[InlineData("CREATE PARTITION SCHEME s AS PARTITION f TO (fg)", "not ALL")]
+	[InlineData("CREATE PARTITION SCHEME s AS PARTITION f TO ('fg')", "a filegroup quoted")]
+	[InlineData("ALTER PARTITION SCHEME s NEXT USED", "NEXT USED alone")]
+	[InlineData("CREATE FULLTEXT CATALOG c WITH ACCENT_SENSITIVITY = OFF", "insensitive")]
+	[InlineData("CREATE FULLTEXT CATALOG c AS DEFAULT", "AS DEFAULT")]
+	[InlineData("ALTER FULLTEXT CATALOG c REBUILD", "REBUILD")]
+	[InlineData("ALTER FULLTEXT CATALOG c AS DEFAULT", "a catalog made the default")]
+	[InlineData("CREATE FULLTEXT STOPLIST s FROM SYSTEM STOPLIST", "FROM SYSTEM STOPLIST")]
+	[InlineData("CREATE FULLTEXT STOPLIST s FROM [SYSTEM]", "FROM a stoplist called SYSTEM")]
+	[InlineData("ALTER FULLTEXT STOPLIST s DROP ALL", "DROP ALL")]
+	[InlineData("ALTER FULLTEXT STOPLIST s DROP 'a' LANGUAGE 1033", "DROP a word")]
+	[InlineData("ALTER FULLTEXT STOPLIST s ADD 'a' LANGUAGE [English]", "ADD a word")]
+	[InlineData("ALTER SEARCH PROPERTY LIST l DROP 'a'", "DROP a property")]
+	[InlineData("CHECKPOINT 5", "CHECKPOINT")]
 	public void The_bridge_builds_the_database_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -149,6 +170,27 @@ public sealed class DatabaseBridgeTests
 			"HEADERONLY" => made is Ast.Statement.RestoreHeaderOnly,
 			"LABELONLY" => made is Ast.Statement.RestoreLabelOnly,
 			"VERIFYONLY" => made is Ast.Statement.RestoreVerifyOnly,
+			"RANGE LEFT" => made is Ast.Statement.CreatePartitionFunction { Range: Ast.RangeSide.Left, Boundaries.Count: 1, Collation: null },
+			"RANGE alone" => made is Ast.Statement.CreatePartitionFunction { Range: null },
+			"a collation" => made is Ast.Statement.CreatePartitionFunction { Range: Ast.RangeSide.Right, Boundaries.Count: 0, Collation: not null },
+			"SPLIT" => made is Ast.Statement.AlterPartitionFunction { Action: Ast.PartitionFunctionAction.Split { Boundary: not null } },
+			"MERGE" => made is Ast.Statement.AlterPartitionFunction { Action: Ast.PartitionFunctionAction.Merge { Boundary: not null } },
+			"SPLIT alone" => made is Ast.Statement.AlterPartitionFunction { Action: Ast.PartitionFunctionAction.Split { Boundary: null } },
+			"ALL" => made is Ast.Statement.CreatePartitionScheme { All: true },
+			"not ALL" => made is Ast.Statement.CreatePartitionScheme { All: false, FileGroups: [Ast.Expression.Reference] },
+			"a filegroup quoted" => made is Ast.Statement.CreatePartitionScheme { FileGroups: [Ast.LiteralValue.String] },
+			"NEXT USED alone" => made is Ast.Statement.AlterPartitionScheme { NextUsed: null },
+			"insensitive" => made is Ast.Statement.CreateFullTextCatalog { AccentSensitivity: false, Default: false },
+			"AS DEFAULT" => made is Ast.Statement.CreateFullTextCatalog { AccentSensitivity: null, Default: true },
+			"REBUILD" => made is Ast.Statement.AlterFullTextCatalog { Action: Ast.FullTextCatalogAction.Rebuild { AccentSensitivity: null } },
+			"a catalog made the default" => made is Ast.Statement.AlterFullTextCatalog { Action: Ast.FullTextCatalogAction.AsDefault },
+			"FROM SYSTEM STOPLIST" => made is Ast.Statement.CreateFullTextStopList { From: Ast.StopListSource.SystemStopList },
+			"FROM a stoplist called SYSTEM" => made is Ast.Statement.CreateFullTextStopList { From: Ast.StopListSource.Named },
+			"DROP ALL" => made is Ast.Statement.AlterFullTextStopList { Action: Ast.StopListAction.DropAll { Language: null } },
+			"DROP a word" => made is Ast.Statement.AlterFullTextStopList { Action: Ast.StopListAction.Drop },
+			"ADD a word" => made is Ast.Statement.AlterFullTextStopList { Action: Ast.StopListAction.Add { Language: Ast.Expression.Reference } },
+			"DROP a property" => made is Ast.Statement.AlterSearchPropertyList { Action: Ast.SearchPropertyListAction.Drop },
+			"CHECKPOINT" => made is Ast.Statement.Checkpoint { Duration: not null },
 			_ => false,
 		};
 

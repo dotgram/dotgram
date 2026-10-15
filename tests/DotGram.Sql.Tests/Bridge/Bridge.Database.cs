@@ -42,6 +42,11 @@ static partial class Bridge
 				Statement.AlterDatabaseSet set => Target(set, set.Name, new Ast.AlterDatabaseAction.Set(Each(set.Settings, one => Setting(set, one))) { Termination = Termination(set, set.Termination) }),
 				Statement.AlterDatabaseScopedConfiguration scoped => Scoped(scoped),
 				Statement.CreateDatabase create => Create(create),
+				Statement.PartitionFunctionDefinition or Statement.AlterPartitionFunction or Statement.PartitionSchemeDefinition or Statement.AlterPartitionScheme
+					or Statement.FullTextCatalogDefinition or Statement.AlterFullTextCatalog or Statement.FullTextStopListDefinition or Statement.AlterFullTextStopList
+					or Statement.SearchPropertyListDefinition or Statement.AlterSearchPropertyList
+					=> Checked((Statement.Definition)old, Defined((Statement.Definition)old)),
+				Statement.Checkpoint(var duration) => new Ast.Statement.Checkpoint(duration is null ? null : Values.Of(duration)),
 				Statement.Definition definition when definition.GetType().Name.StartsWith("Backup", StringComparison.Ordinal)
 					=> Checked(definition, Backup(definition)),
 				Statement.Definition definition when definition.GetType().Name.StartsWith("Restore", StringComparison.Ordinal)
@@ -444,6 +449,220 @@ static partial class Bridge
 				Statement.RestoreVerifyOnly   => new Ast.Statement.RestoreVerifyOnly(devices) { Options = options },
 				_                             => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
 			};
+		}
+
+		/// <summary>
+		/// Partition functions and schemes, full-text catalogues and stoplists, search property lists: the old tree keeps
+		/// each as a name and the words after it, read again by tokens; a type as a declared variable's, a value as a
+		/// select list's.
+		/// </summary>
+		static Ast.Statement Defined(Statement.Definition old)
+		{
+			var text   = old.Tail ?? "";
+			var tokens = Located(text);
+			var words  = Words(text);
+			var name   = Values.Part(old, old.Name);
+
+			switch (old)
+			{
+				case Statement.PartitionFunctionDefinition when words is ["(", ..]:
+					var close   = Closing(tokens, 0);
+					var collate = tokens.FindIndex(static one => one.Token.Kind == SqlTokens.Kind.Word && one.Token.Text.Equals("COLLATE", StringComparison.OrdinalIgnoreCase));
+					var type    = Slice(text, tokens, 1, collate > 0 && collate < close ? collate : close);
+					var after   = words[(close + 1)..];
+					var side    = after switch
+					{
+						["AS", "RANGE", "LEFT", ..]  => Ast.RangeSide.Left,
+						["AS", "RANGE", "RIGHT", ..] => Ast.RangeSide.Right,
+						_                            => (Ast.RangeSide?)null,
+					};
+					var values = close + (side is null ? 6 : 7);
+
+					if (after is not ["AS", "RANGE", ..] || words.Length <= values || words[values - 2] != "VALUES" || words[values - 3] != "FOR" || words[values - 1] != "(" || words[^1] != ")")
+						throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
+					var inside = Slice(text, tokens, values, tokens.Count - 1);
+
+					return new Ast.Statement.CreatePartitionFunction(name, Values.Type(old, type), inside.Length == 0 ? [] : [.. Listed(inside).Select(one => ValueOf(old, one))])
+					{
+						Collation = collate > 0 && collate < close ? new Ast.CollationName(Values.Name(old, Slice(text, tokens, collate + 1, close))) : null,
+						Range     = side,
+					};
+
+				case Statement.AlterPartitionFunction when words is ["(", ")", "SPLIT" or "MERGE", ..]:
+					Ast.Expression? boundary = words[3..] switch
+					{
+						[] => null,
+						["RANGE", "(", .., ")"] => ValueOf(old, Slice(text, tokens, 5, tokens.Count - 1)),
+						_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
+					};
+
+					return new Ast.Statement.AlterPartitionFunction(name, words[2] == "SPLIT" ? new Ast.PartitionFunctionAction.Split(boundary) : new Ast.PartitionFunctionAction.Merge(boundary));
+
+				case Statement.PartitionSchemeDefinition when words is ["AS", "PARTITION", _, .. var rest] && rest is ["ALL", "TO", "(", .., ")"] or ["TO", "(", .., ")"]:
+					var all = rest[0] == "ALL";
+
+					return new Ast.Statement.CreatePartitionScheme(name, Values.Part(old, tokens[2].Token.Text), [.. Listed(Slice(text, tokens, all ? 6 : 5, tokens.Count - 1)).Select(one => FileGroupOf(old, one))]) { All = all };
+
+				case Statement.AlterPartitionScheme when words is ["NEXT", "USED", .. var used] && used.Length <= 1:
+					return new Ast.Statement.AlterPartitionScheme(name, used.Length == 0 ? null : FileGroupOf(old, tokens[2].Token.Text));
+
+				case Statement.FullTextCatalogDefinition:
+					var catalog = new Ast.Statement.CreateFullTextCatalog(name);
+					var at      = 0;
+
+					if (words is ["ON", "FILEGROUP", _, ..])
+					{
+						catalog = catalog with { FileGroup = Values.Part(old, tokens[2].Token.Text) };
+						at = 3;
+					}
+
+					if (words.Length > at + 2 && words[at] == "IN" && words[at + 1] == "PATH")
+					{
+						catalog = catalog with { Path = Value(old, tokens[at + 2].Token) };
+						at += 3;
+					}
+
+					if (Sensitivity(words, at) is { } sensitive)
+					{
+						catalog = catalog with { AccentSensitivity = sensitive };
+						at += 4;
+					}
+
+					if (words.Length > at + 1 && words[at] == "AS" && words[at + 1] == "DEFAULT")
+					{
+						catalog = catalog with { Default = true };
+						at += 2;
+					}
+
+					if (words.Length == at + 2 && words[at] == "AUTHORIZATION")
+					{
+						catalog = catalog with { Authorization = Values.Part(old, tokens[at + 1].Token.Text) };
+						at += 2;
+					}
+
+					return at == words.Length ? catalog : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
+				case Statement.AlterFullTextCatalog:
+					return new Ast.Statement.AlterFullTextCatalog(name, words switch
+					{
+						["REBUILD"]                     => new Ast.FullTextCatalogAction.Rebuild(null),
+						["REBUILD", ..] when Sensitivity(words, 1) is { } rebuilt && words.Length == 5 => new Ast.FullTextCatalogAction.Rebuild(rebuilt),
+						["REORGANIZE"]                  => new Ast.FullTextCatalogAction.Reorganize(),
+						["AS", "DEFAULT"]               => new Ast.FullTextCatalogAction.AsDefault(),
+						_                               => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
+					});
+
+				case Statement.FullTextStopListDefinition:
+					var owner = Index(tokens, "AUTHORIZATION");
+					var from  = words[..(owner < 0 ? words.Length : owner)] switch
+					{
+						[]                             => null,
+						["FROM", "SYSTEM", "STOPLIST"] => new Ast.StopListSource.SystemStopList(),
+						["FROM", ..]                   => (Ast.StopListSource)new Ast.StopListSource.Named(Values.Name(old, Slice(text, tokens, 1, owner < 0 ? tokens.Count : owner))),
+						_                              => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
+					};
+
+					return owner >= 0 && owner != tokens.Count - 2
+						? throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})")
+						: new Ast.Statement.CreateFullTextStopList(name) { From = from, Authorization = owner < 0 ? null : Values.Part(old, tokens[owner + 1].Token.Text) };
+
+				case Statement.AlterFullTextStopList:
+					return new Ast.Statement.AlterFullTextStopList(name, words switch
+					{
+						["ADD", _, "LANGUAGE", _]  => new Ast.StopListAction.Add(Value(old, tokens[1].Token), Language(old, tokens[3].Token)),
+						["DROP", "ALL"]            => new Ast.StopListAction.DropAll(null),
+						["DROP", "ALL", "LANGUAGE", _] => new Ast.StopListAction.DropAll(Language(old, tokens[3].Token)),
+						["DROP", _, "LANGUAGE", _] => (Ast.StopListAction)new Ast.StopListAction.Drop(Value(old, tokens[1].Token), Language(old, tokens[3].Token)),
+						_                          => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
+					});
+
+				case Statement.SearchPropertyListDefinition:
+					var by   = Index(tokens, "AUTHORIZATION");
+					var list = new Ast.Statement.CreateSearchPropertyList(name) { Authorization = by < 0 ? null : Values.Part(old, tokens[by + 1].Token.Text) };
+
+					if (by >= 0 && by != tokens.Count - 2)
+						throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
+					return words[..(by < 0 ? words.Length : by)] switch
+					{
+						[]          => list,
+						["FROM", ..] => list with { From = Values.Name(old, Slice(text, tokens, 1, by < 0 ? tokens.Count : by)) },
+						_           => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
+					};
+
+				case Statement.AlterSearchPropertyList:
+					var with = Index(tokens, "WITH");
+
+					return new Ast.Statement.AlterSearchPropertyList(name, words switch
+					{
+						["DROP", ..] => new Ast.SearchPropertyListAction.Drop(ValueOf(old, Slice(text, tokens, 1, tokens.Count))),
+						["ADD", ..] when with > 1 && words[with + 1] == "(" && words[^1] == ")"
+							=> (Ast.SearchPropertyListAction)new Ast.SearchPropertyListAction.Add(ValueOf(old, Slice(text, tokens, 1, with)), [.. Listed(Slice(text, tokens, with + 2, tokens.Count - 1)).Select(one => Property(old, one))]),
+						_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
+					});
+
+				default:
+					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+			}
+		}
+
+		/// <summary>The token that closes the bracket opened at a token.</summary>
+		static int Closing(List<(SqlTokens.Token Token, int At)> tokens, int open)
+		{
+			var depth = 0;
+
+			for (var at = open; at < tokens.Count; at++)
+			{
+				if (tokens[at].Token is { Kind: SqlTokens.Kind.Punctuation, Text: "(" })
+					depth++;
+				else if (tokens[at].Token is { Kind: SqlTokens.Kind.Punctuation, Text: ")" } && --depth == 0)
+					return at;
+			}
+
+			return tokens.Count - 1;
+		}
+
+		/// <summary><c>WITH ACCENT_SENSITIVITY = ON | OFF</c> at a word, or null.</summary>
+		static bool? Sensitivity(string[] words, int at)
+		{
+			return words.Length > at + 3 && words[at] == "WITH" && words[at + 1] == "ACCENT_SENSITIVITY" && words[at + 2] == "=" && words[at + 3] is "ON" or "OFF"
+				? words[at + 3] == "ON"
+				: null;
+		}
+
+		/// <summary>PartitionFileGroup: a name of one part or a string.</summary>
+		static Ast.Expression FileGroupOf(Statement old, string text)
+		{
+			return SqlTokens.Of(text) is [var one] && one.Kind is SqlTokens.Kind.String or SqlTokens.Kind.Word or SqlTokens.Kind.Delimited && !one.Text.StartsWith("@", StringComparison.Ordinal)
+				? Value(old, one)
+				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a filegroup `{text}`)");
+		}
+
+		/// <summary>StopListLanguage: a string, a number, a binary string or a name.</summary>
+		static Ast.Expression Language(Statement old, SqlTokens.Token token)
+		{
+			return token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+				? Values.Of(new Expression.Literal(SqlLiteralKind.Hex, token.Text))
+				: Value(old, token);
+		}
+
+		/// <summary>A search property's setting: a name, <c>=</c>, a value.</summary>
+		static Ast.Option Property(Statement old, string text)
+		{
+			var tokens = Located(text);
+
+			return tokens.Count >= 3 && tokens[0].Token.Kind == SqlTokens.Kind.Word && tokens[1].Token.Text == "="
+				? new Ast.Option(Values.Part(old, tokens[0].Token.Text), ValueOf(old, Slice(text, tokens, 2, tokens.Count)), [])
+				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a setting `{text}`)");
+		}
+
+		/// <summary>A value kept as text, read again as a select list's one value.</summary>
+		static Ast.Expression ValueOf(Statement old, string text)
+		{
+			return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+				? Values.Of(value)
+				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a value `{text.Trim()}`)");
 		}
 
 		/// <summary>BackupFile, each between commas; files with no comma between them are a gap.</summary>

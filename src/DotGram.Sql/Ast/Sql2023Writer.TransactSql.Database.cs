@@ -206,6 +206,276 @@ public static partial class Sql2023Writer
 
 					return true;
 
+				// T-SQL: CREATE PARTITION FUNCTION (Transact-SQL). PartitionStatement: one type, a collation, the side, and the
+				// boundaries, which may be none.
+				case Statement.CreatePartitionFunction function:
+					Word("CREATE PARTITION FUNCTION");
+					PutIdentifier(function.Name);
+					Open();
+					PutType(function.Type);
+
+					if (function.Collation is { } collation)
+					{
+						Word("COLLATE");
+						PutCollation(collation);
+					}
+
+					Close();
+					Word("AS RANGE");
+
+					if (function.Range is { } side)
+					{
+						Word(side switch
+						{
+							RangeSide.Left  => "LEFT",
+							RangeSide.Right => "RIGHT",
+							_               => throw Misplaced(function, "Range", "of no word (LEFT or RIGHT)"),
+						});
+					}
+
+					Word("FOR VALUES");
+					Open();
+					Each(function.Boundaries, one => PutValue(function, one));
+					Close();
+					return true;
+
+				// One boundary split or merged at a time, the function named with its empty brackets.
+				case Statement.AlterPartitionFunction function:
+					Word("ALTER PARTITION FUNCTION");
+					PutIdentifier(function.Name);
+					Open();
+					Close();
+
+					var (verb, boundary) = function.Action switch
+					{
+						PartitionFunctionAction.Split split => ("SPLIT", split.Boundary),
+						PartitionFunctionAction.Merge merge => ("MERGE", merge.Boundary),
+						_                                   => throw Unwritten(function.Action),
+					};
+
+					Word(verb);
+
+					if (boundary is not null)
+					{
+						Word("RANGE");
+						Open();
+						PutValue(function, boundary);
+						Close();
+					}
+
+					return true;
+
+				// The filegroups, one at least, each a name or a string (PartitionFileGroup).
+				case Statement.CreatePartitionScheme scheme:
+					if (scheme.FileGroups.Count == 0)
+						throw Empty(scheme, "FileGroups");
+
+					Word("CREATE PARTITION SCHEME");
+					PutIdentifier(scheme.Name);
+					Word("AS PARTITION");
+					PutIdentifier(scheme.Function);
+
+					if (scheme.All)
+						Word("ALL");
+
+					Word("TO");
+					Open();
+					Each(scheme.FileGroups, group => PutPartitionFileGroup(scheme, group));
+					Close();
+					return true;
+
+				case Statement.AlterPartitionScheme scheme:
+					Word("ALTER PARTITION SCHEME");
+					PutIdentifier(scheme.Name);
+					Word("NEXT USED");
+
+					if (scheme.NextUsed is { } next)
+						PutPartitionFileGroup(scheme, next);
+
+					return true;
+
+				// T-SQL: CREATE FULLTEXT CATALOG (Transact-SQL). Each part once, in the published order.
+				case Statement.CreateFullTextCatalog catalog:
+					Word("CREATE FULLTEXT CATALOG");
+					PutIdentifier(catalog.Name);
+
+					if (catalog.FileGroup is { } fileGroup)
+					{
+						Word("ON FILEGROUP");
+						PutIdentifier(fileGroup);
+					}
+
+					if (catalog.Path is { } path)
+					{
+						Word("IN PATH");
+						PutValue(catalog, path);
+					}
+
+					PutAccentSensitivity(catalog.AccentSensitivity);
+
+					if (catalog.Default)
+						Word("AS DEFAULT");
+
+					if (catalog.Authorization is { } owner)
+					{
+						Word("AUTHORIZATION");
+						PutIdentifier(owner);
+					}
+
+					return true;
+
+				case Statement.AlterFullTextCatalog catalog:
+					Word("ALTER FULLTEXT CATALOG");
+					PutIdentifier(catalog.Name);
+
+					switch (catalog.Action)
+					{
+						case FullTextCatalogAction.Rebuild rebuild:
+							Word("REBUILD");
+							PutAccentSensitivity(rebuild.AccentSensitivity);
+							break;
+
+						case FullTextCatalogAction.Reorganize:
+							Word("REORGANIZE");
+							break;
+
+						case FullTextCatalogAction.AsDefault:
+							Word("AS DEFAULT");
+							break;
+
+						default:
+							throw Unwritten(catalog.Action);
+					}
+
+					return true;
+
+				// T-SQL: CREATE FULLTEXT STOPLIST (Transact-SQL). StopListFrom: a name of two parts at most (Msg 102).
+				case Statement.CreateFullTextStopList stopList:
+					Word("CREATE FULLTEXT STOPLIST");
+					PutIdentifier(stopList.Name);
+
+					switch (stopList.From)
+					{
+						case null:
+							break;
+
+						case StopListSource.SystemStopList:
+							Word("FROM SYSTEM STOPLIST");
+							break;
+
+						case StopListSource.Named { Name: var source }:
+							if (source.Count is < 1 or > 2)
+								throw Misplaced(stopList.From, "Name", "of other than one or two parts (StopListFrom, Msg 102)");
+
+							Word("FROM");
+							PutName(source);
+							break;
+
+						default:
+							throw Unwritten(stopList.From);
+					}
+
+					if (stopList.Authorization is { } stopListOwner)
+					{
+						Word("AUTHORIZATION");
+						PutIdentifier(stopListOwner);
+					}
+
+					return true;
+
+				// StopListAction: a word quoted, and its language a string, a number, a binary string or a name.
+				case Statement.AlterFullTextStopList stopList:
+					Word("ALTER FULLTEXT STOPLIST");
+					PutIdentifier(stopList.Name);
+
+					switch (stopList.Action)
+					{
+						case StopListAction.Add add:
+							Word("ADD");
+							PutStopWord(add, add.Word, add.Language);
+							break;
+
+						case StopListAction.Drop drop:
+							Word("DROP");
+							PutStopWord(drop, drop.Word, drop.Language);
+							break;
+
+						case StopListAction.DropAll all:
+							Word("DROP ALL");
+
+							if (all.Language is { } language)
+							{
+								Word("LANGUAGE");
+								PutStopListLanguage(all, language);
+							}
+
+							break;
+
+						default:
+							throw Unwritten(stopList.Action);
+					}
+
+					return true;
+
+				// T-SQL: CREATE SEARCH PROPERTY LIST (Transact-SQL).
+				case Statement.CreateSearchPropertyList list:
+					Word("CREATE SEARCH PROPERTY LIST");
+					PutIdentifier(list.Name);
+
+					if (list.From is { } from)
+					{
+						Word("FROM");
+						PutName(from);
+					}
+
+					if (list.Authorization is { } listOwner)
+					{
+						Word("AUTHORIZATION");
+						PutIdentifier(listOwner);
+					}
+
+					return true;
+
+				// PropertyListAction: the set's GUID and the integer id, in that order and in brackets, and the description
+				// after them.
+				case Statement.AlterSearchPropertyList list:
+					Word("ALTER SEARCH PROPERTY LIST");
+					PutIdentifier(list.Name);
+
+					switch (list.Action)
+					{
+						case SearchPropertyListAction.Add add:
+							if (add.Options.Select(static option => Key(option).ToUpperInvariant()).ToArray() is not (["PROPERTY_SET_GUID", "PROPERTY_INT_ID"] or ["PROPERTY_SET_GUID", "PROPERTY_INT_ID", "PROPERTY_DESCRIPTION"]))
+								throw Misplaced(add, "Options", "other than PROPERTY_SET_GUID, PROPERTY_INT_ID and PROPERTY_DESCRIPTION in that order (PropertyListAction)");
+
+							Word("ADD");
+							PutValue(add, add.Property);
+							Word("WITH");
+							Open();
+							Each(add.Options, option => PutSetting(option, PropertyOptions, "PropertyListAction"));
+							Close();
+							break;
+
+						case SearchPropertyListAction.Drop drop:
+							Word("DROP");
+							PutValue(drop, drop.Property);
+							break;
+
+						default:
+							throw Unwritten(list.Action);
+					}
+
+					return true;
+
+				// T-SQL: CHECKPOINT (Transact-SQL). A value or none.
+				case Statement.Checkpoint checkpoint:
+					Word("CHECKPOINT");
+
+					if (checkpoint.Duration is { } duration)
+						PutValue(checkpoint, duration);
+
+					return true;
+
 				// T-SQL: ALTER DATABASE SCOPED CONFIGURATION. FOR SECONDARY only before SET (AlterDatabaseStatement).
 				case Statement.AlterDatabaseScopedConfiguration scoped:
 					Word("ALTER DATABASE SCOPED CONFIGURATION");
@@ -381,6 +651,57 @@ public static partial class Sql2023Writer
 			}
 		}
 
+		/// <summary>T-SQL: CREATE PARTITION SCHEME (Transact-SQL). PartitionFileGroup: a name of one part or a string.</summary>
+		void PutPartitionFileGroup(ISqlNode owner, Expression group)
+		{
+			if (group is Expression.Reference { Name: [var name] })
+				PutIdentifier(name);
+			else if (StringValue(group))
+				PutExpression(group);
+			else
+				throw Misplaced(owner, "FileGroups or NextUsed", "other than a name of one part or a string (PartitionFileGroup)");
+		}
+
+		/// <summary>T-SQL: CREATE FULLTEXT CATALOG (Transact-SQL). CatalogWith: <c>WITH ACCENT_SENSITIVITY = ON | OFF</c>.</summary>
+		void PutAccentSensitivity(bool? sensitive)
+		{
+			if (sensitive is { } on)
+				Word(on ? "WITH ACCENT_SENSITIVITY = ON" : "WITH ACCENT_SENSITIVITY = OFF");
+		}
+
+		/// <summary>T-SQL: ALTER FULLTEXT STOPLIST (Transact-SQL). <c>'word' LANGUAGE language</c>: the word quoted (Quoted).</summary>
+		void PutStopWord(ISqlNode owner, Expression word, Expression language)
+		{
+			if (!StringValue(word))
+				throw Misplaced(owner, "Word", "other than a string (StopListAction: Quoted)");
+
+			PutExpression(word);
+			Word("LANGUAGE");
+			PutStopListLanguage(owner, language);
+		}
+
+		/// <summary>StopListLanguage: a string, an unsigned number, a binary string or a name; a variable is Msg 102.</summary>
+		void PutStopListLanguage(ISqlNode owner, Expression language)
+		{
+			switch (language)
+			{
+				case Expression.Reference { Name: [var name] }:
+					PutIdentifier(name);
+					break;
+
+				case LiteralValue.Binary { ZeroX: true }:
+					PutExpression(language);
+					break;
+
+				case var _ when StringValue(language) || UnsignedNumber(language):
+					PutExpression(language);
+					break;
+
+				default:
+					throw Misplaced(owner, "Language", "other than a string, a number, a binary string or a name (StopListLanguage)");
+			}
+		}
+
 		/// <summary>
 		/// T-SQL: BACKUP (Transact-SQL). BackupName: a name, a variable or a string; the brackets of a list the grammar
 		/// reads and keeps the first of are not written.
@@ -434,7 +755,7 @@ public static partial class Sql2023Writer
 
 					case BackupFile.Page page:
 						Word("PAGE =");
-						PutExpression(page.Value);
+						PutValue(page, page.Value);
 						break;
 
 					default:
@@ -509,7 +830,7 @@ public static partial class Sql2023Writer
 						_               => throw Misplaced(physical, "Kind", "of no word (DeviceWord)"),
 					});
 					Word("=");
-					PutExpression(physical.Value);
+					PutValue(physical, physical.Value);
 					break;
 
 				default:
@@ -1090,6 +1411,18 @@ public static partial class Sql2023Writer
 			("ENCRYPTION BY PASSWORD", true, StringValue),
 			("DECRYPTION BY PASSWORD", true, StringValue),
 			("ALGORITHM",              true, StringValue));
+
+		/// <summary>T-SQL: ALTER SEARCH PROPERTY LIST (Transact-SQL). PropertyListAction's settings, each a value.</summary>
+		static readonly Dictionary<string, Setting[]> PropertyOptions = Settings(
+			("PROPERTY_SET_GUID",    true, ValueExpression),
+			("PROPERTY_INT_ID",      true, ValueExpression),
+			("PROPERTY_DESCRIPTION", true, ValueExpression));
+
+		/// <summary><c>ValueExpression</c>: a value, never DEFAULT and never a comparison.</summary>
+		static bool ValueExpression(Expression? value)
+		{
+			return value is not (null or Expression.Default or Expression.Comparison);
+		}
 
 		/// <summary>BackupString: a string or a variable.</summary>
 		static bool BackupString(Expression? value)

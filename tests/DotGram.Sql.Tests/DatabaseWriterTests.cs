@@ -21,6 +21,7 @@ using Query = DotGram.Sql.Ast.Query;
 using Statement = DotGram.Sql.Ast.Statement;
 using TableElement = DotGram.Sql.Ast.TableElement;
 using UnaryOperator = DotGram.Sql.Ast.UnaryOperator;
+using ComparisonOperator = DotGram.Sql.Ast.ComparisonOperator;
 
 /// <summary>
 /// The Database family's writer (Sql2023Writer.TransactSql.Database.cs): each record written and read back by
@@ -193,6 +194,27 @@ public sealed class DatabaseWriterTests
 			"RESTORE MASTER KEY" => new Statement.RestoreMasterKey(new KeyPlace(KeyPlaceKind.File, Text("f")), Text("d"), Text("e")) { Force = true },
 			"RESTORE SERVICE MASTER KEY" => new Statement.RestoreServiceMasterKey(Text("f"), Text("d")),
 			"RESTORE SYMMETRIC KEY" => new Statement.RestoreSymmetricKey(Name("k"), new KeyPlace(KeyPlaceKind.Url, Text("u")), Text("d"), Text("e")),
+			"CREATE PARTITION FUNCTION" => new Statement.CreatePartitionFunction(Name("f"), new DataType.Character(CharacterTypeKind.Char, 10), [Number("1"), new LiteralValue.Null(), new Expression.Unary(UnaryOperator.Minus, Number("5")), Var("@x")]) { Collation = new CollationName(new QualifiedName([Name("Estonian_CS_AS")])), Range = RangeSide.Right },
+			"CREATE PARTITION FUNCTION of no boundary" => new Statement.CreatePartitionFunction(Name("f"), new DataType.Numeric(NumericTypeKind.Int), []),
+			"ALTER PARTITION FUNCTION SPLIT" => new Statement.AlterPartitionFunction(Name("f"), new PartitionFunctionAction.Split(Number("500"))),
+			"ALTER PARTITION FUNCTION MERGE alone" => new Statement.AlterPartitionFunction(Name("f"), new PartitionFunctionAction.Merge(null)),
+			"CREATE PARTITION SCHEME" => new Statement.CreatePartitionScheme(Name("s"), Name("f"), [Ref("fg1"), Text("fg2"), new Expression.Reference(new QualifiedName([new Identifier("[PRIMARY]", IdentifierStyle.Bracketed)]))]) { All = true },
+			"ALTER PARTITION SCHEME" => new Statement.AlterPartitionScheme(Name("s"), Ref("fg4")),
+			"ALTER PARTITION SCHEME of none" => new Statement.AlterPartitionScheme(Name("s"), null),
+			"CREATE FULLTEXT CATALOG whole" => new Statement.CreateFullTextCatalog(Name("c")) { FileGroup = Name("fg"), Path = Text("p"), AccentSensitivity = false, Default = true, Authorization = Name("dbo") },
+			"ALTER FULLTEXT CATALOG REBUILD" => new Statement.AlterFullTextCatalog(Name("c"), new FullTextCatalogAction.Rebuild(true)),
+			"ALTER FULLTEXT CATALOG REORGANIZE" => new Statement.AlterFullTextCatalog(Name("c"), new FullTextCatalogAction.Reorganize()),
+			"ALTER FULLTEXT CATALOG AS DEFAULT" => new Statement.AlterFullTextCatalog(Name("c"), new FullTextCatalogAction.AsDefault()),
+			"CREATE FULLTEXT STOPLIST FROM SYSTEM" => new Statement.CreateFullTextStopList(Name("s")) { From = new StopListSource.SystemStopList(), Authorization = Name("dbo") },
+			"CREATE FULLTEXT STOPLIST FROM a stoplist" => new Statement.CreateFullTextStopList(Name("s")) { From = new StopListSource.Named(new QualifiedName([Name("db"), Name("o")])) },
+			"ALTER FULLTEXT STOPLIST ADD" => new Statement.AlterFullTextStopList(Name("s"), new StopListAction.Add(Text("sw"), Ref("THAI"))),
+			"ALTER FULLTEXT STOPLIST DROP" => new Statement.AlterFullTextStopList(Name("s"), new StopListAction.Drop(Text("sw"), Number("1033"))),
+			"ALTER FULLTEXT STOPLIST DROP ALL" => new Statement.AlterFullTextStopList(Name("s"), new StopListAction.DropAll(new LiteralValue.Binary("411") { ZeroX = true })),
+			"CREATE SEARCH PROPERTY LIST" => new Statement.CreateSearchPropertyList(Name("l")) { From = new QualifiedName([Name("db"), Name("q")]), Authorization = Name("o") },
+			"ALTER SEARCH PROPERTY LIST ADD" => new Statement.AlterSearchPropertyList(Name("l"), new SearchPropertyListAction.Add(Text("Author"), [Set("PROPERTY_SET_GUID", Text("g")), Set("PROPERTY_INT_ID", Number("4")), Set("PROPERTY_DESCRIPTION", Text("d"))])),
+			"ALTER SEARCH PROPERTY LIST DROP" => new Statement.AlterSearchPropertyList(Name("l"), new SearchPropertyListAction.Drop(Text("Author"))),
+			"CHECKPOINT" => new Statement.Checkpoint(Number("12")),
+			"CHECKPOINT alone" => new Statement.Checkpoint(null),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 	}
@@ -270,6 +292,27 @@ public sealed class DatabaseWriterTests
 	[InlineData("RESTORE MASTER KEY", "RESTORE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'd' ENCRYPTION BY PASSWORD = 'e' FORCE")]
 	[InlineData("RESTORE SERVICE MASTER KEY", "RESTORE SERVICE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'd'")]
 	[InlineData("RESTORE SYMMETRIC KEY", "RESTORE SYMMETRIC KEY k FROM URL = 'u' DECRYPTION BY PASSWORD = 'd' ENCRYPTION BY PASSWORD = 'e'")]
+	[InlineData("CREATE PARTITION FUNCTION", "CREATE PARTITION FUNCTION f (CHAR(10) COLLATE Estonian_CS_AS) AS RANGE RIGHT FOR VALUES (1, NULL, -5, @x)")]
+	[InlineData("CREATE PARTITION FUNCTION of no boundary", "CREATE PARTITION FUNCTION f (INT) AS RANGE FOR VALUES ()")]
+	[InlineData("ALTER PARTITION FUNCTION SPLIT", "ALTER PARTITION FUNCTION f () SPLIT RANGE (500)")]
+	[InlineData("ALTER PARTITION FUNCTION MERGE alone", "ALTER PARTITION FUNCTION f () MERGE")]
+	[InlineData("CREATE PARTITION SCHEME", "CREATE PARTITION SCHEME s AS PARTITION f ALL TO (fg1, 'fg2', [PRIMARY])")]
+	[InlineData("ALTER PARTITION SCHEME", "ALTER PARTITION SCHEME s NEXT USED fg4")]
+	[InlineData("ALTER PARTITION SCHEME of none", "ALTER PARTITION SCHEME s NEXT USED")]
+	[InlineData("CREATE FULLTEXT CATALOG whole", "CREATE FULLTEXT CATALOG c ON FILEGROUP fg IN PATH 'p' WITH ACCENT_SENSITIVITY = OFF AS DEFAULT AUTHORIZATION dbo")]
+	[InlineData("ALTER FULLTEXT CATALOG REBUILD", "ALTER FULLTEXT CATALOG c REBUILD WITH ACCENT_SENSITIVITY = ON")]
+	[InlineData("ALTER FULLTEXT CATALOG REORGANIZE", "ALTER FULLTEXT CATALOG c REORGANIZE")]
+	[InlineData("ALTER FULLTEXT CATALOG AS DEFAULT", "ALTER FULLTEXT CATALOG c AS DEFAULT")]
+	[InlineData("CREATE FULLTEXT STOPLIST FROM SYSTEM", "CREATE FULLTEXT STOPLIST s FROM SYSTEM STOPLIST AUTHORIZATION dbo")]
+	[InlineData("CREATE FULLTEXT STOPLIST FROM a stoplist", "CREATE FULLTEXT STOPLIST s FROM db.o")]
+	[InlineData("ALTER FULLTEXT STOPLIST ADD", "ALTER FULLTEXT STOPLIST s ADD 'sw' LANGUAGE THAI")]
+	[InlineData("ALTER FULLTEXT STOPLIST DROP", "ALTER FULLTEXT STOPLIST s DROP 'sw' LANGUAGE 1033")]
+	[InlineData("ALTER FULLTEXT STOPLIST DROP ALL", "ALTER FULLTEXT STOPLIST s DROP ALL LANGUAGE 0x411")]
+	[InlineData("CREATE SEARCH PROPERTY LIST", "CREATE SEARCH PROPERTY LIST l FROM db.q AUTHORIZATION o")]
+	[InlineData("ALTER SEARCH PROPERTY LIST ADD", "ALTER SEARCH PROPERTY LIST l ADD 'Author' WITH (PROPERTY_SET_GUID = 'g', PROPERTY_INT_ID = 4, PROPERTY_DESCRIPTION = 'd')")]
+	[InlineData("ALTER SEARCH PROPERTY LIST DROP", "ALTER SEARCH PROPERTY LIST l DROP 'Author'")]
+	[InlineData("CHECKPOINT", "CHECKPOINT 12")]
+	[InlineData("CHECKPOINT alone", "CHECKPOINT")]
 	public void Each_record_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
@@ -350,6 +393,27 @@ public sealed class DatabaseWriterTests
 	[InlineData("RESTORE MASTER KEY")]
 	[InlineData("RESTORE SERVICE MASTER KEY")]
 	[InlineData("RESTORE SYMMETRIC KEY")]
+	[InlineData("CREATE PARTITION FUNCTION")]
+	[InlineData("CREATE PARTITION FUNCTION of no boundary")]
+	[InlineData("ALTER PARTITION FUNCTION SPLIT")]
+	[InlineData("ALTER PARTITION FUNCTION MERGE alone")]
+	[InlineData("CREATE PARTITION SCHEME")]
+	[InlineData("ALTER PARTITION SCHEME")]
+	[InlineData("ALTER PARTITION SCHEME of none")]
+	[InlineData("CREATE FULLTEXT CATALOG whole")]
+	[InlineData("ALTER FULLTEXT CATALOG REBUILD")]
+	[InlineData("ALTER FULLTEXT CATALOG REORGANIZE")]
+	[InlineData("ALTER FULLTEXT CATALOG AS DEFAULT")]
+	[InlineData("CREATE FULLTEXT STOPLIST FROM SYSTEM")]
+	[InlineData("CREATE FULLTEXT STOPLIST FROM a stoplist")]
+	[InlineData("ALTER FULLTEXT STOPLIST ADD")]
+	[InlineData("ALTER FULLTEXT STOPLIST DROP")]
+	[InlineData("ALTER FULLTEXT STOPLIST DROP ALL")]
+	[InlineData("CREATE SEARCH PROPERTY LIST")]
+	[InlineData("ALTER SEARCH PROPERTY LIST ADD")]
+	[InlineData("ALTER SEARCH PROPERTY LIST DROP")]
+	[InlineData("CHECKPOINT")]
+	[InlineData("CHECKPOINT alone")]
 	public void Each_record_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -453,6 +517,19 @@ public sealed class DatabaseWriterTests
 	[InlineData("RESTORE FILE of a string")]
 	[InlineData("RESTORE FILELISTONLY from nothing")]
 	[InlineData("RESTORE SERVICE MASTER KEY from a variable")]
+	[InlineData("CREATE PARTITION FUNCTION a boundary of DEFAULT")]
+	[InlineData("CREATE PARTITION FUNCTION a side of no word")]
+	[InlineData("ALTER PARTITION FUNCTION SPLIT at a comparison")]
+	[InlineData("CREATE PARTITION SCHEME of no filegroup")]
+	[InlineData("CREATE PARTITION SCHEME a filegroup of two parts")]
+	[InlineData("ALTER PARTITION SCHEME a filegroup of a number")]
+	[InlineData("CREATE FULLTEXT CATALOG a path of DEFAULT")]
+	[InlineData("CREATE FULLTEXT STOPLIST from three parts")]
+	[InlineData("ALTER FULLTEXT STOPLIST a word unquoted")]
+	[InlineData("ALTER FULLTEXT STOPLIST a language of a variable")]
+	[InlineData("ALTER SEARCH PROPERTY LIST ADD out of order")]
+	[InlineData("ALTER SEARCH PROPERTY LIST ADD without its id")]
+	[InlineData("CHECKPOINT of DEFAULT")]
 	public void A_database_tree_with_no_text_is_refused(string which)
 	{
 		ISqlNode node = which switch
@@ -637,6 +714,32 @@ public sealed class DatabaseWriterTests
 			"RESTORE FILELISTONLY from nothing" => new Statement.RestoreFileListOnly([]),
 			// RestoreStatement: FROM FILE = Quoted.
 			"RESTORE SERVICE MASTER KEY from a variable" => new Statement.RestoreServiceMasterKey(Var("@f"), Text("p")),
+			// PartitionBoundary: NULL or ValueExpression, DEFAULT is refused.
+			"CREATE PARTITION FUNCTION a boundary of DEFAULT" => new Statement.CreatePartitionFunction(Name("f"), new DataType.Numeric(NumericTypeKind.Int), [new Expression.Default()]),
+			// PartitionStatement: LEFT or RIGHT.
+			"CREATE PARTITION FUNCTION a side of no word" => new Statement.CreatePartitionFunction(Name("f"), new DataType.Numeric(NumericTypeKind.Int), []) { Range = (RangeSide)9 },
+			// PartitionBoundary: ValueExpression.
+			"ALTER PARTITION FUNCTION SPLIT at a comparison" => new Statement.AlterPartitionFunction(Name("f"), new PartitionFunctionAction.Split(new Expression.Comparison(Number("1"), ComparisonOperator.Equal, Number("1")))),
+			// PartitionStatement: PartitionFileGroup, one at least.
+			"CREATE PARTITION SCHEME of no filegroup" => new Statement.CreatePartitionScheme(Name("s"), Name("f"), []),
+			// PartitionFileGroup: Identifier or Quoted.
+			"CREATE PARTITION SCHEME a filegroup of two parts" => new Statement.CreatePartitionScheme(Name("s"), Name("f"), [new Expression.Reference(new QualifiedName([Name("a"), Name("b")]))]),
+			// PartitionFileGroup.
+			"ALTER PARTITION SCHEME a filegroup of a number" => new Statement.AlterPartitionScheme(Name("s"), Number("1")),
+			// FullTextStatement: IN PATH ValueExpression.
+			"CREATE FULLTEXT CATALOG a path of DEFAULT" => new Statement.CreateFullTextCatalog(Name("c")) { Path = new Expression.Default() },
+			// StopListFrom: Msg 102.
+			"CREATE FULLTEXT STOPLIST from three parts" => new Statement.CreateFullTextStopList(Name("s")) { From = new StopListSource.Named(new QualifiedName([Name("a"), Name("b"), Name("c")])) },
+			// StopListAction: Quoted, a word unquoted is Msg 102.
+			"ALTER FULLTEXT STOPLIST a word unquoted" => new Statement.AlterFullTextStopList(Name("s"), new StopListAction.Add(Ref("sw"), Number("1033"))),
+			// StopListLanguage: a variable is Msg 102.
+			"ALTER FULLTEXT STOPLIST a language of a variable" => new Statement.AlterFullTextStopList(Name("s"), new StopListAction.Drop(Text("sw"), Var("@l"))),
+			// PropertyListAction: the engine refuses any other order.
+			"ALTER SEARCH PROPERTY LIST ADD out of order" => new Statement.AlterSearchPropertyList(Name("l"), new SearchPropertyListAction.Add(Text("a"), [Set("PROPERTY_INT_ID", Number("4")), Set("PROPERTY_SET_GUID", Text("g"))])),
+			// PropertyListAction: either without the other.
+			"ALTER SEARCH PROPERTY LIST ADD without its id" => new Statement.AlterSearchPropertyList(Name("l"), new SearchPropertyListAction.Add(Text("a"), [Set("PROPERTY_SET_GUID", Text("g"))])),
+			// SimpleCommand: CHECKPOINT ValueExpression.
+			"CHECKPOINT of DEFAULT" => new Statement.Checkpoint(new Expression.Default()),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 
