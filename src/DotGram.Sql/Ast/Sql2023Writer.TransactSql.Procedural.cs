@@ -22,6 +22,9 @@ public static partial class Sql2023Writer
 					if (compound.Statements.Count == 0)
 						throw Empty(compound, "Statements");
 
+					foreach (var statement in compound.Statements)
+						Unnested(compound, "Statements", statement);
+
 					Word("BEGIN");
 
 					if (compound.Atomic is { } atomic)
@@ -43,6 +46,11 @@ public static partial class Sql2023Writer
 					if (@if.Else is not null && Dangling(@if.Then))
 						throw Misplaced(@if, "Then", "that is an IF without ELSE beside an ELSE, which the ELSE would read as its own");
 
+					Unnested(@if, "Then", @if.Then);
+
+					if (@if.Else is { } branch)
+						Unnested(@if, "Else", branch);
+
 					Word("IF");
 					PutExpression(@if.Condition);
 					PutStatement(@if.Then);
@@ -57,6 +65,7 @@ public static partial class Sql2023Writer
 
 				// T-SQL: WHILE (Transact-SQL).
 				case Statement.While loop:
+					Unnested(loop, "Body", loop.Body);
 					Word("WHILE");
 					PutExpression(loop.Condition);
 					PutStatement(loop.Body);
@@ -66,6 +75,12 @@ public static partial class Sql2023Writer
 				case Statement.TryCatch tryCatch:
 					if (tryCatch.Try.Count == 0)
 						throw Empty(tryCatch, "Try");
+
+					foreach (var statement in tryCatch.Try)
+						Unnested(tryCatch, "Try", statement);
+
+					foreach (var statement in tryCatch.Catch)
+						Unnested(tryCatch, "Catch", statement);
 
 					Word("BEGIN TRY");
 					PutStatements(tryCatch.Try);
@@ -87,7 +102,12 @@ public static partial class Sql2023Writer
 					PutIdentifier(goTo.Name);
 					return true;
 
+				// T-SQL: GOTO (Transact-SQL). A word that is a whole statement by itself reads as that statement and not as a
+				// label (SimpleCommand tries THROW first): THROW is not reserved, and GOTO THROW is read.
 				case Statement.Label label:
+					if (label.Name is { Style: IdentifierStyle.Regular, Text: var word } && word.Equals("THROW", StringComparison.OrdinalIgnoreCase))
+						throw Misplaced(label, "Name", "THROW, which reads as the statement THROW (SimpleCommand)");
+
 					PutIdentifier(label.Name);
 					Tight(":");
 					return true;
@@ -152,7 +172,13 @@ public static partial class Sql2023Writer
 						Word("WITH MARK");
 
 						if (mark.Description is { } description)
+						{
+							// TranMark: a value, never DEFAULT (Msg 156) or a comparison.
+							if (description is Expression.Default or Expression.Comparison)
+								throw Misplaced(mark, "Description", "DEFAULT or a comparison, which no value is");
+
 							PutExpression(description);
+						}
 					}
 
 					return true;
@@ -880,6 +906,16 @@ public static partial class Sql2023Writer
 				Word("OF");
 				Each(updatability.UpdateColumns, PutIdentifier);
 			}
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE PROCEDURE (Transact-SQL). A natively compiled block is a natively compiled module's body and
+		/// nothing else's: nested in a block, a TRY, a CATCH or a branch it is <c>Msg 102</c> (<c>AtomicBody</c>).
+		/// </summary>
+		static void Unnested(ISqlNode owner, string member, Statement statement)
+		{
+			if (statement is Statement.Compound { Atomic: not null })
+				throw Misplaced(owner, member, "that is a natively compiled block, which only a natively compiled module's body is (AtomicBody)");
 		}
 
 		/// <summary>Whether a statement ends in an IF without an ELSE, which an ELSE written after it would take.</summary>

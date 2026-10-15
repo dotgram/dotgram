@@ -339,6 +339,12 @@ public sealed class ProceduralWriterTests
 	[InlineData("an empty TRY")]
 	[InlineData("an IF without ELSE as the THEN of one with ELSE")]
 	[InlineData("an IF ending in an IF without ELSE inside a WHILE")]
+	[InlineData("an atomic block in a block")]
+	[InlineData("an atomic block as a THEN")]
+	[InlineData("an atomic block as an ELSE")]
+	[InlineData("an atomic block as a WHILE's body")]
+	[InlineData("an atomic block in a TRY")]
+	[InlineData("an atomic block in a CATCH")]
 	[InlineData("an atomic setting twice")]
 	[InlineData("an atomic block without a language")]
 	[InlineData("an atomic block without a level")]
@@ -347,6 +353,7 @@ public sealed class ProceduralWriterTests
 	[InlineData("an atomic TEXTSIZE of a hexadecimal number")]
 	[InlineData("an atomic DELAYED_DURABILITY set to a number")]
 	[InlineData("an atomic setting of several words")]
+	[InlineData("a label named THROW")]
 	[InlineData("a DECLARE of nothing")]
 	[InlineData("a CURSOR variable given a value")]
 	[InlineData("a CURSOR type spelled cursor")]
@@ -391,6 +398,7 @@ public sealed class ProceduralWriterTests
 	[InlineData("a transaction's name starting with @")]
 	[InlineData("a transaction's name an expression")]
 	[InlineData("a SAVE of no name")]
+	[InlineData("a mark of DEFAULT")]
 	[InlineData("a DEALLOCATE of a LOCAL name")]
 	[InlineData("a DEALLOCATE of GLOBAL and a variable")]
 	[InlineData("a DEALLOCATE of two parts")]
@@ -438,6 +446,18 @@ public sealed class ProceduralWriterTests
 			"an IF without ELSE as the THEN of one with ELSE" => new Statement.If(Less, new Statement.If(Less, Selected, null), new Statement.Break()),
 			// ElseBranch belongs to the innermost IF, inside the WHILE's branch.
 			"an IF ending in an IF without ELSE inside a WHILE" => new Statement.If(Less, new Statement.While(Less, new Statement.If(Less, Selected, null)), new Statement.Break()),
+			// AtomicBody is a module's body alone: nested in a block it is Msg 102.
+			"an atomic block in a block" => new Statement.Compound([Atomic(Level, English)]),
+			// AtomicBody is a module's body alone: inside an IF it is Msg 102.
+			"an atomic block as a THEN" => new Statement.If(Less, Atomic(Level, English), null),
+			// AtomicBody is a module's body alone: inside an IF it is Msg 102.
+			"an atomic block as an ELSE" => new Statement.If(Less, Selected, Atomic(Level, English)),
+			// AtomicBody is a module's body alone: Msg 102.
+			"an atomic block as a WHILE's body" => new Statement.While(Less, Atomic(Level, English)),
+			// AtomicBody is a module's body alone: Msg 102.
+			"an atomic block in a TRY" => new Statement.TryCatch([Atomic(Level, English)], []),
+			// AtomicBody is a module's body alone: Msg 102.
+			"an atomic block in a CATCH" => new Statement.TryCatch([Selected], [Atomic(Level, English)]),
 			// AtomicOptions: Syntax.Repeats, Msg 1039.
 			"an atomic setting twice" => Atomic(Level, English, Set("DATEFIRST", One), Set("datefirst", One)),
 			// AtomicOptions: Syntax.Atomically, Msg 10784.
@@ -454,6 +474,8 @@ public sealed class ProceduralWriterTests
 			"an atomic DELAYED_DURABILITY set to a number" => Atomic(Level, English, Set("DELAYED_DURABILITY", One)),
 			// AtomicSetting: a name of one word.
 			"an atomic setting of several words" => Atomic(Level, English, new AtomicOption.Setting(new Option(new Identifier("DATEFIRST"), One, []) { Words = [new Identifier("X")] })),
+			// SimpleCommand reads THROW as the statement before it tries a label: THROW: is Msg 102.
+			"a label named THROW" => new Statement.Label(Name("throw")),
 			// DeclareStatement: one Declaration at least, Msg 102.
 			"a DECLARE of nothing" => new Statement.DeclareVariables([]),
 			// DeclaredAs: CURSOR takes no value, Msg 102.
@@ -542,6 +564,8 @@ public sealed class ProceduralWriterTests
 			"a transaction's name an expression" => new Statement.SaveTransaction(new TransactionName(null, One)),
 			// TranName: SAVE TRAN alone is Msg 102.
 			"a SAVE of no name" => new Statement.SaveTransaction(new TransactionName(null)),
+			// TranMark: ValueExpression, not DEFAULT (Msg 156).
+			"a mark of DEFAULT" => new Statement.BeginTransaction(Name: new TransactionName(Name("t")), Mark: new TransactionMark(new Expression.Default())),
 			// CursorName: GLOBAL or nothing.
 			"a DEALLOCATE of a LOCAL name" => new Statement.DeallocateCursor(C with { Local = true }),
 			// CursorName: GLOBAL never stands before a variable.
