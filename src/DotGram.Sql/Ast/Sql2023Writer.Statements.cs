@@ -1307,12 +1307,12 @@ public static partial class Sql2023Writer
 
 				case SequenceOption.Start start:
 					Word("START WITH");
-					PutExpression(start.Value);
+					PutSignedNumber(start, start.Value);
 					break;
 
 				case SequenceOption.Increment increment:
 					Word("INCREMENT BY");
-					PutExpression(increment.Value);
+					PutSignedNumber(increment, increment.Value);
 					break;
 
 				case SequenceOption.Max max:
@@ -1321,7 +1321,7 @@ public static partial class Sql2023Writer
 					else
 					{
 						Word("MAXVALUE");
-						PutExpression(max.Value!);
+						PutSignedNumber(max, max.Value!);
 					}
 
 					break;
@@ -1332,7 +1332,7 @@ public static partial class Sql2023Writer
 					else
 					{
 						Word("MINVALUE");
-						PutExpression(min.Value!);
+						PutSignedNumber(min, min.Value!);
 					}
 
 					break;
@@ -1347,7 +1347,7 @@ public static partial class Sql2023Writer
 					if (restart.Value is { } value)
 					{
 						Word("WITH");
-						PutExpression(value);
+						PutSignedNumber(restart, value);
 					}
 
 					break;
@@ -2043,8 +2043,9 @@ public static partial class Sql2023Writer
 							_                             => throw NoText(orientation.Kind),
 						});
 
+						// FetchRow keeps a signed number as one token.
 						if (orientation.Offset is { } offset)
-							PutExpression(offset);
+							PutSignedNumber(orientation, offset);
 					}
 
 					if (fetch.FromKeyword)

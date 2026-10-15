@@ -902,7 +902,8 @@ public static partial class Sql2023Writer
 			else if (argument.Value is Expression.Reference { Name: [{ Style: IdentifierStyle.Regular } word] } && word.Text.Equals("AT", StringComparison.OrdinalIgnoreCase))
 				throw Misplaced(argument, "Value", "the word AT by position, which reads as the AT clause (ExecArgument's ?!\"AT\")");
 
-			PutExpression(argument.Value);
+			// ExecValue keeps a signed number, and a signed money, as one token (DbccValue).
+			PutSignedNumber(argument, argument.Value);
 
 			if (argument.Output is { } output)
 				Word(output switch { OutputKeyword.Output => "OUTPUT", OutputKeyword.Out => "OUT", _ => throw NoText(output) });
