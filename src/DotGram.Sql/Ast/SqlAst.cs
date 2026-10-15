@@ -202,14 +202,14 @@ public abstract partial record Statement : ISqlNode
 	public record DropAssertion : Statement { public required QualifiedName Name { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: trigger definition/drop trigger
-	public record CreateTrigger : Statement
+	public partial record CreateTrigger : Statement
 	{
 		public required QualifiedName Name { get; init; }
 		public required TriggerTime Time { get; init; }
-		public required TriggerEvent Event { get; init; }
-		public required QualifiedName Table { get; init; }
+		public required TriggerEvent? Event { get; init; }
+		public required QualifiedName? Table { get; init; }
 		public SqlList<TransitionReference> Referencing { get; init; } = [];
-		public required TriggerAction Action { get; init; }
+		public required TriggerAction? Action { get; init; }
 	}
 	// T-SQL: DROP TRIGGER (Transact-SQL). `On` is the DDL trigger's scope, which the page publishes as
 	// `ON { DATABASE | ALL SERVER }` and requires there; null is the DML form, which has no scope.

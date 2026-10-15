@@ -105,6 +105,28 @@ public sealed class RoutinesWriterTests
 	static readonly RoutineBody Inline = new RoutineBody.Inline((Statement.Select)Selected);
 	static readonly RoutineBody External = new RoutineBody.ExternalName(new QualifiedName([Name("a"), Name("c"), Name("m")]));
 
+	/// <summary>T-SQL's <c>CREATE TRIGGER g ON t AFTER INSERT AS RETURN</c>.</summary>
+	static Statement.CreateTrigger Trigger()
+	{
+		return new Statement.CreateTrigger
+		{
+			Name   = new QualifiedName([Name("g")]),
+			Time   = TriggerTime.After,
+			Event  = null,
+			Table  = new QualifiedName([Name("t")]),
+			Action = null,
+			Events = [new TriggerEvent(TriggerEventKind.Insert, [])],
+			Body   = Body,
+		};
+	}
+
+	static Statement.CreateTrigger Ddl()
+	{
+		return Trigger() with { Table = null, Scope = TriggerScope.Database, Events = [], EventNames = [Name("CREATE_TABLE")] };
+	}
+
+	static readonly QualifiedName G = new([new Identifier("g")]);
+
 	static Statement.Insert Insert(InsertSource source)
 	{
 		return new Statement.Insert { Target = new TableSource.Named(new QualifiedName([Name("t")])), SourceValue = source, Into = IntoKeyword.Into };
@@ -137,6 +159,13 @@ public sealed class RoutinesWriterTests
 			"FUNCTION table variable" => Function(new ReturnsDefinition(null, null) { Variable = Name("@t"), Elements = [Column("a", Int)] }, new RoutineBody.Statements([new Statement.Return()])),
 			"FUNCTION CLR table" => Function(Table with { Elements = [Column("a", Int)] }, External) with { Definition = Function(Table with { Elements = [Column("a", Int)] }, External).Definition with { Order = [new SortItem(Ref("a"), SortDirection.Desc)] } },
 			"FUNCTION scalar EXTERNAL NAME" => Function(Scalar, External, Parameter()),
+			"TRIGGER" => Trigger() with { Events = [new TriggerEvent(TriggerEventKind.Insert, []), new TriggerEvent(TriggerEventKind.Delete, []), new TriggerEvent(TriggerEventKind.Update, [])], For = true, Options = [Setting("ENCRYPTION")], Append = true, NotForReplication = true },
+			"ALTER TRIGGER INSTEAD OF" => Trigger() with { Verb = DefinitionVerb.Alter, Time = TriggerTime.InsteadOf },
+			"TRIGGER ON DATABASE" => Ddl() with { Verb = DefinitionVerb.CreateOrAlter, EventNames = [Name("CREATE_TABLE"), Name("DDL_INDEX_EVENTS")] },
+			"TRIGGER ON ALL SERVER EXTERNAL NAME" => Ddl() with { Scope = TriggerScope.AllServer, EventNames = [Name("LOGON")], Body = External },
+			"ENABLE TRIGGER" => new Statement.EnableTrigger([G, new QualifiedName([Name("s"), Name("h")])]) { On = new QualifiedName([Name("t")]) },
+			"DISABLE TRIGGER ALL" => new Statement.DisableTrigger([]) { All = true, Scope = TriggerScope.AllServer },
+			"ENABLE TRIGGER ON DATABASE" => new Statement.EnableTrigger([G]) { Scope = TriggerScope.Database },
 			"INSERT EXEC" => Insert(new InsertSource.ExecuteModule(Exec(Arg(One)))),
 			"INSERT EXEC a string" => Insert(new InsertSource.ExecuteString(Run())),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
@@ -167,6 +196,13 @@ public sealed class RoutinesWriterTests
 	[InlineData("FUNCTION table variable", "CREATE FUNCTION p () RETURNS @t TABLE (a INT) AS RETURN;")]
 	[InlineData("FUNCTION CLR table", "CREATE FUNCTION p () RETURNS TABLE (a INT) ORDER (a DESC) AS EXTERNAL NAME a.c.m")]
 	[InlineData("FUNCTION scalar EXTERNAL NAME", "CREATE FUNCTION p (@a INT) RETURNS INT AS EXTERNAL NAME a.c.m")]
+	[InlineData("TRIGGER", "CREATE TRIGGER g ON t WITH ENCRYPTION FOR INSERT, DELETE, UPDATE WITH APPEND NOT FOR REPLICATION AS RETURN;")]
+	[InlineData("ALTER TRIGGER INSTEAD OF", "ALTER TRIGGER g ON t INSTEAD OF INSERT AS RETURN;")]
+	[InlineData("TRIGGER ON DATABASE", "CREATE OR ALTER TRIGGER g ON DATABASE AFTER CREATE_TABLE, DDL_INDEX_EVENTS AS RETURN;")]
+	[InlineData("TRIGGER ON ALL SERVER EXTERNAL NAME", "CREATE TRIGGER g ON ALL SERVER AFTER LOGON AS EXTERNAL NAME a.c.m")]
+	[InlineData("ENABLE TRIGGER", "ENABLE TRIGGER g, s.h ON t")]
+	[InlineData("DISABLE TRIGGER ALL", "DISABLE TRIGGER ALL ON ALL SERVER")]
+	[InlineData("ENABLE TRIGGER ON DATABASE", "ENABLE TRIGGER g ON DATABASE")]
 	[InlineData("INSERT EXEC", "INSERT INTO t EXEC p 1")]
 	[InlineData("INSERT EXEC a string", "INSERT INTO t EXECUTE ('SELECT 1')")]
 	public void Each_record_writes_its_text(string which, string text)
@@ -200,6 +236,13 @@ public sealed class RoutinesWriterTests
 	[InlineData("FUNCTION table variable")]
 	[InlineData("FUNCTION CLR table")]
 	[InlineData("FUNCTION scalar EXTERNAL NAME")]
+	[InlineData("TRIGGER")]
+	[InlineData("ALTER TRIGGER INSTEAD OF")]
+	[InlineData("TRIGGER ON DATABASE")]
+	[InlineData("TRIGGER ON ALL SERVER EXTERNAL NAME")]
+	[InlineData("ENABLE TRIGGER")]
+	[InlineData("DISABLE TRIGGER ALL")]
+	[InlineData("ENABLE TRIGGER ON DATABASE")]
 	[InlineData("INSERT EXEC")]
 	[InlineData("INSERT EXEC a string")]
 	public void Each_record_reads_back_as_itself(string which)
@@ -268,6 +311,25 @@ public sealed class RoutinesWriterTests
 	[InlineData("EXECUTE AS LOGIN")]
 	[InlineData("EXECUTE AS a variable")]
 	[InlineData("a setting named EXECUTE")]
+	[InlineData("a T-SQL member beside the standard's action")]
+	[InlineData("the standard's event beside T-SQL's body")]
+	[InlineData("REFERENCING beside T-SQL's body")]
+	[InlineData("a standard trigger with no action")]
+	[InlineData("a scope and a table")]
+	[InlineData("neither scope nor table")]
+	[InlineData("statements on a scope")]
+	[InlineData("event names on a table")]
+	[InlineData("no event")]
+	[InlineData("BEFORE")]
+	[InlineData("FOR with INSTEAD OF")]
+	[InlineData("UPDATE OF columns")]
+	[InlineData("an event named INSERT")]
+	[InlineData("a trigger's inline query")]
+	[InlineData("a trigger verb Create")]
+	[InlineData("ENABLE TRIGGER of nothing")]
+	[InlineData("ENABLE TRIGGER ALL and names")]
+	[InlineData("DISABLE TRIGGER on two")]
+	[InlineData("DISABLE TRIGGER on nothing")]
 	public void A_routine_tree_with_no_text_is_refused(string which)
 	{
 		ISqlNode node = which switch
@@ -378,6 +440,44 @@ public sealed class RoutinesWriterTests
 			"EXECUTE AS a variable" => With(Procedure([]), new RoutineOption.ExecuteAs(new ExecutionContext(ExecutionContextKind.User, V))),
 			// RoutineOption: EXECUTE begins EXECUTE AS.
 			"a setting named EXECUTE" => With(Procedure([]), Setting("EXECUTE")),
+			// TriggerDefinition: the standard's has no WITH APPEND.
+			"a T-SQL member beside the standard's action" => Trigger() with { Body = null, Event = new TriggerEvent(TriggerEventKind.Insert, []), Action = new TriggerAction(null, null, [new Statement.Return()]), Events = [], Append = true },
+			// TriggerStatement: TriggerEvents, not the standard's event.
+			"the standard's event beside T-SQL's body" => Trigger() with { Event = new TriggerEvent(TriggerEventKind.Insert, []) },
+			// TriggerStatement has no REFERENCING.
+			"REFERENCING beside T-SQL's body" => Trigger() with { Referencing = [new TransitionReference(TransitionKind.NewRow, Name("n"))] },
+			// TriggerDefinition: a triggered action.
+			"a standard trigger with no action" => Trigger() with { Body = null, Events = [], Event = new TriggerEvent(TriggerEventKind.Insert, []) },
+			// TriggerOn: one of the three.
+			"a scope and a table" => Trigger() with { Scope = TriggerScope.Database },
+			// TriggerStatement: ON TriggerOn.
+			"neither scope nor table" => Trigger() with { Table = null },
+			// a DDL trigger fires on events, not statements.
+			"statements on a scope" => Ddl() with { Events = [new TriggerEvent(TriggerEventKind.Insert, [])], EventNames = [] },
+			// a DML trigger fires on INSERT, UPDATE, DELETE.
+			"event names on a table" => Trigger() with { Events = [], EventNames = [Name("CREATE_TABLE")] },
+			// TriggerEvents: one at least.
+			"no event" => Trigger() with { Events = [] },
+			// TriggerWhen: INSTEAD OF, AFTER, FOR.
+			"BEFORE" => Trigger() with { Time = TriggerTime.Before },
+			// FOR is the spelling of AFTER.
+			"FOR with INSTEAD OF" => Trigger() with { Time = TriggerTime.InsteadOf, For = true },
+			// TriggerEvent: no columns.
+			"UPDATE OF columns" => Trigger() with { Events = [new TriggerEvent(TriggerEventKind.Update, [Name("c")])] },
+			// TriggerEvent: the word reads as the statement.
+			"an event named INSERT" => Ddl() with { EventNames = [Name("insert")] },
+			// TriggerStatement: EXTERNAL NAME, AtomicBody or StatementList.
+			"a trigger's inline query" => Trigger() with { Body = Inline },
+			// the same text as null.
+			"a trigger verb Create" => Trigger() with { Verb = DefinitionVerb.Create },
+			// TriggerNames: ALL or names.
+			"ENABLE TRIGGER of nothing" => new Statement.EnableTrigger([]) { On = G },
+			// TriggerNames: ALL or names, never both.
+			"ENABLE TRIGGER ALL and names" => new Statement.EnableTrigger([G]) { All = true, On = G },
+			// TriggerScope: one target.
+			"DISABLE TRIGGER on two" => new Statement.DisableTrigger([G]) { On = G, Scope = TriggerScope.Database },
+			// MaintenanceStatement: ON TriggerScope.
+			"DISABLE TRIGGER on nothing" => new Statement.DisableTrigger([G]),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 

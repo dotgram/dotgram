@@ -288,6 +288,22 @@ public sealed class Sql2023WriterCoverageTests
 		};
 	}
 
+	/// <summary>T-SQL's <c>CREATE TRIGGER g ON t AFTER INSERT AS RETURN</c>, or FOR INSERT.</summary>
+	static Statement.CreateTrigger Triggered(bool @for)
+	{
+		return new Statement.CreateTrigger
+		{
+			Name   = T,
+			Time   = TriggerTime.After,
+			Event  = null,
+			Table  = T,
+			Action = null,
+			Events = [new TriggerEvent(TriggerEventKind.Insert, [])],
+			For    = @for,
+			Body   = new RoutineBody.Statements([new Statement.Return()]),
+		};
+	}
+
 	static ParameterDefinition Parameter()
 	{
 		return new ParameterDefinition(null, new Identifier("@a"), new DataType.Numeric(NumericTypeKind.Int), false, null);
@@ -692,6 +708,10 @@ public sealed class Sql2023WriterCoverageTests
 			["ParameterDefinition.AsKeyword"] = (
 				Procedure(Parameter()),
 				Procedure(Parameter() with { AsKeyword = true })),
+			// Routines: a T-SQL trigger's FOR written for AFTER.
+			["CreateTrigger.For"] = (
+				Triggered(false),
+				Triggered(true)),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

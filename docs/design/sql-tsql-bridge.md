@@ -185,7 +185,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 
 | Counter | Count |
 | --- | ---: |
-| ByCase Clause.ColumnDefinition.Type | 1654 |
+| ByCase Clause.ColumnDefinition.Type | 1666 |
 | ByCase Clause.Dropped.Tail | 0 |
 | ByCase Clause.For.Kind | 20 |
 | ByCase Clause.For.Options | 44 |
@@ -274,7 +274,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9327 |
 | `Expression.ColumnReference` | Values | B | — | 139: needs decision: inventory cross-cutting gaps, identifier styles (a name part `CERTIFICATE c`) (7); needs decision: inventory cross-cutting gaps, identifier styles (a name part `READ COMMITTED`) (6) | 9235 |
-| `Clause.Option` | Tables | C | gap 157 | 157: needs decision: inventory Clause.Option (a bracketed list of values) (34); needs decision: inventory Clause.Option (a name of several words, `MOVE TO`) (22) | 6517 |
+| `Clause.Option` | Tables | C | gap 162 | 162: needs decision: inventory Clause.Option (a bracketed list of values) (34); needs decision: inventory Clause.Option (a name of several words, `MOVE TO`) (22) | 6517 |
 | `Clause.ColumnDefinition` | Tables | B | gap 116 | 116: needs decision: inventory DataType (`decimal(max)`: a word in the brackets of a type) (24); needs decision: inventory Clause.ConstraintDefinition (a default added WITH VALUES) (11) | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3363 |
 | `Clause.ColumnOption` | Tables | B | gap 107 | 107: needs decision: inventory Statement.AlterTable (ALTER COLUMN with more than a collation and a nullability) (64); needs decision: inventory Clause.ColumnOption (COLUMN_SET FOR ALL_SPARSE_COLUMNS) (43) | 2995 |
@@ -296,7 +296,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `TableReference.Joined` | Tables | A | — | — | 382 |
 | `Clause.VariableDeclaration` | Procedural | C | gap 102 | 109: needs decision: Trees.FreeText (Clause.VariableDeclaration.Type, a type written otherwise than the writer prints it) (78); needs decision: inventory DataType (`VECTOR(2, FLOAT32)`: a word in the brackets of a type) (2) | 357 |
 | `Statement.Declare` | Procedural | C | converted 199 | — | 347 |
-| `Statement.Compound` | Procedural | C | converted 16 | — | 337 |
+| `Statement.Compound` | Procedural | C | converted 17 | — | 337 |
 | `Statement.EventSessionDefinition` | Monitoring | C | gap 323 | 323: no target record: Statement.CreateEventSession (323) | 323 |
 | `Clause.Hint` | Queries | C | gap 5 | 5: needs decision: inventory Clause.Hint (the old WITH (n)) (4); needs decision: inventory Clause.Hint (a hint of a shape the family does not hold) (1) | 294 |
 | `Clause.ParameterDeclaration` | Routines | B | — | — | 290 |
@@ -362,7 +362,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.SystemTime` | Tables | A | — | — | 67 |
 | `Clause.MergeWhen` | Dml | B | — | — | 65 |
 | `Query.Parenthesized` | Queries | B | — | — | 64 |
-| `Statement.CreateTrigger` | Routines | B | gap 62 | 62: needs decision: inventory Statement.CreateTrigger (62) | 62 |
+| `Statement.CreateTrigger` | Routines | B | converted 53, gap 4 | 4: no target record: Statement.CreateTrigger (statement kinds and event names in one list, or the wrong kind for its target) (4) | 62 |
 | `Statement.ExternalLibraryDefinition` | External | C | gap 59 | 59: no target record: Statement.CreateExternalLibrary (59) | 59 |
 | `Clause.CommonTableExpression` | Queries | A | — | — | 57 |
 | `Statement.CreateLogin` | Security | C | gap 57 | 57: no target record: Statement.CreateLogin (57) | 57 |
@@ -374,7 +374,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.Merge` | Dml | A | converted 46 | — | 53 |
 | `Expression.IsNull` | Values | A | — | — | 52 |
 | `Statement.AvailabilityGroupDefinition` | Server | C | gap 51 | 51: no target record: Statement.CreateAvailabilityGroup (51) | 51 |
-| `Statement.TriggerSwitch` | Routines | C | gap 45 | 47: no target record: Statement.EnableTrigger (47) | 51 |
+| `Statement.TriggerSwitch` | Routines | C | converted 44 | — | 51 |
 | `Statement.QueueDefinition` | Broker | C | gap 48 | 48: no target record: Statement.CreateQueue (48) | 48 |
 | `Statement.If` | Procedural | C | converted 17 | — | 47 |
 | `Statement.SequenceDefinition` | Tables | A | converted 46, gap 1 | 1: needs decision: inventory cross-cutting gaps, identifier styles (a name part ` TestSeq`) (1) | 47 |

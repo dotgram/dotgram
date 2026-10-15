@@ -33,6 +33,8 @@ static partial class Bridge
 				Statement.Execute execute => Execute(execute),
 				Statement.CreateProcedure procedure => Procedure(procedure),
 				Statement.CreateFunction function => Function(function),
+				Statement.CreateTrigger trigger => Trigger(trigger),
+				Statement.TriggerSwitch(var enable, var names, var on) => Switch(old, enable, names, on),
 				Query.FromExecute         => throw BridgeGap.Open(old, "inventory Query.FromExecute (outside an INSERT)"),
 				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
 				_                       => null,
@@ -170,6 +172,76 @@ static partial class Bridge
 			};
 
 			return new Ast.Statement.CreateRoutine { Definition = definition, Verb = Verb(old, old.Verb) };
+		}
+
+		/// <summary>
+		/// <c>CREATE TRIGGER t ON table | DATABASE | ALL SERVER WITH … FOR | AFTER | INSTEAD OF events … AS …</c>: a DML
+		/// trigger's statements, or a DDL or logon trigger's event names; a list of both is a shape no member holds.
+		/// </summary>
+		static Ast.Statement Trigger(Statement.CreateTrigger old)
+		{
+			Ast.TriggerScope? scope = old.On switch
+			{
+				"DATABASE"   => Ast.TriggerScope.Database,
+				"ALL SERVER" => Ast.TriggerScope.AllServer,
+				_            => null,
+			};
+
+			var statements = old.Events.All(static one => one is "INSERT" or "UPDATE" or "DELETE");
+
+			if (scope is null != statements || !statements && old.Events.Any(static one => one is "INSERT" or "UPDATE" or "DELETE"))
+				throw BridgeGap.Missing(old, "Statement.CreateTrigger (statement kinds and event names in one list, or the wrong kind for its target)");
+
+			var (time, @for) = string.Join(' ', Words(old.When)) switch
+			{
+				"AFTER"      => (Ast.TriggerTime.After, false),
+				"FOR"        => (Ast.TriggerTime.After, true),
+				"INSTEAD OF" => (Ast.TriggerTime.InsteadOf, false),
+				_            => throw BridgeGap.Open(old, $"inventory Statement.CreateTrigger (`{old.When}`)"),
+			};
+
+			return new Ast.Statement.CreateTrigger
+			{
+				Name              = Values.Name(old, old.Name),
+				Time              = time,
+				Event             = null,
+				Table             = scope is null ? Values.Name(old, old.On) : null,
+				Action            = null,
+				Verb              = Verb(old, old.Verb),
+				Scope             = scope,
+				Events            = statements ? Each(old.Events, static one => new Ast.TriggerEvent(one switch
+				{
+					"INSERT" => Ast.TriggerEventKind.Insert,
+					"UPDATE" => Ast.TriggerEventKind.Update,
+					_        => Ast.TriggerEventKind.Delete,
+				}, [])) : [],
+				EventNames        = statements ? [] : Each(old.Events, one => Values.Part(old, one)),
+				For               = @for,
+				Options           = RoutineOptions(old, old.Options),
+				Append            = old.Append,
+				NotForReplication = old.NotForReplication,
+				Body              = old.External is { } external ? new Ast.RoutineBody.ExternalName(Values.Name(old, external)) : new Ast.RoutineBody.Statements(Each(old.Body, StatementOf)),
+			};
+		}
+
+		/// <summary><c>ENABLE | DISABLE TRIGGER names | ALL ON object | DATABASE | ALL SERVER</c>.</summary>
+		static Ast.Statement Switch(object old, bool enable, SqlList<string>? names, string on)
+		{
+			var triggers = Each(names ?? [], one => Values.Name(old, one));
+			var all      = names is null;
+
+			Ast.TriggerScope? scope = on switch
+			{
+				"DATABASE"   => Ast.TriggerScope.Database,
+				"ALL SERVER" => Ast.TriggerScope.AllServer,
+				_            => null,
+			};
+
+			Ast.QualifiedName? target = scope is null ? Values.Name(old, on) : null;
+
+			return enable
+				? new Ast.Statement.EnableTrigger(triggers) { All = all, On = target, Scope = scope }
+				: new Ast.Statement.DisableTrigger(triggers) { All = all, On = target, Scope = scope };
 		}
 
 		/// <summary>A routine's verb: null for the plain CREATE, the standard's.</summary>

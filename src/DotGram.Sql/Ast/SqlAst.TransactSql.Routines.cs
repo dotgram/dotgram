@@ -268,3 +268,75 @@ public abstract record RoutineOption : ISqlNode
 	/// </summary>
 	public sealed record NullCall(NullCallMode Mode) : RoutineOption;
 }
+
+public abstract partial record Statement
+{
+	public partial record CreateTrigger
+	{
+		/// <summary>T-SQL: CREATE TRIGGER (Transact-SQL). <c>ALTER</c> or <c>CREATE OR ALTER</c>; null for the plain CREATE.</summary>
+		public DefinitionVerb? Verb { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE TRIGGER (Transact-SQL). <c>ON DATABASE</c> or <c>ON ALL SERVER</c>, a DDL or logon trigger's; null
+		/// for one on a table or view, which <see cref="Table"/> names.
+		/// </summary>
+		public TriggerScope? Scope { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE TRIGGER (Transact-SQL). A DML trigger's <c>INSERT</c>, <c>UPDATE</c>, <c>DELETE</c>, in the order
+		/// written, each with no columns; the standard's <see cref="Event"/> is null then.
+		/// </summary>
+		public SqlList<TriggerEvent> Events { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE TRIGGER (Transact-SQL). A DDL or logon trigger's events and event groups, by name.</summary>
+		public SqlList<Identifier> EventNames { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE TRIGGER (Transact-SQL). <c>FOR</c> written for <c>AFTER</c>.</summary>
+		[Spelling] public bool For { get; init; }
+
+		/// <summary>T-SQL: CREATE TRIGGER (Transact-SQL). <c>WITH option, …</c> before FOR, AFTER or INSTEAD OF.</summary>
+		public SqlList<RoutineOption> Options { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE TRIGGER (Transact-SQL). <c>WITH APPEND</c>.</summary>
+		public bool Append { get; init; }
+
+		/// <summary>T-SQL: CREATE TRIGGER (Transact-SQL). <c>NOT FOR REPLICATION</c>.</summary>
+		public bool NotForReplication { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE TRIGGER (Transact-SQL). <c>AS</c> and its statements or an external name; the standard's
+		/// <see cref="Action"/> is null then.
+		/// </summary>
+		public RoutineBody? Body { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ENABLE TRIGGER (Transact-SQL). <c>ENABLE TRIGGER { name, … | ALL } ON { object | DATABASE | ALL SERVER }</c>.
+	/// </summary>
+	public sealed record EnableTrigger(SqlList<QualifiedName> Names) : Statement
+	{
+		/// <summary>T-SQL: ENABLE TRIGGER (Transact-SQL). <c>ALL</c> for the names.</summary>
+		public bool All { get; init; }
+
+		/// <summary>T-SQL: ENABLE TRIGGER (Transact-SQL). The table or view the triggers are on.</summary>
+		public QualifiedName? On { get; init; }
+
+		/// <summary>T-SQL: ENABLE TRIGGER (Transact-SQL). <c>ON DATABASE</c> or <c>ON ALL SERVER</c>.</summary>
+		public TriggerScope? Scope { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: DISABLE TRIGGER (Transact-SQL). <c>DISABLE TRIGGER { name, … | ALL } ON { object | DATABASE | ALL SERVER }</c>.
+	/// </summary>
+	public sealed record DisableTrigger(SqlList<QualifiedName> Names) : Statement
+	{
+		/// <summary>T-SQL: DISABLE TRIGGER (Transact-SQL). <c>ALL</c> for the names.</summary>
+		public bool All { get; init; }
+
+		/// <summary>T-SQL: DISABLE TRIGGER (Transact-SQL). The table or view the triggers are on.</summary>
+		public QualifiedName? On { get; init; }
+
+		/// <summary>T-SQL: DISABLE TRIGGER (Transact-SQL). <c>ON DATABASE</c> or <c>ON ALL SERVER</c>.</summary>
+		public TriggerScope? Scope { get; init; }
+	}
+}

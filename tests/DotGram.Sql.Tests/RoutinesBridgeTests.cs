@@ -52,6 +52,15 @@ public sealed class RoutinesBridgeTests
 	[InlineData("CREATE FUNCTION f () RETURNS INT WITH EXECUTE AS CALLER AS BEGIN RETURN 1 END", "EXECUTE AS CALLER")]
 	[InlineData("CREATE FUNCTION f () RETURNS INT WITH INLINE = ON AS BEGIN RETURN 1 END", "INLINE = ON")]
 	[InlineData("CREATE FUNCTION f () RETURNS INT WITH INLINE ON AS BEGIN RETURN 1 END", "INLINE ON")]
+	[InlineData("CREATE TRIGGER g ON t AFTER INSERT AS RETURN", "AFTER")]
+	[InlineData("CREATE TRIGGER g ON t FOR INSERT AS RETURN", "FOR")]
+	[InlineData("CREATE TRIGGER g ON t INSTEAD OF DELETE AS RETURN", "INSTEAD OF")]
+	[InlineData("ALTER TRIGGER g ON t AFTER INSERT AS RETURN", "ALTER TRIGGER")]
+	[InlineData("CREATE TRIGGER g ON DATABASE AFTER CREATE_TABLE AS RETURN", "ON DATABASE")]
+	[InlineData("CREATE TRIGGER g ON ALL SERVER FOR LOGON AS RETURN", "ON ALL SERVER")]
+	[InlineData("CREATE TRIGGER g ON [DATABASE] AFTER INSERT AS RETURN", "a table called DATABASE")]
+	[InlineData("ENABLE TRIGGER ALL ON t", "ENABLE ALL")]
+	[InlineData("DISABLE TRIGGER g ON DATABASE", "DISABLE ON DATABASE")]
 	public void The_bridge_builds_the_routine_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -95,6 +104,15 @@ public sealed class RoutinesBridgeTests
 			"EXECUTE AS CALLER" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.ExecuteAs { Context: { Kind: Ast.ExecutionContextKind.Caller, Name: null } }] },
 			"INLINE = ON" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.Setting { Option: { EqualsOmitted: false, Value: not null } }] },
 			"INLINE ON" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.Setting { Option.EqualsOmitted: true }] },
+			"AFTER" => made is Ast.Statement.CreateTrigger { Time: Ast.TriggerTime.After, For: false, Event: null, Action: null, Scope: null, Table: not null, Events.Count: 1 },
+			"FOR" => made is Ast.Statement.CreateTrigger { Time: Ast.TriggerTime.After, For: true },
+			"INSTEAD OF" => made is Ast.Statement.CreateTrigger { Time: Ast.TriggerTime.InsteadOf, Events: [{ Kind: Ast.TriggerEventKind.Delete }] },
+			"ALTER TRIGGER" => made is Ast.Statement.CreateTrigger { Verb: Ast.DefinitionVerb.Alter },
+			"ON DATABASE" => made is Ast.Statement.CreateTrigger { Scope: Ast.TriggerScope.Database, Table: null, Events.Count: 0, EventNames: [{ Text: "CREATE_TABLE" }] },
+			"ON ALL SERVER" => made is Ast.Statement.CreateTrigger { Scope: Ast.TriggerScope.AllServer, For: true },
+			"a table called DATABASE" => made is Ast.Statement.CreateTrigger { Scope: null, Table: not null },
+			"ENABLE ALL" => made is Ast.Statement.EnableTrigger { All: true, Names.Count: 0, Scope: null, On: not null },
+			"DISABLE ON DATABASE" => made is Ast.Statement.DisableTrigger { All: false, Scope: Ast.TriggerScope.Database, On: null },
 			_ => false,
 		};
 

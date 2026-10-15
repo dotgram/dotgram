@@ -36,9 +36,135 @@ public static partial class Sql2023Writer
 					PutExecuteString(source.Statement);
 					return true;
 
+				// T-SQL: ENABLE TRIGGER (Transact-SQL), DISABLE TRIGGER (Transact-SQL).
+				case Statement.EnableTrigger enable:
+					PutTriggerSwitch(enable, "ENABLE TRIGGER", enable.Names, enable.All, enable.On, enable.Scope);
+					return true;
+
+				case Statement.DisableTrigger disable:
+					PutTriggerSwitch(disable, "DISABLE TRIGGER", disable.Names, disable.All, disable.On, disable.Scope);
+					return true;
+
 				default:
 					return false;
 			}
+		}
+
+		/// <summary>
+		/// T-SQL: ENABLE TRIGGER (Transact-SQL). TriggerNames, ALL or names and never both, ON an object, DATABASE or ALL
+		/// SERVER: exactly one target.
+		/// </summary>
+		void PutTriggerSwitch(ISqlNode owner, string words, SqlList<QualifiedName> names, bool all, QualifiedName? on, TriggerScope? scope)
+		{
+			if (all == names.Count > 0)
+				throw all ? Both(owner, "All", "Names") : Empty(owner, "All", "Names");
+
+			if (on is not null == scope is not null)
+				throw on is not null ? Both(owner, "On", "Scope") : Empty(owner, "On", "Scope");
+
+			Word(words);
+
+			if (all)
+				Word("ALL");
+			else
+				Each(names, PutName);
+
+			Word("ON");
+
+			if (on is { } named)
+				PutName(named);
+			else
+				PutTriggerScope(scope!.Value);
+		}
+
+		void PutTriggerScope(TriggerScope scope)
+		{
+			Word(scope switch { TriggerScope.Database => "DATABASE", TriggerScope.AllServer => "ALL SERVER", _ => throw NoText(scope) });
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE TRIGGER (Transact-SQL). A trigger with T-SQL's body is written in T-SQL's form (TriggerStatement),
+		/// true then; a standard trigger answers false once it has its Event, Table and Action and none of T-SQL's members.
+		/// T-SQL's is ON a table or view, or DATABASE or ALL SERVER, one of them; WITH; FOR, AFTER or INSTEAD OF; INSERT,
+		/// UPDATE, DELETE on a table and event names on a scope; WITH APPEND, NOT FOR REPLICATION, AS and the body.
+		/// </summary>
+		bool PutTransactSqlTrigger(Statement.CreateTrigger trigger)
+		{
+			var members = trigger.Verb is not null || trigger.Scope is not null || trigger.Events.Count > 0 || trigger.EventNames.Count > 0
+				|| trigger.For || trigger.Options.Count > 0 || trigger.Append || trigger.NotForReplication;
+
+			if (trigger.Body is not { } body)
+			{
+				if (members)
+					throw Misplaced(trigger, "a T-SQL member", "beside the standard's Action");
+
+				if (trigger.Event is null || trigger.Table is null || trigger.Action is null)
+					throw Empty(trigger, "Event, Table and Action", "Body");
+
+				return false;
+			}
+
+			if (trigger.Event is not null || trigger.Action is not null || trigger.Referencing.Count > 0)
+				throw Misplaced(trigger, "Event, Action or Referencing", "beside T-SQL's Body");
+
+			if (trigger.Scope is not null == trigger.Table is not null)
+				throw trigger.Scope is not null ? Both(trigger, "Scope", "Table") : Empty(trigger, "Scope", "Table");
+
+			if (trigger.Scope is not null ? trigger.Events.Count > 0 || trigger.EventNames.Count == 0 : trigger.EventNames.Count > 0 || trigger.Events.Count == 0)
+				throw Misplaced(trigger, "Events or EventNames", "other than statements on a table and event names on a scope");
+
+			if (trigger.Time == TriggerTime.Before || trigger.For && trigger.Time != TriggerTime.After)
+				throw Misplaced(trigger, "Time or For", "BEFORE, or FOR beside other than AFTER (TriggerWhen)");
+
+			if (trigger.Events.Any(static one => one.Columns.Count > 0))
+				throw Misplaced(trigger, "Events", "with columns, which only the standard's UPDATE OF names");
+
+			if (trigger.EventNames.Any(static one => one.Style == IdentifierStyle.Regular && one.Text.ToUpperInvariant() is "INSERT" or "UPDATE" or "DELETE"))
+				throw Misplaced(trigger, "EventNames", "INSERT, UPDATE or DELETE as a name, which reads as the statement (TriggerEvent)");
+
+			if (body is RoutineBody.Inline)
+				throw Misplaced(trigger, "Body", "an inline query, which only a function returns");
+
+			Word(trigger.Verb switch
+			{
+				null                         => "CREATE",
+				DefinitionVerb.Alter         => "ALTER",
+				DefinitionVerb.CreateOrAlter => "CREATE OR ALTER",
+				DefinitionVerb.Create        => throw Misplaced(trigger, "Verb", "Create, which is the same text as null"),
+				var verb                     => throw NoText(verb.Value),
+			});
+
+			Word("TRIGGER");
+			PutName(trigger.Name);
+			Word("ON");
+
+			if (trigger.Table is { } table)
+				PutName(table);
+			else
+				PutTriggerScope(trigger.Scope!.Value);
+
+			PutRoutineOptions(trigger, trigger.Options);
+			Word(trigger.Time == TriggerTime.InsteadOf ? "INSTEAD OF" : trigger.For ? "FOR" : "AFTER");
+
+			if (trigger.Events.Count > 0)
+				Each(trigger.Events, one => Word(one.Kind switch
+				{
+					TriggerEventKind.Insert => "INSERT",
+					TriggerEventKind.Update => "UPDATE",
+					TriggerEventKind.Delete => "DELETE",
+					_                       => throw NoText(one.Kind),
+				}));
+			else
+				Each(trigger.EventNames, PutIdentifier);
+
+			if (trigger.Append)
+				Word("WITH APPEND");
+
+			if (trigger.NotForReplication)
+				Word("NOT FOR REPLICATION");
+
+			PutModuleBody(trigger, trigger.Options, body);
+			return true;
 		}
 
 		/// <summary>
@@ -392,15 +518,20 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutTransactSqlBody(RoutineDefinition routine)
 		{
-			var native = routine.Options.Any(static one => one is RoutineOption.Setting { Option.Name: { Style: IdentifierStyle.Regular } name } && name.Text.Equals("NATIVE_COMPILATION", StringComparison.OrdinalIgnoreCase));
-			var atomic = routine.Body is RoutineBody.Statements { List: [Statement.Compound { Atomic: not null }] };
+			PutModuleBody(routine, routine.Options, routine.Body);
+		}
+
+		void PutModuleBody(ISqlNode routine, SqlList<RoutineOption> options, RoutineBody body)
+		{
+			var native = options.Any(static one => one is RoutineOption.Setting { Option.Name: { Style: IdentifierStyle.Regular } name } && name.Text.Equals("NATIVE_COMPILATION", StringComparison.OrdinalIgnoreCase));
+			var atomic = body is RoutineBody.Statements { List: [Statement.Compound { Atomic: not null }] };
 
 			if (native != atomic)
 				throw Misplaced(routine, "Body", native ? "other than one atomic block with NATIVE_COMPILATION (Msg 10783)" : "an atomic block without NATIVE_COMPILATION (Msg 10782)");
 
 			Word("AS");
 
-			switch (routine.Body)
+			switch (body)
 			{
 				case RoutineBody.Statements statements:
 					if (statements.List.Count == 0)
