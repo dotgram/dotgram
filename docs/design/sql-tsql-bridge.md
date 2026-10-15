@@ -208,7 +208,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Clause.Window.Frame | 7 |
 | ByCase Expression.ColumnReference.Text of a date part | 112 |
 | ByCase Expression.ColumnReference.Text under Statement.DropIndex | 13 |
-| ByCase Expression.ColumnReference.Text under Statement.DropSignature | 0 |
+| ByCase Expression.ColumnReference.Text under Statement.DropSignature | 5 |
 | ByCase Expression.GraphMatch.Pattern | 114 |
 | ByCase Expression.Hinted.Words | 5 |
 | ByCase Expression.Literal.Text | 26 |
@@ -223,33 +223,40 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Query.Specification.Quantifier | 5 |
 | ByCase SetExpression.Statistics.Report.Kind | 2 |
 | ByCase SetExpression.Transactions.IsolationLevel.Level | 0 |
+| ByCase Statement.AddSignature.To | 3 |
 | ByCase Statement.AggregateDefinition.Tail | 13 |
-| ByCase Statement.AlterApplicationRole.Tail | 0 |
-| ByCase Statement.AlterAuthorization.Tail | 0 |
+| ByCase Statement.AlterAsymmetricKey.Tail | 6 |
+| ByCase Statement.AlterCertificate.Tail | 5 |
+| ByCase Statement.AlterColumnEncryptionKey.Tail | 4 |
 | ByCase Statement.AlterFullTextIndex.Tail | 29 |
-| ByCase Statement.AlterLogin.Tail | 0 |
+| ByCase Statement.AlterMasterKey.Tail | 6 |
 | ByCase Statement.AlterRole.Tail | 3 |
 | ByCase Statement.AlterSchema.Tail | 7 |
 | ByCase Statement.AlterServerRole.Tail | 3 |
+| ByCase Statement.AlterServiceMasterKey.Tail | 2 |
+| ByCase Statement.AlterSymmetricKey.Tail | 2 |
 | ByCase Statement.AlterTable.Tail | 54 |
 | ByCase Statement.AlterUser.Tail | 5 |
 | ByCase Statement.AssemblyDefinition.Tail | 3 |
-| ByCase Statement.CreateApplicationRole.Tail | 0 |
+| ByCase Statement.AsymmetricKeyDefinition.Tail | 18 |
+| ByCase Statement.CertificateDefinition.Tail | 1 |
+| ByCase Statement.ColumnEncryptionKeyDefinition.Tail | 4 |
+| ByCase Statement.ColumnMasterKeyDefinition.Tail | 5 |
 | ByCase Statement.CreateFunction.Returns | 57 |
 | ByCase Statement.CreateIndex.Using | 6 |
 | ByCase Statement.CreateLogin.Tail | 16 |
 | ByCase Statement.CreateRole.Tail | 1 |
 | ByCase Statement.CreateServerRole.Tail | 1 |
 | ByCase Statement.CreateUser.Tail | 9 |
+| ByCase Statement.CredentialDefinition.Tail | 4 |
 | ByCase Statement.CursorAction.Verb | 0 |
 | ByCase Statement.DefaultDefinition.Tail | 2 |
-| ByCase Statement.Deny.On | 0 |
 | ByCase Statement.Deny.Privileges | 6 |
 | ByCase Statement.DropAssembly.Tail | 1 |
 | ByCase Statement.DropAsymmetricKey.Tail | 1 |
 | ByCase Statement.DropEventNotification.Tail | 2 |
 | ByCase Statement.DropEventSession.Tail | 2 |
-| ByCase Statement.DropSignature.From | 0 |
+| ByCase Statement.DropSignature.From | 1 |
 | ByCase Statement.DropSymmetricKey.Tail | 1 |
 | ByCase Statement.DropTrigger.Tail | 2 |
 | ByCase Statement.Execute.Tail | 8 |
@@ -258,13 +265,15 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.Grant.On | 2 |
 | ByCase Statement.Grant.Privileges | 6 |
 | ByCase Statement.Insert.Into | 7 |
+| ByCase Statement.MasterKeyDefinition.Tail | 3 |
+| ByCase Statement.OpenSymmetricKey.Tail | 7 |
 | ByCase Statement.RaiseError.Tail | 0 |
-| ByCase Statement.Revoke.On | 0 |
 | ByCase Statement.Revoke.Privileges | 10 |
 | ByCase Statement.RuleDefinition.Tail | 1 |
 | ByCase Statement.SchemaDefinition.Tail | 12 |
 | ByCase Statement.SequenceDefinition.Tail | 1 |
 | ByCase Statement.StatisticsDefinition.Tail | 26 |
+| ByCase Statement.SymmetricKeyDefinition.Tail | 8 |
 | ByCase Statement.SynonymDefinition.Tail | 18 |
 | ByCase Statement.TableDefinition.Kind | 8 |
 | ByCase Statement.Transaction.Kind | 0 |
@@ -429,7 +438,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.RestoreDatabase` | Database | C | converted 26, gap 20 | 20: needs decision: Trees.FreeText (Statement.RestoreDatabase.Tail, written otherwise than the writer prints it) (11); no target record: Option (RESTORE … MOVE 'file' TO 'path': two values) (5) | 46 |
 | `Statement.AuditSpecificationDefinition` | Monitoring | C | gap 45 | 45: no target record: Statement.CreateServerAuditSpecification (45) | 45 |
 | `Statement.AssemblyDefinition` | Routines | C | converted 44 | — | 44 |
-| `Statement.AsymmetricKeyDefinition` | Security | C | gap 43 | 43: no target record: Statement.CreateAsymmetricKey (43) | 43 |
+| `Statement.AsymmetricKeyDefinition` | Security | C | converted 43 | — | 43 |
 | `Statement.StatisticsDefinition` | Tables | C | converted 43 | — | 43 |
 | `Statement.UpdateStatistics` | Tables | C | converted 41 | — | 43 |
 | `Clause.Into` | Queries | C | — | — | 41 |
@@ -443,7 +452,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.IsDistinctFrom` | Values | A | — | — | 37 |
 | `Statement.BackupDatabase` | Database | C | converted 24, gap 13 | 13: needs decision: Trees.FreeText (Statement.BackupDatabase.Tail, written otherwise than the writer prints it) (13) | 37 |
 | `Statement.CreateUser` | Security | C | converted 37 | — | 37 |
-| `Statement.SecurityPolicyDefinition` | Security | C | gap 37 | 37: no target record: Statement.CreateSecurityPolicy (37) | 37 |
+| `Statement.SecurityPolicyDefinition` | Security | C | converted 37 | — | 37 |
 | `Statement.Label` | Procedural | C | converted 30 | — | 36 |
 | `Statement.Revoke` | Security | B | converted 36 | — | 36 |
 | `SetExpression.Miscellaneous.Offset` | Procedural | C | — | — | 35 |
@@ -469,7 +478,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.Kill` | Server | C | gap 28 | 28: no target record: Statement.Kill (28) | 28 |
 | `SetExpression.QueryExecution.Switch` | Procedural | C | — | — | 27 |
 | `Statement.SchemaDefinition` | Security | A | converted 27 | — | 27 |
-| `Statement.SymmetricKeyDefinition` | Security | C | gap 27 | 27: no target record: Statement.CreateSymmetricKey (27) | 27 |
+| `Statement.SymmetricKeyDefinition` | Security | C | converted 27 | — | 27 |
 | `Clause.VariableAssignment` | Queries | C | — | — | 26 |
 | `Statement.DeclareCursor` | Procedural | B | converted 22, gap 4 | 4: not kept by the old tree: Clause.CursorDefinition (the ISO form's words in another order, or twice) (2); needs decision: inventory cross-cutting gaps, identifier styles (a qualified name `dbo.t.a` where one name stands) (1) | 26 |
 | `Expression.Like` | Values | A | — | — | 25 |
@@ -485,18 +494,18 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropTrigger` | Drop | B | converted 19 | — | 23 |
 | `SetExpression.Miscellaneous.Switch` | Procedural | C | — | — | 22 |
 | `Statement.Break` | Procedural | C | converted 3 | — | 22 |
-| `Statement.OpenSymmetricKey` | Security | C | gap 22 | 22: no target record: Statement.OpenSymmetricKey (22) | 22 |
-| `Statement.AlterAsymmetricKey` | Security | C | gap 21 | 21: no target record: Statement.AlterAsymmetricKey (21) | 21 |
+| `Statement.OpenSymmetricKey` | Security | C | converted 22 | — | 22 |
+| `Statement.AlterAsymmetricKey` | Security | C | converted 21 | — | 21 |
 | `Statement.PartitionFunctionDefinition` | Database | C | converted 14, gap 7 | 7: needs decision: Trees.FreeText (Statement.PartitionFunctionDefinition.Tail, written otherwise than the writer prints it) (7) | 21 |
 | `TableReference.Unpivot` | Tables | C | — | — | 21 |
-| `Statement.CredentialDefinition` | Security | C | gap 20 | 20: no target record: Statement.CreateCredential (20) | 20 |
+| `Statement.CredentialDefinition` | Security | C | converted 20 | — | 20 |
 | `Statement.ExecuteAs` | Procedural | C | converted 20 | — | 20 |
 | `Statement.FullTextCatalogDefinition` | Database | C | converted 15, gap 5 | 5: needs decision: Trees.FreeText (Statement.FullTextCatalogDefinition.Tail, written otherwise than the writer prints it) (5) | 20 |
 | `Statement.RaiseError` | Procedural | C | converted 12 | — | 20 |
 | `Statement.RuleDefinition` | Routines | C | converted 20 | — | 20 |
 | `Statement.WaitFor` | Procedural | C | converted 20 | — | 20 |
 | `Expression.BitwiseNot` | Values | C | — | — | 19 |
-| `Statement.CertificateDefinition` | Security | C | gap 19 | 19: no target record: Statement.CreateCertificate (19) | 19 |
+| `Statement.CertificateDefinition` | Security | C | converted 19 | — | 19 |
 | `Statement.DropDatabase` | Drop | C | converted 19 | — | 19 |
 | `Statement.FullTextStopListDefinition` | Database | C | converted 19 | — | 19 |
 | `Statement.TryCatch` | Procedural | C | converted 11 | — | 19 |
@@ -508,13 +517,13 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Plus` | Values | A | — | — | 17 |
 | `Statement.AlterPartitionFunction` | Database | C | converted 6, gap 11 | 11: needs decision: Trees.FreeText (Statement.AlterPartitionFunction.Tail, written otherwise than the writer prints it) (11) | 17 |
 | `Statement.BackupCertificate` | Database | C | converted 14, gap 3 | 3: needs decision: Trees.FreeText (Statement.BackupCertificate.Tail, written otherwise than the writer prints it) (3) | 17 |
-| `Statement.Classification` | Security | C | gap 17 | 17: no target record: Statement.AddSensitivityClassification (17) | 17 |
+| `Statement.Classification` | Security | C | converted 17 | — | 17 |
 | `Statement.DropTable` | Drop | B | converted 16 | — | 17 |
 | `Statement.EventNotificationDefinition` | Monitoring | C | gap 17 | 17: no target record: Statement.CreateEventNotification (17) | 17 |
 | `Statement.Receive` | Broker | C | gap 13 | 17: no target record: Statement.Receive (17) | 17 |
 | `Statement.RemoteServiceBindingDefinition` | Broker | C | gap 17 | 17: no target record: Statement.CreateRemoteServiceBinding (17) | 17 |
-| `Statement.AddSignature` | Security | C | gap 16 | 16: no target record: Statement.AddSignature (16) | 16 |
-| `Statement.AlterMasterKey` | Security | C | gap 16 | 16: no target record: Statement.AlterMasterKey (16) | 16 |
+| `Statement.AddSignature` | Security | C | converted 16 | — | 16 |
+| `Statement.AlterMasterKey` | Security | C | converted 16 | — | 16 |
 | `Statement.DefaultDefinition` | Routines | C | converted 16 | — | 16 |
 | `Statement.DropFunction` | Drop | B | converted 16 | — | 16 |
 | `Clause.PartitionRange` | Dml | C | — | — | 15 |
@@ -524,7 +533,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.FileGroup` | Database | C | — | — | 14 |
 | `Expression.Concatenate` | Values | A | — | — | 14 |
 | `Query.FromStream` | Dml | C | — | — | 14 |
-| `Statement.AlterCertificate` | Security | C | gap 14 | 14: no target record: Statement.AlterCertificate (14) | 14 |
+| `Statement.AlterCertificate` | Security | C | converted 14 | — | 14 |
 | `Statement.DropSensitivityClassification` | Drop | C | converted 14 | — | 14 |
 | `Statement.DropSequence` | Drop | B | converted 14 | — | 14 |
 | `Statement.DropType` | Drop | B | converted 14 | — | 14 |
@@ -532,9 +541,9 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.ShiftRight` | Values | C | — | — | 13 |
 | `Statement.AlterDatabaseScopedConfiguration` | Database | C | converted 13 | — | 13 |
 | `Statement.AlterFullTextCatalog` | Database | C | converted 8, gap 5 | 5: needs decision: Trees.FreeText (Statement.AlterFullTextCatalog.Tail, written otherwise than the writer prints it) (5) | 13 |
-| `Statement.AlterServiceMasterKey` | Security | C | gap 13 | 13: no target record: Statement.AlterServiceMasterKey (13) | 13 |
+| `Statement.AlterServiceMasterKey` | Security | C | converted 13 | — | 13 |
 | `Statement.AlterUser` | Security | C | converted 13 | — | 13 |
-| `Statement.CryptographicProviderDefinition` | Security | C | gap 13 | 13: no target record: Statement.CreateCryptographicProvider (13) | 13 |
+| `Statement.CryptographicProviderDefinition` | Security | C | converted 13 | — | 13 |
 | `Statement.DropDefault` | Drop | C | converted 13 | — | 13 |
 | `Statement.DropRule` | Drop | C | converted 13 | — | 13 |
 | `Statement.DropSynonym` | Drop | C | converted 13 | — | 13 |
@@ -542,7 +551,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.ExecutionContext` | Routines | C | — | — | 12 |
 | `Expression.Divide` | Values | A | — | — | 12 |
 | `Expression.RowsetOrder` | Values | C | — | 12: no target record: a typed T-SQL rowset table source (proposal 7) (12) | 12 |
-| `Statement.DropSignature` | Drop | C | converted 6, gap 6 | 6: needs decision: inventory Statement.DropSignature (`ASYMMETRIC KEY ask2 WITH SIGNATURE = 0x10`, a proof, a symmetric key or a password, which SignedBy has no member for) (1); needs decision: inventory Statement.DropSignature (`ASYMMETRIC KEY k WITH PASSWORD = 'x'`, a proof, a symmetric key or a password, which SignedBy has no member for) (1) | 12 |
+| `Statement.DropSignature` | Drop | C | converted 12 | — | 12 |
 | `Statement.DropStatistics` | Drop | C | converted 12 | — | 12 |
 | `Expression.Exists` | Values | A | — | — | 11 |
 | `Statement.AlterAuthorization` | Security | C | converted 11 | — | 11 |
@@ -557,7 +566,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.XmlSchemaCollectionDefinition` | Routines | C | converted 11 | — | 11 |
 | `Expression.Between` | Values | A | — | — | 10 |
 | `Statement.AlterPartitionScheme` | Database | C | converted 7, gap 3 | 3: needs decision: Trees.FreeText (Statement.AlterPartitionScheme.Tail, written otherwise than the writer prints it) (3) | 10 |
-| `Statement.DatabaseScopedCredentialDefinition` | Security | C | gap 10 | 10: no target record: Statement.CreateDatabaseScopedCredential (10) | 10 |
+| `Statement.DatabaseScopedCredentialDefinition` | Security | C | converted 10 | — | 10 |
 | `Statement.DropEventSession` | Drop | C | converted 10 | — | 10 |
 | `Statement.GetConversationGroup` | Broker | C | gap 4 | 10: no target record: Statement.GetConversationGroup (10) | 10 |
 | `Statement.WaitForStatement` | Broker | C | gap 10 | 10: no target record: Statement.WaitForReceive (10) | 10 |
@@ -565,7 +574,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Subtract` | Values | A | — | — | 9 |
 | `Statement.AlterDatabaseCollate` | Database | C | converted 9 | — | 9 |
 | `Statement.DropXmlSchemaCollection` | Drop | C | converted 9 | — | 9 |
-| `Statement.MasterKeyDefinition` | Security | C | gap 9 | 9: no target record: Statement.CreateMasterKey (9) | 9 |
+| `Statement.MasterKeyDefinition` | Security | C | converted 9 | — | 9 |
 | `Statement.Reconfigure` | Server | C | gap 9 | 9: no target record: Statement.Reconfigure (9) | 9 |
 | `Statement.Throw` | Procedural | C | converted 7 | — | 9 |
 | `Statement.Use` | Procedural | C | converted 9 | — | 9 |
@@ -577,8 +586,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterDatabaseAddLogFile` | Database | C | converted 4, gap 4 | 4: no target record: AlterDatabaseAction.AddLogFile (TO FILEGROUP after a log file) (4) | 8 |
 | `Statement.AlterRole` | Security | C | converted 8 | — | 8 |
 | `Statement.AlterXmlSchemaCollection` | Routines | C | converted 8 | — | 8 |
-| `Statement.ColumnMasterKeyDefinition` | Security | C | gap 8 | 8: no target record: Statement.CreateColumnMasterKey (8) | 8 |
-| `Statement.DatabaseEncryptionKeyDefinition` | Security | C | gap 8 | 8: no target record: Statement.CreateDatabaseEncryptionKey (8) | 8 |
+| `Statement.ColumnMasterKeyDefinition` | Security | C | converted 8 | — | 8 |
+| `Statement.DatabaseEncryptionKeyDefinition` | Security | C | converted 8 | — | 8 |
 | `Statement.DropExternalLanguage` | Drop | C | converted 8 | — | 8 |
 | `Statement.DropExternalLibrary` | Drop | C | converted 8 | — | 8 |
 | `Statement.DropRole` | Drop | B | converted 8 | — | 8 |
@@ -601,8 +610,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.SearchPropertyListDefinition` | Database | C | converted 7 | — | 7 |
 | `Query.Except` | Queries | B | — | — | 6 |
 | `SetExpression.QueryExecution.RowCount` | Procedural | C | — | — | 6 |
-| `Statement.AlterSymmetricKey` | Security | C | gap 6 | 6: no target record: Statement.AlterSymmetricKey (6) | 6 |
-| `Statement.ColumnEncryptionKeyDefinition` | Security | C | gap 6 | 6: no target record: Statement.CreateColumnEncryptionKey (6) | 6 |
+| `Statement.AlterSymmetricKey` | Security | C | converted 6 | — | 6 |
+| `Statement.ColumnEncryptionKeyDefinition` | Security | C | converted 6 | — | 6 |
 | `Statement.ContractDefinition` | Broker | C | gap 6 | 6: no target record: Statement.CreateContract (6) | 6 |
 | `Statement.CreateApplicationRole` | Security | C | converted 6 | — | 6 |
 | `Statement.CreateRole` | Security | A | converted 6 | — | 6 |
@@ -618,9 +627,9 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.While` | Procedural | C | converted 6 | — | 6 |
 | `Query.FromExecute` | Routines | C | — | 5: needs decision: inventory Query.FromExecute (outside an INSERT) (5) | 5 |
 | `SetExpression.Transactions.Switch` | Procedural | C | — | — | 5 |
-| `Statement.AlterColumnEncryptionKey` | Security | C | gap 5 | 5: no target record: Statement.AlterColumnEncryptionKey (5) | 5 |
+| `Statement.AlterColumnEncryptionKey` | Security | C | converted 5 | — | 5 |
 | `Statement.AlterDatabaseModifyFile` | Database | C | converted 5 | — | 5 |
-| `Statement.CloseSymmetricKey` | Security | C | gap 5 | 5: no target record: Statement.CloseSymmetricKey (5) | 5 |
+| `Statement.CloseSymmetricKey` | Security | C | converted 5 | — | 5 |
 | `Statement.ConversationTimer` | Broker | C | gap 5 | 5: no target record: Statement.BeginConversationTimer (5) | 5 |
 | `Statement.CreateServerRole` | Security | C | converted 5 | — | 5 |
 | `Statement.DropExternalTable` | Drop | C | converted 5 | — | 5 |
@@ -630,7 +639,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `SetExpression.Miscellaneous.FipsFlagger` | Procedural | C | — | — | 4 |
 | `SetExpression.QueryExecution.QueryGovernorCostLimit` | Procedural | C | — | — | 4 |
 | `Statement.AlterApplicationRole` | Security | C | converted 4 | — | 4 |
-| `Statement.AlterDatabaseEncryptionKey` | Security | C | gap 4 | 4: no target record: Statement.AlterDatabaseEncryptionKey (4) | 4 |
+| `Statement.AlterDatabaseEncryptionKey` | Security | C | converted 4 | — | 4 |
 | `Statement.AlterDatabaseModifyName` | Database | C | converted 4 | — | 4 |
 | `Statement.BackupMasterKey` | Database | C | converted 4 | — | 4 |
 | `Statement.DropAvailabilityGroup` | Drop | C | converted 4 | — | 4 |
@@ -639,7 +648,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropExternalModel` | Drop | C | converted 4 | — | 4 |
 | `Statement.DropSearchPropertyList` | Drop | C | converted 4 | — | 4 |
 | `Statement.DropServerRole` | Drop | C | converted 4 | — | 4 |
-| `Statement.OpenMasterKey` | Security | C | gap 4 | 4: no target record: Statement.OpenMasterKey (4) | 4 |
+| `Statement.OpenMasterKey` | Security | C | converted 4 | — | 4 |
 | `Statement.RestoreRewindOnly` | Database | C | converted 2, gap 2 | 2: needs decision: Trees.FreeText (Statement.RestoreRewindOnly.Tail, written otherwise than the writer prints it) (2) | 4 |
 | `Expression.BitwiseAnd` | Values | C | — | — | 3 |
 | `SetExpression.DateAndTime.DateFormat` | Procedural | C | — | — | 3 |
@@ -648,8 +657,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `SetExpression.Miscellaneous.Language` | Procedural | C | — | — | 3 |
 | `Statement.AlterDatabaseRemoveFile` | Database | C | converted 3 | — | 3 |
 | `Statement.BackupServiceMasterKey` | Database | C | converted 2, gap 1 | 1: needs decision: Trees.FreeText (Statement.BackupServiceMasterKey.Tail, written otherwise than the writer prints it) (1) | 3 |
-| `Statement.CloseAllSymmetricKeys` | Security | C | gap 3 | 3: no target record: Statement.CloseAllSymmetricKeys (3) | 3 |
-| `Statement.CloseMasterKey` | Security | C | gap 3 | 3: no target record: Statement.CloseMasterKey (3) | 3 |
+| `Statement.CloseAllSymmetricKeys` | Security | C | converted 3 | — | 3 |
+| `Statement.CloseMasterKey` | Security | C | converted 3 | — | 3 |
 | `Statement.DropApplicationRole` | Drop | C | converted 3 | — | 3 |
 | `Statement.DropBrokerPriority` | Drop | C | converted 3 | — | 3 |
 | `Statement.DropCertificate` | Drop | C | converted 3 | — | 3 |

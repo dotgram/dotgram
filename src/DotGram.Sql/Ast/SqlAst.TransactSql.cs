@@ -867,7 +867,7 @@ public abstract record DroppedIndex : ISqlNode
 	public sealed record Qualified(QualifiedName Name) : DroppedIndex;
 }
 
-/// <summary>T-SQL: DROP SIGNATURE (Transact-SQL). What a signature was made by.</summary>
+/// <summary>T-SQL: DROP SIGNATURE (Transact-SQL), ADD SIGNATURE (Transact-SQL). What a signature is made by.</summary>
 public abstract record SignedBy : ISqlNode
 {
 	/// <summary>Where in the text this was written.</summary>
@@ -880,11 +880,45 @@ public abstract record SignedBy : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	/// <summary><c>CERTIFICATE cert_name</c>.</summary>
-	public sealed record Certificate(QualifiedName Name) : SignedBy;
+	/// <summary><c>CERTIFICATE cert_name [WITH PASSWORD = 'p' | WITH SIGNATURE = 0x…]</c>.</summary>
+	public sealed record Certificate(QualifiedName Name) : SignedBy
+	{
+		/// <summary>T-SQL: ADD SIGNATURE (Transact-SQL). <c>WITH PASSWORD = 'p'</c> or <c>WITH SIGNATURE = 0x…</c> after the certificate; null where none is written.</summary>
+		public SignatureProof? Proof { get; init; }
+	}
 
-	/// <summary><c>ASYMMETRIC KEY key_name</c>.</summary>
-	public sealed record AsymmetricKey(QualifiedName Name) : SignedBy;
+	/// <summary><c>ASYMMETRIC KEY key_name [WITH PASSWORD = 'p' | WITH SIGNATURE = 0x…]</c>.</summary>
+	public sealed record AsymmetricKey(QualifiedName Name) : SignedBy
+	{
+		/// <summary>T-SQL: ADD SIGNATURE (Transact-SQL). <c>WITH PASSWORD = 'p'</c> or <c>WITH SIGNATURE = 0x…</c> after the key; null where none is written.</summary>
+		public SignatureProof? Proof { get; init; }
+	}
+
+	/// <summary><c>SYMMETRIC KEY key_name</c>.</summary>
+	public sealed record SymmetricKey(Identifier Name) : SignedBy;
+
+	/// <summary><c>PASSWORD = 'p'</c>: a string, which the grammar reads and nothing else.</summary>
+	public sealed record Password(LiteralValue.String Value) : SignedBy;
+}
+
+/// <summary>T-SQL: ADD SIGNATURE (Transact-SQL). What follows <c>WITH</c> after a certificate or an asymmetric key that signs.</summary>
+public abstract record SignatureProof : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>WITH PASSWORD = 'p'</c>: the password of the key.</summary>
+	public sealed record Password(LiteralValue.String Value) : SignatureProof;
+
+	/// <summary><c>WITH SIGNATURE = 0x…</c>: the signature made elsewhere.</summary>
+	public sealed record Signature(LiteralValue.Binary Value) : SignatureProof;
 }
 
 /// <summary>T-SQL: DROP EVENT SESSION (Transact-SQL). Where an event session lives.</summary>

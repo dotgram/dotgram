@@ -101,6 +101,248 @@ public abstract partial record Statement
 		/// <summary>T-SQL: ALTER AUTHORIZATION (Transact-SQL). The class written before the entity, <c>OBJECT::</c>; null where none is.</summary>
 		public SecurableClass? Class { get; init; }
 	}
+
+	/// <summary>
+	/// T-SQL: CREATE ASYMMETRIC KEY (Transact-SQL). <c>CREATE ASYMMETRIC KEY name [AUTHORIZATION owner] { FROM source | WITH
+	/// ALGORITHM = a } [ENCRYPTION BY PASSWORD = 'p']</c>.
+	/// </summary>
+	public sealed record CreateAsymmetricKey(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: CREATE ASYMMETRIC KEY (Transact-SQL). <c>AUTHORIZATION owner</c>; null where none is written.</summary>
+		public Identifier? Authorization { get; init; }
+
+		/// <summary>T-SQL: CREATE ASYMMETRIC KEY (Transact-SQL). Where the key is read from; null for a key made here.</summary>
+		public AsymmetricKeySource? Source { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE ASYMMETRIC KEY (Transact-SQL). The <c>WITH</c> settings: <c>ALGORITHM</c> of a key made here, and
+		/// of a key a provider makes also <c>PROVIDER_KEY_NAME</c> and <c>CREATION_DISPOSITION</c>.
+		/// </summary>
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE ASYMMETRIC KEY (Transact-SQL). <c>ENCRYPTION BY PASSWORD = 'p'</c>; null where none is written.</summary>
+		public KeyEncryptor.Password? EncryptedBy { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER ASYMMETRIC KEY (Transact-SQL). <c>ALTER ASYMMETRIC KEY name { REMOVE PRIVATE KEY | WITH PRIVATE KEY (…) |
+	/// ATTESTED BY 'a' | REMOVE ATTESTED OPTION }</c>.
+	/// </summary>
+	public sealed record AlterAsymmetricKey(Identifier Name, AsymmetricKeyChange Change) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE SYMMETRIC KEY (Transact-SQL). <c>CREATE SYMMETRIC KEY name [AUTHORIZATION owner] { FROM PROVIDER p [WITH
+	/// settings] | WITH settings } [ENCRYPTION BY encryptor, …]</c>.
+	/// </summary>
+	public sealed record CreateSymmetricKey(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: CREATE SYMMETRIC KEY (Transact-SQL). <c>AUTHORIZATION owner</c>; null where none is written.</summary>
+		public Identifier? Authorization { get; init; }
+
+		/// <summary>T-SQL: CREATE SYMMETRIC KEY (Transact-SQL). <c>FROM PROVIDER p</c>; null for a key made here.</summary>
+		public Identifier? Provider { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE SYMMETRIC KEY (Transact-SQL). The <c>WITH</c> settings: <c>KEY_SOURCE</c>, <c>ALGORITHM</c>,
+		/// <c>IDENTITY_VALUE</c>, <c>PROVIDER_KEY_NAME</c> and <c>CREATION_DISPOSITION</c>.
+		/// </summary>
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE SYMMETRIC KEY (Transact-SQL). <c>ENCRYPTION BY</c> what locks the key, one at least for a key made here.</summary>
+		public SqlList<KeyEncryptor> EncryptedBy { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER SYMMETRIC KEY (Transact-SQL). <c>ALTER SYMMETRIC KEY name { ADD | DROP } ENCRYPTION BY encryptor, …</c>.
+	/// </summary>
+	public sealed record AlterSymmetricKey(Identifier Name, SymmetricKeyChange Change) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE CERTIFICATE (Transact-SQL). <c>CREATE CERTIFICATE name [AUTHORIZATION owner] { FROM source | [ENCRYPTION BY
+	/// PASSWORD = 'p'] WITH settings } [ACTIVE FOR BEGIN_DIALOG = { ON | OFF }]</c>.
+	/// </summary>
+	public sealed record CreateCertificate(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: CREATE CERTIFICATE (Transact-SQL). <c>AUTHORIZATION owner</c>; null where none is written.</summary>
+		public Identifier? Authorization { get; init; }
+
+		/// <summary>T-SQL: CREATE CERTIFICATE (Transact-SQL). Where the certificate is read from; null for one made here.</summary>
+		public CertificateSource? Source { get; init; }
+
+		/// <summary>T-SQL: CREATE CERTIFICATE (Transact-SQL). The <c>WITH</c> settings of a certificate made here: <c>SUBJECT</c>, <c>START_DATE</c> and <c>EXPIRY_DATE</c>.</summary>
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE CERTIFICATE (Transact-SQL). <c>ENCRYPTION BY PASSWORD = 'p'</c>, before the settings of a certificate made here.</summary>
+		public KeyEncryptor.Password? EncryptedBy { get; init; }
+
+		/// <summary>T-SQL: CREATE CERTIFICATE (Transact-SQL). <c>ACTIVE FOR BEGIN_DIALOG = ON</c> (true) or <c>OFF</c> (false); null where it is not written.</summary>
+		public bool? ActiveForBeginDialog { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER CERTIFICATE (Transact-SQL). <c>ALTER CERTIFICATE name { REMOVE PRIVATE KEY | WITH PRIVATE KEY (…) | WITH
+	/// ACTIVE FOR BEGIN_DIALOG = { ON | OFF } | ATTESTED BY 'a' | REMOVE ATTESTED OPTION }</c>.
+	/// </summary>
+	public sealed record AlterCertificate(Identifier Name, CertificateChange Change) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE MASTER KEY (Transact-SQL). <c>CREATE MASTER KEY [ENCRYPTION BY PASSWORD = 'p']</c>.
+	/// </summary>
+	public sealed record CreateMasterKey : Statement
+	{
+		/// <summary>T-SQL: CREATE MASTER KEY (Transact-SQL). <c>ENCRYPTION BY PASSWORD = 'p'</c>; null where none is written.</summary>
+		public KeyEncryptor.Password? EncryptedBy { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER MASTER KEY (Transact-SQL). <c>ALTER MASTER KEY { [FORCE] REGENERATE WITH ENCRYPTION BY PASSWORD = 'p' | { ADD
+	/// | DROP } ENCRYPTION BY { SERVICE MASTER KEY | PASSWORD = 'p' } }</c>.
+	/// </summary>
+	public sealed record AlterMasterKey(MasterKeyChange Change) : Statement;
+
+	/// <summary>
+	/// T-SQL: ALTER SERVICE MASTER KEY (Transact-SQL). <c>ALTER SERVICE MASTER KEY { [FORCE] REGENERATE | WITH OLD_ACCOUNT = 'a',
+	/// OLD_PASSWORD = 'p' | WITH NEW_ACCOUNT = 'a', NEW_PASSWORD = 'p' }</c>.
+	/// </summary>
+	public sealed record AlterServiceMasterKey(ServiceMasterKeyChange Change) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE DATABASE ENCRYPTION KEY (Transact-SQL). <c>CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = a ENCRYPTION BY
+	/// SERVER { CERTIFICATE | ASYMMETRIC KEY } name</c>: <paramref name="By"/> is a server certificate or a server asymmetric key.
+	/// </summary>
+	public sealed record CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm Algorithm, KeyEncryptor By) : Statement;
+
+	/// <summary>
+	/// T-SQL: ALTER DATABASE ENCRYPTION KEY (Transact-SQL). <c>ALTER DATABASE ENCRYPTION KEY { REGENERATE WITH ALGORITHM = a |
+	/// ENCRYPTION BY SERVER { CERTIFICATE | ASYMMETRIC KEY } name }</c>.
+	/// </summary>
+	public sealed record AlterDatabaseEncryptionKey(DatabaseEncryptionKeyChange Change) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE COLUMN ENCRYPTION KEY (Transact-SQL). <c>CREATE COLUMN ENCRYPTION KEY name WITH VALUES (…), (…)</c>: one value
+	/// at least.
+	/// </summary>
+	public sealed record CreateColumnEncryptionKey(Identifier Name, SqlList<ColumnKeyValue> Values) : Statement;
+
+	/// <summary>
+	/// T-SQL: ALTER COLUMN ENCRYPTION KEY (Transact-SQL). <c>ALTER COLUMN ENCRYPTION KEY name { ADD VALUE (…) | DROP VALUE (…) }</c>.
+	/// </summary>
+	public sealed record AlterColumnEncryptionKey(Identifier Name, ColumnKeyChange Change) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE COLUMN MASTER KEY (Transact-SQL). <c>CREATE COLUMN MASTER KEY name WITH (KEY_STORE_PROVIDER_NAME = 'p',
+	/// KEY_PATH = 'x' [, ENCLAVE_COMPUTATIONS (SIGNATURE = 0x…)])</c>.
+	/// </summary>
+	public sealed record CreateColumnMasterKey(Identifier Name, SqlList<Option> Options) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE CREDENTIAL (Transact-SQL). <c>CREATE CREDENTIAL name WITH IDENTITY = 'i' [, SECRET = 's'] [FOR CRYPTOGRAPHIC
+	/// PROVIDER p]</c>.
+	/// </summary>
+	public sealed record CreateCredential(Identifier Name, LiteralValue.String Identity) : Statement
+	{
+		/// <summary>T-SQL: CREATE CREDENTIAL (Transact-SQL). <c>SECRET = 's'</c>; null where none is written.</summary>
+		public LiteralValue.String? Secret { get; init; }
+
+		/// <summary>T-SQL: CREATE CREDENTIAL (Transact-SQL). <c>FOR CRYPTOGRAPHIC PROVIDER p</c>; null where none is written.</summary>
+		public Identifier? Provider { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER CREDENTIAL (Transact-SQL). <c>ALTER CREDENTIAL name WITH IDENTITY = 'i' [, SECRET = 's']</c>.
+	/// </summary>
+	public sealed record AlterCredential(Identifier Name, LiteralValue.String Identity) : Statement
+	{
+		/// <summary>T-SQL: ALTER CREDENTIAL (Transact-SQL). <c>SECRET = 's'</c>; null where none is written.</summary>
+		public LiteralValue.String? Secret { get; init; }
+
+		/// <summary>T-SQL: ALTER CREDENTIAL (Transact-SQL). <c>FOR CRYPTOGRAPHIC PROVIDER p</c>, which the grammar reads here as in CREATE; null where none is written.</summary>
+		public Identifier? Provider { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE DATABASE SCOPED CREDENTIAL (Transact-SQL). <c>CREATE DATABASE SCOPED CREDENTIAL name WITH IDENTITY = 'i' [,
+	/// SECRET = 's']</c>.
+	/// </summary>
+	public sealed record CreateDatabaseScopedCredential(Identifier Name, LiteralValue.String Identity) : Statement
+	{
+		/// <summary>T-SQL: CREATE DATABASE SCOPED CREDENTIAL (Transact-SQL). <c>SECRET = 's'</c>; null where none is written.</summary>
+		public LiteralValue.String? Secret { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER DATABASE SCOPED CREDENTIAL (Transact-SQL). <c>ALTER DATABASE SCOPED CREDENTIAL name WITH IDENTITY = 'i' [, SECRET
+	/// = 's']</c>.
+	/// </summary>
+	public sealed record AlterDatabaseScopedCredential(Identifier Name, LiteralValue.String Identity) : Statement
+	{
+		/// <summary>T-SQL: ALTER DATABASE SCOPED CREDENTIAL (Transact-SQL). <c>SECRET = 's'</c>; null where none is written.</summary>
+		public LiteralValue.String? Secret { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE SECURITY POLICY (Transact-SQL). <c>CREATE SECURITY POLICY name [predicate, …] [WITH (STATE = …, SCHEMABINDING =
+	/// …)] [NOT FOR REPLICATION]</c>.
+	/// </summary>
+	public sealed record CreateSecurityPolicy(QualifiedName Name) : Statement
+	{
+		/// <summary>T-SQL: CREATE SECURITY POLICY (Transact-SQL). The predicates, <c>ADD FILTER PREDICATE f(c) ON t</c>, in the order written.</summary>
+		public SqlList<PolicyPredicate> Predicates { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE SECURITY POLICY (Transact-SQL). <c>WITH (STATE = ON, SCHEMABINDING = OFF)</c>: the settings, in the order written.</summary>
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE SECURITY POLICY (Transact-SQL). <c>NOT FOR REPLICATION</c>.</summary>
+		public bool NotForReplication { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER SECURITY POLICY (Transact-SQL). <c>ALTER SECURITY POLICY name { predicate, … | WITH (STATE = …) | { ADD | DROP }
+	/// NOT FOR REPLICATION }</c>.
+	/// </summary>
+	public sealed record AlterSecurityPolicy(QualifiedName Name, SecurityPolicyChange Change) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE CRYPTOGRAPHIC PROVIDER (Transact-SQL). <c>CREATE CRYPTOGRAPHIC PROVIDER name FROM FILE = 'path'</c>.
+	/// </summary>
+	public sealed record CreateCryptographicProvider(Identifier Name, LiteralValue.String File) : Statement;
+
+	/// <summary>
+	/// T-SQL: ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL). <c>ALTER CRYPTOGRAPHIC PROVIDER name { ENABLE | DISABLE | FROM FILE = 'path' }</c>.
+	/// </summary>
+	public sealed record AlterCryptographicProvider(Identifier Name, CryptographicProviderChange Change) : Statement;
+
+	/// <summary>
+	/// T-SQL: OPEN SYMMETRIC KEY (Transact-SQL). <c>OPEN SYMMETRIC KEY name DECRYPTION BY decryptor</c>: a certificate or an
+	/// asymmetric key, with its password, a symmetric key, or a password.
+	/// </summary>
+	public sealed record OpenSymmetricKey(Identifier Name, KeyEncryptor DecryptedBy) : Statement;
+
+	/// <summary>T-SQL: OPEN MASTER KEY (Transact-SQL). <c>OPEN MASTER KEY DECRYPTION BY PASSWORD = 'p'</c>.</summary>
+	public sealed record OpenMasterKey(KeyEncryptor.Password DecryptedBy) : Statement;
+
+	/// <summary>T-SQL: CLOSE SYMMETRIC KEY (Transact-SQL). <c>CLOSE SYMMETRIC KEY name</c>.</summary>
+	public sealed record CloseSymmetricKey(Identifier Name) : Statement;
+
+	/// <summary>T-SQL: CLOSE SYMMETRIC KEY (Transact-SQL). <c>CLOSE ALL SYMMETRIC KEYS</c>.</summary>
+	public sealed record CloseAllSymmetricKeys : Statement;
+
+	/// <summary>T-SQL: CLOSE MASTER KEY (Transact-SQL). <c>CLOSE MASTER KEY</c>.</summary>
+	public sealed record CloseMasterKey : Statement;
+
+	/// <summary>
+	/// T-SQL: ADD SENSITIVITY CLASSIFICATION (Transact-SQL). <c>ADD SENSITIVITY CLASSIFICATION TO column, … WITH (LABEL = 'l', …)</c>.
+	/// </summary>
+	public sealed record AddSensitivityClassification(SqlList<QualifiedName> Columns, SqlList<Option> Options) : Statement;
+
+	/// <summary>
+	/// T-SQL: ADD SIGNATURE (Transact-SQL). <c>ADD [COUNTER] SIGNATURE TO [class ::] module BY signer, …</c>.
+	/// </summary>
+	public sealed record AddSignature(bool Counter, QualifiedName Module, SqlList<SignedBy> By) : Statement
+	{
+		/// <summary>T-SQL: ADD SIGNATURE (Transact-SQL). The class written before the module, <c>OBJECT::</c>, <c>ASSEMBLY::</c> or <c>DATABASE::</c>; null where the module is named alone.</summary>
+		public SecurableClass? Class { get; init; }
+	}
 }
 
 /// <summary>T-SQL: ALTER ROLE (Transact-SQL), ALTER SERVER ROLE (Transact-SQL). What is done to the role.</summary>
@@ -264,3 +506,390 @@ public abstract record UserSource : ISqlNode
 	/// <summary><c>WITHOUT LOGIN</c>.</summary>
 	public sealed record WithoutLogin : UserSource;
 }
+
+/// <summary>T-SQL: CREATE SYMMETRIC KEY (Transact-SQL), OPEN SYMMETRIC KEY (Transact-SQL), CREATE MASTER KEY (Transact-SQL) and the other key
+/// statements. What a key is locked with, or opened by: a password, a certificate, a symmetric key or an asymmetric key. The
+/// direction, <c>ENCRYPTION BY</c> or <c>DECRYPTION BY</c>, is the place's.</summary>
+public abstract record KeyEncryptor : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>PASSWORD = 'p'</c>: a string, never a variable.</summary>
+	public sealed record Password(LiteralValue.String Value) : KeyEncryptor;
+
+	/// <summary><c>CERTIFICATE c</c>.</summary>
+	public sealed record Certificate(QualifiedName Name) : KeyEncryptor
+	{
+		/// <summary>T-SQL: OPEN SYMMETRIC KEY (Transact-SQL). <c>WITH PASSWORD = 'p'</c> after a certificate that opens a key; null where none is written.</summary>
+		public LiteralValue.String? WithPassword { get; init; }
+
+		/// <summary>T-SQL: CREATE DATABASE ENCRYPTION KEY (Transact-SQL). <c>SERVER CERTIFICATE c</c>: the certificate of the server.</summary>
+		public bool Server { get; init; }
+	}
+
+	/// <summary><c>SYMMETRIC KEY k</c>.</summary>
+	public sealed record SymmetricKey(QualifiedName Name) : KeyEncryptor;
+
+	/// <summary><c>ASYMMETRIC KEY k</c>.</summary>
+	public sealed record AsymmetricKey(QualifiedName Name) : KeyEncryptor
+	{
+		/// <summary>T-SQL: OPEN SYMMETRIC KEY (Transact-SQL). <c>WITH PASSWORD = 'p'</c> after an asymmetric key that opens a key; null where none is written.</summary>
+		public LiteralValue.String? WithPassword { get; init; }
+
+		/// <summary>T-SQL: CREATE DATABASE ENCRYPTION KEY (Transact-SQL). <c>SERVER ASYMMETRIC KEY k</c>: the asymmetric key of the server.</summary>
+		public bool Server { get; init; }
+	}
+
+	/// <summary>T-SQL: ALTER MASTER KEY (Transact-SQL). <c>SERVICE MASTER KEY</c>.</summary>
+	public sealed record ServiceMasterKey : KeyEncryptor;
+}
+
+/// <summary>T-SQL: CREATE ASYMMETRIC KEY (Transact-SQL). Where an asymmetric key is read from.</summary>
+public abstract record AsymmetricKeySource : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>FROM PROVIDER p</c>. Its settings are the statement's <see cref="Statement.CreateAsymmetricKey.Options"/>.</summary>
+	public sealed record Provider(Identifier Name) : AsymmetricKeySource;
+
+	/// <summary><c>FROM [EXECUTABLE] FILE = 'path'</c>.</summary>
+	public sealed record File(LiteralValue.String Path) : AsymmetricKeySource
+	{
+		/// <summary><c>EXECUTABLE</c> before <c>FILE</c>: the file is an executable, which holds the key's public part.</summary>
+		public bool Executable { get; init; }
+	}
+
+	/// <summary><c>FROM ASSEMBLY name</c>.</summary>
+	public sealed record Assembly(QualifiedName Name) : AsymmetricKeySource;
+}
+
+/// <summary>T-SQL: CREATE CERTIFICATE (Transact-SQL). Where a certificate is read from.</summary>
+public abstract record CertificateSource : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>FROM ASSEMBLY name</c>.</summary>
+	public sealed record Assembly(QualifiedName Name) : CertificateSource;
+
+	/// <summary><c>FROM [EXECUTABLE] FILE = 'path' [WITH [FORMAT = 'f',] PRIVATE KEY (…)]</c>.</summary>
+	public sealed record File(LiteralValue.String Path) : CertificateSource
+	{
+		/// <summary><c>EXECUTABLE</c> before <c>FILE</c>: the file is an executable, which holds the certificate.</summary>
+		public bool Executable { get; init; }
+
+		/// <summary><c>FORMAT = 'f'</c>, before the private key; null where none is written.</summary>
+		public LiteralValue.String? Format { get; init; }
+
+		/// <summary><c>PRIVATE KEY (FILE = 'k', DECRYPTION BY PASSWORD = 'p', …)</c>: its settings; empty where no private key is written.</summary>
+		public SqlList<Option> PrivateKey { get; init; } = [];
+	}
+
+	/// <summary><c>FROM BINARY = 0x… [WITH PRIVATE KEY (…)]</c>.</summary>
+	public sealed record Binary(LiteralValue.Binary Value) : CertificateSource
+	{
+		/// <summary><c>PRIVATE KEY (BINARY = 0x…, DECRYPTION BY PASSWORD = 'p', …)</c>: its settings; empty where no private key is written.</summary>
+		public SqlList<Option> PrivateKey { get; init; } = [];
+	}
+}
+
+/// <summary>T-SQL: ALTER ASYMMETRIC KEY (Transact-SQL). What is done to the key.</summary>
+public abstract record AsymmetricKeyChange : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>REMOVE PRIVATE KEY</c>.</summary>
+	public sealed record RemovePrivateKey : AsymmetricKeyChange;
+
+	/// <summary><c>WITH PRIVATE KEY (DECRYPTION BY PASSWORD = 'p', ENCRYPTION BY PASSWORD = 'q')</c>: its settings, one at least.</summary>
+	public sealed record WithPrivateKey(SqlList<Option> Options) : AsymmetricKeyChange;
+
+	/// <summary><c>ATTESTED BY 'a'</c>.</summary>
+	public sealed record AttestedBy(LiteralValue.String Attestation) : AsymmetricKeyChange;
+
+	/// <summary><c>REMOVE ATTESTED OPTION</c>.</summary>
+	public sealed record RemoveAttestedOption : AsymmetricKeyChange;
+}
+
+/// <summary>T-SQL: ALTER CERTIFICATE (Transact-SQL). What is done to the certificate.</summary>
+public abstract record CertificateChange : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>REMOVE PRIVATE KEY</c>.</summary>
+	public sealed record RemovePrivateKey : CertificateChange;
+
+	/// <summary><c>WITH PRIVATE KEY (FILE = 'k', DECRYPTION BY PASSWORD = 'p', …)</c>: its settings, one at least.</summary>
+	public sealed record WithPrivateKey(SqlList<Option> Options) : CertificateChange;
+
+	/// <summary><c>WITH ACTIVE FOR BEGIN_DIALOG = ON</c> (true) or <c>OFF</c> (false).</summary>
+	public sealed record ActiveForBeginDialog(bool On) : CertificateChange;
+
+	/// <summary><c>ATTESTED BY 'a'</c>.</summary>
+	public sealed record AttestedBy(LiteralValue.String Attestation) : CertificateChange;
+
+	/// <summary><c>REMOVE ATTESTED OPTION</c>.</summary>
+	public sealed record RemoveAttestedOption : CertificateChange;
+}
+
+/// <summary>T-SQL: ALTER SYMMETRIC KEY (Transact-SQL). What is done to the key.</summary>
+public abstract record SymmetricKeyChange : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>ADD ENCRYPTION BY encryptor, …</c>: one at least.</summary>
+	public sealed record AddEncryption(SqlList<KeyEncryptor> By) : SymmetricKeyChange;
+
+	/// <summary><c>DROP ENCRYPTION BY encryptor, …</c>: one at least.</summary>
+	public sealed record DropEncryption(SqlList<KeyEncryptor> By) : SymmetricKeyChange;
+}
+
+/// <summary>T-SQL: ALTER MASTER KEY (Transact-SQL). What is done to the key.</summary>
+public abstract record MasterKeyChange : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>[FORCE] REGENERATE WITH ENCRYPTION BY PASSWORD = 'p'</c>.</summary>
+	public sealed record Regenerate(KeyEncryptor.Password By) : MasterKeyChange
+	{
+		/// <summary><c>FORCE</c> before <c>REGENERATE</c>.</summary>
+		public bool Force { get; init; }
+	}
+
+	/// <summary><c>ADD ENCRYPTION BY { SERVICE MASTER KEY | PASSWORD = 'p' }</c>.</summary>
+	public sealed record AddEncryption(KeyEncryptor By) : MasterKeyChange;
+
+	/// <summary><c>DROP ENCRYPTION BY { SERVICE MASTER KEY | PASSWORD = 'p' }</c>.</summary>
+	public sealed record DropEncryption(KeyEncryptor By) : MasterKeyChange;
+}
+
+/// <summary>T-SQL: ALTER SERVICE MASTER KEY (Transact-SQL). What is done to the key.</summary>
+public abstract record ServiceMasterKeyChange : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>[FORCE] REGENERATE</c>.</summary>
+	public sealed record Regenerate : ServiceMasterKeyChange
+	{
+		/// <summary><c>FORCE</c> before <c>REGENERATE</c>.</summary>
+		public bool Force { get; init; }
+	}
+
+	/// <summary><c>WITH OLD_ACCOUNT = 'a', OLD_PASSWORD = 'p'</c>.</summary>
+	public sealed record OldAccount(LiteralValue.String Account, LiteralValue.String Password) : ServiceMasterKeyChange;
+
+	/// <summary><c>WITH NEW_ACCOUNT = 'a', NEW_PASSWORD = 'p'</c>.</summary>
+	public sealed record NewAccount(LiteralValue.String Account, LiteralValue.String Password) : ServiceMasterKeyChange;
+}
+
+/// <summary>T-SQL: ALTER DATABASE ENCRYPTION KEY (Transact-SQL). What is done to the key.</summary>
+public abstract record DatabaseEncryptionKeyChange : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>REGENERATE WITH ALGORITHM = a</c>.</summary>
+	public sealed record Regenerate(DatabaseKeyAlgorithm Algorithm) : DatabaseEncryptionKeyChange;
+
+	/// <summary><c>ENCRYPTION BY SERVER { CERTIFICATE | ASYMMETRIC KEY } name</c>.</summary>
+	public sealed record EncryptedBy(KeyEncryptor By) : DatabaseEncryptionKeyChange;
+}
+
+/// <summary>T-SQL: CREATE DATABASE ENCRYPTION KEY (Transact-SQL). The algorithm the database encryption key uses.</summary>
+public enum DatabaseKeyAlgorithm { Aes128, Aes192, Aes256, TripleDes3Key }
+
+/// <summary>
+/// T-SQL: CREATE COLUMN ENCRYPTION KEY (Transact-SQL), ALTER COLUMN ENCRYPTION KEY (Transact-SQL). One value of the key, in brackets:
+/// <c>(COLUMN_MASTER_KEY = m, ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x…)</c>, the settings in the order written.
+/// </summary>
+public sealed record ColumnKeyValue(SqlList<Option> Settings) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>T-SQL: ALTER COLUMN ENCRYPTION KEY (Transact-SQL). What is done to the key.</summary>
+public abstract record ColumnKeyChange : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>ADD VALUE (…)</c>.</summary>
+	public sealed record AddValue(ColumnKeyValue Value) : ColumnKeyChange;
+
+	/// <summary><c>DROP VALUE (COLUMN_MASTER_KEY = m)</c>.</summary>
+	public sealed record DropValue(ColumnKeyValue Value) : ColumnKeyChange;
+}
+
+/// <summary>T-SQL: ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL). What is done to the provider.</summary>
+public abstract record CryptographicProviderChange : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>ENABLE</c>.</summary>
+	public sealed record Enable : CryptographicProviderChange;
+
+	/// <summary><c>DISABLE</c>.</summary>
+	public sealed record Disable : CryptographicProviderChange;
+
+	/// <summary><c>FROM FILE = 'path'</c>.</summary>
+	public sealed record FromFile(LiteralValue.String Path) : CryptographicProviderChange;
+}
+
+/// <summary>T-SQL: ALTER SECURITY POLICY (Transact-SQL). What is done to the policy.</summary>
+public abstract record SecurityPolicyChange : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>The predicates, <c>ADD FILTER PREDICATE f(c) ON t, DROP BLOCK PREDICATE ON u</c>: one at least.</summary>
+	public sealed record Predicates(SqlList<PolicyPredicate> Items) : SecurityPolicyChange;
+
+	/// <summary><c>WITH (STATE = ON)</c> (true) or <c>OFF</c> (false).</summary>
+	public sealed record State(bool On) : SecurityPolicyChange;
+
+	/// <summary><c>ADD NOT FOR REPLICATION</c>.</summary>
+	public sealed record AddNotForReplication : SecurityPolicyChange;
+
+	/// <summary><c>DROP NOT FOR REPLICATION</c>.</summary>
+	public sealed record DropNotForReplication : SecurityPolicyChange;
+}
+
+/// <summary>T-SQL: CREATE SECURITY POLICY (Transact-SQL), ALTER SECURITY POLICY (Transact-SQL). A predicate added, altered or dropped.</summary>
+public abstract record PolicyPredicate : ISqlNode
+{
+	/// <summary>Where in the text this was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>ADD FILTER PREDICATE f(c) ON t</c>.</summary>
+	public sealed record AddFilter(PolicyFunction Function, QualifiedName On) : PolicyPredicate;
+
+	/// <summary><c>ALTER FILTER PREDICATE f(c) ON t</c>.</summary>
+	public sealed record AlterFilter(PolicyFunction Function, QualifiedName On) : PolicyPredicate;
+
+	/// <summary><c>DROP FILTER PREDICATE ON t</c>.</summary>
+	public sealed record DropFilter(QualifiedName On) : PolicyPredicate;
+
+	/// <summary><c>ADD BLOCK PREDICATE f(c) ON t [AFTER INSERT]</c>.</summary>
+	public sealed record AddBlock(PolicyFunction Function, QualifiedName On, BlockOperation? When) : PolicyPredicate;
+
+	/// <summary><c>ALTER BLOCK PREDICATE f(c) ON t [AFTER INSERT]</c>.</summary>
+	public sealed record AlterBlock(PolicyFunction Function, QualifiedName On, BlockOperation? When) : PolicyPredicate;
+
+	/// <summary><c>DROP BLOCK PREDICATE ON t [AFTER INSERT]</c>.</summary>
+	public sealed record DropBlock(QualifiedName On, BlockOperation? When) : PolicyPredicate;
+}
+
+/// <summary>
+/// T-SQL: CREATE SECURITY POLICY (Transact-SQL). The function of a predicate, <c>dbo.f(c, @@ROWCOUNT)</c>: a name and the values it is
+/// called with, no variable among them.
+/// </summary>
+public sealed record PolicyFunction(QualifiedName Name, SqlList<Expression> Arguments) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>T-SQL: CREATE SECURITY POLICY (Transact-SQL). The change a block predicate blocks.</summary>
+public enum BlockOperation { AfterInsert, AfterUpdate, BeforeUpdate, BeforeDelete }

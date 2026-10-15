@@ -50,6 +50,11 @@ public sealed class SecurityWriterTests
 		return new LiteralValue.Numeric(digits, NumericLiteralKind.DecimalInteger);
 	}
 
+	static QualifiedName One(Identifier name)
+	{
+		return new QualifiedName([name]);
+	}
+
 	static Option Opt(string name, Expression? value = null, params Option[] options)
 	{
 		return new Option(new Identifier(name), value, [.. options]);
@@ -484,6 +489,452 @@ public sealed class SecurityWriterTests
 			"a user name of two parts" => new Statement.CreateUser(new Identifier("a.b", IdentifierStyle.Regular)) { Source = null, Options = [Opt("DEFAULT_SCHEMA", new Expression.Reference(Q))] },
 			// SecurableClass has no member of the number 99.
 			"a securable with the class of nothing" => new Statement.AlterSchema(X, T) { Class = (SecurableClass)99 },
+			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
+		};
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(node));
+	}
+
+	static LiteralValue.String Quoted(string text)
+	{
+		return new LiteralValue.String("'" + text + "'", StringLiteralKind.Character);
+	}
+
+	static KeyEncryptor.Password PasswordOf(string text)
+	{
+		return new KeyEncryptor.Password(Quoted(text));
+	}
+
+	static PolicyFunction Function(string name, params Expression[] arguments)
+	{
+		return new PolicyFunction(new QualifiedName([new Identifier("dbo"), new Identifier(name)]), [.. arguments]);
+	}
+
+	/// <summary>A tree for each statement of the keys, credentials, policies and signatures group.</summary>
+	static Statement KeyTree(string which)
+	{
+		return which switch
+		{
+			"Create asymmetric key" => new Statement.CreateAsymmetricKey(X) { Authorization = Y, Options = [Opt("ALGORITHM", Word("RSA_2048"))], EncryptedBy = PasswordOf("p") },
+			"Create asymmetric key alone" => new Statement.CreateAsymmetricKey(X),
+			"Create asymmetric key provider" => new Statement.CreateAsymmetricKey(X) { Source = new AsymmetricKeySource.Provider(Y), Options = [Opt("ALGORITHM", Word("RC2")), Opt("PROVIDER_KEY_NAME", Str("kn")), Opt("CREATION_DISPOSITION", Word("CREATE_NEW"))] },
+			"Create asymmetric key file" => new Statement.CreateAsymmetricKey(X) { Source = new AsymmetricKeySource.File(Quoted("f")) },
+			"Create asymmetric key executable" => new Statement.CreateAsymmetricKey(X) { Source = new AsymmetricKeySource.File(Quoted("f")) { Executable = true }, EncryptedBy = PasswordOf("p") },
+			"Create asymmetric key assembly" => new Statement.CreateAsymmetricKey(X) { Source = new AsymmetricKeySource.Assembly(Q) },
+			"Alter asymmetric key remove" => new Statement.AlterAsymmetricKey(X, new AsymmetricKeyChange.RemovePrivateKey()),
+			"Alter asymmetric key private" => new Statement.AlterAsymmetricKey(X, new AsymmetricKeyChange.WithPrivateKey([new Option(new Identifier("DECRYPTION"), Str("a"), []) { Words = [new Identifier("BY"), new Identifier("PASSWORD")] }, new Option(new Identifier("ENCRYPTION"), Str("b"), []) { Words = [new Identifier("BY"), new Identifier("PASSWORD")] }])),
+			"Alter asymmetric key attested" => new Statement.AlterAsymmetricKey(X, new AsymmetricKeyChange.AttestedBy(Quoted("a"))),
+			"Alter asymmetric key remove attested" => new Statement.AlterAsymmetricKey(X, new AsymmetricKeyChange.RemoveAttestedOption()),
+			"Create symmetric key" => new Statement.CreateSymmetricKey(X)
+			{
+				Authorization = Y,
+				Options = [Opt("KEY_SOURCE", Str("ks")), Opt("ALGORITHM", Word("AES_256"))],
+				EncryptedBy = [new KeyEncryptor.Certificate(T), PasswordOf("p"), new KeyEncryptor.SymmetricKey(Q), new KeyEncryptor.AsymmetricKey(T)],
+			},
+			"Create symmetric key provider" => new Statement.CreateSymmetricKey(X) { Provider = Y, Options = [Opt("CREATION_DISPOSITION", Word("OPEN_EXISTING"))], EncryptedBy = [new KeyEncryptor.Certificate(T)] },
+			"Create symmetric key provider alone" => new Statement.CreateSymmetricKey(X) { Provider = Y },
+			"Alter symmetric key add" => new Statement.AlterSymmetricKey(X, new SymmetricKeyChange.AddEncryption([PasswordOf("p"), new KeyEncryptor.SymmetricKey(T)])),
+			"Alter symmetric key drop" => new Statement.AlterSymmetricKey(X, new SymmetricKeyChange.DropEncryption([new KeyEncryptor.AsymmetricKey(T)])),
+			"Create certificate" => new Statement.CreateCertificate(X) { Authorization = Y, EncryptedBy = PasswordOf("p"), Options = [Opt("SUBJECT", Str("s")), Opt("START_DATE", Str("2020")), Opt("EXPIRY_DATE", Str("2030"))], ActiveForBeginDialog = true },
+			"Create certificate assembly" => new Statement.CreateCertificate(X) { Source = new CertificateSource.Assembly(T), ActiveForBeginDialog = false },
+			"Create certificate file" => new Statement.CreateCertificate(X)
+			{
+				Source = new CertificateSource.File(Quoted("f")) { Executable = true, Format = Quoted("PFX"), PrivateKey = [Opt("FILE", Str("k")), new Option(new Identifier("DECRYPTION"), Str("p"), []) { Words = [new Identifier("BY"), new Identifier("PASSWORD")] }] },
+			},
+			"Create certificate file alone" => new Statement.CreateCertificate(X) { Source = new CertificateSource.File(Quoted("f")) },
+			"Create certificate binary" => new Statement.CreateCertificate(X) { Source = new CertificateSource.Binary(new LiteralValue.Binary("01") { ZeroX = true }) { PrivateKey = [Opt("BINARY", Hex("02"))] } },
+			"Alter certificate remove" => new Statement.AlterCertificate(X, new CertificateChange.RemovePrivateKey()),
+			"Alter certificate private" => new Statement.AlterCertificate(X, new CertificateChange.WithPrivateKey([Opt("FILE", Str("k"))])),
+			"Alter certificate active" => new Statement.AlterCertificate(X, new CertificateChange.ActiveForBeginDialog(false)),
+			"Alter certificate attested" => new Statement.AlterCertificate(X, new CertificateChange.AttestedBy(Quoted("a"))),
+			"Alter certificate remove attested" => new Statement.AlterCertificate(X, new CertificateChange.RemoveAttestedOption()),
+			"Create master key" => new Statement.CreateMasterKey { EncryptedBy = PasswordOf("p") },
+			"Create master key alone" => new Statement.CreateMasterKey(),
+			"Alter master key regenerate" => new Statement.AlterMasterKey(new MasterKeyChange.Regenerate(PasswordOf("p")) { Force = true }),
+			"Alter master key add" => new Statement.AlterMasterKey(new MasterKeyChange.AddEncryption(new KeyEncryptor.ServiceMasterKey())),
+			"Alter master key drop" => new Statement.AlterMasterKey(new MasterKeyChange.DropEncryption(PasswordOf("p"))),
+			"Alter service master key regenerate" => new Statement.AlterServiceMasterKey(new ServiceMasterKeyChange.Regenerate { Force = true }),
+			"Alter service master key old" => new Statement.AlterServiceMasterKey(new ServiceMasterKeyChange.OldAccount(Quoted("a"), Quoted("p"))),
+			"Alter service master key new" => new Statement.AlterServiceMasterKey(new ServiceMasterKeyChange.NewAccount(Quoted("a"), Quoted("p"))),
+			"Create database encryption key" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.TripleDes3Key, new KeyEncryptor.Certificate(T) { Server = true }),
+			"Create database encryption key asymmetric" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.Aes128, new KeyEncryptor.AsymmetricKey(T) { Server = true }),
+			"Alter database encryption key regenerate" => new Statement.AlterDatabaseEncryptionKey(new DatabaseEncryptionKeyChange.Regenerate(DatabaseKeyAlgorithm.Aes256)),
+			"Alter database encryption key encrypted" => new Statement.AlterDatabaseEncryptionKey(new DatabaseEncryptionKeyChange.EncryptedBy(new KeyEncryptor.Certificate(T) { Server = true })),
+			"Create column encryption key" => new Statement.CreateColumnEncryptionKey(X, [new ColumnKeyValue([Opt("COLUMN_MASTER_KEY", Word("m")), Opt("ALGORITHM", Str("RSA_OAEP")), Opt("ENCRYPTED_VALUE", Hex("01"))]), new ColumnKeyValue([Opt("ALGORITHM", Str("a")), Opt("ENCRYPTED_VALUE", Hex("02")), Opt("COLUMN_MASTER_KEY", Word("n"))])]),
+			"Alter column encryption key add" => new Statement.AlterColumnEncryptionKey(X, new ColumnKeyChange.AddValue(new ColumnKeyValue([Opt("COLUMN_MASTER_KEY", Word("m")), Opt("ALGORITHM", Str("a")), Opt("ENCRYPTED_VALUE", Hex("01"))]))),
+			"Alter column encryption key drop" => new Statement.AlterColumnEncryptionKey(X, new ColumnKeyChange.DropValue(new ColumnKeyValue([Opt("COLUMN_MASTER_KEY", Word("m"))]))),
+			"Create column master key" => new Statement.CreateColumnMasterKey(X, [Opt("KEY_PATH", Str("p")), Opt("KEY_STORE_PROVIDER_NAME", Str("s")), new Option(new Identifier("ENCLAVE_COMPUTATIONS"), null, [Opt("SIGNATURE", Hex("01"))])]),
+			"Create column master key two" => new Statement.CreateColumnMasterKey(X, [Opt("KEY_STORE_PROVIDER_NAME", Str("s")), Opt("KEY_PATH", Str("p"))]),
+			"Create credential" => new Statement.CreateCredential(X, Quoted("i")) { Secret = Quoted("s"), Provider = Y },
+			"Create credential alone" => new Statement.CreateCredential(X, Quoted("i")),
+			"Alter credential" => new Statement.AlterCredential(X, Quoted("i")) { Secret = Quoted("s") },
+			"Create database scoped credential" => new Statement.CreateDatabaseScopedCredential(X, Quoted("i")) { Secret = Quoted("s") },
+			"Alter database scoped credential" => new Statement.AlterDatabaseScopedCredential(X, Quoted("i")),
+			"Create cryptographic provider" => new Statement.CreateCryptographicProvider(X, Quoted("f")),
+			"Alter cryptographic provider enable" => new Statement.AlterCryptographicProvider(X, new CryptographicProviderChange.Enable()),
+			"Alter cryptographic provider disable" => new Statement.AlterCryptographicProvider(X, new CryptographicProviderChange.Disable()),
+			"Alter cryptographic provider file" => new Statement.AlterCryptographicProvider(X, new CryptographicProviderChange.FromFile(Quoted("f"))),
+			"Open symmetric key certificate" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.Certificate(T) { WithPassword = Quoted("p") }),
+			"Open symmetric key asymmetric key" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.AsymmetricKey(T) { WithPassword = Quoted("p") }),
+			"Open symmetric key symmetric key" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.SymmetricKey(T)),
+			"Open symmetric key password" => new Statement.OpenSymmetricKey(X, PasswordOf("p")),
+			"Open master key" => new Statement.OpenMasterKey(PasswordOf("p")),
+			"Close symmetric key" => new Statement.CloseSymmetricKey(X),
+			"Close all symmetric keys" => new Statement.CloseAllSymmetricKeys(),
+			"Close master key" => new Statement.CloseMasterKey(),
+			"Create security policy" => new Statement.CreateSecurityPolicy(Q)
+			{
+				Predicates = [new PolicyPredicate.AddFilter(Function("f", Word("c")), T), new PolicyPredicate.AddBlock(Function("g"), Q, BlockOperation.AfterInsert), new PolicyPredicate.AlterBlock(Function("g", Digits("1")), Q, null)],
+				Options = [Opt("STATE", Word("ON")), Opt("SCHEMABINDING", Word("OFF"))],
+				NotForReplication = true,
+			},
+			"Create security policy alone" => new Statement.CreateSecurityPolicy(T),
+			"Alter security policy predicates" => new Statement.AlterSecurityPolicy(Q, new SecurityPolicyChange.Predicates([new PolicyPredicate.AlterFilter(Function("f", Word("c")), T), new PolicyPredicate.DropFilter(T), new PolicyPredicate.DropBlock(Q, BlockOperation.BeforeDelete), new PolicyPredicate.DropBlock(T, null)])),
+			"Alter security policy state" => new Statement.AlterSecurityPolicy(T, new SecurityPolicyChange.State(true)),
+			"Alter security policy add" => new Statement.AlterSecurityPolicy(T, new SecurityPolicyChange.AddNotForReplication()),
+			"Alter security policy drop" => new Statement.AlterSecurityPolicy(T, new SecurityPolicyChange.DropNotForReplication()),
+			"Add sensitivity classification" => new Statement.AddSensitivityClassification([Q, new QualifiedName([new Identifier("db"), new Identifier("dbo"), new Identifier("t")])], [Opt("LABEL", Str("l")), Opt("RANK", Word("HIGH"))]),
+			"Add signature" => new Statement.AddSignature(false, Q, [new SignedBy.Certificate(T) { Proof = new SignatureProof.Password(Quoted("p")) }, new SignedBy.AsymmetricKey(T) { Proof = new SignatureProof.Signature(new LiteralValue.Binary("01") { ZeroX = true }) }, new SignedBy.SymmetricKey(Y), new SignedBy.Password(Quoted("x"))]),
+			"Add counter signature" => new Statement.AddSignature(true, T, [new SignedBy.Certificate(One(Y))]) { Class = SecurableClass.Object },
+			"Drop signature proof" => new Statement.DropSignature(false, T, [new SignedBy.AsymmetricKey(One(Y)) { Proof = new SignatureProof.Password(Quoted("p")) }, new SignedBy.SymmetricKey(X)]),
+			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
+		};
+	}
+
+	/// <summary>Each statement written as the text of its kind.</summary>
+	[Theory]
+	[InlineData("Create asymmetric key", "CREATE ASYMMETRIC KEY x AUTHORIZATION y WITH ALGORITHM = RSA_2048 ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("Create asymmetric key alone", "CREATE ASYMMETRIC KEY x")]
+	[InlineData("Create asymmetric key provider", "CREATE ASYMMETRIC KEY x FROM PROVIDER y WITH ALGORITHM = RC2, PROVIDER_KEY_NAME = 'kn', CREATION_DISPOSITION = CREATE_NEW")]
+	[InlineData("Create asymmetric key file", "CREATE ASYMMETRIC KEY x FROM FILE = 'f'")]
+	[InlineData("Create asymmetric key executable", "CREATE ASYMMETRIC KEY x FROM EXECUTABLE FILE = 'f' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("Create asymmetric key assembly", "CREATE ASYMMETRIC KEY x FROM ASSEMBLY dbo.t")]
+	[InlineData("Alter asymmetric key remove", "ALTER ASYMMETRIC KEY x REMOVE PRIVATE KEY")]
+	[InlineData("Alter asymmetric key private", "ALTER ASYMMETRIC KEY x WITH PRIVATE KEY (DECRYPTION BY PASSWORD = 'a', ENCRYPTION BY PASSWORD = 'b')")]
+	[InlineData("Alter asymmetric key attested", "ALTER ASYMMETRIC KEY x ATTESTED BY 'a'")]
+	[InlineData("Alter asymmetric key remove attested", "ALTER ASYMMETRIC KEY x REMOVE ATTESTED OPTION")]
+	[InlineData("Create symmetric key", "CREATE SYMMETRIC KEY x AUTHORIZATION y WITH KEY_SOURCE = 'ks', ALGORITHM = AES_256 ENCRYPTION BY CERTIFICATE t, PASSWORD = 'p', SYMMETRIC KEY dbo.t, ASYMMETRIC KEY t")]
+	[InlineData("Create symmetric key provider", "CREATE SYMMETRIC KEY x FROM PROVIDER y WITH CREATION_DISPOSITION = OPEN_EXISTING ENCRYPTION BY CERTIFICATE t")]
+	[InlineData("Create symmetric key provider alone", "CREATE SYMMETRIC KEY x FROM PROVIDER y")]
+	[InlineData("Alter symmetric key add", "ALTER SYMMETRIC KEY x ADD ENCRYPTION BY PASSWORD = 'p', SYMMETRIC KEY t")]
+	[InlineData("Alter symmetric key drop", "ALTER SYMMETRIC KEY x DROP ENCRYPTION BY ASYMMETRIC KEY t")]
+	[InlineData("Create certificate", "CREATE CERTIFICATE x AUTHORIZATION y ENCRYPTION BY PASSWORD = 'p' WITH SUBJECT = 's', START_DATE = '2020', EXPIRY_DATE = '2030' ACTIVE FOR BEGIN_DIALOG = ON")]
+	[InlineData("Create certificate assembly", "CREATE CERTIFICATE x FROM ASSEMBLY t ACTIVE FOR BEGIN_DIALOG = OFF")]
+	[InlineData("Create certificate file", "CREATE CERTIFICATE x FROM EXECUTABLE FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (FILE = 'k', DECRYPTION BY PASSWORD = 'p')")]
+	[InlineData("Create certificate file alone", "CREATE CERTIFICATE x FROM FILE = 'f'")]
+	[InlineData("Create certificate binary", "CREATE CERTIFICATE x FROM BINARY = 0x01 WITH PRIVATE KEY (BINARY = 0x02)")]
+	[InlineData("Alter certificate remove", "ALTER CERTIFICATE x REMOVE PRIVATE KEY")]
+	[InlineData("Alter certificate private", "ALTER CERTIFICATE x WITH PRIVATE KEY (FILE = 'k')")]
+	[InlineData("Alter certificate active", "ALTER CERTIFICATE x WITH ACTIVE FOR BEGIN_DIALOG = OFF")]
+	[InlineData("Alter certificate attested", "ALTER CERTIFICATE x ATTESTED BY 'a'")]
+	[InlineData("Alter certificate remove attested", "ALTER CERTIFICATE x REMOVE ATTESTED OPTION")]
+	[InlineData("Create master key", "CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("Create master key alone", "CREATE MASTER KEY")]
+	[InlineData("Alter master key regenerate", "ALTER MASTER KEY FORCE REGENERATE WITH ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("Alter master key add", "ALTER MASTER KEY ADD ENCRYPTION BY SERVICE MASTER KEY")]
+	[InlineData("Alter master key drop", "ALTER MASTER KEY DROP ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("Alter service master key regenerate", "ALTER SERVICE MASTER KEY FORCE REGENERATE")]
+	[InlineData("Alter service master key old", "ALTER SERVICE MASTER KEY WITH OLD_ACCOUNT = 'a', OLD_PASSWORD = 'p'")]
+	[InlineData("Alter service master key new", "ALTER SERVICE MASTER KEY WITH NEW_ACCOUNT = 'a', NEW_PASSWORD = 'p'")]
+	[InlineData("Create database encryption key", "CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = TRIPLE_DES_3KEY ENCRYPTION BY SERVER CERTIFICATE t")]
+	[InlineData("Create database encryption key asymmetric", "CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_128 ENCRYPTION BY SERVER ASYMMETRIC KEY t")]
+	[InlineData("Alter database encryption key regenerate", "ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256")]
+	[InlineData("Alter database encryption key encrypted", "ALTER DATABASE ENCRYPTION KEY ENCRYPTION BY SERVER CERTIFICATE t")]
+	[InlineData("Create column encryption key", "CREATE COLUMN ENCRYPTION KEY x WITH VALUES (COLUMN_MASTER_KEY = m, ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x01), (ALGORITHM = 'a', ENCRYPTED_VALUE = 0x02, COLUMN_MASTER_KEY = n)")]
+	[InlineData("Alter column encryption key add", "ALTER COLUMN ENCRYPTION KEY x ADD VALUE (COLUMN_MASTER_KEY = m, ALGORITHM = 'a', ENCRYPTED_VALUE = 0x01)")]
+	[InlineData("Alter column encryption key drop", "ALTER COLUMN ENCRYPTION KEY x DROP VALUE (COLUMN_MASTER_KEY = m)")]
+	[InlineData("Create column master key", "CREATE COLUMN MASTER KEY x WITH (KEY_PATH = 'p', KEY_STORE_PROVIDER_NAME = 's', ENCLAVE_COMPUTATIONS (SIGNATURE = 0x01))")]
+	[InlineData("Create column master key two", "CREATE COLUMN MASTER KEY x WITH (KEY_STORE_PROVIDER_NAME = 's', KEY_PATH = 'p')")]
+	[InlineData("Create credential", "CREATE CREDENTIAL x WITH IDENTITY = 'i', SECRET = 's' FOR CRYPTOGRAPHIC PROVIDER y")]
+	[InlineData("Create credential alone", "CREATE CREDENTIAL x WITH IDENTITY = 'i'")]
+	[InlineData("Alter credential", "ALTER CREDENTIAL x WITH IDENTITY = 'i', SECRET = 's'")]
+	[InlineData("Create database scoped credential", "CREATE DATABASE SCOPED CREDENTIAL x WITH IDENTITY = 'i', SECRET = 's'")]
+	[InlineData("Alter database scoped credential", "ALTER DATABASE SCOPED CREDENTIAL x WITH IDENTITY = 'i'")]
+	[InlineData("Create cryptographic provider", "CREATE CRYPTOGRAPHIC PROVIDER x FROM FILE = 'f'")]
+	[InlineData("Alter cryptographic provider enable", "ALTER CRYPTOGRAPHIC PROVIDER x ENABLE")]
+	[InlineData("Alter cryptographic provider disable", "ALTER CRYPTOGRAPHIC PROVIDER x DISABLE")]
+	[InlineData("Alter cryptographic provider file", "ALTER CRYPTOGRAPHIC PROVIDER x FROM FILE = 'f'")]
+	[InlineData("Open symmetric key certificate", "OPEN SYMMETRIC KEY x DECRYPTION BY CERTIFICATE t WITH PASSWORD = 'p'")]
+	[InlineData("Open symmetric key asymmetric key", "OPEN SYMMETRIC KEY x DECRYPTION BY ASYMMETRIC KEY t WITH PASSWORD = 'p'")]
+	[InlineData("Open symmetric key symmetric key", "OPEN SYMMETRIC KEY x DECRYPTION BY SYMMETRIC KEY t")]
+	[InlineData("Open symmetric key password", "OPEN SYMMETRIC KEY x DECRYPTION BY PASSWORD = 'p'")]
+	[InlineData("Open master key", "OPEN MASTER KEY DECRYPTION BY PASSWORD = 'p'")]
+	[InlineData("Close symmetric key", "CLOSE SYMMETRIC KEY x")]
+	[InlineData("Close all symmetric keys", "CLOSE ALL SYMMETRIC KEYS")]
+	[InlineData("Close master key", "CLOSE MASTER KEY")]
+	[InlineData("Create security policy", "CREATE SECURITY POLICY dbo.t ADD FILTER PREDICATE dbo.f(c) ON t, ADD BLOCK PREDICATE dbo.g() ON dbo.t AFTER INSERT, ALTER BLOCK PREDICATE dbo.g(1) ON dbo.t WITH (STATE = ON, SCHEMABINDING = OFF) NOT FOR REPLICATION")]
+	[InlineData("Create security policy alone", "CREATE SECURITY POLICY t")]
+	[InlineData("Alter security policy predicates", "ALTER SECURITY POLICY dbo.t ALTER FILTER PREDICATE dbo.f(c) ON t, DROP FILTER PREDICATE ON t, DROP BLOCK PREDICATE ON dbo.t BEFORE DELETE, DROP BLOCK PREDICATE ON t")]
+	[InlineData("Alter security policy state", "ALTER SECURITY POLICY t WITH (STATE = ON)")]
+	[InlineData("Alter security policy add", "ALTER SECURITY POLICY t ADD NOT FOR REPLICATION")]
+	[InlineData("Alter security policy drop", "ALTER SECURITY POLICY t DROP NOT FOR REPLICATION")]
+	[InlineData("Add sensitivity classification", "ADD SENSITIVITY CLASSIFICATION TO dbo.t, db.dbo.t WITH (LABEL = 'l', RANK = HIGH)")]
+	[InlineData("Add signature", "ADD SIGNATURE TO dbo.t BY CERTIFICATE t WITH PASSWORD = 'p', ASYMMETRIC KEY t WITH SIGNATURE = 0x01, SYMMETRIC KEY y, PASSWORD = 'x'")]
+	[InlineData("Add counter signature", "ADD COUNTER SIGNATURE TO OBJECT::t BY CERTIFICATE y")]
+	[InlineData("Drop signature proof", "DROP SIGNATURE FROM t BY ASYMMETRIC KEY y WITH PASSWORD = 'p', SYMMETRIC KEY x")]
+	public void Each_key_statement_writes_its_kind(string which, string text)
+	{
+		Assert.Equal(text, TransactSqlWriter.Write(KeyTree(which)));
+	}
+
+	/// <summary>
+	/// Each statement's tree, written and read back by TransactSqlParser, carried by the bridge to the same tree.
+	/// </summary>
+	[Theory]
+	[InlineData("Create asymmetric key")]
+	[InlineData("Create asymmetric key alone")]
+	[InlineData("Create asymmetric key provider")]
+	[InlineData("Create asymmetric key file")]
+	[InlineData("Create asymmetric key executable")]
+	[InlineData("Create asymmetric key assembly")]
+	[InlineData("Alter asymmetric key remove")]
+	[InlineData("Alter asymmetric key private")]
+	[InlineData("Alter asymmetric key attested")]
+	[InlineData("Alter asymmetric key remove attested")]
+	[InlineData("Create symmetric key")]
+	[InlineData("Create symmetric key provider")]
+	[InlineData("Create symmetric key provider alone")]
+	[InlineData("Alter symmetric key add")]
+	[InlineData("Alter symmetric key drop")]
+	[InlineData("Create certificate")]
+	[InlineData("Create certificate assembly")]
+	[InlineData("Create certificate file")]
+	[InlineData("Create certificate file alone")]
+	[InlineData("Create certificate binary")]
+	[InlineData("Alter certificate remove")]
+	[InlineData("Alter certificate private")]
+	[InlineData("Alter certificate active")]
+	[InlineData("Alter certificate attested")]
+	[InlineData("Alter certificate remove attested")]
+	[InlineData("Create master key")]
+	[InlineData("Create master key alone")]
+	[InlineData("Alter master key regenerate")]
+	[InlineData("Alter master key add")]
+	[InlineData("Alter master key drop")]
+	[InlineData("Alter service master key regenerate")]
+	[InlineData("Alter service master key old")]
+	[InlineData("Alter service master key new")]
+	[InlineData("Create database encryption key")]
+	[InlineData("Create database encryption key asymmetric")]
+	[InlineData("Alter database encryption key regenerate")]
+	[InlineData("Alter database encryption key encrypted")]
+	[InlineData("Create column encryption key")]
+	[InlineData("Alter column encryption key add")]
+	[InlineData("Alter column encryption key drop")]
+	[InlineData("Create column master key")]
+	[InlineData("Create column master key two")]
+	[InlineData("Create credential")]
+	[InlineData("Create credential alone")]
+	[InlineData("Alter credential")]
+	[InlineData("Create database scoped credential")]
+	[InlineData("Alter database scoped credential")]
+	[InlineData("Create cryptographic provider")]
+	[InlineData("Alter cryptographic provider enable")]
+	[InlineData("Alter cryptographic provider disable")]
+	[InlineData("Alter cryptographic provider file")]
+	[InlineData("Open symmetric key certificate")]
+	[InlineData("Open symmetric key asymmetric key")]
+	[InlineData("Open symmetric key symmetric key")]
+	[InlineData("Open symmetric key password")]
+	[InlineData("Open master key")]
+	[InlineData("Close symmetric key")]
+	[InlineData("Close all symmetric keys")]
+	[InlineData("Close master key")]
+	[InlineData("Create security policy")]
+	[InlineData("Create security policy alone")]
+	[InlineData("Alter security policy predicates")]
+	[InlineData("Alter security policy state")]
+	[InlineData("Alter security policy add")]
+	[InlineData("Alter security policy drop")]
+	[InlineData("Add sensitivity classification")]
+	[InlineData("Add signature")]
+	[InlineData("Add counter signature")]
+	[InlineData("Drop signature proof")]
+	public void Each_key_statement_reads_back_as_itself(string which)
+	{
+		var tree = KeyTree(which);
+		var text = TransactSqlWriter.Write(tree);
+
+		Assert.Equal(tree, Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+	}
+
+	/// <summary>
+	/// A tree whose text would not read back as the same tree is refused; each row names the rule or the engine's
+	/// message that does not read the text.
+	/// </summary>
+	[Theory]
+	[InlineData("an asymmetric key from a file with settings")]
+	[InlineData("an asymmetric key made here with a provider setting")]
+	[InlineData("an asymmetric key made here with two algorithms")]
+	[InlineData("an algorithm the grammar has none of")]
+	[InlineData("a path that is a Unicode string")]
+	[InlineData("a private key of no setting")]
+	[InlineData("an asymmetric key private key file")]
+	[InlineData("a symmetric key made here with no setting")]
+	[InlineData("a symmetric key made here with no encryptor")]
+	[InlineData("a symmetric key setting it has not")]
+	[InlineData("a symmetric key locked by the service master key")]
+	[InlineData("a symmetric key locked by a server certificate")]
+	[InlineData("a symmetric key locked by a certificate and its password")]
+	[InlineData("a symmetric key altered by none")]
+	[InlineData("a certificate made here with no setting")]
+	[InlineData("a certificate setting it has not")]
+	[InlineData("a certificate from an assembly with settings")]
+	[InlineData("a certificate from an assembly locked by a password")]
+	[InlineData("a certificate format without a private key")]
+	[InlineData("a certificate private key setting it has not")]
+	[InlineData("a certificate binary written X'…'")]
+	[InlineData("a certificate private key of no setting")]
+	[InlineData("a master key added by a certificate")]
+	[InlineData("a database key locked by a certificate that is not the server's")]
+	[InlineData("a database key locked by a password")]
+	[InlineData("a database key algorithm that is none")]
+	[InlineData("a column key of no value")]
+	[InlineData("a column key value of two settings")]
+	[InlineData("a column key value setting it has not")]
+	[InlineData("a column key value dropped by two settings")]
+	[InlineData("a column master key of one setting")]
+	[InlineData("a column master key path twice")]
+	[InlineData("an enclave that is not the third")]
+	[InlineData("an enclave with a name for its signature")]
+	[InlineData("a credential identity that is a Unicode string")]
+	[InlineData("a cryptographic provider file that is a Unicode string")]
+	[InlineData("a key opened by a symmetric key of two parts")]
+	[InlineData("a key opened by a certificate of two parts")]
+	[InlineData("a key opened by the service master key")]
+	[InlineData("a key opened by a server certificate")]
+	[InlineData("a policy function with a variable")]
+	[InlineData("a policy setting it has not")]
+	[InlineData("a policy setting that is not ON or OFF")]
+	[InlineData("an altered policy of no predicate")]
+	[InlineData("a classification of no column")]
+	[InlineData("a classified column of one part")]
+	[InlineData("a classification of no option")]
+	[InlineData("a classification option twice")]
+	[InlineData("a classification rank that is none")]
+	[InlineData("a classification label that is a name")]
+	[InlineData("a signature by nothing")]
+	[InlineData("a signature to a module of another class")]
+	[InlineData("a signature by a certificate of two parts")]
+	[InlineData("a signature by a key of two parts")]
+	[InlineData("a signature proof that is a binary string written X'…'")]
+	[InlineData("a signature password that is a Unicode string")]
+	public void A_key_statement_with_no_text_is_refused(string which)
+	{
+		ISqlNode node = which switch
+		{
+			// AsymmetricBody: FROM AsymmetricSource takes no settings.
+			"an asymmetric key from a file with settings" => new Statement.CreateAsymmetricKey(X) { Source = new AsymmetricKeySource.File(Quoted("f")), Options = [Opt("ALGORITHM", Word("RC2"))] },
+			// AsymmetricBody: a key made here takes AlgorithmSetting only.
+			"an asymmetric key made here with a provider setting" => new Statement.CreateAsymmetricKey(X) { Options = [Opt("PROVIDER_KEY_NAME", Str("n"))] },
+			// AsymmetricBody: a key made here takes an algorithm at most.
+			"an asymmetric key made here with two algorithms" => new Statement.CreateAsymmetricKey(X) { Options = [Opt("ALGORITHM", Word("RC2")), Opt("ALGORITHM", Word("DES"))] },
+			// KeyAlgorithm is a closed list: `ALGORITHM = FOO` is Msg 102.
+			"an algorithm the grammar has none of" => new Statement.CreateAsymmetricKey(X) { Options = [Opt("ALGORITHM", Word("FOO"))] },
+			// Quoted reads a character or a national string.
+			"a path that is a Unicode string" => new Statement.CreateAsymmetricKey(X) { Source = new AsymmetricKeySource.File(new LiteralValue.String("'f'", StringLiteralKind.Unicode)) },
+			// KeyPasswordSetting is read once at least inside the brackets.
+			"a private key of no setting" => new Statement.AlterAsymmetricKey(X, new AsymmetricKeyChange.WithPrivateKey([])),
+			// ALTER ASYMMETRIC KEY reads KeyPassword in the brackets, not FILE.
+			"an asymmetric key private key file" => new Statement.AlterAsymmetricKey(X, new AsymmetricKeyChange.WithPrivateKey([Opt("FILE", Str("k"))])),
+			// SymmetricBody: WITH reads one setting at least for a key made here.
+			"a symmetric key made here with no setting" => new Statement.CreateSymmetricKey(X) { EncryptedBy = [PasswordOf("p")] },
+			// SymmetricBody: a key made here is locked by one thing at least.
+			"a symmetric key made here with no encryptor" => new Statement.CreateSymmetricKey(X) { Options = [Opt("ALGORITHM", Word("DES"))] },
+			// SymmetricOption has no SUBJECT.
+			"a symmetric key setting it has not" => new Statement.CreateSymmetricKey(X) { Options = [Opt("SUBJECT", Str("s"))], EncryptedBy = [PasswordOf("p")] },
+			// KeyEncryptor has no SERVICE MASTER KEY: Msg 102.
+			"a symmetric key locked by the service master key" => new Statement.CreateSymmetricKey(X) { Options = [Opt("ALGORITHM", Word("DES"))], EncryptedBy = [new KeyEncryptor.ServiceMasterKey()] },
+			// KeyEncryptor reads CERTIFICATE, not SERVER CERTIFICATE, which is the database encryption key's.
+			"a symmetric key locked by a server certificate" => new Statement.CreateSymmetricKey(X) { Options = [Opt("ALGORITHM", Word("DES"))], EncryptedBy = [new KeyEncryptor.Certificate(T) { Server = true }] },
+			// KeyEncryptor reads WITH PASSWORD nowhere: KeyDecryptor does.
+			"a symmetric key locked by a certificate and its password" => new Statement.CreateSymmetricKey(X) { Options = [Opt("ALGORITHM", Word("DES"))], EncryptedBy = [new KeyEncryptor.Certificate(T) { WithPassword = Quoted("p") }] },
+			// ALTER SYMMETRIC KEY reads one encryptor at least.
+			"a symmetric key altered by none" => new Statement.AlterSymmetricKey(X, new SymmetricKeyChange.AddEncryption([])),
+			// CertificateBody: WITH reads one setting at least.
+			"a certificate made here with no setting" => new Statement.CreateCertificate(X),
+			// CertificateOption is SUBJECT, START_DATE and EXPIRY_DATE.
+			"a certificate setting it has not" => new Statement.CreateCertificate(X) { Options = [Opt("ALGORITHM", Word("DES"))] },
+			// CertificateSource reads no settings of its own.
+			"a certificate from an assembly with settings" => new Statement.CreateCertificate(X) { Source = new CertificateSource.Assembly(T), Options = [Opt("SUBJECT", Str("s"))] },
+			// CertificateBody reads ENCRYPTION BY only before WITH settings.
+			"a certificate from an assembly locked by a password" => new Statement.CreateCertificate(X) { Source = new CertificateSource.Assembly(T), EncryptedBy = PasswordOf("p") },
+			// CertificateSource reads FORMAT only before PRIVATE KEY.
+			"a certificate format without a private key" => new Statement.CreateCertificate(X) { Source = new CertificateSource.File(Quoted("f")) { Format = Quoted("PFX") } },
+			// PrivateKeyOption is FILE, BINARY and the two passwords.
+			"a certificate private key setting it has not" => new Statement.CreateCertificate(X) { Source = new CertificateSource.File(Quoted("f")) { PrivateKey = [Opt("SUBJECT", Str("s"))] } },
+			// TSql.BinaryLiteral reads 0x….
+			"a certificate binary written X'…'" => new Statement.CreateCertificate(X) { Source = new CertificateSource.Binary(new LiteralValue.Binary("'01'")) },
+			// PrivateKeyList reads one setting at least.
+			"a certificate private key of no setting" => new Statement.AlterCertificate(X, new CertificateChange.WithPrivateKey([])),
+			// MasterKeyChange adds a service master key or a password.
+			"a master key added by a certificate" => new Statement.AlterMasterKey(new MasterKeyChange.AddEncryption(new KeyEncryptor.Certificate(T))),
+			// ServerEncryption reads SERVER before CERTIFICATE.
+			"a database key locked by a certificate that is not the server's" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.Aes128, new KeyEncryptor.Certificate(T)),
+			// ServerEncryption reads a certificate or an asymmetric key.
+			"a database key locked by a password" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.Aes128, PasswordOf("p")),
+			// DatabaseKeyAlgorithm is a closed list of four.
+			"a database key algorithm that is none" => new Statement.CreateDatabaseEncryptionKey((DatabaseKeyAlgorithm)9, new KeyEncryptor.Certificate(T) { Server = true }),
+			// CREATE COLUMN ENCRYPTION KEY reads one value at least.
+			"a column key of no value" => new Statement.CreateColumnEncryptionKey(X, []),
+			// ColumnKeyValue reads three settings in the brackets.
+			"a column key value of two settings" => new Statement.CreateColumnEncryptionKey(X, [new ColumnKeyValue([Opt("COLUMN_MASTER_KEY", Word("m")), Opt("ALGORITHM", Str("a"))])]),
+			// ColumnKeyPart is the master key, the algorithm and the encrypted value.
+			"a column key value setting it has not" => new Statement.AlterColumnEncryptionKey(X, new ColumnKeyChange.DropValue(new ColumnKeyValue([Opt("SUBJECT", Str("a"))]))),
+			// DROP VALUE reads one ColumnKeySetting in its brackets.
+			"a column key value dropped by two settings" => new Statement.AlterColumnEncryptionKey(X, new ColumnKeyChange.DropValue(new ColumnKeyValue([Opt("COLUMN_MASTER_KEY", Word("m")), Opt("ALGORITHM", Str("a"))]))),
+			// MasterKeyLocation reads both parts.
+			"a column master key of one setting" => new Statement.CreateColumnMasterKey(X, [Opt("KEY_PATH", Str("p"))]),
+			// MasterKeyLocation reads each part once.
+			"a column master key path twice" => new Statement.CreateColumnMasterKey(X, [Opt("KEY_PATH", Str("p")), Opt("KEY_PATH", Str("q"))]),
+			// MasterKeyEnclave stands only after the location.
+			"an enclave that is not the third" => new Statement.CreateColumnMasterKey(X, [Opt("KEY_PATH", Str("p")), Opt("KEY_STORE_PROVIDER_NAME", Str("s")), Opt("SIGNATURE", Hex("01"))]),
+			// MasterKeyEnclave reads SIGNATURE = binary.
+			"an enclave with a name for its signature" => new Statement.CreateColumnMasterKey(X, [Opt("KEY_PATH", Str("p")), Opt("KEY_STORE_PROVIDER_NAME", Str("s")), new Option(new Identifier("ENCLAVE_COMPUTATIONS"), null, [Opt("SIGNATURE", Word("s"))])]),
+			// CredentialWith reads Quoted.
+			"a credential identity that is a Unicode string" => new Statement.CreateCredential(X, new LiteralValue.String("'i'", StringLiteralKind.Unicode)),
+			// CREATE CRYPTOGRAPHIC PROVIDER reads FROM FILE = Quoted.
+			"a cryptographic provider file that is a Unicode string" => new Statement.CreateCryptographicProvider(X, new LiteralValue.String("'f'", StringLiteralKind.Unicode)),
+			// KeyDecryptor reads an Identifier.
+			"a key opened by a symmetric key of two parts" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.SymmetricKey(Q)),
+			// KeyDecryptor reads an Identifier.
+			"a key opened by a certificate of two parts" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.Certificate(Q)),
+			// KeyDecryptor has no SERVICE MASTER KEY.
+			"a key opened by the service master key" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.ServiceMasterKey()),
+			// KeyDecryptor reads CERTIFICATE, not SERVER CERTIFICATE.
+			"a key opened by a server certificate" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.Certificate(T) { Server = true }),
+			// WithoutVariable: `dbo.f (c, @user_id)` is Msg 112.
+			"a policy function with a variable" => new Statement.CreateSecurityPolicy(T) { Predicates = [new PolicyPredicate.AddFilter(Function("f", new Expression.Variable(new Identifier("@u"))), T)] },
+			// PolicySetting is STATE and SCHEMABINDING.
+			"a policy setting it has not" => new Statement.CreateSecurityPolicy(T) { Options = [Opt("ENABLED", Word("ON"))] },
+			// PolicySetting reads OnOff.
+			"a policy setting that is not ON or OFF" => new Statement.CreateSecurityPolicy(T) { Options = [Opt("STATE", Digits("1"))] },
+			// PolicyAlteration reads one predicate at least.
+			"an altered policy of no predicate" => new Statement.AlterSecurityPolicy(T, new SecurityPolicyChange.Predicates([])),
+			// ADD SENSITIVITY CLASSIFICATION TO reads one column at least.
+			"a classification of no column" => new Statement.AddSensitivityClassification([], [Opt("LABEL", Str("l"))]),
+			// ClassifiedColumn is two or three parts.
+			"a classified column of one part" => new Statement.AddSensitivityClassification([T], [Opt("LABEL", Str("l"))]),
+			// ADD SENSITIVITY CLASSIFICATION reads one option at least.
+			"a classification of no option" => new Statement.AddSensitivityClassification([Q], []),
+			// NamedOnce: Msg 153 for a repeated option.
+			"a classification option twice" => new Statement.AddSensitivityClassification([Q], [Opt("LABEL", Str("a")), Opt("LABEL", Str("b"))]),
+			// ClassificationOption reads NONE, LOW, MEDIUM, HIGH or CRITICAL.
+			"a classification rank that is none" => new Statement.AddSensitivityClassification([Q], [Opt("RANK", Word("HUGE"))]),
+			// ClassificationOption reads a BrokerString.
+			"a classification label that is a name" => new Statement.AddSensitivityClassification([Q], [Opt("LABEL", Word("l"))]),
+			// SignatureCrypto is read once at least.
+			"a signature by nothing" => new Statement.AddSignature(false, T, []),
+			// SignedModule reads OBJECT, ASSEMBLY or DATABASE.
+			"a signature to a module of another class" => new Statement.AddSignature(false, T, [new SignedBy.SymmetricKey(X)]) { Class = SecurableClass.Schema },
+			// SignatureCrypto reads an Identifier.
+			"a signature by a certificate of two parts" => new Statement.AddSignature(false, T, [new SignedBy.Certificate(Q)]),
+			// SignatureCrypto reads an Identifier.
+			"a signature by a key of two parts" => new Statement.AddSignature(false, T, [new SignedBy.AsymmetricKey(Q)]),
+			// TSql.BinaryLiteral reads 0x….
+			"a signature proof that is a binary string written X'…'" => new Statement.AddSignature(false, T, [new SignedBy.Certificate(One(X)) { Proof = new SignatureProof.Signature(new LiteralValue.Binary("'01'")) }]),
+			// SignatureCrypto reads PASSWORD = Quoted.
+			"a signature password that is a Unicode string" => new Statement.AddSignature(false, T, [new SignedBy.Password(new LiteralValue.String("'p'", StringLiteralKind.Unicode))]),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 

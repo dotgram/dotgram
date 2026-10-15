@@ -455,52 +455,14 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// DROP SIGNATURE: the module, which the old tree keeps as text with its class before <c>::</c>, and what signed
-		/// it, kept as words. A proof (<c>WITH PASSWORD</c>, <c>WITH SIGNATURE</c>), a symmetric key and a password are
-		/// gaps: <c>SignedBy</c> has no member for them.
+		/// DROP SIGNATURE: the module, which the old tree keeps as text with its class before <c>::</c>, and what signed it, kept as
+		/// words; both are read as ADD SIGNATURE's are (<see cref="Security.SignedModule"/>).
 		/// </summary>
 		static Ast.Statement Signature(Statement.DropSignature old)
 		{
-			var module = SqlTokens.Of(old.From ?? "");
-			Ast.SecurableClass? kind = null;
-			var name = module;
+			var (kind, module) = Security.SignedModule(old, old.From, "Statement.DropSignature.From");
 
-			if (module is [{ Kind: SqlTokens.Kind.Word, Text: var word }, { Text: ":" }, { Text: ":" }, ..])
-			{
-				kind = word.ToUpperInvariant() switch
-				{
-					"OBJECT"   => Ast.SecurableClass.Object,
-					"ASSEMBLY" => Ast.SecurableClass.Assembly,
-					"DATABASE" => Ast.SecurableClass.Database,
-					_          => throw BridgeGap.Open(old, $"inventory Statement.DropSignature (the class {word})"),
-				};
-				name = module.Skip(3).ToList();
-			}
-
-			var dotted = Dotted(name) ?? throw BridgeGap.Open(old, $"inventory Statement.DropSignature (`{old.From}`)");
-
-			Written(old, "Statement.DropSignature.From", old.From!, kind is null ? dotted : $"{module[0].Text.ToUpperInvariant()}::{dotted}");
-
-			var by = Each(old.Names, one =>
-			{
-				var text   = one is Expression.ColumnReference(var words) ? words : throw BridgeGap.Open(old, $"inventory Statement.DropSignature (a signer that is {NameOf(one)})");
-				var tokens = SqlTokens.Of(text);
-
-				Ast.SignedBy signed = Words(text) switch
-				{
-					["CERTIFICATE", _] when tokens[1].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited =>
-						new Ast.SignedBy.Certificate(new Ast.QualifiedName([Values.Part(old, tokens[1].Text)])),
-					["ASYMMETRIC", "KEY", _] when tokens[2].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited =>
-						new Ast.SignedBy.AsymmetricKey(new Ast.QualifiedName([Values.Part(old, tokens[2].Text)])),
-					_ => throw BridgeGap.Open(old, $"inventory Statement.DropSignature (`{text}`, a proof, a symmetric key or a password, which SignedBy has no member for)"),
-				};
-
-				Written(old, Trees.SignerName, text, signed is Ast.SignedBy.Certificate ? $"CERTIFICATE {tokens[1].Text}" : $"ASYMMETRIC KEY {tokens[2].Text}");
-
-				return signed;
-			});
-
-			return new Ast.Statement.DropSignature(old.Counter, Values.Name(old, dotted), by) { Class = kind };
+			return new Ast.Statement.DropSignature(old.Counter, module, Security.Signers(old, old.Names)) { Class = kind };
 		}
 	}
 }

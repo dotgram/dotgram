@@ -175,4 +175,185 @@ public sealed class SecurityBridgeTests
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
+
+	[Theory]
+	[InlineData("CREATE ASYMMETRIC KEY k AUTHORIZATION o WITH ALGORITHM = RSA_2048 ENCRYPTION BY PASSWORD = 'p'", 0)]
+	[InlineData("CREATE ASYMMETRIC KEY k FROM PROVIDER p WITH PROVIDER_KEY_NAME = 'n'", 1)]
+	[InlineData("CREATE ASYMMETRIC KEY k FROM FILE = 'f'", 2)]
+	[InlineData("CREATE ASYMMETRIC KEY k FROM EXECUTABLE FILE = 'f'", 3)]
+	[InlineData("CREATE ASYMMETRIC KEY k FROM ASSEMBLY a", 4)]
+	[InlineData("ALTER ASYMMETRIC KEY k REMOVE PRIVATE KEY", 5)]
+	[InlineData("ALTER ASYMMETRIC KEY k WITH PRIVATE KEY (DECRYPTION BY PASSWORD = 'a', ENCRYPTION BY PASSWORD = 'b')", 6)]
+	[InlineData("ALTER ASYMMETRIC KEY k ATTESTED BY 'a'", 7)]
+	[InlineData("ALTER ASYMMETRIC KEY k REMOVE ATTESTED OPTION", 8)]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256 ENCRYPTION BY CERTIFICATE c, PASSWORD = 'p', SYMMETRIC KEY s, ASYMMETRIC KEY a", 9)]
+	[InlineData("CREATE SYMMETRIC KEY #k FROM PROVIDER p", 10)]
+	[InlineData("ALTER SYMMETRIC KEY k ADD ENCRYPTION BY PASSWORD = 'p'", 11)]
+	[InlineData("ALTER SYMMETRIC KEY k DROP ENCRYPTION BY PASSWORD = 'p'", 12)]
+	[InlineData("CREATE CERTIFICATE c ENCRYPTION BY PASSWORD = 'p' WITH SUBJECT = 's' ACTIVE FOR BEGIN_DIALOG = ON", 13)]
+	[InlineData("CREATE CERTIFICATE c WITH SUBJECT = 's' ACTIVE FOR BEGIN_DIALOG = OFF", 14)]
+	[InlineData("CREATE CERTIFICATE c WITH SUBJECT = 's'", 15)]
+	[InlineData("CREATE CERTIFICATE c FROM ASSEMBLY a", 16)]
+	[InlineData("CREATE CERTIFICATE c FROM FILE = 'f'", 17)]
+	[InlineData("CREATE CERTIFICATE c FROM EXECUTABLE FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (FILE = 'k')", 18)]
+	[InlineData("CREATE CERTIFICATE c FROM BINARY = 0x01 WITH PRIVATE KEY (BINARY = 0x02)", 19)]
+	[InlineData("ALTER CERTIFICATE c WITH ACTIVE FOR BEGIN_DIALOG = ON", 20)]
+	[InlineData("ALTER CERTIFICATE c WITH PRIVATE KEY (FILE = 'k')", 21)]
+	[InlineData("ALTER CERTIFICATE c REMOVE PRIVATE KEY", 22)]
+	[InlineData("ALTER CERTIFICATE c ATTESTED BY 'a'", 23)]
+	[InlineData("ALTER CERTIFICATE c REMOVE ATTESTED OPTION", 24)]
+	[InlineData("CREATE MASTER KEY", 25)]
+	[InlineData("CREATE MASTER KEY ENCRYPTION BY PASSWORD = N'p'", 26)]
+	[InlineData("ALTER MASTER KEY REGENERATE WITH ENCRYPTION BY PASSWORD = 'p'", 27)]
+	[InlineData("ALTER MASTER KEY FORCE REGENERATE WITH ENCRYPTION BY PASSWORD = 'p'", 28)]
+	[InlineData("ALTER MASTER KEY ADD ENCRYPTION BY SERVICE MASTER KEY", 29)]
+	[InlineData("ALTER MASTER KEY DROP ENCRYPTION BY SERVICE MASTER KEY", 30)]
+	[InlineData("ALTER MASTER KEY ADD ENCRYPTION BY PASSWORD = 'p'", 31)]
+	[InlineData("ALTER SERVICE MASTER KEY REGENERATE", 32)]
+	[InlineData("ALTER SERVICE MASTER KEY FORCE REGENERATE", 33)]
+	[InlineData("ALTER SERVICE MASTER KEY WITH OLD_ACCOUNT = 'a', OLD_PASSWORD = 'p'", 34)]
+	[InlineData("ALTER SERVICE MASTER KEY WITH NEW_ACCOUNT = 'a', NEW_PASSWORD = 'p'", 35)]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_192 ENCRYPTION BY SERVER CERTIFICATE c", 36)]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = TRIPLE_DES_3KEY ENCRYPTION BY SERVER ASYMMETRIC KEY k", 37)]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_128", 38)]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY ENCRYPTION BY SERVER CERTIFICATE c", 39)]
+	[InlineData("CREATE COLUMN ENCRYPTION KEY k WITH VALUES (COLUMN_MASTER_KEY = m, ALGORITHM = 'a', ENCRYPTED_VALUE = 0x01), (COLUMN_MASTER_KEY = n, ALGORITHM = 'a', ENCRYPTED_VALUE = 0x02)", 40)]
+	[InlineData("ALTER COLUMN ENCRYPTION KEY k ADD VALUE (COLUMN_MASTER_KEY = m, ALGORITHM = 'a', ENCRYPTED_VALUE = 0x01)", 41)]
+	[InlineData("ALTER COLUMN ENCRYPTION KEY k DROP VALUE (COLUMN_MASTER_KEY = m)", 42)]
+	[InlineData("CREATE COLUMN MASTER KEY k WITH (KEY_STORE_PROVIDER_NAME = 'p', KEY_PATH = 'x', ENCLAVE_COMPUTATIONS (SIGNATURE = 0x01))", 43)]
+	[InlineData("CREATE CREDENTIAL c WITH IDENTITY = 'i', SECRET = 's' FOR CRYPTOGRAPHIC PROVIDER p", 44)]
+	[InlineData("ALTER CREDENTIAL c WITH IDENTITY = 'i'", 45)]
+	[InlineData("CREATE DATABASE SCOPED CREDENTIAL c WITH IDENTITY = 'i', SECRET = 's'", 46)]
+	[InlineData("ALTER DATABASE SCOPED CREDENTIAL c WITH IDENTITY = 'i'", 47)]
+	[InlineData("CREATE CRYPTOGRAPHIC PROVIDER p FROM FILE = 'f'", 48)]
+	[InlineData("ALTER CRYPTOGRAPHIC PROVIDER p ENABLE", 49)]
+	[InlineData("ALTER CRYPTOGRAPHIC PROVIDER p DISABLE", 50)]
+	[InlineData("ALTER CRYPTOGRAPHIC PROVIDER p FROM FILE = 'f'", 51)]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY CERTIFICATE c", 52)]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY CERTIFICATE c WITH PASSWORD = 'p'", 53)]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY ASYMMETRIC KEY a WITH PASSWORD = 'p'", 54)]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY SYMMETRIC KEY s", 55)]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY PASSWORD = 'p'", 56)]
+	[InlineData("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'p'", 57)]
+	[InlineData("CLOSE SYMMETRIC KEY k", 58)]
+	[InlineData("CLOSE ALL SYMMETRIC KEYS", 59)]
+	[InlineData("CLOSE MASTER KEY", 60)]
+	[InlineData("CREATE SECURITY POLICY p ADD FILTER PREDICATE dbo.f(c) ON t", 61)]
+	[InlineData("CREATE SECURITY POLICY p ALTER FILTER PREDICATE dbo.f(c) ON t", 62)]
+	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f() ON t AFTER INSERT", 63)]
+	[InlineData("CREATE SECURITY POLICY p ALTER BLOCK PREDICATE dbo.f(1, 2) ON t BEFORE UPDATE", 64)]
+	[InlineData("CREATE SECURITY POLICY p WITH (STATE = ON, SCHEMABINDING = OFF) NOT FOR REPLICATION", 65)]
+	[InlineData("ALTER SECURITY POLICY p DROP FILTER PREDICATE ON t", 66)]
+	[InlineData("ALTER SECURITY POLICY p DROP BLOCK PREDICATE ON t AFTER UPDATE", 67)]
+	[InlineData("ALTER SECURITY POLICY p DROP BLOCK PREDICATE ON t BEFORE DELETE", 68)]
+	[InlineData("ALTER SECURITY POLICY p WITH (STATE = OFF)", 69)]
+	[InlineData("ALTER SECURITY POLICY p ADD NOT FOR REPLICATION", 70)]
+	[InlineData("ALTER SECURITY POLICY p DROP NOT FOR REPLICATION", 71)]
+	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c, dbo.t.d WITH (LABEL = 'l', RANK = HIGH)", 72)]
+	[InlineData("ADD SIGNATURE TO p BY CERTIFICATE c", 73)]
+	[InlineData("ADD COUNTER SIGNATURE TO OBJECT::p BY CERTIFICATE c", 74)]
+	[InlineData("ADD SIGNATURE TO ASSEMBLY::a BY CERTIFICATE c WITH PASSWORD = 'p'", 75)]
+	[InlineData("ADD SIGNATURE TO DATABASE::d BY ASYMMETRIC KEY k WITH SIGNATURE = 0x01", 76)]
+	[InlineData("ADD SIGNATURE TO p BY SYMMETRIC KEY k, PASSWORD = 'x'", 77)]
+	[InlineData("DROP SIGNATURE FROM p BY CERTIFICATE c WITH PASSWORD = 'p'", 78)]
+	[InlineData("DROP COUNTER SIGNATURE FROM p BY ASYMMETRIC KEY k WITH SIGNATURE = 0x", 79)]
+	[InlineData("DROP SIGNATURE FROM p BY SYMMETRIC KEY k", 80)]
+	[InlineData("DROP SIGNATURE FROM p BY PASSWORD = N'x'", 81)]
+	public void The_bridge_builds_the_key_record_the_text_means(string text, int row)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = row switch
+		{
+			0 => made is Ast.Statement.CreateAsymmetricKey { Authorization.Text: "o", Source: null, Options: [{ Name.Text: "ALGORITHM", Value: Ast.Expression.Reference }], EncryptedBy.Value.Text: "'p'" },
+			1 => made is Ast.Statement.CreateAsymmetricKey { Source: Ast.AsymmetricKeySource.Provider { Name.Text: "p" }, Options: [{ Name.Text: "PROVIDER_KEY_NAME" }] },
+			2 => made is Ast.Statement.CreateAsymmetricKey { Source: Ast.AsymmetricKeySource.File { Executable: false } },
+			3 => made is Ast.Statement.CreateAsymmetricKey { Source: Ast.AsymmetricKeySource.File { Executable: true } },
+			4 => made is Ast.Statement.CreateAsymmetricKey { Source: Ast.AsymmetricKeySource.Assembly { Name.Parts.Count: 1 } },
+			5 => made is Ast.Statement.AlterAsymmetricKey { Change: Ast.AsymmetricKeyChange.RemovePrivateKey },
+			6 => made is Ast.Statement.AlterAsymmetricKey { Change: Ast.AsymmetricKeyChange.WithPrivateKey { Options: [{ Name.Text: "DECRYPTION", Words: [{ Text: "BY" }, { Text: "PASSWORD" }] }, { Name.Text: "ENCRYPTION" }] } },
+			7 => made is Ast.Statement.AlterAsymmetricKey { Change: Ast.AsymmetricKeyChange.AttestedBy },
+			8 => made is Ast.Statement.AlterAsymmetricKey { Change: Ast.AsymmetricKeyChange.RemoveAttestedOption },
+			9 => made is Ast.Statement.CreateSymmetricKey { Provider: null, EncryptedBy: [Ast.KeyEncryptor.Certificate { Server: false, WithPassword: null }, Ast.KeyEncryptor.Password, Ast.KeyEncryptor.SymmetricKey, Ast.KeyEncryptor.AsymmetricKey] },
+			10 => made is Ast.Statement.CreateSymmetricKey { Name.Text: "#k", Provider.Text: "p", Options: [], EncryptedBy: [] },
+			11 => made is Ast.Statement.AlterSymmetricKey { Change: Ast.SymmetricKeyChange.AddEncryption { By: [Ast.KeyEncryptor.Password] } },
+			12 => made is Ast.Statement.AlterSymmetricKey { Change: Ast.SymmetricKeyChange.DropEncryption { By: [Ast.KeyEncryptor.Password] } },
+			13 => made is Ast.Statement.CreateCertificate { Source: null, EncryptedBy: not null, Options: [{ Name.Text: "SUBJECT" }], ActiveForBeginDialog: true },
+			14 => made is Ast.Statement.CreateCertificate { EncryptedBy: null, ActiveForBeginDialog: false },
+			15 => made is Ast.Statement.CreateCertificate { ActiveForBeginDialog: null },
+			16 => made is Ast.Statement.CreateCertificate { Source: Ast.CertificateSource.Assembly },
+			17 => made is Ast.Statement.CreateCertificate { Source: Ast.CertificateSource.File { Executable: false, Format: null, PrivateKey: [] } },
+			18 => made is Ast.Statement.CreateCertificate { Source: Ast.CertificateSource.File { Executable: true, Format: not null, PrivateKey: [{ Name.Text: "FILE" }] } },
+			19 => made is Ast.Statement.CreateCertificate { Source: Ast.CertificateSource.Binary { Value.Text: "01", PrivateKey: [{ Name.Text: "BINARY" }] } },
+			20 => made is Ast.Statement.AlterCertificate { Change: Ast.CertificateChange.ActiveForBeginDialog { On: true } },
+			21 => made is Ast.Statement.AlterCertificate { Change: Ast.CertificateChange.WithPrivateKey },
+			22 => made is Ast.Statement.AlterCertificate { Change: Ast.CertificateChange.RemovePrivateKey },
+			23 => made is Ast.Statement.AlterCertificate { Change: Ast.CertificateChange.AttestedBy },
+			24 => made is Ast.Statement.AlterCertificate { Change: Ast.CertificateChange.RemoveAttestedOption },
+			25 => made is Ast.Statement.CreateMasterKey { EncryptedBy: null },
+			26 => made is Ast.Statement.CreateMasterKey { EncryptedBy.Value.Kind: Ast.StringLiteralKind.National },
+			27 => made is Ast.Statement.AlterMasterKey { Change: Ast.MasterKeyChange.Regenerate { Force: false } },
+			28 => made is Ast.Statement.AlterMasterKey { Change: Ast.MasterKeyChange.Regenerate { Force: true } },
+			29 => made is Ast.Statement.AlterMasterKey { Change: Ast.MasterKeyChange.AddEncryption { By: Ast.KeyEncryptor.ServiceMasterKey } },
+			30 => made is Ast.Statement.AlterMasterKey { Change: Ast.MasterKeyChange.DropEncryption { By: Ast.KeyEncryptor.ServiceMasterKey } },
+			31 => made is Ast.Statement.AlterMasterKey { Change: Ast.MasterKeyChange.AddEncryption { By: Ast.KeyEncryptor.Password } },
+			32 => made is Ast.Statement.AlterServiceMasterKey { Change: Ast.ServiceMasterKeyChange.Regenerate { Force: false } },
+			33 => made is Ast.Statement.AlterServiceMasterKey { Change: Ast.ServiceMasterKeyChange.Regenerate { Force: true } },
+			34 => made is Ast.Statement.AlterServiceMasterKey { Change: Ast.ServiceMasterKeyChange.OldAccount },
+			35 => made is Ast.Statement.AlterServiceMasterKey { Change: Ast.ServiceMasterKeyChange.NewAccount },
+			36 => made is Ast.Statement.CreateDatabaseEncryptionKey { Algorithm: Ast.DatabaseKeyAlgorithm.Aes192, By: Ast.KeyEncryptor.Certificate { Server: true } },
+			37 => made is Ast.Statement.CreateDatabaseEncryptionKey { Algorithm: Ast.DatabaseKeyAlgorithm.TripleDes3Key, By: Ast.KeyEncryptor.AsymmetricKey { Server: true } },
+			38 => made is Ast.Statement.AlterDatabaseEncryptionKey { Change: Ast.DatabaseEncryptionKeyChange.Regenerate { Algorithm: Ast.DatabaseKeyAlgorithm.Aes128 } },
+			39 => made is Ast.Statement.AlterDatabaseEncryptionKey { Change: Ast.DatabaseEncryptionKeyChange.EncryptedBy { By: Ast.KeyEncryptor.Certificate { Server: true } } },
+			40 => made is Ast.Statement.CreateColumnEncryptionKey { Values: [{ Settings.Count: 3 }, { Settings.Count: 3 }] },
+			41 => made is Ast.Statement.AlterColumnEncryptionKey { Change: Ast.ColumnKeyChange.AddValue { Value.Settings.Count: 3 } },
+			42 => made is Ast.Statement.AlterColumnEncryptionKey { Change: Ast.ColumnKeyChange.DropValue { Value.Settings.Count: 1 } },
+			43 => made is Ast.Statement.CreateColumnMasterKey { Options: [{ Name.Text: "KEY_STORE_PROVIDER_NAME" }, { Name.Text: "KEY_PATH" }, { Name.Text: "ENCLAVE_COMPUTATIONS", Options: [{ Name.Text: "SIGNATURE", Value: Ast.LiteralValue.Binary }] }] },
+			44 => made is Ast.Statement.CreateCredential { Secret: not null, Provider.Text: "p" },
+			45 => made is Ast.Statement.AlterCredential { Secret: null, Provider: null },
+			46 => made is Ast.Statement.CreateDatabaseScopedCredential { Secret: not null },
+			47 => made is Ast.Statement.AlterDatabaseScopedCredential { Secret: null },
+			48 => made is Ast.Statement.CreateCryptographicProvider,
+			49 => made is Ast.Statement.AlterCryptographicProvider { Change: Ast.CryptographicProviderChange.Enable },
+			50 => made is Ast.Statement.AlterCryptographicProvider { Change: Ast.CryptographicProviderChange.Disable },
+			51 => made is Ast.Statement.AlterCryptographicProvider { Change: Ast.CryptographicProviderChange.FromFile },
+			52 => made is Ast.Statement.OpenSymmetricKey { DecryptedBy: Ast.KeyEncryptor.Certificate { WithPassword: null, Server: false } },
+			53 => made is Ast.Statement.OpenSymmetricKey { DecryptedBy: Ast.KeyEncryptor.Certificate { WithPassword: not null } },
+			54 => made is Ast.Statement.OpenSymmetricKey { DecryptedBy: Ast.KeyEncryptor.AsymmetricKey { WithPassword: not null } },
+			55 => made is Ast.Statement.OpenSymmetricKey { DecryptedBy: Ast.KeyEncryptor.SymmetricKey },
+			56 => made is Ast.Statement.OpenSymmetricKey { DecryptedBy: Ast.KeyEncryptor.Password },
+			57 => made is Ast.Statement.OpenMasterKey,
+			58 => made is Ast.Statement.CloseSymmetricKey { Name.Text: "k" },
+			59 => made is Ast.Statement.CloseAllSymmetricKeys,
+			60 => made is Ast.Statement.CloseMasterKey,
+			61 => made is Ast.Statement.CreateSecurityPolicy { Predicates: [Ast.PolicyPredicate.AddFilter { Function.Arguments.Count: 1 }] },
+			62 => made is Ast.Statement.CreateSecurityPolicy { Predicates: [Ast.PolicyPredicate.AlterFilter] },
+			63 => made is Ast.Statement.CreateSecurityPolicy { Predicates: [Ast.PolicyPredicate.AddBlock { Function.Arguments.Count: 0, When: Ast.BlockOperation.AfterInsert }] },
+			64 => made is Ast.Statement.CreateSecurityPolicy { Predicates: [Ast.PolicyPredicate.AlterBlock { When: Ast.BlockOperation.BeforeUpdate }] },
+			65 => made is Ast.Statement.CreateSecurityPolicy { Predicates: [], Options: [{ Name.Text: "STATE" }, { Name.Text: "SCHEMABINDING" }], NotForReplication: true },
+			66 => made is Ast.Statement.AlterSecurityPolicy { Change: Ast.SecurityPolicyChange.Predicates { Items: [Ast.PolicyPredicate.DropFilter] } },
+			67 => made is Ast.Statement.AlterSecurityPolicy { Change: Ast.SecurityPolicyChange.Predicates { Items: [Ast.PolicyPredicate.DropBlock { When: Ast.BlockOperation.AfterUpdate }] } },
+			68 => made is Ast.Statement.AlterSecurityPolicy { Change: Ast.SecurityPolicyChange.Predicates { Items: [Ast.PolicyPredicate.DropBlock { When: Ast.BlockOperation.BeforeDelete }] } },
+			69 => made is Ast.Statement.AlterSecurityPolicy { Change: Ast.SecurityPolicyChange.State { On: false } },
+			70 => made is Ast.Statement.AlterSecurityPolicy { Change: Ast.SecurityPolicyChange.AddNotForReplication },
+			71 => made is Ast.Statement.AlterSecurityPolicy { Change: Ast.SecurityPolicyChange.DropNotForReplication },
+			72 => made is Ast.Statement.AddSensitivityClassification { Columns.Count: 2, Options: [{ Name.Text: "LABEL", Value: Ast.LiteralValue.String }, { Name.Text: "RANK", Value: Ast.Expression.Reference }] },
+			73 => made is Ast.Statement.AddSignature { Counter: false, Class: null, By: [Ast.SignedBy.Certificate { Proof: null }] },
+			74 => made is Ast.Statement.AddSignature { Counter: true, Class: Ast.SecurableClass.Object },
+			75 => made is Ast.Statement.AddSignature { Class: Ast.SecurableClass.Assembly, By: [Ast.SignedBy.Certificate { Proof: Ast.SignatureProof.Password }] },
+			76 => made is Ast.Statement.AddSignature { Class: Ast.SecurableClass.Database, By: [Ast.SignedBy.AsymmetricKey { Proof: Ast.SignatureProof.Signature { Value.Text: "01" } }] },
+			77 => made is Ast.Statement.AddSignature { By: [Ast.SignedBy.SymmetricKey { Name.Text: "k" }, Ast.SignedBy.Password] },
+			78 => made is Ast.Statement.DropSignature { Counter: false, By: [Ast.SignedBy.Certificate { Proof: Ast.SignatureProof.Password }] },
+			79 => made is Ast.Statement.DropSignature { Counter: true, By: [Ast.SignedBy.AsymmetricKey { Proof: Ast.SignatureProof.Signature { Value.Text: "" } }] },
+			80 => made is Ast.Statement.DropSignature { By: [Ast.SignedBy.SymmetricKey] },
+			81 => made is Ast.Statement.DropSignature { By: [Ast.SignedBy.Password { Value.Kind: Ast.StringLiteralKind.National }] },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
 }

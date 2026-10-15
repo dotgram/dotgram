@@ -471,49 +471,18 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// T-SQL: DROP SIGNATURE (Transact-SQL). <c>[COUNTER] SIGNATURE FROM [class::] module BY</c> and what signed it: a
-		/// certificate or an asymmetric key, by a name of one part.
+		/// T-SQL: DROP SIGNATURE (Transact-SQL). <c>[COUNTER] SIGNATURE FROM [class::] module BY</c> and what signed it, as ADD
+		/// SIGNATURE's signers are written (<c>PutSignedBy</c>).
 		/// </summary>
 		void PutDropSignature(Statement.DropSignature drop)
 		{
 			if (drop.By.Count == 0)
 				throw Empty(drop, "By");
 
-			if (drop.Class is { } written && written is not (SecurableClass.Object or SecurableClass.Assembly or SecurableClass.Database))
-				throw Misplaced(drop, "Class", "other than OBJECT, ASSEMBLY or DATABASE, which SignedModule does not read");
-
-			if (drop.By.Any(static one => one is SignedBy.Certificate { Name.Parts.Count: not 1 } or SignedBy.AsymmetricKey { Name.Parts.Count: not 1 }))
-				throw Misplaced(drop, "By", "with a name of more than one part, which SignatureCrypto does not read");
-
 			Word(drop.Counter ? "DROP COUNTER SIGNATURE FROM" : "DROP SIGNATURE FROM");
-
-			if (drop.Class is { } one)
-			{
-				Word(PermissionWords.Text(one) ?? throw NoText(one));
-				Tight("::");
-				Hold();
-			}
-
-			PutName(drop.Module);
+			PutSignedModule(drop, drop.Class, drop.Module);
 			Word("BY");
-			Each(drop.By, signed =>
-			{
-				switch (signed)
-				{
-					case SignedBy.Certificate certificate:
-						Word("CERTIFICATE");
-						PutName(certificate.Name);
-						break;
-
-					case SignedBy.AsymmetricKey key:
-						Word("ASYMMETRIC KEY");
-						PutName(key.Name);
-						break;
-
-					default:
-						throw Unwritten(signed);
-				}
-			});
+			PutSignedBy(drop, drop.By);
 		}
 	}
 }
