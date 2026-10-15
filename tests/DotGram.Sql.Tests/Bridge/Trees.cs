@@ -131,8 +131,8 @@ static class Trees
 	public const string DropIndexName = "Expression.ColumnReference.Text under Statement.DropIndex";
 
 	/// <summary>
-	/// What DROP SIGNATURE's signer text counts as: the old tree keeps <c>CERTIFICATE c</c> as one column reference's text,
-	/// which compares so under <c>Statement.DropSignature</c> alone.
+	/// What a signer's text counts as: the old tree keeps <c>CERTIFICATE c</c> as one column reference's text, which compares
+	/// so under <c>Statement.DropSignature</c> and <c>Statement.AddSignature</c> alone.
 	/// </summary>
 	public const string SignerName = "Expression.ColumnReference.Text under Statement.DropSignature";
 

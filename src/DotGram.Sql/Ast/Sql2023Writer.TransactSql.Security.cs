@@ -658,7 +658,7 @@ public static partial class Sql2023Writer
 			if (option.Words.Any(static word => word.Style != IdentifierStyle.Regular || word.UnicodeEscape is not null))
 				throw Misplaced(option, "Words", $"that are not plain words, in {place}");
 
-			return string.Join(' ', option.Words.Select(static word => word.Text).Prepend(option.Name.Text)).ToUpperInvariant();
+			return string.Join(" ", option.Words.Select(static word => word.Text).Prepend(option.Name.Text)).ToUpperInvariant();
 		}
 
 		/// <summary>
@@ -685,7 +685,7 @@ public static partial class Sql2023Writer
 
 				case LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } when forms.HasFlag(Forms.String):
 				case LiteralValue.Binary { ZeroX: true } when forms.HasFlag(Forms.Hex):
-				case LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger } numeric when forms.HasFlag(Forms.Digits) && numeric.Text.All(char.IsAsciiDigit) && numeric.Text.Length > 0:
+				case LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger } numeric when forms.HasFlag(Forms.Digits) && numeric.Text.All(static digit => digit is >= '0' and <= '9') && numeric.Text.Length > 0:
 				case LiteralValue.Null when forms.HasFlag(Forms.Null):
 					PutExpression(value);
 					return;
