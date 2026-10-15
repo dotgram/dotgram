@@ -99,6 +99,19 @@ static class Trees
 		"Statement.Deny.On",
 		"Statement.Revoke.Privileges",
 		"Statement.Revoke.On",
+		// What follows the name of a role, a login, a user, a schema's transfer and an authorization, kept as written.
+		"Statement.CreateRole.Tail",
+		"Statement.AlterRole.Tail",
+		"Statement.CreateServerRole.Tail",
+		"Statement.AlterServerRole.Tail",
+		"Statement.CreateApplicationRole.Tail",
+		"Statement.AlterApplicationRole.Tail",
+		"Statement.CreateLogin.Tail",
+		"Statement.AlterLogin.Tail",
+		"Statement.CreateUser.Tail",
+		"Statement.AlterUser.Tail",
+		"Statement.AlterSchema.Tail",
+		"Statement.AlterAuthorization.Tail",
 	};
 
 	/// <summary>
@@ -160,7 +173,9 @@ static class Trees
 		"ASYMMETRIC", "CERTIFICATE", "DATABASE", "DEPENDENTS", "IO", "LOG", "NONE", "NOWAIT", "OBJECT", "OUTPUT", "PROFILE",
 		"PROVIDER", "RECOMPILE", "REMOVE", "RESULT", "SERVER", "SETERROR", "SETS", "UNDEFINED",
 		// The Security family: the words of permissions and of securables' classes the old tree keeps as written.
-		"CREATE", "ROLE", "SELECT", "VIEW",
+		"COLLECTION", "CREATE", "CREDENTIAL", "EXTERNAL", "GRANT", "HASHED", "LOGIN", "MEMBER", "MUST_CHANGE", "NAME", "OWNER",
+		"PASSWORD", "PRIVILEGES", "PROCEDURE", "PUBLIC", "REVOKE", "ROLE", "SCHEMA", "SELECT", "TRANSFER", "UNLOCK", "VIEW", "WINDOWS",
+		"WITHOUT",
 	};
 
 	/// <summary>

@@ -243,7 +243,7 @@ public abstract partial record Statement : ISqlNode
 	// BNF: GRANT/REVOKE/ROLE
 	public record Grant : Statement { public required GrantBody Body { get; init; } }
 	public record Revoke : Statement { public required RevokeBody Body { get; init; } }
-	public record CreateRole : Statement { public required Identifier Name { get; init; } public Grantor? Admin { get; init; } }
+	public partial record CreateRole : Statement { public required Identifier Name { get; init; } public Grantor? Admin { get; init; } }
 	public record DropRole : Statement { public SqlList<Identifier> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: cursor/data control statements
