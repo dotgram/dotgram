@@ -7,6 +7,7 @@ using System.Reflection;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Emit;
+using DotGram.Grammar.Model;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -58,13 +59,19 @@ static class EmittedCode
 	/// down. They are asserted on where they are the subject, in <c>CarrierTests</c>, which
 	/// reads the list itself.
 	/// </para>
+	/// <para>
+	/// GRAM4043 is let through for a reason of its own: a test of how a spaced grammar reads
+	/// is written over single characters (<c>'a' &amp; [^ 'b']</c>), which is the shape that
+	/// warning tells, and spacing them is what the test is about. It is asserted on where it
+	/// is the subject, in <c>SpacedLexemeTests</c>.
+	/// </para>
 	/// </remarks>
 	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics)
 	{
 		Assert.DoesNotContain(
 			diagnostics,
 			static one => one.Severity != GramSeverity.Info &&
-				one.Id is not (GramCompiler.CarrierCaution or GramCompiler.CarrierRefused));
+				one.Id is not (GramCompiler.CarrierCaution or GramCompiler.CarrierRefused or GrammarNormalizer.SpacedLexeme));
 	}
 
 	public static Assembly Compile(

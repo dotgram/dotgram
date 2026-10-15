@@ -1888,7 +1888,8 @@ public sealed class GeneratorDriverTests
 			public partial class SpacedStream { }
 			""" + Shapes;
 
-		var assembly = Build(spaced);
+		// Names of single characters, spaced on purpose, which GRAM4043 tells.
+		var assembly = Build(spaced, permittedWarning: "GRAM4043");
 		var text     = " aa; bb;  cc; ";
 
 		var whole = ((Array)assembly

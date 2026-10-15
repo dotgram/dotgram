@@ -1382,8 +1382,8 @@ TypeName = Word & ('.' & Word)*      // no braces: a dotted name is a type only 
 ```
 
 The grammars that ship hold both, and the difference between them is not in their shape
-— it is in what the author meant. That is why this is written here rather than diagnosed:
-the compiler can see that the reading is unsettled, and cannot see whether that was the
+— it is in what the author meant. That is why the compiler diagnoses only the narrow shape
+above: it can see that the reading is unsettled, and cannot see whether that was the
 intention.
 
 **Switching per block is the shadowing from §5**, not a separate mechanism:
@@ -1420,9 +1420,40 @@ When `trivia` is empty the insertions are dropped entirely during normalization:
 nothing of them survives to run time.
 
 A silent failure is possible here — a lexical rule that ended up by oversight in a
-namespace with non-empty `trivia` will quietly accept `i f` as `if`. No mechanism
-catches that, but a warning does: a rule whose operands all test a single input item
-is almost certainly a mistake in such a namespace.
+namespace with non-empty `trivia` will quietly accept `i f` as `if`, and `1 . 5` as a
+number. The compiler cannot tell a lexeme from anything else by its shape, but it tells
+the one shape that is almost never meant (`GRAM4043`, a warning). A rule declared where
+`trivia` is not empty is told when:
+
+- every operand it reads tests one input item: a character class, `any`, a literal of one
+  character, `eol`, a call to a rule that builds no value and is itself one such item
+  (`Std.Digit`, `Letter`), a back-reference, or a group, `?`, `*`, `+`, `{}` or capture of
+  those;
+- at least one of them is a class or `any`, so that `'<' & '>'` is left alone;
+- a seam is woven between two of them, in a sequence or between the turns of a repetition
+  of a sequence; and
+- the rule does not name `trivia` itself.
+
+`Std.Digit+ & ('.' & Std.Digit+)?`, `Letter & (Letter | Digit)*` and `'\\' & any` are told;
+`"if"`, `['0'..'9']+`, `Word & ('.' & Word)*`, a rule under `trivia = none` or joined
+with `~`, and a specialization such as `List(['a'..'z'], ',')` are not. Braces do not
+silence it, because they commit a reading and keep every seam; write `~` between the parts
+(`Std.Digit+ ~ ('.' ~ Std.Digit+)?`), declare the rule where `trivia = none`, or, if the
+space is meant, write `trivia` there. The rules `trivia` is itself made of are not judged.
+
+**What it does not catch.** A run is not one item: `Std.Digits & ('.' & Std.Digits)?`, which
+reads `1 .5`, and `Word & ('.' & Word)*` have the same shape, and the second may be the
+dotted name `TypeName` below, written on purpose. Neither is told, so a number or a string
+built from runs and quotes is written with `~` by hand:
+
+```dotgram
+Point = { Std.Digits ~ ('.' ~ Std.Digits)? }     // 1.5, and not 1 .5
+Text  = '"' ~ body: Body ~ '"'                    // " a" keeps its space
+```
+
+The converse costs a warning: a single-digit toy, `Digit & ('+' & Digit)*`, written to be
+spaced, is told too; naming `trivia` in it (`Digit & (trivia & '+' & trivia & Digit)*`)
+says that the space is meant.
 
 #### `~` — where trivia may not go
 

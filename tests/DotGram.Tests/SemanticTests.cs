@@ -3278,9 +3278,11 @@ public sealed class SemanticTests
 	{
 		var result = Compile(grammar + "\nparse Start");
 
+		// Single characters spaced on purpose: the grammar is about how its seams read.
 		Assert.DoesNotContain(
 			result.Diagnostics,
-			static diagnostic => diagnostic.Severity != GramSeverity.Info);
+			static diagnostic => diagnostic.Severity != GramSeverity.Info &&
+				diagnostic.Id != GrammarNormalizer.SpacedLexeme);
 
 		return EmittedCode.Match(
 			EmittedCode.Compile(Assert.Single(result.Sources).Text),
