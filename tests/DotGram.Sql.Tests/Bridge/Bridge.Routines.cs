@@ -106,7 +106,7 @@ static partial class Bridge
 			// SQL:2023 reads `EXECUTE name` alone as its EXECUTE of a prepared statement: another meaning, not one tree.
 			if (inside is null && keyword == Ast.ExecuteKeyword.Execute && module is Ast.ModuleReference.Named { DataSource: null }
 				&& old is { Arguments.Length: 0, Into: null, Number: null, At: null, Tail: null })
-				throw BridgeGap.Open(old, "needs decision: EXECUTE name alone is also the standard's EXECUTE of a prepared statement (shape)");
+				throw BridgeGap.Open(old, "EXECUTE name alone is also the standard's EXECUTE of a prepared statement (shape)");
 
 			return new Ast.Statement.ExecuteModule(module, Each(old.Arguments, one => ExecuteArgument(old, one)))
 			{

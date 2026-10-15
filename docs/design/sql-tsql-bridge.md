@@ -324,7 +324,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateDatabase` | Database | C | gap 154 | 154: no target record: Statement.CreateDatabase (154) | 154 |
 | `Clause.Set` | Dml | B | — | — | 151 |
 | `Statement.AlterIndex` | Tables | C | converted 134, gap 14 | 14: needs decision: inventory Statement.AlterIndex (a selective XML index's paths) (14) | 148 |
-| `Statement.Execute` | Routines | B | converted 126, gap 13 | 15: needs decision: Trees.FreeText (Statement.Execute.Tail, written otherwise than the writer prints it) (8); needs decision: needs decision: EXECUTE name alone is also the standard's EXECUTE of a prepared statement (shape) (7) | 147 |
+| `Statement.Execute` | Routines | B | converted 126, gap 13 | 15: needs decision: Trees.FreeText (Statement.Execute.Tail, written otherwise than the writer prints it) (8); needs decision: EXECUTE name alone is also the standard's EXECUTE of a prepared statement (shape) (7) | 147 |
 | `Clause.References` | Tables | A | — | — | 145 |
 | `Statement.Return` | Procedural | A | converted 3 | — | 145 |
 | `Statement.Update` | Dml | A | converted 114 | — | 140 |
