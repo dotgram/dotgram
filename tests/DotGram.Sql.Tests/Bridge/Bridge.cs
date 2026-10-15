@@ -161,6 +161,7 @@ static partial class Bridge
 		"Statement.ExecuteAs.Exec",
 		"RoutineDefinition.Unbracketed",
 		"RoutineDefinition.AsOmitted",
+		"Statement.Classification.Options",
 	];
 
 	/// <summary>

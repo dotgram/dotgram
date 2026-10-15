@@ -140,6 +140,7 @@ static class BridgeReport
 		- `Statement.ExecuteAs.Exec`: `EXEC AS` against `EXECUTE AS`.
 		- `RoutineDefinition.Unbracketed`: a procedure's parameters without their brackets, `CREATE PROCEDURE p @a INT AS …`.
 		- `RoutineDefinition.AsOmitted`: a function's body or inline RETURN with no AS before it.
+		- `Statement.Classification.Options`: the names of ADD SENSITIVITY CLASSIFICATION's options and the RANK word, as written (the old tree upper-cases them).
 
 		## Prefixed pivot and unpivot names
 

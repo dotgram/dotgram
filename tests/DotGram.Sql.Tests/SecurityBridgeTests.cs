@@ -356,4 +356,17 @@ public sealed class SecurityBridgeTests
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
+
+	/// <summary>The words of a classification's options are kept as written.</summary>
+	[Theory]
+	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (label = 'l', rank = low)", "label", "low")]
+	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (LABEL = 'l', RANK = HIGH)", "LABEL", "HIGH")]
+	public void A_classification_keeps_its_words_as_written(string text, string name, string rank)
+	{
+		var made = (Ast.Statement.AddSensitivityClassification)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.Equal(name, made.Options[0].Name.Text);
+		Assert.Equal(rank, ((Ast.Expression.Reference)made.Options[1].Value!).Name[0].Text);
+		Assert.Equal(BridgeOracle.Status.Converted, BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text).Status);
+	}
 }

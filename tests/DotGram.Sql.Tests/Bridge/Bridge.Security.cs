@@ -1703,14 +1703,36 @@ static partial class Bridge
 
 		// ── Classifications and signatures ────────────────────────────────────────
 
+		static SqlList<Ast.Option> ClassificationOptions(Statement.Classification old, string text)
+		{
+			var reader = new Reader(old, text);
+
+			while (!reader.Is("WITH"))
+			{
+				if (reader.End)
+					throw reader.Unread();
+
+				reader.NextToken();
+			}
+
+			reader.Expect("WITH");
+
+			var options = reader.Bracketed();
+
+			reader.Finish();
+
+			return options;
+		}
+
 		static Ast.Statement Classification(Statement.Classification old)
 		{
 			if (!old.Add)
 				throw BridgeGap.Open(old, "inventory Statement.Classification (not an ADD)");
 
-			var options = Each(old.Options, one => one is Clause.Option(var name, var value, _, _, _) && value is not null
+			// The old tree upper-cases the option names and the rank word; the words as written are read from the text.
+			var options = Recover("Statement.Classification.Options", Spelled(old), text => ClassificationOptions(old, text), Each(old.Options, one => one is Clause.Option(var name, var value, _, _, _) && value is not null
 				? new Ast.Option(new Ast.Identifier(name), Values.Of(value), [])
-				: throw BridgeGap.Open(old, "inventory Statement.Classification (an option that is not a name and a value)"));
+				: throw BridgeGap.Open(old, "inventory Statement.Classification (an option that is not a name and a value)")));
 
 			return new Ast.Statement.AddSensitivityClassification(Each(old.Columns, one => Values.Name(old, one)), options);
 		}
