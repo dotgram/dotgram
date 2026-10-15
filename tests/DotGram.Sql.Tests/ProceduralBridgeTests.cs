@@ -56,6 +56,19 @@ public sealed class ProceduralBridgeTests
 	[InlineData("DECLARE c CURSOR FOR SELECT 1 OPTION (RECOMPILE) FOR UPDATE", "FOR after the hints")]
 	[InlineData("SET @c = CURSOR FOR SELECT 1", "SET a cursor")]
 	[InlineData("SET @c = @d", "SET a cursor variable")]
+	[InlineData("THROW", "THROW alone")]
+	[InlineData("THROW 1, 'a', 1", "THROW")]
+	[InlineData("RAISERROR ('a', 16, 1) WITH NOWAIT, LOG", "RAISERROR")]
+	[InlineData("WAITFOR DELAY '00:00:01'", "DELAY")]
+	[InlineData("WAITFOR TIME '10:00'", "TIME")]
+	[InlineData("EXECUTE AS CALLER", "CALLER")]
+	[InlineData("EXECUTE AS LOGIN = 'l' WITH NO REVERT", "LOGIN")]
+	[InlineData("EXECUTE AS USER = 'u' WITH COOKIE INTO @c", "USER")]
+	[InlineData("REVERT", "REVERT")]
+	[InlineData("SETUSER 'u'", "SETUSER")]
+	[InlineData("USE master", "USE")]
+	[InlineData("LINENO 5", "LINENO")]
+	[InlineData("PRINT 1", "PRINT")]
 	public void The_bridge_builds_the_procedural_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -103,6 +116,19 @@ public sealed class ProceduralBridgeTests
 			"FOR after the hints" => made is Ast.Statement.DeclareCursor { SourceValue: Ast.CursorSource.Query { UpdatabilityBeforeOptions: false, Updatability.ReadOnly: false } },
 			"SET a cursor" => made is Ast.Statement.SetCursorVariable { Variable: Ast.Expression.Variable },
 			"SET a cursor variable" => made is Ast.Statement.SetVariable { Value: Ast.Expression.Variable },
+			"THROW alone" => made is Ast.Statement.Throw { Number: null, Message: null, State: null },
+			"THROW" => made is Ast.Statement.Throw { Number: not null, Message: Ast.LiteralValue.String, State: not null },
+			"RAISERROR" => made is Ast.Statement.RaiseError { Arguments.Count: 3, Options: [Ast.RaiseErrorOption.NoWait, Ast.RaiseErrorOption.Log] },
+			"DELAY" => made is Ast.Statement.WaitFor { Kind: Ast.WaitForKind.Delay },
+			"TIME" => made is Ast.Statement.WaitFor { Kind: Ast.WaitForKind.Time, Value: Ast.LiteralValue.String },
+			"CALLER" => made is Ast.Statement.ExecuteAs { Context: { Kind: Ast.ExecutionContextKind.Caller, Name: null }, NoRevert: false, Cookie: null },
+			"LOGIN" => made is Ast.Statement.ExecuteAs { Context: { Kind: Ast.ExecutionContextKind.Login, Name: Ast.LiteralValue.String }, NoRevert: true },
+			"USER" => made is Ast.Statement.ExecuteAs { Context.Kind: Ast.ExecutionContextKind.User, Cookie.Name.Text: "@c" },
+			"REVERT" => made is Ast.Statement.Revert { Cookie: null },
+			"SETUSER" => made is Ast.Statement.SetUser { NoReset: false, Name: Ast.LiteralValue.String },
+			"USE" => made is Ast.Statement.Use { Database.Text: "master" },
+			"LINENO" => made is Ast.Statement.LineNumber { Line.Text: "5" },
+			"PRINT" => made is Ast.Statement.Print { Value: Ast.LiteralValue.Numeric },
 			_ => false,
 		};
 

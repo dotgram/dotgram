@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
@@ -44,6 +45,17 @@ static partial class Bridge
 				Statement.Label(var label)   => new Ast.Statement.Label(Values.Part(old, label)),
 				Statement.Declare declare    => new Ast.Statement.DeclareVariables(Each(declare.Variables, Declaration)),
 				Statement.SetVariable set    => SetVariable(set),
+				Statement.Print(var value)   => new Ast.Statement.Print(Values.Of(value)),
+				Statement.RaiseError raise   => RaiseError(raise),
+				Statement.Throw thrown       => Throw(thrown),
+				Statement.WaitFor wait       => WaitFor(wait),
+				Statement.ExecuteAs who      => ExecuteAs(who),
+				Statement.Revert(var cookie) => new Ast.Statement.Revert(cookie is null ? null : Values.Of(cookie)),
+				Statement.SetUser(var user, var noReset) => new Ast.Statement.SetUser(user is null ? null : Values.Of(user)) { NoReset = noReset },
+				Statement.Use(Expression.ColumnReference(var database)) => new Ast.Statement.Use(Values.Part(old, database)),
+				Statement.LineNumber(var line) => Values.Of(line) is Ast.LiteralValue.Numeric number
+					? new Ast.Statement.LineNumber(number)
+					: throw BridgeGap.Open(old, "inventory Statement.LineNumber (a line that is not a number)"),
 				Statement.Transaction ended  => Transaction(ended),
 				Statement.DeclareCursor(var name, var cursor) declared => DeclareCursor(declared, name, cursor),
 				Statement.SetCursor(var name, var cursor) set => SetCursor(set, name, cursor),
@@ -314,6 +326,87 @@ static partial class Bridge
 			};
 
 			return new Ast.CursorSource.Query(select, updatability, cursor.AccessFirst);
+		}
+
+		/// <summary>
+		/// <c>RAISERROR (…) WITH …</c>. The grammar reads the arguments without brackets as well, which no member holds,
+		/// and the old tree keeps the options as written and compares them exactly.
+		/// </summary>
+		static Ast.Statement RaiseError(Statement.RaiseError old)
+		{
+			if (Spelled(old) is not { } text || Words(text) is not ["RAISERROR", "(", ..])
+				throw BridgeGap.Missing(old, "Statement.RaiseError (the arguments without brackets)");
+
+			var options = new List<Ast.RaiseErrorOption>();
+
+			if (old.Tail is { } tail)
+			{
+				var words = Words(tail);
+
+				for (var at = 1; at < words.Length; at += 2)
+					options.Add(words[at] switch
+					{
+						"LOG"      => Ast.RaiseErrorOption.Log,
+						"NOWAIT"   => Ast.RaiseErrorOption.NoWait,
+						"SETERROR" => Ast.RaiseErrorOption.SetError,
+						_          => throw BridgeGap.Open(old, $"inventory Statement.RaiseError (the option `{words[at]}`)"),
+					});
+
+				if (tail != "WITH " + string.Join(", ", words.Where(static (_, at) => at % 2 == 1)))
+					throw BridgeGap.Open(old, "Trees.FreeText (Statement.RaiseError.Tail, written otherwise than the writer prints it)");
+			}
+
+			return new Ast.Statement.RaiseError(Each(old.Arguments, Values.Of)) { Options = options.ToSqlList() };
+		}
+
+		/// <summary><c>THROW</c>, alone or with its three values; the grammar reads one or two, which no member holds.</summary>
+		static Ast.Statement Throw(Statement.Throw old)
+		{
+			return old.Arguments switch
+			{
+				[] => new Ast.Statement.Throw(null, null, null),
+				[var number, var message, var state] => new Ast.Statement.Throw(Values.Of(number), Values.Of(message), Values.Of(state)),
+				_ => throw BridgeGap.Missing(old, "Statement.Throw (one, two or four values)"),
+			};
+		}
+
+		static Ast.Statement WaitFor(Statement.WaitFor old)
+		{
+			Ast.WaitForKind kind = old.Kind switch
+			{
+				"DELAY" => Ast.WaitForKind.Delay,
+				"TIME"  => Ast.WaitForKind.Time,
+				_       => throw BridgeGap.Open(old, $"inventory Statement.WaitFor (`{old.Kind}`)"),
+			};
+
+			return new Ast.Statement.WaitFor(kind, Values.Of(old.Value));
+		}
+
+		/// <summary>
+		/// <c>EXECUTE AS …</c>. The old tree keeps neither <c>EXEC</c> against <c>EXECUTE</c> nor the new one a member for
+		/// it, so a text that wrote EXEC stays a gap.
+		/// </summary>
+		static Ast.Statement ExecuteAs(Statement.ExecuteAs old)
+		{
+			if (Spelled(old) is not { } text || Words(text) is not ["EXECUTE", ..])
+				throw BridgeGap.Missing(old, "Statement.ExecuteAs (EXEC written for EXECUTE)");
+
+			Ast.ExecutionContextKind kind = old.Kind switch
+			{
+				"CALLER" => Ast.ExecutionContextKind.Caller,
+				"USER"   => Ast.ExecutionContextKind.User,
+				"LOGIN"  => Ast.ExecutionContextKind.Login,
+				_        => throw BridgeGap.Open(old, $"inventory Statement.ExecuteAs (`{old.Kind}`)"),
+			};
+
+			Ast.Expression.Variable? cookie = old.Cookie is null ? null
+				: Values.Of(old.Cookie) as Ast.Expression.Variable ?? throw BridgeGap.Open(old, "inventory Statement.ExecuteAs (a cookie that is not a variable)");
+
+			return new Ast.Statement.ExecuteAs(new Ast.ExecutionContext(kind, old.Name is null ? null : Values.Of(old.Name)))
+			{
+				NoRevert = old.NoRevert,
+				Cookie   = cookie,
+			};
 		}
 
 		static Ast.CursorReference Reference(Statement old, Expression cursor, bool global)

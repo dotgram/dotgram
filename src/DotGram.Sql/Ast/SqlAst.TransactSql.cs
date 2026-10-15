@@ -271,7 +271,7 @@ public sealed record OutputClause(SqlList<SelectColumn> Items, TableSource? Into
 }
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). Whom a module or a statement runs as.</summary>
-public sealed record ExecutionContext(ExecutionContextKind Kind, Expression Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record ExecutionContext(ExecutionContextKind Kind, Expression? Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
