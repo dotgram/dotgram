@@ -321,7 +321,7 @@ public static partial class Sql2023Writer
 			if (query.Where is { } where)
 			{
 				Word("WHERE");
-				PutExpression(where);
+				PutCondition(query, where);
 			}
 
 			if (query.GroupBy is { } group)
@@ -355,7 +355,7 @@ public static partial class Sql2023Writer
 			if (query.Having is { } having)
 			{
 				Word("HAVING");
-				PutExpression(having);
+				PutCondition(query, having);
 			}
 
 			if (query.Window is { } window)
@@ -800,7 +800,7 @@ public static partial class Sql2023Writer
 			{
 				PutIdentifier(definition.Variable);
 				Word("AS");
-				PutExpression(definition.Condition);
+				PutCondition(definition, definition.Condition);
 			});
 		}
 
@@ -1102,7 +1102,7 @@ public static partial class Sql2023Writer
 					{
 						case JoinSpecification.On on:
 							Word("ON");
-							PutExpression(on.Condition);
+							PutCondition(on, on.Condition);
 							break;
 
 						case JoinSpecification.Using @using:
@@ -1610,7 +1610,7 @@ public static partial class Sql2023Writer
 					Word("USING");
 					PutSource(merge.SourceTable);
 					Word("ON");
-					PutExpression(merge.On);
+					PutCondition(merge, merge.On);
 
 					foreach (var clause in merge.Clauses)
 					{
@@ -1626,7 +1626,7 @@ public static partial class Sql2023Writer
 						if (clause.Condition is { } condition)
 						{
 							Word("AND");
-							PutExpression(condition);
+							PutCondition(clause, condition);
 						}
 
 						Word("THEN");
@@ -1731,7 +1731,7 @@ public static partial class Sql2023Writer
 			if (where is not null)
 			{
 				Word("WHERE");
-				PutExpression(where);
+				PutCondition(where, where);
 			}
 
 			if (current is not null)

@@ -74,6 +74,75 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
+		/// Whether the next expression stands where T-SQL reads a search condition: set by <see cref="PutCondition"/>, and by a
+		/// condition's AND, OR, NOT and bracket for their operands, and taken by the next expression written.
+		/// </summary>
+		bool condition;
+
+		/// <summary>
+		/// T-SQL: Search Condition (Transact-SQL). A place the grammar reads <c>SearchCondition</c> at — IF, WHILE, WHERE,
+		/// HAVING, ON, WHEN, CHECK, … — whose expression is a condition: in T-SQL's reading a value there is refused (Msg 4145).
+		/// </summary>
+		void PutCondition(ISqlNode owner, Expression expression)
+		{
+			condition = transactSql;
+			PutExpression(expression);
+		}
+
+		/// <summary>
+		/// The flag the next expression takes: in T-SQL's reading a condition where one is asked for and a value everywhere
+		/// else, each refused in the other's place; whether this one is a condition, which a logical one passes on.
+		/// </summary>
+		bool TakeCondition(Expression expression)
+		{
+			var wanted = condition;
+
+			condition = false;
+
+			if (!transactSql)
+				return false;
+
+			var found = IsCondition(expression);
+
+			if (wanted && !found)
+				throw Misplaced(expression, "a value", "where T-SQL reads a search condition (Msg 4145)");
+
+			if (!wanted && found)
+				throw Misplaced(expression, "a condition", "where T-SQL reads a value");
+
+			return found;
+		}
+
+		/// <summary>An operand of AND, OR, NOT or a bracket: a condition where the expression it stands in is one.</summary>
+		void PassCondition(bool logical)
+		{
+			condition = logical;
+		}
+
+		/// <summary>
+		/// T-SQL: Search Condition (Transact-SQL), Predicates (Transact-SQL). What T-SQL's grammar reads as a condition: a
+		/// comparison, BETWEEN, LIKE, IN, IS [NOT] NULL, IS [NOT] DISTINCT FROM, a quantified comparison, EXISTS, UNIQUE,
+		/// MATCH, CONTAINS and FREETEXT, TSEQUAL, a trigger's UPDATE(c) and REGEXP_LIKE (<c>TSqlPredicate</c>,
+		/// <c>FullTextPredicate</c>); AND, OR and NOT; and a condition in brackets.
+		/// </summary>
+		static bool IsCondition(Expression expression)
+		{
+			// A bracket is what it holds, however deep: unwrapped in a loop, which no depth of brackets can run out of stack in.
+			while (expression is Expression.Parenthesized { Value: var inner })
+				expression = inner;
+
+			return expression switch
+			{
+				Expression.Comparison or Expression.Between or Expression.Like or Expression.In or Expression.IsNull or Expression.IsDistinct
+					or Expression.QuantifiedComparison or Expression.Exists or Expression.Unique or Expression.GraphMatch => true,
+				Expression.Invocation { Name: [{ Style: IdentifierStyle.Regular } name] } => Plain(name, "CONTAINS", "FREETEXT", "TSEQUAL", "UPDATE", "REGEXP_LIKE"),
+				Expression.Binary { Operator: BinaryOperator.And or BinaryOperator.Or } => true,
+				Expression.Unary { Operator: UnaryOperator.Not } => true,
+				_ => false,
+			};
+		}
+
+		/// <summary>
 		/// The reserved words the grammar reads as a function's name before its bracket (<c>LeftRightCall</c>, the conversions,
 		/// <c>IDENTITY</c>, the CASE abbreviations, the rowset functions, <c>FullTextName</c>, <c>FullTextTableName</c>,
 		/// <c>SemanticName</c>, <c>TSqlPredicate</c>'s TSEQUAL and UPDATE).

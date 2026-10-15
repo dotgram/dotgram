@@ -159,7 +159,7 @@ public static partial class Sql2023Writer
 					Word("CREATE RULE");
 					PutName(rule.Name);
 					Word("AS");
-					PutExpression(rule.Condition);
+					PutCondition(rule, rule.Condition);
 					return true;
 
 				// T-SQL: CREATE DEFAULT (Transact-SQL). Two parts at most; NULL or a value (SetValue), drawing from no sequence

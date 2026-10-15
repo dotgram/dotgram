@@ -684,6 +684,9 @@ public static partial class Sql2023Writer
 				return;
 			}
 
+			// T-SQL's reading: a condition where PutCondition asked for one, a value everywhere else.
+			var condition = TakeCondition(expression);
+
 			switch (expression)
 			{
 				case LiteralValue literal:
@@ -704,6 +707,7 @@ public static partial class Sql2023Writer
 
 				case Expression.Unary unary when unary.Operator == UnaryOperator.Not:
 					Word("NOT");
+					PassCondition(condition);
 					PutExpression(unary.Operand);
 					break;
 
@@ -724,6 +728,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Binary binary:
+					PassCondition(condition);
 					PutExpression(binary.Left);
 					Word(binary.Operator switch
 					{
@@ -742,6 +747,7 @@ public static partial class Sql2023Writer
 						BinaryOperator.ShiftRight  => ">>",
 						_                          => throw NoText(binary.Operator),
 					});
+					PassCondition(condition);
 					PutExpression(binary.Right);
 					break;
 
@@ -768,6 +774,7 @@ public static partial class Sql2023Writer
 
 				case Expression.Parenthesized parenthesized:
 					Open();
+					PassCondition(condition);
 					PutExpression(parenthesized.Value);
 					Close();
 					break;
@@ -785,7 +792,12 @@ public static partial class Sql2023Writer
 					foreach (var when in @case.Whens)
 					{
 						Word("WHEN");
-						Each(when.When, PutExpression);
+
+						// A searched CASE's WHEN is a condition; a simple one's, a value it is compared with.
+						if (@case.Operand is null)
+							Each(when.When, one => PutCondition(when, one));
+						else
+							Each(when.When, PutExpression);
 						Word("THEN");
 						PutExpression(when.Then);
 					}
@@ -1723,7 +1735,16 @@ public static partial class Sql2023Writer
 			{
 				Call();
 				PutQuantifier(invocation.Quantifier);
-				Each(invocation.Arguments, PutArgument);
+
+				// T-SQL: IIF (Transact-SQL). Its first argument is a condition (SearchCondition).
+				var iif = invocation.Name is [{ Style: IdentifierStyle.Regular } called] && Plain(called, "IIF") && invocation.Arguments.Count == 3;
+
+				Each(invocation.Arguments, argument =>
+				{
+					condition = iif && transactSql;
+					iif = false;
+					PutArgument(argument);
+				});
 
 				if (invocation.OrderBy is { } order)
 				{
@@ -1794,7 +1815,7 @@ public static partial class Sql2023Writer
 				Word("FILTER");
 				Open();
 				Word("WHERE");
-				PutExpression(filter.Condition);
+				PutCondition(filter, filter.Condition);
 				Close();
 			}
 

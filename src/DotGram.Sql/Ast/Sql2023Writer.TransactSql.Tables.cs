@@ -283,7 +283,7 @@ public static partial class Sql2023Writer
 					if (statistics.Where is { } where)
 					{
 						Word("WHERE");
-						PutExpression(where);
+						PutCondition(statistics, where);
 					}
 
 					PutStatisticsOptions(statistics.Options, update: false);
@@ -1111,7 +1111,7 @@ public static partial class Sql2023Writer
 			if (index.Where is { } where)
 			{
 				Word("WHERE");
-				PutExpression(where);
+				PutCondition(index, where);
 			}
 
 			PutOptions(index.Options);
