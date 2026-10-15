@@ -371,7 +371,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.If` | Procedural | C | converted 17 | — | 47 |
 | `Statement.SequenceDefinition` | Tables | A | converted 46, gap 1 | 1: needs decision: inventory cross-cutting gaps, identifier styles (a name part ` TestSeq`) (1) | 47 |
 | `Statement.AlterFullTextStopList` | Database | C | gap 46 | 46: no target record: Statement.AlterFullTextStopList (46) | 46 |
-| `Statement.RestoreDatabase` | Database | C | gap 46 | 46: no target record: Statement.RestoreDatabase (46) | 46 |
+| `Statement.RestoreDatabase` | Database | C | converted 26, gap 20 | 20: needs decision: Trees.FreeText (Statement.RestoreDatabase.Tail, written otherwise than the writer prints it) (11); no target record: Option (RESTORE … MOVE 'file' TO 'path': two values) (5) | 46 |
 | `Statement.AuditSpecificationDefinition` | Monitoring | C | gap 45 | 45: no target record: Statement.CreateServerAuditSpecification (45) | 45 |
 | `Statement.AssemblyDefinition` | Routines | C | gap 44 | 44: no target record: Statement.CreateAssembly (44) | 44 |
 | `Statement.AsymmetricKeyDefinition` | Security | C | gap 43 | 43: no target record: Statement.CreateAsymmetricKey (43) | 43 |
@@ -386,7 +386,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Query.Ordered` | Queries | B | — | — | 39 |
 | `Expression.JsonPair` | Values | A | — | 31: needs decision: inventory Expression.JsonPair (31) | 38 |
 | `Expression.IsDistinctFrom` | Values | A | — | — | 37 |
-| `Statement.BackupDatabase` | Database | C | gap 37 | 37: no target record: Statement.BackupDatabase (37) | 37 |
+| `Statement.BackupDatabase` | Database | C | converted 24, gap 13 | 13: needs decision: Trees.FreeText (Statement.BackupDatabase.Tail, written otherwise than the writer prints it) (13) | 37 |
 | `Statement.CreateUser` | Security | C | gap 37 | 37: no target record: Statement.CreateUser (37) | 37 |
 | `Statement.SecurityPolicyDefinition` | Security | C | gap 37 | 37: no target record: Statement.CreateSecurityPolicy (37) | 37 |
 | `Statement.Label` | Procedural | C | converted 30 | — | 36 |
@@ -452,7 +452,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.ServiceDefinition` | Broker | C | gap 18 | 18: no target record: Statement.CreateService (18) | 18 |
 | `Expression.Plus` | Values | A | — | — | 17 |
 | `Statement.AlterPartitionFunction` | Database | C | gap 17 | 17: no target record: Statement.AlterPartitionFunction (17) | 17 |
-| `Statement.BackupCertificate` | Database | C | gap 17 | 17: no target record: Statement.BackupCertificate (17) | 17 |
+| `Statement.BackupCertificate` | Database | C | converted 14, gap 3 | 3: needs decision: Trees.FreeText (Statement.BackupCertificate.Tail, written otherwise than the writer prints it) (3) | 17 |
 | `Statement.Classification` | Security | C | gap 17 | 17: no target record: Statement.AddSensitivityClassification (17) | 17 |
 | `Statement.DropTable` | Drop | B | converted 16 | — | 17 |
 | `Statement.EventNotificationDefinition` | Monitoring | C | gap 17 | 17: no target record: Statement.CreateEventNotification (17) | 17 |
@@ -463,7 +463,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DefaultDefinition` | Routines | C | gap 16 | 16: no target record: Statement.CreateDefault (16) | 16 |
 | `Statement.DropFunction` | Drop | B | converted 16 | — | 16 |
 | `Clause.PartitionRange` | Dml | C | — | — | 15 |
-| `Statement.BackupTransactionLog` | Database | C | gap 15 | 15: no target record: Statement.BackupLog (15) | 15 |
+| `Statement.BackupTransactionLog` | Database | C | converted 7, gap 8 | 8: needs decision: Trees.FreeText (Statement.BackupTransactionLog.Tail, written otherwise than the writer prints it) (8) | 15 |
 | `Statement.DropAggregate` | Drop | C | converted 15 | — | 15 |
 | `Statement.DropView` | Drop | B | converted 15 | — | 15 |
 | `Clause.FileGroup` | Database | C | — | — | 14 |
@@ -473,7 +473,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropSensitivityClassification` | Drop | C | converted 14 | — | 14 |
 | `Statement.DropSequence` | Drop | B | converted 14 | — | 14 |
 | `Statement.DropType` | Drop | B | converted 14 | — | 14 |
-| `Statement.RestoreLog` | Database | C | gap 14 | 14: no target record: Statement.RestoreLog (14) | 14 |
+| `Statement.RestoreLog` | Database | C | converted 12, gap 2 | 2: needs decision: Trees.FreeText (Statement.RestoreLog.Tail, written otherwise than the writer prints it) (1); no target record: Option (RESTORE … STOPATMARK = mark AFTER datetime: two values) (1) | 14 |
 | `Expression.ShiftRight` | Values | C | — | — | 13 |
 | `Statement.AlterDatabaseScopedConfiguration` | Database | C | converted 13 | — | 13 |
 | `Statement.AlterFullTextCatalog` | Database | C | gap 13 | 13: no target record: Statement.AlterFullTextCatalog (13) | 13 |
@@ -539,7 +539,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropRoute` | Drop | C | converted 7 | — | 7 |
 | `Statement.DropService` | Drop | C | converted 7 | — | 7 |
 | `Statement.DropSymmetricKey` | Drop | C | converted 6, gap 1 | 1: needs decision: inventory Statement.DropSymmetricKey (`remove provider key` kept as written, against `REMOVE PROVIDER KEY` as the writer prints it, which the old tree compares exactly) (1) | 7 |
-| `Statement.RestoreMasterKey` | Database | C | gap 7 | 7: no target record: Statement.RestoreMasterKey (7) | 7 |
+| `Statement.RestoreMasterKey` | Database | C | converted 6, gap 1 | 1: needs decision: Trees.FreeText (Statement.RestoreMasterKey.Tail, written otherwise than the writer prints it) (1) | 7 |
 | `Statement.RouteDefinition` | Broker | C | gap 7 | 7: no target record: Statement.CreateRoute (7) | 7 |
 | `Statement.SearchPropertyListDefinition` | Database | C | gap 7 | 7: no target record: Statement.CreateSearchPropertyList (7) | 7 |
 | `Statement.Throw` | Procedural | C | converted 5 | — | 7 |
@@ -557,7 +557,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropServerAudit` | Drop | C | converted 6 | — | 6 |
 | `Statement.DropServerAuditSpecification` | Drop | C | converted 6 | — | 6 |
 | `Statement.DropWorkloadClassifier` | Drop | C | converted 6 | — | 6 |
-| `Statement.RestoreServiceMasterKey` | Database | C | gap 6 | 6: no target record: Statement.RestoreServiceMasterKey (6) | 6 |
+| `Statement.RestoreServiceMasterKey` | Database | C | converted 4, gap 2 | 2: needs decision: Trees.FreeText (Statement.RestoreServiceMasterKey.Tail, written otherwise than the writer prints it) (2) | 6 |
 | `Statement.SetCursor` | Procedural | C | converted 6 | — | 6 |
 | `Statement.Shutdown` | Server | C | gap 6 | 6: no target record: Statement.Shutdown (6) | 6 |
 | `Statement.While` | Procedural | C | converted 6 | — | 6 |
@@ -577,7 +577,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterApplicationRole` | Security | C | gap 4 | 4: no target record: Statement.AlterApplicationRole (4) | 4 |
 | `Statement.AlterDatabaseEncryptionKey` | Security | C | gap 4 | 4: no target record: Statement.AlterDatabaseEncryptionKey (4) | 4 |
 | `Statement.AlterDatabaseModifyName` | Database | C | converted 4 | — | 4 |
-| `Statement.BackupMasterKey` | Database | C | gap 4 | 4: no target record: Statement.BackupMasterKey (4) | 4 |
+| `Statement.BackupMasterKey` | Database | C | converted 4 | — | 4 |
 | `Statement.DropAvailabilityGroup` | Drop | C | converted 4 | — | 4 |
 | `Statement.DropCryptographicProvider` | Drop | C | converted 4 | — | 4 |
 | `Statement.DropDatabaseScopedCredential` | Drop | C | converted 4 | — | 4 |
@@ -585,14 +585,14 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropSearchPropertyList` | Drop | C | converted 4 | — | 4 |
 | `Statement.DropServerRole` | Drop | C | converted 4 | — | 4 |
 | `Statement.OpenMasterKey` | Security | C | gap 4 | 4: no target record: Statement.OpenMasterKey (4) | 4 |
-| `Statement.RestoreRewindOnly` | Database | C | gap 4 | 4: no target record: Statement.RestoreRewindOnly (4) | 4 |
+| `Statement.RestoreRewindOnly` | Database | C | converted 2, gap 2 | 2: needs decision: Trees.FreeText (Statement.RestoreRewindOnly.Tail, written otherwise than the writer prints it) (2) | 4 |
 | `Expression.BitwiseAnd` | Values | C | — | — | 3 |
 | `SetExpression.DateAndTime.DateFormat` | Procedural | C | — | — | 3 |
 | `SetExpression.Locking.DeadlockPriority` | Procedural | C | — | — | 3 |
 | `SetExpression.Miscellaneous.ErrorLevel` | Procedural | C | — | — | 3 |
 | `SetExpression.Miscellaneous.Language` | Procedural | C | — | — | 3 |
 | `Statement.AlterDatabaseRemoveFile` | Database | C | converted 3 | — | 3 |
-| `Statement.BackupServiceMasterKey` | Database | C | gap 3 | 3: no target record: Statement.BackupServiceMasterKey (3) | 3 |
+| `Statement.BackupServiceMasterKey` | Database | C | converted 2, gap 1 | 1: needs decision: Trees.FreeText (Statement.BackupServiceMasterKey.Tail, written otherwise than the writer prints it) (1) | 3 |
 | `Statement.CloseAllSymmetricKeys` | Security | C | gap 3 | 3: no target record: Statement.CloseAllSymmetricKeys (3) | 3 |
 | `Statement.CloseMasterKey` | Security | C | gap 3 | 3: no target record: Statement.CloseMasterKey (3) | 3 |
 | `Statement.DropApplicationRole` | Drop | C | converted 3 | — | 3 |
@@ -612,9 +612,9 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropResourcePool` | Drop | C | converted 3 | — | 3 |
 | `Statement.DropWorkloadGroup` | Drop | C | converted 3 | — | 3 |
 | `Statement.LineNumber` | Procedural | C | converted 3 | — | 3 |
-| `Statement.RestoreFileListOnly` | Database | C | gap 3 | 3: no target record: Statement.RestoreFileListOnly (3) | 3 |
-| `Statement.RestoreHeaderOnly` | Database | C | gap 3 | 3: no target record: Statement.RestoreHeaderOnly (3) | 3 |
-| `Statement.RestoreVerifyOnly` | Database | C | gap 3 | 3: no target record: Statement.RestoreVerifyOnly (3) | 3 |
+| `Statement.RestoreFileListOnly` | Database | C | converted 2, gap 1 | 1: needs decision: Trees.FreeText (Statement.RestoreFileListOnly.Tail, written otherwise than the writer prints it) (1) | 3 |
+| `Statement.RestoreHeaderOnly` | Database | C | converted 2, gap 1 | 1: no target record: Option (RESTORE … MOVE 'file' TO 'path': two values) (1) | 3 |
+| `Statement.RestoreVerifyOnly` | Database | C | converted 2, gap 1 | 1: needs decision: Trees.FreeText (Statement.RestoreVerifyOnly.Tail, written otherwise than the writer prints it) (1) | 3 |
 | `Expression.BitwiseOr` | Values | C | — | — | 2 |
 | `Expression.BitwiseXor` | Values | C | — | — | 2 |
 | `SetExpression.Locking.LockTimeout` | Procedural | C | — | — | 2 |
@@ -625,13 +625,13 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropExternalDataSource` | Drop | C | converted 2 | — | 2 |
 | `Statement.DropExternalFileFormat` | Drop | C | converted 2 | — | 2 |
 | `Statement.DropExternalResourcePool` | Drop | C | converted 2 | — | 2 |
-| `Statement.RestoreLabelOnly` | Database | C | gap 2 | 2: no target record: Statement.RestoreLabelOnly (2) | 2 |
-| `Statement.RestoreSymmetricKey` | Database | C | gap 2 | 2: no target record: Statement.RestoreSymmetricKey (2) | 2 |
+| `Statement.RestoreLabelOnly` | Database | C | converted 1, gap 1 | 1: needs decision: Trees.FreeText (Statement.RestoreLabelOnly.Tail, written otherwise than the writer prints it) (1) | 2 |
+| `Statement.RestoreSymmetricKey` | Database | C | converted 2 | — | 2 |
 | `Expression.Pieced` | Values | C | — | 1: no target record: a typed T-SQL rowset table source (proposal 7) (1) | 1 |
 | `Expression.Quantified` | Values | A | — | — | 1 |
 | `Query.ExplicitTable` | Queries | A | — | — | 1 |
-| `Statement.BackupGroup` | Database | C | gap 1 | 1: no target record: Statement.BackupGroup (1) | 1 |
-| `Statement.BackupSymmetricKey` | Database | C | gap 1 | 1: no target record: Statement.BackupSymmetricKey (1) | 1 |
+| `Statement.BackupGroup` | Database | C | converted 1 | — | 1 |
+| `Statement.BackupSymmetricKey` | Database | C | converted 1 | — | 1 |
 | `Expression.IsTruth` | Values | A | — | — | 0 |
 | `Expression.Match` | Values | A | — | — | 0 |
 | `Expression.Overlaps` | Values | A | — | — | 0 |

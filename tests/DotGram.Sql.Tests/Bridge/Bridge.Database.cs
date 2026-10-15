@@ -42,6 +42,10 @@ static partial class Bridge
 				Statement.AlterDatabaseSet set => Target(set, set.Name, new Ast.AlterDatabaseAction.Set(Each(set.Settings, one => Setting(set, one))) { Termination = Termination(set, set.Termination) }),
 				Statement.AlterDatabaseScopedConfiguration scoped => Scoped(scoped),
 				Statement.CreateDatabase create => Create(create),
+				Statement.Definition definition when definition.GetType().Name.StartsWith("Backup", StringComparison.Ordinal)
+					=> Checked(definition, Backup(definition)),
+				Statement.Definition definition when definition.GetType().Name.StartsWith("Restore", StringComparison.Ordinal)
+					=> Checked(definition, Restore(definition)),
 				Statement.Definition definition when definition.GetType().Name.StartsWith("AlterDatabase", StringComparison.Ordinal)
 					=> Alter(definition),
 				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
@@ -286,6 +290,274 @@ static partial class Bridge
 				&& again.Containment == old.Containment && again.Tail == old.Tail
 				? made
 				: throw BridgeGap.Open(old, "Trees.FreeText (Statement.CreateDatabase.Containment or Tail, written otherwise than the writer prints it)");
+		}
+
+		/// <summary>
+		/// BACKUP: the old tree keeps what is backed up as its record, the database as its name, and the rest as text —
+		/// the files, the devices after TO and after each MIRROR TO, the options after WITH; a key's or a certificate's
+		/// place and passwords. Read again by tokens.
+		/// </summary>
+		static Ast.Statement Backup(Statement.Definition old)
+		{
+			var text   = old.Tail ?? "";
+			var tokens = Located(text);
+			var words  = Words(text);
+
+			if (Spelled(old) is { } spelled && Words(spelled) is [_, "DATABASE" or "LOG", "(", ..])
+				throw BridgeGap.Lost(old, $"{NameOf(old)} (a bracketed list of names, of which the old tree keeps the first)");
+
+			switch (old)
+			{
+				case Statement.BackupCertificate:
+					if (words is not ["TO", "FILE", "=", _, ..] || tokens[3].Token.Kind != SqlTokens.Kind.String)
+						throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
+					var certificate = new Ast.Statement.BackupCertificate(Values.Part(old, old.Name), Values.String(tokens[3].Token.Text));
+
+					if (tokens.Count == 4)
+						return certificate;
+
+					var at = 5;
+
+					if (words is [_, _, _, _, "WITH", "FORMAT", "=", _, ",", ..] && tokens[7].Token.Kind == SqlTokens.Kind.String)
+					{
+						certificate = certificate with { Format = Values.String(tokens[7].Token.Text) };
+						at = 9;
+					}
+
+					return words.Length > at + 3 && words[4] == "WITH" && words[at] == "PRIVATE" && words[at + 1] == "KEY" && words[at + 2] == "(" && words[^1] == ")"
+						? certificate with { PrivateKey = Options(old, text[(tokens[at + 2].At + 1)..tokens[^1].At]) }
+						: throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
+				case Statement.BackupMasterKey when words is ["TO", _, "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _]:
+					return new Ast.Statement.BackupMasterKey(Place(old, tokens, 1), Password(old, tokens, 8));
+
+				case Statement.BackupServiceMasterKey when words is ["TO", "FILE", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _]:
+					return new Ast.Statement.BackupServiceMasterKey(Password(old, tokens, 3), Password(old, tokens, 8));
+
+				case Statement.BackupSymmetricKey when words is ["TO", _, "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _]:
+					return new Ast.Statement.BackupSymmetricKey(Values.Part(old, old.Name), Place(old, tokens, 1), Password(old, tokens, 8));
+
+				case Statement.BackupMasterKey or Statement.BackupServiceMasterKey or Statement.BackupSymmetricKey:
+					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+			}
+
+			var to = Index(tokens, "TO");
+
+			if (to < 0)
+				throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
+			var files = BackupFiles(old, Slice(text, tokens, 0, to));
+			var with  = Index(tokens, "WITH", to);
+			var end   = with < 0 ? tokens.Count : with;
+			var marks = new List<int>();
+
+			for (var mirror = Index(tokens, "MIRROR", to); mirror >= 0 && mirror < end; mirror = Index(tokens, "MIRROR", mirror + 1))
+				marks.Add(mirror);
+
+			var devices = Devices(old, Slice(text, tokens, to + 1, marks.Count > 0 ? marks[0] : end));
+			var mirrors = new List<Ast.BackupMirror>();
+
+			for (var one = 0; one < marks.Count; one++)
+			{
+				if (words.Length <= marks[one] + 1 || words[marks[one] + 1] != "TO")
+					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
+				mirrors.Add(new Ast.BackupMirror(Devices(old, Slice(text, tokens, marks[one] + 2, one + 1 < marks.Count ? marks[one + 1] : end))));
+			}
+
+			var options = with < 0 ? [] : Options(old, Slice(text, tokens, with + 1, tokens.Count));
+
+			if (files.Count > 0 && old is not Statement.BackupDatabase)
+				throw BridgeGap.Missing(old, $"{NameOf(old)} (files, which only BACKUP DATABASE's syntax names)");
+
+			return old switch
+			{
+				Statement.BackupDatabase       => new Ast.Statement.BackupDatabase(BackupName(old, old.Name), devices) { Files = files, Mirrors = [.. mirrors], Options = options },
+				Statement.BackupTransactionLog => new Ast.Statement.BackupLog(BackupName(old, old.Name), devices) { Mirrors = [.. mirrors], Options = options },
+				Statement.BackupServer when old.Name.Length == 0 => new Ast.Statement.BackupServer(devices) { Mirrors = [.. mirrors], Options = options },
+				Statement.BackupGroup          => new Ast.Statement.BackupGroup([.. Listed(old.Name).Select(one => BackupName(old, one))], devices) { Mirrors = [.. mirrors], Options = options },
+				_                              => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({old.Name})"),
+			};
+		}
+
+		/// <summary>
+		/// RESTORE: likewise — the files, the devices or the snapshot after FROM, the options after WITH; a key's place,
+		/// its passwords and FORCE.
+		/// </summary>
+		static Ast.Statement Restore(Statement.Definition old)
+		{
+			var text   = old.Tail ?? "";
+			var tokens = Located(text);
+			var words  = Words(text);
+
+			if (Spelled(old) is { } spelled && Words(spelled) is [_, "DATABASE" or "LOG", "(", ..])
+				throw BridgeGap.Lost(old, $"{NameOf(old)} (a bracketed list of names, of which the old tree keeps the first)");
+
+			switch (old)
+			{
+				case Statement.RestoreMasterKey when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
+					return new Ast.Statement.RestoreMasterKey(Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Length == 1 };
+
+				case Statement.RestoreServiceMasterKey when words is ["FROM", "FILE", "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
+					return new Ast.Statement.RestoreServiceMasterKey(Password(old, tokens, 3), Password(old, tokens, 8)) { Force = force.Length == 1 };
+
+				case Statement.RestoreSymmetricKey when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
+					return new Ast.Statement.RestoreSymmetricKey(Values.Part(old, old.Name), Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Length == 1 };
+
+				case Statement.RestoreMasterKey or Statement.RestoreServiceMasterKey or Statement.RestoreSymmetricKey:
+					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+			}
+
+			var from  = Index(tokens, "FROM");
+			var with  = Index(tokens, "WITH");
+			var files = BackupFiles(old, Slice(text, tokens, 0, from >= 0 ? from : with >= 0 ? with : tokens.Count));
+			var end   = with < 0 ? tokens.Count : with;
+
+			SqlList<Ast.BackupDevice> devices = [];
+			Ast.Expression? snapshot = null;
+
+			if (from >= 0 && words.Length > from + 1 && words[from + 1] == "DATABASE_SNAPSHOT")
+				snapshot = end == from + 4 && words[from + 2] == "=" ? Value(old, tokens[from + 3].Token) : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+			else if (from >= 0)
+				devices = Devices(old, Slice(text, tokens, from + 1, end));
+
+			var options = with < 0 ? [] : Options(old, Slice(text, tokens, with + 1, tokens.Count));
+
+			if (old is not (Statement.RestoreDatabase or Statement.RestoreLog) && (old.Name.Length > 0 || files.Count > 0))
+				throw BridgeGap.Missing(old, $"{NameOf(old)} (a database or files, which its syntax does not name)");
+
+			if (old is Statement.RestoreDatabase or Statement.RestoreLog && old.Name.Length == 0)
+				throw BridgeGap.Missing(old, $"{NameOf(old)} (no database, which its syntax names)");
+
+			if (snapshot is not null && old is not Statement.RestoreDatabase)
+				throw BridgeGap.Missing(old, $"{NameOf(old)} (FROM DATABASE_SNAPSHOT, which only RESTORE DATABASE's syntax names)");
+
+			return old switch
+			{
+				Statement.RestoreDatabase     => new Ast.Statement.RestoreDatabase(BackupName(old, old.Name)) { Files = files, From = devices, DatabaseSnapshot = snapshot, Options = options },
+				Statement.RestoreLog          => new Ast.Statement.RestoreLog(BackupName(old, old.Name)) { Files = files, From = devices, Options = options },
+				Statement.RestoreFileListOnly => new Ast.Statement.RestoreFileListOnly(devices) { Options = options },
+				Statement.RestoreHeaderOnly   => new Ast.Statement.RestoreHeaderOnly(devices) { Options = options },
+				Statement.RestoreLabelOnly    => new Ast.Statement.RestoreLabelOnly(devices) { Options = options },
+				Statement.RestoreRewindOnly   => new Ast.Statement.RestoreRewindOnly(devices) { Options = options },
+				Statement.RestoreVerifyOnly   => new Ast.Statement.RestoreVerifyOnly(devices) { Options = options },
+				_                             => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
+			};
+		}
+
+		/// <summary>BackupFile, each between commas; files with no comma between them are a gap.</summary>
+		static SqlList<Ast.BackupFile> BackupFiles(Statement old, string text)
+		{
+			if (text.Length == 0)
+				return [];
+
+			return [.. Listed(text).Select(piece => Words(piece) switch
+			{
+				["READ_WRITE_FILEGROUPS"] => new Ast.BackupFile.ReadWriteFileGroups(),
+				["FILE", "=", ..]         => (Ast.BackupFile)new Ast.BackupFile.File(BackupName(old, Slice(piece, Located(piece), 2, int.MaxValue))),
+				["FILEGROUP", "=", ..]    => new Ast.BackupFile.FileGroup(BackupName(old, Slice(piece, Located(piece), 2, int.MaxValue))),
+				["PAGE", "=", _]          => new Ast.BackupFile.Page(Value(old, SqlTokens.Of(piece)[2])),
+				_                         => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (files `{text}`)"),
+			})];
+		}
+
+		/// <summary>BackupName: a name of one part or several, a variable, or a string.</summary>
+		static Ast.Expression BackupName(Statement old, string text)
+		{
+			var tokens = SqlTokens.Of(text);
+
+			return tokens switch
+			{
+				[{ Kind: SqlTokens.Kind.String } one] when one.Text[0] == '\'' => Values.String(one.Text),
+				[{ Kind: SqlTokens.Kind.Word } one] when one.Text.StartsWith("@", StringComparison.Ordinal) => new Ast.Expression.Variable(new Ast.Identifier(one.Text)),
+				_ when tokens.Count % 2 == 1 && tokens.Select((one, at) => at % 2 == 1 ? one.Text == "." : one.Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited && !one.Text.StartsWith("@", StringComparison.Ordinal)).All(static one => one)
+					=> new Ast.Expression.Reference(Values.Name(old, text)),
+				_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a name `{text}`)"),
+			};
+		}
+
+		/// <summary>BackupDevice, each between commas.</summary>
+		static SqlList<Ast.BackupDevice> Devices(Statement old, string text)
+		{
+			return [.. Listed(text).Select(piece =>
+			{
+				var tokens = SqlTokens.Of(piece);
+
+				return Words(piece) switch
+				{
+					["DISK" or "TAPE" or "URL", "=", _] => new Ast.BackupDevice.Physical(Words(piece)[0] switch { "DISK" => Ast.DeviceKind.Disk, "TAPE" => Ast.DeviceKind.Tape, _ => Ast.DeviceKind.Url }, Value(old, tokens[2])),
+					[_] when tokens[0].Text.StartsWith("@", StringComparison.Ordinal) => (Ast.BackupDevice)new Ast.BackupDevice.Logical(null, new Ast.Expression.Variable(new Ast.Identifier(tokens[0].Text))),
+					_ when BackupName(old, piece) is Ast.Expression.Reference { Name: var name } => new Ast.BackupDevice.Logical(name, null),
+					_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a device `{piece}`)"),
+				};
+			})];
+		}
+
+		/// <summary>
+		/// The options of a WITH or of a bracket: a name of a word or several, then nothing, <c>= value</c> or a bracketed
+		/// list. MOVE's two strings and STOPATMARK's AFTER have no place in an option, and are a gap.
+		/// </summary>
+		static SqlList<Ast.Option> Options(Statement old, string text)
+		{
+			return [.. Listed(text).Select(piece =>
+			{
+				var tokens = Located(piece);
+				var named  = 0;
+
+				while (named < tokens.Count && tokens[named].Token.Kind == SqlTokens.Kind.Word && !tokens[named].Token.Text.StartsWith("@", StringComparison.Ordinal))
+					named++;
+
+				if (named == 0)
+					throw BridgeGap.Open(old, $"inventory {NameOf(old)} (an option `{piece}`)");
+
+				var option = new Ast.Option(Values.Part(old, tokens[0].Token.Text), null, [])
+				{
+					Words = [.. tokens.Take(named).Skip(1).Select(one => Values.Part(old, one.Token.Text))],
+				};
+				var rest = tokens.Skip(named).Select(static one => one.Token.Text).ToList();
+
+				return rest switch
+				{
+					[] => option,
+					["=", _] => option with { Value = Value(old, tokens[named + 1].Token) },
+					["(", .., ")"] => option with { Options = Options(old, piece[(tokens[named].At + 1)..tokens[^1].At]) },
+					_ when option.Name.Text.Equals("MOVE", StringComparison.OrdinalIgnoreCase) => throw BridgeGap.Missing(old, "Option (RESTORE … MOVE 'file' TO 'path': two values)"),
+					_ when rest.Contains("AFTER", StringComparer.OrdinalIgnoreCase) => throw BridgeGap.Missing(old, "Option (RESTORE … STOPATMARK = mark AFTER datetime: two values)"),
+					_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (an option `{piece}`)"),
+				};
+			})];
+		}
+
+		/// <summary>One token as a value: a string, a number, a variable, NULL, or a word or a name in brackets.</summary>
+		static Ast.Expression Value(Statement old, SqlTokens.Token token)
+		{
+			return token switch
+			{
+				{ Kind: SqlTokens.Kind.String }                                              => Values.String(token.Text),
+				{ Kind: SqlTokens.Kind.Number }                                              => Values.Of(new Expression.Literal(SqlLiteralKind.Number, token.Text)),
+				{ Kind: SqlTokens.Kind.Word } when token.Text.StartsWith("@", StringComparison.Ordinal) => new Ast.Expression.Variable(new Ast.Identifier(token.Text)),
+				{ Kind: SqlTokens.Kind.Word } when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase) => new Ast.LiteralValue.Null(),
+				{ Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited }                     => new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, token.Text)])),
+				_                                                                             => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a value `{token.Text}`)"),
+			};
+		}
+
+		/// <summary>KeyPlace at a token: FILE or URL, <c>=</c>, a string.</summary>
+		static Ast.KeyPlace Place(Statement old, List<(SqlTokens.Token Token, int At)> tokens, int at)
+		{
+			return new Ast.KeyPlace(tokens[at].Token.Text.ToUpperInvariant() switch
+			{
+				"FILE" => Ast.KeyPlaceKind.File,
+				"URL"  => Ast.KeyPlaceKind.Url,
+				_      => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tokens[at].Token.Text})"),
+			}, Password(old, tokens, at + 2));
+		}
+
+		/// <summary>A string at a token, as a path or a password is written.</summary>
+		static Ast.Expression Password(Statement old, List<(SqlTokens.Token Token, int At)> tokens, int at)
+		{
+			return tokens[at].Token.Kind == SqlTokens.Kind.String ? Values.String(tokens[at].Token.Text) : throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a password or path `{tokens[at].Token.Text}`)");
 		}
 
 		/// <summary>ALTER DATABASE's target: CURRENT, the word, or a name.</summary>

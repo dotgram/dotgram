@@ -27,6 +27,185 @@ public static partial class Sql2023Writer
 					PutCreateDatabase(create);
 					return true;
 
+				// T-SQL: BACKUP (Transact-SQL). BackupStatement.
+				case Statement.BackupDatabase backup:
+					Word("BACKUP DATABASE");
+					PutBackupName(backup, backup.Database);
+					PutBackupFiles(backup, backup.Files, restore: false);
+					PutBackupTo(backup, backup.To, backup.Mirrors, backup.Options);
+					return true;
+
+				case Statement.BackupLog backup:
+					Word("BACKUP LOG");
+					PutBackupName(backup, backup.Database);
+					PutBackupTo(backup, backup.To, backup.Mirrors, backup.Options);
+					return true;
+
+				case Statement.BackupServer backup:
+					Word("BACKUP SERVER");
+					PutBackupTo(backup, backup.To, backup.Mirrors, backup.Options);
+					return true;
+
+				// BackupGroup: the databases, one at least.
+				case Statement.BackupGroup backup:
+					if (backup.Databases.Count == 0)
+						throw Empty(backup, "Databases");
+
+					Word("BACKUP GROUP");
+					Each(backup.Databases, database => PutBackupName(backup, database));
+					PutBackupTo(backup, backup.To, backup.Mirrors, backup.Options);
+					return true;
+
+				// The path and the passwords are strings; the format and the private key's settings come after WITH, the
+				// format only before a private key (CertificatePrivateKey).
+				case Statement.BackupCertificate backup:
+					Word("BACKUP CERTIFICATE");
+					PutIdentifier(backup.Name);
+					Word("TO FILE =");
+					PutKeyString(backup, "File", backup.File);
+
+					if (backup.PrivateKey.Count == 0)
+					{
+						if (backup.Format is not null)
+							throw Misplaced(backup, "Format", "without a private key (CertificatePrivateKey)");
+
+						return true;
+					}
+
+					if (backup.PrivateKey.Count(static option => Plain(option.Name, "ALGORITHM")) > 1)
+						throw Misplaced(backup, "PrivateKey", "naming ALGORITHM twice (Syntax.Once, Msg 102)");
+
+					Word("WITH");
+
+					if (backup.Format is { } format)
+					{
+						Word("FORMAT =");
+						PutKeyString(backup, "Format", format);
+						Tight(",");
+					}
+
+					Word("PRIVATE KEY");
+					Open();
+					Each(backup.PrivateKey, option => PutSetting(option, PrivateKeyOptions, "CertificateKeyItem"));
+					Close();
+					return true;
+
+				case Statement.BackupMasterKey backup:
+					Word("BACKUP MASTER KEY TO");
+					PutKeyPlace(backup.To);
+					PutPassword(backup, "ENCRYPTION", backup.EncryptionPassword);
+					return true;
+
+				case Statement.BackupServiceMasterKey backup:
+					Word("BACKUP SERVICE MASTER KEY TO FILE =");
+					PutKeyString(backup, "File", backup.File);
+					PutPassword(backup, "ENCRYPTION", backup.EncryptionPassword);
+					return true;
+
+				case Statement.BackupSymmetricKey backup:
+					Word("BACKUP SYMMETRIC KEY");
+					PutIdentifier(backup.Name);
+					Word("TO");
+					PutKeyPlace(backup.To);
+					PutPassword(backup, "ENCRYPTION", backup.EncryptionPassword);
+					return true;
+
+				// T-SQL: RESTORE (Transact-SQL). RestoreStatement: the devices or a snapshot, never both.
+				case Statement.RestoreDatabase restore:
+					Word("RESTORE DATABASE");
+					PutBackupName(restore, restore.Database);
+					PutBackupFiles(restore, restore.Files, restore: true);
+
+					if (restore.DatabaseSnapshot is { } snapshot)
+					{
+						if (restore.From.Count > 0)
+							throw Both(restore, "From", "DatabaseSnapshot");
+
+						if (!StringValue(snapshot) && snapshot is not Expression.Variable)
+							throw Misplaced(restore, "DatabaseSnapshot", "other than a string or a variable (RestoreFrom: BackupString)");
+
+						Word("FROM DATABASE_SNAPSHOT =");
+						PutExpression(snapshot);
+					}
+					else
+						PutRestoreFrom(restore, restore.From, required: false);
+
+					PutBackupWith(restore.Options, RestoreOptions, "RestoreOption");
+					return true;
+
+				case Statement.RestoreLog restore:
+					Word("RESTORE LOG");
+					PutBackupName(restore, restore.Database);
+					PutBackupFiles(restore, restore.Files, restore: true);
+					PutRestoreFrom(restore, restore.From, required: false);
+					PutBackupWith(restore.Options, RestoreOptions, "RestoreOption");
+					return true;
+
+				case Statement.RestoreFileListOnly restore:
+					Word("RESTORE FILELISTONLY");
+					PutRestoreFrom(restore, restore.From, required: true);
+					PutBackupWith(restore.Options, RestoreOptions, "RestoreOption");
+					return true;
+
+				case Statement.RestoreHeaderOnly restore:
+					Word("RESTORE HEADERONLY");
+					PutRestoreFrom(restore, restore.From, required: true);
+					PutBackupWith(restore.Options, RestoreOptions, "RestoreOption");
+					return true;
+
+				case Statement.RestoreLabelOnly restore:
+					Word("RESTORE LABELONLY");
+					PutRestoreFrom(restore, restore.From, required: true);
+					PutBackupWith(restore.Options, RestoreOptions, "RestoreOption");
+					return true;
+
+				case Statement.RestoreRewindOnly restore:
+					Word("RESTORE REWINDONLY");
+					PutRestoreFrom(restore, restore.From, required: true);
+					PutBackupWith(restore.Options, RestoreOptions, "RestoreOption");
+					return true;
+
+				case Statement.RestoreVerifyOnly restore:
+					Word("RESTORE VERIFYONLY");
+					PutRestoreFrom(restore, restore.From, required: true);
+					PutBackupWith(restore.Options, RestoreOptions, "RestoreOption");
+					return true;
+
+				// The password it was locked with, the one to lock it with, and FORCE last.
+				case Statement.RestoreMasterKey restore:
+					Word("RESTORE MASTER KEY FROM");
+					PutKeyPlace(restore.From);
+					PutPassword(restore, "DECRYPTION", restore.DecryptionPassword);
+					PutPassword(restore, "ENCRYPTION", restore.EncryptionPassword);
+
+					if (restore.Force)
+						Word("FORCE");
+
+					return true;
+
+				case Statement.RestoreServiceMasterKey restore:
+					Word("RESTORE SERVICE MASTER KEY FROM FILE =");
+					PutKeyString(restore, "File", restore.File);
+					PutPassword(restore, "DECRYPTION", restore.DecryptionPassword);
+
+					if (restore.Force)
+						Word("FORCE");
+
+					return true;
+
+				case Statement.RestoreSymmetricKey restore:
+					Word("RESTORE SYMMETRIC KEY");
+					PutIdentifier(restore.Name);
+					Word("FROM");
+					PutKeyPlace(restore.From);
+					PutPassword(restore, "DECRYPTION", restore.DecryptionPassword);
+					PutPassword(restore, "ENCRYPTION", restore.EncryptionPassword);
+
+					if (restore.Force)
+						Word("FORCE");
+
+					return true;
+
 				// T-SQL: ALTER DATABASE SCOPED CONFIGURATION. FOR SECONDARY only before SET (AlterDatabaseStatement).
 				case Statement.AlterDatabaseScopedConfiguration scoped:
 					Word("ALTER DATABASE SCOPED CONFIGURATION");
@@ -200,6 +379,179 @@ public static partial class Sql2023Writer
 				default:
 					throw Unwritten(action);
 			}
+		}
+
+		/// <summary>
+		/// T-SQL: BACKUP (Transact-SQL). BackupName: a name, a variable or a string; the brackets of a list the grammar
+		/// reads and keeps the first of are not written.
+		/// </summary>
+		void PutBackupName(ISqlNode owner, Expression name)
+		{
+			switch (name)
+			{
+				case Expression.Reference { Name: var named } when named.Count > 0:
+					if (named.Count == 1 && named[0].Style == IdentifierStyle.Regular && BackupBoundary.Contains(named[0].Text))
+						throw Misplaced(owner, "Database", named[0].Text + " unbracketed, which reads as the word after it (BackupBoundary)");
+
+					PutName(named);
+					break;
+
+				case Expression.Variable:
+				case LiteralValue.String { Kind: StringLiteralKind.Character, CharacterSet: null, UnicodeEscape: null }:
+					PutExpression(name);
+					break;
+
+				default:
+					throw Misplaced(owner, "Database", "other than a name, a variable or a string (BackupName)");
+			}
+		}
+
+		static readonly HashSet<string> BackupBoundary = new(StringComparer.OrdinalIgnoreCase) { "FILE", "FILEGROUP", "READ_WRITE_FILEGROUPS", "PAGE", "TO", "FROM", "WITH" };
+
+		/// <summary>T-SQL: BACKUP (Transact-SQL), RESTORE (Transact-SQL). BackupFile, a comma between each; PAGE a restore's.</summary>
+		void PutBackupFiles(ISqlNode owner, SqlList<BackupFile> files, bool restore)
+		{
+			for (var at = 0; at < files.Count; at++)
+			{
+				if (at > 0)
+					Tight(",");
+
+				switch (files[at])
+				{
+					case BackupFile.File file:
+						Word("FILE =");
+						PutBackupName(file, file.Name);
+						break;
+
+					case BackupFile.FileGroup group:
+						Word("FILEGROUP =");
+						PutBackupName(group, group.Name);
+						break;
+
+					case BackupFile.ReadWriteFileGroups:
+						Word("READ_WRITE_FILEGROUPS");
+						break;
+
+					case BackupFile.Page page:
+						Word("PAGE =");
+						PutExpression(page.Value);
+						break;
+
+					default:
+						throw Unwritten(files[at]);
+				}
+			}
+		}
+
+		/// <summary>T-SQL: BACKUP (Transact-SQL). <c>TO devices [MIRROR TO devices]… [WITH options]</c>.</summary>
+		void PutBackupTo(ISqlNode owner, SqlList<BackupDevice> to, SqlList<BackupMirror> mirrors, SqlList<Option> options)
+		{
+			if (to.Count == 0)
+				throw Empty(owner, "To");
+
+			Word("TO");
+			Each(to, PutBackupDevice);
+
+			foreach (var mirror in mirrors)
+			{
+				if (mirror.Devices.Count == 0)
+					throw Empty(mirror, "Devices");
+
+				Word("MIRROR TO");
+				Each(mirror.Devices, PutBackupDevice);
+			}
+
+			PutBackupWith(options, BackupOptions, "BackupOption");
+		}
+
+		void PutRestoreFrom(ISqlNode owner, SqlList<BackupDevice> from, bool required)
+		{
+			if (from.Count == 0)
+			{
+				if (required)
+					throw Empty(owner, "From");
+
+				return;
+			}
+
+			Word("FROM");
+			Each(from, PutBackupDevice);
+		}
+
+		/// <summary>T-SQL: BACKUP (Transact-SQL). BackupDevice.</summary>
+		void PutBackupDevice(BackupDevice device)
+		{
+			switch (device)
+			{
+				case BackupDevice.Logical { Name: not null, Variable: not null }:
+					throw Both(device, "Name", "Variable");
+
+				case BackupDevice.Logical { Name: { } name }:
+					if (name.Count == 1 && name[0].Style == IdentifierStyle.Regular && (BackupBoundary.Contains(name[0].Text) || Plain(name[0], "MIRROR", "DATABASE_SNAPSHOT")))
+						throw Misplaced(device, "Name", name[0].Text + " unbracketed, which reads as a word of the statement");
+
+					PutName(name);
+					break;
+
+				case BackupDevice.Logical { Variable: { } variable }:
+					PutExpression(variable);
+					break;
+
+				case BackupDevice.Logical:
+					throw Empty(device, "Name", "Variable");
+
+				case BackupDevice.Physical physical:
+					Word(physical.Kind switch
+					{
+						DeviceKind.Disk => "DISK",
+						DeviceKind.Tape => "TAPE",
+						DeviceKind.Url  => "URL",
+						_               => throw Misplaced(physical, "Kind", "of no word (DeviceWord)"),
+					});
+					Word("=");
+					PutExpression(physical.Value);
+					break;
+
+				default:
+					throw Unwritten(device);
+			}
+		}
+
+		void PutBackupWith(SqlList<Option> options, Dictionary<string, Setting[]> catalogue, string rule)
+		{
+			if (options.Count == 0)
+				return;
+
+			Word("WITH");
+			Each(options, option => PutSetting(option, catalogue, rule));
+		}
+
+		/// <summary>KeyPlace: <c>FILE</c> or <c>URL</c>, and a string.</summary>
+		void PutKeyPlace(KeyPlace place)
+		{
+			Word(place.Kind switch
+			{
+				KeyPlaceKind.File => "FILE =",
+				KeyPlaceKind.Url  => "URL =",
+				_                 => throw Misplaced(place, "Kind", "of no word (KeyPlace)"),
+			});
+			PutKeyString(place, "Path", place.Path);
+		}
+
+		/// <summary>KeyLockedBy and KeyUnlockedBy: <c>ENCRYPTION BY PASSWORD = 'p'</c>, <c>DECRYPTION BY PASSWORD = 'p'</c>.</summary>
+		void PutPassword(ISqlNode owner, string which, Expression password)
+		{
+			Word(which + " BY PASSWORD =");
+			PutKeyString(owner, which[0] + which.Substring(1).ToLowerInvariant() + "Password", password);
+		}
+
+		/// <summary>A path or a password of a key's backup: a string, never a variable (Quoted).</summary>
+		void PutKeyString(ISqlNode owner, string member, Expression value)
+		{
+			if (!StringValue(value))
+				throw Misplaced(owner, member, "other than a string (Quoted)");
+
+			PutExpression(value);
 		}
 
 		/// <summary>
@@ -540,7 +892,7 @@ public static partial class Sql2023Writer
 		sealed record Setting(bool Assigned, Func<Expression?, bool> Takes, Nest? Nest = null);
 
 		/// <summary>The list in brackets after a setting: its own catalogue, whether it must be written, whether it holds one.</summary>
-		sealed record Nest(Dictionary<string, Setting[]> Catalogue, bool Required = false, bool Single = false);
+		sealed record Nest(Dictionary<string, Setting[]> Catalogue, bool Required = false, bool Single = false, Func<string[], bool>? Sequence = null);
 
 		/// <summary>
 		/// A setting of a closed catalogue, keyed by its name and further words: the first of the ways it is written whose
@@ -598,7 +950,10 @@ public static partial class Sql2023Writer
 
 		static bool Fits(Option option, Nest? nest)
 		{
-			return option.Options.Count == 0 ? nest is not { Required: true } : nest is not null && (!nest.Single || option.Options.Count == 1);
+			return option.Options.Count == 0
+				? nest is not { Required: true }
+				: nest is not null && (!nest.Single || option.Options.Count == 1)
+					&& (nest.Sequence is null || nest.Sequence([.. option.Options.Select(static one => Key(one).ToUpperInvariant())]));
 		}
 
 		/// <summary>
@@ -665,6 +1020,93 @@ public static partial class Sql2023Writer
 				catalogue.Add(name, [new(true, Words("ON", "OFF"))]);
 
 			return catalogue;
+		}
+
+		/// <summary>
+		/// T-SQL: BACKUP (Transact-SQL). BackupOption: the words alone, the settings given a string, a variable or a
+		/// number, those given only a string or a variable, STATS with a value or none, and COMPRESSION's and
+		/// ENCRYPTION's lists.
+		/// </summary>
+		static readonly Dictionary<string, Setting[]> BackupOptions = BackupCatalogue();
+
+		static Dictionary<string, Setting[]> BackupCatalogue()
+		{
+			var catalogue = new Dictionary<string, Setting[]>(StringComparer.OrdinalIgnoreCase)
+			{
+				["COMPRESSION"] = [new(false, None), new(false, None, new(Settings(
+					("ALGORITHM", true, Words("MS_XPRESS", "ZSTD", "QAT_DEFLATE")),
+					("LEVEL",     true, Words("LOW", "MEDIUM", "HIGH"))), Required: true, Sequence: static keys => keys is ["ALGORITHM"] or ["ALGORITHM", "LEVEL"]))],
+				["ENCRYPTION"]  = [new(false, None, new(new Dictionary<string, Setting[]>(StringComparer.OrdinalIgnoreCase)
+				{
+					["ALGORITHM"]             = [new(true, Words("AES_128", "AES_192", "AES_256", "TRIPLE_DES_3KEY"))],
+					["SERVER CERTIFICATE"]    = [new(true, NameValue)],
+					["SERVER ASYMMETRIC KEY"] = [new(true, NameValue)],
+				}, Required: true, Sequence: static keys => keys is ["ALGORITHM", "SERVER CERTIFICATE" or "SERVER ASYMMETRIC KEY"]))],
+				["STATS"]       = [new(false, None), new(true, BackupValue)],
+			};
+
+			foreach (var word in new[] { "DIFFERENTIAL", "COPY_ONLY", "NO_COMPRESSION", "FILE_SNAPSHOT", "METADATA_ONLY", "SNAPSHOT", "INIT", "NOINIT", "SKIP", "NOSKIP", "FORMAT", "NOFORMAT", "CHECKSUM", "NO_CHECKSUM", "STOP_ON_ERROR", "CONTINUE_AFTER_ERROR", "RESTART", "REWIND", "NOREWIND", "UNLOAD", "NOUNLOAD", "NORECOVERY", "NO_TRUNCATE", "NO_LOG" })
+				catalogue.Add(word, [new(false, None)]);
+
+			foreach (var name in new[] { "DESCRIPTION", "MEDIADESCRIPTION", "EXPIREDATE", "RETAINDAYS", "BLOCKSIZE", "BUFFERCOUNT", "MAXTRANSFERSIZE", "BACKUP_OPTIONS" })
+				catalogue.Add(name, [new(true, BackupValue)]);
+
+			foreach (var name in new[] { "NAME", "MEDIANAME", "CREDENTIAL", "PASSWORD", "MEDIAPASSWORD", "STANDBY" })
+				catalogue.Add(name, [new(true, BackupString)]);
+
+			return catalogue;
+		}
+
+		/// <summary>
+		/// T-SQL: RESTORE (Transact-SQL). RestoreOption: one list for every form of RESTORE, as the engine reads it. MOVE,
+		/// with its two strings, has no place in an option and is not here.
+		/// </summary>
+		static readonly Dictionary<string, Setting[]> RestoreOptions = RestoreCatalogue();
+
+		static Dictionary<string, Setting[]> RestoreCatalogue()
+		{
+			var catalogue = new Dictionary<string, Setting[]>(StringComparer.OrdinalIgnoreCase)
+			{
+				["FILE"]       = [new(true, static value => value is Expression.Variable || UnsignedNumber(value))],
+				["STATS"]      = [new(false, None), new(true, BackupValue)],
+				["FILESTREAM"] = [new(false, None, new(Settings(("DIRECTORY_NAME", true, static value => StringValue(value) || value is LiteralValue.Null)), Required: true, Single: true))],
+			};
+
+			foreach (var word in new[] { "RECOVERY", "NORECOVERY", "REPLACE", "RESTART", "RESTRICTED_USER", "PARTIAL", "LOADHISTORY", "METADATA_ONLY", "SNAPSHOT", "CHECKSUM", "NO_CHECKSUM", "STOP_ON_ERROR", "CONTINUE_AFTER_ERROR", "REWIND", "NOREWIND", "UNLOAD", "NOUNLOAD", "KEEP_REPLICATION", "KEEP_CDC", "KEEP_TEMPORAL_RETENTION", "ENABLE_BROKER", "ERROR_BROKER_CONVERSATIONS", "NEW_BROKER" })
+				catalogue.Add(word, [new(false, None)]);
+
+			foreach (var name in new[] { "STANDBY", "CREDENTIAL", "PASSWORD", "MEDIAPASSWORD", "MEDIANAME", "DBNAME", "RESTORE_OPTIONS" })
+				catalogue.Add(name, [new(true, BackupString)]);
+
+			foreach (var name in new[] { "BLOCKSIZE", "BUFFERCOUNT", "MAXTRANSFERSIZE", "STOPAT", "STOPATMARK", "STOPBEFOREMARK" })
+				catalogue.Add(name, [new(true, BackupValue)]);
+
+			return catalogue;
+		}
+
+		/// <summary>T-SQL: BACKUP CERTIFICATE (Transact-SQL). CertificateKeyItem: a file, the two passwords and an algorithm, each a string.</summary>
+		static readonly Dictionary<string, Setting[]> PrivateKeyOptions = Settings(
+			("FILE",                   true, StringValue),
+			("ENCRYPTION BY PASSWORD", true, StringValue),
+			("DECRYPTION BY PASSWORD", true, StringValue),
+			("ALGORITHM",              true, StringValue));
+
+		/// <summary>BackupString: a string or a variable.</summary>
+		static bool BackupString(Expression? value)
+		{
+			return StringValue(value) || value is Expression.Variable;
+		}
+
+		/// <summary>BackupValue: a string, a variable or an unsigned number.</summary>
+		static bool BackupValue(Expression? value)
+		{
+			return BackupString(value) || UnsignedNumber(value);
+		}
+
+		/// <summary><c>Sql92.Lexical.UnsignedNumericLiteral</c>: digits, a decimal or an approximate number.</summary>
+		static bool UnsignedNumber(Expression? value)
+		{
+			return value is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate } number && Unsigned(number.Text, number.Kind);
 		}
 
 		/// <summary>
