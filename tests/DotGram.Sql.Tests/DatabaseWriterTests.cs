@@ -92,6 +92,26 @@ public sealed class DatabaseWriterTests
 
 	static readonly DatabaseFile F = File(Set("NAME", Ref("f")), Set("FILENAME", Text("f.mdf")));
 
+	static Expression Var(string name)
+	{
+		return new Expression.Variable(Name(name));
+	}
+
+	static BackupDevice Disk(string path)
+	{
+		return new BackupDevice.Physical(DeviceKind.Disk, Text(path));
+	}
+
+	static BackupDevice Device(string name)
+	{
+		return new BackupDevice.Logical(new QualifiedName([Name(name)]), null);
+	}
+
+	static Expression Db(string name = "d")
+	{
+		return new Expression.Reference(new QualifiedName([Name(name)]));
+	}
+
 	static Statement.AlterDatabaseScopedConfiguration Scoped(Option option, bool secondary = false)
 	{
 		return new Statement.AlterDatabaseScopedConfiguration(new ScopedConfigurationAction.Set(option) { Secondary = secondary });
@@ -151,6 +171,28 @@ public sealed class DatabaseWriterTests
 			"CREATE DATABASE AS SNAPSHOT OF" => Create("s") with { Files = [F], Source = new DatabaseSource.AsSnapshotOf(D), Options = [Set("TRUSTWORTHY", Ref("OFF"))] },
 			"CREATE DATABASE AS COPY OF" => Create("c") with { Source = new DatabaseSource.AsCopyOf(new QualifiedName([Name("s"), D])), EditionOptions = [new Option(Name("SERVICE_OBJECTIVE"), Ref("ELASTIC_POOL"), [Set("NAME", Ref("p"))])], Options = [Set("BACKUP_STORAGE_REDUNDANCY", Text("GEO"))] },
 			"CREATE DATABASE Azure" => Create() with { Collation = new CollationName(new QualifiedName([Name("Latin1_General_CI_AS")])), EditionOptions = [Set("EDITION", Text("Premium")), Set("MAXSIZE", Sized("500", "GB"))], Options = [Set("BACKUP_STORAGE_REDUNDANCY", Text("LOCAL")), Set("LEDGER", Ref("OFF"))] },
+			"BACKUP DATABASE whole" => new Statement.BackupDatabase(Db(), [Disk("a.bak"), new BackupDevice.Logical(null, (Expression.Variable)Var("@dev")), new BackupDevice.Physical(DeviceKind.Tape, Var("@t"))]) { Files = [new BackupFile.File(Text("f1")), new BackupFile.FileGroup(Db("g"))], Mirrors = [new BackupMirror([new BackupDevice.Physical(DeviceKind.Url, Text("u"))]), new BackupMirror([Device("m")])], Options = [Set("DIFFERENTIAL"), Nested("COMPRESSION", null, Set("ALGORITHM", Ref("ZSTD")), Set("LEVEL", Ref("HIGH"))), Nested("ENCRYPTION", null, Set("ALGORITHM", Ref("AES_256")), Worded("SERVER", ["ASYMMETRIC", "KEY"], Ref("k"))), Set("NAME", Var("@n")), Set("DESCRIPTION", Number("5")), Set("STATS"), Set("BLOCKSIZE", Text("x"))] },
+			"BACKUP DATABASE READ_WRITE_FILEGROUPS of a variable" => new Statement.BackupDatabase(Var("@d"), [Device("dev")]) { Files = [new BackupFile.ReadWriteFileGroups()], Options = [Set("STATS", Number("10")), Set("COMPRESSION")] },
+			"BACKUP LOG" => new Statement.BackupLog(Db(), [Disk("l")]) { Options = [Set("NORECOVERY"), Set("STANDBY", Var("@u")), Set("NO_TRUNCATE")] },
+			"BACKUP SERVER" => new Statement.BackupServer([Disk("s")]) { Options = [Set("METADATA_ONLY")] },
+			"BACKUP GROUP" => new Statement.BackupGroup([Db("a"), Db("b")], [Disk("g")]) { Options = [Set("METADATA_ONLY")] },
+			"BACKUP CERTIFICATE" => new Statement.BackupCertificate(Name("c"), Text("c.cer")) { Format = Text("PFX"), PrivateKey = [Set("FILE", Text("c.pvk")), Worded("ENCRYPTION", ["BY", "PASSWORD"], Text("p")), Worded("DECRYPTION", ["BY", "PASSWORD"], Text("q")), Set("ALGORITHM", Text("aes_256"))] },
+			"BACKUP CERTIFICATE alone" => new Statement.BackupCertificate(Name("c"), Text("c.cer")),
+			"BACKUP MASTER KEY" => new Statement.BackupMasterKey(new KeyPlace(KeyPlaceKind.Url, Text("u")), Text("p")),
+			"BACKUP SERVICE MASTER KEY" => new Statement.BackupServiceMasterKey(Text("f"), Text("p")),
+			"BACKUP SYMMETRIC KEY" => new Statement.BackupSymmetricKey(Name("k"), new KeyPlace(KeyPlaceKind.File, Text("f")), Text("p")),
+			"RESTORE DATABASE whole" => new Statement.RestoreDatabase(Db()) { Files = [new BackupFile.Page(Text("1:57")), new BackupFile.File(Var("@f"))], From = [Disk("a.bak")], Options = [Set("NORECOVERY"), Set("FILE", Number("2")), Set("STOPAT", Var("@t")), Nested("FILESTREAM", null, Set("DIRECTORY_NAME", new LiteralValue.Null())), Set("KEEP_TEMPORAL_RETENTION")] },
+			"RESTORE DATABASE alone" => new Statement.RestoreDatabase(Db()),
+			"RESTORE DATABASE from a snapshot" => new Statement.RestoreDatabase(Db()) { DatabaseSnapshot = Text("s") },
+			"RESTORE LOG" => new Statement.RestoreLog(Var("@d")) { From = [Device("dev")], Options = [Set("RECOVERY"), Set("STOPATMARK", Text("m"))] },
+			"RESTORE FILELISTONLY" => new Statement.RestoreFileListOnly([Disk("a")]) { Options = [Set("FILE", Number("1"))] },
+			"RESTORE HEADERONLY" => new Statement.RestoreHeaderOnly([Disk("a")]),
+			"RESTORE LABELONLY" => new Statement.RestoreLabelOnly([Disk("a")]) { Options = [Set("MEDIANAME", Text("m"))] },
+			"RESTORE REWINDONLY" => new Statement.RestoreRewindOnly([Device("t")]) { Options = [Set("UNLOAD")] },
+			"RESTORE VERIFYONLY" => new Statement.RestoreVerifyOnly([Disk("a")]) { Options = [Set("CHECKSUM")] },
+			"RESTORE MASTER KEY" => new Statement.RestoreMasterKey(new KeyPlace(KeyPlaceKind.File, Text("f")), Text("d"), Text("e")) { Force = true },
+			"RESTORE SERVICE MASTER KEY" => new Statement.RestoreServiceMasterKey(Text("f"), Text("d")),
+			"RESTORE SYMMETRIC KEY" => new Statement.RestoreSymmetricKey(Name("k"), new KeyPlace(KeyPlaceKind.Url, Text("u")), Text("d"), Text("e")),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 	}
@@ -206,6 +248,28 @@ public sealed class DatabaseWriterTests
 	[InlineData("CREATE DATABASE AS SNAPSHOT OF", "CREATE DATABASE s ON (NAME = f, FILENAME = 'f.mdf') AS SNAPSHOT OF d WITH TRUSTWORTHY OFF")]
 	[InlineData("CREATE DATABASE AS COPY OF", "CREATE DATABASE c AS COPY OF s.d (SERVICE_OBJECTIVE = ELASTIC_POOL (NAME = p)) WITH (BACKUP_STORAGE_REDUNDANCY = 'GEO')")]
 	[InlineData("CREATE DATABASE Azure", "CREATE DATABASE d COLLATE Latin1_General_CI_AS (EDITION = 'Premium', MAXSIZE = 500 GB) WITH BACKUP_STORAGE_REDUNDANCY = 'LOCAL', LEDGER = OFF")]
+	[InlineData("BACKUP DATABASE whole", "BACKUP DATABASE d FILE = 'f1', FILEGROUP = g TO DISK = 'a.bak', @dev, TAPE = @t MIRROR TO URL = 'u' MIRROR TO m WITH DIFFERENTIAL, COMPRESSION (ALGORITHM = ZSTD, LEVEL = HIGH), ENCRYPTION (ALGORITHM = AES_256, SERVER ASYMMETRIC KEY = k), NAME = @n, DESCRIPTION = 5, STATS, BLOCKSIZE = 'x'")]
+	[InlineData("BACKUP DATABASE READ_WRITE_FILEGROUPS of a variable", "BACKUP DATABASE @d READ_WRITE_FILEGROUPS TO dev WITH STATS = 10, COMPRESSION")]
+	[InlineData("BACKUP LOG", "BACKUP LOG d TO DISK = 'l' WITH NORECOVERY, STANDBY = @u, NO_TRUNCATE")]
+	[InlineData("BACKUP SERVER", "BACKUP SERVER TO DISK = 's' WITH METADATA_ONLY")]
+	[InlineData("BACKUP GROUP", "BACKUP GROUP a, b TO DISK = 'g' WITH METADATA_ONLY")]
+	[InlineData("BACKUP CERTIFICATE", "BACKUP CERTIFICATE c TO FILE = 'c.cer' WITH FORMAT = 'PFX', PRIVATE KEY (FILE = 'c.pvk', ENCRYPTION BY PASSWORD = 'p', DECRYPTION BY PASSWORD = 'q', ALGORITHM = 'aes_256')")]
+	[InlineData("BACKUP CERTIFICATE alone", "BACKUP CERTIFICATE c TO FILE = 'c.cer'")]
+	[InlineData("BACKUP MASTER KEY", "BACKUP MASTER KEY TO URL = 'u' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("BACKUP SERVICE MASTER KEY", "BACKUP SERVICE MASTER KEY TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("BACKUP SYMMETRIC KEY", "BACKUP SYMMETRIC KEY k TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("RESTORE DATABASE whole", "RESTORE DATABASE d PAGE = '1:57', FILE = @f FROM DISK = 'a.bak' WITH NORECOVERY, FILE = 2, STOPAT = @t, FILESTREAM (DIRECTORY_NAME = NULL), KEEP_TEMPORAL_RETENTION")]
+	[InlineData("RESTORE DATABASE alone", "RESTORE DATABASE d")]
+	[InlineData("RESTORE DATABASE from a snapshot", "RESTORE DATABASE d FROM DATABASE_SNAPSHOT = 's'")]
+	[InlineData("RESTORE LOG", "RESTORE LOG @d FROM dev WITH RECOVERY, STOPATMARK = 'm'")]
+	[InlineData("RESTORE FILELISTONLY", "RESTORE FILELISTONLY FROM DISK = 'a' WITH FILE = 1")]
+	[InlineData("RESTORE HEADERONLY", "RESTORE HEADERONLY FROM DISK = 'a'")]
+	[InlineData("RESTORE LABELONLY", "RESTORE LABELONLY FROM DISK = 'a' WITH MEDIANAME = 'm'")]
+	[InlineData("RESTORE REWINDONLY", "RESTORE REWINDONLY FROM t WITH UNLOAD")]
+	[InlineData("RESTORE VERIFYONLY", "RESTORE VERIFYONLY FROM DISK = 'a' WITH CHECKSUM")]
+	[InlineData("RESTORE MASTER KEY", "RESTORE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'd' ENCRYPTION BY PASSWORD = 'e' FORCE")]
+	[InlineData("RESTORE SERVICE MASTER KEY", "RESTORE SERVICE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'd'")]
+	[InlineData("RESTORE SYMMETRIC KEY", "RESTORE SYMMETRIC KEY k FROM URL = 'u' DECRYPTION BY PASSWORD = 'd' ENCRYPTION BY PASSWORD = 'e'")]
 	public void Each_record_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
@@ -264,6 +328,28 @@ public sealed class DatabaseWriterTests
 	[InlineData("CREATE DATABASE AS SNAPSHOT OF")]
 	[InlineData("CREATE DATABASE AS COPY OF")]
 	[InlineData("CREATE DATABASE Azure")]
+	[InlineData("BACKUP DATABASE whole")]
+	[InlineData("BACKUP DATABASE READ_WRITE_FILEGROUPS of a variable")]
+	[InlineData("BACKUP LOG")]
+	[InlineData("BACKUP SERVER")]
+	[InlineData("BACKUP GROUP")]
+	[InlineData("BACKUP CERTIFICATE")]
+	[InlineData("BACKUP CERTIFICATE alone")]
+	[InlineData("BACKUP MASTER KEY")]
+	[InlineData("BACKUP SERVICE MASTER KEY")]
+	[InlineData("BACKUP SYMMETRIC KEY")]
+	[InlineData("RESTORE DATABASE whole")]
+	[InlineData("RESTORE DATABASE alone")]
+	[InlineData("RESTORE DATABASE from a snapshot")]
+	[InlineData("RESTORE LOG")]
+	[InlineData("RESTORE FILELISTONLY")]
+	[InlineData("RESTORE HEADERONLY")]
+	[InlineData("RESTORE LABELONLY")]
+	[InlineData("RESTORE REWINDONLY")]
+	[InlineData("RESTORE VERIFYONLY")]
+	[InlineData("RESTORE MASTER KEY")]
+	[InlineData("RESTORE SERVICE MASTER KEY")]
+	[InlineData("RESTORE SYMMETRIC KEY")]
 	public void Each_record_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -338,6 +424,35 @@ public sealed class DatabaseWriterTests
 	[InlineData("CREATE DATABASE Azure with files")]
 	[InlineData("CREATE DATABASE edition options on a snapshot")]
 	[InlineData("CREATE DATABASE a filegroup holding no word")]
+	[InlineData("BACKUP DATABASE to nothing")]
+	[InlineData("BACKUP DATABASE a mirror of nothing")]
+	[InlineData("BACKUP DATABASE a device both named and a variable")]
+	[InlineData("BACKUP DATABASE a device neither named nor a variable")]
+	[InlineData("BACKUP DATABASE a device named MIRROR")]
+	[InlineData("BACKUP DATABASE a device of no kind")]
+	[InlineData("BACKUP DATABASE a database named FILE")]
+	[InlineData("BACKUP DATABASE a database of a national string")]
+	[InlineData("BACKUP DATABASE a database of a number")]
+	[InlineData("BACKUP option it does not read")]
+	[InlineData("BACKUP COMPRESSION LEVEL first")]
+	[InlineData("BACKUP ENCRYPTION without its encryptor")]
+	[InlineData("BACKUP ENCRYPTION alone")]
+	[InlineData("BACKUP DESCRIPTION of a word")]
+	[InlineData("BACKUP NAME of a number")]
+	[InlineData("BACKUP GROUP of nothing")]
+	[InlineData("BACKUP CERTIFICATE a format without a private key")]
+	[InlineData("BACKUP CERTIFICATE ALGORITHM twice")]
+	[InlineData("BACKUP CERTIFICATE a private key setting it does not read")]
+	[InlineData("BACKUP CERTIFICATE to a variable")]
+	[InlineData("BACKUP MASTER KEY a password of a variable")]
+	[InlineData("BACKUP MASTER KEY a place of no kind")]
+	[InlineData("RESTORE DATABASE from devices and a snapshot")]
+	[InlineData("RESTORE DATABASE from a snapshot by name")]
+	[InlineData("RESTORE an option it does not read")]
+	[InlineData("RESTORE MOVE as an option")]
+	[InlineData("RESTORE FILE of a string")]
+	[InlineData("RESTORE FILELISTONLY from nothing")]
+	[InlineData("RESTORE SERVICE MASTER KEY from a variable")]
 	public void A_database_tree_with_no_text_is_refused(string which)
 	{
 		ISqlNode node = which switch
@@ -464,6 +579,64 @@ public sealed class DatabaseWriterTests
 			"CREATE DATABASE edition options on a snapshot" => Create() with { Files = [F], Source = new DatabaseSource.AsSnapshotOf(D), EditionOptions = [Set("EDITION", Text("Basic"))] },
 			// FileGroupHolds.
 			"CREATE DATABASE a filegroup holding no word" => Create() with { Files = [F], FileGroups = [new FileGroup(Name("g"), [F]) { Contains = (FileGroupContents)9 }] },
+			// BackupStatement: TO BackupDevices.
+			"BACKUP DATABASE to nothing" => new Statement.BackupDatabase(Db(), []),
+			// MirrorTo: BackupDevices.
+			"BACKUP DATABASE a mirror of nothing" => new Statement.BackupDatabase(Db(), [Device("a")]) { Mirrors = [new BackupMirror([])] },
+			// BackupDevice: QualifiedName or TSql.Variable.
+			"BACKUP DATABASE a device both named and a variable" => new Statement.BackupDatabase(Db(), [new BackupDevice.Logical(new QualifiedName([Name("a")]), (Expression.Variable)Var("@a"))]),
+			// BackupDevice.
+			"BACKUP DATABASE a device neither named nor a variable" => new Statement.BackupDatabase(Db(), [new BackupDevice.Logical(null, null)]),
+			// MirrorTo: MIRROR reads as the next clause.
+			"BACKUP DATABASE a device named MIRROR" => new Statement.BackupDatabase(Db(), [Device("MIRROR")]),
+			// DeviceWord.
+			"BACKUP DATABASE a device of no kind" => new Statement.BackupDatabase(Db(), [new BackupDevice.Physical((DeviceKind)9, Text("x"))]),
+			// BackupTarget: BackupBoundary.
+			"BACKUP DATABASE a database named FILE" => new Statement.BackupDatabase(Db("FILE"), [Device("a")]),
+			// BackupName: Sql92.Lexical.CharacterStringLiteral.
+			"BACKUP DATABASE a database of a national string" => new Statement.BackupDatabase(new LiteralValue.String("'d'", StringLiteralKind.National), [Device("a")]),
+			// BackupName.
+			"BACKUP DATABASE a database of a number" => new Statement.BackupDatabase(Number("1"), [Device("a")]),
+			// BackupOption: REPLACE is a restore's.
+			"BACKUP option it does not read" => new Statement.BackupDatabase(Db(), [Device("a")]) { Options = [Set("REPLACE")] },
+			// BackupOption: ALGORITHM, then LEVEL.
+			"BACKUP COMPRESSION LEVEL first" => new Statement.BackupDatabase(Db(), [Device("a")]) { Options = [Nested("COMPRESSION", null, Set("LEVEL", Ref("LOW")), Set("ALGORITHM", Ref("ZSTD")))] },
+			// BackupOption: ENCRYPTION (ALGORITHM = …, SERVER …).
+			"BACKUP ENCRYPTION without its encryptor" => new Statement.BackupDatabase(Db(), [Device("a")]) { Options = [Nested("ENCRYPTION", null, Set("ALGORITHM", Ref("AES_256")))] },
+			// BackupOption: ENCRYPTION alone is refused.
+			"BACKUP ENCRYPTION alone" => new Statement.BackupDatabase(Db(), [Device("a")]) { Options = [Set("ENCRYPTION")] },
+			// BackupValue: Quoted, TSql.Variable or a number.
+			"BACKUP DESCRIPTION of a word" => new Statement.BackupDatabase(Db(), [Device("a")]) { Options = [Set("DESCRIPTION", Ref("x"))] },
+			// BackupString.
+			"BACKUP NAME of a number" => new Statement.BackupDatabase(Db(), [Device("a")]) { Options = [Set("NAME", Number("1"))] },
+			// BackupGroup: BackupName, one at least.
+			"BACKUP GROUP of nothing" => new Statement.BackupGroup([], [Device("a")]),
+			// CertificatePrivateKey: FORMAT before PRIVATE KEY.
+			"BACKUP CERTIFICATE a format without a private key" => new Statement.BackupCertificate(Name("c"), Text("f")) { Format = Text("PFX") },
+			// CertificateKeyItems: Syntax.Once, Msg 102.
+			"BACKUP CERTIFICATE ALGORITHM twice" => new Statement.BackupCertificate(Name("c"), Text("f")) { PrivateKey = [Set("ALGORITHM", Text("a")), Set("ALGORITHM", Text("b"))] },
+			// CertificateKeyItem.
+			"BACKUP CERTIFICATE a private key setting it does not read" => new Statement.BackupCertificate(Name("c"), Text("f")) { PrivateKey = [Set("FORMAT", Text("a"))] },
+			// BackupStatement: TO FILE = Quoted, never a variable.
+			"BACKUP CERTIFICATE to a variable" => new Statement.BackupCertificate(Name("c"), Var("@f")),
+			// KeyLockedBy: Quoted.
+			"BACKUP MASTER KEY a password of a variable" => new Statement.BackupMasterKey(new KeyPlace(KeyPlaceKind.File, Text("f")), Var("@p")),
+			// KeyPlace: FILE or URL.
+			"BACKUP MASTER KEY a place of no kind" => new Statement.BackupMasterKey(new KeyPlace((KeyPlaceKind)9, Text("f")), Text("p")),
+			// RestoreFrom: DATABASE_SNAPSHOT or BackupDevices.
+			"RESTORE DATABASE from devices and a snapshot" => new Statement.RestoreDatabase(Db()) { From = [Device("a")], DatabaseSnapshot = Text("s") },
+			// RestoreFrom: BackupString, = s is refused.
+			"RESTORE DATABASE from a snapshot by name" => new Statement.RestoreDatabase(Db()) { DatabaseSnapshot = Db("s") },
+			// RestoreOption: DIFFERENTIAL is refused.
+			"RESTORE an option it does not read" => new Statement.RestoreDatabase(Db()) { Options = [Set("DIFFERENTIAL")] },
+			// RestoreOption: MOVE BackupString TO BackupString.
+			"RESTORE MOVE as an option" => new Statement.RestoreDatabase(Db()) { Options = [Set("MOVE", Text("a"))] },
+			// RestoreOption: FILE = UnsignedNumericLiteral or a variable.
+			"RESTORE FILE of a string" => new Statement.RestoreDatabase(Db()) { Options = [Set("FILE", Text("1"))] },
+			// RESTORE FILELISTONLY: FROM backup_device.
+			"RESTORE FILELISTONLY from nothing" => new Statement.RestoreFileListOnly([]),
+			// RestoreStatement: FROM FILE = Quoted.
+			"RESTORE SERVICE MASTER KEY from a variable" => new Statement.RestoreServiceMasterKey(Var("@f"), Text("p")),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 

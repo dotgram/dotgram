@@ -59,6 +59,26 @@ public sealed class DatabaseBridgeTests
 	[InlineData("CREATE DATABASE c AS COPY OF d (EDITION = 'Basic')", "a copy's edition options")]
 	[InlineData("CREATE DATABASE d (EDITION = 'Basic')", "Azure's form")]
 	[InlineData("CREATE DATABASE d WITH TRUSTWORTHY ON", "WITH")]
+	[InlineData("BACKUP DATABASE d TO a", "BACKUP DATABASE")]
+	[InlineData("BACKUP LOG d TO a", "BACKUP LOG")]
+	[InlineData("BACKUP DATABASE @d TO @a", "variables")]
+	[InlineData("BACKUP DATABASE d TO TAPE = 't'", "a tape")]
+	[InlineData("BACKUP DATABASE d TO URL = 'u'", "a URL")]
+	[InlineData("BACKUP DATABASE d FILEGROUP = 'g' TO a MIRROR TO b", "a filegroup and a mirror")]
+	[InlineData("BACKUP DATABASE d TO a WITH STATS", "STATS alone")]
+	[InlineData("BACKUP DATABASE d TO a WITH STATS = 5", "STATS = 5")]
+	[InlineData("BACKUP DATABASE d TO a WITH ENCRYPTION (ALGORITHM = AES_128, SERVER CERTIFICATE = c)", "an encryptor of two words")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p'", "a key to a file")]
+	[InlineData("BACKUP MASTER KEY TO URL = 'f' ENCRYPTION BY PASSWORD = 'p'", "a key to a URL")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH PRIVATE KEY (FILE = 'k', ENCRYPTION BY PASSWORD = 'p')", "a private key")]
+	[InlineData("RESTORE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'd' ENCRYPTION BY PASSWORD = 'e' FORCE", "FORCE")]
+	[InlineData("RESTORE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'd' ENCRYPTION BY PASSWORD = 'e'", "no FORCE")]
+	[InlineData("RESTORE DATABASE d FROM DATABASE_SNAPSHOT = 's'", "from a snapshot")]
+	[InlineData("RESTORE DATABASE d FROM s", "from a device named s")]
+	[InlineData("RESTORE LOG d FROM a", "RESTORE LOG")]
+	[InlineData("RESTORE HEADERONLY FROM a", "HEADERONLY")]
+	[InlineData("RESTORE LABELONLY FROM a", "LABELONLY")]
+	[InlineData("RESTORE VERIFYONLY FROM a", "VERIFYONLY")]
 	public void The_bridge_builds_the_database_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -109,6 +129,26 @@ public sealed class DatabaseBridgeTests
 			"a copy's edition options" => made is Ast.Statement.CreateDatabase { Source: Ast.DatabaseSource.AsCopyOf, EditionOptions.Count: 1 },
 			"Azure's form" => made is Ast.Statement.CreateDatabase { Source: null, EditionOptions.Count: 1 },
 			"WITH" => made is Ast.Statement.CreateDatabase { Options: [{ Name.Text: "TRUSTWORTHY", EqualsOmitted: false }] },
+			"BACKUP DATABASE" => made is Ast.Statement.BackupDatabase { Database: Ast.Expression.Reference, To: [Ast.BackupDevice.Logical { Name: not null, Variable: null }] },
+			"BACKUP LOG" => made is Ast.Statement.BackupLog { Database: Ast.Expression.Reference },
+			"variables" => made is Ast.Statement.BackupDatabase { Database: Ast.Expression.Variable, To: [Ast.BackupDevice.Logical { Name: null, Variable: not null }] },
+			"a tape" => made is Ast.Statement.BackupDatabase { To: [Ast.BackupDevice.Physical { Kind: Ast.DeviceKind.Tape }] },
+			"a URL" => made is Ast.Statement.BackupDatabase { To: [Ast.BackupDevice.Physical { Kind: Ast.DeviceKind.Url }] },
+			"a filegroup and a mirror" => made is Ast.Statement.BackupDatabase { Files: [Ast.BackupFile.FileGroup], Mirrors: [{ Devices.Count: 1 }] },
+			"STATS alone" => made is Ast.Statement.BackupDatabase { Options: [{ Value: null }] },
+			"STATS = 5" => made is Ast.Statement.BackupDatabase { Options: [{ Value: Ast.LiteralValue.Numeric }] },
+			"an encryptor of two words" => made is Ast.Statement.BackupDatabase { Options: [{ Options: [_, { Name.Text: "SERVER", Words: [{ Text: "CERTIFICATE" }] }] }] },
+			"a key to a file" => made is Ast.Statement.BackupMasterKey { To.Kind: Ast.KeyPlaceKind.File },
+			"a key to a URL" => made is Ast.Statement.BackupMasterKey { To.Kind: Ast.KeyPlaceKind.Url },
+			"a private key" => made is Ast.Statement.BackupCertificate { Format: null, PrivateKey: [_, { Name.Text: "ENCRYPTION", Words.Count: 2 }] },
+			"FORCE" => made is Ast.Statement.RestoreMasterKey { Force: true, DecryptionPassword: Ast.LiteralValue.String { Text: "'d'" } },
+			"no FORCE" => made is Ast.Statement.RestoreMasterKey { Force: false },
+			"from a snapshot" => made is Ast.Statement.RestoreDatabase { From.Count: 0, DatabaseSnapshot: not null },
+			"from a device named s" => made is Ast.Statement.RestoreDatabase { From.Count: 1, DatabaseSnapshot: null },
+			"RESTORE LOG" => made is Ast.Statement.RestoreLog,
+			"HEADERONLY" => made is Ast.Statement.RestoreHeaderOnly,
+			"LABELONLY" => made is Ast.Statement.RestoreLabelOnly,
+			"VERIFYONLY" => made is Ast.Statement.RestoreVerifyOnly,
 			_ => false,
 		};
 
