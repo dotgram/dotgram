@@ -305,7 +305,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.EndpointDefinition` | Server | C | gap 249 | 249: no target record: Statement.CreateEndpoint (249) | 249 |
 | `Statement.Insert` | Dml | A | converted 192, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
 | `Expression.Measured` | Values | C | — | 190: target exists, no writer arm: Expression.Measured (190) | 234 |
-| `Statement.AlterDatabaseSet` | Database | C | gap 218 | 218: no target record: Statement.AlterDatabase (218) | 218 |
+| `Statement.AlterDatabaseSet` | Database | C | gap 218 | 218: bridge arm missing: Statement.AlterDatabase (218) | 218 |
 | `Expression.Add` | Values | A | — | — | 198 |
 | `Expression.RowValueConstructor` | Values | A | — | — | 186 |
 | `Expression.WindowFunction` | Values | B | gap 4 | 4: needs decision: inventory Expression.WindowFunction (a window over something that is not a call) (3); needs decision: inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for) (1) | 184 |
@@ -410,8 +410,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.When` | Values | A | — | — | 30 |
 | `Expression.Case` | Values | A | — | — | 30 |
 | `Expression.ShiftLeft` | Values | C | — | — | 30 |
-| `Statement.AlterDatabaseModify` | Database | C | gap 30 | 30: target exists, no writer arm: AlterDatabaseAction.Modify (30) | 30 |
-| `Statement.AlterDatabaseModifyFileGroup` | Database | C | gap 30 | 30: target exists, no writer arm: AlterDatabaseAction.ModifyFileGroup (30) | 30 |
+| `Statement.AlterDatabaseModify` | Database | C | converted 30 | — | 30 |
+| `Statement.AlterDatabaseModifyFileGroup` | Database | C | converted 11, gap 19 | 19: needs decision: Trees.FreeText (Statement.AlterDatabaseModifyFileGroup.Tail, written otherwise than the writer prints it) (10); no target record: Statement.AlterDatabase (a termination after an action other than SET) (9) | 30 |
 | `Statement.Send` | Broker | C | gap 30 | 30: no target record: Statement.Send (30) | 30 |
 | `Expression.Aliased` | Values | A | — | 29: needs decision: inventory Expression.Aliased (29) | 29 |
 | `Expression.In` | Values | A | — | — | 29 |
@@ -499,7 +499,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropStatistics` | Drop | C | converted 12 | — | 12 |
 | `Expression.Exists` | Values | A | — | — | 11 |
 | `Statement.AlterAuthorization` | Security | C | gap 11 | 11: no target record: Statement.AlterAuthorization (11) | 11 |
-| `Statement.AlterDatabaseRebuildLog` | Database | C | gap 11 | 11: target exists, no writer arm: AlterDatabaseAction.RebuildLog (11) | 11 |
+| `Statement.AlterDatabaseRebuildLog` | Database | C | converted 5, gap 6 | 6: no target record: AlterDatabaseAction.RebuildLog (REBUILD LOG ON a file) (6) | 11 |
 | `Statement.AlterSchema` | Security | C | gap 11 | 11: no target record: Statement.AlterSchema (11) | 11 |
 | `Statement.AlterSearchPropertyList` | Database | C | gap 11 | 11: no target record: Statement.AlterSearchPropertyList (11) | 11 |
 | `Statement.DropEventNotification` | Drop | C | converted 7, gap 4 | 4: needs decision: inventory Statement.DropEventNotification (`on database` kept as written, against `ON DATABASE` as the writer prints it, which the old tree compares exactly) (1); needs decision: inventory Statement.DropEventNotification (`on queue dbo.q1` kept as written, against `ON QUEUE dbo.q1` as the writer prints it, which the old tree compares exactly) (1) | 11 |
@@ -516,7 +516,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.WaitForStatement` | Broker | C | gap 10 | 10: no target record: Statement.WaitForReceive (10) | 10 |
 | `Clause.CursorFor` | Procedural | A | — | — | 9 |
 | `Expression.Subtract` | Values | A | — | — | 9 |
-| `Statement.AlterDatabaseCollate` | Database | C | gap 9 | 9: target exists, no writer arm: AlterDatabaseAction.Collate (9) | 9 |
+| `Statement.AlterDatabaseCollate` | Database | C | converted 9 | — | 9 |
 | `Statement.DropXmlSchemaCollection` | Drop | C | converted 9 | — | 9 |
 | `Statement.MasterKeyDefinition` | Security | C | gap 9 | 9: no target record: Statement.CreateMasterKey (9) | 9 |
 | `Statement.Reconfigure` | Server | C | gap 9 | 9: no target record: Statement.Reconfigure (9) | 9 |
@@ -526,8 +526,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `SetExpression.DateAndTime.DateFirst` | Procedural | C | — | — | 8 |
 | `SetExpression.QueryExecution.TextSize` | Procedural | C | — | — | 8 |
 | `SetExpression.Statistics.Switch` | Procedural | C | — | — | 8 |
-| `Statement.AlterDatabaseAddFileGroup` | Database | C | gap 8 | 8: target exists, no writer arm: AlterDatabaseAction.AddFileGroup (8) | 8 |
-| `Statement.AlterDatabaseAddLogFile` | Database | C | gap 8 | 8: target exists, no writer arm: AlterDatabaseAction.AddLogFile (8) | 8 |
+| `Statement.AlterDatabaseAddFileGroup` | Database | C | converted 8 | — | 8 |
+| `Statement.AlterDatabaseAddLogFile` | Database | C | converted 4, gap 4 | 4: no target record: AlterDatabaseAction.AddLogFile (TO FILEGROUP after a log file) (4) | 8 |
 | `Statement.AlterRole` | Security | C | gap 8 | 8: no target record: Statement.AlterRole (8) | 8 |
 | `Statement.AlterXmlSchemaCollection` | Routines | C | converted 8 | — | 8 |
 | `Statement.ColumnMasterKeyDefinition` | Security | C | gap 8 | 8: no target record: Statement.CreateColumnMasterKey (8) | 8 |
@@ -538,7 +538,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropUser` | Drop | C | converted 6 | — | 8 |
 | `Statement.GoTo` | Procedural | C | converted 3 | — | 8 |
 | `SetExpression.Miscellaneous.IdentityInsert` | Procedural | C | — | — | 7 |
-| `Statement.AlterDatabaseAddFile` | Database | C | gap 7 | 7: target exists, no writer arm: AlterDatabaseAction.AddFile (7) | 7 |
+| `Statement.AlterDatabaseAddFile` | Database | C | converted 7 | — | 7 |
 | `Statement.AlterServerRole` | Security | C | gap 7 | 7: no target record: Statement.AlterServerRole (7) | 7 |
 | `Statement.Checkpoint` | Database | C | gap 7 | 7: no target record: Statement.Checkpoint (7) | 7 |
 | `Statement.Continue` | Procedural | C | converted 2 | — | 7 |
@@ -572,7 +572,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Query.FromExecute` | Routines | C | — | 5: needs decision: inventory Query.FromExecute (outside an INSERT) (5) | 5 |
 | `SetExpression.Transactions.Switch` | Procedural | C | — | — | 5 |
 | `Statement.AlterColumnEncryptionKey` | Security | C | gap 5 | 5: no target record: Statement.AlterColumnEncryptionKey (5) | 5 |
-| `Statement.AlterDatabaseModifyFile` | Database | C | gap 5 | 5: target exists, no writer arm: AlterDatabaseAction.ModifyFile (5) | 5 |
+| `Statement.AlterDatabaseModifyFile` | Database | C | converted 5 | — | 5 |
 | `Statement.CloseSymmetricKey` | Security | C | gap 5 | 5: no target record: Statement.CloseSymmetricKey (5) | 5 |
 | `Statement.ConversationTimer` | Broker | C | gap 5 | 5: no target record: Statement.BeginConversationTimer (5) | 5 |
 | `Statement.CreateServerRole` | Security | C | gap 5 | 5: no target record: Statement.CreateServerRole (5) | 5 |
@@ -584,7 +584,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `SetExpression.QueryExecution.QueryGovernorCostLimit` | Procedural | C | — | — | 4 |
 | `Statement.AlterApplicationRole` | Security | C | gap 4 | 4: no target record: Statement.AlterApplicationRole (4) | 4 |
 | `Statement.AlterDatabaseEncryptionKey` | Security | C | gap 4 | 4: no target record: Statement.AlterDatabaseEncryptionKey (4) | 4 |
-| `Statement.AlterDatabaseModifyName` | Database | C | gap 4 | 4: target exists, no writer arm: AlterDatabaseAction.ModifyName (4) | 4 |
+| `Statement.AlterDatabaseModifyName` | Database | C | converted 4 | — | 4 |
 | `Statement.BackupMasterKey` | Database | C | gap 4 | 4: no target record: Statement.BackupMasterKey (4) | 4 |
 | `Statement.DropAvailabilityGroup` | Drop | C | converted 4 | — | 4 |
 | `Statement.DropCryptographicProvider` | Drop | C | converted 4 | — | 4 |
@@ -599,7 +599,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `SetExpression.Locking.DeadlockPriority` | Procedural | C | — | — | 3 |
 | `SetExpression.Miscellaneous.ErrorLevel` | Procedural | C | — | — | 3 |
 | `SetExpression.Miscellaneous.Language` | Procedural | C | — | — | 3 |
-| `Statement.AlterDatabaseRemoveFile` | Database | C | gap 3 | 3: target exists, no writer arm: AlterDatabaseAction.RemoveFile (3) | 3 |
+| `Statement.AlterDatabaseRemoveFile` | Database | C | converted 3 | — | 3 |
 | `Statement.BackupServiceMasterKey` | Database | C | gap 3 | 3: no target record: Statement.BackupServiceMasterKey (3) | 3 |
 | `Statement.CloseAllSymmetricKeys` | Security | C | gap 3 | 3: no target record: Statement.CloseAllSymmetricKeys (3) | 3 |
 | `Statement.CloseMasterKey` | Security | C | gap 3 | 3: no target record: Statement.CloseMasterKey (3) | 3 |
@@ -627,9 +627,9 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.BitwiseXor` | Values | C | — | — | 2 |
 | `SetExpression.Locking.LockTimeout` | Procedural | C | — | — | 2 |
 | `SetExpression.Miscellaneous.ContextInfo` | Procedural | C | — | — | 2 |
-| `Statement.AlterDatabaseModifyBackupStorageRedundancy` | Database | C | gap 2 | 2: target exists, no writer arm: AlterDatabaseAction.ModifyBackupStorageRedundancy (2) | 2 |
-| `Statement.AlterDatabasePerformCutover` | Database | C | gap 2 | 2: target exists, no writer arm: AlterDatabaseAction.PerformCutover (2) | 2 |
-| `Statement.AlterDatabaseRemoveFileGroup` | Database | C | gap 2 | 2: target exists, no writer arm: AlterDatabaseAction.RemoveFileGroup (2) | 2 |
+| `Statement.AlterDatabaseModifyBackupStorageRedundancy` | Database | C | converted 2 | — | 2 |
+| `Statement.AlterDatabasePerformCutover` | Database | C | converted 2 | — | 2 |
+| `Statement.AlterDatabaseRemoveFileGroup` | Database | C | converted 2 | — | 2 |
 | `Statement.DropExternalDataSource` | Drop | C | converted 2 | — | 2 |
 | `Statement.DropExternalFileFormat` | Drop | C | converted 2 | — | 2 |
 | `Statement.DropExternalResourcePool` | Drop | C | converted 2 | — | 2 |
