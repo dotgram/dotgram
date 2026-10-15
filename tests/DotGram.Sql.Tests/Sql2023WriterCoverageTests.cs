@@ -654,6 +654,13 @@ public sealed class Sql2023WriterCoverageTests
 			["Isolation.Tran"] = (
 				new Statement.Compound([new Statement.Break()]) { Atomic = [new AtomicOption.Isolation(IsolationLevel.Snapshot), new AtomicOption.Setting(new Option(new Identifier("LANGUAGE"), new Expression.Reference(new QualifiedName([new Identifier("us_english")])), []))] },
 				new Statement.Compound([new Statement.Break()]) { Atomic = [new AtomicOption.Isolation(IsolationLevel.Snapshot) { Tran = true }, new AtomicOption.Setting(new Option(new Identifier("LANGUAGE"), new Expression.Reference(new QualifiedName([new Identifier("us_english")])), []))] }),
+			// Procedural: AS written between a variable and its type, or its TABLE.
+			["Typed.AsKeyword"] = (
+				new Statement.DeclareVariables([new VariableDeclaration.Typed(new Identifier("@a"), new DataType.Numeric(NumericTypeKind.Int), null)]),
+				new Statement.DeclareVariables([new VariableDeclaration.Typed(new Identifier("@a"), new DataType.Numeric(NumericTypeKind.Int), null) { AsKeyword = true }])),
+			["Table.AsKeyword"] = (
+				new Statement.DeclareVariables([new VariableDeclaration.Table(new Identifier("@t"), [new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [], null))])]),
+				new Statement.DeclareVariables([new VariableDeclaration.Table(new Identifier("@t"), [new TableElement.Column(new ColumnDefinition(new Identifier("c"), new DataType.Numeric(NumericTypeKind.Int), null, [], null))]) { AsKeyword = true }])),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

@@ -43,6 +43,61 @@ public abstract partial record Statement
 
 	/// <summary>T-SQL: GOTO (Transact-SQL). <c>label:</c>, a place a GOTO goes to.</summary>
 	public sealed record Label(Identifier Name) : Statement;
+
+	/// <summary>
+	/// T-SQL: DECLARE @local_variable (Transact-SQL). <c>DECLARE @a INT = 1, @t TABLE (…)</c>: variables declared, one at
+	/// least, in the order written.
+	/// </summary>
+	public sealed record DeclareVariables(SqlList<VariableDeclaration> Variables) : Statement;
+
+	/// <summary>
+	/// T-SQL: SET @local_variable (Transact-SQL). <c>SET @v = value</c>, <c>SET @v += value</c>, a property of the
+	/// variable assigned, <c>SET @g.a.b = value</c>, or a method of it called, <c>SET @x.modify('…')</c>: then
+	/// <see cref="Operator"/> is null, <see cref="Members"/> empty and <see cref="Value"/> the call on the variable.
+	/// </summary>
+	public sealed record SetVariable(Expression.Variable Variable, Expression Value) : Statement
+	{
+		/// <summary>T-SQL: SET @local_variable (Transact-SQL). <c>=</c>, <c>+=</c>, …; null where a method is called.</summary>
+		public AssignmentOperator? Operator { get; init; } = AssignmentOperator.Assign;
+
+		/// <summary>T-SQL: SET @local_variable (Transact-SQL). The property assigned, <c>@g.a.b</c>: <c>a</c>, <c>b</c>.</summary>
+		public SqlList<Identifier> Members { get; init; } = [];
+	}
+}
+
+/// <summary>
+/// T-SQL: DECLARE @local_variable (Transact-SQL). One variable declared: of a type, and given a value or not, or a
+/// table.
+/// </summary>
+public abstract record VariableDeclaration : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>
+	/// T-SQL: DECLARE @local_variable (Transact-SQL). <c>@v [AS] type [= value]</c>; <c>@c [AS] CURSOR</c> is the type
+	/// <see cref="DataType.Named"/> of the one-part name <c>CURSOR</c>, with no value.
+	/// </summary>
+	public sealed record Typed(Identifier Name, DataType Type, Expression? Value) : VariableDeclaration
+	{
+		/// <summary>T-SQL: DECLARE @local_variable (Transact-SQL). <c>AS</c> written between the name and the type.</summary>
+		[Spelling] public bool AsKeyword { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: DECLARE @local_variable (Transact-SQL). <c>@t [AS] TABLE (…)</c>: the columns, constraints and indexes
+	/// CREATE TABLE's body holds, but none named a constraint.
+	/// </summary>
+	public sealed record Table(Identifier Name, SqlList<TableElement> Elements) : VariableDeclaration
+	{
+		/// <summary>T-SQL: DECLARE @local_variable (Transact-SQL). <c>AS</c> written between the name and <c>TABLE</c>.</summary>
+		[Spelling] public bool AsKeyword { get; init; }
+	}
 }
 
 /// <summary>

@@ -42,6 +42,8 @@ static partial class Bridge
 				Statement.Continue           => new Ast.Statement.Continue(),
 				Statement.GoTo(Expression.ColumnReference(var label)) => new Ast.Statement.GoTo(Values.Part(old, label)),
 				Statement.Label(var label)   => new Ast.Statement.Label(Values.Part(old, label)),
+				Statement.Declare declare    => new Ast.Statement.DeclareVariables(Each(declare.Variables, Declaration)),
+				Statement.SetVariable set    => SetVariable(set),
 				Statement.Transaction ended  => Transaction(ended),
 				Statement.CursorAction acted => Cursor(acted),
 				Statement.Fetch fetch        => Fetch(fetch),
@@ -172,6 +174,85 @@ static partial class Bridge
 				Cursor      = Reference(old, old.Cursor, old.Global),
 				Into        = old.Into is { } into ? new Ast.DynamicArguments.Values(Each(into, Values.Of)) : null,
 			};
+		}
+
+		/// <summary>
+		/// One variable declared: a table, with the body CREATE TABLE's bridge reads; <c>CURSOR</c>, the one-part type
+		/// a cursor parameter has; or a type and a value.
+		/// </summary>
+		static Ast.VariableDeclaration Declaration(Clause old)
+		{
+			if (old is not Clause.VariableDeclaration(var name, { } type, var value, var elements, null, var asKeyword))
+				throw BridgeGap.Open(old, "inventory Clause.VariableDeclaration");
+
+			var variable = new Ast.Identifier(name);
+
+			if (type == "TABLE" && elements is { } body)
+			{
+				// CREATE TABLE's body as the Tables family reads it, through the statement it owns.
+				if (StatementOf(new Statement.TableDefinition("t", null, body, [], [])) is not Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var items) })
+					throw BridgeGap.Open(old, "inventory Clause.VariableDeclaration (a table's body)");
+
+				return new Ast.VariableDeclaration.Table(variable, items) { AsKeyword = asKeyword };
+			}
+
+			if (elements is not null)
+				throw BridgeGap.Open(old, "inventory Clause.VariableDeclaration (a body without TABLE)");
+
+			if (type == "CURSOR")
+				return value is null
+					? new Ast.VariableDeclaration.Typed(variable, new Ast.DataType.Named(new Ast.QualifiedName([new Ast.Identifier("CURSOR")]), []), null) { AsKeyword = asKeyword }
+					: throw BridgeGap.Open(old, "inventory Clause.VariableDeclaration (a CURSOR with a value)");
+
+			// The old tree keeps the type as written, and compares it exactly: only a type written as the writer prints it
+			// reads back as itself (Trees.FreeText does not list the member).
+			var typed = Values.Type(old, type);
+
+			if (Ast.Sql2023Writer.Write(typed) != type)
+				throw BridgeGap.Open(old, "Trees.FreeText (Clause.VariableDeclaration.Type, a type written otherwise than the writer prints it)");
+
+			return new Ast.VariableDeclaration.Typed(variable, typed, value is null ? null : Values.Of(value)) { AsKeyword = asKeyword };
+		}
+
+		/// <summary>
+		/// <c>SET @v op= value</c>, a property of the variable assigned, or a method of it called. The old tree keeps the
+		/// variable and its members as one text, the variable first and with no dot in it.
+		/// </summary>
+		static Ast.Statement SetVariable(Statement.SetVariable old)
+		{
+			if (old.Through is not null)
+				throw BridgeGap.Open(old, "inventory Statement.SetVariable (a column beside the variable)");
+
+			var dot      = old.Name.IndexOf('.');
+			var variable = new Ast.Expression.Variable(new Ast.Identifier(dot < 0 ? old.Name : old.Name[..dot]));
+			var members  = dot < 0 ? [] : Values.Name(old, old.Name[(dot + 1)..]).Parts;
+
+			if (old.Operator == "")
+			{
+				if (members is not [var method] || old.Value is not Expression.RoutineInvocation("", var arguments, null))
+					throw BridgeGap.Open(old, "inventory Statement.SetVariable (a call that is not a method's of the variable)");
+
+				var call = new Ast.Expression.Member(variable, Ast.MemberAccessKind.Dot, method, Each(arguments, static one => new Ast.Argument(Values.Of(one))));
+
+				return new Ast.Statement.SetVariable(variable, call) { Operator = null };
+			}
+
+			Ast.AssignmentOperator assigned = old.Operator switch
+			{
+				null or "=" => Ast.AssignmentOperator.Assign,
+				"+="        => Ast.AssignmentOperator.Add,
+				"-="        => Ast.AssignmentOperator.Subtract,
+				"*="        => Ast.AssignmentOperator.Multiply,
+				"/="        => Ast.AssignmentOperator.Divide,
+				"%="        => Ast.AssignmentOperator.Modulo,
+				"&="        => Ast.AssignmentOperator.BitwiseAnd,
+				"|="        => Ast.AssignmentOperator.BitwiseOr,
+				"^="        => Ast.AssignmentOperator.BitwiseXor,
+				"||="       => Ast.AssignmentOperator.Concatenate,
+				_           => throw BridgeGap.Open(old, $"inventory Statement.SetVariable (operator `{old.Operator}`)"),
+			};
+
+			return new Ast.Statement.SetVariable(variable, Values.Of(old.Value)) { Operator = assigned, Members = members };
 		}
 
 		/// <summary>

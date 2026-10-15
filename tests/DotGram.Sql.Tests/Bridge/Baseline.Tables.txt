@@ -4,8 +4,8 @@
 # where `converted` falls or any of the last five rises, and prints a gain; this file is rewritten
 # deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
 
-Clause.ColumnDefinition = 0/112/0/0/0/0/0
-Clause.ColumnOption = 0/103/0/0/0/0/0
+Clause.ColumnDefinition = 0/114/0/0/0/0/0
+Clause.ColumnOption = 0/107/0/0/0/0/0
 Clause.Connection = 0/0/0/0/0/0/0
 Clause.ConstraintDefinition = 0/36/0/0/0/0/0
 Clause.Dropped = 0/2/0/0/0/0/0
