@@ -290,6 +290,15 @@ static partial class Bridge
 	}
 
 	/// <summary>
+	/// Whether a text the old tree keeps as written reads back as the text the writer prints, as the oracle compares the
+	/// two: exactly, or token by token (Trees.SameTokens) where the member is free text (Trees.Free).
+	/// </summary>
+	static bool Same(object old, string member, string written, string text)
+	{
+		return written == text || Trees.Free(member) && Trees.SameTokens(old, member, text, written);
+	}
+
+	/// <summary>
 	/// The tokens of a stretch of text, comments apart: a word upper-cased, and a name in brackets or quotes, a
 	/// string or a number as written — so that `"as"` is never the word AS.
 	/// </summary>

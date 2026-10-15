@@ -7,7 +7,7 @@
 Clause.ExecutionContext = 0/0/0/0/0/0/0
 Clause.ParameterDeclaration = 0/0/0/0/0/0/0
 Query.FromExecute = 0/0/0/0/0/0/0
-Statement.AggregateDefinition = 5/13/0/0/0/0/0
+Statement.AggregateDefinition = 18/0/0/0/0/0/0
 Statement.AlterXmlSchemaCollection = 8/0/0/0/0/0/0
 Statement.AssemblyDefinition = 41/3/0/0/0/0/0
 Statement.CreateFunction = 103/75/0/0/0/0/0

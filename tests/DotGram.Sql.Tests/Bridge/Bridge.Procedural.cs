@@ -173,15 +173,17 @@ static partial class Bridge
 				SetExpression.Transactions.Switch(var name, var on)   => new Ast.SetOption.Switch(new Ast.Identifier(name), on),
 				SetExpression.Miscellaneous.Switch(var name, var on)  => new Ast.SetOption.Switch(new Ast.Identifier(name), on),
 
-				// The kind is an enum, and the old tree keeps the word as written and compares it exactly.
-				SetExpression.Statistics.Report(var kind, var on) => kind switch
+				// The kind is an enum, and the old tree keeps the word as written, which compares without its case.
+				SetExpression.Statistics.Report(var kind, var on) when Same(old, "SetExpression.Statistics.Report.Kind", kind.ToUpperInvariant(), kind) => kind.ToUpperInvariant() switch
 				{
 					"IO"      => new Ast.SetOption.Statistics(Ast.StatisticsKind.Io, on),
 					"PROFILE" => new Ast.SetOption.Statistics(Ast.StatisticsKind.Profile, on),
 					"TIME"    => new Ast.SetOption.Statistics(Ast.StatisticsKind.Time, on),
 					"XML"     => new Ast.SetOption.Statistics(Ast.StatisticsKind.Xml, on),
-					_         => throw BridgeGap.Open(old, "Trees.FreeText (SetExpression.Statistics.Report.Kind, a word not in capitals)"),
+					_         => throw BridgeGap.Open(old, $"inventory SetExpression.Statistics.Report (the kind `{kind}`)"),
 				},
+
+				SetExpression.Statistics.Report => throw BridgeGap.Open(old, "Trees.FreeText (SetExpression.Statistics.Report.Kind, a word not in capitals)"),
 
 				SetExpression.Miscellaneous.Offset(var keyword, var on)       => new Ast.SetOption.Offsets(new Ast.Identifier(keyword), on),
 				SetExpression.Miscellaneous.IdentityInsert(var table, var on) => new Ast.SetOption.IdentityInsert(Values.Name(old, table), on),
@@ -352,7 +354,7 @@ static partial class Bridge
 						_          => throw BridgeGap.Open(old, $"inventory Statement.RaiseError (the option `{words[at]}`)"),
 					});
 
-				if (tail != "WITH " + string.Join(", ", words.Where(static (_, at) => at % 2 == 1)))
+				if (!Same(old, "Statement.RaiseError.Tail", "WITH " + string.Join(", ", words.Where(static (_, at) => at % 2 == 1)), tail))
 					throw BridgeGap.Open(old, "Trees.FreeText (Statement.RaiseError.Tail, written otherwise than the writer prints it)");
 			}
 
@@ -476,11 +478,11 @@ static partial class Bridge
 					? new Ast.VariableDeclaration.Typed(variable, new Ast.DataType.Named(new Ast.QualifiedName([new Ast.Identifier("CURSOR")]), []), null) { AsKeyword = asKeyword }
 					: throw BridgeGap.Open(old, "inventory Clause.VariableDeclaration (a CURSOR with a value)");
 
-			// The old tree keeps the type as written, and compares it exactly: only a type written as the writer prints it
-			// reads back as itself (Trees.FreeText does not list the member).
+			// The old tree keeps the type as written, and compares it token by token: only a type written as the writer prints
+			// it, but for the case of its key words and its blanks, reads back as itself.
 			var typed = Values.Type(old, type);
 
-			if (Ast.TransactSqlWriter.Write(typed) != type)
+			if (!Same(old, "Clause.VariableDeclaration.Type", Ast.TransactSqlWriter.Write(typed), type))
 				throw BridgeGap.Open(old, "Trees.FreeText (Clause.VariableDeclaration.Type, a type written otherwise than the writer prints it)");
 
 			return new Ast.VariableDeclaration.Typed(variable, typed, value is null ? null : Values.Of(value)) { AsKeyword = asKeyword };
