@@ -295,14 +295,44 @@ struct SqlCursor
 	/// <summary>Past a bracketed comment, or -1 where it closes nowhere.</summary>
 	/// <remarks>
 	/// §5.2 writes the contents of a bracketed comment as <c>(&lt;bracketed comment&gt; | any
-	/// character that does not begin <c>*/</c>)*</c>, so <c>/* a /* b */ c */</c> is one comment —
-	/// and so is <c>/* a /* b * c */</c>, where reading the inner one as a comment leaves the outer
-	/// unclosed and the choice takes its other branch instead. The two branches are tried in that
-	/// order here, which is the order the BNF writes them in.
+	/// character that does not begin <c>*/</c>)*</c>, so <c>/* a /* b */ c */</c> is one comment, at
+	/// any depth. The levels are counted rather than recursed into, so a deep comment costs no stack;
+	/// a <c>*/</c> is asked first and closes one level, a <c>/*</c> always opens another.
 	/// </remarks>
 	readonly int Bracketed(int at)
 	{
-		return Contents(at + 2, 1);
+		var text  = Text;
+		var depth = 1;
+
+		at += 2;
+
+		while (at < text.Length)
+		{
+			if (text[at] == '*' && at + 1 < text.Length && text[at + 1] == '/')
+			{
+				at += 2;
+
+				if (--depth == 0)
+					return at;
+
+				continue;
+			}
+
+			// A comment inside the comment, always. The BNF would also let the `/*` be two
+			// characters of this one where the inner comment leaves it unclosed, but the generated
+			// parser skips comments with a scanner that decides at the first character and does not
+			// go back, and this reads what it reads.
+			if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
+			{
+				at += 2;
+				depth++;
+				continue;
+			}
+
+			at++;
+		}
+
+		return -1;
 	}
 
 	/// <summary>Past a bracketed comment closed at the first <c>*/</c> in it, or -1.</summary>
@@ -313,51 +343,6 @@ struct SqlCursor
 		for (at += 2; at + 1 < text.Length; at++)
 			if (text[at] == '*' && text[at + 1] == '/')
 				return at + 2;
-
-		return -1;
-	}
-
-	/// <summary>How deep one comment may hold another, which the generated parser writes out.</summary>
-	/// <remarks>
-	/// A finite machine does not nest, so the grammar unrolls the depth and stops at six — the same
-	/// limit T-SQL's own comment carries, and deeper than anything the corpus or the standard's
-	/// examples write. A seventh <c>/*</c> inside the sixth leaves the comment unclosed, and this
-	/// reads it the same way: a yardstick that took what the generated parser refuses would flatter
-	/// it (docs/design/architecture-decisions.md, D1).
-	/// </remarks>
-	const int Deepest = 6;
-
-	/// <summary>Past the contents of a comment and its closing <c>*/</c>, or -1.</summary>
-	readonly int Contents(int at, int depth)
-	{
-		var text = Text;
-
-		while (at < text.Length)
-		{
-			if (text[at] == '*' && at + 1 < text.Length && text[at + 1] == '/')
-				return at + 2;
-
-			// A comment inside the comment, always. The BNF would also let the `/*` be two
-			// characters of this one where the inner comment leaves it unclosed, but the generated
-			// parser skips comments with a scanner that decides at the first character and does not
-			// go back, and this reads what it reads.
-			if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
-			{
-				// Past the deepest level the opening is neither a comment nor a character the
-				// contents may hold, so this one no longer closes.
-				if (depth == Deepest)
-					return -1;
-
-				at = Contents(at + 2, depth + 1);
-
-				if (at < 0)
-					return -1;
-
-				continue;
-			}
-
-			at++;
-		}
 
 		return -1;
 	}

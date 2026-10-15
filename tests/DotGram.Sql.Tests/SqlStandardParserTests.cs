@@ -92,20 +92,21 @@ public sealed class SqlStandardParserTests
 	}
 
 	/// <summary>
-	/// How deep a comment may hold another: six, where the BNF sets no limit.
+	/// A comment holds others at any depth, as the BNF lets it; one that does not close is refused.
 	/// </summary>
 	/// <remarks>
-	/// Read over kinds, a comment is skipped by a scanner, and a scanner does not recurse, so the
-	/// grammar writes the depth out — the limit T-SQL's own comment has, and deeper than anything
-	/// the corpus or the standard's examples write. A seventh opening inside the sixth leaves the
-	/// comment unclosed, and the hand parser reads it the same way.
+	/// Read over kinds, a comment is skipped by a scanner, which counts the levels rather than
+	/// writing them out, so fifty deep reads as one does. The hand parser reads it the same way.
 	/// </remarks>
 	[Theory]
-	[InlineData(6, true)]
-	[InlineData(7, false)]
-	public void A_comment_holds_others_six_deep(int depth, bool reads)
+	[InlineData(1, 1, true)]
+	[InlineData(7, 7, true)]
+	[InlineData(50, 50, true)]
+	[InlineData(50, 49, false)]
+	[InlineData(7, 6, false)]
+	public void A_comment_holds_others_at_any_depth(int opens, int closes, bool reads)
 	{
-		var comment = string.Concat(System.Linq.Enumerable.Repeat("/* ", depth)) + string.Concat(System.Linq.Enumerable.Repeat("*/ ", depth));
+		var comment = string.Concat(System.Linq.Enumerable.Repeat("/* ", opens)) + string.Concat(System.Linq.Enumerable.Repeat("*/ ", closes));
 
 		Assert.Equal(reads, Both.TryParseLiteral(comment + "1").IsSuccess);
 	}

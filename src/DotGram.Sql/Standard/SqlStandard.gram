@@ -81,18 +81,14 @@ namespace Lexical
 	SimpleComment = "--" & [^ '\n' | '\r' | '\u0085' | '\u2028' | '\u2029']*
 
 	// <bracketed comment>: its contents are characters and separators, and a separator may be a
-	// bracketed comment, so one holds another: `/* a /* b */ c */` is one comment.
+	// bracketed comment, so one holds another, at any depth: `/* a /* b */ c */` is one comment.
 	//
-	// A comment is skipped by the trivia scanner, which neither nests nor goes back, so two
-	// things are written out that the BNF leaves open. The depth: six comments deep, the same
-	// limit and the same reasoning as T-SQL's `TSql.NestedComment`, and deeper than anything the
-	// corpus or the standard's own examples write; a seventh `/*` inside the sixth leaves the
-	// comment unclosed. And the choice at a `/*`: the BNF lets it be two comment characters as
-	// well as an opening, so `/* a /* b */` is one comment there, but a scanner decides at the
-	// first character and cannot come back when the inner comment leaves the outer unclosed, so
-	// here a `/*` inside a comment always opens one. Each level is, until it closes, the one
-	// inside it or a character that opens none.
-	BracketedComment = "/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ?!"/*" & any)* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/"
+	// One choice the BNF leaves open is made here. At a `/*` inside a comment the BNF lets it be
+	// two comment characters as well as an opening, so `/* a /* b */` is one comment there; but a
+	// comment is skipped by the trivia scanner, which decides at the first character and does not
+	// go back when the inner comment leaves the outer unclosed, so here a `/*` inside a comment
+	// always opens one.
+	BracketedComment = Std.Nested("/*", "*/")
 
 	// ── §5.3 Literals ────────────────────────────────────────────────────────
 	//

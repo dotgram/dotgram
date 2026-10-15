@@ -125,9 +125,9 @@ namespace and aliases the other: `using Ast = DotGram.Sql.Ast;`.
 almost anything, `Error` lists everything that could have stood there, hundreds of keywords
 included. `Position` is the part to show a user; the list is for a tool.
 
-**Where `SqlStandardParser` reads less than the standard.** A comment holds others six deep,
-and a `/*` inside a comment always opens one: `/* a /* b */ 1` is refused, where the BNF would
-also let that `/*` be two characters of the outer comment. And it reads SQL:2023 in part: the
+**Where `SqlStandardParser` reads less than the standard.** A comment holds others at any
+depth, but a `/*` inside a comment always opens one: `/* a /* b */ 1` is refused, where the BNF
+would also let that `/*` be two characters of the outer comment. And it reads SQL:2023 in part: the
 README lists what it covers, and what it does not cover it refuses.
 
 ```csharp

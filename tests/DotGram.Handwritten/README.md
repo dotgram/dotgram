@@ -112,13 +112,12 @@ would say nothing about the generator.
   fuzz corpus of the standard's grammar has been put to it — 143,000 lines, clean and
   mutated, over every publication — with nothing differing.
 
-### Two places it reads less than the BNF
+### One place it reads less than the BNF
 
-Both are comments, and both are where the generated parser skips a comment with a scanner, which
-neither nests without limit nor goes back. This parser reads what that one reads, so that a ratio
-is between two readings of one language and not between two languages:
+It is a comment, and it is where the generated parser skips a comment with a scanner, which
+counts the levels of a nested comment but does not go back. This parser reads what that one
+reads, so that a ratio is between two readings of one language and not between two languages:
 
-- A comment holds others six deep. A seventh `/*` inside the sixth leaves it unclosed.
 - A `/*` inside a comment always opens one. The BNF would also let it be two characters of the
   comment around it, so that `/* a /* b */` is one comment; here it is unclosed.
 

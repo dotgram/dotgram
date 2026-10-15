@@ -852,7 +852,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <remarks>
 		/// The grammar's trivia, written again: its spacing, a line comment to a carriage return or a line
-		/// feed, and a block comment holding others up to six deep. A deeper one is not known here, and
+		/// feed, and a block comment holding others at any depth. One left unclosed is not known here, and
 		/// the reading of the batch as a whole decides it.
 		/// </remarks>
 		static int Trivia(string text, int at, int end)
@@ -898,9 +898,6 @@ public abstract partial class TransactSqlParser
 						{
 							inner++;
 						}
-
-						if (depth > 6)
-							return at;
 					}
 
 					if (depth > 0)

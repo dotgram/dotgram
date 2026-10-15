@@ -1666,9 +1666,10 @@ the gain: about a tenth of what is left.
 **Landed 2026-09-18 as `7d3ba2d5` (sql-39): SQL:2023 reads over kinds.** 14,718 tests, 143,291
 corpus lines against `HandSqlStandard` with no difference; generation 4.0 s and 7.6 MB against
 13.9; four visible changes to users, two towards the BNF (an introduced literal's parts) and two
-away from it (comments nest six deep; `/*` inside a comment always opens one, since the trivia
-scanner decides by the first character and does not backtrack — both go when the scanner
-counts nesting). **The stand's rows (medians of five, paired): every SQL row faster, -4..-40%
+away from it (comments nested six deep, a limit since lifted: they now nest to any depth, the
+scanner counting the levels; and `/*` inside a comment always opens one, since the trivia scanner
+decides by the first character and does not backtrack, which still holds). **The stand's rows
+(medians of five, paired): every SQL row faster, -4..-40%
 (column -40%, a late refusal -34%, arithmetic -27%, twenty items -25%), allocation -0..-7%; still
 4-21x the hand parser. The first call got worse on every row, +14..+56 ms (a literal 26 to 82 ms)
 — diagnosed by sql-39 the same evening, phase by phase in a fresh process: the whole +63 ms is the

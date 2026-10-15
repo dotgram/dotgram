@@ -48,8 +48,8 @@ position, and a `bool TryParse…(string input, out T value)` for where only the
 
 All three read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
 syntactic half above it decides each choice by the token in front of it, which is what a parser
-written by hand does. `SqlStandardParser` reads two things less than the standard does because of
-it: a comment holds others six deep, and a `/*` inside a comment always opens one.
+written by hand does. `SqlStandardParser` reads one thing less than the standard does because of
+it: a comment holds others at any depth, but a `/*` inside a comment always opens one.
 
 ```csharp
 using DotGram.Sql;

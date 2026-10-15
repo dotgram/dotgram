@@ -13865,6 +13865,24 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// A comment holds others at any depth, as the engine's do, and one left unclosed is refused
+	/// (`Msg 113`): in a statement, and in a script, where a batch of comments alone is no statement.
+	/// </summary>
+	[Theory]
+	[InlineData(7, 7, true)]
+	[InlineData(50, 50, true)]
+	[InlineData(7, 6, false)]
+	[InlineData(50, 49, false)]
+	public void A_comment_holds_others_at_any_depth(int opens, int closes, bool reads)
+	{
+		var comment = string.Concat(System.Linq.Enumerable.Repeat("/* a ", opens)) + string.Concat(System.Linq.Enumerable.Repeat("*/ ", closes));
+
+		Assert.Equal(reads, TransactSqlParser.TryParseStatement(comment + "SELECT 1").IsSuccess);
+		Assert.Equal(reads, TransactSqlParser.TryParseStatement("SELECT 1 " + comment).IsSuccess);
+		Assert.Equal(reads, TransactSqlParser.TryParseScript("SELECT 1\nGO\n" + comment + "\nGO\nSELECT 2").IsSuccess);
+	}
+
 	/// <summary>A string run, its context and where it runs, as the engine answers it with its variables declared.</summary>
 	[Theory]
 	[InlineData("EXEC ('SELECT 1', 5, @a)")]
