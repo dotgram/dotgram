@@ -33,6 +33,15 @@ static partial class Bridge
 			made = old switch
 			{
 				Statement.Return(var value)  => new Ast.Statement.Return { Value = value is null ? null : Values.Of(value) },
+				Statement.Compound compound  => Compound(compound),
+				Statement.If(var condition, var then, var other) =>
+					new Ast.Statement.If(Values.Of(condition), StatementOf(then), other is null ? null : StatementOf(other)),
+				Statement.While(var condition, var body) => new Ast.Statement.While(Values.Of(condition), StatementOf(body)),
+				Statement.TryCatch(var tried, var caught) => new Ast.Statement.TryCatch(Each(tried, StatementOf), Each(caught, StatementOf)),
+				Statement.Break              => new Ast.Statement.Break(),
+				Statement.Continue           => new Ast.Statement.Continue(),
+				Statement.GoTo(Expression.ColumnReference(var label)) => new Ast.Statement.GoTo(Values.Part(old, label)),
+				Statement.Label(var label)   => new Ast.Statement.Label(Values.Part(old, label)),
 				Statement.Transaction ended  => Transaction(ended),
 				Statement.CursorAction acted => Cursor(acted),
 				Statement.Fetch fetch        => Fetch(fetch),
@@ -163,6 +172,46 @@ static partial class Bridge
 				Cursor      = Reference(old, old.Cursor, old.Global),
 				Into        = old.Into is { } into ? new Ast.DynamicArguments.Values(Each(into, Values.Of)) : null,
 			};
+		}
+
+		/// <summary>
+		/// A block, and a natively compiled one's settings: the isolation level, whose name says TRAN or TRANSACTION, and
+		/// the five others, a name and a value each.
+		/// </summary>
+		static Ast.Statement Compound(Statement.Compound old)
+		{
+			return new Ast.Statement.Compound(Each(old.Statements, StatementOf))
+			{
+				Atomic = old.Atomic is { } atomic ? Each(atomic, one => AtomicOption(old, one)) : null,
+			};
+		}
+
+		static Ast.AtomicOption AtomicOption(Statement old, Clause option)
+		{
+			if (option is not Clause.Option { Name: var name, Value: { } value, Options.Length: 0, Partitions: null, Bare: false })
+				throw BridgeGap.Open(old, "inventory Statement.Compound (an atomic option that is not a name and a value)");
+
+			var words = Words(name);
+
+			if (words is ["TRANSACTION" or "TRAN", "ISOLATION", "LEVEL"])
+			{
+				Ast.IsolationLevel level = value is Expression.ColumnReference(var text) ? string.Join(' ', Words(text)) switch
+				{
+					"READ UNCOMMITTED" => Ast.IsolationLevel.ReadUncommitted,
+					"READ COMMITTED"   => Ast.IsolationLevel.ReadCommitted,
+					"REPEATABLE READ"  => Ast.IsolationLevel.RepeatableRead,
+					"SERIALIZABLE"     => Ast.IsolationLevel.Serializable,
+					"SNAPSHOT"         => Ast.IsolationLevel.Snapshot,
+					_                  => throw BridgeGap.Open(old, $"inventory Statement.Compound (the level `{text}`)"),
+				} : throw BridgeGap.Open(old, "inventory Statement.Compound (a level that is not words)");
+
+				return new Ast.AtomicOption.Isolation(level) { Tran = words[0] == "TRAN" };
+			}
+
+			if (words.Length != 1)
+				throw BridgeGap.Open(old, $"inventory Statement.Compound (the atomic option `{name}`)");
+
+			return new Ast.AtomicOption.Setting(new Ast.Option(new Ast.Identifier(name), Values.Of(value), []));
 		}
 	}
 }
