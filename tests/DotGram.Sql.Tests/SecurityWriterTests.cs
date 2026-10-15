@@ -839,6 +839,8 @@ public sealed class SecurityWriterTests
 	[InlineData("a key opened by the service master key")]
 	[InlineData("a key opened by a server certificate")]
 	[InlineData("a policy function with a variable")]
+	[InlineData("a policy table named with an @")]
+	[InlineData("a policy function named with an @")]
 	[InlineData("a policy setting it has not")]
 	[InlineData("a policy setting that is not ON or OFF")]
 	[InlineData("an altered policy of no predicate")]
@@ -941,6 +943,10 @@ public sealed class SecurityWriterTests
 			// WithoutVariable: `dbo.f (c, @user_id)` is Msg 112.
 			"a policy function with a variable" => new Statement.CreateSecurityPolicy(T) { Predicates = [new PolicyPredicate.AddFilter(Function("f", new Expression.Variable(new Identifier("@u"))), T)] },
 			// PolicySetting is STATE and SCHEMABINDING.
+			// WithoutVariable holds the whole tail: `DROP FILTER PREDICATE ON [@t]` is Msg 112.
+			"a policy table named with an @" => new Statement.AlterSecurityPolicy(T, new SecurityPolicyChange.Predicates([new PolicyPredicate.DropFilter(One(new Identifier("[@t]", IdentifierStyle.Bracketed)))])),
+			// The function's name too: `ADD FILTER PREDICATE [@f](c) ON t`.
+			"a policy function named with an @" => new Statement.CreateSecurityPolicy(T) { Predicates = [new PolicyPredicate.AddFilter(new PolicyFunction(One(new Identifier("[@f]", IdentifierStyle.Bracketed)), [Word("c")]), T)] },
 			"a policy setting it has not" => new Statement.CreateSecurityPolicy(T) { Options = [Opt("ENABLED", Word("ON"))] },
 			// PolicySetting reads OnOff.
 			"a policy setting that is not ON or OFF" => new Statement.CreateSecurityPolicy(T) { Options = [Opt("STATE", Digits("1"))] },

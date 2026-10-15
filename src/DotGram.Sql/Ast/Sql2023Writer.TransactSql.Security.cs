@@ -1608,6 +1608,8 @@ public static partial class Sql2023Writer
 			switch (predicate)
 			{
 				case PolicyPredicate.AddFilter add:
+					CheckPolicyName(add, add.Function.Name);
+					CheckPolicyName(add, add.On);
 					Word("ADD FILTER PREDICATE");
 					PutPolicyFunction(add.Function);
 					Word("ON");
@@ -1615,6 +1617,8 @@ public static partial class Sql2023Writer
 					break;
 
 				case PolicyPredicate.AlterFilter alter:
+					CheckPolicyName(alter, alter.Function.Name);
+					CheckPolicyName(alter, alter.On);
 					Word("ALTER FILTER PREDICATE");
 					PutPolicyFunction(alter.Function);
 					Word("ON");
@@ -1622,11 +1626,14 @@ public static partial class Sql2023Writer
 					break;
 
 				case PolicyPredicate.DropFilter drop:
+					CheckPolicyName(drop, drop.On);
 					Word("DROP FILTER PREDICATE ON");
 					PutName(drop.On);
 					break;
 
 				case PolicyPredicate.AddBlock add:
+					CheckPolicyName(add, add.Function.Name);
+					CheckPolicyName(add, add.On);
 					Word("ADD BLOCK PREDICATE");
 					PutPolicyFunction(add.Function);
 					Word("ON");
@@ -1635,6 +1642,8 @@ public static partial class Sql2023Writer
 					break;
 
 				case PolicyPredicate.AlterBlock alter:
+					CheckPolicyName(alter, alter.Function.Name);
+					CheckPolicyName(alter, alter.On);
 					Word("ALTER BLOCK PREDICATE");
 					PutPolicyFunction(alter.Function);
 					Word("ON");
@@ -1643,6 +1652,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case PolicyPredicate.DropBlock drop:
+					CheckPolicyName(drop, drop.On);
 					Word("DROP BLOCK PREDICATE ON");
 					PutName(drop.On);
 					PutBlockOperation(drop.When);
@@ -1681,6 +1691,16 @@ public static partial class Sql2023Writer
 
 			if (!Syntax.WithoutVariable(Sql2023Writer.Write(function.Arguments.Count == 0 ? new Expression.Reference(function.Name) : new Expression.Row(function.Arguments), transactSql: true)))
 				throw Misplaced(function, "Arguments", "with a local variable, which a security policy does not take (Msg 112)");
+		}
+
+		/// <summary>
+		/// A name in a policy's predicate: the grammar holds the whole tail to <c>WithoutVariable</c>, which takes an <c>@</c> inside
+		/// a bracketed name for a variable as well.
+		/// </summary>
+		void CheckPolicyName(ISqlNode owner, QualifiedName name)
+		{
+			if (!Syntax.WithoutVariable(Dotted(name)))
+				throw Misplaced(owner, "a name with an @", "in a security policy's predicate, whose tail takes no variable (Msg 112)");
 		}
 
 		void PutCreateSecurityPolicy(Statement.CreateSecurityPolicy create)
