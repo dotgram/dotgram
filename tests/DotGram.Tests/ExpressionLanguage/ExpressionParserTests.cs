@@ -1,4 +1,4 @@
-﻿extern alias immediate;
+﻿extern alias tape;
 
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using System.Reflection;
 
 using DotGram.ExpressionLanguage;
 
-using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
+using TapeExpressions = tape::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Xunit;
 
@@ -2602,7 +2602,7 @@ public sealed class ExpressionParserTests
 	{
 		Assert.Equal(
 			Both.Compile<Func<int, string>>("(int x) => $\"<{x,3}>\"")(7),
-			ImmediateExpressions.Immediate.TryParseLambda("(int x) => $\"<{x,3}>\"", new ImmediateExpressions.State(typeof(ExpressionParserTests).Assembly)).Value!
+			TapeExpressions.Tape.TryParseLambda("(int x) => $\"<{x,3}>\"", new TapeExpressions.State(typeof(ExpressionParserTests).Assembly)).Value!
 				.Compile().DynamicInvoke(7));
 	}
 

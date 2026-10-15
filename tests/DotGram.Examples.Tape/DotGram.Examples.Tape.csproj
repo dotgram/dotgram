@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The tape's reading of the two examples whose constructions throw, Calculator and Filter:
+	     their sources compiled again here, beside a declaration of each (CalculatorTape.cs,
+	     FilterTape.cs) that asks for `[GramOptions(Carrier = Tape, Suffix = "Tape")]` as well.
+	     The examples name the immediate carrier with ConstructionsMayThrow, and
+	     ExampleCarrierTests holds them to this reading, refusals and throws included. Not
+	     shipped: it is a fixture, read by DotGram.Tests under an extern alias, since every
+	     type in it has a full name the examples' have too. -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<RootNamespace>DotGram.Examples</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\..\examples\DotGram.Examples\Expressions\CalculatorExample.cs" Link="Examples\CalculatorExample.cs" />
+		<Compile Include="..\..\examples\DotGram.Examples\Languages\FilterExample.cs" Link="Examples\FilterExample.cs" />
+	</ItemGroup>
+
+</Project>

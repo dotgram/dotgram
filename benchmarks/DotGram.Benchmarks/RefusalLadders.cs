@@ -74,12 +74,12 @@ internal static class RefusalLadders
 	}
 
 	/// <summary>
-	/// The readings of the expression language the series run over. The public entry reads the tape, and that is all the slow suite can reach; the stand, which the language
-	/// makes its internals visible to, adds the immediate reading ("immediate") before it lists the series, so that the audit covers both machines and the guard the tape.
+	/// The readings of the expression language the series run over. The public entry reads the immediate carrier, and that is all the slow suite can reach; the stand, which
+	/// references the fixture that carries the tape's reading, adds it ("tape") before it lists the series, so that the audit covers both machines and the guard what ships.
 	/// </summary>
 	internal static List<(string Form, Func<string, bool> Accepts)> ExpressionForms { get; } =
 	[
-		("tape", static t => ExpressionParser.TryParse(t, typeof(RefusalLadders).Assembly).IsSuccess),
+		("immediate", static t => ExpressionParser.TryParse(t, typeof(RefusalLadders).Assembly).IsSuccess),
 	];
 
 	/// <summary>The exponent above which the time of a refusal is a defect.</summary>

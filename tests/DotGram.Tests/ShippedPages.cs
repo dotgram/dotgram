@@ -204,16 +204,17 @@ static class ShippedPages
 	}
 
 	/// <summary>
-	/// An assembly as the test project itself references it: the fixture that carries the expression
-	/// language a second time, with its immediate reading, under the alias the project gives it, so
-	/// that a page naming <c>ExpressionParser</c> means the package's, as it does for a reader.
+	/// An assembly as the test project itself references it: the fixtures that carry the expression
+	/// language and two examples a second time, with their tape readings, under the alias the project
+	/// gives them, so that a page naming <c>ExpressionParser</c> means the package's, as it does for a
+	/// reader.
 	/// </summary>
 	static MetadataReference Referenced(Assembly assembly)
 	{
 		var reference = MetadataReference.CreateFromFile(assembly.Location);
 
-		return assembly.GetName().Name == "DotGram.ExpressionLanguage.Immediate"
-			? reference.WithAliases(["immediate"])
+		return assembly.GetName().Name is "DotGram.ExpressionLanguage.Tape" or "DotGram.Examples.Tape"
+			? reference.WithAliases(["tape"])
 			: reference;
 	}
 

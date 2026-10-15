@@ -258,12 +258,12 @@ static class ExpressionAgainst
 	{
 		try
 		{
-			// The immediate reading is the fixture's, with a state of its own type (ImmediateExpression).
+			// The tape's reading is the fixture's, with a state of its own type (TapeExpression).
 			return which switch
 			{
 				Reading.Hand      => HandExpression.TryParseLambda(_input, Fresh(_input)).IsSuccess,
-				Reading.Immediate => ImmediateExpression.Reads(_input, Caller),
-				_                 => ExpressionParser.TryParseLambda(_input, Fresh(_input)).IsSuccess,
+				Reading.Immediate => ExpressionParser.TryParseLambda(_input, Fresh(_input)).IsSuccess,
+				_                 => TapeExpression.Reads(_input, Caller),
 			};
 		}
 		catch (Exception exception) when (exception is FormatException or ArgumentException or InvalidOperationException)
@@ -288,7 +288,7 @@ static class ExpressionAgainst
 	{
 		foreach (var text in ExpressionCorpus.Shapes.Concat(Inputs))
 		{
-			var tape   = ExpressionCorpus.Answer(text, ExpressionParser.TryParseLambda, Fresh(text));
+			var tape   = TapeExpression.Answer(text, Caller);
 			var handed = ExpressionCorpus.Answer(text, HandExpression.TryParseLambda, Fresh(text));
 
 			if (tape != handed)
@@ -300,7 +300,7 @@ static class ExpressionAgainst
 
 		foreach (var text in ExpressionCorpus.Shapes.Concat(Inputs))
 		{
-			var tape      = ExpressionCorpus.Answer(text, ExpressionParser.TryParseLambda, Fresh(text));
+			var tape      = TapeExpression.Answer(text, Caller);
 			var immediate = ImmediateExpression.Answer(text, Caller);
 
 			if (!Agrees(tape, immediate))

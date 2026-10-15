@@ -1,4 +1,4 @@
-﻿extern alias immediate;
+﻿extern alias tape;
 
 using System;
 using System.Linq.Expressions;
@@ -6,7 +6,7 @@ using System.Reflection;
 
 using DotGram.ExpressionLanguage;
 
-using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
+using TapeExpressions = tape::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Xunit;
 
@@ -157,12 +157,12 @@ public sealed class ExpressionCarrierTests
 		"using System.Linq; (int[][] a) => a.Select(r => { int t = 0; foreach (var n in r) t += n; return t; }).Sum()",
 	];
 
-	/// <summary>The copy that asks for the immediate carrier is given it, and the other one is not.</summary>
+	/// <summary>The package, which asks for the immediate carrier, is given it, and the tape's copy is not.</summary>
 	/// <remarks>
 	/// <para>
 	/// Everything else here is worth as much as this. A carrier that refuses a grammar leaves it
-	/// on the tape and says so in GRAM5007, and from 2026-09-24 to 2026-10-04 this copy was the
-	/// tape under another name: a rule gathered two members onto one stack, the warning was
+	/// on the tape and says so in GRAM5007, and from 2026-09-24 to 2026-10-04 the immediate copy was
+	/// the tape under another name: a rule gathered two members onto one stack, the warning was
 	/// information that no build printed, and every comparison below compared the tape with
 	/// itself. GRAM5007 is a warning now and the build treats warnings as errors, so a refusal
 	/// stops the build; this is what says so where the tests are run, and says it of the
@@ -175,33 +175,33 @@ public sealed class ExpressionCarrierTests
 	/// </para>
 	/// </remarks>
 	[Fact]
-	public void The_immediate_copy_is_carried_immediately()
+	public void The_package_is_carried_immediately()
 	{
 		const BindingFlags Nested = BindingFlags.Public | BindingFlags.NonPublic;
 
-		Assert.NotNull(typeof(ImmediateExpressions.Immediate).GetNestedType("ImmediateValues", Nested));
-		Assert.Null(typeof(ImmediateExpressions.Immediate).GetNestedType("DirectValues", Nested));
+		Assert.NotNull(typeof(ExpressionParser).GetNestedType("ImmediateValues", Nested));
+		Assert.Null(typeof(ExpressionParser).GetNestedType("DirectValues", Nested));
 
-		Assert.NotNull(typeof(ExpressionParser).GetNestedType("DirectValues", Nested));
-		Assert.Null(typeof(ExpressionParser).GetNestedType("ImmediateValues", Nested));
+		Assert.NotNull(typeof(TapeExpressions.Tape).GetNestedType("DirectValues", Nested));
+		Assert.Null(typeof(TapeExpressions.Tape).GetNestedType("ImmediateValues", Nested));
 	}
 
 	/// <summary>
-	/// The package carries the one reading a scope is given. The immediate copy is compiled only
-	/// into the fixture this project reads it from (tests/DotGram.ExpressionLanguage.Immediate),
-	/// and a package that carried it again would pay its size for nothing a caller can reach.
+	/// The package carries the one reading a scope is given. The tape's copy is compiled only
+	/// into the fixture this project reads it from (tests/DotGram.ExpressionLanguage.Tape), and
+	/// a package that carried it again would pay its size for nothing a caller can reach.
 	/// </summary>
 	[Fact]
-	public void The_package_carries_no_immediate_copy()
+	public void The_package_carries_no_tape_copy()
 	{
 		var shipped = typeof(ExpressionParser).Assembly;
 
 		Assert.Equal("DotGram.ExpressionLanguage", shipped.GetName().Name);
-		Assert.Null(typeof(ExpressionParser).GetNestedType("Immediate", BindingFlags.Public | BindingFlags.NonPublic));
-		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "Immediate");
-		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "ImmediateValues");
+		Assert.Null(typeof(ExpressionParser).GetNestedType("Tape", BindingFlags.Public | BindingFlags.NonPublic));
+		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "Tape");
+		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "DirectValues");
 
-		Assert.NotSame(shipped, typeof(ImmediateExpressions.Immediate).Assembly);
+		Assert.NotSame(shipped, typeof(TapeExpressions.Tape).Assembly);
 	}
 
 	[Theory]
@@ -232,8 +232,8 @@ public sealed class ExpressionCarrierTests
 	{
 		var match = ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input });
 
-		Assert.Equal(match.IsSuccess, ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input }, out var tape));
-		Assert.Equal(match.IsSuccess, ImmediateExpressions.Immediate.TryParseLambda(input, new ImmediateExpressions.State { Text = input }, out var immediate));
+		Assert.Equal(match.IsSuccess, ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input }, out var immediate));
+		Assert.Equal(match.IsSuccess, TapeExpressions.Tape.TryParseLambda(input, new TapeExpressions.State { Text = input }, out var tape));
 
 		Assert.Equal(Shown(match.IsSuccess ? match.Value : null), Shown(tape));
 		Assert.Equal(Shown(match.IsSuccess ? match.Value : null), Shown(immediate));
@@ -241,8 +241,8 @@ public sealed class ExpressionCarrierTests
 
 	static void Agree(string input)
 	{
-		var tape      = ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input });
-		var immediate = ImmediateExpressions.Immediate.TryParseLambda(input, new ImmediateExpressions.State { Text = input });
+		var tape      = TapeExpressions.Tape.TryParseLambda(input, new TapeExpressions.State { Text = input });
+		var immediate = ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input });
 
 		Assert.Equal(tape.IsSuccess, immediate.IsSuccess);
 

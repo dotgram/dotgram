@@ -1,4 +1,4 @@
-﻿extern alias immediate;
+﻿extern alias tape;
 
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 using DotGram.ExpressionLanguage;
 using DotGram.Handwritten;
 
-using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
+using TapeExpressions = tape::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Xunit;
 
@@ -37,9 +37,10 @@ namespace DotGram.Tests.ExpressionLanguage;
 /// No difference is allowed. One used to be: where the tape refused the text, the immediate
 /// carrier could throw instead, because a parse that fails had already run the constructions of
 /// what it read before failing — `s.Trim)` built `s.Trim` and was told there is no such property
-/// before the `)` refused it. The immediate carrier now holds what a construction throws and
-/// drops it with the reading the parse gives up, throwing it only where the tape would have
-/// built the value (§7.5); so the two carriers must agree on every text, throwers included,
+/// before the `)` refused it. The grammar says `ConstructionsMayThrow`, so the immediate carrier
+/// holds what a construction throws and drops it with the reading the parse gives up, throwing
+/// it only where the tape would have built the value (§7.5); so the two carriers must agree on
+/// every text, throwers included,
 /// and this test is the proof of that over the whole corpus. That the corpus has throwers at
 /// all is asserted beside it, so that agreement is not covering for a corpus nothing throws on:
 /// before the change, 654 of these texts threw on the immediate carrier where the tape refused.
@@ -61,8 +62,8 @@ public sealed class CarrierAgreementTests
 
 		foreach (var text in Texts())
 		{
-			var tape      = Answer(text, ExpressionParser.TryParseLambda);
-			var immediate = Answer(text, ImmediateExpressions.Immediate.TryParseLambda);
+			var tape      = Answer(text, TapeExpressions.Tape.TryParseLambda);
+			var immediate = Answer(text, ExpressionParser.TryParseLambda);
 
 			if (tape.StartsWith(Threw, StringComparison.Ordinal))
 				threw++;
@@ -136,13 +137,13 @@ public sealed class CarrierAgreementTests
 	}
 
 	/// <summary>
-	/// The same of the immediate reading, which is the fixture's and so has a state and a match of
+	/// The same of the tape's reading, which is the fixture's and so has a state and a match of
 	/// its own types: the two meet in the answer, never in a value.
 	/// </summary>
 	static string Answer(
-		string text, Func<string, ImmediateExpressions.State, ImmediateExpressions.Match<LambdaExpression>> read)
+		string text, Func<string, TapeExpressions.State, TapeExpressions.Match<LambdaExpression>> read)
 	{
-		var state = new ImmediateExpressions.State(typeof(CarrierAgreementTests).Assembly) { Text = text };
+		var state = new TapeExpressions.State(typeof(CarrierAgreementTests).Assembly) { Text = text };
 
 		return Caught(() =>
 		{

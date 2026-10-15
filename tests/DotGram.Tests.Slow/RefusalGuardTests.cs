@@ -156,7 +156,7 @@ public sealed class RefusalGuardTests : IClassFixture<RefusalGuardTests.Reach>
 	/// So the guard counts its own reach. Against <c>All().Count()</c> and never against a
 	/// number written here: the count is not a constant — <c>All()</c> yields sixteen series
 	/// per entry in <c>ExpressionForms</c>, which is one in this host and two in the stand
-	/// once it adds the immediate reading — so a literal would be right in one process, wrong
+	/// once it adds the tape's reading — so a literal would be right in one process, wrong
 	/// in the other, and would need editing every time a series is added.
 	/// </para>
 	/// <para>

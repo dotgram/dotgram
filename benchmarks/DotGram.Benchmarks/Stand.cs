@@ -628,7 +628,7 @@ static partial class Stand
 		var readings = new List<Reading>
 		{
 			new("hand", () => Read(HandExpression.TryParseLambda)),
-			new("tape", () => Read(ExpressionParser.TryParseLambda)),
+			new("tape", () => TapeExpression.Reads(text, Caller) ? 1 : 0),
 		};
 
 		if (immediate)
@@ -644,7 +644,7 @@ static partial class Stand
 		string? Disagreement()
 		{
 			var hand = ExpressionCorpus.Answer(text, HandExpression.TryParseLambda, new ExpressionParser.State(Caller) { Text = text });
-			var tape = ExpressionCorpus.Answer(text, ExpressionParser.TryParseLambda, new ExpressionParser.State(Caller) { Text = text });
+			var tape = TapeExpression.Answer(text, Caller);
 
 			if (hand != tape)
 				return $"  hand {hand}\n  tape {tape}";
@@ -816,10 +816,12 @@ static partial class Stand
 		readonly Type _sql92;
 		readonly Type _elTape;
 		readonly Type _elImmediate;
-		readonly Type _elState;
-		// The immediate reading's own state: a type of the assembly the reading is in, which is not the package's
-		// where the side has the fixture (ImmediateFixture).
+		// Each reading's own state: a type of the assembly the reading is in, which is not the package's for the
+		// reading the side has in a fixture (TapeFixture, ImmediateFixture).
+		readonly Type _elTapeState;
 		readonly Type _elImmediateState;
+		// The package's own class, whichever reading it carries: what the scanner rows read.
+		readonly Type _elPackage;
 		// Null where the side has no unified FixParser at all (v0.1.0: 93 per-message parsers, no
 		// door to reflect on): the side then has no FIX rows, but every other family still reads
 		// (finance-fo, this optionality). The `Fix`/`FixOptions`/`FixMessages` properties below are
@@ -913,16 +915,33 @@ static partial class Stand
 			_sql         = Load("DotGram.Sql", "DotGram.Sql.Standard.SqlStandardParser");
 			_sql92       = Load("DotGram.Sql", "DotGram.Sql.Standard.Sql92Parser");
 			_tsql        = Load("DotGram.Sql", "DotGram.Sql.TransactSql.TransactSqlParser");
-			_elTape      = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser");
-			_elState     = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+State");
-			// The immediate reading is in the fixture where the side has one, and in the package itself in a side built
-			// before it moved there; its state is taken from the assembly the reading is in, since the fixture carries
-			// every type of the language again under the same names.
-			_elImmediate = File.Exists(Path.Combine(directory, ImmediateFixture + ".dll"))
-				? Load(ImmediateFixture, "DotGram.ExpressionLanguage.ExpressionParser+Immediate")
-				: Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+Immediate");
-			_elImmediateState = _elImmediate.Assembly.GetType("DotGram.ExpressionLanguage.ExpressionParser+State")
-				?? throw new InvalidOperationException($"{name}: DotGram.ExpressionLanguage.ExpressionParser+State not found in {_elImmediate.Assembly.GetName().Name}");
+			_elPackage   = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser");
+			// Three layouts, each read so that "tape" and "immediate" name the same two readings on either side of a
+			// pair. Since the package moved to the immediate carrier it is that reading, and the tape's is in a fixture
+			// (TapeFixture). Before that the package was the tape's, and the immediate reading was in a fixture
+			// (ImmediateFixture) or, earlier still, nested in the package itself. Each state is taken from the assembly
+			// its reading is in, since a fixture carries every type of the language again under the same names.
+			if (File.Exists(Path.Combine(directory, TapeFixture + ".dll")))
+			{
+				_elTape      = Load(TapeFixture, "DotGram.ExpressionLanguage.ExpressionParser+Tape");
+				_elImmediate = _elPackage;
+			}
+			else
+			{
+				_elTape      = _elPackage;
+				_elImmediate = File.Exists(Path.Combine(directory, ImmediateFixture + ".dll"))
+					? Load(ImmediateFixture, "DotGram.ExpressionLanguage.ExpressionParser+Immediate")
+					: Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser+Immediate");
+			}
+
+			_elTapeState      = StateOf(_elTape);
+			_elImmediateState = StateOf(_elImmediate);
+
+			Type StateOf(Type reading)
+			{
+				return reading.Assembly.GetType("DotGram.ExpressionLanguage.ExpressionParser+State")
+					?? throw new InvalidOperationException($"{name}: DotGram.ExpressionLanguage.ExpressionParser+State not found in {reading.Assembly.GetName().Name}");
+			}
 			// Only a side that was given DotGram.Finance.dll at all has FIX to read: v0.1.0's FIX package predates
 			// the file (93 per-message parsers, no unified door), so a pair against it built without it must not
 			// even try to load it -- `Find`/`Load` above call LoadFromAssemblyPath unconditionally, and that
@@ -1031,7 +1050,7 @@ static partial class Stand
 		public Func<int>? ElBool(string rule, string text, bool immediate)
 		{
 			var type      = immediate ? _elImmediate : _elTape;
-			var stateType = immediate ? _elImmediateState : _elState;
+			var stateType = immediate ? _elImmediateState : _elTapeState;
 			var call = type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).FirstOrDefault(one => one.Name == rule
 				&& one.ReturnType == typeof(bool) && one.GetParameters() is [{ ParameterType.Name: "String" }, var state, { IsOut: true }] && state.ParameterType == stateType);
 
@@ -1153,7 +1172,7 @@ static partial class Stand
 		/// </summary>
 		public Func<int>? Scan(string parser, string text)
 		{
-			var type   = parser switch { "tsql" => _tsql, "el" => _elTape, _ => _sql };
+			var type   = parser switch { "tsql" => _tsql, "el" => _elPackage, _ => _sql };
 			var method = type.GetMethod("Scan", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
 			if (method is null)
@@ -1425,7 +1444,7 @@ static partial class Stand
 		public Func<int> El(string method, string text, bool immediate)
 		{
 			var type      = immediate ? _elImmediate : _elTape;
-			var stateType = immediate ? _elImmediateState : _elState;
+			var stateType = immediate ? _elImmediateState : _elTapeState;
 			var call = type.GetMethod(method, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
 				null, [typeof(string), stateType], null)
 				?? throw new InvalidOperationException($"{type.Name}.{method}(string, State) not found");
@@ -2259,21 +2278,44 @@ static partial class Stand
 		return note + FixModeNote(beforeDir, afterDir) + ElImmediateNote(beforeDir, afterDir);
 	}
 
-	/// <summary>The assembly the expression language's immediate reading is read from since it left the package: tests/DotGram.ExpressionLanguage.Immediate.</summary>
+	/// <summary>The assembly the expression language's immediate reading was read from while the package was the tape's: tests/DotGram.ExpressionLanguage.Immediate.</summary>
 	const string ImmediateFixture = "DotGram.ExpressionLanguage.Immediate";
 
+	/// <summary>The assembly the expression language's tape reading is read from since the package moved to the immediate carrier: tests/DotGram.ExpressionLanguage.Tape.</summary>
+	const string TapeFixture = "DotGram.ExpressionLanguage.Tape";
+
 	/// <summary>
-	/// A pair one side of which reads the expression language's immediate reading from the package and the other from the fixture.
-	/// The fixture is an assembly of its own, with every static cache of the language again, so on that side the immediate reading
-	/// warms nothing the tape's reading has warmed and the other way round: a cold or first-call figure of the immediate rows is not
+	/// A pair whose two sides read one of the expression language's readings from different places: the package on one side and a
+	/// fixture on the other. A fixture is an assembly of its own, with every static cache of the language again, so a reading there
+	/// warms nothing the package's reading has warmed and the other way round: a cold or first-call figure of those rows is not
 	/// comparable across such a pair. A warmed one is.
 	/// </summary>
 	static string ElImmediateNote(string beforeDir, string afterDir)
 	{
-		var before = File.Exists(Path.Combine(beforeDir, ImmediateFixture + ".dll"));
-		var after  = File.Exists(Path.Combine(afterDir, ImmediateFixture + ".dll"));
+		var note = "";
 
-		return before == after ? "" : $" **The expression language's immediate rows (before-immediate, after-immediate) read that reading from two places: the {(before ? "before" : "after")} side from {ImmediateFixture}, the other from the package. Static caches are per assembly, so a cold or first-call figure of those rows is not comparable across this pair; a warmed one is.**";
+		foreach (var reading in new[] { "tape", "immediate" })
+		{
+			var before = Where(beforeDir, reading);
+			var after  = Where(afterDir, reading);
+
+			if (before != after)
+				note += $" **The expression language's {reading} rows (before-{reading}, after-{reading}) read that reading from two places: the before side from {before}, the after side from {after}. Static caches are per assembly, so a cold or first-call figure of those rows is not comparable across this pair; a warmed one is.**";
+		}
+
+		return note;
+
+		// Where a side's reading is, as PairedSide finds it.
+		static string Where(string directory, string reading)
+		{
+			if (File.Exists(Path.Combine(directory, TapeFixture + ".dll")))
+				return reading == "tape" ? TapeFixture : "the package";
+
+			if (reading == "tape")
+				return "the package";
+
+			return File.Exists(Path.Combine(directory, ImmediateFixture + ".dll")) ? ImmediateFixture : "the package";
+		}
 	}
 
 	/// <summary>The A/A of the parent for one row: the median change of its build against itself, and the range over the runs; empty where the row was not in the A/A.</summary>

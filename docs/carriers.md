@@ -13,16 +13,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-08 15:48 |
-| DotGram.Examples | 2026-10-08 15:47 |
-| DotGram.ExpressionLanguage | 2026-10-08 15:47 |
-| DotGram.ExpressionLanguage.Immediate | 2026-10-08 15:47 |
-| DotGram.Finance | 2026-10-08 15:47 |
-| DotGram.Finance.Fix44 | 2026-10-08 15:47 |
-| DotGram.Sql | 2026-10-08 15:47 |
-| DotGram.Sql.Productions | 2026-10-08 15:47 |
-| DotGram.Tests | 2026-10-08 15:48 |
-| DotGram.Web | 2026-10-08 15:47 |
+| DotGram.Benchmarks | 2026-10-14 23:32 |
+| DotGram.Examples | 2026-10-14 23:30 |
+| DotGram.ExpressionLanguage | 2026-10-14 23:30 |
+| DotGram.ExpressionLanguage.Tape | 2026-10-14 23:30 |
+| DotGram.Finance | 2026-10-14 23:30 |
+| DotGram.Finance.Fix44 | 2026-10-14 23:31 |
+| DotGram.Sql | 2026-10-14 23:31 |
+| DotGram.Sql.Productions | 2026-10-14 23:32 |
+| DotGram.Tests | 2026-10-14 23:32 |
+| DotGram.Web | 2026-10-14 23:30 |
 
 **Carrier** is what a grammar left to the generator is read with — `immediate`, or `tape` where the
 immediate carrier refused a machine — or the author's own choice. **Gate** is what the tape would
@@ -67,15 +67,21 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Possession.Settled | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Settlements | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 7/7 |
 | DotGram.Benchmarks.TapeSql |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 12/244 |
-| DotGram.Benchmarks.TapeSqlStandard |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1248/2605 |
+| DotGram.Benchmarks.TapeSqlStandard |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
 | DotGram.Benchmarks.TinyScalar | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
 | DotGram.Examples.Expressions.ArithmeticTree | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 22/22 |
-| DotGram.Examples.Expressions.Calculator |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 51/51 |
+| DotGram.Examples.Expressions.Calculator |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 51/51 |
 | DotGram.Examples.Expressions.ClampedExample | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 14/14 |
 | DotGram.Examples.Expressions.LocaleNumber | 2 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
+| DotGram.Examples.Feeds.Confirmations | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 14/14 |
+| DotGram.Examples.Feeds.CorporateActions | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 21/21 |
+| DotGram.Examples.Feeds.EodTrades | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 16/16 |
 | DotGram.Examples.Feeds.FeedReader | 1 | 0 | immediate | read again | read again | GRAM5012 | 5 | 0 | 0 | 5 | 0 | 0 | 5/5 |
+| DotGram.Examples.Feeds.Logbook | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Feeds.LoggingFeedReader | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 5/5 |
+| DotGram.Examples.Feeds.OrderSheet | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 11/11 |
+| DotGram.Examples.Feeds.PriceList | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Feeds.RecoveringFeedReader | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 6/6 |
 | DotGram.Examples.Feeds.StockCountReader | 2 | 0 | immediate | none | none | none |  |  |  |  |  |  | 5/5 |
 | DotGram.Examples.Feeds.StreamingFeedReader | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 9/9 |
@@ -84,6 +90,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Formats.FileNames | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
 | DotGram.Examples.Formats.FixParser | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 9/9 |
 | DotGram.Examples.Formats.FixedWidth | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 22/22 |
+| DotGram.Examples.Formats.FixedWidth.Tape |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 22/22 |
 | DotGram.Examples.Formats.HttpParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 5 | 0 | 0 | 6 | 0 | 0 | 10/10 |
 | DotGram.Examples.Formats.IniParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 7 | 0 | 0 | 11 | 0 | 0 | 14/14 |
 | DotGram.Examples.Formats.JsonParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 9 | 0 | 0 | 11 | 0 | 0 | 30/30 |
@@ -94,10 +101,10 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Formats.TypedCsv | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 12/12 |
 | DotGram.Examples.Formats.XmlParser | 1 | 0 | immediate | replay | replay | GRAM5012 | 7 | 6 | 3 | 0 | 0 | 0 | 21/21 |
 | DotGram.Examples.Formats.YamlLite | 1 | 0 | immediate | read again | read again | GRAM5012 | 6 | 0 | 0 | 7 | 0 | 0 | 11/11 |
-| DotGram.Examples.Languages.Filter |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 33/33 |
+| DotGram.Examples.Languages.Filter |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 33/33 |
 | DotGram.Examples.Languages.FilterFile | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 4/4 |
 | DotGram.Examples.Languages.Filters | 1 | 0 | immediate | replay | replay | GRAM5012 | 2 | 1 | 1 | 0 | 0 | 0 | 8/8 |
-| DotGram.Examples.Languages.GramGrammar | 1 | 0 | immediate | replay | replay | GRAM5012 | 35 | 28 | 2 | 0 | 0 | 0 | 108/108 |
+| DotGram.Examples.Languages.GramGrammar | 1 | 0 | immediate | replay | replay | GRAM5012 | 35 | 28 | 2 | 0 | 0 | 0 | 111/111 |
 | DotGram.Examples.Languages.Lexemes | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.Scoped |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 13/13 |
 | DotGram.Examples.Languages.Selectors | 1 | 0 | immediate | read again | read again | GRAM5012 | 6 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -105,14 +112,15 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Languages.SqlDialect | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 23/505 |
-| DotGram.ExpressionLanguage.ExpressionParser.Immediate |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 23/505 |
+| DotGram.ExpressionLanguage.ExpressionParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 23/505 |
+| DotGram.ExpressionLanguage.ExpressionParser.Tape |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 23/505 |
 | DotGram.Finance.Fix.Fix44.Fix44Grammar | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 1830/1830 |
 | DotGram.Finance.Fix.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 14/14 |
-| DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1299/2659 |
+| DotGram.Sql.Productions.SqlStandardLocated |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
+| DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1307/2672 |
 | DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/244 |
-| DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1248/2605 |
+| DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
 | DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2352/3138 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -133,7 +141,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Web.Rfc8259 | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 29/29 |
 | DotGram.Web.Rfc8288 |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 9/9 |
 | DotGram.Web.Rfc9110 | 1 | 0 | immediate | read again | read again | GRAM5012 | 4 | 0 | 0 | 6 | 0 | 0 | 13/13 |
-| DotGram.Web.Rfc9651 | 3 | 0 | immediate | read again | read again | GRAM5012 | 15 | 0 | 0 | 17 | 0 | 0 | 44/44 |
+| DotGram.Web.Rfc9651 | 3 | 0 | immediate | read again | read again | GRAM5012 | 15 | 0 | 0 | 16 | 0 | 0 | 44/44 |
 
 ## Machine by machine
 
@@ -160,6 +168,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Expressions.LocaleNumber | ParseNumber | whole | immediate | read again | 1 | 0 | 1 | 0 | 2/2 |
 | DotGram.Examples.Expressions.LocaleNumber | ParseEuropeanNumber | whole | immediate | read again | 1 | 0 | 1 | 0 | 2/2 |
 | DotGram.Examples.Feeds.FeedReader | ParseFeed | whole | immediate | read again | 5 | 0 | 5 | 0 | 5/5 |
+| DotGram.Examples.Feeds.PriceList | Read | buffered | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Examples.Feeds.RecoveringFeedReader | ParseFeed | whole | immediate | none | 0 | 0 | 0 | 0 | 6/6 |
 | DotGram.Examples.Feeds.StockCountReader | ParseCount | whole | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
 | DotGram.Examples.Feeds.StockCountReader | ParseCount | buffered | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
@@ -180,7 +189,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Formats.YamlLite | ParseDoc | whole | immediate | read again | 6 | 0 | 7 | 0 | 11/11 |
 | DotGram.Examples.Languages.FilterFile | ParseFilter | whole | immediate | none | 0 | 0 | 0 | 0 | 4/4 |
 | DotGram.Examples.Languages.Filters | ParseFilter | whole | immediate | replay | 2 | 1 | 0 | 0 | 8/8 |
-| DotGram.Examples.Languages.GramGrammar | ParseFile | whole | immediate | replay | 35 | 28 | 0 | 0 | 108/108 |
+| DotGram.Examples.Languages.GramGrammar | ParseFile | whole | immediate | replay | 35 | 28 | 0 | 0 | 111/111 |
 | DotGram.Examples.Languages.Lexemes | ParseQuoted | whole | immediate | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Examples.Languages.Selectors | ParseSelector | whole | immediate | read again | 6 | 0 | 1 | 0 | 13/13 |
 | DotGram.Examples.Languages.SettingsFile | ParseSettings | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
@@ -206,7 +215,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Web.Rfc8259 | ParseJson | whole | immediate | none | 0 | 0 | 0 | 0 | 29/29 |
 | DotGram.Web.Rfc9110 | ParseContentType | whole | immediate | read again | 4 | 0 | 6 | 0 | 7/7 |
 | DotGram.Web.Rfc9651 | ParseItem | whole | immediate | read again | 7 | 0 | 9 | 0 | 22/22 |
-| DotGram.Web.Rfc9651 | ParseList | whole | immediate | read again | 11 | 0 | 13 | 0 | 34/34 |
+| DotGram.Web.Rfc9651 | ParseList | whole | immediate | read again | 11 | 0 | 12 | 0 | 34/34 |
 | DotGram.Web.Rfc9651 | ParseDictionary | whole | immediate | read again | 12 | 0 | 14 | 0 | 37/37 |
 
 ## Where the second gate's ways are opened
@@ -219,8 +228,8 @@ or which nothing calls, so that no caller asks it again.
 
 | Shape | Why the way stays | Grammars | Rules | Places | Captured | Sealed | For example |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| turns | a turn led by what may read nothing | 5 | 10 | 22 | 5 | 2 | IniParser.Entries: `(item0: Entry \| Blank)*` |
 | choice | alternatives begin alike | 8 | 14 | 21 | 0 | 5 | Urls.Host: `(IPv4 \| RegName)` |
+| turns | a turn led by what may read nothing | 5 | 9 | 21 | 4 | 1 | IniParser.Entries: `(item0: Entry \| Blank)*` |
 | choice | alternatives begin apart | 1 | 6 | 19 | 0 | 0 | Rfc5322.Ctext: `(['!'..'\'' \| '*'..'[' \| ']'..'~'] \| Never)` |
 | run | what follows begins alike | 9 | 17 | 17 | 0 | 0 | Config.Value: `[^ '\n' \| '\r']*` |
 | choice | every alternative led by what may read nothing | 4 | 7 | 15 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
@@ -338,6 +347,10 @@ or which nothing calls, so that no caller asks it again.
 - again Trailer: through eol
 - again eol: opens a way
 - open eol: choice; literals, follow unknown; open; ("\r\n" | '\r')
+
+## DotGram.Examples.Feeds.PriceList
+
+- machine Read [buffered]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
 
 ## DotGram.Examples.Feeds.RecoveringFeedReader
 
@@ -511,8 +524,8 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Languages.GramGrammar
 
-- machine ParseFile [whole]: carrier: immediate; gate: replay; building: 35; replayed: 28; read again: 0; refused: 0; points: 108/108
-- memo ParseFile [whole]: remembered 0; not 7: Type (characters), Namespace (characters), With (characters), QuantifiedCore (characters), Primary (characters), RefOrCall (characters), AnyTest (characters)
+- machine ParseFile [whole]: carrier: immediate; gate: replay; building: 35; replayed: 28; read again: 0; refused: 0; points: 111/111
+- memo ParseFile [whole]: remembered 0; not 8: Type (characters), Namespace (characters), With (characters), QuantifiedCore (characters), Prefixed (characters), Primary (characters), RefOrCall (characters), AnyTest (characters)
 - replay AnyTest: Follows in OneTest [choice], then ')'
 - replay Reference: Follows in PublicationTarget [choice], then ?=':'
 - replay AllTest: under AnyTest
@@ -576,9 +589,14 @@ or which nothing calls, so that no caller asks it again.
 
 - memo ParseLambda, ParseHole, ParseBody [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context)
 
-## DotGram.ExpressionLanguage.ExpressionParser.Immediate
+## DotGram.ExpressionLanguage.ExpressionParser.Tape
 
 - memo ParseLambda, ParseHole, ParseBody [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context)
+
+## DotGram.Sql.Productions.SqlStandardLocated
+
+- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
+- memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0
 
 ## DotGram.Sql.Productions.SqlStandardProductions
 
@@ -868,7 +886,7 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Web.Rfc9651
 
 - machine ParseItem [whole]: carrier: immediate; gate: read again; building: 7; replayed: 0; read again: 9; refused: 0; points: 22/22
-- machine ParseList [whole]: carrier: immediate; gate: read again; building: 11; replayed: 0; read again: 13; refused: 0; points: 34/34
+- machine ParseList [whole]: carrier: immediate; gate: read again; building: 11; replayed: 0; read again: 12; refused: 0; points: 34/34
 - machine ParseDictionary [whole]: carrier: immediate; gate: read again; building: 12; replayed: 0; read again: 14; refused: 0; points: 37/37
 - again DictMember: opens a way
 - open DictMember: choice; an alternative that may read nothing; open; ('=' & value: ListMember | parameters: SfParameters)
@@ -879,10 +897,8 @@ or which nothing calls, so that no caller asks it again.
 - again ItemField: through SfItem
 - again Key: opens a way
 - open Key: run; what follows begins alike; open; ['*' | '-'..'.' | '0'..'9' | '_' | 'a'..'z']*
-- again ListField: opens a way
-- open ListField: turns, captured; a turn led by what may read nothing; entry; rest: ListRest*
+- again ListField: through ListMember
 - again ListMember: through SfItem
-- again ListRest: through ListMember
 - again Parameter: through SfBareItem
 - again SfBareItem: opens a way
 - open SfBareItem: choice; every alternative led by what may read nothing; open; (text: SfDecimal => (new BareItem.Decimal(Rfc9651.Decimal(text))) | te…

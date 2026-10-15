@@ -1,4 +1,4 @@
-﻿extern alias immediate;
+﻿extern alias tape;
 
 using System;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ using System.Text;
 using DotGram.ExpressionLanguage;
 using DotGram.Handwritten;
 
-using ImmediateExpressions = immediate::DotGram.ExpressionLanguage.ExpressionParser;
+using TapeExpressions = tape::DotGram.ExpressionLanguage.ExpressionParser;
 
 using Xunit;
 
@@ -46,8 +46,8 @@ public sealed class ExpressionRefusalTests
 
 		foreach (var text in Texts())
 		{
-			var tape      = Answer(text, ExpressionParser.TryParseLambda);
-			var immediate = Answer(text, ImmediateExpressions.Immediate.TryParseLambda);
+			var tape      = Answer(text, TapeExpressions.Tape.TryParseLambda);
+			var immediate = Answer(text, ExpressionParser.TryParseLambda);
 
 			answers
 				.Append(Escaped(text))
@@ -108,12 +108,12 @@ public sealed class ExpressionRefusalTests
 	}
 
 	/// <summary>
-	/// The same of the immediate reading, which is the fixture's and so has a state and a match of
+	/// The same of the tape's reading, which is the fixture's and so has a state and a match of
 	/// its own types: the two meet in the answer, never in a value.
 	/// </summary>
-	static string Answer(string text, Func<string, ImmediateExpressions.State, ImmediateExpressions.Match<LambdaExpression>> read)
+	static string Answer(string text, Func<string, TapeExpressions.State, TapeExpressions.Match<LambdaExpression>> read)
 	{
-		var state = new ImmediateExpressions.State(typeof(ExpressionRefusalTests).Assembly) { Text = text };
+		var state = new TapeExpressions.State(typeof(ExpressionRefusalTests).Assembly) { Text = text };
 
 		return Caught(() =>
 		{

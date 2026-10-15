@@ -69,12 +69,12 @@
 		     oracle (Standard.cs), which asks each production by its name. -->
 		<ProjectReference Include="..\..\tests\DotGram.Sql.Productions\DotGram.Sql.Productions.csproj" />
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
-		<!-- And the language's immediate reading, which the package no longer carries: the same
-		     sources compiled again with it (tests/DotGram.ExpressionLanguage.Immediate). Under an
-		     alias, since every type in it has a full name the package's has too. Referenced here
-		     so that a side built by Build-Side.ps1 builds it. -->
-		<ProjectReference Include="..\..\tests\DotGram.ExpressionLanguage.Immediate\DotGram.ExpressionLanguage.Immediate.csproj"
-		                  Aliases="immediate" />
+		<!-- And the language's tape reading, which the package does not carry: the same sources
+		     compiled again with it (tests/DotGram.ExpressionLanguage.Tape). Under an alias, since
+		     every type in it has a full name the package's has too. Referenced here so that a
+		     side built by Build-Side.ps1 builds it. -->
+		<ProjectReference Include="..\..\tests\DotGram.ExpressionLanguage.Tape\DotGram.ExpressionLanguage.Tape.csproj"
+		                  Aliases="tape" />
 		<ProjectReference Include="..\..\src\DotGram.Web\DotGram.Web.csproj" />
 		<ProjectReference Include="..\..\examples\DotGram.Examples\DotGram.Examples.csproj" />
 	</ItemGroup>
