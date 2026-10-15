@@ -73,7 +73,8 @@ $aside    = Enter-Aside
 
 try {
 	foreach ($project in $projects) {
-		$log = dotnet build (Join-Path $Tree $project) -c Release -f $Framework -v:quiet -m:1 -nodeReuse:false -p:UseSharedCompilation=false @rebuild @flags 2>&1
+		$build = Get-AsideCommand 'dotnet' (@('build', (Join-Path $Tree $project), '-c', 'Release', '-f', $Framework, '-v:quiet', '-m:1', '-nodeReuse:false', '-p:UseSharedCompilation=false') + $rebuild + $flags)
+		$log   = & $build[0] ($build | Select-Object -Skip 1) 2>&1
 
 		if ($LASTEXITCODE -ne 0) { throw "$Name`: $project did not build:`n$(($log | Select-Object -Last 15) -join "`n")" }
 	}

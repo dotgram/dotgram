@@ -58,9 +58,11 @@ every round, so that two runs taken on different days can be told apart from two
 differ. Results go to `/ramdisk/build/dotgram/stand/<time>` (`stand.md`, `stand.json`), or to a
 directory named after `--stand`; what is worth keeping is copied into `results/`.
 
-It times; so it runs in a window (D147, below): with nothing else heavy running on either half of the machine. A build on the other half shares the package's power and boost budget and the memory controller with the stand's half,
-and it has spoiled windows before (2026-09-19, 6-11% of a false fall; 2026-09-27, a pinned build doubled the control), so builds do not run
-beside a window, pinned or not. The stand does not trust one run either: each run has its own control, a run whose control leaves 5% is
+It times; so it runs in a window (D147, below): with nothing else heavy running on the stand's half of the machine. A build on the other half still
+shares the package's power and boost budget and the memory controller with the stand's half: beside a shared window it slows every row by about 7%
+and widens the base's spread (measured below), and it has spoiled windows before (2026-09-19, 6-11% of a false fall; 2026-09-27, a pinned build
+doubled the control). So a shared window answers "faster or slower, and by about how much" from a pair and its A/A, and a figure that decides
+something small, or one compared with a run of another day, is taken in an exclusive window. The stand does not trust one run either: each run has its own control, a run whose control leaves 5% is
 dropped and named, and the A/A rides beside each pair. Reports of the generator appear only for projects the last build
 actually compiled: `--rebuild` rebuilds every grammar-hosting project first (with `-t:Rebuild`,
 node reuse and the compiler server off) so the table is complete; without it, a project whose
@@ -75,10 +77,23 @@ its siblings, processors 0-7 and 16-23** (the preferred cores are there), set by
 
 **A window is a lock.** The process that times holds `/ramdisk/locks/timing-window.lock` exclusively (flock) for as long as it times, and the kernel
 lets it go when that process ends, however it ends; `timing-window.txt` beside it names the holder. Killing only the process that holds it (the
-pwsh of `Run-Bdn.ps1` or `Run-Announced.ps1`) frees the window at once, while the processes it started may still be running: kill those too. **While a window is open
-nothing heavy runs, on either half**: the supervisor schedules windows and starts no heavy work during one. Builds and tests started by hand or by
-a script are best run through `benchmarks/Aside.sh`, which holds `/ramdisk/locks/timing-builds.lock` shared while its command runs, and waits while
-a window is open:
+pwsh of `Run-Bdn.ps1` or `Run-Announced.ps1`) frees the window at once, while the processes it started may still be running: kill those too.
+
+**A window is shared or exclusive**, and its announcement says which (`kind shared`, `kind exclusive`; one that names no kind is exclusive).
+
+- **Shared** (the default of `Run-Announced.ps1`): nothing heavy runs on the stand's processors, and builds and tests go on beside it on the
+  other CCD (8-15 and 24-31: every processor outside `DOTGRAM_STAND_CPUS`, or `DOTGRAM_ASIDE_CPUS`). `Aside.sh` runs its command at once under
+  `taskset` there; the window does not wait for the builds that are running, it moves this user's .NET processes that may run anywhere (a build
+  started before it, a test host, a compiler server, an MSBuild node; not pwsh, not anything that does not load the runtime, not a process that is
+  already pinned) to the other CCD with `taskset -a`, and its quiet check reads only the stand's processors. When it closes it puts those processes
+  back on every processor, and with them any compiler server (`VBCSCompiler`) left on the other CCD: a server outlives the build that started it,
+  and the builds after the window would compile on half the machine.
+- **Exclusive** (`Run-Announced.ps1 -Exclusive`, `DOTGRAM_WINDOW_EXCLUSIVE=1`, and every window of `Run-Bdn.ps1`, `Run-BdnQueue.ps1`,
+  `Gate-Generation.ps1` and a stand run started by hand): **nothing heavy runs, on either half**. `Aside.sh` waits while it is open, and it waits
+  for the commands `Aside.sh` runs to end before it opens.
+
+Builds and tests started by hand or by a script are best run through `benchmarks/Aside.sh`, which holds `/ramdisk/locks/timing-builds.lock` shared
+while its command runs:
 
 ```console
 benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux
@@ -86,14 +101,38 @@ benchmarks/Aside.sh dotnet test tests/DotGram.Tests/DotGram.Tests.csproj -c Rele
 pwsh benchmarks/Window.ps1        # IDLE, STALE, WITHIN or BUSY, and who holds it
 ```
 
-A window (`Run-Announced.ps1`, `Run-Bdn.ps1`, `Run-BdnQueue.ps1`, `Gate-Generation.ps1`, and a stand run started by hand) takes the window lock,
-then waits at most twenty minutes for the builds that hold the builds lock to end, naming them (from `/proc/locks`), then runs the quiet check,
-the safety net for a heavy process that did not go through `Aside.sh`, another project's build among them: above 6% of the machine in use over three
-seconds, or a build tool above 0.15 core, it says what is busy and waits, for at most twenty minutes more, and then refuses (exit 5). While the
-window is open, new builds in `Aside.sh` wait. The timing scripts are Linux-only: no Windows machine takes timings, and CI does not run them.
+A window (`Run-Announced.ps1`, `Run-Bdn.ps1`, `Run-BdnQueue.ps1`, `Gate-Generation.ps1`, and a stand run started by hand) takes the window lock.
+An exclusive one then waits at most twenty minutes for the builds that hold the builds lock to end, naming them (from `/proc/locks`). Then the
+quiet check, the safety net for a heavy process that did not go through `Aside.sh`, another project's build among them: exclusive, above 6% of the
+machine in use over three seconds, or a build tool above 0.15 core; shared, after moving the .NET processes aside, above 6% of the stand's
+processors (read from `/proc/stat`), or a build tool that may still run on them. It says what is busy and waits, for at most twenty minutes, and
+then refuses (exit 5). `Run-Announced.ps1` writes into `run.txt` the kind of the window, what it moved, and how busy each half was, on average,
+while the command ran, so that a reader knows what ran beside the timing. The timing scripts are Linux-only: no Windows machine takes timings, and CI does not run them.
 A process started inside a window inherits `DOTGRAM_WINDOW_HOLDER` and is inside it: a `--stand` run started by `Run-Announced.ps1` announces
 nothing of its own, and an `Aside.sh` inside a window runs at once. The directories are `DOTGRAM_WINDOW_DIR` (the locks), `DOTGRAM_SCRATCH` (output,
 `/ramdisk/build/dotgram`) and `DOTGRAM_STAND_CPUS` (the processors) when they are set.
+
+**What a build on the other CCD costs a timing** (2026-10-15, an A/A of one build of 31970005 against itself on 14 rows of `sql/` and `tsql/`
+(the `.bool` row left out), `--repeat 5`, the stand on processors 0-7 and 16-23; the load a loop of
+`dotnet build DotGram.slnx -c Linux --no-incremental` and the `DotGram.Tests` run, started a minute before the timing; each condition taken
+twice, in the order idle, shared, unpinned, idle, shared, unpinned):
+
+| condition | rows slower than the first idle run (median, range) | median \|A/A change\| (max) | median A/A range over the runs | median base spread | control | clock of the stand's busiest core (average) | busy processors, stand's CCD / other CCD |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| exclusive, idle | — | 0.8% (3.6%) | 5.9 points | 3% | 41.6-42.1 ns | 4712 MHz | 2.1 / 0.1 |
+| exclusive, idle | +1.4% (-1.4..+4.7%) | 1.1% (3.8%) | 5.8 points | 4% | 41.4-42.2 ns | 4722 MHz | 2.1 / 0.1 |
+| shared, the load on the other CCD | +7.4% (+4.3..+10.0%) | 1.8% (5.5%) | 6.0 points | 8% | 44.1-45.9 ns | 4449 MHz | 1.2 / 8.1 |
+| shared, the load on the other CCD | +6.2% (+0.7..+14.8%) | 1.1% (3.5%) | 4.8 points | 5% | 44.2-46.5 ns | 4437 MHz | 1.2 / 8.7 |
+| the same load, not pinned | +13.6% (+4.1..+24.1%) | 2.6% (7.2%) | 9.1 points | 28% | 43.4-46.7 ns | 4439 MHz | 6.8 / 4.2 |
+| the same load, not pinned | +15.6% (+4.2..+29.8%) | 2.5% (4.9%) | 9.8 points | 26% | 42.5-44.9 ns | 4513 MHz | 6.0 / 4.0 |
+
+A build on the other CCD makes every row about 6-7% slower at once, and most of it is the clock: the package's boost falls by about 270 MHz
+(5.7%) when the other CCD is busy, and the control moves by the same 7%. What it does not do is move one side of a pair against the other: the
+A/A of a shared window is as tight as an idle one's. Unpinned, the scheduler puts much of the build on the stand's CCD (the preferred cores
+are there), and the rows move by twice as much and the base's spread grows eightfold. So: a pair read against its A/A may be taken in a shared
+window; a figure read alone, compared with another day's run, or an effect of a few percent is taken in an exclusive one. (The idle runs had
+another session's test host running on the stand's CCD, about one processor; the shared window moved it aside.) The reports, the clocks and
+the table row by row are in `results/shared-window-2026-10-15/`.
 
 Timings here are for trends, and counts decide (D147): a periodic run of the stand is compared with the last one in `results/`, taken the same way.
 

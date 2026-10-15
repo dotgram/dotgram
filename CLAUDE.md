@@ -13,7 +13,8 @@ How the generator is measured and profiled — the harness, the byte-for-byte ch
 baseline, dotnet-trace and dotnet-counters on Linux, dotTrace and dotMemory where Windows is — is
 in `.claude/rules/profiling.md`. Read it before measuring anything rather than working it out again.
 On this machine a build or test run started by hand is best run through `benchmarks/Aside.sh`, which
-waits while the stand is timing; the window procedure is D147 and `benchmarks/README.md`.
+runs it on the other CCD beside a shared timing window and waits for an exclusive one; the window
+procedure is D147 and `benchmarks/README.md`.
 
 ## Git
 
@@ -146,8 +147,8 @@ benchmarks/
 	DotGram.CodeSize/     the generated assemblies of two checkouts weighed against each other
 	Gate-Generation.ps1   the generator's own time on the grammars, held to a base built in
 	                      the same run
-	Aside.sh              runs a build or test beside the stand: waits while a timing window
-	                      is open, and a window waits for it
+	Aside.sh              runs a build or test beside the stand: on the other CCD while a
+	                      shared window is open, after an exclusive one has closed
 	README.md             the measuring stand: its rows, the paired form, the windows a
 	                      timing run is taken in, and every mode
 	results/              what a measurement answered, by date; kept, not maintained

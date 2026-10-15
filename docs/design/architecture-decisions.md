@@ -9740,6 +9740,20 @@ The scripts (`benchmarks/WindowLib.ps1`, `Window.ps1`, `Aside.sh`, `Run-Announce
 `Run-Bdn.ps1`, `Run-BdnQueue.ps1`, `Gate-Generation.ps1`) and `StandWindow.cs` implement it; the
 procedure is in `benchmarks/README.md` and `docs/development.md`.
 
+**Changed 2026-10-15 (Igor): a window is shared by default, exclusive on request.** Builds that
+waited for whole windows made small tasks take hours. A shared window keeps only the stand's CCD
+quiet: `Aside.sh` runs builds and tests at once on the other CCD, the window moves the .NET
+processes already running there instead of waiting for them, and its quiet check reads only the
+stand's processors. The cost was measured before the change (an A/A of one build on `sql/` and
+`tsql/` rows, five runs a condition): a full build and test loop on the other CCD made every row
+about 7% slower and doubled the base's spread, the clock of the stand's core fell by about 6%, and
+the A/A of a pair stayed as tight as on an idle machine; the same load unpinned cost twice as much
+and spread eight times as far. So the reasoning above holds for absolute figures and small effects,
+and those are taken in an exclusive window (`Run-Announced.ps1 -Exclusive`, and every
+BenchmarkDotNet, `Gate-Generation.ps1` and hand-started stand window); a pair read against its
+A/A is taken in a shared one, and `run.txt` says which kind it was and how busy the other CCD
+was.
+
 ## D148 — T-SQL's permissions are members of `PrivilegeKind`, written from the catalogue (Igor)
 
 2026-09-28. How the SQL:2023 tree holds a permission's name once T-SQL builds it. Proposal 23 of

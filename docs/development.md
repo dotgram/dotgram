@@ -31,8 +31,8 @@ backup. Packages are written where `--output` says (`artifacts/` in CI).
 On the Linux machine the solution builds with `-c Linux` (the solution configuration that leaves
 out the Visual Studio extension). A build or test run started by hand or by a script is best run
 through `benchmarks/Aside.sh` (`benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux`), which
-waits while the stand is timing and keeps a timing from starting while it runs (D147, *Measuring*
-below).
+runs it on the CCD the stand does not use while a shared timing window is open, waits while an
+exclusive one is, and keeps an exclusive one from starting while it runs (D147, *Measuring* below).
 
 What costs more than it is worth on every run lives in `tests/DotGram.Tests.Slow` (D12): the
 whole refusal record — `DotGram.Tests` compiles one reading in five of it — the streaming
@@ -570,8 +570,8 @@ The instrument for a question of the form "is this faster, and than what" is **t
   takes to write the grammars of the solution to a base commit's, the two rebuilt alternately in
   the same run.
 
-**A timing is taken in a window, and nothing heavy runs beside it** (D147). Builds and tests started
-by hand or by a script are best run through `benchmarks/Aside.sh`:
+**A timing is taken in a window, and nothing heavy runs on the stand's CCD beside it** (D147). Builds
+and tests started by hand or by a script are best run through `benchmarks/Aside.sh`:
 
 ```console
 benchmarks/Aside.sh dotnet build DotGram.slnx -c Linux
@@ -582,20 +582,25 @@ pwsh benchmarks/Window.ps1
 A window is a lock: the process that times holds `/ramdisk/locks/timing-window.lock` exclusively
 for as long as it times, and the kernel lets it go when that process ends, however it ends;
 `timing-window.txt` beside it names the holder, and `pwsh benchmarks/Window.ps1` reads both in
-one line that begins with a word (IDLE, STALE, WITHIN, BUSY). `Aside.sh` holds
-`timing-builds.lock` shared while its command runs and waits while a window is open; a window
-waits for those commands to end (at most twenty minutes, naming them), then waits as long again for
-the machine to be quiet and refuses one that is not, which is the safety net for a heavy process
-that did not go through `Aside.sh`. **While a window is open nothing heavy runs, on either half of the
-machine**, and the supervisor starts no heavy work during one: the halves share the package's
-power budget and the memory controller, and a build pinned to the other half has doubled the
-control before (2026-09-27). Timings run on logical processors 0-7 and 16-23, the first CCD with
+one line that begins with a word (IDLE, STALE, WITHIN, BUSY). A window is **shared** or
+**exclusive**, and the announcement says which. Beside a shared window (the default of
+`Run-Announced.ps1`) builds and tests go on: `Aside.sh` runs its command at once on the other CCD
+(processors 8-15 and 24-31), the .NET processes that were already running are moved there when the
+window opens, and the window's quiet check reads only the stand's processors. An exclusive window
+(`Run-Announced.ps1 -Exclusive`, and every BenchmarkDotNet, `Gate-Generation.ps1` and hand-started
+stand window) is the old kind: `Aside.sh` waits while it is open, and it waits for the commands
+`Aside.sh` holds `timing-builds.lock` for to end (at most twenty minutes, naming them), then waits as
+long again for the whole machine to be quiet and refuses one that is not. The halves share the
+package's power and boost budget and the memory controller, so a build on the other CCD still
+moves a timing a little (`benchmarks/README.md` has the measurement); a figure that decides
+something small is taken in an exclusive window. Timings run on logical processors 0-7 and 16-23, the first CCD with
 its SMT siblings, set by `taskset` as the process starts; the windows are taken by
 `benchmarks/Run-Announced.ps1` (the stand, and any command), `Run-Bdn.ps1` and `Run-BdnQueue.ps1`
 (BenchmarkDotNet, with every worker's processors read back) and `Gate-Generation.ps1`; a stand
 run started by hand takes one itself, but is not pinned, says so in its header and is not quoted. Output goes to `/ramdisk/build/dotgram`, never the SSD; what is
 worth keeping is copied into `benchmarks/results/`. **Two timed loads at once are one disturbed
-measurement, whichever halves of the machine they sit on**; the window lock admits one at a time.
+measurement, whichever halves of the machine they sit on**; the window lock admits one at a time,
+of either kind.
 Timings are for trends; a decision rests on counts (allocations, steps), which do not need a window.
 A before and an after are medians of five runs or more, never one run, and a lean on a row whose
 code did not change is read alone and with `DOTNET_TieredPGO=0` before it is believed. The rows,

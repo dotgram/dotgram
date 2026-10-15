@@ -10,8 +10,8 @@
 	know, and for scripts that must not start a timing inside somebody else's.
 
 	Output is one line and it begins with a WORD, and the word is the answer: IDLE (no window), STALE (no window; the text named a holder that ended without saying so, and is put back to idle),
-	WITHIN (a window is open and this process is inside it: DOTGRAM_WINDOW_HOLDER names its holder) or BUSY (a window is open: run heavy work through Aside.sh, which waits). The exit code repeats it:
-	0 IDLE/STALE, 1 BUSY, 3 WITHIN.
+	WITHIN (a window is open and this process is inside it: DOTGRAM_WINDOW_HOLDER names its holder) or BUSY (a window is open: run heavy work through Aside.sh, which runs it on the other half
+	beside a shared window and waits for an exclusive one). The exit code repeats it: 0 IDLE/STALE, 1 BUSY, 3 WITHIN.
 
 	**A check that printed no word did not run.** A caller reads the word; if the script cannot be found the answer is NOT CHECKED, which is a refusal to proceed and never a pass.
 
@@ -27,5 +27,10 @@ switch ($state) {
 	'Idle' { 'IDLE: no window is open. ' + (($lines | Select-Object -Skip 1) -join '; '); exit 0 }
 	'Stale' { 'STALE: no window is open; the announcement named a holder that ended without saying so, and is idle again.'; exit 0 }
 	'Within' { 'WITHIN: ' + ($lines -join '; ') + '. This process is inside that window.'; exit 3 }
-	default { 'BUSY: ' + ($lines -join '; ') + '. Run builds, tests and other heavy work through benchmarks/Aside.sh, which waits for the window to close.'; exit 1 }
+	default {
+		$advice = if ((Get-WindowKind) -eq 'shared') { 'A shared window: run builds, tests and other heavy work through benchmarks/Aside.sh, which runs them at once on processors ' + (Get-AsideCpus) + '.' }
+		          else { 'An exclusive window: run builds, tests and other heavy work through benchmarks/Aside.sh, which waits for the window to close.' }
+		'BUSY: ' + ($lines -join '; ') + '. ' + $advice
+		exit 1
+	}
 }

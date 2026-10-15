@@ -30,7 +30,8 @@ $aside = Enter-Aside
 $lines = try {
 	foreach ($row in $Rows) {
 		# The row's id is a substring filter: an exact id names one row, and a process holds nothing else.
-		& $Exe --stand-retained @Sides --only $row 2>&1 | Where-Object { $_ -match '^\| (el|sql|fix|web|feeds|tsql|fixmsg|config)/' -or $_ -match '^Retained after' -or $_ -match '^    pools after' -or $_ -match '^    parses \(' -or $_ -match '^    pools at the first' -or $_ -match '^        parse ' }
+		$retained = Get-AsideCommand $Exe (@('--stand-retained') + $Sides + @('--only', $row))
+		& $retained[0] ($retained | Select-Object -Skip 1) 2>&1 | Where-Object { $_ -match '^\| (el|sql|fix|web|feeds|tsql|fixmsg|config)/' -or $_ -match '^Retained after' -or $_ -match '^    pools after' -or $_ -match '^    parses \(' -or $_ -match '^    pools at the first' -or $_ -match '^        parse ' }
 	}
 }
 finally {
