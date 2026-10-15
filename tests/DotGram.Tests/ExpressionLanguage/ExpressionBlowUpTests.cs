@@ -76,6 +76,10 @@ public sealed class ExpressionBlowUpTests
 	// is gone rather than an input.
 	[InlineData("$\"", "{{a}}")]
 	[InlineData("$@\"", "{{a}}")]
+	// And a string inside a hole, which the hole reads with the string's rule rather than the
+	// lexer's automaton: its run was cut every way, and twenty-four characters took two seconds.
+	[InlineData("$\"{x\"", "a;")]
+	[InlineData("$\"{@\"", "a;")]
 	public void An_unclosed_string_is_refused_at_once(string opens, string piece)
 	{
 		var text  = "(int x) => " + opens + Repeated(piece, 64);

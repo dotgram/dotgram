@@ -304,19 +304,23 @@ namespace DotGram.ExpressionLanguage;
 		// The parts of a run: an escape, or the longest stretch that needs none.
 		//
 		// The run is `(A+)*` with the pieces around it, the shape that reads an unclosed string
-		// every way it cuts — but a plain string and a verbatim one are whole lexemes the lexer's
-		// automaton reads, and an automaton has no way back to take. Measured: a thousand
-		// characters after an unclosed `"` are refused in under a millisecond, where the same
-		// text after `$"`, which the automaton only opens, took seconds (D57). So no braces here.
-		TextPart : @string = e: Escape => @(e) | t: [^ '"' | '\\']+  => @(t)
+		// every way it cuts. Where a string is a whole lexeme the lexer's automaton reads it, and an
+		// automaton has no way back to take: a thousand characters after an unclosed `"` are refused
+		// in under a millisecond. But a hole reads a string inside it with this rule rather than the
+		// automaton (`HoleQuoted`), and there an unclosed `"` was cut every way: `$"{x"` and forty
+		// characters took two seconds, each further four sixteen times as long. So the run is atomic,
+		// which takes nothing away: it stops only at a quote or a backslash, and neither can be read
+		// by another turn of it.
+		TextPart : @string = e: Escape => @(e) | t: { [^ '"' | '\\']+ } => @(t)
 		CharPart : @string = e: Escape => @(e) | t: [^ '\'' | '\\'] => @(t)
 
 		Text : @string = '"' & parts: TextPart* & '"' => @(string.Concat(parts))
 		Char : @string = '\'' & part: CharPart & '\'' => @(part)
 
 		// A verbatim string takes every character as written, and doubling the quote is
-		// how it says one — the whole of the difference, and the whole of the rule.
-		VerbatimPart : @string = "\"\"" => @("\"") | t: [^ '"']+ => @(t)
+		// how it says one — the whole of the difference, and the whole of the rule. Its run is
+		// atomic for the reason the plain one's is: a hole reads it with this rule.
+		VerbatimPart : @string = "\"\"" => @("\"") | t: { [^ '"']+ } => @(t)
 
 		Verbatim : @string = "@\"" & parts: VerbatimPart* & '"' => @(string.Concat(parts))
 
