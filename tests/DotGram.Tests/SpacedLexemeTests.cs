@@ -34,17 +34,22 @@ public sealed class SpacedLexemeTests
 	[InlineData("{ Std.Digit+ & ('.' & Std.Digit+)? }")]
 	[InlineData("digits: Std.Digit+ & ('.' & Std.Digit+)?")]
 	[InlineData("['0'..'9']+ & ('.' & ['0'..'9']+)?")]
-	[InlineData("['a'..'z'] & $x")]
+	[InlineData("$q: Std.Letter & $q")]
+
+	// A rule reached twice through a choice is one item both times.
+	[InlineData("C & C")]
+	[InlineData("C2 & C2")]
+	[InlineData("Alnum & Alnum")]
 
 	// The single-digit toy calculator, meant to be spaced: a false positive that is accepted.
 	// A grammar that means it writes `trivia` where the space goes, or silences the number.
 	[InlineData("Std.Digit & ('+' & Std.Digit)*")]
 	public void A_rule_of_single_characters_is_told(string body)
 	{
-		if (body.Contains("$x", StringComparison.Ordinal))
-			body = body.Replace("$x", "'x'", StringComparison.Ordinal);
-
-		var told = Told(Spaced + $"R = {body}\nStart = R\nparse Start\n");
+		var told = Told(
+			Spaced + "L = Std.Letter\nM = L\nC = L | L\nC2 = L | M\n" +
+			"Hex = Std.Digit | ['a'..'f']\nAlnum = Hex | Std.Digit\n" +
+			$"R = {body}\nStart = R\nparse Start\n");
 
 		var one = Assert.Single(told);
 

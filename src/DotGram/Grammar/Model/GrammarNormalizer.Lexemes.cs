@@ -285,7 +285,18 @@ public sealed partial class GrammarNormalizer
 				return false;
 
 			case Node.Call(var called, { Count: 0 }) when called.Declaration is { Params.Count: 0, Type: null }:
-				return seen.Add(called) && OneItem(BodyOf(called), found, seen);
+			{
+				// A stack and not a visited set: a rule reached twice through a choice is one item
+				// both times, and only a rule reached from inside itself is not.
+				if (!seen.Add(called))
+					return false;
+
+				var one = OneItem(BodyOf(called), found, seen);
+
+				seen.Remove(called);
+
+				return one;
+			}
 
 			default:
 				return false;
