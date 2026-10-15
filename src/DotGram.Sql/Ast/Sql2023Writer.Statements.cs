@@ -421,6 +421,9 @@ public static partial class Sql2023Writer
 					PutBehavior(revokedRoles.Behavior);
 					break;
 
+				case Statement.CreateRole { Authorization: not null, Admin: not null } both:
+					throw Both(both, "Authorization", "Admin");
+
 				case Statement.CreateRole role:
 					CheckSecurity(role);
 					Word("CREATE ROLE");

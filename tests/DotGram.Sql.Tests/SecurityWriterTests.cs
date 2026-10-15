@@ -388,6 +388,9 @@ public sealed class SecurityWriterTests
 	/// </summary>
 	[Theory]
 	[InlineData("CREATE ROLE with WITH ADMIN")]
+	[InlineData("CREATE ROLE with an owner and WITH ADMIN")]
+	[InlineData("a role owner that is a reserved word")]
+	[InlineData("a default schema that is a reserved word")]
 	[InlineData("a schema of no name and no owner")]
 	[InlineData("a schema named by two parts")]
 	[InlineData("a schema with a character set")]
@@ -426,6 +429,12 @@ public sealed class SecurityWriterTests
 		{
 			// CREATE ROLE reads AUTHORIZATION owner: WITH ADMIN is the standard's.
 			"CREATE ROLE with WITH ADMIN" => new Statement.CreateRole { Name = X, Admin = Grantor.CurrentUser },
+			// AUTHORIZATION owner and WITH ADMIN are different constructs of two dialects, never written together.
+			"CREATE ROLE with an owner and WITH ADMIN" => new Statement.CreateRole { Name = X, Admin = Grantor.CurrentUser, Authorization = Y },
+			// The owner is an Identifier, which is no reserved word plain.
+			"a role owner that is a reserved word" => new Statement.CreateRole { Name = X, Authorization = new Identifier("select") },
+			// UserOption reads DEFAULT_SCHEMA = Identifier, never a reserved word plain.
+			"a default schema that is a reserved word" => new Statement.CreateUser(X) { Options = [Opt("DEFAULT_SCHEMA", Word("select"))] },
 			// PrincipalStatement reads a name or AUTHORIZATION, and CREATE SCHEMA alone is Msg 102.
 			"a schema of no name and no owner" => new Statement.CreateSchema(),
 			// The name is an Identifier: `CREATE SCHEMA a.b` is Msg 102 near '.'.
