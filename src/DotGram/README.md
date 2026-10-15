@@ -86,7 +86,7 @@ using DotGram;
 	trivia = Std.Spacing?
 
 	Value : @int = d: Std.Digits => @(int.Parse(d))
-	Point        = Std.Digits & ('.' & Std.Digits)?
+	Point        = { Std.Digits & ('.' & Std.Digits)? }
 
 	Expr : Value = left: Expr & '+' & right: Expr  << 1 => @(left + right)
 	             | left: Expr & '-' & right: Expr  << 1 => @(left - right)
