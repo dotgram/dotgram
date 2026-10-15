@@ -787,6 +787,9 @@ sealed partial class Machine
 
 		int _labels;
 		int _marks;
+
+		/// <summary>How many lookaheads the code being written stands in: a pair left open there is not recorded.</summary>
+		int _lookingAhead;
 		int _deepestMark;
 		int _turns;
 
@@ -1150,6 +1153,10 @@ sealed partial class Machine
 
 					code.Line($"mark{mark} = p;");
 
+					// A pair left open inside a lookahead is not one the trivia opened: the
+					// lookahead put the position back, and what the scan goes on to read decides.
+					_lookingAhead++;
+
 					if (positive)
 					{
 						var over = $"L{_labels++}_past";
@@ -1175,6 +1182,8 @@ sealed partial class Machine
 						code.Line($"goto {fail};");
 						code.Line($"{absent}: ;");
 					}
+
+					_lookingAhead--;
 
 					Unmark();
 
@@ -1236,7 +1245,7 @@ sealed partial class Machine
 				NestedPair.WriteRest(code, pair, "p", _labels++.ToString(System.Globalization.CultureInfo.InvariantCulture),
 				[
 					"if (text.Length > furthest) furthest = text.Length;",
-					.. recordsRunOut ? (string[])[$"if (mark{mark} > ranOut) ranOut = mark{mark};"] : [],
+					.. recordsRunOut && _lookingAhead == 0 ? (string[])[$"if (mark{mark} > ranOut) ranOut = mark{mark};"] : [],
 					$"p = mark{mark};",
 					$"goto {fail};",
 				]);

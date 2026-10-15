@@ -349,6 +349,26 @@ public sealed class NestedPairTests
 		Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"took {watch.Elapsed.TotalMilliseconds:F0} ms");
 	}
 
+	/// <summary>
+	/// A pair left open inside a lookahead of the trivia is not one the trivia opened: the
+	/// lookahead puts the position back, and the tokens after it are read.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void A_pair_left_open_in_a_lookahead_leaves_the_tokens_alone(bool direct)
+	{
+		const string grammar =
+			"trivia = { (?!('#' & Std.Nested(\"(\", \")\")) & ' ')* }\n" +
+			"Start : @string = '#' & '(' & eof => @(\"read\")\n" +
+			"parse Start\n";
+
+		var cut = Build(grammar, CarrierKind.Auto, direct, lexical: true);
+
+		foreach (var input in new[] { "#(", " #(", "# (", "  # ( " })
+			Assert.True(EmittedCode.Match(cut, "Grammar", "TryParseStart", input).IsSuccess, input);
+	}
+
 	/// <summary>The counter is what is written, in trivia and in a token alike.</summary>
 	[Fact]
 	public void The_counter_is_what_is_emitted()

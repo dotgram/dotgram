@@ -2288,7 +2288,11 @@ characters make, or refused at the first no token begins with. A pair the trivia
 such a pair and the text or the window ended inside it, the tokens end where the trivia
 stopped, as at a character no token begins with, and the reading is refused there. Its counter
 reads to the end before it knows the pair is open, and every opening inside it would be asked
-again if its characters were tokens, each reading to the end: the square of the text's length. A
+again if its characters were tokens, each reading to the end: the square of the text's length.
+A pair asked for under a lookahead (`?!` or `?=`) is not one the trivia opened, and leaves the
+tokens alone; that is also where the guarantee of one pass stops, since trivia that asks a
+lookahead over a pair at every step, `{ (?!Std.Nested("(", ")") & '(')* }`, reads to the end
+once for every unclosed opening, within the one call. A
 character no token begins with ends
 the tokens rather than refusing the reading — in all of these forms, since none of them is
 required to reach the end of the input, and a reading must not be refused by what it never
