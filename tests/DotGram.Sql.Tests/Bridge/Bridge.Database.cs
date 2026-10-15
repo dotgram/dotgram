@@ -284,7 +284,7 @@ static partial class Bridge
 
 			try
 			{
-				text = Ast.Sql2023Writer.Write(made);
+				text = Ast.TransactSqlWriter.Write(made);
 			}
 			catch (Exception refused) when (refused is ArgumentException or NotSupportedException)
 			{
@@ -811,7 +811,7 @@ static partial class Bridge
 
 			try
 			{
-				text = Ast.Sql2023Writer.Write(made);
+				text = Ast.TransactSqlWriter.Write(made);
 			}
 			catch (Exception refused) when (refused is ArgumentException or NotSupportedException)
 			{

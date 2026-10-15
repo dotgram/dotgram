@@ -38,7 +38,7 @@ static class BridgeReport
 
 		1. `TransactSqlParser.Located` reads a statement into the old tree;
 		2. `Bridge.ToAst` carries it onto the new tree, or throws a `BridgeGap` naming the old record and why;
-		3. `Sql2023Writer.Write` prints the new tree, refuses it, or crashes;
+		3. `TransactSqlWriter.Write` prints the new tree, refuses it, or crashes;
 		4. `TransactSqlParser` reads the text back, and the old tree it builds is held to the first.
 
 		Each statement is **converted** (the same tree came back), a **gap**, **refused** by the writer (it said no:

@@ -482,7 +482,7 @@ static partial class Bridge
 			// reads back as itself (Trees.FreeText does not list the member).
 			var typed = Values.Type(old, type);
 
-			if (Ast.Sql2023Writer.Write(typed) != type)
+			if (Ast.TransactSqlWriter.Write(typed) != type)
 				throw BridgeGap.Open(old, "Trees.FreeText (Clause.VariableDeclaration.Type, a type written otherwise than the writer prints it)");
 
 			return new Ast.VariableDeclaration.Typed(variable, typed, value is null ? null : Values.Of(value)) { AsKeyword = asKeyword };

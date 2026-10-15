@@ -448,7 +448,7 @@ static partial class Bridge
 
 			try
 			{
-				text = Ast.Sql2023Writer.Write(made);
+				text = Ast.TransactSqlWriter.Write(made);
 			}
 			catch (Exception refused) when (refused is ArgumentException or NotSupportedException)
 			{
@@ -583,7 +583,7 @@ static partial class Bridge
 		{
 			var type = Values.Type(old, text);
 
-			return Ast.Sql2023Writer.Write(type) == text ? type : throw BridgeGap.Open(old, $"Trees.FreeText ({member}, a type written otherwise than the writer prints it)");
+			return Ast.TransactSqlWriter.Write(type) == text ? type : throw BridgeGap.Open(old, $"Trees.FreeText ({member}, a type written otherwise than the writer prints it)");
 		}
 
 		/// <summary>A returned table's columns, read as CREATE TABLE's body is.</summary>
@@ -726,7 +726,7 @@ static partial class Bridge
 			}
 
 			var made    = options.ToSqlList();
-			var printed = Ast.Sql2023Writer.Write(new Ast.Statement.ExecuteModule(new Ast.ModuleReference.Named(new Ast.QualifiedName([new Ast.Identifier("p")])), []) { Keyword = Ast.ExecuteKeyword.Exec, Options = made });
+			var printed = Ast.TransactSqlWriter.Write(new Ast.Statement.ExecuteModule(new Ast.ModuleReference.Named(new Ast.QualifiedName([new Ast.Identifier("p")])), []) { Keyword = Ast.ExecuteKeyword.Exec, Options = made });
 
 			if (printed != "EXEC p " + tail)
 				throw BridgeGap.Open(old, "Trees.FreeText (Statement.Execute.Tail, written otherwise than the writer prints it)");

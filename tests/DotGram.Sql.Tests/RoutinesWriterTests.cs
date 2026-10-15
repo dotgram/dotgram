@@ -282,7 +282,7 @@ public sealed class RoutinesWriterTests
 	public void Each_record_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
-		var text = Sql2023Writer.Write(tree);
+		var text = TransactSqlWriter.Write(tree);
 
 		Assert.Equal(tree, Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
 	}

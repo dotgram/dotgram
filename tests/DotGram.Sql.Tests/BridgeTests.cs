@@ -1053,7 +1053,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 				Directives: [{ Kind: Ast.ForDirectiveKind.Elements, Absent: true, Name: null }, { Kind: Ast.ForDirectiveKind.Root, Name: not null }],
 			},
 			_                                       => source is Ast.TableSource.OpenRowset { ProviderString: null, Login: not null }
-				&& Ast.Sql2023Writer.Write(made).Contains("'srv'; 'u'; 'p'", StringComparison.Ordinal),
+				&& Ast.TransactSqlWriter.Write(made).Contains("'srv'; 'u'; 'p'", StringComparison.Ordinal),
 		};
 
 		Assert.True(holds, $"{text} built {made}");
