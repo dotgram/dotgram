@@ -3317,7 +3317,7 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				int fold = default!;
 				var ceiling = int.MaxValue;
-				var ceiled  = int.MaxValue;
+				var ceiled  = ceiling;
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;

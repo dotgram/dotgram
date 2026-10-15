@@ -1667,10 +1667,14 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("static int Recognize_E_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)", source);
 		Assert.DoesNotContain("static int Recognize_D(", source);
 		Assert.Contains("int rootRule, int initialPower, bool whole", source);
-		Assert.Contains("if (1 < power) { expected = null; goto Fail; }", source);
+		// Over characters a tail is also held under the ceiling the turn before left (§4.3.1),
+		// kept in the high half of the strength: one more than it, 0 for none.
+		Assert.Contains("if (1 < (power & 0xFFFF) || (uint)((power >> 16) - 1) <= 1u) { expected = null; goto Fail; }", source);
 
-		// `<< 1` reads its right operand at 2 — one tighter, so a `+` cannot appear in it.
+		// `<< 1` reads its right operand at 2 — one tighter, so a `+` cannot appear in it — and
+		// leaves the next turn a ceiling of 2.
 		Assert.Contains("power = 2;", source);
+		Assert.Contains("power = (power & 0xFFFF) | 3 << 16;", source);
 
 		// And publication asks at 0, which admits everything.
 		Assert.Contains("Recognize_E_Whole(text, 0, 0, ref failure, out var recognized);", source);

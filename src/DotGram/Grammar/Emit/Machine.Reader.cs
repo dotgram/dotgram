@@ -1974,10 +1974,11 @@ sealed partial class Machine
 
 			// No ceiling where the rule begins: the first turn after a base that is an atom may
 			// take any operator its strength allows (§4.3.1).
+			// The loop takes `ceiled` up before its first turn, so that is what reads the first.
 			if (_ceils && !_part && code.Contains("ceiled", prefix))
 			{
 				Declare("var ceiling = int.MaxValue;");
-				Declare("var ceiled  = int.MaxValue;");
+				Declare("var ceiled  = ceiling;");
 			}
 
 			// Where the log stood when the rule began, for a guard that builds a value from
@@ -4032,7 +4033,15 @@ sealed partial class Machine
 			ObservedOpen |= apart.ObservedOpen;
 			_pushed      |= apart._pushed;
 
-			Parts.Add((name, Handing(given, taken, "int ", wider), written));
+			// The ceiling only to a part that reads it or hands it on, as the strength is to every
+			// part: a parameter nothing reads is a warning in the consumer's analysis.
+			// Asked by how each is used, not by the name alone, which a #line directive may carry
+			// as part of a path.
+			var ceilings = (
+				_ceils && (Mentions(">= ceiling)", written, apart.Parts) || Mentions(", ceiling", written, apart.Parts)),
+				_ceils && Mentions("ceiled", written, apart.Parts));
+
+			Parts.Add((name, Handing(given, taken, "int ", wider, ceilings), written));
 
 			foreach (var made in apart.Parts)
 				Parts.Add(made);
@@ -4054,7 +4063,7 @@ sealed partial class Machine
 				machine.Opens(part);
 
 			return (
-				$"{name}(p{Handing(given, taken, "", wider)})",
+				$"{name}(p{Handing(given, taken, "", wider, ceilings)})",
 				undo.ToString().TrimEnd(),
 				opens);
 		}
@@ -4092,9 +4101,18 @@ sealed partial class Machine
 			}
 		}
 
+		/// <summary>Whether a part or a part of it names a local, which it is then handed.</summary>
+		static bool Mentions(string local, string written, List<(string Name, string Taken, string Body)> parts)
+		{
+			return written.Contains(local, StringComparison.Ordinal) ||
+				parts.Exists(one => one.Body.Contains(local, StringComparison.Ordinal));
+		}
+
 		/// <summary>The positions handed over, as a signature or as a call.</summary>
 		/// <param name="wider">Whether a guard of the part names a value no one local holds, for the exception held where the rule began (<see cref="ValueCarrier.GuardMarks"/>).</param>
-		string Handing(IReadOnlyList<int> given, IReadOnlyList<int> taken, string type, bool wider)
+		/// <param name="ceilings">Whether the part is handed the ceiling the turn found, and the one it leaves (<see cref="_ceils"/>).</param>
+		string Handing(
+			IReadOnlyList<int> given, IReadOnlyList<int> taken, string type, bool wider, (bool Found, bool Left) ceilings = default)
 		{
 			var text = new System.Text.StringBuilder();
 
@@ -4122,8 +4140,11 @@ sealed partial class Machine
 				text.Append(", ").Append(type).Append("power");
 
 			// And the ceiling the turn before left, which a turn reads, and the one it leaves.
-			if (_ceils)
-				text.Append(", ").Append(type).Append("ceiling, ref ").Append(type).Append("ceiled");
+			if (ceilings.Found)
+				text.Append(", ").Append(type).Append("ceiling");
+
+			if (ceilings.Left)
+				text.Append(", ref ").Append(type).Append("ceiled");
 
 			// Where the rule gathers across turns, what a record collects is everything pushed
 			// since the rule began — not since the part did — so the rule's mark is handed on.
