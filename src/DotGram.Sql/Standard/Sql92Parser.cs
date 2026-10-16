@@ -66,7 +66,7 @@ namespace DotGram.Sql.Standard;
 /// refused late, after a long accepted prefix, the time those constructions took.
 /// </para>
 /// </remarks>
-[Gram("SqlStandard92.gram", Lexical = true, KeywordTable = true, Carrier = GramCarrier.Immediate)]
+[Gram("SqlStandard92.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
 public abstract partial class Sql92Parser
 {
 }
