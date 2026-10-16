@@ -343,6 +343,12 @@ public static partial class Sql2023Writer
 		/// </summary>
 		static readonly string StandardNumber = "(?:(?:" + Dec + @"\." + "(?:" + Dec + ")?|\\." + Dec + "|0[xX](?:_?[0-9a-fA-F])+|0[oO](?:_?[0-7])+|0[bB](?:_?[01])+|" + Dec + ")(?:[eE][+-]?" + Dec + ")?)";
 
+		static readonly Regex TransactSqlInteger     = new(@"^[+-]?[0-9]+\z");
+		static readonly Regex TransactSqlDecimal     = new(@"^[+-]?(?:[0-9]+\.[0-9]*|\.[0-9]+)\z");
+		static readonly Regex TransactSqlApproximate = new(@"^[+-]?(?:[0-9]+\.[0-9]*|\.[0-9]+|[0-9]+)[eE][+-]?[0-9]*\z");
+		static readonly Regex Money                  = new(MoneyNumber);
+		static readonly Regex StandardNumberText     = new("^[+-]?" + StandardNumber + @"\z");
+
 		/// <summary>
 		/// The text of a number, held to its kind in T-SQL's reading and to some numeric literal in the standard's: a text that is
 		/// no number is not written, since it would reach the output as it stands (`1; SHUTDOWN;--` is a number to no one), and in
@@ -356,15 +362,15 @@ public static partial class Sql2023Writer
 			var reads = transactSql
 				? numeric.Kind switch
 				{
-					NumericLiteralKind.DecimalInteger => Regex.IsMatch(text, @"^[+-]?[0-9]+\z"),
-					NumericLiteralKind.Decimal        => Regex.IsMatch(text, @"^[+-]?(?:[0-9]+\.[0-9]*|\.[0-9]+)\z"),
-					NumericLiteralKind.Approximate    => Regex.IsMatch(text, @"^[+-]?(?:[0-9]+\.[0-9]*|\.[0-9]+|[0-9]+)[eE][+-]?[0-9]*\z"),
-					NumericLiteralKind.Money          => Regex.IsMatch(text, MoneyNumber),
+					NumericLiteralKind.DecimalInteger => TransactSqlInteger.IsMatch(text),
+					NumericLiteralKind.Decimal        => TransactSqlDecimal.IsMatch(text),
+					NumericLiteralKind.Approximate    => TransactSqlApproximate.IsMatch(text),
+					NumericLiteralKind.Money          => Money.IsMatch(text),
 					_                                 => false,
 				}
 				: numeric.Kind == NumericLiteralKind.Money
-					? Regex.IsMatch(text, MoneyNumber)
-					: Regex.IsMatch(text, "^[+-]?" + StandardNumber + @"\z");
+					? Money.IsMatch(text)
+					: StandardNumberText.IsMatch(text);
 
 			if (!reads)
 				throw Misplaced(numeric, "Text", $"that is no {numeric.Kind} number literal{(transactSql ? " of T-SQL" : "")}, which would reach the output as it stands");
@@ -848,8 +854,8 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Row rowValue:
-					if (transactSql && !row)
-						throw Misplaced(rowValue, "Items", "that T-SQL does not read as a value: it has no row value constructor, and reads a list in brackets only as an argument of the full-text and rowset functions");
+					if (transactSql && (!row || rowValue.RowKeyword))
+						throw Misplaced(rowValue, "Items", "that T-SQL does not read as a value: it has no row value constructor or ROW (…), and reads a list in brackets only as an argument of the full-text and rowset functions");
 
 					if (rowValue.RowKeyword)
 					{
@@ -1949,6 +1955,10 @@ public static partial class Sql2023Writer
 		{
 			if (transactSql && argument.Name is not null)
 				throw Misplaced(argument, "Name", "that T-SQL does not read: its function calls pass arguments by position");
+
+			// A name without `=>` has no text, and `=>` without a name none either: either would be dropped or crash.
+			if (argument.Name is not null != argument.NamedAssignment)
+				throw Misplaced(argument, "Name", "set without NamedAssignment, or NamedAssignment without a Name");
 
 			if (argument.NamedAssignment)
 			{

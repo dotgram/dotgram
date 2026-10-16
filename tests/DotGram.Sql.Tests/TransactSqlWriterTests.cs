@@ -996,4 +996,36 @@ public sealed class TransactSqlWriterTests
 
 		Assert.Equal(tree, Read(TransactSqlWriter.Write(tree)));
 	}
+
+	/// <summary>`ROW (…)` is no list in brackets, even as an argument of a function that reads one; an argument's name and its `=>` go together.</summary>
+	[Theory]
+	[InlineData("a ROW list in CONTAINS")]
+	[InlineData("a name without =>")]
+	[InlineData("=> without a name")]
+	public void A_row_keyword_and_a_half_named_argument_are_refused(string which)
+	{
+		if (which == "a ROW list in CONTAINS")
+		{
+			var listed  = new Expression.Row([Ref(Plain("b")), Ref(Plain("c"))]);
+			var plain   = (ISqlNode)Read("SELECT a FROM t WHERE CONTAINS ((b, c), 'x')");
+			var keyword = (ISqlNode)Swap(plain, listed, listed with { RowKeyword = true });
+
+			Assert.Equal(plain, Read(TransactSqlWriter.Write(plain)));
+			Assert.NotEqual(plain, keyword);
+			Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(keyword));
+
+			return;
+		}
+
+		Expression call = which switch
+		{
+			"a name without =>"      => new Expression.Invocation(Q(Plain("f")), [new Argument(One, Plain("n"))]),
+			_                        => new Expression.Invocation(Q(Plain("f")), [new Argument(One, null, NamedAssignment: true)]),
+		};
+
+		var tree = new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(call)] } };
+
+		Assert.ThrowsAny<Exception>(() => TransactSqlWriter.Write(tree));
+		Assert.ThrowsAny<Exception>(() => Sql2023Writer.Write(tree));
+	}
 }
