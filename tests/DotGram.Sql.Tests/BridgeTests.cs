@@ -168,6 +168,19 @@ public sealed class BridgeTests(ITestOutputHelper output)
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}
 
+	/// <summary>A delimited name with a blank after it is the blank's gap, not a part that is no name.</summary>
+	[Theory]
+	[InlineData("SELECT [a] .b")]
+	[InlineData("SELECT * FROM [dbo] .[t]")]
+	[InlineData("EXEC [dbo] . [p]")]
+	public void A_delimited_name_with_a_blank_is_the_blank_s_gap(string text)
+	{
+		var old    = TransactSqlParser.Located.ParseStatement(text);
+		var thrown = Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+
+		Assert.DoesNotContain("that is no name", thrown.Reason, StringComparison.Ordinal);
+	}
+
 	/// <summary>
 	/// A word the bridge read from the text and the writer then lost is found by the round trip on the new tree.
 	/// </summary>

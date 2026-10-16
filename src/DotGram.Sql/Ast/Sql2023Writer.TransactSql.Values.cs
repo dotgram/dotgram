@@ -65,8 +65,14 @@ public static partial class Sql2023Writer
 					if (transactSql && (escape.Kind is not { Style: IdentifierStyle.Regular, UnicodeEscape: null } || !Plain(escape.Kind, "FN", "TS", "D", "T", "GUID", "ESCAPE")))
 						throw Misplaced(escape, "Kind", "that is none of FN, TS, D, T, GUID or ESCAPE, the words an ODBC escape begins with");
 
-					if (transactSql && Plain(escape.Kind, "FN") != (escape.Value is Expression.Invocation) && !Plain(escape.Kind, "ESCAPE"))
-						throw Misplaced(escape, "Value", Plain(escape.Kind, "FN") ? "that is not a call, which {fn …} holds" : "that is a call, which only {fn …} holds");
+					// `{fn v}` holds any value too (OdbcFunction's last branch); Called says a call is written with its brackets, and only a call is.
+					if (transactSql && escape.Called && escape.Value is not Expression.Invocation)
+						throw Misplaced(escape, "Called", "true on a value that is not a call, which reads back as one that was not called");
+
+					// `{fn CONVERT (value, type)}` takes exactly the value and one of ODBC's type names.
+					if (transactSql && escape.Called && escape.Value is Expression.Invocation { Name: [{ Style: IdentifierStyle.Regular } called] } converted && Plain(called, "CONVERT")
+						&& !(converted.Arguments is [_, { Value: Expression.Reference { Name: [{ Style: IdentifierStyle.Regular } odbcType] } }] && OdbcTypes.Contains(odbcType.Text)))
+						throw Misplaced(escape, "Value", "a CONVERT other than a value and one of ODBC's type names");
 
 					if (transactSql && Plain(escape.Kind, "TS", "D", "T", "GUID") && escape.Value is not LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National })
 						throw Misplaced(escape, "Value", "that is not a string, which the typed ODBC literals hold");
@@ -132,6 +138,15 @@ public static partial class Sql2023Writer
 			}
 		}
 
+		/// <summary>The type names <c>{fn CONVERT (value, type)}</c> reads (<c>OdbcType</c>).</summary>
+		static readonly HashSet<string> OdbcTypes = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"SQL_BIGINT", "SQL_BINARY", "SQL_BIT", "SQL_CHAR", "SQL_DECIMAL", "SQL_DOUBLE", "SQL_FLOAT", "SQL_GUID", "SQL_INTEGER",
+			"SQL_LONGVARBINARY", "SQL_LONGVARCHAR", "SQL_NUMERIC", "SQL_REAL", "SQL_SMALLINT", "SQL_DATE", "SQL_TIME", "SQL_TIMESTAMP",
+			"SQL_TYPE_DATE", "SQL_TYPE_TIME", "SQL_TYPE_TIMESTAMP", "SQL_TINYINT", "SQL_VARBINARY", "SQL_VARCHAR", "SQL_WCHAR",
+			"SQL_WLONGVARCHAR", "SQL_WVARCHAR",
+		};
+
 		/// <summary>
 		/// T-SQL's system types, as of SQL Server 2025, and the one-word synonyms: a closed list, compared without case and without a
 		/// name's delimiters. A type written by one of these names is <see cref="DataType.Named"/> (or the standard's own record), and
@@ -189,7 +204,9 @@ public static partial class Sql2023Writer
 			if (named.Arguments.Count > 2 || named.Arguments.Any(static one => one is not LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger }))
 				throw Misplaced(named, "Arguments", "other than one or two whole numbers");
 
-			if (StandardTypeArguments.TryGetValue(last, out var most) && named.Arguments.Count <= most)
+			// A number too large for an int is no number to the standard's record, which reads such a type as Named.
+			if (StandardTypeArguments.TryGetValue(last, out var most) && named.Arguments.Count <= most
+				&& named.Arguments.All(static one => one is LiteralValue.Numeric numeric && int.TryParse(numeric.Text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _)))
 				throw Misplaced(named, "Name", $"{last} with {named.Arguments.Count} arguments, which reads back as the standard's type");
 		}
 

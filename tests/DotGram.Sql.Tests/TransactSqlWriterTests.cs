@@ -407,7 +407,7 @@ public sealed class TransactSqlWriterTests
 	[InlineData("SELECT {fn f(1)}",              "fn", "GO",   false)]
 	[InlineData("SELECT {fn f(1)}",              "fn", "[fn]", false)]
 	[InlineData("SELECT {fn f(1)}",              "fn", "d",    false)]
-	[InlineData("SELECT {d '2020-01-01'}",       "d",  "fn",   false)]
+	[InlineData("SELECT {d '2020-01-01'}",       "d",  "fn",   true)]
 	[InlineData("SELECT {d '2020-01-01'}",       "d",  "GO",   false)]
 	[InlineData("SELECT {d '2020-01-01'}",       "d",  "[a]",  false)]
 	[InlineData("SELECT {fn f(1)}",              "fn", "FN",   true)]
@@ -427,6 +427,96 @@ public sealed class TransactSqlWriterTests
 		}
 
 		Assert.Equal(changed, Read(TransactSqlWriter.Write(changed)));
+	}
+
+	/// <summary>{fn v} holds any value, and a call only when it was called; {fn CONVERT} takes ODBC's type names.</summary>
+	[Theory]
+	[InlineData("SELECT {fn a} FROM t")]
+	[InlineData("SELECT {fn 1 + 2}")]
+	[InlineData("SELECT {fn @x}")]
+	[InlineData("SELECT {fn CURDATE}")]
+	[InlineData("SELECT {fn (1)}")]
+	[InlineData("SELECT {fn 'a'}")]
+	[InlineData("SELECT {fn convert(1, sql_integer)}")]
+	public void An_odbc_function_escape_holding_a_value_is_written_and_read_back(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(tree, Read(TransactSqlWriter.Write(tree)));
+	}
+
+	[Fact]
+	public void An_odbc_escape_called_on_a_value_or_a_convert_of_the_wrong_shape_is_refused()
+	{
+		var literal = new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.OdbcEscape(Plain("d"), new LiteralValue.String("'2020-01-01'", StringLiteralKind.Character), true))] } };
+		var other   = (ISqlNode)Swap(Read("SELECT {fn convert(1, sql_integer)}"), Plain("sql_integer"), Plain("foo"));
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(literal));
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(other));
+		Assert.NotEmpty(Sql2023Writer.Write(literal));
+	}
+
+	[Fact]
+	public void An_index_hint_takes_no_money()
+	{
+		var tree = (ISqlNode)Swap(Read("SELECT * FROM t WITH (INDEX (1))"), new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger), new LiteralValue.Numeric("$1", NumericLiteralKind.Money));
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+	}
+
+	/// <summary>
+	/// A type with a number too large for an int is a system type of its own name for the bridge, and so for the writer; and the
+	/// arguments the standard's record takes are the same two places' fact: for each type, the bridge builds <c>Named</c> exactly when the
+	/// writer writes one.
+	/// </summary>
+	[Fact]
+	public void The_arguments_the_standard_takes_are_the_bridge_s()
+	{
+		var text = "DECLARE @a char(99999999999)";
+		var tree = Read(text);
+
+		Assert.Equal(tree, Read(TransactSqlWriter.Write(tree)));
+
+		var text2 = typeof(Sql2023Writer).GetNestedType("Text", BindingFlags.NonPublic)!;
+		var table = (Dictionary<string, int>)text2.GetField("StandardTypeArguments", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+		var wrong = new List<string>();
+
+		foreach (var type in Bridge.Values.SystemTypes.Where(static one => one is not ("xml" or "table" or "cursor")))
+			for (var count = 0; count <= 2; count++)
+			{
+				var arguments = string.Join(", ", Enumerable.Range(1, count));
+				var named     = new DotGram.Sql.Ast.DataType.Named(Q(Plain(type)), SqlList.From(Enumerable.Range(1, count).Select(static one => (Expression)new LiteralValue.Numeric(one.ToString(), NumericLiteralKind.DecimalInteger)).ToArray()));
+				var select    = new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.Cast(new Expression.Reference(Q(Plain("a"))), named))] } };
+
+				bool bridge;
+
+				try
+				{
+					bridge = Bridge.Values.Type(new object(), type + (count == 0 ? "" : "(" + arguments + ")")) is DotGram.Sql.Ast.DataType.Named;
+				}
+				catch (BridgeGap)
+				{
+					continue;
+				}
+
+				bool writes;
+
+				try
+				{
+					TransactSqlWriter.Write(select);
+					writes = true;
+				}
+				catch (ArgumentException)
+				{
+					writes = false;
+				}
+
+				if (bridge != writes)
+					wrong.Add($"{type}({arguments}): the bridge builds Named: {bridge}, the writer writes it: {writes}");
+			}
+
+		Assert.NotEmpty(table);
+		Assert.Empty(wrong);
 	}
 
 	// ── System types ──────────────────────────────────────────────────────────────

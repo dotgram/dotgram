@@ -984,8 +984,11 @@ static partial class Bridge
 
 			// A part that is none: a string or a number where a name stands (`OPENDATASOURCE (…).'t'`, `xml(10)`), or a
 			// delimited name with more text after its closing delimiter (`"Char" varying`, a type word the old tree keeps).
+			// A delimited name with blanks around it (`[a] .b`) is the blank's gap above.
 			if (text.Length > 0 && (text[0] == '\'' || char.IsDigit(text[0]) || (text[0] is '[' or '"' && !Delimited(text))))
-				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a name part `{text}` that is no name)");
+				throw BridgeGap.Open(owner, text[0] is '[' or '"' && Delimited(text.TrimEnd())
+					? $"inventory cross-cutting gaps, identifier styles (a name part `{text}`)"
+					: $"inventory cross-cutting gaps, identifier styles (a name part `{text}` that is no name)");
 
 			return text.Length > 0 && text[0] == '[' ? new Ast.Identifier(text, Ast.IdentifierStyle.Bracketed)
 				: text.Length > 0 && text[0] == '"' ? new Ast.Identifier(text, Ast.IdentifierStyle.Delimited)
