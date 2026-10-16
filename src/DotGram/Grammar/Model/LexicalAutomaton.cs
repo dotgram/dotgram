@@ -105,8 +105,12 @@ public sealed class LexicalAutomaton
 	/// <param name="graph">For the bodies calls reach.</param>
 	/// <param name="patterns">One node a pattern, in the order the caller numbers them.</param>
 	/// <param name="blocked">What refused, appended to.</param>
+	/// <param name="left">
+	/// Patterns, by index, the machine does not read: they keep their numbers, and no set holds
+	/// them. A lexer that looks keywords up in a table has no path for them.
+	/// </param>
 	public static LexicalAutomaton? Of(
-		RecognitionGraph graph, IReadOnlyList<Node> patterns, List<string> blocked)
+		RecognitionGraph graph, IReadOnlyList<Node> patterns, List<string> blocked, IReadOnlyCollection<int>? left = null)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -114,7 +118,7 @@ public sealed class LexicalAutomaton
 		if (patterns is null)
 			throw new ArgumentNullException(nameof(patterns));
 
-		return new Builder(graph, blocked).Run(patterns);
+		return new Builder(graph, blocked).Run(patterns, left);
 	}
 
 	sealed class Builder(RecognitionGraph graph, List<string> blocked)
@@ -139,13 +143,13 @@ public sealed class LexicalAutomaton
 			return _on.Count - 1;
 		}
 
-		public LexicalAutomaton? Run(IReadOnlyList<Node> patterns)
+		public LexicalAutomaton? Run(IReadOnlyList<Node> patterns, IReadOnlyCollection<int>? left)
 		{
 			// Two passes over the patterns: the first to learn the alphabet, the second to
 			// build over it. A Thompson edge is labelled with an atom, and an atom cannot be
 			// known until every set that has to be partitioned has been seen.
-			foreach (var pattern in patterns)
-				if (!Gather(pattern, []))
+			for (var i = 0; i < patterns.Count; i++)
+				if (left?.Contains(i) != true && !Gather(patterns[i], []))
 					return null;
 
 			_atoms = Partition(_sets);
@@ -154,6 +158,9 @@ public sealed class LexicalAutomaton
 
 			for (var i = 0; i < patterns.Count; i++)
 			{
+				if (left?.Contains(i) == true)
+					continue;
+
 				if (Build(patterns[i], []) is not var (from, to))
 					return null;
 

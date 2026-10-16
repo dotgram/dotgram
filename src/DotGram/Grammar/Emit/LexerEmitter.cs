@@ -63,13 +63,15 @@ public static class LexerEmitter
 	/// <param name="machine">What to write.</param>
 	/// <param name="tag">What to hang on the emitted names, so two may live together.</param>
 	/// <param name="utf8">Whether the consumer's C# is 11 or later, so that the cells may be a UTF-8 literal.</param>
-	public static string Emit(LexicalAutomaton machine, string tag = "", bool utf8 = false)
+	/// <param name="numbers">By set of the machine, the kind number it is called; null where it is the set's own place.</param>
+	public static string Emit(LexicalAutomaton machine, string tag = "", bool utf8 = false, IReadOnlyList<int>? numbers = null)
 	{
 		if (machine is null)
 			throw new ArgumentNullException(nameof(machine));
 
-		Tag  = tag;
-		Utf8 = utf8;
+		Tag      = tag;
+		Utf8     = utf8;
+		Numbered = numbers;
 		Bounds.Clear();
 		Named.Clear();
 		Fields.Clear();
@@ -464,6 +466,9 @@ public static class LexerEmitter
 	/// </para>
 	/// </remarks>
 	[ThreadStatic] static bool Utf8;
+
+	/// <summary>By set of the machine written, the kind it is called, or null for the set's own place.</summary>
+	[ThreadStatic] static IReadOnlyList<int>? Numbered;
 
 	/// <summary>
 	/// The cells as one UTF-8 string literal, each the cell plus one in groups of
@@ -897,7 +902,7 @@ public static class LexerEmitter
 
 			for (var state = 0; state < machine.Next.Count; state++)
 			{
-				row.Append(machine.Accepts[state] + 1).Append(", ");
+				row.Append(Numbered is null || machine.Accepts[state] < 0 ? machine.Accepts[state] + 1 : Numbered[machine.Accepts[state]]).Append(", ");
 
 				if (row.Length < 92)
 					continue;
