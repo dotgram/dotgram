@@ -126,7 +126,7 @@ public static partial class Sql2023Writer
 
 			foreach (var word in run.Words)
 			{
-				if (word.Style != IdentifierStyle.Regular || word.UnicodeEscape is not null || !Regex.IsMatch(word.Text, @"^[\p{L}_@#$][\p{L}\p{Nd}_@#$]*$"))
+				if (word.Style != IdentifierStyle.Regular || word.UnicodeEscape is not null || !Regex.IsMatch(word.Text, @"^[\p{L}_@#$][\p{L}\p{Nd}_@#$]*\z"))
 					throw Misplaced(word, "Text", $"that is no word in {place}: a run of a name's characters that does not begin with a digit");
 
 				if (Plain(word, "ON", "TO", "FROM", "WITH", "CASCADE"))

@@ -306,7 +306,7 @@ public static partial class Sql2023Writer
 
 		static void CheckVariable(Identifier variable, string place)
 		{
-			if (variable.Style != IdentifierStyle.Regular || variable.UnicodeEscape is not null || !Regex.IsMatch(variable.Text, @"^@[\p{L}\p{Nd}_@$#]*$"))
+			if (variable.Style != IdentifierStyle.Regular || variable.UnicodeEscape is not null || !Regex.IsMatch(variable.Text, @"^@[\p{L}\p{Nd}_@$#]*\z"))
 				throw Misplaced(variable, "Text", $"that is no variable in {place}: an @ and the characters a name goes on with");
 		}
 
@@ -799,7 +799,7 @@ public static partial class Sql2023Writer
 				return;
 			}
 
-			if (value is Expression.EndpointAddress address && forms.HasFlag(BrokerForm.Address) && Regex.IsMatch(address.Address, @"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$") && (address.Mask is null || Regex.IsMatch(address.Mask, @"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$")))
+			if (value is Expression.EndpointAddress address && forms.HasFlag(BrokerForm.Address) && Regex.IsMatch(address.Address, @"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\z") && (address.Mask is null || Regex.IsMatch(address.Mask, @"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\z")))
 			{
 				Word("(" + address.Address + (address.Mask is null ? "" : ":" + address.Mask) + ")");
 				return;

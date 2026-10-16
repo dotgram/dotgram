@@ -716,9 +716,9 @@ public static partial class Sql2023Writer
 		{
 			return kind switch
 			{
-				NumericLiteralKind.DecimalInteger => Regex.IsMatch(text, @"^[0-9]+$"),
-				NumericLiteralKind.Decimal        => Regex.IsMatch(text, @"^([0-9]+\.[0-9]*|\.[0-9]+)$"),
-				NumericLiteralKind.Approximate    => Regex.IsMatch(text, @"^([0-9]+\.?[0-9]*|\.[0-9]+)[eE][+-]?[0-9]+$"),
+				NumericLiteralKind.DecimalInteger => Regex.IsMatch(text, @"^[0-9]+\z"),
+				NumericLiteralKind.Decimal        => Regex.IsMatch(text, @"^([0-9]+\.[0-9]*|\.[0-9]+)\z"),
+				NumericLiteralKind.Approximate    => Regex.IsMatch(text, @"^([0-9]+\.?[0-9]*|\.[0-9]+)[eE][+-]?[0-9]+\z"),
 				_                                 => false,
 			};
 		}

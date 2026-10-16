@@ -932,4 +932,17 @@ public sealed class TransactSqlWriterTests
 		Assert.Equal(text, TransactSqlWriter.Write(tree));
 		Assert.Equal(tree, Read(text));
 	}
+
+	// ── Fix round ───────────────────────────────────────────────────────────────
+
+	/// <summary>A pattern that ends in `$` also matches before a final line feed, which the grammar's token does not take along.</summary>
+	[Theory]
+	[InlineData("END CONVERSATION @h", "@h", "@h\n")]
+	public void A_word_with_a_line_feed_at_its_end_is_refused(string text, string target, string bad)
+	{
+		var tree = (ISqlNode)Swap(Read(text), Plain(target), Plain(bad));
+
+		Assert.NotEqual(Read(text), tree);
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+	}
 }
