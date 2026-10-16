@@ -294,5 +294,82 @@ public sealed class ServerBridgeTests
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}
 
+	[Theory]
+	[InlineData("CREATE ENDPOINT e",                                                                  "Create bare")]
+	[InlineData("ALTER ENDPOINT e",                                                                   "Alter bare")]
+	[InlineData("create endpoint e authorization o state = started, affinity = none as tcp (listener_port = 4022, listener_ip = all) for tsql ()", "Create with all, lower case")]
+	[InlineData("ALTER ENDPOINT e AFFINITY = ADMIN",                                                  "Alter by an affinity")]
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_IP = (1 . 2 .3 . 4 : 255 . 0.0 .0), LISTENER_PORT = -1)", "Addresses")]
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_IP = ('a', N'b'))",                                "Address strings")]
+	[InlineData("CREATE ENDPOINT e AS HTTP (PATH = '/p', AUTHENTICATION = (BASIC, ntlm), PORTS = (ssl), CLEAR_PORT = 1, AUTH_REALM = none, COMPRESSION = ENABLED) FOR TSQL ()", "Http")]
+	[InlineData("CREATE ENDPOINT e FOR SERVICE_BROKER (ENCRYPTION = supported ALGORITHM rc4 aes, AUTHENTICATION = WINDOWS NTLM CERTIFICATE c, MESSAGE_FORWARD_SIZE = -1)", "Broker")]
+	[InlineData("CREATE ENDPOINT e FOR DATABASE_MIRRORING (ROLE = ALL, AUTHENTICATION = CERTIFICATE [c d] WINDOWS KERBEROS)", "Mirroring")]
+	[InlineData("CREATE ENDPOINT e FOR data_mirroring (ROLE = PARTNER)",                              "Data mirroring")]
+	[InlineData("CREATE ENDPOINT e FOR TSQL () AS TCP (LISTENER_PORT = 1)",                           "Transport last")]
+	[InlineData("ALTER ENDPOINT e FOR SERVICE_BROKER () AS HTTP (PATH = 'p')",                        "Alter, transport last")]
+	[InlineData("CREATE ENDPOINT e FOR SOAP (WEBMETHOD 'n'.'m' (NAME = 'd.dbo.p', SCHEMA = STANDARD), WSDL = NONE, SESSION_TIMEOUT = NEVER)", "Soap")]
+	[InlineData("ALTER ENDPOINT e FOR SOAP (ADD WEBMETHOD 'm' (NAME = 'p'), ALTER WEBMETHOD 'n' (FORMAT = NONE), DROP WEBMETHOD 'o')", "Soap, altered")]
+	[InlineData("CREATE ENDPOINT e FOR SOAP ()",                                                      "Soap, empty")]
+	public void The_bridge_builds_the_endpoint_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = expected switch
+		{
+			"Create bare" => made is Ast.Statement.CreateEndpoint { Name.Text: "e", Authorization: null, Settings.Count: 0, Transport: null, Payload: null, TransportLast: false },
+			"Alter bare" => made is Ast.Statement.AlterEndpoint { Settings.Count: 0, Transport: null, Payload: null },
+			"Create with all, lower case" => made is Ast.Statement.CreateEndpoint
+			{
+				Authorization.Text: "o", Settings: [{ Name.Text: "state" }, { Name.Text: "affinity" }],
+				Transport: Ast.EndpointTransport.Tcp { Options: [{ Name.Text: "listener_port", Value: Ast.LiteralValue.Numeric { Text: "4022" } }, { Name.Text: "listener_ip", Value: Ast.Expression.Reference }] },
+				Payload: Ast.EndpointPayload.Tsql { Options.Count: 0 }, TransportLast: false,
+			},
+			"Alter by an affinity" => made is Ast.Statement.AlterEndpoint { Settings: [{ Name.Text: "AFFINITY" }] },
+			"Addresses" => made is Ast.Statement.CreateEndpoint { Transport: Ast.EndpointTransport.Tcp { Options: [{ Value: Ast.Expression.EndpointAddress { Address: "1.2.3.4", Mask: "255.0.0.0" } }, { Value: Ast.LiteralValue.Numeric { Text: "-1" } }] } },
+			"Address strings" => made is Ast.Statement.CreateEndpoint { Transport: Ast.EndpointTransport.Tcp { Options: [{ Value: Ast.Expression.Row { Items: [Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.Character }, Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.National }] } }] } },
+			"Http" => made is Ast.Statement.CreateEndpoint { Transport: Ast.EndpointTransport.Http { Options: [{ Name.Text: "PATH" }, { Value: Ast.Expression.Row { Items.Count: 2 } }, { Value: Ast.Expression.Row { Items.Count: 1 } }, { Value: Ast.LiteralValue.Numeric }, { Value: Ast.Expression.Reference }, { Value: Ast.Expression.Reference }] } },
+			"Broker" => made is Ast.Statement.CreateEndpoint
+			{
+				Payload: Ast.EndpointPayload.ServiceBroker
+				{
+					Options:
+					[
+						{ Name.Text: "ENCRYPTION", Value: Ast.Expression.EndpointEncryption { Words: [{ Text: "supported" }, { Text: "ALGORITHM" }, { Text: "rc4" }, { Text: "aes" }] } },
+						{ Name.Text: "AUTHENTICATION", Value: Ast.Expression.EndpointAuthentication { Words: [{ Text: "WINDOWS" }, { Text: "NTLM" }, { Text: "CERTIFICATE" }, { Text: "c" }] } },
+						{ Value: Ast.LiteralValue.Numeric { Text: "-1" } },
+					],
+				},
+			},
+			"Mirroring" => made is Ast.Statement.CreateEndpoint { Payload: Ast.EndpointPayload.DatabaseMirroring { DataMirroring: false, Options: [{ Name.Text: "ROLE" }, { Value: Ast.Expression.EndpointAuthentication { Words: [{ Text: "CERTIFICATE" }, { Style: Ast.IdentifierStyle.Bracketed }, { Text: "WINDOWS" }, { Text: "KERBEROS" }] } }] } },
+			"Data mirroring" => made is Ast.Statement.CreateEndpoint { Payload: Ast.EndpointPayload.DatabaseMirroring { DataMirroring: true } },
+			"Transport last" => made is Ast.Statement.CreateEndpoint { Transport: Ast.EndpointTransport.Tcp, Payload: Ast.EndpointPayload.Tsql, TransportLast: true },
+			"Alter, transport last" => made is Ast.Statement.AlterEndpoint { Transport: Ast.EndpointTransport.Http, Payload: Ast.EndpointPayload.ServiceBroker, TransportLast: true },
+			"Soap" => made is Ast.Statement.CreateEndpoint
+			{
+				Payload: Ast.EndpointPayload.Soap
+				{
+					Items:
+					[
+						Ast.SoapItem.WebMethod { Action: null, Namespace.Text: "'n'", Method.Text: "'m'", Options: [{ Name.Text: "NAME", Value: Ast.LiteralValue.String }, { Name.Text: "SCHEMA" }] },
+						Ast.SoapItem.Setting { Value.Name.Text: "WSDL" },
+						Ast.SoapItem.Setting { Value.Name.Text: "SESSION_TIMEOUT" },
+					],
+				},
+			},
+			"Soap, altered" => made is Ast.Statement.AlterEndpoint
+			{
+				Payload: Ast.EndpointPayload.Soap
+				{
+					Items: [Ast.SoapItem.WebMethod { Action: Ast.WebMethodAction.Add, Options.Count: 1 }, Ast.SoapItem.WebMethod { Action: Ast.WebMethodAction.Alter }, Ast.SoapItem.WebMethod { Action: Ast.WebMethodAction.Drop, Options.Count: 0 }],
+				},
+			},
+			"Soap, empty" => made is Ast.Statement.CreateEndpoint { Payload: Ast.EndpointPayload.Soap { Items.Count: 0 } },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+		Converts(text);
+	}
+
 	// @@TESTS
 }

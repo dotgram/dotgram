@@ -147,7 +147,176 @@ public abstract partial record Statement
 	/// T-SQL: ALTER AVAILABILITY GROUP (Transact-SQL). <c>ALTER AVAILABILITY GROUP group action</c>: an ALTER does one thing.
 	/// </summary>
 	public sealed record AlterAvailabilityGroup(Identifier Name, AvailabilityAction Action) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE ENDPOINT (Transact-SQL). <c>CREATE ENDPOINT name [AUTHORIZATION owner] [STATE = state, …] [AS transport]
+	/// [FOR payload]</c>: how an endpoint is reached and what it speaks, each a bracket of settings belonging to it.
+	/// </summary>
+	public sealed record CreateEndpoint(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). <c>AUTHORIZATION owner</c>, only where an endpoint is created; null where none is written.</summary>
+		public Identifier? Authorization { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE ENDPOINT (Transact-SQL). <c>STATE = STARTED | STOPPED | DISABLED</c> and <c>AFFINITY = NONE | ADMIN</c>, joined
+		/// by commas, in any order and as often as wanted; none where neither is written.
+		/// </summary>
+		public SqlList<Option> Settings { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). <c>AS TCP (…)</c> or <c>AS HTTP (…)</c>; null where none is written.</summary>
+		public EndpointTransport? Transport { get; init; }
+
+		/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). <c>FOR TSQL (…)</c> and the others; null where none is written.</summary>
+		public EndpointPayload? Payload { get; init; }
+
+		/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). The <c>AS</c> written after the <c>FOR</c> (the grammar reads both orders): the same endpoint.</summary>
+		[Spelling] public bool TransportLast { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER ENDPOINT (Transact-SQL). The same parts as the creating statement but the owner, each optional; a SOAP payload
+	/// adds, alters and drops web methods and writes none bare.
+	/// </summary>
+	public sealed record AlterEndpoint(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: ALTER ENDPOINT (Transact-SQL). <c>STATE = …, AFFINITY = …</c>; none where neither is written.</summary>
+		public SqlList<Option> Settings { get; init; } = [];
+
+		/// <summary>T-SQL: ALTER ENDPOINT (Transact-SQL). <c>AS TCP (…)</c> or <c>AS HTTP (…)</c>; null where none is written.</summary>
+		public EndpointTransport? Transport { get; init; }
+
+		/// <summary>T-SQL: ALTER ENDPOINT (Transact-SQL). <c>FOR TSQL (…)</c> and the others; null where none is written.</summary>
+		public EndpointPayload? Payload { get; init; }
+
+		/// <summary>T-SQL: ALTER ENDPOINT (Transact-SQL). The <c>AS</c> written after the <c>FOR</c>: the same endpoint.</summary>
+		[Spelling] public bool TransportLast { get; init; }
+	}
 }
+
+public abstract partial record Expression
+{
+	/// <summary>
+	/// T-SQL: CREATE ENDPOINT (Transact-SQL). An endpoint's <c>ENCRYPTION = …</c> (the grammar's <c>EndpointEncryptionSyntax</c>): the
+	/// words as written, in the case written — a level (<c>DISABLED</c>, <c>NEGOTIATED</c>, <c>STRICT</c>, <c>SUPPORTED</c>,
+	/// <c>REQUIRED</c>) and, after the last two, <c>ALGORITHM</c> and <c>AES</c>, <c>RC4</c>, <c>AES RC4</c> or <c>RC4 AES</c>; the writer
+	/// holds them to that rule.
+	/// </summary>
+	public sealed record EndpointEncryption(SqlList<Identifier> Words) : Expression;
+
+	/// <summary>
+	/// T-SQL: CREATE ENDPOINT (Transact-SQL). An endpoint's <c>AUTHENTICATION = …</c> (the grammar's <c>EndpointAuthenticationSyntax</c>): the
+	/// words as written, in the case written — <c>WINDOWS</c> and, after it, <c>NTLM</c>, <c>KERBEROS</c> or <c>NEGOTIATE</c>, and a
+	/// certificate (<c>CERTIFICATE</c> and its name, an identifier), either first, each once; the writer holds them to that rule.
+	/// </summary>
+	public sealed record EndpointAuthentication(SqlList<Identifier> Words) : Expression;
+
+	/// <summary>
+	/// T-SQL: CREATE ENDPOINT (Transact-SQL). The address a TCP endpoint listens on, four numbers with a dot between each two and, after a
+	/// colon, four more for the mask: <c>(1.2.3.4)</c>, <c>(1.2.3.4:255.0.0.0)</c>; the numbers as digits, with no blank.
+	/// </summary>
+	public sealed record EndpointAddress(string Address, string? Mask) : Expression;
+}
+
+/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). How an endpoint is reached.</summary>
+public abstract record EndpointTransport : ISqlNode
+{
+	/// <summary>Where in the text this transport was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this transport was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>AS TCP (setting, …)</c>: LISTENER_PORT and LISTENER_IP, in any order and as often as wanted, one at least.</summary>
+	public sealed record Tcp(SqlList<Option> Options) : EndpointTransport;
+
+	/// <summary>
+	/// <c>AS HTTP (setting, …)</c>, which SQL Server 2005 published and 2012 removed and the engine still reads: PATH, SITE, AUTH_REALM,
+	/// DEFAULT_LOGON_DOMAIN, AUTHENTICATION, PORTS, CLEAR_PORT, SSL_PORT and COMPRESSION, in any order and as often as wanted, one at least.
+	/// </summary>
+	public sealed record Http(SqlList<Option> Options) : EndpointTransport;
+}
+
+/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). What an endpoint speaks.</summary>
+public abstract record EndpointPayload : ISqlNode
+{
+	/// <summary>Where in the text this payload was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this payload was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>FOR TSQL (setting, …)</c>: ENCRYPTION and nothing else; none, with the brackets, where it is left out.</summary>
+	public sealed record Tsql(SqlList<Option> Options) : EndpointPayload;
+
+	/// <summary><c>FOR SERVICE_BROKER (setting, …)</c>: ENCRYPTION, AUTHENTICATION, MESSAGE_FORWARDING and MESSAGE_FORWARD_SIZE.</summary>
+	public sealed record ServiceBroker(SqlList<Option> Options) : EndpointPayload;
+
+	/// <summary><c>FOR DATABASE_MIRRORING (setting, …)</c>: ENCRYPTION, AUTHENTICATION and ROLE.</summary>
+	public sealed record DatabaseMirroring(SqlList<Option> Options) : EndpointPayload
+	{
+		/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). <c>DATA_MIRRORING</c> against <c>DATABASE_MIRRORING</c>: the same payload.</summary>
+		[Spelling] public bool DataMirroring { get; init; }
+	}
+
+	/// <summary>
+	/// <c>FOR SOAP (item, …)</c>, SQL Server 2005's web services, removed in 2012 and still read: settings and web methods mixed in
+	/// either order.
+	/// </summary>
+	public sealed record Soap(SqlList<SoapItem> Items) : EndpointPayload;
+}
+
+/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). One item of a SOAP payload.</summary>
+public abstract record SoapItem : ISqlNode
+{
+	/// <summary>Where in the text this item was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this item was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>A setting: WSDL, BATCHES, SESSIONS, LOGIN_TYPE, SESSION_TIMEOUT, DATABASE, NAMESPACE, SCHEMA, CHARACTER_SET or HEADER_LIMIT.</summary>
+	public sealed record Setting(Option Value) : SoapItem;
+
+	/// <summary>
+	/// <c>[ADD | ALTER | DROP] WEBMETHOD ['namespace'.]'method' [(NAME = 'object', SCHEMA = …, FORMAT = …)]</c>: dropped it takes nothing
+	/// further; added or altered it takes a bracket that may not be empty; written bare, only where the endpoint is created.
+	/// </summary>
+	public sealed record WebMethod(LiteralValue.String Method) : SoapItem
+	{
+		/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). <c>ADD</c>, <c>ALTER</c> or <c>DROP</c>; null where the web method is written bare.</summary>
+		public WebMethodAction? Action { get; init; }
+
+		/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). <c>'namespace'.</c> before the method, a string; null where none is written.</summary>
+		public LiteralValue.String? Namespace { get; init; }
+
+		/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). <c>(NAME = …, SCHEMA = …, FORMAT = …)</c>: NAME a string, the others from their words; none where no bracket is written.</summary>
+		public SqlList<Option> Options { get; init; } = [];
+	}
+}
+
+/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). An endpoint's encryption: <c>DISABLED</c>, <c>NEGOTIATED</c>, <c>STRICT</c>, <c>SUPPORTED</c> or <c>REQUIRED</c>.</summary>
+public enum EndpointEncryptionLevel { Disabled, Negotiated, Strict, Supported, Required }
+
+/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). <c>ALGORITHM AES</c>, <c>RC4</c>, <c>AES RC4</c> or <c>RC4 AES</c>.</summary>
+public enum EndpointAlgorithm { Aes, Rc4, AesRc4, Rc4Aes }
+
+/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). The protocol Windows authentication is told: <c>NTLM</c>, <c>KERBEROS</c> or <c>NEGOTIATE</c>.</summary>
+public enum EndpointWindowsMode { Ntlm, Kerberos, Negotiate }
+
+/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). What is done to a SOAP endpoint's web method.</summary>
+public enum WebMethodAction { Add, Alter, Drop }
 
 /// <summary>T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL). What an availability group is made of.</summary>
 public abstract record AvailabilitySource : ISqlNode

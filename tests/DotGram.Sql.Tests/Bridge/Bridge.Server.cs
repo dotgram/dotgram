@@ -41,6 +41,7 @@ static partial class Bridge
 				Statement.ResourcePoolDefinition pool  => Pool(pool),
 				Statement.WorkloadGroupDefinition w    => Workload(w),
 				Statement.AvailabilityGroupDefinition a => Availability(a),
+				Statement.EndpointDefinition endpoint  => Endpoint(endpoint),
 				_ when Owned(Owns, old)                => throw Inventory.Unconverted(old),
 				_                                      => null,
 			};
@@ -615,6 +616,245 @@ static partial class Bridge
 				reader.ExpectPunctuation(")");
 
 			return options.ToSqlList();
+		}
+
+		// ── Endpoints ─────────────────────────────────────────────────────────────
+
+		/// <summary>
+		/// An endpoint, read again from the text it was written in: the old tree keeps its state, its protocol and its payload as words,
+		/// the names of some options in capitals and of others as written, an address with its blanks taken out and a negative number as
+		/// a negation, and the grammar's rules for the places are others than the generic option rule's.
+		/// </summary>
+		static Ast.Statement Endpoint(Statement.EndpointDefinition old)
+		{
+			var reader = new Broker.Tail(old, Spelled(old) ?? throw BridgeGap.Lost(old, "the text of the statement, which the old tree keeps in parts the generic option rule shaped"));
+			var create = reader.Take("CREATE");
+
+			if (!create)
+				reader.Expect("ALTER");
+
+			reader.Expect("ENDPOINT");
+
+			var name     = reader.Name();
+			var owner    = reader.Take("AUTHORIZATION") ? reader.Name() : null;
+			var settings = reader.Is("STATE") || reader.Is("AFFINITY") ? reader.Settings() : [];
+
+			Ast.EndpointTransport? transport = null;
+			Ast.EndpointPayload? payload     = null;
+			var last                         = false;
+
+			if (reader.Take("AS"))
+				transport = Transport(reader);
+
+			if (reader.Take("FOR"))
+			{
+				payload = Payload(reader);
+
+				if (transport is null && reader.Take("AS"))
+				{
+					transport = Transport(reader);
+					last      = true;
+				}
+			}
+
+			reader.TakePunctuation(";");
+			reader.Finish();
+
+			return create
+				? new Ast.Statement.CreateEndpoint(name) { Authorization = owner, Settings = settings, Transport = transport, Payload = payload, TransportLast = last }
+				: owner is null
+					? new Ast.Statement.AlterEndpoint(name) { Settings = settings, Transport = transport, Payload = payload, TransportLast = last }
+					: throw reader.Unread();
+		}
+
+		static Ast.EndpointTransport Transport(Broker.Tail reader)
+		{
+			if (reader.Take("TCP"))
+				return new Ast.EndpointTransport.Tcp(EndpointItems(reader, http: false, payload: false));
+
+			if (reader.Take("HTTP"))
+				return new Ast.EndpointTransport.Http(EndpointItems(reader, http: true, payload: false));
+
+			throw reader.Unread();
+		}
+
+		static Ast.EndpointPayload Payload(Broker.Tail reader)
+		{
+			if (reader.Take("TSQL"))
+				return new Ast.EndpointPayload.Tsql(EndpointItems(reader, http: false, payload: true));
+
+			if (reader.Take("SERVICE_BROKER"))
+				return new Ast.EndpointPayload.ServiceBroker(EndpointItems(reader, http: false, payload: true));
+
+			var mirroring = reader.Is("DATA_MIRRORING");
+
+			if (mirroring || reader.Is("DATABASE_MIRRORING"))
+			{
+				reader.Name();
+
+				return new Ast.EndpointPayload.DatabaseMirroring(EndpointItems(reader, http: false, payload: true)) { DataMirroring = mirroring };
+			}
+
+			if (reader.Take("SOAP"))
+			{
+				reader.ExpectPunctuation("(");
+
+				var items = new List<Ast.SoapItem>();
+
+				if (!reader.IsPunctuation(")"))
+				{
+					do
+						items.Add(SoapItem(reader));
+					while (reader.TakePunctuation(","));
+				}
+
+				reader.ExpectPunctuation(")");
+
+				return new Ast.EndpointPayload.Soap(items.ToSqlList());
+			}
+
+			throw reader.Unread();
+		}
+
+		/// <summary><c>( item, … )</c>, the brackets empty where a payload leaves its settings out.</summary>
+		static SqlList<Ast.Option> EndpointItems(Broker.Tail reader, bool http, bool payload)
+		{
+			reader.ExpectPunctuation("(");
+
+			var items = new List<Ast.Option>();
+
+			if (!reader.IsPunctuation(")"))
+			{
+				do
+					items.Add(EndpointItem(reader, http, payload));
+				while (reader.TakePunctuation(","));
+			}
+
+			reader.ExpectPunctuation(")");
+
+			return items.ToSqlList();
+		}
+
+		/// <summary>One setting of an endpoint: a name, <c>=</c> and the value its rule reads.</summary>
+		static Ast.Option EndpointItem(Broker.Tail reader, bool http, bool payload)
+		{
+			var name = reader.Name();
+
+			reader.ExpectPunctuation("=");
+
+			Ast.Expression value;
+
+			switch (name.Text.ToUpperInvariant())
+			{
+				case "LISTENER_PORT" or "CLEAR_PORT" or "SSL_PORT" or "MESSAGE_FORWARD_SIZE":
+					value = reader.Signed();
+					break;
+
+				case "LISTENER_IP":
+					value = reader.Take("ALL") ? new Ast.Expression.Reference(new Ast.QualifiedName([new Ast.Identifier(reader.Last)])) : ListenerIp(reader);
+					break;
+
+				case "AUTHENTICATION" or "PORTS" when http:
+					value = WordList(reader);
+					break;
+
+				case "ENCRYPTION" when payload:
+					value = new Ast.Expression.EndpointEncryption(Run(reader));
+					break;
+
+				case "AUTHENTICATION" when payload:
+					value = new Ast.Expression.EndpointAuthentication(Run(reader));
+					break;
+
+				default:
+					value = reader.SettingValue();
+					break;
+			}
+
+			return new Ast.Option(name, value, []);
+		}
+
+		/// <summary><c>(a, b)</c>: words in brackets.</summary>
+		static Ast.Expression WordList(Broker.Tail reader)
+		{
+			reader.ExpectPunctuation("(");
+
+			var words = new List<Ast.Expression>();
+
+			do
+				words.Add(new Ast.Expression.Reference(new Ast.QualifiedName([reader.Name()])));
+			while (reader.TakePunctuation(","));
+
+			reader.ExpectPunctuation(")");
+
+			return new Ast.Expression.Row(words.ToSqlList());
+		}
+
+		/// <summary>The words of a run up to a comma or a closing bracket, as written.</summary>
+		static SqlList<Ast.Identifier> Run(Broker.Tail reader)
+		{
+			var words = new List<Ast.Identifier>();
+
+			while (!reader.IsPunctuation(",") && !reader.IsPunctuation(")"))
+				words.Add(reader.Name());
+
+			return words.Count > 0 ? words.ToSqlList() : throw reader.Unread();
+		}
+
+		/// <summary>
+		/// The bracket of <c>LISTENER_IP</c>: strings, or four numbers with a dot between each two and, after a colon, four more,
+		/// however spaced; a number is digits, which the tokens read together with its dot.
+		/// </summary>
+		static Ast.Expression ListenerIp(Broker.Tail reader)
+		{
+			reader.ExpectPunctuation("(");
+
+			if (reader.PeekString())
+			{
+				var strings = new List<Ast.Expression> { reader.String() };
+
+				while (reader.TakePunctuation(","))
+					strings.Add(reader.String());
+
+				reader.ExpectPunctuation(")");
+
+				return new Ast.Expression.Row(strings.ToSqlList());
+			}
+
+			var text = new System.Text.StringBuilder();
+
+			while (!reader.IsPunctuation(")"))
+				text.Append(reader.Raw());
+
+			reader.ExpectPunctuation(")");
+
+			var halves = text.ToString().Split(':');
+
+			return halves.Length <= 2 && halves.All(static one => System.Text.RegularExpressions.Regex.IsMatch(one, @"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$"))
+				? new Ast.Expression.EndpointAddress(halves[0], halves.Length == 2 ? halves[1] : null)
+				: throw reader.Unread();
+		}
+
+		static Ast.SoapItem SoapItem(Broker.Tail reader)
+		{
+			Ast.WebMethodAction? action = reader.Take("ADD") ? Ast.WebMethodAction.Add : reader.Take("ALTER") ? Ast.WebMethodAction.Alter : reader.Take("DROP") ? Ast.WebMethodAction.Drop : null;
+
+			if (action is not null)
+				reader.Expect("WEBMETHOD");
+			else if (!reader.Take("WEBMETHOD"))
+				return new Ast.SoapItem.Setting(EndpointItem(reader, http: false, payload: false));
+
+			var first  = reader.String();
+			var method = first;
+			Ast.LiteralValue.String? space = null;
+
+			if (reader.TakePunctuation("."))
+			{
+				space  = first;
+				method = reader.String();
+			}
+
+			return new Ast.SoapItem.WebMethod(method) { Action = action, Namespace = space, Options = action == Ast.WebMethodAction.Drop ? [] : EndpointItems(reader, http: false, payload: false) };
 		}
 
 		// ── KILL, DBCC ────────────────────────────────────────────────────────────

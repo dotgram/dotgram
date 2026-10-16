@@ -604,6 +604,26 @@ static partial class Bridge
 				return true;
 			}
 
+			/// <summary>Whether the next token is a string.</summary>
+			public bool PeekString()
+			{
+				return _at < _tokens.Count && _tokens[_at].Kind == SqlTokens.Kind.String;
+			}
+
+			/// <summary>The text of the next token, taken whatever it is.</summary>
+			public string Raw()
+			{
+				return _at < _tokens.Count ? _tokens[_at++].Text : throw Unread();
+			}
+
+			/// <summary>A whole number a minus may precede, kept as one token (<c>'-'? &amp; Digits</c>).</summary>
+			public Ast.LiteralValue.Numeric Signed()
+			{
+				var minus = TakePunctuation("-");
+
+				return Values.Of(new Expression.Literal(SqlLiteralKind.Number, (minus ? "-" : "") + Number().Text)) as Ast.LiteralValue.Numeric ?? throw Unread();
+			}
+
 			/// <summary>The text of the token just taken.</summary>
 			public string Last
 			{

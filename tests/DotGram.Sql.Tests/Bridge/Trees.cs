@@ -152,6 +152,8 @@ static class Trees
 		"Statement.ResourcePoolDefinition.Tail",
 		"Statement.WorkloadGroupDefinition.Tail",
 		"Statement.AvailabilityGroupDefinition.Tail",
+		"Statement.EndpointDefinition.Protocol",
+		"Statement.EndpointDefinition.Payload",
 	};
 
 	/// <summary>
@@ -226,7 +228,7 @@ static class Trees
 		// The Monitoring family: the words of its statements that the writer prints in capitals.
 		"APPLICATION_LOG", "AUDIT", "DROP", "EVENT", "EXTERNAL_MONITOR", "FAN_IN", "FILEPATH", "FOR", "MODIFY", "NOT", "NOTIFICATION", "NULL", "ON", "OR", "PUBLIC", "SECURITY_LOG", "SESSION", "SPECIFICATION", "START", "STOP", "URL",
 		// The Server family: the words of its statements that the writer prints in capitals.
-		"AVAILABILITY", "CONFIGURATION", "DENY", "DHCP", "FAILOVER", "FORCE_FAILOVER_ALLOW_DATA_LOSS", "GOVERNOR", "IP", "LISTENER", "OFFLINE", "POOL", "PORT", "RECONFIGURE", "REPLICA", "RESET", "RESOURCE", "RESTART", "STATISTICS", "WORKLOAD",
+		"AVAILABILITY", "CONFIGURATION", "DATABASE_MIRRORING", "DATA_MIRRORING", "DENY", "DHCP", "FAILOVER", "FORCE_FAILOVER_ALLOW_DATA_LOSS", "GOVERNOR", "HTTP", "IP", "LISTENER", "OFFLINE", "POOL", "PORT", "RECONFIGURE", "REPLICA", "RESET", "RESOURCE", "RESTART", "SERVICE_BROKER", "SOAP", "STATISTICS", "TCP", "TSQL", "WORKLOAD",
 	};
 
 	/// <summary>

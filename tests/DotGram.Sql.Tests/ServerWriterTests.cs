@@ -130,6 +130,68 @@ public sealed class ServerWriterTests
 
 	static readonly Option Url = Opt("ENDPOINT_URL", Str("TCP://a:5022"));
 
+	static Expression Row(params Expression[] items)
+	{
+		return new Expression.Row([.. items]);
+	}
+
+	static Expression Run(Func<SqlList<Identifier>, Expression> make, params string[] words)
+	{
+		return make([.. words.Select(static one => one.StartsWith('[') ? new Identifier(one, IdentifierStyle.Bracketed) : new Identifier(one))]);
+	}
+
+	static Expression Encrypted(params string[] words)
+	{
+		return Run(static one => new Expression.EndpointEncryption(one), words);
+	}
+
+	static Expression Authenticated(params string[] words)
+	{
+		return Run(static one => new Expression.EndpointAuthentication(one), words);
+	}
+
+	static Expression IpAddress(string address, string? mask = null)
+	{
+		return new Expression.EndpointAddress(address, mask);
+	}
+
+	static Statement.CreateEndpoint Endpoint(EndpointTransport? transport, EndpointPayload? payload)
+	{
+		return new Statement.CreateEndpoint(X) { Transport = transport, Payload = payload };
+	}
+
+	static EndpointTransport Tcp(params Option[] options)
+	{
+		return new EndpointTransport.Tcp([.. options]);
+	}
+
+	static EndpointTransport Http(params Option[] options)
+	{
+		return new EndpointTransport.Http([.. options]);
+	}
+
+	static EndpointPayload Broker(params Option[] options)
+	{
+		return new EndpointPayload.ServiceBroker([.. options]);
+	}
+
+	static EndpointPayload Soap(params SoapItem[] items)
+	{
+		return new EndpointPayload.Soap([.. items]);
+	}
+
+	static SoapItem Soaped(string name, Expression value)
+	{
+		return new SoapItem.Setting(Opt(name, value));
+	}
+
+	static SoapItem Method(string method, WebMethodAction? action, params Option[] options)
+	{
+		return new SoapItem.WebMethod((LiteralValue.String)Str(method)) { Action = action, Options = [.. options] };
+	}
+
+	static readonly Option Port = Opt("LISTENER_PORT", Digits("4022"));
+
 	static ExecuteArgument Arg(Expression value, string? name = null)
 	{
 		return new ExecuteArgument(value) { Name = name is null ? null : new Identifier(name) };
@@ -430,6 +492,54 @@ public sealed class ServerWriterTests
 		["Remove a listener"] = (
 			Altered(new AvailabilityAction.RemoveListener((LiteralValue.String)Str("d"))),
 			"ALTER AVAILABILITY GROUP x REMOVE LISTENER 'd'"),
+		["Create an endpoint"] = (
+			new Statement.CreateEndpoint(X),
+			"CREATE ENDPOINT x"),
+		["Create an endpoint with all"] = (
+			new Statement.CreateEndpoint(X) { Authorization = new Identifier("o"), Settings = [Opt("STATE", Word("STARTED")), Opt("AFFINITY", Word("NONE")), Opt("state", Word("stopped"))], Transport = Tcp(Port, Opt("LISTENER_IP", Word("ALL"))), Payload = Broker(Opt("AUTHENTICATION", Authenticated("WINDOWS", "NTLM", "CERTIFICATE", "c")), Opt("ENCRYPTION", Encrypted("SUPPORTED", "ALGORITHM", "RC4", "AES")), Opt("MESSAGE_FORWARDING", Word("ENABLED")), Opt("MESSAGE_FORWARD_SIZE", Number("-1", NumericLiteralKind.DecimalInteger))) },
+			"CREATE ENDPOINT x AUTHORIZATION o STATE = STARTED, AFFINITY = NONE, state = stopped AS TCP (LISTENER_PORT = 4022, LISTENER_IP = ALL) FOR SERVICE_BROKER (AUTHENTICATION = WINDOWS NTLM CERTIFICATE c, ENCRYPTION = SUPPORTED ALGORITHM RC4 AES, MESSAGE_FORWARDING = ENABLED, MESSAGE_FORWARD_SIZE = -1)"),
+		["Create an endpoint with an affinity first"] = (
+			new Statement.CreateEndpoint(X) { Settings = [Opt("AFFINITY", Word("ADMIN"))] },
+			"CREATE ENDPOINT x AFFINITY = ADMIN"),
+		["Create an endpoint listening on addresses"] = (
+			Endpoint(Tcp(Opt("LISTENER_IP", IpAddress("1.2.3.4")), Opt("LISTENER_IP", IpAddress("1.1.1.1", "10.10.20.30")), Opt("listener_ip", Row(Str("a"), NStr("b"))), Opt("LISTENER_PORT", Number("-1", NumericLiteralKind.DecimalInteger))), null),
+			"CREATE ENDPOINT x AS TCP (LISTENER_IP = (1.2.3.4), LISTENER_IP = (1.1.1.1:10.10.20.30), listener_ip = ('a', N'b'), LISTENER_PORT = -1)"),
+		["Create an http endpoint"] = (
+			Endpoint(Http(Opt("PATH", Str("/p")), Opt("SITE", NStr("*")), Opt("AUTH_REALM", Word("NONE")), Opt("DEFAULT_LOGON_DOMAIN", Str("d")), Opt("AUTHENTICATION", Row(Word("BASIC"), Word("kerberos"))), Opt("PORTS", Row(Word("SSL"), Word("CLEAR"))), Opt("CLEAR_PORT", Digits("10")), Opt("SSL_PORT", Number("-1", NumericLiteralKind.DecimalInteger)), Opt("COMPRESSION", Word("DISABLED"))), new EndpointPayload.Tsql([])),
+			"CREATE ENDPOINT x AS HTTP (PATH = '/p', SITE = N'*', AUTH_REALM = NONE, DEFAULT_LOGON_DOMAIN = 'd', AUTHENTICATION = (BASIC, kerberos), PORTS = (SSL, CLEAR), CLEAR_PORT = 10, SSL_PORT = -1, COMPRESSION = DISABLED) FOR TSQL ()"),
+		["Create an endpoint speaking T-SQL"] = (
+			Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("STRICT"))])),
+			"CREATE ENDPOINT x FOR TSQL (ENCRYPTION = STRICT)"),
+		["Create an endpoint speaking T-SQL, encrypted by all"] = (
+			Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("DISABLED")), Opt("ENCRYPTION", Encrypted("NEGOTIATED")), Opt("ENCRYPTION", Encrypted("required")), Opt("ENCRYPTION", Encrypted("REQUIRED", "ALGORITHM", "AES")), Opt("ENCRYPTION", Encrypted("SUPPORTED", "ALGORITHM", "AES", "RC4")), Opt("ENCRYPTION", Encrypted("SUPPORTED", "algorithm", "rc4"))])),
+			"CREATE ENDPOINT x FOR TSQL (ENCRYPTION = DISABLED, ENCRYPTION = NEGOTIATED, ENCRYPTION = required, ENCRYPTION = REQUIRED ALGORITHM AES, ENCRYPTION = SUPPORTED ALGORITHM AES RC4, ENCRYPTION = SUPPORTED algorithm rc4)"),
+		["Create an endpoint with the transport last"] = (
+			new Statement.CreateEndpoint(X) { Payload = new EndpointPayload.Tsql([]), Transport = Tcp(Port), TransportLast = true },
+			"CREATE ENDPOINT x FOR TSQL () AS TCP (LISTENER_PORT = 4022)"),
+		["Create an endpoint mirroring databases"] = (
+			Endpoint(Tcp(Port), new EndpointPayload.DatabaseMirroring([Opt("ROLE", Word("WITNESS")), Opt("AUTHENTICATION", Authenticated("CERTIFICATE", "[c d]", "WINDOWS", "KERBEROS"))])),
+			"CREATE ENDPOINT x AS TCP (LISTENER_PORT = 4022) FOR DATABASE_MIRRORING (ROLE = WITNESS, AUTHENTICATION = CERTIFICATE [c d] WINDOWS KERBEROS)"),
+		["Create an endpoint mirroring data"] = (
+			Endpoint(Tcp(Port), new EndpointPayload.DatabaseMirroring([Opt("ROLE", Word("ALL")), Opt("AUTHENTICATION", Authenticated("WINDOWS"))]) { DataMirroring = true }),
+			"CREATE ENDPOINT x AS TCP (LISTENER_PORT = 4022) FOR DATA_MIRRORING (ROLE = ALL, AUTHENTICATION = WINDOWS)"),
+		["Create a SOAP endpoint"] = (
+			Endpoint(Tcp(Port), Soap(Method("m", null, Opt("NAME", Str("d.dbo.n")), Opt("SCHEMA", Word("STANDARD")), Opt("FORMAT", Word("ALL_RESULTS"))), Soaped("WSDL", Word("DEFAULT")), Soaped("wsdl", Str("sp")), Soaped("BATCHES", Word("ENABLED")), Soaped("SESSIONS", Word("DISABLED")), Soaped("LOGIN_TYPE", Word("MIXED")), Soaped("SESSION_TIMEOUT", Digits("100")), Soaped("SESSION_TIMEOUT", Word("NEVER")), Soaped("DATABASE", Str("db")), Soaped("NAMESPACE", Word("DEFAULT")), Soaped("SCHEMA", Word("NONE")), Soaped("CHARACTER_SET", Word("XML")), Soaped("HEADER_LIMIT", Digits("8192")))),
+			"CREATE ENDPOINT x AS TCP (LISTENER_PORT = 4022) FOR SOAP (WEBMETHOD 'm' (NAME = 'd.dbo.n', SCHEMA = STANDARD, FORMAT = ALL_RESULTS), WSDL = DEFAULT, wsdl = 'sp', BATCHES = ENABLED, SESSIONS = DISABLED, LOGIN_TYPE = MIXED, SESSION_TIMEOUT = 100, SESSION_TIMEOUT = NEVER, DATABASE = 'db', NAMESPACE = DEFAULT, SCHEMA = NONE, CHARACTER_SET = XML, HEADER_LIMIT = 8192)"),
+		["Create a SOAP endpoint of no item"] = (
+			Endpoint(null, Soap()),
+			"CREATE ENDPOINT x FOR SOAP ()"),
+		["Alter an endpoint"] = (
+			new Statement.AlterEndpoint(X),
+			"ALTER ENDPOINT x"),
+		["Alter an endpoint by its state"] = (
+			new Statement.AlterEndpoint(X) { Settings = [Opt("STATE", Word("STARTED")), Opt("AFFINITY", Word("NONE"))] },
+			"ALTER ENDPOINT x STATE = STARTED, AFFINITY = NONE"),
+		["Alter an endpoint by its transport last"] = (
+			new Statement.AlterEndpoint(X) { Settings = [Opt("STATE", Word("DISABLED"))], Payload = Broker(), Transport = Http(Opt("PATH", Str("p"))), TransportLast = true },
+			"ALTER ENDPOINT x STATE = DISABLED FOR SERVICE_BROKER () AS HTTP (PATH = 'p')"),
+		["Alter a SOAP endpoint"] = (
+			new Statement.AlterEndpoint(X) { Payload = Soap(Method("m", WebMethodAction.Add, Opt("NAME", Str("n"))), Method("p", WebMethodAction.Alter, Opt("FORMAT", Word("NONE"))), Method("q", WebMethodAction.Drop), new SoapItem.WebMethod((LiteralValue.String)Str("r")) { Namespace = (LiteralValue.String)NStr("n"), Action = WebMethodAction.Add, Options = [Opt("NAME", Str("x"))] }, Soaped("WSDL", Word("NONE"))) },
+			"ALTER ENDPOINT x FOR SOAP (ADD WEBMETHOD 'm' (NAME = 'n'), ALTER WEBMETHOD 'p' (FORMAT = NONE), DROP WEBMETHOD 'q', ADD WEBMETHOD N'n'.'r' (NAME = 'x'), WSDL = NONE)"),
 		// @@TEXTS
 	};
 
@@ -727,6 +837,97 @@ public sealed class ServerWriterTests
 		["a listener named by a name"] = Altered(new AvailabilityAction.RestartListener(new LiteralValue.String("d", StringLiteralKind.Character))),
 		["a listener named by a variable"] = Altered(new AvailabilityAction.RemoveListener(new LiteralValue.String("@d", StringLiteralKind.Character))),
 		["an availability permission that is none"] = Altered(new AvailabilityAction.CreateAnyDatabase((AvailabilityPermission)9)),
+		// An endpoint is named by an Identifier, and owned by one only where it is made.
+		["an endpoint named by a variable"] = new Statement.CreateEndpoint(new Identifier("@e")),
+		["an endpoint named by a reserved word"] = new Statement.AlterEndpoint(new Identifier("select")),
+		["an endpoint owned by a variable"] = new Statement.CreateEndpoint(X) { Authorization = new Identifier("@o") },
+		["an endpoint with the transport last, with no payload"] = new Statement.CreateEndpoint(X) { Transport = Tcp(Port), TransportLast = true },
+		["an endpoint with the transport last, with no transport"] = new Statement.AlterEndpoint(X) { Payload = Broker(), TransportLast = true },
+		// EndpointState: STATE from three words and AFFINITY from two, a name outside them none.
+		["an endpoint state outside its words"] = new Statement.CreateEndpoint(X) { Settings = [Opt("STATE", Word("RUNNING"))] },
+		["an endpoint state that is a string"] = new Statement.CreateEndpoint(X) { Settings = [Opt("STATE", Str("STARTED"))] },
+		["an endpoint affinity outside its words"] = new Statement.CreateEndpoint(X) { Settings = [Opt("AFFINITY", Word("ALL"))] },
+		["an endpoint setting it has not"] = new Statement.CreateEndpoint(X) { Settings = [Opt("PORT", Digits("1"))] },
+		["an endpoint setting that omits its ="] = new Statement.CreateEndpoint(X) { Settings = [new Option(new Identifier("STATE"), Word("STARTED"), []) { EqualsOmitted = true }] },
+		// AS TCP needs a setting at least (`AS TCP ()` is refused); the port is whole digits, a minus allowed; the address is ALL, strings or four numbers.
+		["a tcp transport of no setting"] = Endpoint(Tcp(), null),
+		["a tcp transport with a setting it has not"] = Endpoint(Tcp(Opt("PATH", Str("p"))), null),
+		["a tcp port that is a string"] = Endpoint(Tcp(Opt("LISTENER_PORT", Str("1"))), null),
+		["a tcp port that is a decimal"] = Endpoint(Tcp(Opt("LISTENER_PORT", Number("1.5", NumericLiteralKind.Decimal))), null),
+		["a tcp port that is a plus"] = Endpoint(Tcp(Opt("LISTENER_PORT", Number("+1", NumericLiteralKind.DecimalInteger))), null),
+		["a tcp port that is a minus over a number"] = Endpoint(Tcp(Opt("LISTENER_PORT", new Expression.Unary(UnaryOperator.Minus, Digits("1")))), null),
+		["a tcp address that is a name"] = Endpoint(Tcp(Opt("LISTENER_IP", Word("x"))), null),
+		["a tcp address that is a string"] = Endpoint(Tcp(Opt("LISTENER_IP", Str("1.2.3.4"))), null),
+		["a tcp address of three numbers"] = Endpoint(Tcp(Opt("LISTENER_IP", IpAddress("1.2.3"))), null),
+		["a tcp address of five numbers"] = Endpoint(Tcp(Opt("LISTENER_IP", IpAddress("1.2.3.4.5"))), null),
+		["a tcp address with a blank"] = Endpoint(Tcp(Opt("LISTENER_IP", IpAddress("1. 2.3.4"))), null),
+		["a tcp address with a sign"] = Endpoint(Tcp(Opt("LISTENER_IP", IpAddress("1.2.3.-4"))), null),
+		["a tcp address with a mask of three numbers"] = Endpoint(Tcp(Opt("LISTENER_IP", IpAddress("1.2.3.4", "255.0.0"))), null),
+		["a tcp address of strings in no brackets"] = Endpoint(Tcp(Opt("LISTENER_IP", Row())), null),
+		["a tcp address of a string and a name"] = Endpoint(Tcp(Opt("LISTENER_IP", Row(Str("a"), Word("b")))), null),
+		["a tcp address of strings written ROW"] = Endpoint(Tcp(Opt("LISTENER_IP", new Expression.Row([Str("a")], RowKeyword: true))), null),
+		// HTTP: its own settings, the lists from their words, a path in quotes.
+		["an http transport of no setting"] = Endpoint(Http(), null),
+		["an http transport with the port of tcp"] = Endpoint(Http(Port), null),
+		["an http path that is a name"] = Endpoint(Http(Opt("PATH", Word("p"))), null),
+		["an http path that is NONE"] = Endpoint(Http(Opt("PATH", Word("NONE"))), null),
+		["an http realm that is DEFAULT"] = Endpoint(Http(Opt("AUTH_REALM", Word("DEFAULT"))), null),
+		["an http authentication outside its words"] = Endpoint(Http(Opt("AUTHENTICATION", Row(Word("BASIC"), Word("PLAIN")))), null),
+		["an http authentication with no brackets"] = Endpoint(Http(Opt("AUTHENTICATION", Word("BASIC"))), null),
+		["an http authentication of no word"] = Endpoint(Http(Opt("AUTHENTICATION", Row())), null),
+		["an http ports of a word it has not"] = Endpoint(Http(Opt("PORTS", Row(Word("BASIC")))), null),
+		["an http compression that is ON"] = Endpoint(Http(Opt("COMPRESSION", Word("ON"))), null),
+		["an http port that is a string"] = Endpoint(Http(Opt("SSL_PORT", Str("1"))), null),
+		// FOR: T-SQL takes an encryption and nothing else; the brokers a few more.
+		["a T-SQL payload with an authentication"] = Endpoint(null, new EndpointPayload.Tsql([Opt("AUTHENTICATION", Authenticated("WINDOWS"))])),
+		["a T-SQL payload with a role"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ROLE", Word("ALL"))])),
+		["a broker payload with a role"] = Endpoint(null, Broker(Opt("ROLE", Word("ALL")))),
+		["a mirroring payload with a forwarding"] = Endpoint(null, new EndpointPayload.DatabaseMirroring([Opt("MESSAGE_FORWARDING", Word("ENABLED"))])),
+		["a mirroring role outside its words"] = Endpoint(null, new EndpointPayload.DatabaseMirroring([Opt("ROLE", Word("PRIMARY"))])),
+		["a forwarding that is ON"] = Endpoint(null, Broker(Opt("MESSAGE_FORWARDING", Word("ON")))),
+		["a forwarding size that is a decimal"] = Endpoint(null, Broker(Opt("MESSAGE_FORWARD_SIZE", Number("1.5", NumericLiteralKind.Decimal)))),
+		// EndpointEncryptionSyntax and EndpointAuthenticationSyntax: runs of words the rules read and no others.
+		["an encryption of no word"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted())])),
+		["an encryption of a level it has not"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("OPTIONAL"))])),
+		["an encryption that is a name"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Word("STRICT"))])),
+		["an encryption of a level that takes no algorithm"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("STRICT", "ALGORITHM", "AES"))])),
+		["an encryption with an algorithm missing"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("REQUIRED", "ALGORITHM"))])),
+		["an encryption with an algorithm it has not"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("REQUIRED", "ALGORITHM", "DES"))])),
+		["an encryption with an algorithm twice"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("REQUIRED", "ALGORITHM", "AES", "AES"))])),
+		["an encryption with three algorithms"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("REQUIRED", "ALGORITHM", "AES", "RC4", "AES"))])),
+		["an encryption of a word with a blank"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("REQUIRED ALGORITHM AES"))])),
+		["an encryption of a word in brackets"] = Endpoint(null, new EndpointPayload.Tsql([Opt("ENCRYPTION", Encrypted("[STRICT]"))])),
+		["an authentication of no word"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated()))),
+		["an authentication of a word it has not"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated("KERBEROS")))),
+		["an authentication of a protocol with no WINDOWS"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated("NTLM", "CERTIFICATE", "c")))),
+		["an authentication of a protocol it has not"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated("WINDOWS", "BASIC")))),
+		["an authentication of WINDOWS twice"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated("WINDOWS", "CERTIFICATE", "c", "WINDOWS")))),
+		["an authentication of a certificate twice"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated("CERTIFICATE", "a", "CERTIFICATE", "b")))),
+		["an authentication of a certificate with no name"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated("WINDOWS", "CERTIFICATE")))),
+		["an authentication of a certificate named by a reserved word"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated("CERTIFICATE", "select")))),
+		["an authentication of a certificate named by a variable"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated("CERTIFICATE", "@c")))),
+		["an authentication of a certificate named by two words"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Authenticated("CERTIFICATE", "a b")))),
+		["an authentication that is a name"] = Endpoint(null, Broker(Opt("AUTHENTICATION", Word("WINDOWS")))),
+		// SOAP: the settings and the web methods; a method dropped takes nothing further, one added or altered a bracket that is not empty.
+		["a SOAP setting it has not"] = Endpoint(null, Soap(Soaped("BATCHES_", Word("ENABLED")))),
+		["a SOAP batches that is ON"] = Endpoint(null, Soap(Soaped("BATCHES", Word("ON")))),
+		["a SOAP wsdl that is a number"] = Endpoint(null, Soap(Soaped("WSDL", Digits("1")))),
+		["a SOAP login type outside its words"] = Endpoint(null, Soap(Soaped("LOGIN_TYPE", Word("SQL")))),
+		["a SOAP timeout that is signed"] = Endpoint(null, Soap(Soaped("SESSION_TIMEOUT", Number("-1", NumericLiteralKind.DecimalInteger)))),
+		["a SOAP schema that is DEFAULT"] = Endpoint(null, Soap(Soaped("SCHEMA", Word("DEFAULT")))),
+		["a SOAP character set outside its words"] = Endpoint(null, Soap(Soaped("CHARACTER_SET", Word("UTF8")))),
+		["a SOAP database that is NONE"] = Endpoint(null, Soap(Soaped("DATABASE", Word("NONE")))),
+		["a SOAP header limit that is a decimal"] = Endpoint(null, Soap(Soaped("HEADER_LIMIT", Number("1.5", NumericLiteralKind.Decimal)))),
+		["a SOAP method written bare, in an altered endpoint"] = new Statement.AlterEndpoint(X) { Payload = Soap(Method("m", null, Opt("NAME", Str("n")))) },
+		["a SOAP method dropped with a bracket"] = Endpoint(null, Soap(Method("m", WebMethodAction.Drop, Opt("NAME", Str("n"))))),
+		["a SOAP method added with no bracket"] = Endpoint(null, Soap(Method("m", WebMethodAction.Add))),
+		["a SOAP method written bare, with no bracket"] = Endpoint(null, Soap(Method("m", null))),
+		["a SOAP method named by a name"] = Endpoint(null, Soap(new SoapItem.WebMethod(new LiteralValue.String("m", StringLiteralKind.Character)) { Action = WebMethodAction.Add, Options = [Opt("NAME", Str("n"))] })),
+		["a SOAP method that is no action"] = Endpoint(null, Soap(Method("m", (WebMethodAction)9, Opt("NAME", Str("n"))))),
+		["a SOAP method object that is a name"] = Endpoint(null, Soap(Method("m", WebMethodAction.Add, Opt("NAME", Word("d.dbo.n"))))),
+		["a SOAP method schema outside its words"] = Endpoint(null, Soap(Method("m", WebMethodAction.Add, Opt("SCHEMA", Word("OTHER"))))),
+		["a SOAP method format outside its words"] = Endpoint(null, Soap(Method("m", WebMethodAction.Add, Opt("FORMAT", Word("XML"))))),
+		["a SOAP method option it has not"] = Endpoint(null, Soap(Method("m", WebMethodAction.Add, Opt("PATH", Str("p"))))),
 		// @@REFUSALS
 	};
 

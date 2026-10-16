@@ -268,6 +268,8 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.DropSignature.From | 1 |
 | ByCase Statement.DropSymmetricKey.Tail | 1 |
 | ByCase Statement.DropTrigger.Tail | 2 |
+| ByCase Statement.EndpointDefinition.Payload | 69 |
+| ByCase Statement.EndpointDefinition.Protocol | 69 |
 | ByCase Statement.EventNotificationDefinition.Tail | 4 |
 | ByCase Statement.EventSessionDefinition.State | 0 |
 | ByCase Statement.Execute.Tail | 8 |
@@ -384,7 +386,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.Hint` | Queries | C | gap 5 | 5: needs decision: inventory Clause.Hint (the old WITH (n)) (4); needs decision: inventory Clause.Hint (a hint of a shape the family does not hold) (1) | 294 |
 | `Statement.CreateProcedure` | Routines | B | converted 250, gap 19 | 19: needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1); needs decision: inventory DataType (`bit(max)`: a word in the brackets of a type) (1) | 285 |
 | `Clause.Connection` | Tables | C | — | — | 270 |
-| `Statement.EndpointDefinition` | Server | C | gap 249 | 249: no target record: Statement.CreateEndpoint (249) | 249 |
+| `Statement.EndpointDefinition` | Server | C | converted 249 | — | 249 |
 | `Statement.Insert` | Dml | A | converted 192, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
 | `Expression.Measured` | Values | C | — | 190: target exists, no writer arm: Expression.Measured (190) | 234 |
 | `Statement.AlterDatabaseSet` | Database | C | converted 218 | — | 218 |

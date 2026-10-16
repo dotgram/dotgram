@@ -115,6 +115,19 @@ public static partial class Sql2023Writer
 					PutAvailabilityAction(alter.Action);
 					return true;
 
+				case Statement.CreateEndpoint create:
+					Word("CREATE ENDPOINT");
+					PutOneName(create.Name, "CREATE ENDPOINT");
+					PutAuthorization(create.Authorization, "CREATE ENDPOINT");
+					PutEndpoint(create, create.Settings, create.Transport, create.Payload, create.TransportLast, created: true);
+					return true;
+
+				case Statement.AlterEndpoint alter:
+					Word("ALTER ENDPOINT");
+					PutOneName(alter.Name, "ALTER ENDPOINT");
+					PutEndpoint(alter, alter.Settings, alter.Transport, alter.Payload, alter.TransportLast, created: false);
+					return true;
+
 				case Statement.CreateWorkloadGroup create:
 					Word("CREATE WORKLOAD GROUP");
 					PutPoolName(create.Name, "CREATE WORKLOAD GROUP");
@@ -1245,6 +1258,310 @@ public static partial class Sql2023Writer
 
 				default:
 					throw Unwritten(action);
+			}
+		}
+
+		// ── Endpoints ─────────────────────────────────────────────────────────────
+
+		/// <summary>EndpointState and EndpointSetting: the state and the affinity, in any order and as often as wanted.</summary>
+		static readonly Dictionary<string, SettingEntry> EndpointSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["STATE"]    = new(BrokerForm.Words, ["STARTED", "STOPPED", "DISABLED"], Once: false),
+			["AFFINITY"] = new(BrokerForm.Words, ["NONE", "ADMIN"], Once: false),
+		};
+
+		/// <summary>EndpointTcpOption: the port, which a minus may precede (7810 is the engine's), and the address.</summary>
+		static readonly Dictionary<string, SettingEntry> TcpSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["LISTENER_PORT"] = new(BrokerForm.SignedDigits, Once: false),
+			["LISTENER_IP"]   = new(BrokerForm.Words | BrokerForm.Strings | BrokerForm.Address, ["ALL"], Once: false),
+		};
+
+		/// <summary>EndpointHttpSyntax: SQL Server 2005's HTTP endpoint.</summary>
+		static readonly Dictionary<string, SettingEntry> HttpSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["PATH"]                 = new(BrokerForm.String, Once: false),
+			["SITE"]                 = new(BrokerForm.String, Once: false),
+			["AUTH_REALM"]           = new(BrokerForm.String | BrokerForm.Words, ["NONE"], Once: false),
+			["DEFAULT_LOGON_DOMAIN"] = new(BrokerForm.String | BrokerForm.Words, ["NONE"], Once: false),
+			["AUTHENTICATION"]       = new(BrokerForm.WordList, ["BASIC", "DIGEST", "NTLM", "KERBEROS", "INTEGRATED"], Once: false),
+			["PORTS"]                = new(BrokerForm.WordList, ["CLEAR", "SSL"], Once: false),
+			["CLEAR_PORT"]           = new(BrokerForm.SignedDigits, Once: false),
+			["SSL_PORT"]             = new(BrokerForm.SignedDigits, Once: false),
+			["COMPRESSION"]          = new(BrokerForm.Words, ["ENABLED", "DISABLED"], Once: false),
+		};
+
+		/// <summary>EndpointTsqlOptions: an encryption and nothing else.</summary>
+		static readonly Dictionary<string, SettingEntry> TsqlSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["ENCRYPTION"] = new(BrokerForm.Encryption, Once: false),
+		};
+
+		/// <summary>EndpointBrokerOption: the encryption and the authentication, and the forwarding.</summary>
+		static readonly Dictionary<string, SettingEntry> ServiceBrokerSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["ENCRYPTION"]            = new(BrokerForm.Encryption, Once: false),
+			["AUTHENTICATION"]        = new(BrokerForm.Authentication, Once: false),
+			["MESSAGE_FORWARDING"]    = new(BrokerForm.Words, ["ENABLED", "DISABLED"], Once: false),
+			["MESSAGE_FORWARD_SIZE"]  = new(BrokerForm.SignedDigits, Once: false),
+		};
+
+		/// <summary>EndpointMirroringOption: the encryption and the authentication, and the role.</summary>
+		static readonly Dictionary<string, SettingEntry> MirroringSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["ENCRYPTION"]     = new(BrokerForm.Encryption, Once: false),
+			["AUTHENTICATION"] = new(BrokerForm.Authentication, Once: false),
+			["ROLE"]           = new(BrokerForm.Words, ["WITNESS", "PARTNER", "ALL"], Once: false),
+		};
+
+		/// <summary>EndpointSoapSetting: the settings of a SOAP endpoint, each its own kind of value, as often as wanted.</summary>
+		static readonly Dictionary<string, SettingEntry> SoapSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["WSDL"]            = new(BrokerForm.Words | BrokerForm.String, ["DEFAULT", "NONE"], Once: false),
+			["BATCHES"]         = new(BrokerForm.Words, ["ENABLED", "DISABLED"], Once: false),
+			["SESSIONS"]        = new(BrokerForm.Words, ["ENABLED", "DISABLED"], Once: false),
+			["LOGIN_TYPE"]      = new(BrokerForm.Words, ["WINDOWS", "MIXED"], Once: false),
+			["SESSION_TIMEOUT"] = new(BrokerForm.Digits | BrokerForm.Words, ["NEVER"], Once: false),
+			["DATABASE"]        = new(BrokerForm.Words | BrokerForm.String, ["DEFAULT"], Once: false),
+			["NAMESPACE"]       = new(BrokerForm.Words | BrokerForm.String, ["DEFAULT"], Once: false),
+			["SCHEMA"]          = new(BrokerForm.Words, ["NONE", "STANDARD"], Once: false),
+			["CHARACTER_SET"]   = new(BrokerForm.Words, ["SQL", "XML"], Once: false),
+			["HEADER_LIMIT"]    = new(BrokerForm.Digits, Once: false),
+		};
+
+		/// <summary>WebMethodOption: the object a method is, its schema and its format.</summary>
+		static readonly Dictionary<string, SettingEntry> WebMethodSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["NAME"]   = new(BrokerForm.String, Once: false),
+			["SCHEMA"] = new(BrokerForm.Words, ["NONE", "STANDARD", "DEFAULT"], Once: false),
+			["FORMAT"] = new(BrokerForm.Words, ["NONE", "ALL_RESULTS", "ROWSETS_ONLY"], Once: false),
+		};
+
+		void PutEndpoint(ISqlNode owner, SqlList<Option> settings, EndpointTransport? transport, EndpointPayload? payload, bool transportLast, bool created)
+		{
+			if (transportLast && (transport is null || payload is null))
+				throw Misplaced(owner, "TransportLast", "without both a transport and a payload, which it orders");
+
+			if (settings.Count > 0)
+				PutBrokerSettings(owner, settings, EndpointSettings, "an endpoint", required: [], apart: []);
+
+			if (!transportLast)
+				PutTransport(transport);
+
+			PutPayload(payload, created);
+
+			if (transportLast)
+				PutTransport(transport);
+		}
+
+		void PutTransport(EndpointTransport? transport)
+		{
+			switch (transport)
+			{
+				case null:
+					break;
+
+				case EndpointTransport.Tcp tcp:
+					Word("AS TCP");
+					Open();
+					PutBrokerSettings(tcp, tcp.Options, TcpSettings, "AS TCP", required: [], apart: []);
+					Close();
+					break;
+
+				case EndpointTransport.Http http:
+					Word("AS HTTP");
+					Open();
+					PutBrokerSettings(http, http.Options, HttpSettings, "AS HTTP", required: [], apart: []);
+					Close();
+					break;
+
+				default:
+					throw Unwritten(transport);
+			}
+		}
+
+		void PutPayload(EndpointPayload? payload, bool created)
+		{
+			switch (payload)
+			{
+				case null:
+					break;
+
+				case EndpointPayload.Tsql tsql:
+					Word("FOR TSQL");
+					PutPayloadSettings(tsql, tsql.Options, TsqlSettings, "FOR TSQL");
+					break;
+
+				case EndpointPayload.ServiceBroker broker:
+					Word("FOR SERVICE_BROKER");
+					PutPayloadSettings(broker, broker.Options, ServiceBrokerSettings, "FOR SERVICE_BROKER");
+					break;
+
+				case EndpointPayload.DatabaseMirroring mirroring:
+					Word(mirroring.DataMirroring ? "FOR DATA_MIRRORING" : "FOR DATABASE_MIRRORING");
+					PutPayloadSettings(mirroring, mirroring.Options, MirroringSettings, "FOR DATABASE_MIRRORING");
+					break;
+
+				case EndpointPayload.Soap soap:
+					Word("FOR SOAP");
+					Open();
+
+					for (var at = 0; at < soap.Items.Count; at++)
+					{
+						if (at > 0)
+							Tight(",");
+
+						PutSoapItem(soap.Items[at], created);
+					}
+
+					Close();
+					break;
+
+				default:
+					throw Unwritten(payload);
+			}
+		}
+
+		/// <summary>The brackets of a payload, always written, and its settings if it has any.</summary>
+		void PutPayloadSettings(ISqlNode owner, SqlList<Option> options, Dictionary<string, SettingEntry> catalogue, string place)
+		{
+			Open();
+
+			if (options.Count > 0)
+				PutBrokerSettings(owner, options, catalogue, place, required: [], apart: []);
+
+			Close();
+		}
+
+		void PutSoapItem(SoapItem item, bool created)
+		{
+			switch (item)
+			{
+				case SoapItem.Setting setting:
+					PutBrokerSettings(setting, [setting.Value], SoapSettings, "FOR SOAP", required: [], apart: []);
+					break;
+
+				case SoapItem.WebMethod method:
+					if (method.Action is null && !created)
+						throw Misplaced(method, "Action", "that is none, in ALTER ENDPOINT, which writes a web method added, altered or dropped (Msg 7803)");
+
+					if (method.Action is WebMethodAction.Drop)
+					{
+						if (method.Options.Count > 0)
+							throw Misplaced(method, "Options", "after DROP WEBMETHOD, which takes nothing further");
+					}
+					else if (method.Options.Count == 0)
+						throw Empty(method, "Options");
+
+					switch (method.Action)
+					{
+						case null:
+							break;
+
+						case WebMethodAction.Add:
+							Word("ADD");
+							break;
+
+						case WebMethodAction.Alter:
+							Word("ALTER");
+							break;
+
+						case WebMethodAction.Drop:
+							Word("DROP");
+							break;
+
+						default:
+							throw NoText(method.Action.Value);
+					}
+
+					Word("WEBMETHOD");
+
+					if (method.Namespace is { } ns)
+					{
+						PutBrokerString(method, "Namespace", ns);
+						Tight(".");
+						Hold();
+					}
+
+					PutBrokerString(method, "Method", method.Method);
+
+					if (method.Options.Count > 0)
+					{
+						Open();
+						PutBrokerSettings(method, method.Options, WebMethodSettings, "WEBMETHOD", required: [], apart: []);
+						Close();
+					}
+
+					break;
+
+				default:
+					throw Unwritten(item);
+			}
+		}
+
+		/// <summary>
+		/// EndpointEncryptionSyntax: DISABLED, NEGOTIATED or STRICT alone; SUPPORTED or REQUIRED, and then, if it is told one,
+		/// ALGORITHM and AES, RC4, AES RC4 or RC4 AES. The words are written as they are, in the case they are in.
+		/// </summary>
+		void PutEndpointEncryption(ISqlNode owner, Expression.EndpointEncryption encryption)
+		{
+			var words = encryption.Words.Select(static one => one.Text.ToUpperInvariant()).ToArray();
+
+			var read = words is ["DISABLED" or "NEGOTIATED" or "STRICT"]
+				|| words is ["SUPPORTED" or "REQUIRED"]
+				|| words is ["SUPPORTED" or "REQUIRED", "ALGORITHM", "AES" or "RC4"]
+				|| words is ["SUPPORTED" or "REQUIRED", "ALGORITHM", "AES", "RC4"]
+				|| words is ["SUPPORTED" or "REQUIRED", "ALGORITHM", "RC4", "AES"];
+
+			if (!read || encryption.Words.Any(static one => one.Style != IdentifierStyle.Regular || one.UnicodeEscape is not null))
+				throw Misplaced(encryption, "Words", "that are no encryption the grammar's EndpointEncryptionSyntax reads");
+
+			foreach (var word in encryption.Words)
+				PutKeyWord(word);
+		}
+
+		/// <summary>
+		/// EndpointAuthenticationSyntax: WINDOWS, a protocol after it if it is told one, and CERTIFICATE and its name, in either order,
+		/// each once, one at least. The words are written as they are; the name after CERTIFICATE is an identifier.
+		/// </summary>
+		void PutEndpointAuthentication(ISqlNode owner, Expression.EndpointAuthentication authentication)
+		{
+			var words       = authentication.Words;
+			var certificate = -1;
+			var windows     = false;
+			var at          = 0;
+			var read        = words.Count > 0;
+
+			while (read && at < words.Count)
+			{
+				if (!windows && Plain(words[at], "WINDOWS"))
+				{
+					windows = true;
+					at++;
+
+					if (at < words.Count && Plain(words[at], "NTLM", "KERBEROS", "NEGOTIATE"))
+						at++;
+				}
+				else if (certificate < 0 && Plain(words[at], "CERTIFICATE") && at + 1 < words.Count)
+				{
+					certificate = at + 1;
+					at += 2;
+				}
+				else
+					read = false;
+			}
+
+			if (!read)
+				throw Misplaced(authentication, "Words", "that are no authentication the grammar's EndpointAuthenticationSyntax reads");
+
+			for (var each = 0; each < words.Count; each++)
+			{
+				if (each == certificate)
+					PutOneName(words[each], "an endpoint's authentication");
+				else if (words[each].Style != IdentifierStyle.Regular || words[each].UnicodeEscape is not null)
+					throw Misplaced(authentication, "Words", "that holds a word that is not plain");
+				else
+					PutKeyWord(words[each]);
 			}
 		}
 	}

@@ -594,7 +594,8 @@ public static partial class Sql2023Writer
 		/// The forms of value a setting is read with: a string (<c>Quoted</c>), a name, an unsigned number, ON or OFF, the word ANY, the
 		/// word DEFAULT, any value, digits alone (<c>Sql92.Lexical.Digits</c>), an exact number with no exponent (<c>ExactNumber</c>),
 		/// a word out of the entry's list, a number and the unit it is written in, NULL, the ranges of an affinity in brackets, no value at
-		/// all (the setting is a word alone), and a list of strings in brackets.
+		/// all (the setting is a word alone), a list of strings in brackets, whole digits a minus may precede, an endpoint's address, a list of
+		/// the entry's words in brackets, and an endpoint's encryption and authentication.
 		/// </summary>
 		[Flags]
 		enum BrokerForm
@@ -612,8 +613,13 @@ public static partial class Sql2023Writer
 			Measured = 1024,
 			Null     = 2048,
 			Ranges   = 4096,
-			Bare     = 8192,
-			Strings  = 16384,
+			Bare           = 8192,
+			Strings        = 16384,
+			SignedDigits   = 32768,
+			Address        = 65536,
+			WordList       = 131072,
+			Encryption     = 262144,
+			Authentication = 524288,
 		}
 
 		/// <summary>
@@ -775,6 +781,39 @@ public static partial class Sql2023Writer
 				Open();
 				Each(items, PutExpression);
 				Close();
+				return;
+			}
+
+			if (value is Expression.Row { RowKeyword: false, Items: { Count: > 0 } listed } && forms.HasFlag(BrokerForm.WordList) && entry.Words is { } listWords
+				&& listed.All(one => one is Expression.Reference { Name: [{ } listWord] } && Plain(listWord, listWords)))
+			{
+				Open();
+				Each(listed, one => PutKeyWord(((Expression.Reference)one).Name[0]));
+				Close();
+				return;
+			}
+
+			if (value is LiteralValue.Numeric signed && forms.HasFlag(BrokerForm.SignedDigits) && IsNumberOf(new LiteralValue.Numeric(signed.Text.StartsWith('-') ? signed.Text.Substring(1) : signed.Text, signed.Kind), ExternalShape.Digits))
+			{
+				PutSignedNumber(option, signed);
+				return;
+			}
+
+			if (value is Expression.EndpointAddress address && forms.HasFlag(BrokerForm.Address) && Regex.IsMatch(address.Address, @"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$") && (address.Mask is null || Regex.IsMatch(address.Mask, @"^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$")))
+			{
+				Word("(" + address.Address + (address.Mask is null ? "" : ":" + address.Mask) + ")");
+				return;
+			}
+
+			if (value is Expression.EndpointEncryption encryption && forms.HasFlag(BrokerForm.Encryption))
+			{
+				PutEndpointEncryption(option, encryption);
+				return;
+			}
+
+			if (value is Expression.EndpointAuthentication authentication && forms.HasFlag(BrokerForm.Authentication))
+			{
+				PutEndpointAuthentication(option, authentication);
 				return;
 			}
 

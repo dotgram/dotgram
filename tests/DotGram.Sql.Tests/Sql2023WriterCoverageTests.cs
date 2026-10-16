@@ -426,6 +426,9 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(EventSessionState)]  = v => new Statement.AlterEventSession(new Identifier("s"), EventScope.Server) { State = (EventSessionState)v },
 		// Server: what a KILL does to the work it ends.
 		[typeof(KillOption)]         = v => new Statement.Kill(new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) { With = (KillOption)v },
+		// Server: what an availability group is permitted, and what is done to a SOAP endpoint's web method.
+		[typeof(AvailabilityPermission)] = v => new Statement.AlterAvailabilityGroup(new Identifier("g"), new AvailabilityAction.CreateAnyDatabase((AvailabilityPermission)v)),
+		[typeof(WebMethodAction)]    = v => new Statement.AlterEndpoint(new Identifier("e")) { Payload = new EndpointPayload.Soap([new SoapItem.WebMethod(new LiteralValue.String("'m'", StringLiteralKind.Character)) { Action = (WebMethodAction)v, Options = (WebMethodAction)v == WebMethodAction.Drop ? [] : [new Option(new Identifier("NAME"), new LiteralValue.String("'n'", StringLiteralKind.Character), [])] }]) },
 	};
 
 	static EventPredicate EventEqual()
@@ -794,6 +797,16 @@ public sealed class Sql2023WriterCoverageTests
 			["AuditAction.Comma"] = (
 				new Statement.CreateServerAuditSpecification(new Identifier("s")) { Actions = [new AuditAction(AddOrDrop.Add, [new ActionWords([new Identifier("a")])])] },
 				new Statement.CreateServerAuditSpecification(new Identifier("s")) { Actions = [new AuditAction(AddOrDrop.Add, [new ActionWords([new Identifier("a")])]) { Comma = true }] }),
+			// Server: AS written after FOR, and DATA_MIRRORING for DATABASE_MIRRORING.
+			["CreateEndpoint.TransportLast"] = (
+				new Statement.CreateEndpoint(new Identifier("e")) { Payload = new EndpointPayload.Tsql([]), Transport = new EndpointTransport.Tcp([new Option(new Identifier("LISTENER_PORT"), new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger), [])]) },
+				new Statement.CreateEndpoint(new Identifier("e")) { Payload = new EndpointPayload.Tsql([]), Transport = new EndpointTransport.Tcp([new Option(new Identifier("LISTENER_PORT"), new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger), [])]), TransportLast = true }),
+			["AlterEndpoint.TransportLast"] = (
+				new Statement.AlterEndpoint(new Identifier("e")) { Payload = new EndpointPayload.Tsql([]), Transport = new EndpointTransport.Tcp([new Option(new Identifier("LISTENER_PORT"), new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger), [])]) },
+				new Statement.AlterEndpoint(new Identifier("e")) { Payload = new EndpointPayload.Tsql([]), Transport = new EndpointTransport.Tcp([new Option(new Identifier("LISTENER_PORT"), new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger), [])]), TransportLast = true }),
+			["DatabaseMirroring.DataMirroring"] = (
+				new Statement.CreateEndpoint(new Identifier("e")) { Payload = new EndpointPayload.DatabaseMirroring([]) },
+				new Statement.CreateEndpoint(new Identifier("e")) { Payload = new EndpointPayload.DatabaseMirroring([]) { DataMirroring = true } }),
 			["Compare.Exclamation"] = (
 				new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.NotEqual, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) }]),
 				new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.NotEqual, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) { Exclamation = true } }])),
