@@ -335,6 +335,9 @@ public static partial class Sql2023Writer
 			Word(scope switch { TriggerScope.Database => "DATABASE", TriggerScope.AllServer => "ALL SERVER", _ => throw NoText(scope) });
 		}
 
+		/// <summary>A trigger's event name as <c>TriggerEvent</c> reads it: a regular name, which begins with a letter or _.</summary>
+		static readonly System.Text.RegularExpressions.Regex TriggerEventName = new(@"^[\p{L}_][\p{L}\p{Nd}_@#$]*\z");
+
 		/// <summary>
 		/// T-SQL: CREATE TRIGGER (Transact-SQL). A trigger with T-SQL's body is written in T-SQL's form (TriggerStatement),
 		/// true then; a standard trigger answers false once it has its Event, Table and Action and none of T-SQL's members.
@@ -371,6 +374,10 @@ public static partial class Sql2023Writer
 
 			if (trigger.Events.Any(static one => one.Columns.Count > 0))
 				throw Misplaced(trigger, "Events", "with columns, which only the standard's UPDATE OF names");
+
+			// TriggerEvent is a bare word: `FOR [CREATE_TABLE]` and `FOR "CREATE_TABLE"` are Msg 102, and so is a temporary name.
+			if (trigger.EventNames.Any(static one => one.Style != IdentifierStyle.Regular || one.UnicodeEscape is not null || !TriggerEventName.IsMatch(one.Text)))
+				throw Misplaced(trigger, "EventNames", "other than a plain name that begins with a letter or _ (TriggerEvent)");
 
 			if (trigger.EventNames.Any(static one => one.Style == IdentifierStyle.Regular && one.Text.ToUpperInvariant() is "INSERT" or "UPDATE" or "DELETE"))
 				throw Misplaced(trigger, "EventNames", "INSERT, UPDATE or DELETE as a name, which reads as the statement (TriggerEvent)");

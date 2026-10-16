@@ -116,8 +116,8 @@ public static partial class Sql2023Writer
 		// ── Event notifications and audits ────────────────────────────────────────
 
 		/// <summary>
-		/// A run of words, <see cref="ActionWords"/>: one at least, each a run of a name's characters that does not begin with a digit —
-		/// a reserved word too — and is none of the words that end the run (<c>PermissionEnd</c>).
+		/// A run of words, <see cref="ActionWords"/>: one at least, each a name, a temporary name, one of the engine's columns or a
+		/// variable — a reserved word too — and none of the words that end the run (<c>PermissionEnd</c>).
 		/// </summary>
 		void PutActionWords(ActionWords run, string place)
 		{
@@ -126,8 +126,8 @@ public static partial class Sql2023Writer
 
 			foreach (var word in run.Words)
 			{
-				if (word.Style != IdentifierStyle.Regular || word.UnicodeEscape is not null || !Regex.IsMatch(word.Text, @"^[\p{L}_@#$][\p{L}\p{Nd}_@#$]*\z"))
-					throw Misplaced(word, "Text", $"that is no word in {place}: a run of a name's characters that does not begin with a digit");
+				if (word.Style != IdentifierStyle.Regular || word.UnicodeEscape is not null || !Regex.IsMatch(word.Text, @"^(?:[\p{L}_]|#{1,2}[\p{L}_]|\$[\p{L}_]|@)[\p{L}\p{Nd}_@#$]*\z"))
+					throw Misplaced(word, "Text", $"that is no word in {place}: a name, a temporary name, one of the engine's columns or a variable, which need a letter or _ after a # or a $");
 
 				if (Plain(word, "ON", "TO", "FROM", "WITH", "CASCADE"))
 					throw Misplaced(word, "Text", $"that ends a run of words in {place} (PermissionEnd)");

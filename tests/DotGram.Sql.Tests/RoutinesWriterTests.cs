@@ -367,6 +367,9 @@ public sealed class RoutinesWriterTests
 	[InlineData("BEFORE")]
 	[InlineData("FOR with INSTEAD OF")]
 	[InlineData("UPDATE OF columns")]
+	[InlineData("an event in brackets")]
+	[InlineData("an event in quotes")]
+	[InlineData("a temporary event")]
 	[InlineData("an event named INSERT")]
 	[InlineData("a trigger's inline query")]
 	[InlineData("a trigger verb Create")]
@@ -546,6 +549,10 @@ public sealed class RoutinesWriterTests
 			"FOR with INSTEAD OF" => Trigger() with { Time = TriggerTime.InsteadOf, For = true },
 			// TriggerEvent: no columns.
 			"UPDATE OF columns" => Trigger() with { Events = [new TriggerEvent(TriggerEventKind.Update, [Name("c")])] },
+			// TriggerEvent: a bare word, never a name in brackets or in quotes, nor a temporary name.
+			"an event in brackets" => Ddl() with { EventNames = [new Identifier("[CREATE_TABLE]", IdentifierStyle.Bracketed)] },
+			"an event in quotes" => Ddl() with { EventNames = [new Identifier("\"CREATE_TABLE\"", IdentifierStyle.Delimited)] },
+			"a temporary event" => Ddl() with { EventNames = [Name("#CREATE_TABLE")] },
 			// TriggerEvent: the word reads as the statement.
 			"an event named INSERT" => Ddl() with { EventNames = [Name("insert")] },
 			// TriggerStatement: EXTERNAL NAME, AtomicBody or StatementList.

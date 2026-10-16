@@ -61,6 +61,16 @@ public static partial class Sql2023Writer
 				// The braces and the escape's own word, and what stands in them: a call written without its
 				// brackets where none were, since inside the braces the name is ODBC's.
 				case Expression.OdbcEscape escape:
+					// OdbcEscape: FN and a function called, one of the typed literals TS, D, T and GUID and a string, or ESCAPE of a LIKE.
+					if (transactSql && (escape.Kind is not { Style: IdentifierStyle.Regular, UnicodeEscape: null } || !Plain(escape.Kind, "FN", "TS", "D", "T", "GUID", "ESCAPE")))
+						throw Misplaced(escape, "Kind", "that is none of FN, TS, D, T, GUID or ESCAPE, the words an ODBC escape begins with");
+
+					if (transactSql && Plain(escape.Kind, "FN") != (escape.Value is Expression.Invocation) && !Plain(escape.Kind, "ESCAPE"))
+						throw Misplaced(escape, "Value", Plain(escape.Kind, "FN") ? "that is not a call, which {fn …} holds" : "that is a call, which only {fn …} holds");
+
+					if (transactSql && Plain(escape.Kind, "TS", "D", "T", "GUID") && escape.Value is not LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National })
+						throw Misplaced(escape, "Value", "that is not a string, which the typed ODBC literals hold");
+
 					Word("{");
 					Hold();
 					PutIdentifier(escape.Kind);

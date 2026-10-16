@@ -365,6 +365,38 @@ public sealed class TransactSqlWriterTests
 		Assert.Equal(tree, Read(text));
 	}
 
+	// ── ODBC escapes ──────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// An ODBC escape begins with FN and a call, or with TS, D, T or GUID and a string: another word, a name in brackets, and a
+	/// word with the other kind's value are written by the standard's writer and refused by T-SQL's.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT {fn f(1)}",              "fn", "GO",   false)]
+	[InlineData("SELECT {fn f(1)}",              "fn", "[fn]", false)]
+	[InlineData("SELECT {fn f(1)}",              "fn", "d",    false)]
+	[InlineData("SELECT {d '2020-01-01'}",       "d",  "fn",   false)]
+	[InlineData("SELECT {d '2020-01-01'}",       "d",  "GO",   false)]
+	[InlineData("SELECT {d '2020-01-01'}",       "d",  "[a]",  false)]
+	[InlineData("SELECT {fn f(1)}",              "fn", "FN",   true)]
+	[InlineData("SELECT {d '2020-01-01'}",       "d",  "TS",   true)]
+	[InlineData("SELECT {d '2020-01-01'}",       "d",  "guid", true)]
+	public void An_odbc_escape_begins_with_the_words_ODBC_reads(string text, string kind, string other, bool written)
+	{
+		var tree    = Read(text);
+		var changed = (ISqlNode)Swap(tree, Plain(kind), other.StartsWith('[') ? Bracketed(other.Trim('[', ']')) : Plain(other));
+
+		if (!written)
+		{
+			Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(changed));
+			Assert.NotEmpty(Sql2023Writer.Write(changed));
+
+			return;
+		}
+
+		Assert.Equal(changed, Read(TransactSqlWriter.Write(changed)));
+	}
+
 	// ── System types ──────────────────────────────────────────────────────────────
 
 	/// <summary>
