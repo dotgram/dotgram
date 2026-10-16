@@ -675,6 +675,12 @@ public static partial class Sql2023Writer
 
 		void PutBound(WindowFrameBound bound)
 		{
+			// A bound that counts says how many, and one that does not has nothing to say: an offset dropped or missing is another bound.
+			var counts = bound.Kind is WindowBoundKind.Preceding or WindowBoundKind.Following;
+
+			if (counts != bound.Offset is not null)
+				throw Misplaced(bound, "Offset", counts ? "missing on a bound that counts" : "on a bound that names no count");
+
 			switch (bound.Kind)
 			{
 				case WindowBoundKind.UnboundedPreceding:
@@ -757,6 +763,10 @@ public static partial class Sql2023Writer
 			if (clause.AfterMatch is { } skip)
 			{
 				Word("AFTER MATCH");
+
+				// A variable is what SKIP TO FIRST, LAST and a plain SKIP TO name, and the other two name none.
+				if ((skip.Kind is RowPatternSkipKind.First or RowPatternSkipKind.Last or RowPatternSkipKind.Variable) != (skip.Variable is not null))
+					throw Misplaced(skip, "Variable", skip.Variable is null ? "missing where the skip names one" : "where the skip names none");
 
 				switch (skip.Kind)
 				{

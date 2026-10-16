@@ -981,7 +981,11 @@ public static partial class Sql2023Writer
 					Word("NOT NULL");
 					break;
 
-				case Constraint.Unique { Kind: UniqueKind.UniqueValue }:
+				case Constraint.Unique { Kind: UniqueKind.UniqueValue } uniqueValue:
+					// T-SQL reads `UNIQUE (VALUE)` as a key over a column named VALUE; the standard's has no column.
+					if (transactSql || uniqueValue.Columns.Count > 0 || uniqueValue.Nulls is not null || uniqueValue.WithoutOverlapsPeriod is not null)
+						throw Misplaced(uniqueValue, "Kind", "UniqueValue with a column, NULLS, a period or in T-SQL, which write and read `UNIQUE (VALUE)` as something else");
+
 					Word("UNIQUE");
 					Open();
 					Word("VALUE");
@@ -1483,6 +1487,10 @@ public static partial class Sql2023Writer
 
 		void PutObjectName(PrivilegeObject.Named on)
 		{
+			// The designator is the routine's name, and is written for a routine alone.
+			if ((on.Kind == PrivilegeObjectKind.Routine) != (on.Routine is not null))
+				throw Misplaced(on, "Routine", on.Routine is null ? "missing on a routine" : "on an object that is not a routine");
+
 			switch (on.Kind)
 			{
 				case PrivilegeObjectKind.Routine:
@@ -1672,7 +1680,7 @@ public static partial class Sql2023Writer
 					Word("FUNCTION");
 					PutName(routine.Name);
 					PutParameters(routine.Parameters);
-					PutReturns(routine.Returns!);
+					PutReturns(routine.Returns ?? throw Empty(routine, "Returns"));
 					PutCharacteristics(routine.Characteristics);
 
 					if (routine.StaticDispatch)

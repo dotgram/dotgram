@@ -341,6 +341,130 @@ public sealed class UndefinedEnumTests
 		return copy ?? node;
 	}
 
+	/// <summary>The members at which the text cannot say what the tree does, and the writer writes it anyway, as <c>Record.Member</c>, each with why.</summary>
+	static readonly Dictionary<string, string> Lossy = new(StringComparer.Ordinal)
+	{
+		// The standard's writer takes the style of a name and the kind of a number from its text, which holds the delimiters and the digits.
+		["Identifier.Style"] = "the text decides, and a style of another kind than the text's is read back as the text's",
+		["Numeric.Kind"]     = "the text decides, and a kind of another kind than the number's is read back as the number's",
+	};
+
+	/// <summary>
+	/// Every member an enum names, put in turn where the writer reads one: the tree is refused, or its text reads as a tree that holds
+	/// the same enum members. A text that does not read at all is left alone, and so is a text that reads as a tree whose other parts
+	/// differ (the written name of a type that the kind no longer matches); text that reads as another meaning is a silent change.
+	/// </summary>
+	[Fact]
+	public void A_member_an_enum_names_is_refused_or_reads_back_as_itself()
+	{
+		var results = new Dictionary<string, string>(StringComparer.Ordinal);
+
+		void Check(string source, ISqlNode tree, Func<ISqlNode, string> write, Func<string, ISqlNode> read, string reading)
+		{
+			var count = Members(tree);
+
+			for (var at = 0; at < count; at++)
+			{
+				object? original = null;
+				var     site     = "";
+				var     seen     = 0;
+
+				Map(tree, "", (value, where) =>
+				{
+					if (seen++ == at)
+					{
+						original = value;
+						site     = where;
+					}
+
+					return null;
+				});
+
+				foreach (var member in Enum.GetValues(original!.GetType()))
+				{
+					if (member.Equals(original))
+						continue;
+
+					var key     = site + " = " + member + " (" + reading + ")";
+					var visited = 0;
+					var changed = (ISqlNode)Map(tree, "", (_, _) => visited++ == at ? member : null);
+					string text;
+
+					try
+					{
+						text = write(changed);
+					}
+					catch (Exception thrown) when (thrown is ArgumentException or NotSupportedException or InvalidOperationException)
+					{
+						continue;
+					}
+					catch (Exception thrown)
+					{
+						results[key] = "crashed with " + thrown.GetType().Name + " in " + source;
+
+						continue;
+					}
+
+					ISqlNode back;
+
+					try
+					{
+						back = read(text);
+					}
+					catch (Exception)
+					{
+						continue;
+					}
+
+					if (results.TryGetValue(key, out var kept) && !kept.StartsWith("read as", StringComparison.Ordinal))
+						continue;
+
+					results[key] = Enums(back).SequenceEqual(Enums(changed)) || back.Equals(changed)
+						? "fine"
+						: "read as another meaning, from " + text;
+				}
+			}
+		}
+
+		foreach (var text in Statements)
+			Check(text, Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text), static node => TransactSqlWriter.Write(node), static text => Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text), "T-SQL");
+
+		foreach (var text in StandardStatements)
+			Check(text, SqlStandardParser.ParseStatement(text), static node => Sql2023Writer.Write(node), static text => SqlStandardParser.ParseStatement(text), "the standard");
+
+		foreach (var text in StandardExpressions)
+			Check(text, SqlStandardParser.ParseExpression(text), static node => Sql2023Writer.Write(node), static text => SqlStandardParser.ParseExpression(text), "the standard");
+
+		static string Site(string key)
+		{
+			return key.Substring(0, key.IndexOf(" = ", StringComparison.Ordinal));
+		}
+
+		var wrong = results.Where(static one => one.Value != "fine").ToList();
+		var bad   = wrong.Where(one => !Lossy.ContainsKey(Site(one.Key)) || one.Key.Contains("(T-SQL)", StringComparison.Ordinal)).Select(static one => one.Key + ": " + one.Value).Order(StringComparer.Ordinal).ToList();
+		var stale = Lossy.Keys.Where(one => !wrong.Any(found => Site(found.Key) == one)).ToList();
+
+		Assert.True(results.Count(static one => one.Value == "fine") > 500, "the members read back as themselves are too few: " + results.Count);
+		Assert.True(bad.Count == 0, "the writer wrote text that reads as another meaning, or crashed, for a member the enum names:\n" + string.Join("\n", bad));
+		Assert.True(stale.Count == 0, "these are no longer lossy:\n" + string.Join("\n", stale));
+	}
+
+	/// <summary>The enum members of a tree, in a stable order, as <c>Record.Member=value</c>.</summary>
+	static List<string> Enums(ISqlNode tree)
+	{
+		var list = new List<string>();
+
+		Map(tree, "", (value, where) =>
+		{
+			list.Add(where + "=" + value);
+
+			return null;
+		});
+		list.Sort(StringComparer.Ordinal);
+
+		return list;
+	}
+
 	[Fact]
 	public void An_enum_value_no_enum_names_is_refused()
 	{
