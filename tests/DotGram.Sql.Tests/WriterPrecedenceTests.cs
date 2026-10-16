@@ -491,6 +491,10 @@ public sealed class WriterPrecedenceTests
 		Standardly(new Expression.Element(A, Equal(A, B)), "a[(a = b)]");
 		Standardly(new Expression.Element(A, Collate(B, "x")), "a[(b COLLATE x)]");
 
+		// A datetime less a datetime is no value, but it is read in the bracket that an interval qualifier follows.
+		Standardly(new Expression.IntervalQualified(Binary(A, BinaryOperator.Subtract, new Expression.AtTimeZone(B, null)), day), "(a - b AT LOCAL) DAY");
+		Standardly(new Expression.IntervalQualified(Binary(Zone(A, B), BinaryOperator.Subtract, Zone(C, D)), day), "(a AT TIME ZONE b - c AT TIME ZONE d) DAY");
+
 		// What the towers take stays bare.
 		Standardly(Binary(Collate(A, "x"), BinaryOperator.Concatenate, B), "a COLLATE x || b");
 		Standardly(Binary(Zone(A, B), BinaryOperator.Add, C), "a AT TIME ZONE b + c");

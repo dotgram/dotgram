@@ -950,6 +950,9 @@ public static partial class Sql2023Writer
 			}
 		}
 
+		/// <summary>The subtraction in the bracket that an interval qualifier follows, which may subtract a datetime from one.</summary>
+		Expression.Binary? difference;
+
 		// By the node itself, not by what the records compare: a deep chain would be hashed at every level.
 		readonly ConditionalWeakTable<Expression, StrongBox<int>> typed = new();
 
@@ -997,6 +1000,10 @@ public static partial class Sql2023Writer
 			}
 
 			var made = Operated(op, one, two);
+
+			// §6.33: a datetime less a datetime is no value, but it is read in a bracket with an interval qualifier after it.
+			if (made == 0 && ReferenceEquals(binary, difference) && op == BinaryOperator.Subtract && (one & Towers.Datetime) != 0 && (two & Towers.Datetime) != 0)
+				return Towers.Difference;
 
 			if (made == 0 && !right)
 			{
@@ -1430,6 +1437,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.IntervalQualified qualified:
+					if ((qualified.Value is Expression.Parenthesized { Value: var inner } ? inner : qualified.Value) is Expression.Binary { Operator: BinaryOperator.Subtract } subtraction)
+						difference = subtraction;
+
 					PutOperand(qualified.Value, Tightness.Primary);
 					PutQualifier(qualified.Qualifier);
 					break;
