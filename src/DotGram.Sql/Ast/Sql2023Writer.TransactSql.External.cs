@@ -180,6 +180,9 @@ public static partial class Sql2023Writer
 			Call   = 256,
 			Current = 512,
 			Ranges = 1024,
+
+			// With Number: the exponent of an approximate number may have no digits (the grammar's TSql.NumericLiteral).
+			OpenExponent = 2048,
 		}
 
 		/// <summary>
@@ -781,8 +784,8 @@ public static partial class Sql2023Writer
 		{
 			return literal switch
 			{
-				LiteralValue.Numeric { Kind: NumericLiteralKind.Money } money => Regex.IsMatch(money.Text, @"^[$¢-¥৲-৳฿៛₠-₱﷼﹩＄￠-￡￥-￦]\s*[+-]?[0-9]+(?:\.[0-9]*)?$"),
-				LiteralValue.Numeric numeric => IsNumberOf(numeric, ExternalShape.Number),
+				LiteralValue.Numeric { Kind: NumericLiteralKind.Money } money => Regex.IsMatch(money.Text, @"^[$¢-¥৲-৳฿៛₠-₱﷼﹩＄￠-￡￥-￦][ ]?[+-]?[0-9]+(?:\.[0-9]*)?\z"),
+				LiteralValue.Numeric numeric => IsNumberOf(numeric, ExternalShape.Number | ExternalShape.OpenExponent),
 				LiteralValue.String text     => IsQuoted(text),
 				LiteralValue.Binary binary   => binary.ZeroX,
 				LiteralValue.Null            => true,
@@ -803,7 +806,9 @@ public static partial class Sql2023Writer
 				return numeric.Kind == NumericLiteralKind.DecimalInteger && (shape & (ExternalShape.Digits | ExternalShape.Exact | ExternalShape.Number)) != 0;
 
 			// A point with digits on either side, or an integer, and an exponent only where the shape reads one.
-			if (!Regex.IsMatch(text, @"^(?:[0-9]+\.[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]*)?$|^[0-9]+[eE][+-]?[0-9]*$"))
+			var exponent = shape.HasFlag(ExternalShape.OpenExponent) ? "*" : "+";
+
+			if (!Regex.IsMatch(text, @"^(?:[0-9]+\.[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]" + exponent + @")?\z|^[0-9]+[eE][+-]?[0-9]" + exponent + @"\z"))
 				return false;
 
 			if (text.IndexOfAny(['e', 'E']) >= 0)

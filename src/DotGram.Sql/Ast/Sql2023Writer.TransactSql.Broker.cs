@@ -1042,8 +1042,8 @@ public static partial class Sql2023Writer
 						if (item.Alias is null && item.AsKeyword)
 							throw Misplaced(item, "AsKeyword", "with no alias, which has no AS to follow");
 
-						// A name as an alias is the grammar's Identifier; a string is written as the string it is.
-						if (item.Alias is { Style: IdentifierStyle.Regular or IdentifierStyle.Bracketed or IdentifierStyle.Delimited } alias)
+						// A name as an alias (of any style but a string) is the grammar's Identifier; a string is written as the string it is.
+						if (item.Alias is { Style: not (IdentifierStyle.String or IdentifierStyle.NationalString) } alias)
 							CheckExternalName(alias, "RECEIVE");
 
 						CheckExternalValue(item.Expression, "RECEIVE");

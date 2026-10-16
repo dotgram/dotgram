@@ -500,6 +500,7 @@ public sealed class BrokerWriterTests
 		["a receive of no column"] = new Statement.Receive([], Dotted("q")),
 		["a receive of variables and columns"] = Received(new SelectColumn.VariableAssignment(new Identifier("@v"), AssignmentOperator.Assign, Word("a")), Star),
 		["a receive of a qualified star"] = Received(new SelectColumn.QualifiedAll(Word("t"))),
+		["a receive of a column given a Unicode-delimited alias"] = Received(new SelectColumn.ExpressionItem(Word("a"), new Identifier("U&\"x\"; SHUTDOWN;--", IdentifierStyle.UnicodeDelimited), true)),
 		["a receive of a column given its alias first"] = Received(new SelectColumn.ExpressionItem(Word("a"), new Identifier("x")) { AliasFirst = true }),
 		["a receive of a column given AS and no alias"] = Received(new SelectColumn.ExpressionItem(Word("a"), null, true)),
 		["a receive of a column whose alias is two words"] = Received(new SelectColumn.ExpressionItem(Word("a"), new Identifier("x y"), true)),

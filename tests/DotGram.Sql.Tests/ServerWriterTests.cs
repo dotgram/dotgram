@@ -574,6 +574,10 @@ public sealed class ServerWriterTests
 	static readonly Dictionary<string, ISqlNode> Refusals = new(StringComparer.Ordinal)
 	{
 		// KillNumber is '-'? and an unsigned numeric literal, one token; KillSession is that or BrokerString.
+		["a kill of a session that is a number with an exponent of no digits"] = new Statement.Kill(Number("1E", NumericLiteralKind.Approximate)),
+		["a dbcc argument that is a number with an exponent of no digits"] = new Statement.Dbcc(X) { Arguments = [Arg(Number("1E", NumericLiteralKind.Approximate), null)] },
+		["a dbcc maxdop with an exponent of no digits"] = new Statement.Dbcc(X) { Options = [Opt("MAXDOP", Number("1E", NumericLiteralKind.Approximate))] },
+		["a dbcc wait setting that is partitioned"] = new Statement.Dbcc(X) { Options = [Opt("WAIT_AT_LOW_PRIORITY", null, new Option(new Identifier("MAX_DURATION"), Digits("5"), []) { Partitions = [] })] },
 		["a kill of a session that is a name"] = new Statement.Kill(Word("s")),
 		["a kill of a session that is a variable"] = new Statement.Kill(Var("@s")),
 		["a kill of a session that is a plus over a number"] = new Statement.Kill(Number("+1", NumericLiteralKind.DecimalInteger)),

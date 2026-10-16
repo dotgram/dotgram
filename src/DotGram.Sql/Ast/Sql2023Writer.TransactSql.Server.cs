@@ -277,7 +277,7 @@ public static partial class Sql2023Writer
 		/// </summary>
 		static bool IsMoney(string text)
 		{
-			return Regex.IsMatch(text, @"^[$¢-¥৲-৳฿៛₠-₱﷼﹩＄￠-￡￥-￦][+-]?[0-9]+(?:\.[0-9]*)?$");
+			return Regex.IsMatch(text, @"^[$¢-¥৲-৳฿៛₠-₱﷼﹩＄￠-￡￥-￦][+-]?[0-9]+(?:\.[0-9]*)?\z");
 		}
 
 		/// <summary>
@@ -339,7 +339,7 @@ public static partial class Sql2023Writer
 				{
 					var item = option.Options[at];
 
-					if (item.Words.Count > 0 || item.Options.Count > 0 || item.EqualsOmitted || item.Value is not { } itemValue || !seen.Add(item.Name.Text))
+					if (item.Words.Count > 0 || item.Options.Count > 0 || item.EqualsOmitted || item.Order is not null || item.Partitions is not null || item.Place is not null || item.Value is not { } itemValue || !seen.Add(item.Name.Text))
 						throw Misplaced(item, "a setting", "of WAIT_AT_LOW_PRIORITY that is not a name and a value, once");
 
 					if (at > 0)

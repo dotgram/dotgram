@@ -582,7 +582,7 @@ public static partial class Sql2023Writer
 
 			switch (value)
 			{
-				case LiteralValue.Numeric number when IsNumberOf(number with { Text = number.Text.StartsWith("-", StringComparison.Ordinal) ? number.Text.Substring(1) : number.Text }, ExternalShape.Number):
+				case LiteralValue.Numeric number when IsNumberOf(number with { Text = number.Text.StartsWith("-", StringComparison.Ordinal) ? number.Text.Substring(1) : number.Text }, ExternalShape.Number | ExternalShape.OpenExponent):
 					PutSignedNumber(owner, number);
 					break;
 
