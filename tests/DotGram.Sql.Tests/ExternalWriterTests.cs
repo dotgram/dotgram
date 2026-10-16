@@ -492,6 +492,35 @@ public sealed class ExternalWriterTests
 		// ALTER EXTERNAL RESOURCE POOL is told something (Msg 102).
 		["an altered pool of no setting"] = new Statement.AlterExternalResourcePool(X, []),
 		["a pool named by a variable"] = new Statement.CreateExternalResourcePool(new Identifier("@p")),
+		// ValueExpression reads names, and an expression reads the plain name VALUE as the current value.
+		["a language content that is the plain name VALUE"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Word("value")), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a name beginning with VALUE"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Reference(Dotted("value", "b"))), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a name of a variable"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Word("@c")), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a name of two words"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Word("p q")), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is an unclosed bracket"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Named(new Identifier("[", IdentifierStyle.Bracketed))), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a call of a name of two words"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Call("f g")), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a call of the plain name VALUE"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Call("f", Word("value"))), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a variable of no @"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Variable(new Identifier("v"))), Opt("FILE_NAME", Str("f")))]),
+		// A number's kind is the one its text reads as.
+		["a language content that is a decimal of the integer kind"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Numeric("1.5", NumericLiteralKind.DecimalInteger)), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is an integer of the decimal kind"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Numeric("1", NumericLiteralKind.Decimal)), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is an exponent of the decimal kind"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Numeric("1e3", NumericLiteralKind.Decimal)), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is an empty number"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Numeric("", NumericLiteralKind.DecimalInteger)), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a date literal"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.DateTime(DateTimeLiteralKind.Date, "'2020-01-01'")), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a boolean literal"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Boolean(BooleanLiteral.True)), Opt("FILE_NAME", Str("f")))]),
+		// T-SQL reads no row value, `*`, `t.*`, named argument, member read of a column, or current value with a type.
+		["a language content that is a row"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Row([Word("a"), Word("b")])), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is an asterisk"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Asterisk()), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a wildcard"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Wildcard(Word("t"), WildcardKind.Member)), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a named argument"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Invocation(new QualifiedName([new Identifier("f")]), [new Argument(Digits("1"), new Identifier("n"), true)])), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a member"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Member(Word("a"), MemberAccessKind.Dot, new Identifier("m"))), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a current value with a type"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Current(CurrentValue.Value, Dotted("t"))), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a current value T-SQL does not have"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Current(CurrentValue.Catalog)), Opt("FILE_NAME", Str("f")))]),
+		// A bound is a value expression too: the plain name VALUE, a name of a variable, an unclosed bracket.
+		["a pool range bounded by the plain name VALUE"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), new Expression.PoolRanges([new PartitionRange(Word("value"), null)]), []) { Words = [new Identifier("CPU")] }] },
+		["a pool range bounded by a name of a variable"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), new Expression.PoolRanges([new PartitionRange(Digits("0"), Word("@b"))]), []) { Words = [new Identifier("CPU")] }] },
+		["a pool range bounded by a literal T-SQL does not read"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), new Expression.PoolRanges([new PartitionRange(new LiteralValue.Binary("'01'"), null)]), []) { Words = [new Identifier("CPU")] }] },
+		["a pool range bounded by a signed number"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), new Expression.PoolRanges([new PartitionRange(new LiteralValue.Numeric("-1", NumericLiteralKind.DecimalInteger), null)]), []) { Words = [new Identifier("CPU")] }] },
 	};
 
 	static ExternalFile LanguageFile(string content, string? platform)

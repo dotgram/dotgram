@@ -475,10 +475,12 @@ public static partial class Sql2023Writer
 				if (at > 0)
 					Tight(",");
 
+				CheckExternalValue(ranges.Ranges[at].From, "an affinity");
 				PutExpression(ranges.Ranges[at].From);
 
 				if (ranges.Ranges[at].To is { } to)
 				{
+					CheckExternalValue(to, "an affinity");
 					Word("TO");
 					PutExpression(to);
 				}
@@ -683,20 +685,78 @@ public static partial class Sql2023Writer
 					PutExpression(value);
 					return;
 
-				// A value expression: a literal that T-SQL does not read (X'01', U&'x', DATE '…') is none, written or not.
-				case LiteralValue literal when shape.HasFlag(ExternalShape.Value):
-					if (!IsTransactSqlLiteral(literal))
-						throw Misplaced(option, "Value", $"that is a literal T-SQL does not read, in {place}");
-
-					PutExpression(value);
-					return;
-
+				// A value expression, which the grammar reads whole (SetValue): checked down to its literals and names.
 				case Expression when shape.HasFlag(ExternalShape.Value):
+					CheckExternalValue(value, place);
 					PutExpression(value);
 					return;
 			}
 
 			throw Misplaced(option, "Value", $"of a form {key} is not read with in {place}");
+		}
+
+		/// <summary>
+		/// A value expression at a place whose grammar reads any (<c>ValueExpression</c>), checked down to what the shared writer
+		/// leaves to its caller: a literal T-SQL does not read, a number whose kind is not the one its text reads as, a name that is
+		/// no <c>Identifier</c> (a variable written as a name, a blank in a plain word, an unclosed bracket), a variable that is
+		/// none, and the plain name <c>VALUE</c>, which an expression reads as the current value.
+		/// </summary>
+		static void CheckExternalValue(Expression value, string place)
+		{
+			var checkedParts = new List<Identifier>();
+
+			SqlWalker.Walk(value, node =>
+			{
+				switch (node)
+				{
+					// A variable's name is the text with its @.
+					case Expression.Variable variable:
+						if (!Regex.IsMatch(variable.Name.Text, @"^@@?[\p{L}_#][\p{L}\p{N}_@#$]*$") || variable.Name.Style != IdentifierStyle.Regular)
+							throw Misplaced(variable, "Name", $"that is no variable in {place}: @ and a word");
+
+						checkedParts.Add(variable.Name);
+						break;
+
+					// The parts of a name: a part may be left out between two dots, and a name does not begin with the key word VALUE.
+					case Expression.Reference reference:
+						for (var at = 0; at < reference.Name.Count; at++)
+						{
+							var part = reference.Name[at];
+
+							checkedParts.Add(part);
+
+							if (!(part.Text.Length == 0 && part.Style == IdentifierStyle.Regular && at < reference.Name.Count - 1))
+								CheckExternalName(part, place);
+						}
+
+						if (Plain(reference.Name[0], "VALUE"))
+							throw Misplaced(reference, "Name", $"that begins with VALUE in {place}, which an expression reads as the current value");
+
+						break;
+
+					case LiteralValue literal:
+						if (!IsTransactSqlLiteral(literal))
+							throw Misplaced(literal, "Text", $"that T-SQL does not read as a literal in {place}");
+
+						break;
+
+					case Identifier identifier when !checkedParts.Any(one => ReferenceEquals(one, identifier)):
+						CheckExternalName(identifier, place);
+						break;
+
+					// Nodes the standard's grammar builds and a T-SQL value expression does not read: a row, `*`, `t.*`, a name given to an
+					// argument, a column read as a member, and a current value with a type or a precision or other than T-SQL's.
+					case Expression.Row or Expression.Asterisk or Expression.Wildcard:
+					case Argument { Name: not null }:
+					case Expression.Member { Kind: MemberAccessKind.Dot, Arguments: null }:
+					case Expression.Current { TypeName: not null }:
+					case Expression.Current { Precision: not null }:
+					case Expression.Current { Kind: not (CurrentValue.User or CurrentValue.SessionUser or CurrentValue.SystemUser or CurrentValue.CurrentUser or CurrentValue.Value or CurrentValue.Date or CurrentValue.Time or CurrentValue.Timestamp) }:
+						throw Misplaced(node, "a node", $"that no value expression of T-SQL reads, in {place}");
+				}
+
+				return true;
+			});
 		}
 
 		/// <summary>
@@ -707,7 +767,8 @@ public static partial class Sql2023Writer
 		{
 			return literal switch
 			{
-				LiteralValue.Numeric numeric => numeric.Kind is NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money,
+				LiteralValue.Numeric { Kind: NumericLiteralKind.Money } money => Regex.IsMatch(money.Text, @"^\p{Sc}(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$"),
+				LiteralValue.Numeric numeric => IsNumberOf(numeric, ExternalShape.Number),
 				LiteralValue.String text     => IsQuoted(text),
 				LiteralValue.Binary binary   => binary.ZeroX,
 				LiteralValue.Null            => true,

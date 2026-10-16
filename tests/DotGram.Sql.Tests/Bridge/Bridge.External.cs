@@ -318,14 +318,104 @@ static partial class Bridge
 				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a value `{text.Trim()}`)");
 		}
 
+		/// <summary>The position each token of a text starts at, comments and blanks skipped as the tokens skip them.</summary>
+		static List<int> Starts(string text)
+		{
+			var starts = new List<int>();
+			var at     = 0;
+
+			foreach (var token in SqlTokens.Of(text))
+			{
+				at = SkipBlanks(text, at);
+				starts.Add(at);
+				at += token.Text.Length;
+			}
+
+			return starts;
+		}
+
+		static int SkipBlanks(string text, int at)
+		{
+			while (at < text.Length)
+			{
+				if (char.IsWhiteSpace(text[at]))
+					at++;
+				else if (text[at] == '-' && at + 1 < text.Length && text[at + 1] == '-')
+					at = text.IndexOf('\n', at) is var end && end >= 0 ? end + 1 : text.Length;
+				else if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
+				{
+					var depth = 0;
+
+					while (at < text.Length)
+					{
+						if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
+						{
+							depth++;
+							at += 2;
+						}
+						else if (text[at] == '*' && at + 1 < text.Length && text[at + 1] == '/')
+						{
+							at += 2;
+
+							if (--depth == 0)
+								break;
+						}
+						else
+							at++;
+					}
+				}
+				else
+					break;
+			}
+
+			return at;
+		}
+
 		/// <summary>
 		/// What follows a definition's name, read from left to right: each step is checked, and a text that is not read to its
 		/// end, or not as the grammar reads it, is a gap.
 		/// </summary>
-		sealed class Reader(object old, string? tail)
+		sealed class Reader
 		{
-			readonly List<SqlTokens.Token> _tokens = SqlTokens.Of(tail ?? "");
+			readonly List<SqlTokens.Token> _tokens;
+			readonly List<int> _starts;
 			int _at;
+
+			/// <summary>
+			/// The tokens and where each starts. A number with a signed exponent, <c>1E-3</c>, is cut at its sign by the tokens
+			/// and is one number to the grammar: its three tokens are put together.
+			/// </summary>
+			public Reader(object old, string? tail)
+			{
+				this.old  = old;
+				this.tail = tail;
+
+				var tokens = SqlTokens.Of(tail ?? "");
+				var starts = Starts(tail ?? "");
+
+				_tokens = [];
+				_starts = [];
+
+				for (var at = 0; at < tokens.Count; at++)
+				{
+					if (tokens[at].Kind == SqlTokens.Kind.Number && System.Text.RegularExpressions.Regex.IsMatch(tokens[at].Text, "^(?:[0-9]+[.]?[0-9]*|[.][0-9]+)[eE]$")
+						&& at + 2 < tokens.Count && tokens[at + 1] is { Kind: SqlTokens.Kind.Punctuation, Text: "-" or "+" } && tokens[at + 2].Kind == SqlTokens.Kind.Number
+						&& System.Text.RegularExpressions.Regex.IsMatch(tokens[at + 2].Text, "^[0-9]+$") && starts[at + 1] == starts[at] + tokens[at].Text.Length && starts[at + 2] == starts[at + 1] + 1)
+					{
+						_tokens.Add(new SqlTokens.Token(SqlTokens.Kind.Number, tokens[at].Text + tokens[at + 1].Text + tokens[at + 2].Text));
+						_starts.Add(starts[at]);
+						at += 2;
+					}
+					else
+					{
+						_tokens.Add(tokens[at]);
+						_starts.Add(starts[at]);
+					}
+				}
+			}
+
+			readonly object old;
+			readonly string? tail;
 
 			public bool End
 			{
@@ -578,7 +668,11 @@ static partial class Bridge
 				if (_at == start)
 					throw Unread();
 
-				return ValueOf(old, string.Join(" ", _tokens.Skip(start).Take(_at - start).Select(static one => one.Text)));
+				// The text as it was written, from the first token to the end of the last.
+				var from = _starts[start];
+				var to   = _starts[_at - 1] + _tokens[_at - 1].Text.Length;
+
+				return ValueOf(old, tail![from..to]);
 			}
 
 			BridgeGap Stray()
