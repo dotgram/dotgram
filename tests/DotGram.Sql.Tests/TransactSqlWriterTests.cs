@@ -833,4 +833,76 @@ public sealed class TransactSqlWriterTests
 		Assert.Equal("SELECT a FROM " + name + " WHERE c = 1", written);
 		Assert.Equal(tree, Read(written));
 	}
+
+	/// <summary>
+	/// Forms the common tree has and T-SQL does not read: refused in T-SQL's text, written in the standard's. Each stands where
+	/// the number 1 stood in `SELECT a FROM t WHERE a = 1`.
+	/// </summary>
+	[Theory]
+	[InlineData("a binary string X'01'")]
+	[InlineData("a Unicode string")]
+	[InlineData("a string with a character set")]
+	[InlineData("a date literal")]
+	[InlineData("a time literal")]
+	[InlineData("a boolean literal")]
+	[InlineData("an interval literal")]
+	[InlineData("a row value")]
+	[InlineData("a row keyword value")]
+	[InlineData("a star")]
+	[InlineData("a qualified star")]
+	[InlineData("a call with a named argument")]
+	[InlineData("a call with an argument named by =>")]
+	[InlineData("a name as a member")]
+	[InlineData("a dereference")]
+	public void A_form_T_SQL_does_not_read_is_refused(string which)
+	{
+		var a   = Ref(Plain("a"));
+		var one = (Expression)One;
+
+		Expression form = which switch
+		{
+			"a binary string X'01'"                => new LiteralValue.Binary("'01'"),
+			"a Unicode string"                     => new LiteralValue.String("'a'", StringLiteralKind.Unicode),
+			"a string with a character set"        => new LiteralValue.String("'a'", StringLiteralKind.Character, new CharacterSetName(Q(Plain("latin1")))),
+			"a date literal"                       => new LiteralValue.DateTime(DateTimeLiteralKind.Date, "'2020-01-01'"),
+			"a time literal"                       => new LiteralValue.DateTime(DateTimeLiteralKind.Time, "'01:02:03'"),
+			"a boolean literal"                    => new LiteralValue.Boolean(BooleanLiteral.True),
+			"an interval literal"                  => new LiteralValue.Interval("'1'", new IntervalQualifier(DateTimeField.Day, null, null, null)),
+			"a row value"                          => new Expression.Row([one, one]),
+			"a row keyword value"                  => new Expression.Row([one, one], RowKeyword: true),
+			"a star"                               => new Expression.Asterisk(),
+			"a qualified star"                     => new Expression.Wildcard(a, WildcardKind.Member),
+			"a call with a named argument"         => new Expression.Invocation(Q(Plain("f")), [new Argument(one, Plain("n"))]),
+			"a call with an argument named by =>"  => new Expression.Invocation(Q(Plain("f")), [new Argument(one, Plain("n"), NamedAssignment: true)]),
+			"a name as a member"                   => new Expression.Member(a, MemberAccessKind.Dot, Plain("m")),
+			"a dereference"                        => new Expression.Member(a, MemberAccessKind.Dereference, Plain("m")),
+			_                                      => throw new ArgumentOutOfRangeException(nameof(which), which, null),
+		};
+
+		var tree = WithNumber("SELECT a FROM t WHERE a = 1", form);
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+
+		// The standard's writer has a text for the forms of the standard; the others it refuses for its own reasons.
+		if (which is not ("a boolean literal" or "an interval literal" or "a name as a member" or "a call with a named argument" or "a dereference"))
+			Sql2023Writer.Write(tree);
+	}
+
+	/// <summary>The forms T-SQL does read at the places that read them are still written and read back.</summary>
+	[Theory]
+	[InlineData("SELECT COUNT(*) FROM t")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((*), @a)")]
+	[InlineData("SELECT a FROM t WHERE FREETEXT ((t2.*), N'abc')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((b, c), 'x')")]
+	[InlineData("SELECT (c1).SomeProperty FROM t")]
+	[InlineData("SELECT @g.STSrid")]
+	[InlineData("SELECT geography::Point(1, 2, 3).Lat")]
+	[InlineData("SELECT a.m(1) FROM t")]
+	[InlineData("SELECT 0x1F, N'a', NULL, $5, 1.5e3")]
+	public void A_form_T_SQL_reads_is_written_and_read_back(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(tree, Read(TransactSqlWriter.Write(tree)));
+	}
 }

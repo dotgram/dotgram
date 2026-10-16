@@ -220,6 +220,7 @@ public static partial class Sql2023Writer
 					Word("OPENROWSET");
 					Call();
 					Word("BULK");
+					row = true;
 					PutExpression(bulk.File);
 
 					foreach (var option in bulk.Options)
@@ -341,7 +342,11 @@ public static partial class Sql2023Writer
 			if (bracketed)
 				Open();
 
-			Each(columns, PutExpression);
+			Each(columns, column =>
+			{
+				star = true;
+				PutExpression(column);
+			});
 
 			if (bracketed)
 				Close();

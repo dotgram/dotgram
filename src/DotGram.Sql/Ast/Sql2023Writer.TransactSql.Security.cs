@@ -1689,7 +1689,9 @@ public static partial class Sql2023Writer
 			Each(function.Arguments, PutExpression);
 			Close();
 
-			if (!Syntax.WithoutVariable(Sql2023Writer.Write(function.Arguments.Count == 0 ? new Expression.Reference(function.Name) : new Expression.Row(function.Arguments), transactSql: true)))
+			if (!Syntax.WithoutVariable(function.Arguments.Count == 0
+				? Sql2023Writer.Write(new Expression.Reference(function.Name), transactSql: true)
+				: string.Join(", ", function.Arguments.Select(static one => Sql2023Writer.Write(one, transactSql: true)))))
 				throw Misplaced(function, "Arguments", "with a local variable, which a security policy does not take (Msg 112)");
 		}
 

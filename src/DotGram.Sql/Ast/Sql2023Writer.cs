@@ -257,6 +257,9 @@ public static partial class Sql2023Writer
 
 				// The introducer and the letters before the quote are the literal's, and no space may stand in it.
 				case LiteralValue.String text:
+					if (transactSql && !IsQuoted(text))
+						throw Misplaced(text, "Kind", "or CharacterSet that T-SQL does not read: a Unicode string, or one with an introducer");
+
 					var introducer = text.CharacterSet is { } set ? "_" + Dotted(set.Name) : "";
 
 					Word(text.Kind switch
@@ -270,6 +273,9 @@ public static partial class Sql2023Writer
 				// T-SQL's `0x0A` keeps the digits after its introducer; the standard's `X'0A'` the quoted digits. A text
 				// that is not the flag's is refused, rather than written as another literal.
 				case LiteralValue.Binary binary:
+					if (transactSql && !binary.ZeroX)
+						throw Misplaced(binary, "ZeroX", "false, which T-SQL does not read: its binary string is written 0x…");
+
 					if (binary.ZeroX == binary.Text.StartsWith("'", StringComparison.Ordinal))
 						throw Misplaced(binary, "Text", binary.ZeroX ? "in quotes on a 0x literal" : "without quotes on an X literal");
 
@@ -280,15 +286,24 @@ public static partial class Sql2023Writer
 					break;
 
 				case LiteralValue.Boolean truth:
+					if (transactSql)
+						throw Misplaced(truth, "Value", "that T-SQL does not read: it has no boolean literal");
+
 					Word(Truth(truth.Value));
 					break;
 
 				case LiteralValue.DateTime datetime:
+					if (transactSql)
+						throw Misplaced(datetime, "Kind", "that T-SQL does not read: it has no date, time or timestamp literal (an ODBC escape is another node)");
+
 					Word(datetime.Kind switch { DateTimeLiteralKind.Date => "DATE", DateTimeLiteralKind.Time => "TIME", DateTimeLiteralKind.Timestamp => "TIMESTAMP", _ => throw NoText(datetime.Kind) });
 					Word(datetime.Text);
 					break;
 
 				case LiteralValue.Interval interval:
+					if (transactSql)
+						throw Misplaced(interval, "Text", "that T-SQL does not read: it has no interval literal");
+
 					Word("INTERVAL");
 
 					if (interval.Sign is { } sign)
@@ -749,6 +764,13 @@ public static partial class Sql2023Writer
 			// T-SQL's reading: a condition where PutCondition asked for one, a value everywhere else.
 			var condition = TakeCondition(expression);
 
+			// A `*` or `t.*` is read at a place that asked for one, and nowhere else.
+			var star = this.star;
+			var row  = this.row;
+
+			this.star = false;
+			this.row  = false;
+
 			switch (expression)
 			{
 				case LiteralValue literal:
@@ -822,8 +844,11 @@ public static partial class Sql2023Writer
 					PutExpression(multiset.Right);
 					break;
 
-				case Expression.Row row:
-					if (row.RowKeyword)
+				case Expression.Row rowValue:
+					if (transactSql && !row)
+						throw Misplaced(rowValue, "Items", "that T-SQL does not read as a value: it has no row value constructor, and reads a list in brackets only as an argument of the full-text and rowset functions");
+
+					if (rowValue.RowKeyword)
 					{
 						Word("ROW");
 						Call();
@@ -831,7 +856,12 @@ public static partial class Sql2023Writer
 					else
 						Open();
 
-					Each(row.Items, PutExpression);
+					Each(rowValue.Items, item =>
+					{
+						// The items of a column list in T-SQL include `*` and `t.*`.
+						this.star = true;
+						PutExpression(item);
+					});
 					Close();
 					break;
 
@@ -903,6 +933,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Asterisk:
+					if (transactSql && !star)
+						throw Misplaced(expression, "a node", "outside an argument or a full-text column list, where T-SQL reads no *");
+
 					Word("*");
 					break;
 
@@ -971,6 +1004,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Wildcard wildcard:
+					if (transactSql && !star)
+						throw Misplaced(expression, "a node", "outside an argument, where T-SQL reads no .*");
+
 					PutExpression(wildcard.Target);
 					Tight(wildcard.Kind == WildcardKind.Member ? ".*" : "[*]");
 					break;
@@ -1802,10 +1838,14 @@ public static partial class Sql2023Writer
 				// T-SQL: IIF (Transact-SQL). Its first argument is a condition (SearchCondition).
 				var iif = invocation.Name is [{ Style: IdentifierStyle.Regular } called] && Plain(called, "IIF") && invocation.Arguments.Count == 3;
 
+				// T-SQL: a column list in brackets is an argument of the full-text and rowset functions, and of no other.
+				var lists = transactSql && invocation.Name is [{ Style: IdentifierStyle.Regular } listed] && Plain(listed, "CONTAINS", "FREETEXT", "OPENROWSET", "SEMANTICKEYPHRASETABLE", "SEMANTICSIMILARITYTABLE", "SEMANTICSIMILARITYDETAILSTABLE");
+
 				Each(invocation.Arguments, argument =>
 				{
 					condition = iif && transactSql;
 					iif = false;
+					listArgument = lists;
 					PutArgument(argument);
 				});
 
@@ -1904,6 +1944,9 @@ public static partial class Sql2023Writer
 		// else is written in its own, `(a AS t).m ()`.
 		void PutArgument(Argument argument)
 		{
+			if (transactSql && argument.Name is not null)
+				throw Misplaced(argument, "Name", "that T-SQL does not read: its function calls pass arguments by position");
+
 			if (argument.NamedAssignment)
 			{
 				PutIdentifier(argument.Name!);
@@ -1917,11 +1960,20 @@ public static partial class Sql2023Writer
 				PutType(generalized.Type);
 			}
 			else
+			{
+				star = true;
+				row  = listArgument;
+				listArgument = false;
 				PutExpression(argument.Value);
+			}
 		}
 
 		void PutMember(Expression.Member member)
 		{
+			// T-SQL reads `a.m` as a name, and `->` not at all; a method's brackets or `::` make a member.
+			if (transactSql && (member.Kind == MemberAccessKind.Dereference || member.Kind == MemberAccessKind.Dot && member.Arguments is null && member.Target is Expression.Reference))
+				throw Misplaced(member, "Kind", "or Target that T-SQL does not read as a member: `a.m` is a name, and `->` is not T-SQL's");
+
 			PutExpression(member.Target);
 
 			switch (member.Kind)

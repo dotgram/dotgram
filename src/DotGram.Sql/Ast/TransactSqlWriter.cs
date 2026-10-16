@@ -79,6 +79,15 @@ public static partial class Sql2023Writer
 		/// </summary>
 		bool condition;
 
+		/// <summary>Whether the next expression stands where T-SQL reads a <c>*</c> or <c>t.*</c>: an argument, a full-text column list.</summary>
+		bool star;
+
+		/// <summary>Whether the next expression stands where T-SQL reads a list in brackets: an argument of a full-text or rowset function.</summary>
+		bool row;
+
+		/// <summary>Set by a call that reads such lists for its arguments, and taken by <see cref="PutArgument"/>.</summary>
+		bool listArgument;
+
 		/// <summary>
 		/// T-SQL: Search Condition (Transact-SQL). A place the grammar reads <c>SearchCondition</c> at — IF, WHILE, WHERE,
 		/// HAVING, ON, WHEN, CHECK, … — whose expression is a condition: in T-SQL's reading a value there is refused (Msg 4145).

@@ -149,7 +149,12 @@ static partial class Bridge
 			{
 				// BULK INSERT and INSERT BULK, which the old tree keeps as an INSERT whose rows are a file or a stream.
 				case Query.FromFile(var file, var options) when old.Target is TableReference.Named { Table: var table }:
-					return new Ast.Statement.BulkInsert(Values.Name(old, table), Values.Of(file), Each(options ?? [], BulkOption));
+					return new Ast.Statement.BulkInsert(
+						Values.Name(old, table),
+
+						// The file's quoted string is kept with its N, which is a national string and not the character one with an N in it.
+						file is Expression.Literal { Kind: SqlLiteralKind.Text, Text: var token } ? Values.String(token) : Values.Of(file),
+						Each(options ?? [], BulkOption));
 
 				case Query.FromStream(var columns, var options) when old.Target is TableReference.Named { Table: var table }:
 					return new Ast.Statement.InsertBulk(
