@@ -137,7 +137,7 @@ Meaning c t DEFAULT v COLLATE x: the default's collation in T-SQL, the column's 
 Projected a T-SQL column's options as the standard's members = 234
 Projected a key's T-SQL columns as the standard's names = 6
 Recovered Alias.AsKeyword of MERGE's target = 19
-Recovered Alias.AsKeyword of a table source = 952
+Recovered Alias.AsKeyword of a table source = 950
 Recovered Clause.DerivedColumn alias = expression = 432
 Recovered Expression.Invocation without brackets = 45
 Recovered Expression.Trim.FromKeyword = 0

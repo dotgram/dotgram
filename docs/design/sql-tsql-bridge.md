@@ -186,11 +186,7 @@ old trees agreeing says nothing of them. Where it does not, the statement is dif
 
 ## Known writer defects
 
-- Refused: `CREATE TABLE t1 (c1 xml(10))`
-- Refused: `CREATE TABLE t1 (c5 [sys]."Char" varying)`
-- Refused: `SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=ServerName;User ID=MyUID;Password=PLACEHOLDER').'Something' AS Z`
-- Refused: `SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something'`
-- Refused: `SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something' AS Z`
+None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP PROCEDURE x, y, DROP TRIGGER … ON, a bare RETURN, and `- -1` written as a comment — were fixed on main in c044587.
 
 ## The counters
 
@@ -329,7 +325,7 @@ old trees agreeing says nothing of them. Where it does not, the statement is dif
 | Projected a T-SQL column's options as the standard's members | 234 |
 | Projected a key's T-SQL columns as the standard's names | 6 |
 | Recovered Alias.AsKeyword of MERGE's target | 19 |
-| Recovered Alias.AsKeyword of a table source | 952 |
+| Recovered Alias.AsKeyword of a table source | 950 |
 | Recovered Clause.DerivedColumn alias = expression | 432 |
 | Recovered Expression.Invocation without brackets | 45 |
 | Recovered Expression.Trim.FromKeyword | 0 |
@@ -361,16 +357,16 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | Old record | Family | Category | Counted | Gaps | Occurrences |
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9361 |
-| `Expression.ColumnReference` | Values | B | — | 103: needs decision: inventory cross-cutting gaps, identifier styles (a name part `READ COMMITTED`) (6); needs decision: inventory cross-cutting gaps, identifier styles (a name part `REPEATABLE READ`) (6) | 9237 |
+| `Expression.ColumnReference` | Values | B | — | 282: needs decision: inventory cross-cutting gaps, identifier styles (a name part `2` that is no name) (76); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'pw1'` that is no name) (9) | 9237 |
 | `Clause.Option` | Tables | C | gap 144 | 144: needs decision: inventory Clause.Option (a bracketed list of values) (34); needs decision: inventory Clause.Option (a bracketed list after =) (21) | 6517 |
-| `Clause.ColumnDefinition` | Tables | B | gap 116 | 116: needs decision: inventory DataType (`decimal(max)`: a word in the brackets of a type) (24); needs decision: inventory Clause.ConstraintDefinition (a default added WITH VALUES) (11) | 3528 |
+| `Clause.ColumnDefinition` | Tables | B | gap 118 | 118: needs decision: inventory DataType (`decimal(max)`: a word in the brackets of a type) (24); needs decision: inventory Clause.ConstraintDefinition (a default added WITH VALUES) (11) | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3369 |
 | `Clause.ColumnOption` | Tables | B | gap 107 | 107: needs decision: inventory Statement.AlterTable (ALTER COLUMN with more than a collation and a nullability) (64); needs decision: inventory Clause.ColumnOption (COLUMN_SET FOR ALL_SPARSE_COLUMNS) (43) | 2995 |
-| `Statement.Select` | Queries | B | converted 2368, refused 3 | — | 2987 |
+| `Statement.Select` | Queries | B | converted 2368 | — | 2987 |
 | `Clause.DerivedColumn` | Queries | A | — | — | 2978 |
-| `TableReference.Named` | Tables | A | gap 5 | 5: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
+| `TableReference.Named` | Tables | A | gap 8 | 8: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'Something'` that is no name) (3) | 2944 |
 | `Expression.RoutineInvocation` | Values | B | gap 56 | 71: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); needs decision: inventory Expression.RoutineInvocation (the word `INT`) (8) | 2310 |
-| `Statement.TableDefinition` | Tables | B | converted 1687, refused 2 | — | 1906 |
+| `Statement.TableDefinition` | Tables | B | converted 1687 | — | 1906 |
 | `Clause.ConstraintDefinition` | Tables | B | gap 36 | 36: needs decision: inventory Clause.ConstraintDefinition (an index's options without brackets, which IndexDefinition has no flag for) (25); needs decision: inventory Clause.ConstraintDefinition (PRIMARY KEY with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter) (7) | 1841 |
 | `Clause.SortSpecification` | Queries | A | — | — | 1303 |
 | `Clause.QualifiedAsterisk` | Queries | A | — | — | 1221 |

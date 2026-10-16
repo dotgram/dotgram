@@ -982,9 +982,37 @@ static partial class Bridge
 			if (text.Any(char.IsWhiteSpace) && text.Length > 0 && text[0] is not '[' and not '"')
 				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a name part `{text}`)");
 
+			// A part that is none: a string or a number where a name stands (`OPENDATASOURCE (…).'t'`, `xml(10)`), or a
+			// delimited name with more text after its closing delimiter (`"Char" varying`, a type word the old tree keeps).
+			if (text.Length > 0 && (text[0] == '\'' || char.IsDigit(text[0]) || (text[0] is '[' or '"' && !Delimited(text))))
+				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a name part `{text}` that is no name)");
+
 			return text.Length > 0 && text[0] == '[' ? new Ast.Identifier(text, Ast.IdentifierStyle.Bracketed)
 				: text.Length > 0 && text[0] == '"' ? new Ast.Identifier(text, Ast.IdentifierStyle.Delimited)
 				: new Ast.Identifier(text);
+		}
+
+		/// <summary>Whether a text is one delimited name, from its opening delimiter to its closing one, which is its last character.</summary>
+		static bool Delimited(string text)
+		{
+			var close = text[0] == '[' ? ']' : '"';
+
+			for (var at = 1; at < text.Length; at++)
+			{
+				if (text[at] != close)
+					continue;
+
+				if (at + 1 < text.Length && text[at + 1] == close)
+				{
+					at++;
+
+					continue;
+				}
+
+				return at == text.Length - 1;
+			}
+
+			return false;
 		}
 
 		public static SqlList<Ast.Identifier> Parts(object owner, SqlList<string>? names)
