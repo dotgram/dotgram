@@ -738,6 +738,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case DataType.UserDefined user:
+					// T-SQL: the name of a system type reads back as that type.
+					if (transactSql && IsSystemTypeName(user.Name, out _))
+						throw Misplaced(user, "Name", "that is a system type of T-SQL, which reads back as that type");
+
 					PutName(user.Name);
 					break;
 

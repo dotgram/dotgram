@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace DotGram.Sql.Ast;
 
@@ -80,6 +82,7 @@ public static partial class Sql2023Writer
 					return true;
 
 				case DataType.Named named:
+					CheckNamedType(named);
 					PutName(named.Name);
 
 					if (named.Arguments.Count > 0)
@@ -117,6 +120,67 @@ public static partial class Sql2023Writer
 				default:
 					return false;
 			}
+		}
+
+		/// <summary>
+		/// T-SQL's system types, as of SQL Server 2025, and the one-word synonyms: a closed list, compared without case and without a
+		/// name's delimiters. A type written by one of these names is <see cref="DataType.Named"/> (or the standard's own record), and
+		/// any other name is <see cref="DataType.UserDefined"/>; <c>TransactSqlWriterTests</c> holds the list to the bridge's.
+		/// </summary>
+		internal static readonly HashSet<string> TransactSqlSystemTypes = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"bigint", "binary", "bit", "char", "cursor", "date", "datetime", "datetime2", "datetimeoffset", "decimal",
+			"float", "geography", "geometry", "hierarchyid", "image", "int", "json", "money", "nchar", "ntext",
+			"numeric", "nvarchar", "real", "rowversion", "smalldatetime", "smallint", "smallmoney", "sql_variant",
+			"sysname", "table", "text", "time", "timestamp", "tinyint", "uniqueidentifier", "varbinary", "varchar",
+			"vector", "xml", "dec", "integer", "character",
+		};
+
+		/// <summary>
+		/// The system types the standard spells too, with the most arguments the standard's record takes: a type so spelt, with no more
+		/// arguments than that, reads as the standard's record and never as <see cref="DataType.Named"/>.
+		/// </summary>
+		static readonly Dictionary<string, int> StandardTypeArguments = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["int"] = 0, ["integer"] = 0, ["smallint"] = 0, ["bigint"] = 0, ["real"] = 0, ["date"] = 0, ["json"] = 0,
+			["numeric"] = 2, ["decimal"] = 2, ["dec"] = 2, ["float"] = 1, ["time"] = 1,
+			["char"] = 1, ["character"] = 1, ["varchar"] = 1, ["nvarchar"] = 1, ["nchar"] = 1, ["binary"] = 1, ["varbinary"] = 1,
+		};
+
+		/// <summary>Whether a name is a system type's: one part, or <c>sys</c> and one, the last of the list however it is quoted.</summary>
+		static bool IsSystemTypeName(QualifiedName name, out string last)
+		{
+			last = "";
+
+			if (name.Count is 0 or > 2 || name.Count == 2 && !Unquoted(name[0].Text).Equals("sys", StringComparison.OrdinalIgnoreCase))
+				return false;
+
+			last = Unquoted(name[name.Count - 1].Text).TrimEnd();
+
+			return TransactSqlSystemTypes.Contains(last);
+		}
+
+		/// <summary>
+		/// T-SQL: Data types (Transact-SQL). A <see cref="DataType.Named"/> is a system type of the list that the standard's record
+		/// does not take, with whole numbers for its arguments; any other name reads as a user-defined type, <c>int</c> as the standard's
+		/// integer, and <c>xml</c> as the xml type.
+		/// </summary>
+		void CheckNamedType(DataType.Named named)
+		{
+			if (!transactSql)
+				return;
+
+			if (!IsSystemTypeName(named.Name, out var last))
+				throw Misplaced(named, "Name", "that is no system type of T-SQL, which reads back as a user-defined type");
+
+			if (last.Equals("xml", StringComparison.OrdinalIgnoreCase))
+				throw Misplaced(named, "Name", "xml, which reads back as the xml type");
+
+			if (named.Arguments.Count > 2 || named.Arguments.Any(static one => one is not LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger }))
+				throw Misplaced(named, "Arguments", "other than one or two whole numbers");
+
+			if (StandardTypeArguments.TryGetValue(last, out var most) && named.Arguments.Count <= most)
+				throw Misplaced(named, "Name", $"{last} with {named.Arguments.Count} arguments, which reads back as the standard's type");
 		}
 
 		/// <summary>

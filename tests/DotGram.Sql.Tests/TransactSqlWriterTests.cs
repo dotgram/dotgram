@@ -365,6 +365,64 @@ public sealed class TransactSqlWriterTests
 		Assert.Equal(tree, Read(text));
 	}
 
+	// ── System types ──────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// The writer's system types are the bridge's, both ways: a type written by one of these names reads back as that type, and any
+	/// other name as a user-defined type, so the two lists have to agree.
+	/// </summary>
+	[Fact]
+	public void The_system_types_are_the_bridge_s()
+	{
+		var text  = typeof(Sql2023Writer).GetNestedType("Text", BindingFlags.NonPublic)!;
+		var field = text.GetField("TransactSqlSystemTypes", BindingFlags.NonPublic | BindingFlags.Static)!;
+		var types = (HashSet<string>)field.GetValue(null)!;
+
+		Assert.Empty(types.Except(Bridge.Values.SystemTypes, StringComparer.OrdinalIgnoreCase));
+		Assert.Empty(Bridge.Values.SystemTypes.Except(types, StringComparer.OrdinalIgnoreCase));
+	}
+
+	/// <summary>
+	/// A <c>Named</c> type that reads back as another is refused, and so is a user-defined one that does: a name that is no system type,
+	/// a word the grammar reads as a key word (<c>GO</c>, <c>MAX</c>, <c>VALUE</c>), <c>int</c> and <c>xml</c> with what the
+	/// standard's records take.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "GO",       false)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "MAX",      false)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "VALUE",    false)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "foo",      false)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "[GO]",     false)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "[foo]",    false)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "INT",      false)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "[int]",    false)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "XML",      false)]
+	[InlineData("SELECT CAST(a AS MONEY(10))",   "MONEY",  "CHAR",     false)]
+	[InlineData("SELECT CAST(a AS MONEY(10, 2))", "MONEY", "DECIMAL",  false)]
+	[InlineData("SELECT CAST(a AS foo)",         "foo",    "money",    false)]
+	[InlineData("SELECT CAST(a AS foo)",         "foo",    "[MONEY]",  false)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "MONEY",    true)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "[MONEY]",  true)]
+	[InlineData("SELECT CAST(a AS MONEY(10))",   "MONEY",  "INT",      true)]
+	[InlineData("SELECT CAST(a AS MONEY(10))",   "MONEY",  "[timestamp]", true)]
+	[InlineData("SELECT CAST(a AS MONEY(10, 2))", "MONEY", "CHAR",     true)]
+	[InlineData("SELECT CAST(a AS MONEY)",       "MONEY",  "DATETIME2", true)]
+	public void A_type_that_reads_back_as_another_is_refused(string text, string name, string other, bool written)
+	{
+		var tree    = Read(text);
+		var changed = (ISqlNode)Swap(tree, Plain(name), other.StartsWith('[') ? Bracketed(other.Trim('[', ']')) : Plain(other));
+
+		if (!written)
+		{
+			Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(changed));
+			Assert.NotEmpty(Sql2023Writer.Write(changed));
+
+			return;
+		}
+
+		Assert.Equal(changed, Read(TransactSqlWriter.Write(changed)));
+	}
+
 	// ── Condition against value ──────────────────────────────────────────────────
 
 	/// <summary>The condition every row's text holds at its place, <c>@a = 1</c>, and the value put in its stead, <c>@a</c>.</summary>
