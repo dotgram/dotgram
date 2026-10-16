@@ -710,12 +710,44 @@ sealed partial class Machine
 
 				writer.Line("p++;");
 
+				// Where the runtime has SearchValues, the rest is one search, vectorized, for the first
+				// character outside the class; the floor reads it a character at a time.
+				var searched = ThroughSearch(until.Through!, out var except);
+
+				if (searched is not null)
+				{
+					var end = until.Longest > 1 ? "untilEnd" : EndOfInput;
+
+					writer.Line("#if NET8_0_OR_GREATER");
+					writer.Line($"var throughCap = {end} - p > {ThroughHead} ? p + {ThroughHead} : {end};");
+
+					using (writer.Block("while (p < throughCap)"))
+					{
+						writer.Line($"c = {ReadAt("p")};");
+						writer.Line($"if (!({test})) break;");
+						writer.Line("p++;");
+					}
+
+					using (writer.Block($"if (p == throughCap && p < {end})"))
+					{
+						writer.Line(
+							$"var throughFound = global::System.MemoryExtensions.{(except ? "IndexOfAnyExcept" : "IndexOfAny")}(" +
+							$"text.Slice(p, {end} - p), {searched});");
+						writer.Line($"p = throughFound < 0 ? {end} : p + throughFound;");
+					}
+
+					writer.Line("#else");
+				}
+
 				using (writer.Block($"while ({within})"))
 				{
 					writer.Line($"c = {ReadAt("p")};");
 					writer.Line($"if (!({test})) break;");
 					writer.Line("p++;");
 				}
+
+				if (searched is not null)
+					writer.Line("#endif");
 
 				if (turns is not null)
 					writer.Line($"{turns} += p - untilFrom;");
@@ -724,6 +756,76 @@ sealed partial class Machine
 			}
 		}
 	}
+
+	/// <summary>
+	/// The <c>SearchValues</c> a class read through is searched with where the runtime has them, and
+	/// whether the search is for the first character outside the class (<c>IndexOfAnyExcept</c> over
+	/// the class) or for the first of the rest (<c>IndexOfAny</c>): whichever of the two is smaller,
+	/// and null where both hold more than <see cref="ThroughSearchLimit"/> characters.
+	/// </summary>
+	/// <remarks>
+	/// A static field of the parser, one per set, written under <c>NET8_0_OR_GREATER</c> as the search
+	/// that reads it is: the floor has neither.
+	/// </remarks>
+	string? ThroughSearch(IReadOnlyList<CharRange> through, out bool except)
+	{
+		var rest    = Without([new CharRange('\0', '\uFFFF')], FirstSets.First.Chars(through));
+		var inClass = Count(through);
+		var inRest  = Count(rest);
+
+		except = inClass <= inRest;
+
+		if (Math.Min(inClass, inRest) > ThroughSearchLimit)
+			return null;
+
+		var text = new System.Text.StringBuilder();
+
+		foreach (var range in except ? through : rest)
+			for (int c = range.From; c <= range.To; c++)
+				text.Append(c is >= ' ' and <= '~' and not ('"' or '\\') ? ((char)c).ToString() : $"\\u{c:x4}");
+
+		var key = (except ? "+" : "-") + text;
+
+		if (!_throughSearches.TryGetValue(key, out var name))
+		{
+			name = $"Recognize_DotGram{_tag}_Through{_throughSearches.Count}";
+
+			_throughSearches[key] = name;
+			_classes.Add((name,
+				"#if NET8_0_OR_GREATER\n" +
+				$"static readonly global::System.Buffers.SearchValues<char> {name} =\n" +
+				$"\tglobal::System.Buffers.SearchValues.Create(\"{text}\");\n" +
+				"#endif"));
+		}
+
+		_classesUsed.Add(name);
+
+		return name;
+
+		static int Count(IReadOnlyList<CharRange> ranges)
+		{
+			var count = 0;
+
+			foreach (var range in ranges)
+				count += range.To - range.From + 1;
+
+			return count;
+		}
+	}
+
+	/// <summary>
+	/// The most characters a <see cref="ThroughSearch"/> set holds: past it the field is long to
+	/// write and slow to build, and a class that large on both sides is a category, not text.
+	/// </summary>
+	const int ThroughSearchLimit = 256;
+
+	/// <summary>
+	/// How many characters of a run are read by the plain loop before the search takes the rest: a run
+	/// that ends within them never pays for the call.
+	/// </summary>
+	const int ThroughHead = 8;
+
+	readonly Dictionary<string, string> _throughSearches = new(StringComparer.Ordinal);
 
 	void EmitRecoverySearch(Writer writer, Node sync)
 	{
