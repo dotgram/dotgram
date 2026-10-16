@@ -758,10 +758,10 @@ public static partial class Sql2023Writer
 						break;
 
 					// Nodes the standard's grammar builds and a T-SQL value expression does not read: a row, `*`, `t.*`, a name given to an
-					// argument, a column read as a member, and a current value with a type or a precision or other than T-SQL's.
+					// argument, a column read as a member (but for one of the current value, <c>VALUE.a</c>), and a current value with a type or a precision or other than T-SQL's.
 					case Expression.Row or Expression.Asterisk or Expression.Wildcard:
 					case Argument { Name: not null }:
-					case Expression.Member { Kind: MemberAccessKind.Dot, Arguments: null }:
+					case Expression.Member { Kind: MemberAccessKind.Dot, Arguments: null } member when member.Target is not Expression.Current { Kind: CurrentValue.Value, TypeName: null, Precision: null }:
 					case Expression.Current { TypeName: not null }:
 					case Expression.Current { Precision: not null }:
 					case Expression.Current { Kind: not (CurrentValue.User or CurrentValue.SessionUser or CurrentValue.SystemUser or CurrentValue.CurrentUser or CurrentValue.Value or CurrentValue.Date or CurrentValue.Time or CurrentValue.Timestamp) }:
@@ -773,14 +773,15 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// Whether T-SQL reads a literal: a number (a hexadecimal, octal or binary integer is a binary string to it), a plain or a
+		/// Whether T-SQL reads a literal: a number (its exponent may have no digits; a money amount has a closed list of currency signs,
+		/// then blanks and a sign may come before its digits; a hexadecimal, octal or binary integer is a binary string to it), a plain or a
 		/// national string with no character set, a binary string written <c>0x…</c>, or NULL.
 		/// </summary>
 		static bool IsTransactSqlLiteral(LiteralValue literal)
 		{
 			return literal switch
 			{
-				LiteralValue.Numeric { Kind: NumericLiteralKind.Money } money => Regex.IsMatch(money.Text, @"^\p{Sc}(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$"),
+				LiteralValue.Numeric { Kind: NumericLiteralKind.Money } money => Regex.IsMatch(money.Text, @"^[$¢-¥৲-৳฿៛₠-₱﷼﹩＄￠-￡￥-￦]\s*[+-]?[0-9]+(?:\.[0-9]*)?$"),
 				LiteralValue.Numeric numeric => IsNumberOf(numeric, ExternalShape.Number),
 				LiteralValue.String text     => IsQuoted(text),
 				LiteralValue.Binary binary   => binary.ZeroX,
@@ -802,7 +803,7 @@ public static partial class Sql2023Writer
 				return numeric.Kind == NumericLiteralKind.DecimalInteger && (shape & (ExternalShape.Digits | ExternalShape.Exact | ExternalShape.Number)) != 0;
 
 			// A point with digits on either side, or an integer, and an exponent only where the shape reads one.
-			if (!Regex.IsMatch(text, @"^(?:[0-9]+\.[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$|^[0-9]+[eE][+-]?[0-9]+$"))
+			if (!Regex.IsMatch(text, @"^(?:[0-9]+\.[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]*)?$|^[0-9]+[eE][+-]?[0-9]*$"))
 				return false;
 
 			if (text.IndexOfAny(['e', 'E']) >= 0)

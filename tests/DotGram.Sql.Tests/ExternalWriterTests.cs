@@ -170,6 +170,10 @@ public sealed class ExternalWriterTests
 		["Create external language of other contents"] = (
 			new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Null()), Opt("CONTENT", Current()), Opt("CONTENT", Call("f", Digits("1"), Word("a"))), Opt("FILE_NAME", Str("f")), Opt("PLATFORM", Word("WINDOWS")), Opt("PLATFORM", Word("LINUX")))]),
 			"CREATE EXTERNAL LANGUAGE x FROM (CONTENT = NULL, CONTENT = VALUE, CONTENT = f(1, a), FILE_NAME = 'f', PLATFORM = WINDOWS, PLATFORM = LINUX)"),
+		// A number with an exponent of no digits, a money amount with blanks and a sign, and a member of the current value read as written.
+		["Create external language of numbers and members"] = (
+			new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Numeric("1E", NumericLiteralKind.Approximate)), Opt("CONTENT", new LiteralValue.Numeric("1.5E+", NumericLiteralKind.Approximate)), Opt("CONTENT", new LiteralValue.Numeric("$ 1", NumericLiteralKind.Money)), Opt("CONTENT", new LiteralValue.Numeric("\u00a5 -1.5", NumericLiteralKind.Money)), Opt("CONTENT", new Expression.Member(Current(), MemberAccessKind.Dot, new Identifier("a"))), Opt("FILE_NAME", Str("f")))]),
+			"CREATE EXTERNAL LANGUAGE x FROM (CONTENT = 1E, CONTENT = 1.5E+, CONTENT = $ 1, CONTENT = \u00a5 -1.5, CONTENT = VALUE.a, FILE_NAME = 'f')"),
 		// A file for both platforms and a file for one differ.
 		["Create external language of two sets of platforms"] = (
 			new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Str("a")), Opt("FILE_NAME", Str("f")), Opt("PLATFORM", Word("WINDOWS")), Opt("PLATFORM", Word("LINUX"))), File(Opt("CONTENT", Str("b")), Opt("FILE_NAME", Str("g")), Opt("PLATFORM", Word("WINDOWS")))]),
@@ -520,6 +524,9 @@ public sealed class ExternalWriterTests
 		["a language content that is an asterisk"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Asterisk()), Opt("FILE_NAME", Str("f")))]),
 		["a language content that is a wildcard"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Wildcard(Word("t"), WildcardKind.Member)), Opt("FILE_NAME", Str("f")))]),
 		["a language content that is a named argument"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Invocation(new QualifiedName([new Identifier("f")]), [new Argument(Digits("1"), new Identifier("n"), true)])), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a money amount with no digit before the point"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Numeric("$.5", NumericLiteralKind.Money)), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a money amount of a sign not in the list"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Numeric("\u20bf1", NumericLiteralKind.Money)), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a member of a typed current value"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Member(new Expression.Current(CurrentValue.Value) { TypeName = new QualifiedName([new Identifier("t")]) }, MemberAccessKind.Dot, new Identifier("m"))), Opt("FILE_NAME", Str("f")))]),
 		["a language content that is a member"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Member(Word("a"), MemberAccessKind.Dot, new Identifier("m"))), Opt("FILE_NAME", Str("f")))]),
 		["a language content that is a current value with a type"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Current(CurrentValue.Value, Dotted("t"))), Opt("FILE_NAME", Str("f")))]),
 		["a language content that is a current value T-SQL does not have"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Current(CurrentValue.Catalog)), Opt("FILE_NAME", Str("f")))]),
