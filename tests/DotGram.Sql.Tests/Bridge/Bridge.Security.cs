@@ -1719,6 +1719,8 @@ static partial class Bridge
 
 			var options = reader.Bracketed();
 
+			// The statement's span may take the terminator with it.
+			reader.TakePunctuation(";");
 			reader.Finish();
 
 			return options;
