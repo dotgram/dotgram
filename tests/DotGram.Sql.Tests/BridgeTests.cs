@@ -24,6 +24,14 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	/// </summary>
 	static readonly Dictionary<string, BridgeOracle.Status> Expected = new(StringComparer.Ordinal)
 	{
+		// The bridge builds a name that is not one: a number as the schema collection of `xml(10)`, a type word
+		// `varying` inside a delimited name, and a string as the name after OPENDATASOURCE. The writer refuses
+		// each, since a name that is none would be written as it stands.
+		["CREATE TABLE t1 (c1 xml(10))"]                                                                                   = BridgeOracle.Status.Refused,
+		["CREATE TABLE t1 (c5 [sys].\"Char\" varying)"]                                                                      = BridgeOracle.Status.Refused,
+		["SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something'"]                                         = BridgeOracle.Status.Refused,
+		["SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something' AS Z"]                                    = BridgeOracle.Status.Refused,
+		["SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=ServerName;User ID=MyUID;Password=PLACEHOLDER').'Something' AS Z"] = BridgeOracle.Status.Refused,
 	};
 
 	/// <summary>

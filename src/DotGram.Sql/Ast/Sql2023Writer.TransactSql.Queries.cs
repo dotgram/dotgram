@@ -894,7 +894,7 @@ public static partial class Sql2023Writer
 			if (name.Style != IdentifierStyle.Regular || !name.Text.StartsWith("@", StringComparison.Ordinal))
 				throw Misplaced(node, "Name", "that is not a regular name starting with @");
 
-			PutIdentifier(name);
+			PutVariableName(name, "a variable");
 		}
 
 		/// <summary>T-SQL: WITH XMLNAMESPACES (Transact-SQL).</summary>

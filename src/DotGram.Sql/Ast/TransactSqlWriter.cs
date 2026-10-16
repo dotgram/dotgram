@@ -211,7 +211,8 @@ public static partial class Sql2023Writer
 			{
 				for (var at = 0; at < name.Count - 1; at++)
 				{
-					PutIdentifier(name[at]);
+					PutPart(name, at);
+
 					Tight(".");
 					Hold();
 				}

@@ -271,6 +271,10 @@ public sealed class TransactSqlWriterTests
 		if (node.Equals(from))
 			return to;
 
+		// A name is a struct of parts, which the record copy below does not reach.
+		if (node is QualifiedName qualified)
+			return new QualifiedName(SqlList.From(Enumerable.Range(0, qualified.Count).Select(at => (Identifier)Swap(qualified[at], from, to)).ToArray()));
+
 		var type = node.GetType();
 
 		if (type.Namespace != typeof(Statement).Namespace || !type.IsClass || type.GetMethod("<Clone>$") is not { } clone)
@@ -786,5 +790,47 @@ public sealed class TransactSqlWriterTests
 			Assert.Equal("SELECT a FROM t WHERE a = " + text, Sql2023Writer.Write(tree));
 		else
 			Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(tree));
+	}
+
+	/// <summary>
+	/// A plain name is written as it stands, so one that T-SQL does not read as a name (a variable, a number, a word with a blank in
+	/// it, a bracket never closed, a bare `#`) is refused: written, it would read as something else or not at all.
+	/// </summary>
+	[Theory]
+	[InlineData("DROP ROLE r", "r")]
+	[InlineData("CREATE LOGIN r WITH PASSWORD = 'p'", "r")]
+	[InlineData("ALTER ROLE r ADD MEMBER m", "m")]
+	[InlineData("ALTER ROLE r DROP MEMBER m", "r")]
+	[InlineData("SELECT a FROM t WHERE c = 1", "c")]
+	[InlineData("SELECT a FROM t", "t")]
+	[InlineData("SELECT a FROM t", "a")]
+	[InlineData("CREATE USER u WITH DEFAULT_LANGUAGE = l", "l")]
+	[InlineData("CREATE TABLE t (c INT)", "c")]
+	[InlineData("INSERT INTO t (c) VALUES (1)", "c")]
+	public void A_plain_name_that_is_none_is_refused(string text, string target)
+	{
+		foreach (var bad in new[] { "@x", "@@x", "1", "1a", "a b", "a\nb", "[a", "a]", "\"a", "#", "##", "#1", "a;b", "a.b", "a,b", "a'b", "-", "", "\U0001D400a" })
+		{
+			var tree = (ISqlNode)Swap(Read(text), Plain(target), Plain(bad));
+
+			Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+		}
+	}
+
+	/// <summary>The plain names T-SQL does read: temporary ones, pseudo-columns, `_`, `$`, `#` and `@` after the first.</summary>
+	[Theory]
+	[InlineData("#t")]
+	[InlineData("##t")]
+	[InlineData("#t1")]
+	[InlineData("_a")]
+	[InlineData("a$b#c@d")]
+	[InlineData("\u00E9t\u00E9")]
+	public void A_plain_name_that_is_one_is_written_and_read_back(string name)
+	{
+		var tree = (ISqlNode)Swap(Read("SELECT a FROM t WHERE c = 1"), Plain("t"), Plain(name));
+		var written = TransactSqlWriter.Write(tree);
+
+		Assert.Equal("SELECT a FROM " + name + " WHERE c = 1", written);
+		Assert.Equal(tree, Read(written));
 	}
 }

@@ -588,7 +588,7 @@ public static partial class Sql2023Writer
 
 			if (returns.Variable is { } named)
 			{
-				PutIdentifier(named);
+				PutVariableName(returns, named);
 				Word("TABLE");
 				PutElements(returns.Elements!.Value);
 			}

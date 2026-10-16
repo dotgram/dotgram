@@ -337,14 +337,20 @@ public static partial class Sql2023Writer
 
 		/// <summary>
 		/// A plain name: a letter or <c>_</c> and then letters, digits and <c>_ @ # $</c> (<c>TSql.RegularIdentifier</c>), or a temporary
-		/// name, which is that after one <c>#</c> or two (<c>TSql.TemporaryName</c>).
+		/// name, which is that after one <c>#</c> or two (<c>TSql.TemporaryName</c>), or a pseudo-column, which is that after a
+		/// <c>$</c> (<c>TSql.PseudoColumn</c>: <c>$ACTION</c>, <c>$node_id</c>), or a system function's, after <c>::</c>.
+		/// The grammar reads UTF-16 units, so a letter outside the basic plane is none.
 		/// </summary>
 		static bool IsRegularName(string text)
 		{
 			var at = 0;
 
-			if (text.Length > 0 && text[0] == '#')
+			if (text.StartsWith("::", StringComparison.Ordinal))
+				at = 2;
+			else if (text.Length > 0 && text[0] == '#')
 				at = text.Length > 1 && text[1] == '#' ? 2 : 1;
+			else if (text.Length > 0 && text[0] == '$')
+				at = 1;
 
 			if (at >= text.Length || !(char.IsLetter(text[at]) || text[at] == '_'))
 				return false;

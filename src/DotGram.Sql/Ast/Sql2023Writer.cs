@@ -179,6 +179,10 @@ public static partial class Sql2023Writer
 				throw Misplaced(identifier, "Style", "a string, which only a select column's alias is written as");
 
 			CheckReserved(identifier);
+
+			if (transactSql)
+				CheckExternalName(identifier, "a name");
+
 			Word(identifier.Text);
 
 			if (identifier.UnicodeEscape is { } escape)
@@ -198,8 +202,21 @@ public static partial class Sql2023Writer
 					Hold();
 				}
 
-				PutIdentifier(name[at]);
+				PutPart(name, at);
 			}
+		}
+
+		/// <summary>
+		/// A part of a name. In T-SQL's reading a part with no text that is not the last is left out, as <c>db..t</c> leaves out
+		/// the schema: it is no name to check, and nothing stands in its place but the space that keeps the dot off the token
+		/// before it.
+		/// </summary>
+		void PutPart(QualifiedName name, int at)
+		{
+			if (transactSql && at < name.Count - 1 && name[at] is { Text.Length: 0, Style: IdentifierStyle.Regular, UnicodeEscape: null })
+				Word("");
+			else
+				PutIdentifier(name[at]);
 		}
 
 		static string Dotted(QualifiedName name)

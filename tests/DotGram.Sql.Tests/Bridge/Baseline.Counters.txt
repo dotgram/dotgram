@@ -4,7 +4,7 @@
 #   Meaning <pattern>   - a difference exempted from the shape check, inside the subtree the pattern names
 # Rewritten deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1.
 
-ByCase Clause.ColumnDefinition.Type = 1850
+ByCase Clause.ColumnDefinition.Type = 1849
 ByCase Clause.Dropped.Tail = 5
 ByCase Clause.EventPiece.Where = 68
 ByCase Clause.For.Kind = 20

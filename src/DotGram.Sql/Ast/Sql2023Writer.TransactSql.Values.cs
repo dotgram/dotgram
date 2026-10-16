@@ -16,10 +16,7 @@ public static partial class Sql2023Writer
 			{
 				// The name holds its `@` or `@@`; any other name would be a column.
 				case Expression.Variable variable:
-					if (variable.Name.Style != IdentifierStyle.Regular || !variable.Name.Text.StartsWith("@", StringComparison.Ordinal))
-						throw Misplaced(variable, "Name", "that is not a regular name starting with @");
-
-					PutIdentifier(variable.Name);
+					PutVariableName(variable, variable.Name);
 					return true;
 
 				case Expression.Convert convert:
