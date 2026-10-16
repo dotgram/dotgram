@@ -156,7 +156,64 @@ public sealed class WriterPrecedenceTests
 		while (node is Expression.Parenthesized parenthesized)
 			node = parenthesized.Value;
 
-		return Rebuild(node, Unbracketed);
+		var rebuilt = Rebuild(node, Unbracketed);
+
+		return rebuilt is Expression.JsonAccessor accessor ? accessor with { Accessor = Unbracketed(accessor.Accessor) } : rebuilt;
+	}
+
+	/// <summary>A JSON path's accessor with every bracket of the path language taken out.</summary>
+	static JsonPathAccessor Unbracketed(JsonPathAccessor accessor)
+	{
+		switch (accessor)
+		{
+			case JsonPathAccessor.Array array:
+				return array with { Subscripts = [.. array.Subscripts.Select(static one => one with { From = Unbracketed(one.From), To = one.To is null ? null : Unbracketed(one.To) })] };
+
+			case JsonPathAccessor.Filter filter:
+				return filter with { Predicate = Unbracketed(filter.Predicate) };
+
+			default:
+				return accessor;
+		}
+	}
+
+	static JsonPathExpression Unbracketed(JsonPathExpression path)
+	{
+		while (path is JsonPathExpression.Parenthesized parenthesized)
+			path = parenthesized.Value;
+
+		switch (path)
+		{
+			case JsonPathExpression.Unary unary:
+				return unary with { Operand = Unbracketed(unary.Operand) };
+
+			case JsonPathExpression.Binary binary:
+				return binary with { Left = Unbracketed(binary.Left), Right = Unbracketed(binary.Right) };
+
+			case JsonPathExpression.Access access:
+				return access with { Target = Unbracketed(access.Target), Accessor = Unbracketed(access.Accessor) };
+
+			default:
+				return path;
+		}
+	}
+
+	static JsonPathPredicate Unbracketed(JsonPathPredicate predicate)
+	{
+		while (predicate is JsonPathPredicate.Parenthesized parenthesized)
+			predicate = parenthesized.Predicate;
+
+		switch (predicate)
+		{
+			case JsonPathPredicate.Or or:
+				return or with { Items = [.. or.Items.Select(Unbracketed)] };
+
+			case JsonPathPredicate.Comparison comparison:
+				return comparison with { Left = Unbracketed(comparison.Left), Right = Unbracketed(comparison.Right) };
+
+			default:
+				return predicate;
+		}
 	}
 
 	/// <summary>The tree with a bracket around every operand that is not a name or a number.</summary>
@@ -403,6 +460,44 @@ public sealed class WriterPrecedenceTests
 	{
 		Standardly(new Expression.Element(Binary(A, BinaryOperator.Concatenate, B), One), "(a || b)[1]");
 		Standardly(new Expression.Member(Binary(A, BinaryOperator.Add, B), MemberAccessKind.Dot, new Identifier("m"), []), "(a + b).m()");
+	}
+
+	/// <summary>
+	/// The path language of a JSON accessor has its own levels — `+ -`, `* / %`, signs, a primary and its accessors — and a
+	/// disjunction whose items are read as one list.
+	/// </summary>
+	[Fact]
+	public void A_JSON_path_brackets_by_its_own_levels()
+	{
+		static Expression Path(JsonPathExpression path)
+		{
+			return new Expression.JsonAccessor(A, new JsonPathAccessor.Array([new JsonSubscript(path)]));
+		}
+
+		var context = new JsonPathExpression.Variable(JsonPathVariableKind.Context);
+		var last    = new JsonPathExpression.Variable(JsonPathVariableKind.Last);
+
+		static JsonPathExpression Operated(JsonPathExpression left, JsonPathBinaryOperator op, JsonPathExpression right)
+		{
+			return new JsonPathExpression.Binary(left, op, right);
+		}
+
+		static JsonPathPredicate Greater(JsonPathExpression left, JsonPathExpression right)
+		{
+			return new JsonPathPredicate.Comparison(left, JsonPathComparisonOperator.Greater, right);
+		}
+
+		Standardly(Path(Operated(context, JsonPathBinaryOperator.Subtract, Operated(context, JsonPathBinaryOperator.Subtract, last))), "a[$ - ($ - LAST)]");
+		Standardly(Path(Operated(Operated(context, JsonPathBinaryOperator.Subtract, context), JsonPathBinaryOperator.Subtract, last)), "a[$ - $ - LAST]");
+		Standardly(Path(Operated(Operated(context, JsonPathBinaryOperator.Add, context), JsonPathBinaryOperator.Modulo, last)), "a[($ + $) % LAST]");
+		Standardly(Path(Operated(context, JsonPathBinaryOperator.Add, Operated(context, JsonPathBinaryOperator.Multiply, last))), "a[$ + $ * LAST]");
+		Standardly(Path(new JsonPathExpression.Unary(JsonPathUnaryOperator.Minus, Operated(context, JsonPathBinaryOperator.Add, last))), "a[-($ + LAST)]");
+		Standardly(Path(new JsonPathExpression.Unary(JsonPathUnaryOperator.Minus, new JsonPathExpression.Unary(JsonPathUnaryOperator.Minus, last))), "a[- -LAST]");
+		Standardly(Path(new JsonPathExpression.Access(Operated(context, JsonPathBinaryOperator.Add, last), new JsonPathAccessor.WildcardArray())), "a[($ + LAST)[*]]");
+
+		var or = new JsonPathPredicate.Or([Greater(context, last), new JsonPathPredicate.Or([Greater(last, context), Greater(context, context)])]);
+
+		Standardly(Path(new JsonPathExpression.Access(context, new JsonPathAccessor.Filter(or))), "a[$ ? ($ > LAST || (LAST > $ || $ > $))]");
 	}
 
 	/// <summary>

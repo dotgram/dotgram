@@ -2482,11 +2482,13 @@ public static partial class Sql2023Writer
 					if (unary.Operand is not JsonPathExpression.Unary)
 						Hold();
 
-					PutPath(unary.Operand);
+					PutPathOperand(unary.Operand, PathSigned);
 					break;
 
 				case JsonPathExpression.Binary binary:
-					PutPath(binary.Left);
+					var binding = PathStrength(binary);
+
+					PutPathOperand(binary.Left, binding);
 					Word(binary.Operator switch
 					{
 						JsonPathBinaryOperator.Add      => "+",
@@ -2496,11 +2498,11 @@ public static partial class Sql2023Writer
 						JsonPathBinaryOperator.Modulo                               => "%",
 						_                               => throw NoText(binary.Operator),
 					});
-					PutPath(binary.Right);
+					PutPathOperand(binary.Right, binding + 1);
 					break;
 
 				case JsonPathExpression.Access access:
-					PutPath(access.Target);
+					PutPathOperand(access.Target, PathPrimary);
 					PutPathAccessor(access.Accessor);
 					break;
 
@@ -2513,6 +2515,39 @@ public static partial class Sql2023Writer
 				default:
 					throw Unwritten(path);
 			}
+		}
+
+		// The path language's levels (§9.46's <JSON path wff>): `+ -`, then `* / %`, each from the left; signs, which
+		// stand on each other; and a primary with its accessors.
+		const int PathAdditive       = 1;
+		const int PathMultiplicative = 2;
+		const int PathSigned         = 3;
+		const int PathPrimary        = 4;
+
+		static int PathStrength(JsonPathExpression path)
+		{
+			return path switch
+			{
+				JsonPathExpression.Binary { Operator: JsonPathBinaryOperator.Add or JsonPathBinaryOperator.Subtract } => PathAdditive,
+				JsonPathExpression.Binary => PathMultiplicative,
+				JsonPathExpression.Unary => PathSigned,
+				_ => PathPrimary,
+			};
+		}
+
+		/// <summary>An operand of the path language, in a bracket where it binds looser than <paramref name="least"/>.</summary>
+		void PutPathOperand(JsonPathExpression operand, int least)
+		{
+			if (PathStrength(operand) >= least)
+			{
+				PutPath(operand);
+
+				return;
+			}
+
+			Open();
+			PutPath(operand);
+			Close();
 		}
 
 		void PutPathPredicate(JsonPathPredicate predicate)
@@ -2568,7 +2603,15 @@ public static partial class Sql2023Writer
 						if (at > 0)
 							Word("||");
 
-						PutPathPredicate(or.Items[at]);
+						// The items of a disjunction are read as one list: one that is a disjunction itself keeps its own in a bracket.
+						if (or.Items[at] is JsonPathPredicate.Or)
+						{
+							Open();
+							PutPathPredicate(or.Items[at]);
+							Close();
+						}
+						else
+							PutPathPredicate(or.Items[at]);
 					}
 
 					break;
