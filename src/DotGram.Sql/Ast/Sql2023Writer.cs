@@ -646,6 +646,14 @@ public static partial class Sql2023Writer
 					break;
 
 				case DataType.Numeric numeric:
+					// A length is for the types that take one; a scale for the exact numbers alone, after a precision.
+					if (numeric.Precision is not null && numeric.Kind is NumericTypeKind.SmallInt or NumericTypeKind.Integer or NumericTypeKind.Int or NumericTypeKind.BigInt or NumericTypeKind.Real or NumericTypeKind.DoublePrecision
+						|| numeric.Scale is not null && (numeric.Precision is null || numeric.Kind is not (NumericTypeKind.Numeric or NumericTypeKind.Decimal or NumericTypeKind.Dec)))
+						throw Misplaced(numeric, "Precision", "or Scale that the type does not take: a length for the integers, REAL and DOUBLE PRECISION, a scale beyond NUMERIC, DECIMAL and DEC or without a precision");
+
+					if (transactSql && numeric.Kind == NumericTypeKind.DecFloat)
+						throw Misplaced(numeric, "Kind", "DecFloat, which T-SQL does not have: DECFLOAT is the name of another type there");
+
 					PutTypeName(numeric, numeric.Kind switch
 					{
 						NumericTypeKind.Numeric         => "NUMERIC",
@@ -683,6 +691,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case DataType.DateTime datetime:
+					if (transactSql && datetime.Kind == DateTimeTypeKind.Timestamp)
+						throw Misplaced(datetime, "Kind", "Timestamp, which T-SQL reads as the name of its own row-version type");
+
 					PutTypeName(datetime, datetime.Kind switch { DateTimeTypeKind.Date => "DATE", DateTimeTypeKind.Time => "TIME", DateTimeTypeKind.Timestamp => "TIMESTAMP", _ => throw NoText(datetime.Kind) });
 
 					if (datetime.Precision is { } fraction)
@@ -2126,13 +2137,16 @@ public static partial class Sql2023Writer
 		{
 			if (parameter.Kind == ParameterKind.Dynamic)
 			{
+				if (parameter.Name is not null || parameter.Indicator is not null)
+					throw Misplaced(parameter, "Name", "or Indicator on a dynamic parameter, which `?` does not say");
+
 				Word("?");
 				return;
 			}
 
-			// The three that name a variable are written alike.
-			if (parameter.Kind is not (ParameterKind.Host or ParameterKind.Sql or ParameterKind.Embedded))
-				throw NoText(parameter.Kind);
+			// `:x` is read as a host parameter and nothing else; the other kinds have no text of their own.
+			if (parameter.Kind != ParameterKind.Host || parameter.Name is null)
+				throw Misplaced(parameter, "Kind", "or Name that the text `:x` does not say: it is a host parameter with a name");
 
 			Word(":");
 			Hold();
@@ -2151,6 +2165,10 @@ public static partial class Sql2023Writer
 
 		void PutCurrent(Expression.Current current)
 		{
+			// T-SQL reads these words as plain names, and no other as a value of its own.
+			if (transactSql && current.Kind is CurrentValue.Catalog or CurrentValue.DefaultTransformGroup or CurrentValue.Path or CurrentValue.Role or CurrentValue.Schema or CurrentValue.LocalTime or CurrentValue.LocalTimestamp)
+				throw Misplaced(current, "Kind", "that T-SQL does not read as a value of its own: the word is a name there");
+
 			switch (current.Kind)
 			{
 				case CurrentValue.TransformGroupForType:
@@ -2742,6 +2760,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case JsonPathExpression.Access access:
+					// `LAST` is read as a variable only in a subscript, and before an accessor it is a name.
+					if (access.Target is JsonPathExpression.Variable { Kind: JsonPathVariableKind.Last })
+						throw Misplaced(access, "Target", "that is LAST, which is not read as a variable before an accessor");
+
 					PutPathOperand(access.Target, PathPrimary);
 					PutPathAccessor(access.Accessor);
 					break;
