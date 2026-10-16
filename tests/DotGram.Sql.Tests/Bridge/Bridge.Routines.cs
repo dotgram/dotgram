@@ -189,8 +189,9 @@ static partial class Bridge
 			var tokens = SqlTokens.Of(text);
 			var at     = tokens.FindIndex(static one => one.Kind == SqlTokens.Kind.Word && one.Text.ToUpperInvariant() is "PROC" or "PROCEDURE" or "FUNCTION") + 1;
 
-			// The name: parts between dots, a part left out between two of them.
-			at++;
+			// The name: parts between dots, a part left out between two of them, or before the first.
+			if (at < tokens.Count && tokens[at].Text != ".")
+				at++;
 
 			while (at < tokens.Count && tokens[at].Text == ".")
 			{
