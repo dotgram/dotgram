@@ -324,14 +324,16 @@ public static partial class Sql2023Writer
 			{
 				var read = column switch
 				{
-					Expression.Reference { Name.Count: 1 } => true,
+					// The grammar's TableSearchColumn is an Identifier: not a part left out, and not one of the engine's own, $ACTION.
+					Expression.Reference { Name: [{ Text.Length: > 0 } one] } reference => IsName(reference) && !one.Text.StartsWith("$", StringComparison.Ordinal),
 					Expression.Asterisk                          => columns.Count == 1,
 					Expression.Invocation { Name: [var called] } when called.Text.Equals("PROPERTY", StringComparison.OrdinalIgnoreCase) => !bracketed,
 					_                                            => false,
 				};
 
 				if (!read)
-					throw Misplaced(node, "Columns", "with a column other than a name of one part, * alone, or PROPERTY (…) alone and unbracketed");
+					throw Misplaced(node, "Columns", "with a column other than a plain name of one part, * alone, or PROPERTY (…) alone and unbracketed");
+
 			}
 
 			Word(name);

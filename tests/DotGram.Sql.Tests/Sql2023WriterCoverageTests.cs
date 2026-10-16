@@ -202,6 +202,18 @@ public sealed class Sql2023WriterCoverageTests
 	}
 
 	/// <summary><c>ALTER TABLE t</c> and the action given.</summary>
+	/// <summary><c>CREATE TABLE t (a INT) WITH (option)</c>.</summary>
+	static Statement.CreateTable Created(Option option)
+	{
+		return new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Options = [option] };
+	}
+
+	/// <summary><c>HASH (column)</c>, a table's distribution.</summary>
+	static Expression.Invocation Hashed(Expression column)
+	{
+		return new Expression.Invocation(new QualifiedName([new Identifier("HASH")]), [new Argument(column)]);
+	}
+
 	static Statement.AlterTable Altered(AlterTableAction action)
 	{
 		return new Statement.AlterTable { Name = T, Actions = [action] };
@@ -1332,6 +1344,13 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("ALL with a partition in REBUILD")]
 	[InlineData("options on DISABLE CHANGE_TRACKING")]
 	[InlineData("SET with no option")]
+	[InlineData("LOCK_ESCALATION set to a word it does not read")]
+	[InlineData("LOCK_ESCALATION in a table's WITH")]
+	[InlineData("DATA_COMPRESSION in SET")]
+	[InlineData("DATA_COMPRESSION set to a name with a part left out")]
+	[InlineData("DATA_COMPRESSION set to a word it does not read")]
+	[InlineData("DISTRIBUTION = HASH over a name with a part left out")]
+	[InlineData("DISTRIBUTION = HASH over a number")]
 	[InlineData("WITH CHECK before a SWITCH")]
 	[InlineData("a T-SQL action beside another")]
 	[InlineData("a collation directly after a default")]
@@ -1666,6 +1685,13 @@ public sealed class Sql2023WriterCoverageTests
 			"ALL with a partition in REBUILD" => Altered(new AlterTableAction.Rebuild(A, true, [])),
 			"options on DISABLE CHANGE_TRACKING" => Altered(new AlterTableAction.ChangeTracking(false, [new Option(new Identifier("TRACK_COLUMNS_UPDATED"), A, [])])),
 			"SET with no option" => Altered(new AlterTableAction.SetOptions([])),
+			"LOCK_ESCALATION set to a word it does not read" => Altered(new AlterTableAction.SetOptions([Set("LOCK_ESCALATION", "FOO")])),
+			"LOCK_ESCALATION in a table's WITH" => Created(Set("LOCK_ESCALATION", "AUTO")),
+			"DATA_COMPRESSION in SET" => Altered(new AlterTableAction.SetOptions([Set("DATA_COMPRESSION", "PAGE")])),
+			"DATA_COMPRESSION set to a name with a part left out" => Created(new Option(new Identifier("DATA_COMPRESSION"), new Expression.Reference(new QualifiedName([new Identifier(""), new Identifier("ROW")])), [])),
+			"DATA_COMPRESSION set to a word it does not read" => Created(Set("DATA_COMPRESSION", "FOO")),
+			"DISTRIBUTION = HASH over a name with a part left out" => Created(new Option(new Identifier("DISTRIBUTION"), Hashed(new Expression.Reference(new QualifiedName([new Identifier(""), new Identifier("c")]))), [])),
+			"DISTRIBUTION = HASH over a number" => Created(new Option(new Identifier("DISTRIBUTION"), Hashed(Two), [])),
 			"WITH CHECK before a SWITCH" => new Statement.AlterTable { Name = T, Actions = [new AlterTableAction.Switch(null, U, null, [])], Check = ConstraintCheck.Check },
 			"a T-SQL action beside another" => new Statement.AlterTable { Name = T, Actions = [new AlterTableAction.SetOptions([new Option(new Identifier("LOCK_ESCALATION"), A, [])]), new AlterTableAction.AddSystemVersioning()] },
 			"a mask function on other than ADD MASKED" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(false, ColumnPropertyKind.Masked, Str, []), true)),
@@ -1960,6 +1986,8 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("CONTAINSTABLE with two columns unbracketed")]
 	[InlineData("CONTAINSTABLE with * among other columns")]
 	[InlineData("CONTAINSTABLE with PROPERTY in brackets")]
+	[InlineData("CONTAINSTABLE with the engine's own column")]
+	[InlineData("CONTAINSTABLE with a column left out")]
 	[InlineData("FREETEXTTABLE with a qualified column")]
 	[InlineData("FREETEXTTABLE with a value for a column")]
 	[InlineData("a MATCH with no pattern")]
@@ -2035,7 +2063,10 @@ public sealed class Sql2023WriterCoverageTests
 			"CHANGETABLE VERSION with no key value"              => Joined(new TableSource.ChangeTableVersion(T, [new Identifier("k")], [], false)),
 			"CONTAINSTABLE with no column"                       => Joined(new TableSource.ContainsTable(T, [], A, null, null) { ColumnsBracketed = true }),
 			"CONTAINSTABLE with two columns unbracketed"         => Joined(new TableSource.ContainsTable(T, [Searched("a"), Searched("b")], A, null, null)),
-			"CONTAINSTABLE with * among other columns"           => Joined(new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, null, null) { ColumnsBracketed = true }),
+			"CONTAINSTABLE with the engine's own column"         => Joined(new TableSource.ContainsTable(T, [Searched("$ACTION")], A, null, null)),
+			"CONTAINSTABLE with a column left out"               => Joined(new TableSource.ContainsTable(T, [Searched("")], A, null, null)),
+			"CONTAINSTABLE with * among other columns"           => Joined(
+new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, null, null) { ColumnsBracketed = true }),
 			"CONTAINSTABLE with PROPERTY in brackets"            => Joined(new TableSource.ContainsTable(T, [new Expression.Invocation(new QualifiedName([new Identifier("PROPERTY")]), [new Argument(Searched()), new Argument(A)])], A, null, null) { ColumnsBracketed = true }),
 			"FREETEXTTABLE with a qualified column"              => Joined(new TableSource.FreetextTable(T, [new Expression.Reference(new QualifiedName([new Identifier("t"), new Identifier("c")]))], A, null, null)),
 			"FREETEXTTABLE with a value for a column"            => Joined(new TableSource.FreetextTable(T, [new Expression.Variable(new Identifier("@v"))], A, null, null)),

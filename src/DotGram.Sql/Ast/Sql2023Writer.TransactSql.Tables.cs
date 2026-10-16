@@ -78,6 +78,7 @@ public static partial class Sql2023Writer
 					if (set.Options.Count == 0)
 						throw Empty(set, "Options");
 
+					CheckTableOptions(set, set.Options, set: true);
 					Word("SET");
 					Open();
 					Each(set.Options, PutOption);
@@ -403,6 +404,7 @@ public static partial class Sql2023Writer
 						Close();
 					}
 
+					CheckTableOptions(table, table.Options, set: false);
 					PutOptions(table.Options);
 					Word("AS");
 					PutQuery(query.Query);
@@ -426,6 +428,7 @@ public static partial class Sql2023Writer
 					foreach (var placement in table.Placements)
 						PutPlacement(placement);
 
+					CheckTableOptions(table, table.Options, set: false);
 					PutOptions(table.Options);
 					return true;
 
@@ -1453,7 +1456,46 @@ public static partial class Sql2023Writer
 			return value is Expression.Reference { Name: [var part] } && Plain(part, words);
 		}
 
+		/// <summary>
+		/// T-SQL: CREATE TABLE (Transact-SQL), ALTER TABLE (Transact-SQL). The options whose values the grammar's table catalogue
+		/// closes, written as it reads them: LOCK_ESCALATION set to AUTO, TABLE or DISABLE, and only by SET; DATA_COMPRESSION,
+		/// XML_COMPRESSION, MEMORY_OPTIMIZED, DURABILITY and DISTRIBUTION only when the table is created, each with a value from its
+		/// list, DISTRIBUTION's HASH over plain column names. An option of another name is left to the writer of options.
+		/// </summary>
+		static void CheckTableOptions(ISqlNode owner, SqlList<Option> options, bool set)
+		{
+			foreach (var option in options)
+
+
+			{
+				if (!Plain(option.Name, "LOCK_ESCALATION", "DATA_COMPRESSION", "XML_COMPRESSION", "MEMORY_OPTIMIZED", "DURABILITY", "DISTRIBUTION"))
+					continue;
+
+				var value = option.Value;
+				var read  = option.Options.Count == 0 && set == Plain(option.Name, "LOCK_ESCALATION")
+					&& (Plain(option.Name, "LOCK_ESCALATION") && IsWord(value, "AUTO", "TABLE", "DISABLE")
+						|| Plain(option.Name, "DATA_COMPRESSION") && IsWord(value, "NONE", "ROW", "PAGE", "COLUMNSTORE", "COLUMNSTORE_ARCHIVE")
+						|| Plain(option.Name, "XML_COMPRESSION", "MEMORY_OPTIMIZED") && IsWord(value, "ON", "OFF")
+						|| Plain(option.Name, "DURABILITY") && IsWord(value, "SCHEMA_ONLY", "SCHEMA_AND_DATA")
+						|| Plain(option.Name, "DISTRIBUTION") && (IsWord(value, "ROUND_ROBIN", "REPLICATE") || IsHashDistribution(value)));
+
+				if (!read)
+					throw Misplaced(owner, "Options", $"with {option.Name.Text} {(set ? "in SET" : "in WITH")} set to a value, or at a place, that the grammar's table catalogue does not read");
+			}
+		}
+
+		/// <summary>The grammar's <c>HASH (Identifier, …)</c>: a call of HASH over plain names of one part, and nothing else of a call.</summary>
+		static bool IsHashDistribution(Expression? value)
+		{
+			return value is Expression.Invocation { Name: [var called], Arguments.Count: > 0 } call && Plain(called, "HASH")
+				&& call.Quantifier is null && call.OrderBy is null && call.Overflow is null && call.From is null && call.Nulls is null
+				&& call.Semantics is null && call.Filter is null && call.Over is null && call.WithinGroup is null && call.Copartition is null
+				&& !call.WithoutParentheses
+				&& call.Arguments.All(static argument => argument is { Name: null, NamedAssignment: false } && IsName(argument.Value));
+		}
+
 		/// <summary>T-SQL: CREATE TYPE (Transact-SQL). A type's name has no empty part, as a synonym's may.</summary>
+
 		static void CheckTypeName(ISqlNode owner, QualifiedName name)
 		{
 			if (name.Count == 0 || name.Parts.Any(static part => part.Text.Length == 0))
