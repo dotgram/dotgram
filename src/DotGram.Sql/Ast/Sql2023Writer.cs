@@ -935,6 +935,25 @@ public static partial class Sql2023Writer
 				case Expression.MultisetOperation:
 					return Towers.Multiset;
 
+				// The grammar's typed value functions (ValueFunction): each is a primary of its own tower alone.
+				case Expression.Current { Kind: CurrentValue.Date or CurrentValue.Time or CurrentValue.Timestamp or CurrentValue.LocalTime or CurrentValue.LocalTimestamp }:
+					return Towers.Datetime;
+
+				case Expression.Position or Expression.Length or Expression.Extract:
+					return Towers.Numeric;
+
+				case Expression.Regex regex:
+					return regex.Function is RegexFunction.OccurrencesRegex or RegexFunction.PositionRegex ? Towers.Numeric : Towers.String;
+
+				case Expression.Substring or Expression.Trim or Expression.Overlay or Expression.TranslateUsing or Expression.Normalize or Expression.JsonSerialize:
+					return Towers.String;
+
+				case Expression.JsonParse or Expression.JsonScalar:
+					return Towers.Json;
+
+				case Expression.Invocation { Name: [var called] } call when call.Over is null && call.Filter is null && call.Quantifier is null && call.WithinGroup is null && call.OrderBy is null:
+					return NamedFunctionRoles(called, call.Arguments.Count);
+
 				case Expression.Binary { Operator: BinaryOperator.Concatenate or BinaryOperator.Add or BinaryOperator.Subtract or BinaryOperator.Multiply or BinaryOperator.Divide } binary:
 					if (typed.TryGetValue(binary, out var known))
 						return known.Value;
@@ -952,6 +971,74 @@ public static partial class Sql2023Writer
 
 		/// <summary>The subtraction in the bracket that an interval qualifier follows, which may subtract a datetime from one.</summary>
 		Expression.Binary? difference;
+
+		/// <summary>
+		/// The towers of a call the grammar reads as a typed value function by its name and the number of its arguments, and every
+		/// tower of any other call.
+		/// </summary>
+		static int NamedFunctionRoles(Identifier name, int arguments)
+		{
+			if (name.Style != IdentifierStyle.Regular)
+				return Towers.Value;
+
+			return arguments switch
+			{
+				0 when Plain(name, "MATCH_NUMBER") => Towers.Numeric,
+				0 or 1 when Plain(name, "CLASSIFIER") => Towers.String,
+				1 when Plain(name, "ABS") => Towers.Numeric | Towers.Interval,
+				1 when Plain(name, "CARDINALITY", "ARRAY_MAX_CARDINALITY", "SIN", "COS", "TAN", "SINH", "COSH", "TANH", "ASIN", "ACOS", "ATAN", "LOG10", "LN", "EXP", "SQRT", "FLOOR", "CEIL", "CEILING") => Towers.Numeric,
+				1 when Plain(name, "UPPER", "LOWER", "BTRIM", "LTRIM", "RTRIM") => Towers.String,
+				1 when Plain(name, "SET") => Towers.Multiset,
+				2 when Plain(name, "MOD", "LOG", "POWER") => Towers.Numeric,
+				2 or 3 when Plain(name, "LPAD", "RPAD") => Towers.String,
+				2 when Plain(name, "BTRIM", "LTRIM", "RTRIM") => Towers.String,
+				2 when Plain(name, "TRIM_ARRAY") => Towers.Array,
+				4 when Plain(name, "WIDTH_BUCKET") => Towers.Numeric,
+				_ => Towers.Value,
+			};
+		}
+
+		/// <summary>
+		/// A run of `||` that ends in a subscripted operand is also one array element reference (Towers.Fold): the run is the array,
+		/// a sign stands before the whole and the operands are primaries, so the run is read whatever the signed first operand is.
+		/// </summary>
+		bool Foldable(Expression left, bool signed)
+		{
+			while (left is Expression.Binary { Operator: BinaryOperator.Concatenate } run)
+			{
+				if (!OfEveryTower(run.Right))
+					return false;
+
+				left = run.Left;
+			}
+
+			return signed && left is Expression.Unary { Operator: UnaryOperator.Minus or UnaryOperator.Plus } sign ? OfEveryTower(sign.Operand) : OfEveryTower(left);
+		}
+
+		/// <summary>A primary that is of every tower: no typed function, no bracket, nothing a postfix or a sign has made of it.</summary>
+		bool OfEveryTower(Expression expression)
+		{
+			return expression is not Expression.Parenthesized && Strength(expression) >= Tightness.Primary && Roles(expression) == Towers.Value;
+		}
+
+		/// <summary>
+		/// Whether an item of the standard's in value list is one the grammar holds there: a row, or a non-parenthesized value
+		/// expression primary (Towers.Bare), which a typed value function, a bracket, a sign and NULL are not, and a folded
+		/// concatenation that ends in a subscript is.
+		/// </summary>
+		bool InItem(Expression item)
+		{
+			return item switch
+			{
+				Expression.Row                                                                                    => true,
+				LiteralValue.Null                                                                                 => false,
+				Expression.Binary { Operator: BinaryOperator.Concatenate, Right: Expression.Element } run         => Foldable(run.Left, signed: false),
+				_                                                                                                 => OfEveryTower(item),
+			};
+		}
+
+		/// <summary>The `||` runs inside a folded one, which the fold reads whole and so are not typed on their own.</summary>
+		readonly ConditionalWeakTable<Expression, object> folded = new();
 
 		// By the node itself, not by what the records compare: a deep chain would be hashed at every level.
 		readonly ConditionalWeakTable<Expression, StrongBox<int>> typed = new();
@@ -976,6 +1063,21 @@ public static partial class Sql2023Writer
 
 			if (transactSql || op is not (BinaryOperator.Concatenate or BinaryOperator.Add or BinaryOperator.Subtract or BinaryOperator.Multiply or BinaryOperator.Divide))
 				return Towers.Value;
+
+			if (op == BinaryOperator.Concatenate)
+			{
+				if (folded.TryGetValue(binary, out _))
+					return Towers.Value;
+
+				if (binary.Right is Expression.Element && Foldable(binary.Left, signed: true))
+				{
+					for (var inner = binary.Left; inner is Expression.Binary { Operator: BinaryOperator.Concatenate } run; inner = run.Left)
+						if (!folded.TryGetValue(run, out _))
+							folded.Add(run, run);
+
+					return Towers.Value;
+				}
+			}
 
 			var binding = Strength(binary);
 			var takes   = op switch
@@ -1377,7 +1479,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Element element:
-					PutOperand(element.Collection, Tightness.Primary);
+					PutOperand(element.Collection, Tightness.Primary, !transactSql && (Written(element.Collection, Tightness.Primary) & Towers.Array) == 0);
 					Tight(element.Trigraphs ? "??(" : "[");
 					Hold();
 					PutSubscript(element.Index);
@@ -1418,13 +1520,13 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Collate collate:
-					PutOperand(collate.Value, transactSql ? Tightness.Zoned : Tightness.Primary);
+					PutOperand(collate.Value, transactSql ? Tightness.Zoned : Tightness.Primary, !transactSql && (Written(collate.Value, Tightness.Primary) & Towers.Character) == 0);
 					Word("COLLATE");
 					PutCollation(collate.Collation);
 					break;
 
 				case Expression.AtTimeZone zone:
-					PutOperand(zone.Value, transactSql ? Tightness.Postfixed : Tightness.Primary);
+					PutOperand(zone.Value, transactSql ? Tightness.Postfixed : Tightness.Primary, !transactSql && (Written(zone.Value, Tightness.Primary) & Towers.Datetime) == 0);
 
 					if (zone.Zone is { } at)
 					{
@@ -1440,7 +1542,7 @@ public static partial class Sql2023Writer
 					if ((qualified.Value is Expression.Parenthesized { Value: var inner } ? inner : qualified.Value) is Expression.Binary { Operator: BinaryOperator.Subtract } subtraction)
 						difference = subtraction;
 
-					PutOperand(qualified.Value, Tightness.Primary);
+					PutOperand(qualified.Value, Tightness.Primary, !transactSql && (Written(qualified.Value, Tightness.Primary) & Towers.Value) != Towers.Value);
 					PutQualifier(qualified.Qualifier);
 					break;
 
@@ -1627,7 +1729,7 @@ public static partial class Sql2023Writer
 						// (a + 1)` and `x IN ((a))` are not read by the standard, and a bracket the tree does not hold would make another tree.
 						if (!transactSql)
 							foreach (var item in items)
-								if (item is not Expression.Row && (Strength(item) < Tightness.Primary || item is Expression.Parenthesized))
+								if (!InItem(item))
 									throw Misplaced(@in, "SourceValue", "with an item that is not a primary without brackets, which the standard's in value list holds");
 
 						Open();
@@ -2401,7 +2503,7 @@ public static partial class Sql2023Writer
 			// The standard reads `a.m ()` as a call of the routine `a.m` and `a.m` as a column: a member of a name has the name
 			// in a bracket, but for `.SPECIFICTYPE`, which the grammar reads after a name as it stands. T-SQL reads `a.m ()` as
 			// that call too, and `(a).m ()` as the member.
-			if (!named && member.Kind == MemberAccessKind.Dot && member.Target is Expression.Reference && (!transactSql || member.Arguments is not null) && !Plain(member.Name, "SPECIFICTYPE"))
+			if (!named && member.Kind == MemberAccessKind.Dot && member.Target is Expression.Reference && (!transactSql || member.Arguments is not null) && (transactSql || !Plain(member.Name, "SPECIFICTYPE")))
 			{
 				Open();
 				PutExpression(member.Target);

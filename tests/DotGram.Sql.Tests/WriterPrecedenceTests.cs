@@ -82,6 +82,11 @@ public sealed class WriterPrecedenceTests
 		return new Expression.AtTimeZone(value, zone);
 	}
 
+	static Expression Call(string name, Expression argument)
+	{
+		return new Expression.Invocation(new QualifiedName([new Identifier(name)]), [new Argument(argument)]);
+	}
+
 	static Expression Multiset(Expression left, MultisetOperator op, Expression right)
 	{
 		return new Expression.MultisetOperation(left, op, null, right);
@@ -495,6 +500,34 @@ public sealed class WriterPrecedenceTests
 		Standardly(new Expression.IntervalQualified(Binary(A, BinaryOperator.Subtract, new Expression.AtTimeZone(B, null)), day), "(a - b AT LOCAL) DAY");
 		Standardly(new Expression.IntervalQualified(Binary(Zone(A, B), BinaryOperator.Subtract, Zone(C, D)), day), "(a AT TIME ZONE b - c AT TIME ZONE d) DAY");
 
+		// A run of `||` that ends in a subscript is one array element reference, which a sign may begin.
+		var subscripted = new Expression.Element(B, One);
+
+		Standardly(Binary(Unary(UnaryOperator.Minus, A), BinaryOperator.Concatenate, subscripted), "-a || b[1]");
+		Standardly(Binary(Binary(Unary(UnaryOperator.Minus, A), BinaryOperator.Concatenate, C), BinaryOperator.Concatenate, subscripted), "-a || c || b[1]");
+		Standardly(Binary(Binary(A, BinaryOperator.Concatenate, Unary(UnaryOperator.Minus, C)), BinaryOperator.Concatenate, subscripted), "a || (-c) || b[1]");
+		Assert.Equal("-a || b[1]", Sql2023Writer.Write(SqlStandardParser.ParseExpression("-a || b[1]")));
+		Assert.Equal("-a || c || b[1]", Sql2023Writer.Write(SqlStandardParser.ParseExpression("-a || c || b[1]")));
+
+		// The typed value functions are each of one tower.
+		var date = new Expression.Current(CurrentValue.Date);
+
+		Standardly(Unary(UnaryOperator.Minus, date), "-(CURRENT_DATE)");
+		Standardly(new Expression.Element(A, date), "a[(CURRENT_DATE)]");
+		Standardly(Binary(date, BinaryOperator.Multiply, A), "(CURRENT_DATE) * a");
+		Standardly(Binary(date, BinaryOperator.Add, A), "CURRENT_DATE + a");
+		Standardly(Zone(date, B), "CURRENT_DATE AT TIME ZONE b");
+		Standardly(Zone(Call("UPPER", A), B), "(UPPER(a)) AT TIME ZONE b");
+		Standardly(Binary(Call("UPPER", A), BinaryOperator.Add, One), "(UPPER(a)) + 1");
+		Standardly(Binary(A, BinaryOperator.Concatenate, Call("UPPER", B)), "a || UPPER(b)");
+		Standardly(Binary(A, BinaryOperator.Concatenate, Call("ABS", B)), "a || (ABS(b))");
+		Standardly(Unary(UnaryOperator.Minus, Call("ABS", A)), "-ABS(a)");
+		Standardly(Collate(Call("UPPER", A), "x"), "UPPER(a) COLLATE x");
+		Standardly(Collate(Call("ABS", A), "x"), "(ABS(a)) COLLATE x");
+		Standardly(new Expression.Element(Call("UPPER", A), One), "(UPPER(a))[1]");
+		Standardly(Unary(UnaryOperator.Minus, new Expression.Length(LengthFunction.CharLength, A, null)), "-CHAR_LENGTH(a)");
+		Standardly(Binary(new Expression.Position(A, B, null), BinaryOperator.Concatenate, C), "(POSITION(a IN b)) || c");
+
 		// What the towers take stays bare.
 		Standardly(Binary(Collate(A, "x"), BinaryOperator.Concatenate, B), "a COLLATE x || b");
 		Standardly(Binary(Zone(A, B), BinaryOperator.Add, C), "a AT TIME ZONE b + c");
@@ -524,10 +557,19 @@ public sealed class WriterPrecedenceTests
 		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(new Expression.Parenthesized(Equal(A, B)), C), false));
 		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(Binary(A, BinaryOperator.Add, One)), false));
 		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(Number("-1")), false));
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(new Expression.Current(CurrentValue.Date)), false));
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(Call("UPPER", A)), false));
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(new LiteralValue.Null()), false));
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(Binary(A, BinaryOperator.Concatenate, B)), false));
+		Assert.False(SqlStandardParser.TryParseExpression("x IN (CURRENT_DATE)").IsSuccess);
+		Assert.False(SqlStandardParser.TryParseExpression("x IN (UPPER(a))").IsSuccess);
 		Assert.False(SqlStandardParser.TryParseExpression("x IN (a, (b))").IsSuccess);
 		Assert.False(SqlStandardParser.TryParseExpression("x IN ((a + 1))").IsSuccess);
 
 		Standardly(List(A, B), "a IN (a, b)");
+		Standardly(List(Binary(A, BinaryOperator.Concatenate, new Expression.Element(B, One))), "a IN (a || b[1])");
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(Binary(Unary(UnaryOperator.Minus, A), BinaryOperator.Concatenate, new Expression.Element(B, One))), false));
+		Assert.False(SqlStandardParser.TryParseExpression("x IN (-a || b[1])").IsSuccess);
 		Condition(List(A, new Expression.Parenthesized(B)), "a IN (a, (b))");
 		Condition(List(Binary(A, BinaryOperator.Add, One)), "a IN (a + 1)");
 	}
@@ -592,6 +634,7 @@ public sealed class WriterPrecedenceTests
 
 		// T-SQL reads `a.m()` as a call of the function `a.m`, so a method of a name is written with the name in a bracket.
 		Value(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m"), []), "(a).m()");
+		Value(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("SPECIFICTYPE"), []), "(a).SPECIFICTYPE()");
 		Assert.ThrowsAny<ArgumentException>(() => TransactSql.Write(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m")), false));
 	}
 
