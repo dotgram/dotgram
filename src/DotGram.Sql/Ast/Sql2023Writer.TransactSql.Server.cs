@@ -75,6 +75,11 @@ public static partial class Sql2023Writer
 					PutDbcc(dbcc);
 					return true;
 
+				case Statement.AlterServerConfiguration configuration:
+					Word("ALTER SERVER CONFIGURATION SET");
+					PutServerSetting(configuration.Setting);
+					return true;
+
 				default:
 					return false;
 			}
@@ -322,6 +327,379 @@ public static partial class Sql2023Writer
 				throw Misplaced(owner, "a word", "that is not a plain word: DBCC reads no name in brackets or quotes, no variable");
 
 			PutOneName(word, "DBCC");
+		}
+
+		// ── ALTER SERVER CONFIGURATION ────────────────────────────────────────────
+
+		/// <summary>
+		/// The shapes of a server setting's value, by the grammar's <c>ServerSetting</c>: processors or <c>AUTO</c>, nodes, a switch,
+		/// a path or <c>DEFAULT</c>, a size in megabytes or <c>DEFAULT</c>, a count or <c>DEFAULT</c>, a string or <c>LOCAL</c>, a
+		/// string or <c>DEFAULT</c> (a cluster's), a buffer pool extension, tempdb metadata, a snapshot backup, and the way the server
+		/// proves itself outside.
+		/// </summary>
+		enum ServerShape
+		{
+			Affinity,
+			Nodes,
+			Switch,
+			Path,
+			Size,
+			Count,
+			Context,
+			ClusterString,
+			ClusterNumber,
+			BufferPool,
+			TempdbMetadata,
+			SnapshotBackup,
+			Authentication,
+		}
+
+		/// <summary>One setting a place reads: the shape of its value and whether the grammar writes <c>=</c> before it (<c>Sign</c>).</summary>
+		readonly record struct ServerSetting(ServerShape Shape, bool Sign);
+
+		/// <summary>
+		/// ServerSetting, as one table: the words of a setting's name, upper-cased, and the value they are read with. A cluster's
+		/// property is the name after <c>FAILOVER CLUSTER PROPERTY</c> and is in <see cref="ClusterProperties"/>.
+		/// </summary>
+		static readonly Dictionary<string, ServerSetting> ServerSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["PROCESS AFFINITY CPU"]             = new(ServerShape.Affinity, true),
+			["PROCESS AFFINITY NUMANODE"]        = new(ServerShape.Nodes, true),
+			["DIAGNOSTICS LOG"]                  = new(ServerShape.Switch, false),
+			["DIAGNOSTICS LOG PATH"]             = new(ServerShape.Path, true),
+			["DIAGNOSTICS LOG MAX_SIZE"]         = new(ServerShape.Size, true),
+			["DIAGNOSTICS LOG MAX_FILES"]        = new(ServerShape.Count, true),
+			["HADR CLUSTER CONTEXT"]             = new(ServerShape.Context, true),
+			["BUFFER POOL EXTENSION"]            = new(ServerShape.BufferPool, false),
+			["SOFTNUMA"]                         = new(ServerShape.Switch, false),
+			["MEMORY_OPTIMIZED"]                 = new(ServerShape.Switch, false),
+			["MEMORY_OPTIMIZED TEMPDB_METADATA"] = new(ServerShape.TempdbMetadata, true),
+			["MEMORY_OPTIMIZED HYBRID_BUFFER_POOL"] = new(ServerShape.Switch, true),
+			["SUSPEND_FOR_SNAPSHOT_BACKUP"]      = new(ServerShape.SnapshotBackup, true),
+			["EXTERNAL AUTHENTICATION"]          = new(ServerShape.Authentication, false),
+		};
+
+		/// <summary>ClusterProperty: the properties of a cluster and the value each is set to, a string or a number.</summary>
+		static readonly Dictionary<string, ServerShape> ClusterProperties = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["SqlDumperDumpPath"]        = ServerShape.ClusterString,
+			["ClusterConnectionOptions"] = ServerShape.ClusterString,
+			["VerboseLogging"]           = ServerShape.ClusterNumber,
+			["SqlDumperDumpFlags"]       = ServerShape.ClusterNumber,
+			["SqlDumperDumpTimeOut"]     = ServerShape.ClusterNumber,
+			["FailureConditionLevel"]    = ServerShape.ClusterNumber,
+			["HealthCheckTimeout"]       = ServerShape.ClusterNumber,
+		};
+
+		void PutServerSetting(Option setting)
+		{
+			if (setting.EqualsOmitted || setting.Order is not null || setting.Partitions is not null || setting.Place is not null)
+				throw Misplaced(setting, "EqualsOmitted, Order, Partitions or Place", "in ALTER SERVER CONFIGURATION, whose settings fix their form");
+
+			var words = new List<Identifier> { setting.Name };
+
+			words.AddRange(setting.Words);
+
+			if (words.Any(static one => one.Style != IdentifierStyle.Regular || one.UnicodeEscape is not null))
+				throw Misplaced(setting, "Name", "that holds a word that is not plain, in ALTER SERVER CONFIGURATION");
+
+			var key = string.Join(' ', words.Select(static one => one.Text));
+			ServerSetting entry;
+
+			if (words is [{ } failover, { } cluster, { } property, { } named] && Plain(failover, "FAILOVER") && Plain(cluster, "CLUSTER") && Plain(property, "PROPERTY") && ClusterProperties.TryGetValue(named.Text, out var shape))
+				entry = new ServerSetting(shape, true);
+			else if (!ServerSettings.TryGetValue(key, out entry))
+				throw Misplaced(setting, "Name", $"in ALTER SERVER CONFIGURATION, which reads no setting {key}");
+
+			foreach (var word in words)
+				PutKeyWord(word);
+
+			if (entry.Sign)
+				Word("=");
+
+			var value = setting.Value ?? throw Empty(setting, "Value");
+			var items = setting.Options;
+
+			switch (entry.Shape)
+			{
+				case ServerShape.Affinity or ServerShape.Nodes when value is Expression.ServerRanges ranges:
+					NoItems(setting, items);
+					PutServerRanges(ranges);
+					break;
+
+				case ServerShape.Affinity when IsServerWord(value, "AUTO"):
+					NoItems(setting, items);
+					PutServerWord(value);
+					break;
+
+				case ServerShape.Switch when IsServerWord(value, "ON", "OFF"):
+					NoItems(setting, items);
+					PutServerWord(value);
+					break;
+
+				case ServerShape.Path or ServerShape.Context or ServerShape.ClusterString when value is LiteralValue.String path && IsQuoted(path):
+					NoItems(setting, items);
+					PutExpression(value);
+					break;
+
+				case ServerShape.Context when IsServerWord(value, "LOCAL"):
+					NoItems(setting, items);
+					PutServerWord(value);
+					break;
+
+				case ServerShape.Path or ServerShape.Size or ServerShape.Count or ServerShape.ClusterString or ServerShape.ClusterNumber when IsServerWord(value, "DEFAULT"):
+					NoItems(setting, items);
+					PutServerWord(value);
+					break;
+
+				case ServerShape.Size when value is Expression.Measured { Value: LiteralValue.Numeric amount, Unit: var unit } && Plain(unit, "MB") && IsNumberOf(amount, ExternalShape.Digits):
+					NoItems(setting, items);
+					PutExpression(amount);
+					PutKeyWord(unit);
+					break;
+
+				case ServerShape.Count or ServerShape.ClusterNumber when value is LiteralValue.Numeric count && IsNumberOf(count, ExternalShape.Digits):
+					NoItems(setting, items);
+					PutExpression(count);
+					break;
+
+				case ServerShape.BufferPool:
+					PutBufferPool(setting, value, items);
+					break;
+
+				case ServerShape.TempdbMetadata:
+					PutTempdbMetadata(setting, value, items);
+					break;
+
+				case ServerShape.SnapshotBackup:
+					PutSnapshotBackup(setting, value, items);
+					break;
+
+				case ServerShape.Authentication:
+					PutAuthentication(setting, value, items);
+					break;
+
+				default:
+					throw Misplaced(setting, "Value", $"of a form {key} is not read with in ALTER SERVER CONFIGURATION");
+			}
+		}
+
+		static void NoItems(Option setting, SqlList<Option> items)
+		{
+			if (items.Count > 0)
+				throw Misplaced(setting, "Options", "after a value that reads none, in ALTER SERVER CONFIGURATION");
+		}
+
+		static bool IsServerWord(Expression value, params string[] words)
+		{
+			return value is Expression.Reference { Name: [{ } word] } && Plain(word, words);
+		}
+
+		void PutServerWord(Expression value)
+		{
+			PutKeyWord(((Expression.Reference)value).Name[0]);
+		}
+
+		/// <summary>A value of a setting inside a bracket: the item's name and, where it has one, a value; nothing else.</summary>
+		static void PlainItem(Option item, string place)
+		{
+			if (item.Words.Count > 0 || item.Options.Count > 0 || item.EqualsOmitted || item.Order is not null || item.Partitions is not null || item.Place is not null || item.Name.Style != IdentifierStyle.Regular)
+				throw Misplaced(item, "an item", $"that is not a plain word and a value, in {place}");
+		}
+
+		/// <summary><c>ServerRanges</c>: whole numbers and ranges of them, one at least, joined by commas.</summary>
+		void PutServerRanges(Expression.ServerRanges ranges)
+		{
+			if (ranges.Ranges.Count == 0)
+				throw Empty(ranges, "Ranges");
+
+			for (var at = 0; at < ranges.Ranges.Count; at++)
+			{
+				var range = ranges.Ranges[at];
+
+				if (range.From is not LiteralValue.Numeric from || !IsNumberOf(from, ExternalShape.Digits) || range.To is not null and not LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger })
+					throw Misplaced(range, "From or To", "that is no whole number, in a server's affinity (ServerRange)");
+
+				if (range.To is LiteralValue.Numeric to && !IsNumberOf(to, ExternalShape.Digits))
+					throw Misplaced(range, "To", "that is no whole number, in a server's affinity (ServerRange)");
+
+				if (at > 0)
+					Tight(",");
+
+				PutExpression(from);
+
+				if (range.To is { } end)
+				{
+					Word("TO");
+					PutExpression(end);
+				}
+			}
+		}
+
+		/// <summary><c>BUFFER POOL EXTENSION</c>: OFF, or ON and its file and its size in brackets.</summary>
+		void PutBufferPool(Option setting, Expression value, SqlList<Option> items)
+		{
+			if (IsServerWord(value, "OFF"))
+			{
+				NoItems(setting, items);
+				PutServerWord(value);
+
+				return;
+			}
+
+			if (!IsServerWord(value, "ON") || items is not [{ } file, { } size])
+				throw Misplaced(setting, "Value", "of BUFFER POOL EXTENSION that is not OFF, or ON with its file and its size");
+
+			PlainItem(file, "BUFFER POOL EXTENSION");
+			PlainItem(size, "BUFFER POOL EXTENSION");
+
+			if (!Plain(file.Name, "FILENAME") || file.Value is not LiteralValue.String path || !IsQuoted(path)
+				|| !Plain(size.Name, "SIZE") || size.Value is not Expression.Measured { Value: LiteralValue.Numeric amount, Unit: var unit } || !Plain(unit, "KB", "MB", "GB") || !IsNumberOf(amount, ExternalShape.Digits))
+			{
+				throw Misplaced(setting, "Options", "of BUFFER POOL EXTENSION that are not FILENAME = string, SIZE = n KB, MB or GB");
+			}
+
+			PutServerWord(value);
+			Open();
+			PutKeyWord(file.Name);
+			Word("=");
+			PutExpression(path);
+			Tight(",");
+			PutKeyWord(size.Name);
+			Word("=");
+			PutExpression(amount);
+			PutKeyWord(unit);
+			Close();
+		}
+
+		/// <summary><c>MEMORY_OPTIMIZED TEMPDB_METADATA</c>: OFF, or ON and, in brackets, its resource pool.</summary>
+		void PutTempdbMetadata(Option setting, Expression value, SqlList<Option> items)
+		{
+			if (IsServerWord(value, "OFF") || IsServerWord(value, "ON") && items.Count == 0)
+			{
+				NoItems(setting, items);
+				PutServerWord(value);
+
+				return;
+			}
+
+			if (!IsServerWord(value, "ON") || items is not [{ } pool])
+				throw Misplaced(setting, "Options", "of TEMPDB_METADATA that are not a resource pool after ON");
+
+			PlainItem(pool, "TEMPDB_METADATA");
+
+			if (!Plain(pool.Name, "RESOURCE_POOL") || pool.Value is not LiteralValue.String name || !IsQuoted(name))
+				throw Misplaced(pool, "an item", "that is not RESOURCE_POOL = string");
+
+			PutServerWord(value);
+			Open();
+			PutKeyWord(pool.Name);
+			Word("=");
+			PutExpression(name);
+			Close();
+		}
+
+		/// <summary>
+		/// <c>SUSPEND_FOR_SNAPSHOT_BACKUP = ON | OFF</c> and, in brackets, the group of databases and the mode, or the mode alone
+		/// (<c>SnapshotScope</c>).
+		/// </summary>
+		void PutSnapshotBackup(Option setting, Expression value, SqlList<Option> items)
+		{
+			if (!IsServerWord(value, "ON", "OFF"))
+				throw Misplaced(setting, "Value", "of SUSPEND_FOR_SNAPSHOT_BACKUP that is not ON or OFF");
+
+			PutServerWord(value);
+
+			if (items.Count == 0)
+				return;
+
+			Option? group = null;
+			Option? mode  = null;
+
+			switch (items)
+			{
+				case [{ } only] when Plain(only.Name, "MODE"):
+					mode = only;
+					break;
+
+				case [{ } first] when Plain(first.Name, "GROUP"):
+					group = first;
+					break;
+
+				case [{ } first, { } second] when Plain(first.Name, "GROUP") && Plain(second.Name, "MODE"):
+					group = first;
+					mode  = second;
+					break;
+
+				default:
+					throw Misplaced(setting, "Options", "of SUSPEND_FOR_SNAPSHOT_BACKUP that are not GROUP and MODE, or MODE alone");
+			}
+
+			Open();
+
+			if (group is not null)
+			{
+				PlainItem(group, "SUSPEND_FOR_SNAPSHOT_BACKUP");
+
+				if (group.Value is not Expression.Row { RowKeyword: false, Items: { Count: > 0 } databases } || databases.Any(static one => one is not Expression.Reference { Name.Count: 1 }))
+					throw Misplaced(group, "Value", "of GROUP that is not a list of database names in brackets");
+
+				PutKeyWord(group.Name);
+				Word("=");
+				Open();
+				Each(databases, one => PutOneName(((Expression.Reference)one).Name[0], "SUSPEND_FOR_SNAPSHOT_BACKUP"));
+				Close();
+
+				if (mode is not null)
+					Tight(",");
+			}
+
+			if (mode is not null)
+			{
+				PlainItem(mode, "SUSPEND_FOR_SNAPSHOT_BACKUP");
+
+				if (!IsServerWord(mode.Value ?? new LiteralValue.Null(), "COPY_ONLY"))
+					throw Misplaced(mode, "Value", "of MODE that is not COPY_ONLY");
+
+				PutKeyWord(mode.Name);
+				Word("=");
+				PutServerWord(mode.Value!);
+			}
+
+			Close();
+		}
+
+		/// <summary><c>EXTERNAL AUTHENTICATION</c>: OFF, or ON with the one way in brackets: USE_IDENTITY, or CREDENTIAL_NAME = string.</summary>
+		void PutAuthentication(Option setting, Expression value, SqlList<Option> items)
+		{
+			if (IsServerWord(value, "OFF"))
+			{
+				NoItems(setting, items);
+				PutServerWord(value);
+
+				return;
+			}
+
+			if (!IsServerWord(value, "ON") || items is not [{ } way])
+				throw Misplaced(setting, "Value", "of EXTERNAL AUTHENTICATION that is not OFF, or ON with one way in brackets");
+
+			PlainItem(way, "EXTERNAL AUTHENTICATION");
+
+			PutServerWord(value);
+			Open();
+
+			if (Plain(way.Name, "USE_IDENTITY") && way.Value is null)
+				PutKeyWord(way.Name);
+			else if (Plain(way.Name, "CREDENTIAL_NAME") && way.Value is LiteralValue.String credential && IsQuoted(credential))
+			{
+				PutKeyWord(way.Name);
+				Word("=");
+				PutExpression(credential);
+			}
+			else
+				throw Misplaced(way, "an item", "that is not USE_IDENTITY or CREDENTIAL_NAME = string");
+
+			Close();
 		}
 	}
 }

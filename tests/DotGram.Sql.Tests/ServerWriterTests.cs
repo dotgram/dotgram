@@ -73,6 +73,21 @@ public sealed class ServerWriterTests
 		return new Expression.Measured(Digits(amount), new Identifier(unit));
 	}
 
+	static Statement.AlterServerConfiguration Configured(Option setting)
+	{
+		return new Statement.AlterServerConfiguration(setting);
+	}
+
+	static Expression Ranges(params (string From, string? To)[] ranges)
+	{
+		return new Expression.ServerRanges([.. ranges.Select(static one => new PartitionRange(Digits(one.From), one.To is null ? null : Digits(one.To)))]);
+	}
+
+	static Expression Names(params string[] names)
+	{
+		return new Expression.Row([.. names.Select(static one => Word(one))]);
+	}
+
 	static ExecuteArgument Arg(Expression value, string? name = null)
 	{
 		return new ExecuteArgument(value) { Name = name is null ? null : new Identifier(name) };
@@ -142,6 +157,90 @@ public sealed class ServerWriterTests
 		["Dbcc with a low priority wait of a bare duration"] = (
 			new Statement.Dbcc(new Identifier("FOO")) { Options = [Opt("WAIT_AT_LOW_PRIORITY", null, Opt("ABORT_AFTER_WAIT", Word("foo")), Opt("MAX_DURATION", Digits("5")))] },
 			"DBCC FOO WITH WAIT_AT_LOW_PRIORITY (ABORT_AFTER_WAIT = foo, MAX_DURATION = 5)"),
+		["Configure the affinity of processors"] = (
+			Configured(Words("PROCESS", ["AFFINITY", "CPU"], Ranges(("1", null), ("3", "5"), ("8", null)))),
+			"ALTER SERVER CONFIGURATION SET PROCESS AFFINITY CPU = 1, 3 TO 5, 8"),
+		["Configure the affinity of processors, automatic"] = (
+			Configured(Words("process", ["affinity", "cpu"], Word("auto"))),
+			"ALTER SERVER CONFIGURATION SET process affinity cpu = auto"),
+		["Configure the affinity of nodes"] = (
+			Configured(Words("PROCESS", ["AFFINITY", "NUMANODE"], Ranges(("3", "1")))),
+			"ALTER SERVER CONFIGURATION SET PROCESS AFFINITY NUMANODE = 3 TO 1"),
+		["Configure the diagnostics log"] = (
+			Configured(Words("DIAGNOSTICS", ["LOG"], Word("ON"))),
+			"ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG ON"),
+		["Configure the path of the diagnostics log"] = (
+			Configured(Words("DIAGNOSTICS", ["LOG", "PATH"], NStr("C:\\logs"))),
+			"ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG PATH = N'C:\\logs'"),
+		["Configure the default path of the diagnostics log"] = (
+			Configured(Words("DIAGNOSTICS", ["LOG", "PATH"], Word("DEFAULT"))),
+			"ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG PATH = DEFAULT"),
+		["Configure the size of the diagnostics log"] = (
+			Configured(Words("DIAGNOSTICS", ["LOG", "MAX_SIZE"], Measured("10", "mb"))),
+			"ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG MAX_SIZE = 10 mb"),
+		["Configure the files of the diagnostics log"] = (
+			Configured(Words("DIAGNOSTICS", ["LOG", "MAX_FILES"], Digits("10"))),
+			"ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG MAX_FILES = 10"),
+		["Configure the default files of the diagnostics log"] = (
+			Configured(Words("DIAGNOSTICS", ["LOG", "MAX_FILES"], Word("DEFAULT"))),
+			"ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG MAX_FILES = DEFAULT"),
+		["Configure a cluster's path"] = (
+			Configured(Words("FAILOVER", ["CLUSTER", "PROPERTY", "SqlDumperDumpPath"], Str("C:"))),
+			"ALTER SERVER CONFIGURATION SET FAILOVER CLUSTER PROPERTY SqlDumperDumpPath = 'C:'"),
+		["Configure a cluster's number"] = (
+			Configured(Words("FAILOVER", ["CLUSTER", "PROPERTY", "verboselogging"], Digits("2"))),
+			"ALTER SERVER CONFIGURATION SET FAILOVER CLUSTER PROPERTY verboselogging = 2"),
+		["Configure a cluster's default"] = (
+			Configured(Words("FAILOVER", ["CLUSTER", "PROPERTY", "HealthCheckTimeout"], Word("DEFAULT"))),
+			"ALTER SERVER CONFIGURATION SET FAILOVER CLUSTER PROPERTY HealthCheckTimeout = DEFAULT"),
+		["Configure a cluster's context"] = (
+			Configured(Words("HADR", ["CLUSTER", "CONTEXT"], Word("LOCAL"))),
+			"ALTER SERVER CONFIGURATION SET HADR CLUSTER CONTEXT = LOCAL"),
+		["Configure a cluster's context by a string"] = (
+			Configured(Words("HADR", ["CLUSTER", "CONTEXT"], NStr("clus01"))),
+			"ALTER SERVER CONFIGURATION SET HADR CLUSTER CONTEXT = N'clus01'"),
+		["Configure the buffer pool extension off"] = (
+			Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("OFF"))),
+			"ALTER SERVER CONFIGURATION SET BUFFER POOL EXTENSION OFF"),
+		["Configure the buffer pool extension on"] = (
+			Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("ON"), Opt("FILENAME", NStr("F:\\x.BPE")), Opt("SIZE", Measured("50", "GB")))),
+			"ALTER SERVER CONFIGURATION SET BUFFER POOL EXTENSION ON (FILENAME = N'F:\\x.BPE', SIZE = 50 GB)"),
+		["Configure soft NUMA"] = (
+			Configured(Opt("SOFTNUMA", Word("off"))),
+			"ALTER SERVER CONFIGURATION SET SOFTNUMA off"),
+		["Configure memory-optimized"] = (
+			Configured(Opt("MEMORY_OPTIMIZED", Word("ON"))),
+			"ALTER SERVER CONFIGURATION SET MEMORY_OPTIMIZED ON"),
+		["Configure tempdb metadata"] = (
+			Configured(Words("MEMORY_OPTIMIZED", ["TEMPDB_METADATA"], Word("ON"), Opt("RESOURCE_POOL", Str("p")))),
+			"ALTER SERVER CONFIGURATION SET MEMORY_OPTIMIZED TEMPDB_METADATA = ON (RESOURCE_POOL = 'p')"),
+		["Configure tempdb metadata off"] = (
+			Configured(Words("MEMORY_OPTIMIZED", ["TEMPDB_METADATA"], Word("OFF"))),
+			"ALTER SERVER CONFIGURATION SET MEMORY_OPTIMIZED TEMPDB_METADATA = OFF"),
+		["Configure the hybrid buffer pool"] = (
+			Configured(Words("MEMORY_OPTIMIZED", ["HYBRID_BUFFER_POOL"], Word("OFF"))),
+			"ALTER SERVER CONFIGURATION SET MEMORY_OPTIMIZED HYBRID_BUFFER_POOL = OFF"),
+		["Configure a snapshot backup"] = (
+			Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("OFF"))),
+			"ALTER SERVER CONFIGURATION SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF"),
+		["Configure a snapshot backup of a group and a mode"] = (
+			Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("GROUP", Names("db1", "db2")), Opt("MODE", Word("COPY_ONLY")))),
+			"ALTER SERVER CONFIGURATION SET SUSPEND_FOR_SNAPSHOT_BACKUP = ON (GROUP = (db1, db2), MODE = COPY_ONLY)"),
+		["Configure a snapshot backup of a mode"] = (
+			Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("MODE", Word("COPY_ONLY")))),
+			"ALTER SERVER CONFIGURATION SET SUSPEND_FOR_SNAPSHOT_BACKUP = ON (MODE = COPY_ONLY)"),
+		["Configure a snapshot backup of a group"] = (
+			Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("OFF"), Opt("GROUP", new Expression.Row([new Expression.Reference(new QualifiedName([new Identifier("[db 1]", IdentifierStyle.Bracketed)]))])))),
+			"ALTER SERVER CONFIGURATION SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF (GROUP = ([db 1]))"),
+		["Configure external authentication off"] = (
+			Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("OFF"))),
+			"ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION OFF"),
+		["Configure external authentication by the identity"] = (
+			Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("USE_IDENTITY", null))),
+			"ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (USE_IDENTITY)"),
+		["Configure external authentication by a credential"] = (
+			Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("CREDENTIAL_NAME", NStr("c")))),
+			"ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (CREDENTIAL_NAME = N'c')"),
 		// @@TEXTS
 	};
 
@@ -246,6 +345,85 @@ public sealed class ServerWriterTests
 		["a dbcc join by another word"] = new Statement.Dbcc(X) { Options = [Words("A", ["AND", "B"])] },
 		["a dbcc join of a word that is a variable"] = new Statement.Dbcc(X) { Options = [Words("A", ["JOIN", "@b"])] },
 		["a dbcc join with a value"] = new Statement.Dbcc(X) { Options = [Words("A", ["JOIN", "B"], Digits("1"))] },
+		// ServerSetting is a closed catalogue: a name outside it, and a form other than the setting's own.
+		["a configuration of a setting it has not"] = Configured(Opt("SOFTNUMAX", Word("ON"))),
+		["a configuration named in brackets"] = Configured(new Option(new Identifier("[SOFTNUMA]", IdentifierStyle.Bracketed), Word("ON"), [])),
+		["a configuration that omits its ="] = Configured(new Option(new Identifier("MEMORY_OPTIMIZED"), Word("ON"), []) { EqualsOmitted = true }),
+		["a configuration of HARDWARE_OFFLOAD, which the engine refuses"] = Configured(Opt("HARDWARE_OFFLOAD", Word("ON"))),
+		["a configuration with a place"] = Configured(new Option(new Identifier("SOFTNUMA"), Word("ON"), []) { Place = new Placement(PlacementKind.MoveTo, new Identifier("fg"), null) }),
+		["a configuration with no value"] = Configured(Opt("SOFTNUMA", null)),
+		["a configuration of a property that is none"] = Configured(Words("FAILOVER", ["CLUSTER", "PROPERTY", "Colour"], Digits("1"))),
+		["a configuration of a cluster with the property missing"] = Configured(Words("FAILOVER", ["CLUSTER", "PROPERTY"], Digits("1"))),
+		["a configuration of a word too many"] = Configured(Words("SOFTNUMA", ["NOW"], Word("ON"))),
+		["a configuration of a word in brackets"] = Configured(new Option(new Identifier("DIAGNOSTICS"), Word("ON"), []) { Words = [new Identifier("[LOG]", IdentifierStyle.Bracketed)] }),
+		// A switch is ON or OFF.
+		["a configuration switch that is a number"] = Configured(Opt("SOFTNUMA", Digits("1"))),
+		["a configuration switch that is a string"] = Configured(Opt("SOFTNUMA", Str("ON"))),
+		["a configuration switch that is in brackets"] = Configured(Opt("SOFTNUMA", new Expression.Reference(new QualifiedName([new Identifier("[ON]", IdentifierStyle.Bracketed)])))),
+		["a configuration switch that has a bracket"] = Configured(Opt("SOFTNUMA", Word("ON"), Opt("MODE", Word("COPY_ONLY")))),
+		["a configuration switch that is DEFAULT"] = Configured(Opt("MEMORY_OPTIMIZED", Word("DEFAULT"))),
+		// ServerRanges: whole numbers, with TO between two, and AUTO for processors only.
+		["an affinity of nodes that is AUTO"] = Configured(Words("PROCESS", ["AFFINITY", "NUMANODE"], Word("AUTO"))),
+		["an affinity of no range"] = Configured(Words("PROCESS", ["AFFINITY", "CPU"], new Expression.ServerRanges([]))),
+		["an affinity of a range that is signed"] = Configured(Words("PROCESS", ["AFFINITY", "CPU"], new Expression.ServerRanges([new PartitionRange(Number("-1", NumericLiteralKind.DecimalInteger), null)]))),
+		["an affinity of a range that is a decimal"] = Configured(Words("PROCESS", ["AFFINITY", "CPU"], new Expression.ServerRanges([new PartitionRange(Number("1.5", NumericLiteralKind.Decimal), null)]))),
+		["an affinity of a range ending in a name"] = Configured(Words("PROCESS", ["AFFINITY", "CPU"], new Expression.ServerRanges([new PartitionRange(Digits("1"), Word("x"))]))),
+		["an affinity of a range from a variable"] = Configured(Words("PROCESS", ["AFFINITY", "CPU"], new Expression.ServerRanges([new PartitionRange(Var("@x"), null)]))),
+		["an affinity of the brackets of a pool"] = Configured(Words("PROCESS", ["AFFINITY", "CPU"], new Expression.PoolRanges([new PartitionRange(Digits("1"), null)]))),
+		["an affinity of a string"] = Configured(Words("PROCESS", ["AFFINITY", "CPU"], Str("AUTO"))),
+		["an affinity that is a number"] = Configured(Words("PROCESS", ["AFFINITY", "CPU"], Digits("1"))),
+		// The log: a path is a string or DEFAULT, a size whole megabytes, a count whole.
+		["a log path that is a name"] = Configured(Words("DIAGNOSTICS", ["LOG", "PATH"], Word("p"))),
+		["a log path that is a string with a character set"] = Configured(Words("DIAGNOSTICS", ["LOG", "PATH"], new LiteralValue.String("'p'", StringLiteralKind.Character) { CharacterSet = new CharacterSetName(Dotted("utf8")) })),
+		["a log size in kilobytes"] = Configured(Words("DIAGNOSTICS", ["LOG", "MAX_SIZE"], Measured("10", "KB"))),
+		["a log size with no unit"] = Configured(Words("DIAGNOSTICS", ["LOG", "MAX_SIZE"], Digits("10"))),
+		["a log size that is a decimal"] = Configured(Words("DIAGNOSTICS", ["LOG", "MAX_SIZE"], new Expression.Measured(Number("1.5", NumericLiteralKind.Decimal), new Identifier("MB")))),
+		["a log files count that is signed"] = Configured(Words("DIAGNOSTICS", ["LOG", "MAX_FILES"], Number("-1", NumericLiteralKind.DecimalInteger))),
+		["a log files count that is a decimal"] = Configured(Words("DIAGNOSTICS", ["LOG", "MAX_FILES"], Number("1.5", NumericLiteralKind.Decimal))),
+		["a log files count that is LOCAL"] = Configured(Words("DIAGNOSTICS", ["LOG", "MAX_FILES"], Word("LOCAL"))),
+		// A cluster's property is a string for two and a number for five.
+		["a cluster string property that is a number"] = Configured(Words("FAILOVER", ["CLUSTER", "PROPERTY", "SqlDumperDumpPath"], Digits("1"))),
+		["a cluster number property that is a string"] = Configured(Words("FAILOVER", ["CLUSTER", "PROPERTY", "VerboseLogging"], Str("1"))),
+		["a cluster number property that is signed"] = Configured(Words("FAILOVER", ["CLUSTER", "PROPERTY", "VerboseLogging"], Number("-1", NumericLiteralKind.DecimalInteger))),
+		["a cluster context that is DEFAULT"] = Configured(Words("HADR", ["CLUSTER", "CONTEXT"], Word("DEFAULT"))),
+		["a cluster context that is a number"] = Configured(Words("HADR", ["CLUSTER", "CONTEXT"], Digits("1"))),
+		// The buffer pool extension: OFF, or ON with its file and then its size in a unit.
+		["a buffer pool extension on with no bracket"] = Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("ON"))),
+		["a buffer pool extension on with its size first"] = Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("ON"), Opt("SIZE", Measured("50", "GB")), Opt("FILENAME", Str("f")))),
+		["a buffer pool extension on with its file only"] = Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("ON"), Opt("FILENAME", Str("f")))),
+		["a buffer pool extension on with a size in terabytes"] = Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("ON"), Opt("FILENAME", Str("f")), Opt("SIZE", Measured("5", "TB")))),
+		["a buffer pool extension on with a size that is a decimal"] = Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("ON"), Opt("FILENAME", Str("f")), Opt("SIZE", new Expression.Measured(Number("1.5", NumericLiteralKind.Decimal), new Identifier("GB"))))),
+		["a buffer pool extension on with a file that is a name"] = Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("ON"), Opt("FILENAME", Word("f")), Opt("SIZE", Measured("5", "GB")))),
+		["a buffer pool extension off with a bracket"] = Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("OFF"), Opt("FILENAME", Str("f")), Opt("SIZE", Measured("5", "GB")))),
+		["a buffer pool extension of a value that is none"] = Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("AUTO"))),
+		["a buffer pool extension item with a value of its own"] = Configured(Words("BUFFER", ["POOL", "EXTENSION"], Word("ON"), Opt("FILENAME", Str("f"), Opt("X", null)), Opt("SIZE", Measured("5", "GB")))),
+		// Tempdb metadata: OFF, ON, or ON with a resource pool as a string.
+		["tempdb metadata off with a pool"] = Configured(Words("MEMORY_OPTIMIZED", ["TEMPDB_METADATA"], Word("OFF"), Opt("RESOURCE_POOL", Str("p")))),
+		["tempdb metadata with a pool that is a name"] = Configured(Words("MEMORY_OPTIMIZED", ["TEMPDB_METADATA"], Word("ON"), Opt("RESOURCE_POOL", Word("p")))),
+		["tempdb metadata with two items"] = Configured(Words("MEMORY_OPTIMIZED", ["TEMPDB_METADATA"], Word("ON"), Opt("RESOURCE_POOL", Str("p")), Opt("RESOURCE_POOL", Str("q")))),
+		["tempdb metadata with an item it has not"] = Configured(Words("MEMORY_OPTIMIZED", ["TEMPDB_METADATA"], Word("ON"), Opt("MODE", Str("p")))),
+		["tempdb metadata that omits its ="] = Configured(new Option(new Identifier("MEMORY_OPTIMIZED"), Word("ON"), []) { Words = [new Identifier("TEMPDB_METADATA")], EqualsOmitted = true }),
+		// Snapshot backup: ON or OFF, then a group and a mode, or a mode alone.
+		["a snapshot backup that is a name"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("MAYBE"))),
+		["a snapshot backup of a mode before a group"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("MODE", Word("COPY_ONLY")), Opt("GROUP", Names("a")))),
+		["a snapshot backup of a mode that is none"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("MODE", Word("FULL")))),
+		["a snapshot backup of a mode with no value"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("MODE", null))),
+		["a snapshot backup of a group of no database"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("GROUP", new Expression.Row([])))),
+		["a snapshot backup of a group of a string"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("GROUP", new Expression.Row([Str("a")])))),
+		["a snapshot backup of a group of a name of two parts"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("GROUP", new Expression.Row([new Expression.Reference(Dotted("a", "b"))])))),
+		["a snapshot backup of a group of a name that is reserved"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("GROUP", Names("select")))),
+		["a snapshot backup of a group written ROW"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("GROUP", new Expression.Row([Word("a")], RowKeyword: true)))),
+		["a snapshot backup of a group that is a name"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("GROUP", Word("a")))),
+		["a snapshot backup of a group twice"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("GROUP", Names("a")), Opt("GROUP", Names("b")))),
+		["a snapshot backup of three items"] = Configured(Opt("SUSPEND_FOR_SNAPSHOT_BACKUP", Word("ON"), Opt("GROUP", Names("a")), Opt("MODE", Word("COPY_ONLY")), Opt("MODE", Word("COPY_ONLY")))),
+		// External authentication: OFF, or ON with one way in brackets (Msg 102 for both, none, a name, or OFF with a bracket).
+		["external authentication on with no way"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"))),
+		["external authentication on with both ways"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("USE_IDENTITY", null), Opt("CREDENTIAL_NAME", Str("c")))),
+		["external authentication off with a way"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("OFF"), Opt("USE_IDENTITY", null))),
+		["external authentication by a way that is a name"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("CREDENTIAL_NAME", Word("c")))),
+		["external authentication by a way it has not"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("CERTIFICATE", Str("c")))),
+		["external authentication by the identity with a value"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("USE_IDENTITY", Str("c")))),
+		["external authentication by a credential with no name"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("CREDENTIAL_NAME", null))),
 		// @@REFUSALS
 	};
 

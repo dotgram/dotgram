@@ -5,7 +5,7 @@
 # deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
 
 Statement.AlterResourceGovernor = 0/29/0/0/0/0/0
-Statement.AlterServerConfiguration = 0/68/0/0/0/0/0
+Statement.AlterServerConfiguration = 68/0/0/0/0/0/0
 Statement.AvailabilityGroupDefinition = 0/51/0/0/0/0/0
 Statement.Dbcc = 73/0/0/0/0/0/0
 Statement.EndpointDefinition = 0/249/0/0/0/0/0

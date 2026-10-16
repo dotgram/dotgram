@@ -46,6 +46,7 @@ ByCase Statement.AlterFullTextIndex.Tail = 29
 ByCase Statement.AlterMasterKey.Tail = 6
 ByCase Statement.AlterRole.Tail = 3
 ByCase Statement.AlterSchema.Tail = 7
+ByCase Statement.AlterServerConfiguration.Tail = 6
 ByCase Statement.AlterServerRole.Tail = 3
 ByCase Statement.AlterServiceMasterKey.Tail = 2
 ByCase Statement.AlterSymmetricKey.Tail = 2

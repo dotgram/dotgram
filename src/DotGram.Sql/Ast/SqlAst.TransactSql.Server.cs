@@ -59,6 +59,24 @@ public abstract partial record Statement
 		/// </summary>
 		public SqlList<Option> Options { get; init; } = [];
 	}
+
+	/// <summary>
+	/// T-SQL: ALTER SERVER CONFIGURATION (Transact-SQL). <c>ALTER SERVER CONFIGURATION SET setting</c>: one setting of the server's, a
+	/// name and a value held to the catalogue of the statement. The name keeps its first word in <see cref="Option.Name"/> and the
+	/// rest in <see cref="Option.Words"/> (<c>PROCESS AFFINITY CPU</c>, <c>FAILOVER CLUSTER PROPERTY VerboseLogging</c>); a value
+	/// written with no <c>=</c> is the value of an option whose <see cref="Option.EqualsOmitted"/> stays false, since the setting's own
+	/// rule fixes the form.
+	/// </summary>
+	public sealed record AlterServerConfiguration(Option Setting) : Statement;
+}
+
+public abstract partial record Expression
+{
+	/// <summary>
+	/// T-SQL: ALTER SERVER CONFIGURATION (Transact-SQL). The processors or NUMA nodes of a process's affinity (the grammar's
+	/// <c>ServerRanges</c>): whole numbers and ranges of them joined by commas with no brackets, <c>1, 3 TO 5, 8</c>.
+	/// </summary>
+	public sealed record ServerRanges(SqlList<PartitionRange> Ranges) : Expression;
 }
 
 /// <summary>T-SQL: KILL (Transact-SQL). What a KILL does to the work it ends: <c>STATUSONLY</c>, <c>COMMIT</c> or <c>ROLLBACK</c>.</summary>

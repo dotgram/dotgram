@@ -145,6 +145,9 @@ static class Trees
 		"Statement.DatabaseAuditSpecificationDefinition.Tail",
 		"Clause.EventPiece.Where",
 		"Statement.EventSessionDefinition.State",
+		// The Server family: what follows ALTER SERVER CONFIGURATION, ALTER RESOURCE GOVERNOR and the name of a resource pool, a
+		// workload group, an availability group and an endpoint, kept as written.
+		"Statement.AlterServerConfiguration.Tail",
 	};
 
 	/// <summary>
@@ -218,6 +221,8 @@ static class Trees
 		"ACTIVATION", "ADD", "BINDING", "BROKER", "BY", "CLEANUP", "CONTRACT", "CONVERSATION", "DESCRIPTION", "DIALOG", "ERROR", "EXECUTE", "GET", "INITIATOR", "LOB_COMPACTION", "MAXDOP", "MAX_QUEUE_READERS", "MESSAGE", "POISON_MESSAGE_HANDLING", "PRIORITY", "PROCEDURE_NAME", "QUEUE", "RECEIVE", "REORGANIZE", "RETENTION", "SELF", "SEND", "SENT", "STATUS", "TARGET", "TIMEOUT", "TIMER", "TOP", "VALIDATION", "VALID_XML", "WAITFOR",
 		// The Monitoring family: the words of its statements that the writer prints in capitals.
 		"APPLICATION_LOG", "AUDIT", "DROP", "EVENT", "EXTERNAL_MONITOR", "FAN_IN", "FILEPATH", "FOR", "MODIFY", "NOT", "NOTIFICATION", "NULL", "ON", "OR", "PUBLIC", "SECURITY_LOG", "SESSION", "SPECIFICATION", "START", "STOP", "URL",
+		// The Server family: the words of its statements that the writer prints in capitals.
+		"CONFIGURATION",
 	};
 
 	/// <summary>

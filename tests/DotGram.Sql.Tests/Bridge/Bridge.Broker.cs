@@ -604,6 +604,12 @@ static partial class Bridge
 				return true;
 			}
 
+			/// <summary>The text of the token just taken.</summary>
+			public string Last
+			{
+				get { return _tokens[_at - 1].Text; }
+			}
+
 			public void Expect(params string[] words)
 			{
 				if (!Take(words))

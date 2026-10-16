@@ -103,5 +103,60 @@ public sealed class ServerBridgeTests
 		Converts(text);
 	}
 
+	[Theory]
+	[InlineData("ALTER SERVER CONFIGURATION SET PROCESS AFFINITY CPU = 1, 3 TO 5, 8",              "Affinity of processors")]
+	[InlineData("alter server configuration set process affinity cpu = auto",                      "Affinity automatic")]
+	[InlineData("ALTER SERVER CONFIGURATION SET PROCESS AFFINITY NUMANODE = 0 TO 3, 5",            "Affinity of nodes")]
+	[InlineData("ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG ON",                               "Log on")]
+	[InlineData("ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG PATH = N'x'",                      "Log path")]
+	[InlineData("ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG MAX_SIZE = 10 mb",                 "Log size")]
+	[InlineData("ALTER SERVER CONFIGURATION SET DIAGNOSTICS LOG MAX_FILES = DEFAULT",              "Log files")]
+	[InlineData("ALTER SERVER CONFIGURATION SET FAILOVER CLUSTER PROPERTY verboselogging = 2",     "Cluster property")]
+	[InlineData("ALTER SERVER CONFIGURATION SET HADR CLUSTER CONTEXT = LOCAL",                     "Cluster context")]
+	[InlineData("ALTER SERVER CONFIGURATION SET BUFFER POOL EXTENSION OFF",                        "Buffer pool off")]
+	[InlineData("ALTER SERVER CONFIGURATION SET BUFFER POOL EXTENSION ON (FILENAME = 'f', SIZE = 50 GB)", "Buffer pool on")]
+	[InlineData("ALTER SERVER CONFIGURATION SET SOFTNUMA off",                                     "Soft NUMA")]
+	[InlineData("ALTER SERVER CONFIGURATION SET MEMORY_OPTIMIZED ON",                              "Memory-optimized")]
+	[InlineData("ALTER SERVER CONFIGURATION SET MEMORY_OPTIMIZED TEMPDB_METADATA = ON (RESOURCE_POOL = 'p')", "Tempdb metadata")]
+	[InlineData("ALTER SERVER CONFIGURATION SET MEMORY_OPTIMIZED HYBRID_BUFFER_POOL = OFF",        "Hybrid buffer pool")]
+	[InlineData("ALTER SERVER CONFIGURATION SET SUSPEND_FOR_SNAPSHOT_BACKUP = ON (GROUP = ([db1], db2), MODE = COPY_ONLY)", "Snapshot backup")]
+	[InlineData("ALTER SERVER CONFIGURATION SET SUSPEND_FOR_SNAPSHOT_BACKUP = OFF",                "Snapshot backup off")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (CREDENTIAL_NAME = N'c')", "Authentication by a credential")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (USE_IDENTITY)",        "Authentication by the identity")]
+	public void The_bridge_builds_the_configuration_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = expected switch
+		{
+			"Affinity of processors" => made is Ast.Statement.AlterServerConfiguration { Setting: { Name.Text: "PROCESS", Words: [{ Text: "AFFINITY" }, { Text: "CPU" }], EqualsOmitted: false, Value: Ast.Expression.ServerRanges { Ranges: [{ To: null }, { To: not null }, { To: null }] } } },
+			"Affinity automatic" => made is Ast.Statement.AlterServerConfiguration { Setting: { Name.Text: "process", Value: Ast.Expression.Reference { Name.Parts: [{ Text: "auto" }] } } },
+			"Affinity of nodes" => made is Ast.Statement.AlterServerConfiguration { Setting: { Words: [{ Text: "AFFINITY" }, { Text: "NUMANODE" }], Value: Ast.Expression.ServerRanges } },
+			"Log on" => made is Ast.Statement.AlterServerConfiguration { Setting: { Name.Text: "DIAGNOSTICS", Words: [{ Text: "LOG" }], Value: Ast.Expression.Reference { Name.Parts: [{ Text: "ON" }] }, EqualsOmitted: false } },
+			"Log path" => made is Ast.Statement.AlterServerConfiguration { Setting: { Words: [{ Text: "LOG" }, { Text: "PATH" }], Value: Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.National } } },
+			"Log size" => made is Ast.Statement.AlterServerConfiguration { Setting: { Words: [{ Text: "LOG" }, { Text: "MAX_SIZE" }], Value: Ast.Expression.Measured { Unit.Text: "mb" } } },
+			"Log files" => made is Ast.Statement.AlterServerConfiguration { Setting: { Words: [{ Text: "LOG" }, { Text: "MAX_FILES" }], Value: Ast.Expression.Reference } },
+			"Cluster property" => made is Ast.Statement.AlterServerConfiguration { Setting: { Name.Text: "FAILOVER", Words: [{ Text: "CLUSTER" }, { Text: "PROPERTY" }, { Text: "verboselogging" }], Value: Ast.LiteralValue.Numeric } },
+			"Cluster context" => made is Ast.Statement.AlterServerConfiguration { Setting: { Name.Text: "HADR", Words: [{ Text: "CLUSTER" }, { Text: "CONTEXT" }] } },
+			"Buffer pool off" => made is Ast.Statement.AlterServerConfiguration { Setting: { Name.Text: "BUFFER", Words: [{ Text: "POOL" }, { Text: "EXTENSION" }], Value: Ast.Expression.Reference { Name.Parts: [{ Text: "OFF" }] }, Options.Count: 0 } },
+			"Buffer pool on" => made is Ast.Statement.AlterServerConfiguration { Setting: { Value: Ast.Expression.Reference { Name.Parts: [{ Text: "ON" }] }, Options: [{ Name.Text: "FILENAME", Value: Ast.LiteralValue.String }, { Name.Text: "SIZE", Value: Ast.Expression.Measured { Unit.Text: "GB" } }] } },
+			"Soft NUMA" => made is Ast.Statement.AlterServerConfiguration { Setting: { Name.Text: "SOFTNUMA", Words.Count: 0, Value: Ast.Expression.Reference { Name.Parts: [{ Text: "off" }] } } },
+			"Memory-optimized" => made is Ast.Statement.AlterServerConfiguration { Setting: { Name.Text: "MEMORY_OPTIMIZED", Words.Count: 0 } },
+			"Tempdb metadata" => made is Ast.Statement.AlterServerConfiguration { Setting: { Words: [{ Text: "TEMPDB_METADATA" }], Options: [{ Name.Text: "RESOURCE_POOL", Value: Ast.LiteralValue.String }] } },
+			"Hybrid buffer pool" => made is Ast.Statement.AlterServerConfiguration { Setting: { Words: [{ Text: "HYBRID_BUFFER_POOL" }], Options.Count: 0 } },
+			"Snapshot backup" => made is Ast.Statement.AlterServerConfiguration
+			{
+				Setting: { Name.Text: "SUSPEND_FOR_SNAPSHOT_BACKUP", Options: [{ Name.Text: "GROUP", Value: Ast.Expression.Row { RowKeyword: false, Items: [Ast.Expression.Reference { Name.Parts: [{ Style: Ast.IdentifierStyle.Bracketed }] }, Ast.Expression.Reference] } }, { Name.Text: "MODE", Value: Ast.Expression.Reference }] },
+			},
+			"Snapshot backup off" => made is Ast.Statement.AlterServerConfiguration { Setting: { Value: Ast.Expression.Reference { Name.Parts: [{ Text: "OFF" }] }, Options.Count: 0 } },
+			"Authentication by a credential" => made is Ast.Statement.AlterServerConfiguration { Setting: { Name.Text: "EXTERNAL", Words: [{ Text: "AUTHENTICATION" }], Options: [{ Name.Text: "CREDENTIAL_NAME", Value: Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.National } }] } },
+			"Authentication by the identity" => made is Ast.Statement.AlterServerConfiguration { Setting: { Options: [{ Name.Text: "USE_IDENTITY", Value: null }] } },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+		Converts(text);
+	}
+
 	// @@TESTS
 }

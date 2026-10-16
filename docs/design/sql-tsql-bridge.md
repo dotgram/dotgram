@@ -234,6 +234,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.AlterMasterKey.Tail | 6 |
 | ByCase Statement.AlterRole.Tail | 3 |
 | ByCase Statement.AlterSchema.Tail | 7 |
+| ByCase Statement.AlterServerConfiguration.Tail | 6 |
 | ByCase Statement.AlterServerRole.Tail | 3 |
 | ByCase Statement.AlterServiceMasterKey.Tail | 2 |
 | ByCase Statement.AlterSymmetricKey.Tail | 2 |
@@ -436,7 +437,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.Dbcc` | Server | C | converted 73 | — | 73 |
 | `Expression.Not` | Values | A | — | — | 71 |
 | `Statement.CreateTableAsSelect` | Tables | B | converted 50, gap 1 | 1: needs decision: inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold) (1) | 70 |
-| `Statement.AlterServerConfiguration` | Server | C | gap 68 | 68: no target record: Statement.AlterServerConfiguration (68) | 68 |
+| `Statement.AlterServerConfiguration` | Server | C | converted 68 | — | 68 |
 | `Clause.SystemTime` | Tables | A | — | — | 67 |
 | `Clause.MergeWhen` | Dml | B | — | — | 65 |
 | `Query.Parenthesized` | Queries | B | — | — | 64 |
