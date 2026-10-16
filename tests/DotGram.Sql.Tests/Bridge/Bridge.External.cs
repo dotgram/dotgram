@@ -85,6 +85,42 @@ static partial class Bridge
 			return new Ast.Statement.CreateExternalFileFormat(name, options);
 		}
 
+		// ── External tables ───────────────────────────────────────────────────────
+
+		/// <summary>
+		/// <c>CREATE EXTERNAL TABLE t (columns) WITH (…)</c>, called by the Tables family for a table declared with
+		/// <c>External</c> set, with the elements it has carried. The old tree keeps the settings as options, which the Tables
+		/// family carries for every <c>WITH (…)</c>.
+		/// </summary>
+		internal static Ast.Statement Table(Statement.TableDefinition old, SqlList<Ast.TableElement> elements)
+		{
+			if (old.Kind is not null || old.Placements.Length > 0)
+				throw BridgeGap.Open(old, "inventory Statement.TableDefinition (CREATE EXTERNAL TABLE with a kind or a placement, which the grammar does not read)");
+
+			return new Ast.Statement.CreateExternalTable(Values.Name(old, old.Name), new Ast.TableContents.Elements(elements))
+			{
+				Options = Each(old.Options, Tables.Option),
+			};
+		}
+
+		/// <summary>
+		/// <c>CREATE EXTERNAL TABLE t WITH (…) AS SELECT …</c>, called by the Tables family for a table made of a query with
+		/// <c>External</c> set: the query alone, with no columns and no <c>WITH [NO] DATA</c>.
+		/// </summary>
+		internal static Ast.Statement TableAsSelect(Statement.CreateTableAsSelect old)
+		{
+			if (old.Columns is not null)
+				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (CREATE EXTERNAL TABLE with columns before AS, which the grammar does not read)");
+
+			if (StatementOf(old.Body) is not Ast.Statement.Select { Hints.Count: 0 } select)
+				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold)");
+
+			return new Ast.Statement.CreateExternalTable(Values.Name(old, old.Name), new Ast.TableContents.AsQuery([], select.Query, null))
+			{
+				Options = Each(old.Options, Tables.Option),
+			};
+		}
+
 		// ── What follows a name ──────────────────────────────────────────────────
 
 		/// <summary>

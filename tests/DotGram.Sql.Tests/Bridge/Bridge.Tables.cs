@@ -554,7 +554,7 @@ static partial class Bridge
 		static Ast.Statement CreateTable(Statement.TableDefinition old)
 		{
 			if (old.External)
-				throw BridgeGap.Open(old, "inventory Statement.TableDefinition (CREATE EXTERNAL TABLE, which another task owns)");
+				return External.Table(old, Elements(old.Elements));
 
 			return new Ast.Statement.CreateTable
 			{
@@ -585,7 +585,7 @@ static partial class Bridge
 		static Ast.Statement CreateTableAsSelect(Statement.CreateTableAsSelect old)
 		{
 			if (old.External)
-				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (CREATE EXTERNAL TABLE AS SELECT, which another task owns)");
+				return External.TableAsSelect(old);
 
 			if (StatementOf(old.Body) is not Ast.Statement.Select { Hints.Count: 0 } select)
 				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold)");

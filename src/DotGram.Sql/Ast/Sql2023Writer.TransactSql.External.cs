@@ -40,6 +40,10 @@ public static partial class Sql2023Writer
 					PutExternalWith(create, create.Options, FileFormatSettings, "CREATE EXTERNAL FILE FORMAT", always: true);
 					return true;
 
+				case Statement.CreateExternalTable table:
+					PutExternalTable(table);
+					return true;
+
 				default:
 					return false;
 			}
@@ -50,7 +54,8 @@ public static partial class Sql2023Writer
 		/// <summary>
 		/// The forms of value a setting is read with, as the grammar's rules spell them: <c>ExternalName</c> (<c>Identifier</c> and
 		/// not a dotted name), <c>Quoted</c>, <c>TSql.BinaryLiteral</c>, <c>Sql92.Lexical.Digits</c>, <c>ExactNumber</c>,
-		/// <c>Sql92.Lexical.UnsignedNumericLiteral</c>, a word out of a list, a value expression.
+		/// <c>Sql92.Lexical.UnsignedNumericLiteral</c>, a word out of a list, a value expression; <c>Current</c> is the key
+		/// word <c>VALUE</c>, which an expression reads as the current value.
 		/// </summary>
 		[Flags]
 		enum ExternalShape
@@ -64,6 +69,8 @@ public static partial class Sql2023Writer
 			Number = 32,
 			Words  = 64,
 			Value  = 128,
+			Call   = 256,
+			Current = 512,
 		}
 
 		/// <summary>
@@ -74,6 +81,9 @@ public static partial class Sql2023Writer
 
 		static readonly ExternalEntry ExternalString = new(ExternalShape.String);
 		static readonly ExternalEntry ExternalName   = new(ExternalShape.Name);
+
+		/// <summary>A name the old grammar reads through the expression rule, which reads <c>VALUE</c> as the current value.</summary>
+		static readonly ExternalEntry ExternalReadName = new(ExternalShape.Name | ExternalShape.Current);
 
 		/// <summary>DataSourceShared: what a data source takes whether it is made or altered.</summary>
 		static readonly Dictionary<string, ExternalEntry> DataSourceShared = new(StringComparer.OrdinalIgnoreCase)
@@ -119,6 +129,26 @@ public static partial class Sql2023Writer
 			["DATA_COMPRESSION"] = new(ExternalShape.String, Once: false),
 			["SERDE_METHOD"]    = new(ExternalShape.String, Once: false),
 			["FORMAT_OPTIONS"]  = new(ExternalShape.None, Once: false, Nested: FormatOptionSettings),
+		};
+
+		/// <summary>
+		/// ExternalTableSyntax: an external table's settings, each once. A location is a string, a data source and a file format
+		/// one part of a name, a rejection <c>VALUE</c> or <c>PERCENTAGE</c> and its numbers unsigned with no exponent; elastic
+		/// query's and Synapse serverless's follow.
+		/// </summary>
+		static readonly Dictionary<string, ExternalEntry> ExternalTableSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["LOCATION"]              = ExternalString,
+			["REJECTED_ROW_LOCATION"] = ExternalString,
+			["DATA_SOURCE"]           = ExternalReadName,
+			["FILE_FORMAT"]           = ExternalReadName,
+			["REJECT_TYPE"]           = new(ExternalShape.Words | ExternalShape.Current, ["PERCENTAGE"]),
+			["REJECT_VALUE"]          = new(ExternalShape.Exact),
+			["REJECT_SAMPLE_VALUE"]   = new(ExternalShape.Exact),
+			["SCHEMA_NAME"]           = ExternalString,
+			["OBJECT_NAME"]           = ExternalString,
+			["TABLE_OPTIONS"]         = ExternalString,
+			["DISTRIBUTION"]          = new(ExternalShape.Words | ExternalShape.Call, ["REPLICATED", "ROUND_ROBIN"]),
 		};
 
 		// ── Names ─────────────────────────────────────────────────────────────────
@@ -192,6 +222,65 @@ public static partial class Sql2023Writer
 				return false;
 
 			return IsDelimitedName(text.Text, '\'', '\'');
+		}
+
+		// ── External tables ───────────────────────────────────────────────────────
+
+		/// <summary>
+		/// T-SQL: CREATE EXTERNAL TABLE (Transact-SQL), CREATE EXTERNAL TABLE AS SELECT (CETAS) (Transact-SQL). The columns as the
+		/// grammar reads any table's and then where they are, or the settings and the query that says the columns; the
+		/// settings' brackets are always written.
+		/// </summary>
+		void PutExternalTable(Statement.CreateExternalTable table)
+		{
+			Word("CREATE EXTERNAL TABLE");
+			PutExternalTableName(table.Name);
+
+			switch (table.Contents)
+			{
+				case TableContents.Elements elements:
+					if (elements.Items.Count == 0)
+						throw Empty(elements, "Items");
+
+					PutElements(elements.Items);
+					PutExternalWith(table, table.Options, ExternalTableSettings, "CREATE EXTERNAL TABLE", always: true);
+					break;
+
+				// The query's own form: the name, the settings and the query bare after AS, with no columns before it.
+				case TableContents.AsQuery query:
+					if (query.Columns.Count > 0)
+						throw Misplaced(query, "Columns", "on an external table made of a query, whose columns the query says");
+
+					if (query.Data is not null)
+						throw Misplaced(query, "Data", "on an external table made of a query, which writes no WITH [NO] DATA");
+
+					PutExternalWith(table, table.Options, ExternalTableSettings, "CREATE EXTERNAL TABLE AS SELECT", always: true);
+					Word("AS");
+					PutQuery(query.Query);
+					break;
+
+				default:
+					throw Misplaced(table, "Contents", "other than columns or a query");
+			}
+		}
+
+		/// <summary>
+		/// A table's name as the grammar's <c>QualifiedName</c> reads it: names of the kinds <see cref="CheckExternalName"/> reads, and
+		/// an empty part between two dots (<c>db..t</c>) where a part is left out; the last is always named.
+		/// </summary>
+		void PutExternalTableName(QualifiedName name)
+		{
+			for (var at = 0; at < name.Count; at++)
+			{
+				var part = name[at];
+
+				if (part.Text.Length == 0 && part.Style == IdentifierStyle.Regular && at < name.Count - 1)
+					continue;
+
+				CheckExternalName(part, "CREATE EXTERNAL TABLE");
+			}
+
+			PutName(name);
 		}
 
 		// ── Settings ──────────────────────────────────────────────────────────────
@@ -288,8 +377,37 @@ public static partial class Sql2023Writer
 					PutKeyWord(part);
 					return;
 
-				case Expression.Reference { Name: [{ } part] } when shape.HasFlag(ExternalShape.Name):
+				// VALUE is the key word the expressions read as the standard's current value, and only so: the plain name VALUE is that
+				// key word too, and a tree that holds the name reads back as the other.
+				case Expression.Current { Kind: CurrentValue.Value, TypeName: null, Precision: null } when shape.HasFlag(ExternalShape.Current):
+					PutExpression(value);
+					return;
+
+				case Expression.Reference { Name: [{ } part] } when shape.HasFlag(ExternalShape.Name) && !(shape.HasFlag(ExternalShape.Current) && Plain(part, "VALUE")):
 					PutExternalName(part, place);
+					return;
+
+				// DISTRIBUTION = SHARDED (column): a call of one column by name, and nothing else a call holds.
+				case Expression.Invocation { Name: [{ } sharded], Arguments: [{ Value: var column, Name: null, NamedAssignment: false }] } call
+					when shape.HasFlag(ExternalShape.Call) && Plain(sharded, "SHARDED") && call.Equals(new Expression.Invocation(call.Name, call.Arguments)):
+					PutKeyWord(sharded);
+					Call();
+
+					switch (column)
+					{
+						case Expression.Reference { Name: [{ } part] } when !Plain(part, "VALUE"):
+							PutExternalName(part, place);
+							break;
+
+						case Expression.Current { Kind: CurrentValue.Value, TypeName: null, Precision: null }:
+							PutExpression(column);
+							break;
+
+						default:
+							throw Misplaced(option, "Value", $"whose call holds other than a column of one name, in {place}");
+					}
+
+					Close();
 					return;
 
 				case LiteralValue.String text when shape.HasFlag(ExternalShape.String) && IsQuoted(text):

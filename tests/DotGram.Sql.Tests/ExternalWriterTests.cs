@@ -49,6 +49,31 @@ public sealed class ExternalWriterTests
 		return new LiteralValue.Numeric(digits, NumericLiteralKind.DecimalInteger);
 	}
 
+	static TableElement Column(string name, DataType type)
+	{
+		return new TableElement.Column(new ColumnDefinition(new Identifier(name), type, null, [], null));
+	}
+
+	static DotGram.Sql.Ast.Query Select(string text)
+	{
+		return ((Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text)).Query;
+	}
+
+	static QualifiedName Dotted(params string[] parts)
+	{
+		return new QualifiedName([.. parts.Select(static one => new Identifier(one))]);
+	}
+
+	static Expression Call(string name, params Expression[] arguments)
+	{
+		return new Expression.Invocation(new QualifiedName([new Identifier(name)]), [.. arguments.Select(static one => new Argument(one))]);
+	}
+
+	static Expression Current()
+	{
+		return new Expression.Current(CurrentValue.Value);
+	}
+
 	static Option Opt(string name, Expression? value = null, params Option[] options)
 	{
 		return new Option(new Identifier(name), value, [.. options]);
@@ -72,6 +97,40 @@ public sealed class ExternalWriterTests
 		["Alter data source"] = (
 			new Statement.AlterExternalDataSource(X, [Opt("LOCATION", Str("l")), Opt("CREDENTIAL", Word("c")), Opt("TYPE", Word("HADOOP")), Opt("RESOURCE_MANAGER_LOCATION", Str("r")), Opt("PUSHDOWN", Word("ON")), Opt("CONNECTION_OPTIONS", Str("o"))]),
 			"ALTER EXTERNAL DATA SOURCE x SET LOCATION = 'l', CREDENTIAL = c, TYPE = HADOOP, RESOURCE_MANAGER_LOCATION = 'r', PUSHDOWN = ON, CONNECTION_OPTIONS = 'o'"),
+		["Create external table"] = (
+			new Statement.CreateExternalTable(Dotted("dbo", "t"), new TableContents.Elements([Column("a", new DataType.Numeric(NumericTypeKind.Int)), Column("b", new DataType.Numeric(NumericTypeKind.Int))]))
+			{
+				Options = [Opt("LOCATION", Str("/f")), Opt("DATA_SOURCE", Word("ds")), Opt("FILE_FORMAT", Named(new Identifier("[ff]", IdentifierStyle.Bracketed))), Opt("REJECT_TYPE", Current()), Opt("REJECT_VALUE", new LiteralValue.Numeric("10.5", NumericLiteralKind.Decimal)), Opt("REJECT_SAMPLE_VALUE", Digits("1000")), Opt("REJECTED_ROW_LOCATION", NStr("/r"))],
+			},
+			"CREATE EXTERNAL TABLE dbo.t (a INT, b INT) WITH (LOCATION = '/f', DATA_SOURCE = ds, FILE_FORMAT = [ff], REJECT_TYPE = VALUE, REJECT_VALUE = 10.5, REJECT_SAMPLE_VALUE = 1000, REJECTED_ROW_LOCATION = N'/r')"),
+		["Create external table with no setting"] = (
+			new Statement.CreateExternalTable(Dotted("t"), new TableContents.Elements([Column("a", new DataType.Numeric(NumericTypeKind.Int))])),
+			"CREATE EXTERNAL TABLE t (a INT) WITH ()"),
+		["Create external table with a left out part"] = (
+			new Statement.CreateExternalTable(new QualifiedName([new Identifier("db"), new Identifier(""), new Identifier("t")]), new TableContents.Elements([Column("a", new DataType.Numeric(NumericTypeKind.Int))])),
+			"CREATE EXTERNAL TABLE db..t (a INT) WITH ()"),
+		["Create external table of elastic query"] = (
+			new Statement.CreateExternalTable(Dotted("t"), new TableContents.Elements([Column("a", new DataType.Numeric(NumericTypeKind.Int))]))
+			{
+				Options = [Opt("DATA_SOURCE", Word("ds")), Opt("SCHEMA_NAME", Str("s")), Opt("OBJECT_NAME", Str("o")), Opt("TABLE_OPTIONS", NStr("{}")), Opt("DISTRIBUTION", Call("SHARDED", Word("a")))],
+			},
+			"CREATE EXTERNAL TABLE t (a INT) WITH (DATA_SOURCE = ds, SCHEMA_NAME = 's', OBJECT_NAME = 'o', TABLE_OPTIONS = N'{}', DISTRIBUTION = SHARDED(a))"),
+		["Create external table replicated"] = (
+			new Statement.CreateExternalTable(Dotted("t"), new TableContents.Elements([Column("a", new DataType.Numeric(NumericTypeKind.Int))])) { Options = [Opt("DISTRIBUTION", Word("REPLICATED"))] },
+			"CREATE EXTERNAL TABLE t (a INT) WITH (DISTRIBUTION = REPLICATED)"),
+		["Create external table percentage"] = (
+			new Statement.CreateExternalTable(Dotted("t"), new TableContents.Elements([Column("a", new DataType.Numeric(NumericTypeKind.Int))])) { Options = [Opt("REJECT_TYPE", Word("PERCENTAGE")), Opt("DISTRIBUTION", Word("ROUND_ROBIN"))] },
+			"CREATE EXTERNAL TABLE t (a INT) WITH (REJECT_TYPE = PERCENTAGE, DISTRIBUTION = ROUND_ROBIN)"),
+		// A data source called VALUE: the expression rule reads the word as the current value, and so does the tree.
+		["Create external table of a data source called VALUE"] = (
+			new Statement.CreateExternalTable(Dotted("t"), new TableContents.Elements([Column("a", new DataType.Numeric(NumericTypeKind.Int))])) { Options = [Opt("DATA_SOURCE", Current()), Opt("DISTRIBUTION", Call("SHARDED", Current()))] },
+			"CREATE EXTERNAL TABLE t (a INT) WITH (DATA_SOURCE = VALUE, DISTRIBUTION = SHARDED(VALUE))"),
+		["Create external table as select"] = (
+			new Statement.CreateExternalTable(Dotted("dbo", "t"), new TableContents.AsQuery([], Select("SELECT 1 AS a"), null)) { Options = [Opt("LOCATION", Str("/f")), Opt("DATA_SOURCE", Word("ds"))] },
+			"CREATE EXTERNAL TABLE dbo.t WITH (LOCATION = '/f', DATA_SOURCE = ds) AS SELECT 1 AS a"),
+		["Create external table as select with no setting"] = (
+			new Statement.CreateExternalTable(Dotted("t"), new TableContents.AsQuery([], Select("SELECT 1 AS a"), null)),
+			"CREATE EXTERNAL TABLE t WITH () AS SELECT 1 AS a"),
 		["Create file format"] = (
 			new Statement.CreateExternalFileFormat(X, [Opt("FORMAT_TYPE", Word("DELIMITEDTEXT")), Opt("DATA_COMPRESSION", Str("c")), Opt("FORMAT_OPTIONS", null, Opt("FIELD_TERMINATOR", Str("|")), Opt("STRING_DELIMITER", NStr("\"")), Opt("FIRST_ROW", Digits("2")), Opt("USE_TYPE_DEFAULT", Word("TRUE")), Opt("ENCODING", Str("UTF8")), Opt("DATE_FORMAT", Str("yyyy")), Opt("PARSER_VERSION", Str("2.0")))]),
 			"CREATE EXTERNAL FILE FORMAT x WITH (FORMAT_TYPE = DELIMITEDTEXT, DATA_COMPRESSION = 'c', FORMAT_OPTIONS (FIELD_TERMINATOR = '|', STRING_DELIMITER = N'\"', FIRST_ROW = 2, USE_TYPE_DEFAULT = TRUE, ENCODING = 'UTF8', DATE_FORMAT = 'yyyy', PARSER_VERSION = '2.0'))"),
@@ -199,7 +258,64 @@ public sealed class ExternalWriterTests
 		["a field terminator that is a name"] = new Statement.CreateExternalFileFormat(X, [Opt("FORMAT_OPTIONS", null, Opt("FIELD_TERMINATOR", Word("a")))]),
 		// A file format is named by an Identifier.
 		["a file format named by a variable"] = new Statement.CreateExternalFileFormat(new Identifier("@f"), []),
+		// An external table is named by a QualifiedName, whose parts are Identifiers: `@t` is a variable.
+		["an external table named by a variable"] = new Statement.CreateExternalTable(Dotted("@t"), Elements()),
+		["an external table named by a reserved word"] = new Statement.CreateExternalTable(Dotted("dbo", "table"), Elements()),
+		["an external table named in an unclosed bracket"] = new Statement.CreateExternalTable(new QualifiedName([new Identifier("[t", IdentifierStyle.Bracketed)]), Elements()),
+		["an external table named by two words"] = new Statement.CreateExternalTable(Dotted("a b"), Elements()),
+		// NamePartName leaves a part out only before a dot: the name ends in a name.
+		["an external table whose name ends in a left out part"] = new Statement.CreateExternalTable(Dotted("db", ""), Elements()),
+		["an external table named by a string"] = new Statement.CreateExternalTable(new QualifiedName([new Identifier("t", IdentifierStyle.String)]), Elements()),
+		// TableBody reads one element at least.
+		["an external table of no column"] = new Statement.CreateExternalTable(Dotted("t"), new TableContents.Elements([])),
+		// The external table reads columns, or a query: no typed table.
+		["an external table of a typed table"] = new Statement.CreateExternalTable(Dotted("t"), new TableContents.Typed(Dotted("ty"), null, [])),
+		// The query's form has no column list before AS.
+		["an external table made of a query with columns"] = new Statement.CreateExternalTable(Dotted("t"), new TableContents.AsQuery([new Identifier("a")], Select("SELECT 1 AS a"), null)),
+		// Synapse's query writes no WITH [NO] DATA.
+		["an external table made of a query with its data"] = new Statement.CreateExternalTable(Dotted("t"), new TableContents.AsQuery([], Select("SELECT 1 AS a"), WithDataMode.WithData)),
+		// ExternalTableItem lists a name once (`Syntax.NamedOnce`, Msg 46547).
+		["an external table setting twice"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("LOCATION", Str("a")), Opt("LOCATION", Str("b"))] },
+		// ExternalTableSyntax has no FORMAT_TYPE.
+		["an external table setting it has not"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("FORMAT_TYPE", Word("ORC"))] },
+		["an external table setting with its = omitted"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [new Option(new Identifier("LOCATION"), Str("a"), []) { EqualsOmitted = true }] },
+		// LOCATION is Quoted.
+		["an external table location that is a name"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("LOCATION", Word("a"))] },
+		// DATA_SOURCE is ExternalName: one part, not a string, not `dbo.x`.
+		["an external table data source that is a string"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DATA_SOURCE", Str("ds"))] },
+		["an external table data source of two parts"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DATA_SOURCE", new Expression.Reference(Dotted("dbo", "ds")))] },
+		// The expression rule reads the plain name VALUE as the current value: the tree for the name would read back as the other.
+		["an external table data source that is the plain name VALUE"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DATA_SOURCE", Word("value"))] },
+		["an external table file format that is a variable"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("FILE_FORMAT", new Expression.Variable(new Identifier("@f")))] },
+		// REJECT_TYPE is VALUE or PERCENTAGE; the word VALUE is the current value to the expression rule, so the plain name VALUE is none.
+		["an external table reject type that is the plain name VALUE"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("REJECT_TYPE", Word("VALUE"))] },
+		["an external table reject type outside its words"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("REJECT_TYPE", Word("ROWS"))] },
+		["an external table reject type that is another current value"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("REJECT_TYPE", new Expression.Current(CurrentValue.User))] },
+		// ExactNumber is an unsigned numeric literal with no exponent (`ExternalTableSyntax`).
+		["an external table reject value with an exponent"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("REJECT_VALUE", new LiteralValue.Numeric("1e3", NumericLiteralKind.Approximate))] },
+		["an external table reject value that is signed"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("REJECT_VALUE", new LiteralValue.Numeric("-1", NumericLiteralKind.DecimalInteger))] },
+		["an external table reject value that is a minus over a number"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("REJECT_VALUE", new Expression.Unary(UnaryOperator.Minus, Digits("1")))] },
+		["an external table reject value that is a string"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("REJECT_VALUE", Str("1"))] },
+		["an external table reject sample value that is hex"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("REJECT_SAMPLE_VALUE", new LiteralValue.Numeric("0x10", NumericLiteralKind.HexInteger))] },
+		// DISTRIBUTION is SHARDED (Identifier), REPLICATED or ROUND_ROBIN.
+		["an external table distribution outside its words"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", Call("HASH", Word("a")))] },
+		["an external table sharded by two columns"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", Call("SHARDED", Word("a"), Word("b")))] },
+		["an external table sharded by nothing"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", Call("SHARDED"))] },
+		["an external table sharded by a string"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", Call("SHARDED", Str("a")))] },
+		["an external table sharded by a column of two parts"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", Call("SHARDED", new Expression.Reference(Dotted("t", "a"))))] },
+		["an external table sharded by the plain name VALUE"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", Call("SHARDED", Word("value")))] },
+		["an external table sharded by a named argument"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", new Expression.Invocation(new QualifiedName([new Identifier("SHARDED")]), [new Argument(Word("a"), new Identifier("n"), true)]))] },
+		["an external table sharded without brackets"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", new Expression.Invocation(new QualifiedName([new Identifier("SHARDED")]), [new Argument(Word("a"))]) { WithoutParentheses = true })] },
+		["an external table sharded by a call with a quantifier"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", new Expression.Invocation(new QualifiedName([new Identifier("SHARDED")]), [new Argument(Word("a"))]) { Quantifier = SetQuantifier.Distinct })] },
+		["an external table sharded by a qualified call"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", new Expression.Invocation(Dotted("dbo", "SHARDED"), [new Argument(Word("a"))]))] },
+		// A distribution is a word or a call: a number is neither.
+		["an external table distribution that is a number"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", Digits("1"))] },
 	};
+
+	static TableContents Elements()
+	{
+		return new TableContents.Elements([Column("a", new DataType.Numeric(NumericTypeKind.Int))]);
+	}
 
 	public static TheoryData<string> RefusalNames
 	{

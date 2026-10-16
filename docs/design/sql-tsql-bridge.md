@@ -192,7 +192,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 
 | Counter | Count |
 | --- | ---: |
-| ByCase Clause.ColumnDefinition.Type | 1691 |
+| ByCase Clause.ColumnDefinition.Type | 1850 |
 | ByCase Clause.Dropped.Tail | 5 |
 | ByCase Clause.For.Kind | 20 |
 | ByCase Clause.For.Options | 44 |
@@ -212,7 +212,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Expression.ColumnReference.Text under Statement.DropSignature | 5 |
 | ByCase Expression.GraphMatch.Pattern | 114 |
 | ByCase Expression.Hinted.Words | 5 |
-| ByCase Expression.Literal.Text | 26 |
+| ByCase Expression.Literal.Text | 27 |
 | ByCase Expression.Match.Qualifier | 0 |
 | ByCase Expression.NamedArgument.Name | 0 |
 | ByCase Expression.OdbcEscape.Kind | 1 |
@@ -301,8 +301,8 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Projected a T-SQL column's options as the standard's members | 234 |
 | Projected a key's T-SQL columns as the standard's names | 6 |
 | Recovered Alias.AsKeyword of MERGE's target | 19 |
-| Recovered Alias.AsKeyword of a table source | 948 |
-| Recovered Clause.DerivedColumn alias = expression | 408 |
+| Recovered Alias.AsKeyword of a table source | 952 |
+| Recovered Clause.DerivedColumn alias = expression | 429 |
 | Recovered Expression.Invocation without brackets | 43 |
 | Recovered Expression.Trim.FromKeyword | 0 |
 | Recovered Limit.FetchRowWord | 23 |
@@ -311,9 +311,9 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Recovered ParameterDefinition.AsKeyword | 273 |
 | Recovered ReferencesSpecification.DeleteRuleFirst | 44 |
 | Recovered RoutineDefinition.AsOmitted | 174 |
-| Recovered RoutineDefinition.Proc | 246 |
+| Recovered RoutineDefinition.Proc | 248 |
 | Recovered RoutineDefinition.Unbracketed | 70 |
-| Recovered SelectColumn.ExpressionItem.AsKeyword | 403 |
+| Recovered SelectColumn.ExpressionItem.AsKeyword | 424 |
 | Recovered Statement.Classification.Options | 17 |
 | Recovered Statement.Delete.FromOmitted | 85 |
 | Recovered Statement.DropRoutine.Proc | 24 |
@@ -342,7 +342,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.DerivedColumn` | Queries | A | — | — | 2978 |
 | `TableReference.Named` | Tables | A | gap 5 | 5: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `db `) (1) | 2944 |
 | `Expression.RoutineInvocation` | Values | B | gap 56 | 71: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); needs decision: inventory Expression.RoutineInvocation (the word `INT`) (8) | 2310 |
-| `Statement.TableDefinition` | Tables | B | converted 1610, gap 79 | 79: needs decision: inventory Statement.TableDefinition (CREATE EXTERNAL TABLE, which another task owns) (79) | 1906 |
+| `Statement.TableDefinition` | Tables | B | converted 1689 | — | 1906 |
 | `Clause.ConstraintDefinition` | Tables | B | gap 36 | 36: needs decision: inventory Clause.ConstraintDefinition (an index's options without brackets, which IndexDefinition has no flag for) (25); needs decision: inventory Clause.ConstraintDefinition (PRIMARY KEY with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter) (7) | 1841 |
 | `Clause.SortSpecification` | Queries | A | — | — | 1303 |
 | `Clause.QualifiedAsterisk` | Queries | A | — | — | 1221 |
@@ -360,7 +360,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.EventSessionDefinition` | Monitoring | C | gap 323 | 323: no target record: Statement.CreateEventSession (323) | 323 |
 | `Clause.ParameterDeclaration` | Routines | B | — | — | 298 |
 | `Clause.Hint` | Queries | C | gap 5 | 5: needs decision: inventory Clause.Hint (the old WITH (n)) (4); needs decision: inventory Clause.Hint (a hint of a shape the family does not hold) (1) | 294 |
-| `Statement.CreateProcedure` | Routines | B | converted 246, gap 19 | 19: needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1); needs decision: inventory DataType (`bit(max)`: a word in the brackets of a type) (1) | 285 |
+| `Statement.CreateProcedure` | Routines | B | converted 248, gap 19 | 19: needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1); needs decision: inventory DataType (`bit(max)`: a word in the brackets of a type) (1) | 285 |
 | `Clause.Connection` | Tables | C | — | — | 270 |
 | `Statement.EndpointDefinition` | Server | C | gap 249 | 249: no target record: Statement.CreateEndpoint (249) | 249 |
 | `Statement.Insert` | Dml | A | converted 192, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
@@ -418,7 +418,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateTrigger` | Routines | B | converted 61, gap 10 | 10: no target record: Statement.CreateTrigger (statement kinds and event names in one list, or the wrong kind for its target) (10) | 76 |
 | `Statement.Dbcc` | Server | C | gap 73 | 73: no target record: Statement.Dbcc (73) | 73 |
 | `Expression.Not` | Values | A | — | — | 71 |
-| `Statement.CreateTableAsSelect` | Tables | B | converted 22, gap 31 | 31: needs decision: inventory Statement.CreateTableAsSelect (CREATE EXTERNAL TABLE AS SELECT, which another task owns) (30); needs decision: inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold) (1) | 70 |
+| `Statement.CreateTableAsSelect` | Tables | B | converted 50, gap 1 | 1: needs decision: inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold) (1) | 70 |
 | `Statement.AlterServerConfiguration` | Server | C | gap 68 | 68: no target record: Statement.AlterServerConfiguration (68) | 68 |
 | `Clause.SystemTime` | Tables | A | — | — | 67 |
 | `Clause.MergeWhen` | Dml | B | — | — | 65 |

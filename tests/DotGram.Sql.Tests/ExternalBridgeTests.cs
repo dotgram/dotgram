@@ -66,4 +66,55 @@ public sealed class ExternalBridgeTests
 
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}
+
+	[Theory]
+	[InlineData("CREATE EXTERNAL TABLE t (a INT) WITH (LOCATION = 'l', DATA_SOURCE = d)",             "External table")]
+	[InlineData("CREATE TABLE t (a INT) WITH (DATA_COMPRESSION = PAGE)",                              "Plain table")]
+	[InlineData("CREATE EXTERNAL TABLE t WITH (LOCATION = 'l', DATA_SOURCE = d) AS SELECT 1 AS a",   "External query")]
+	[InlineData("CREATE TABLE t WITH (DISTRIBUTION = ROUND_ROBIN) AS SELECT 1 AS a",                  "Plain query")]
+	[InlineData("CREATE EXTERNAL TABLE t (a INT) WITH (REJECT_TYPE = VALUE)",                         "Reject type value")]
+	[InlineData("CREATE EXTERNAL TABLE t (a INT) WITH (REJECT_TYPE = percentage)",                    "Reject type percentage")]
+	[InlineData("CREATE EXTERNAL TABLE t (a INT) WITH (DATA_SOURCE = value)",                         "Data source called value")]
+	[InlineData("CREATE EXTERNAL TABLE t (a INT) WITH (DATA_SOURCE = [value])",                       "Data source called [value]")]
+	[InlineData("CREATE EXTERNAL TABLE t (a INT) WITH (DISTRIBUTION = SHARDED (c))",                  "Sharded")]
+	[InlineData("CREATE EXTERNAL TABLE t (a INT,) WITH (REJECT_VALUE = 1.5,)",                        "Commas loose")]
+	[InlineData("CREATE EXTERNAL TABLE t (a INT) WITH ()",                                            "No setting")]
+	public void The_bridge_builds_the_table_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = expected switch
+		{
+			"External table" => made is Ast.Statement.CreateExternalTable { Contents: Ast.TableContents.Elements { Items.Count: 1 }, Options: [{ Name.Text: "LOCATION" }, { Name.Text: "DATA_SOURCE" }] },
+			"Plain table" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements, Options.Count: 1 },
+			"External query" => made is Ast.Statement.CreateExternalTable { Contents: Ast.TableContents.AsQuery { Columns.Count: 0, Data: null }, Options.Count: 2 },
+			"Plain query" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.AsQuery { Data: null }, Options.Count: 1 },
+			"Reject type value" => made is Ast.Statement.CreateExternalTable { Options: [{ Name.Text: "REJECT_TYPE", Value: Ast.Expression.Current { Kind: Ast.CurrentValue.Value } }] },
+			"Reject type percentage" => made is Ast.Statement.CreateExternalTable { Options: [{ Value: Ast.Expression.Reference { Name.Parts: [{ Text: "percentage" }] } }] },
+			"Data source called value" => made is Ast.Statement.CreateExternalTable { Options: [{ Name.Text: "DATA_SOURCE", Value: Ast.Expression.Current { Kind: Ast.CurrentValue.Value } }] },
+			"Data source called [value]" => made is Ast.Statement.CreateExternalTable { Options: [{ Value: Ast.Expression.Reference { Name.Parts: [{ Text: "[value]", Style: Ast.IdentifierStyle.Bracketed }] } }] },
+			"Sharded" => made is Ast.Statement.CreateExternalTable { Options: [{ Name.Text: "DISTRIBUTION", Value: Ast.Expression.Invocation { Name.Parts: [{ Text: "SHARDED" }], Arguments: [{ Value: Ast.Expression.Reference }] } }] },
+			"Commas loose" => made is Ast.Statement.CreateExternalTable { Contents: Ast.TableContents.Elements { Items.Count: 1 }, Options: [{ Name.Text: "REJECT_VALUE", Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Decimal } }] },
+			"No setting" => made is Ast.Statement.CreateExternalTable { Options.Count: 0 },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	/// <summary>
+	/// The query of an external table that the common tree cannot hold, as the plain table's query cannot, is a gap.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE EXTERNAL TABLE t WITH (LOCATION = 'l') AS SELECT 1 AS a OPTION (RECOMPILE)")]
+	public void A_query_the_records_do_not_hold_is_a_gap(string text)
+	{
+		var old = TransactSqlParser.Located.ParseStatement(text);
+
+		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+	}
 }
