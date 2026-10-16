@@ -793,7 +793,7 @@ public static partial class Sql2023Writer
 				return;
 			}
 
-			if (value is LiteralValue.Numeric signed && forms.HasFlag(BrokerForm.SignedDigits) && IsNumberOf(new LiteralValue.Numeric(signed.Text.StartsWith('-') ? signed.Text.Substring(1) : signed.Text, signed.Kind), ExternalShape.Digits))
+			if (value is LiteralValue.Numeric signed && forms.HasFlag(BrokerForm.SignedDigits) && IsNumberOf(new LiteralValue.Numeric(signed.Text.StartsWith("-", StringComparison.Ordinal) ? signed.Text.Substring(1) : signed.Text, signed.Kind), ExternalShape.Digits))
 			{
 				PutSignedNumber(option, signed);
 				return;
@@ -967,7 +967,7 @@ public static partial class Sql2023Writer
 
 				PutValue(one, "SEND");
 
-				if (Sql2023Writer.Write(one, transactSql: true).StartsWith('('))
+				if (Sql2023Writer.Write(one, transactSql: true).StartsWith("(", StringComparison.Ordinal))
 					throw Misplaced(send, "Conversations", "that begins with a bracket and is not bracketed, which the grammar reads as the list of handles");
 			}
 
@@ -1097,7 +1097,7 @@ public static partial class Sql2023Writer
 			{
 				// WaitTimeout: '-'? & UnsignedNumericLiteral, one token to the tree.
 				case LiteralValue.Numeric number:
-					var digits = number.Text.StartsWith('-') ? number.Text.Substring(1) : number.Text;
+					var digits = number.Text.StartsWith("-", StringComparison.Ordinal) ? number.Text.Substring(1) : number.Text;
 
 					if (!IsNumberOf(new LiteralValue.Numeric(digits, number.Kind), ExternalShape.Number))
 						throw Misplaced(owner, "Timeout", "that is no number WAITFOR reads");

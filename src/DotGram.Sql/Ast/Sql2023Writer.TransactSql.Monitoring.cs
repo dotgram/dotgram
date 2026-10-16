@@ -547,7 +547,7 @@ public static partial class Sql2023Writer
 			{
 				var setting = settings[at];
 
-				if (setting.Name.Style != IdentifierStyle.Regular || setting.Name.UnicodeEscape is not null || setting.Name.Text.StartsWith('#') || !IsRegularName(setting.Name.Text) || TransactSqlReserved.Contains(setting.Name.Text))
+				if (setting.Name.Style != IdentifierStyle.Regular || setting.Name.UnicodeEscape is not null || setting.Name.Text.StartsWith("#", StringComparison.Ordinal) || !IsRegularName(setting.Name.Text) || TransactSqlReserved.Contains(setting.Name.Text))
 					throw Misplaced(setting, "Name", $"that is no plain name of one part in {place}: not reserved, not bracketed, not temporary");
 
 				if (setting.Words.Count > 0 || setting.EqualsOmitted || setting.Options.Count > 0 || setting.Order is not null || setting.Partitions is not null || setting.Place is not null)
@@ -582,7 +582,7 @@ public static partial class Sql2023Writer
 
 			switch (value)
 			{
-				case LiteralValue.Numeric number when IsNumberOf(number with { Text = number.Text.StartsWith('-') ? number.Text.Substring(1) : number.Text }, ExternalShape.Number):
+				case LiteralValue.Numeric number when IsNumberOf(number with { Text = number.Text.StartsWith("-", StringComparison.Ordinal) ? number.Text.Substring(1) : number.Text }, ExternalShape.Number):
 					PutSignedNumber(owner, number);
 					break;
 

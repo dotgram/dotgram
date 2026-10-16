@@ -155,7 +155,7 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutKillNumber(ISqlNode owner, LiteralValue.Numeric number)
 		{
-			var digits = number.Text.StartsWith('-') ? number.Text.Substring(1) : number.Text;
+			var digits = number.Text.StartsWith("-", StringComparison.Ordinal) ? number.Text.Substring(1) : number.Text;
 
 			if (!IsNumberOf(new LiteralValue.Numeric(digits, number.Kind), ExternalShape.Number))
 				throw Misplaced(owner, "Number", "that is no number the grammar's KillNumber reads: an unsigned numeric literal, a minus before it at most");
@@ -186,7 +186,7 @@ public static partial class Sql2023Writer
 		void PutDbcc(Statement.Dbcc dbcc)
 		{
 			// DbccWord: a word of one part, never in brackets or quotes, a variable or a reserved word.
-			if (dbcc.Command.Style != IdentifierStyle.Regular || dbcc.Command.Text.StartsWith('@'))
+			if (dbcc.Command.Style != IdentifierStyle.Regular || dbcc.Command.Text.StartsWith("@", StringComparison.Ordinal))
 				throw Misplaced(dbcc, "Command", "that is no plain word: not in brackets or quotes, not a variable");
 
 			Word("DBCC");
@@ -220,12 +220,12 @@ public static partial class Sql2023Writer
 
 			if (argument.Name is { } name)
 			{
-				if (name.Text.StartsWith('@'))
+				if (name.Text.StartsWith("@", StringComparison.Ordinal))
 					CheckVariable(name, "DBCC");
 				else if (name.Style != IdentifierStyle.Regular)
 					throw Misplaced(argument, "Name", "that is not a plain word, in DBCC (DbccWord)");
 
-				if (name.Text.StartsWith('@'))
+				if (name.Text.StartsWith("@", StringComparison.Ordinal))
 					Word(name.Text);
 				else
 					PutOneName(name, "DBCC");
@@ -385,7 +385,7 @@ public static partial class Sql2023Writer
 		/// <summary>A word the grammar's <c>DbccWord</c> reads: a plain name of one part, never a reserved word.</summary>
 		void PutDbccWord(Identifier word, ISqlNode owner)
 		{
-			if (word.Style != IdentifierStyle.Regular || word.Text.StartsWith('@'))
+			if (word.Style != IdentifierStyle.Regular || word.Text.StartsWith("@", StringComparison.Ordinal))
 				throw Misplaced(owner, "a word", "that is not a plain word: DBCC reads no name in brackets or quotes, no variable");
 
 			PutOneName(word, "DBCC");
@@ -465,7 +465,7 @@ public static partial class Sql2023Writer
 			if (words.Any(static one => one.Style != IdentifierStyle.Regular || one.UnicodeEscape is not null))
 				throw Misplaced(setting, "Name", "that holds a word that is not plain, in ALTER SERVER CONFIGURATION");
 
-			var key = string.Join(' ', words.Select(static one => one.Text));
+			var key = string.Join(" ", words.Select(static one => one.Text));
 			ServerSetting entry;
 
 			if (words is [{ } failover, { } cluster, { } property, { } named] && Plain(failover, "FAILOVER") && Plain(cluster, "CLUSTER") && Plain(property, "PROPERTY") && ClusterProperties.TryGetValue(named.Text, out var shape))
