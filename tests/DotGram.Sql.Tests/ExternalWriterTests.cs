@@ -262,6 +262,13 @@ public sealed class ExternalWriterTests
 		["a data source named by two words"] = new Statement.CreateExternalDataSource(new Identifier("a b"), []),
 		// BracketedIdentifier closes its bracket.
 		["a data source named in an unclosed bracket"] = new Statement.CreateExternalDataSource(new Identifier("[x", IdentifierStyle.Bracketed), []),
+		// TemporaryName is # or ## and then a word: neither alone, and not a digit after them.
+		["a data source named by #"] = new Statement.CreateExternalDataSource(new Identifier("#"), []),
+		["a data source named by ## alone"] = new Statement.CreateExternalDataSource(new Identifier("##"), []),
+		["a data source named by # and a digit"] = new Statement.CreateExternalDataSource(new Identifier("#1"), []),
+		// RegularIdentifier begins with a letter or _, not a digit and not $.
+		["a data source named by a digit and a word"] = new Statement.CreateExternalDataSource(new Identifier("1a"), []),
+		["a data source named with a blank other than a space"] = new Statement.CreateExternalDataSource(new Identifier("a\tb"), []),
 		// TSqlIdentifier reads a word of one character at least.
 		["a data source named by the empty text"] = new Statement.CreateExternalDataSource(new Identifier(""), []),
 		// DataSourceSyntax reads the data source's own settings: FORMAT_TYPE is a file format's.

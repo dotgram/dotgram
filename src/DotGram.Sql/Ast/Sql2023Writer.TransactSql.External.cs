@@ -329,15 +329,28 @@ public static partial class Sql2023Writer
 					return;
 			}
 
-			throw Misplaced(name, "Text", $"that no name in {place} reads: a plain name begins with a letter, _ or # and goes on with letters, digits and _ @ # $; @x is a variable, and a name in brackets or double quotes is closed");
+			throw Misplaced(name, "Text", $"that no name in {place} reads: a plain name begins with a letter or _ (after # or ## for a temporary name) and goes on with letters, digits and _ @ # $; @x is a variable, and a name in brackets or double quotes is closed");
 		}
 
+		/// <summary>
+		/// A plain name: a letter or <c>_</c> and then letters, digits and <c>_ @ # $</c> (<c>TSql.RegularIdentifier</c>), or a temporary
+		/// name, which is that after one <c>#</c> or two (<c>TSql.TemporaryName</c>).
+		/// </summary>
 		static bool IsRegularName(string text)
 		{
-			if (text.Length == 0 || !(char.IsLetter(text[0]) || text[0] is '_' or '#'))
+			var at = 0;
+
+			if (text.Length > 0 && text[0] == '#')
+				at = text.Length > 1 && text[1] == '#' ? 2 : 1;
+
+			if (at >= text.Length || !(char.IsLetter(text[at]) || text[at] == '_'))
 				return false;
 
-			return text.All(static one => char.IsLetterOrDigit(one) || one is '_' or '@' or '#' or '$');
+			for (at++; at < text.Length; at++)
+				if (!(char.IsLetterOrDigit(text[at]) || text[at] is '_' or '@' or '#' or '$'))
+					return false;
+
+			return true;
 		}
 
 		/// <summary>A name from its opening to its closing delimiter, a delimiter inside it doubled.</summary>
