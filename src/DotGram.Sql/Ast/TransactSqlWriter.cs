@@ -60,6 +60,9 @@ public static partial class Sql2023Writer
 				throw Misplaced(identifier, "Text", "a reserved word written plain, which T-SQL reads as the key word; written bracketed or quoted it is a name");
 		}
 
+		/// <summary>Words of letters, digits and _, one blank apart, or the percent sign of a unit.</summary>
+		static readonly System.Text.RegularExpressions.Regex KeyWordText = new(@"^(?:%|[A-Za-z_][A-Za-z0-9_]*(?: [A-Za-z_][A-Za-z0-9_]*)*)\z");
+
 		/// <summary>
 		/// A key word the grammar reads at this place into a name or a value slot — an option's word, a catalogue's name, a
 		/// function T-SQL reserves the name of — which the place has checked against its own catalogue: written plain, as
@@ -69,6 +72,10 @@ public static partial class Sql2023Writer
 		{
 			if (word.Style != IdentifierStyle.Regular || word.UnicodeEscape is not null)
 				throw Misplaced(word, "Style", "other than a plain word, where the grammar reads a key word");
+
+			// Words are written as they stand, so the text must be words and nothing else: `ON); SHUTDOWN;--` and `a,b` are not a word.
+			if (transactSql && !KeyWordText.IsMatch(word.Text))
+				throw Misplaced(word, "Text", "that is not a word or words, where the grammar reads a key word");
 
 			Word(word.Text);
 		}
@@ -238,7 +245,7 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutOptionWord(Identifier word)
 		{
-			if (word.Style == IdentifierStyle.Regular && word.UnicodeEscape is null)
+			if (word.Style == IdentifierStyle.Regular && word.UnicodeEscape is null && (!transactSql || KeyWordText.IsMatch(word.Text)))
 				PutKeyWord(word);
 			else
 				PutIdentifier(word);
@@ -250,7 +257,7 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutOptionValue(Expression value)
 		{
-			if (value is Expression.Reference { Name: [{ Style: IdentifierStyle.Regular, UnicodeEscape: null } word] })
+			if (value is Expression.Reference { Name: [{ Style: IdentifierStyle.Regular, UnicodeEscape: null } word] } && (!transactSql || KeyWordText.IsMatch(word.Text)))
 				PutKeyWord(word);
 			else
 				PutExpression(value);

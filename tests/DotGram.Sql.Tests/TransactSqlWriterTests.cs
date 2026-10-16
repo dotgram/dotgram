@@ -945,4 +945,23 @@ public sealed class TransactSqlWriterTests
 		Assert.NotEqual(Read(text), tree);
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
 	}
+
+	/// <summary>
+	/// A key word is written as it stands, so text that is not words (a closing bracket and a second statement, a comma) is
+	/// refused wherever the grammar reads a word: an option's name or value, a hint, a unit.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE INDEX i ON t (c) WITH (PAD_INDEX = ON)", "ON", "ON); SHUTDOWN;--")]
+	[InlineData("CREATE INDEX i ON t (c) WITH (PAD_INDEX = ON)", "PAD_INDEX", "PAD_INDEX = ON); SHUTDOWN;--")]
+	[InlineData("SELECT a FROM t WITH (NOLOCK)", "NOLOCK", "NOLOCK); SHUTDOWN;--")]
+	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f', SIZE = 10 MB)", "MB", "MB; SHUTDOWN;--")]
+	[InlineData("CREATE TRIGGER tr ON t WITH ENCRYPTION AFTER INSERT AS SELECT 1", "ENCRYPTION", "a,b")]
+	[InlineData("CREATE TRIGGER tr ON t WITH ENCRYPTION AFTER INSERT AS SELECT 1", "ENCRYPTION", "a\nb")]
+	public void A_key_word_that_is_not_words_is_refused(string text, string target, string bad)
+	{
+		var tree = (ISqlNode)Swap(Read(text), Plain(target), Plain(bad));
+
+		Assert.NotEqual(Read(text), tree);
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+	}
 }

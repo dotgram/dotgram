@@ -132,7 +132,8 @@ public static partial class Sql2023Writer
 				if (Plain(word, "ON", "TO", "FROM", "WITH", "CASCADE"))
 					throw Misplaced(word, "Text", $"that ends a run of words in {place} (PermissionEnd)");
 
-				PutKeyWord(word);
+				// Held to a name's characters above, which include @ # $ that a key word's text does not.
+				Word(word.Text);
 			}
 		}
 
