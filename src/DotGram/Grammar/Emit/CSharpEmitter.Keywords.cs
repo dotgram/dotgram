@@ -61,9 +61,7 @@ public static partial class CSharpEmitter
 		for (var at = 0; at < contexts; at++)
 			kinds[table.Contexts[at]] = at;
 
-		// Scan is a word's check around the automaton of the rest; the call between them is made free.
-		file.Write(LexerEmitter.Emit(table.Machine, "Words", utf8Literals, table.Numbers)
-			.Replace("public static int ScanWords(", "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]\n\t\tpublic static int ScanWords("));
+		file.Write(LexerEmitter.Emit(table.Machine, "Words", utf8Literals, table.Numbers));
 		file.Line();
 
 		WordGoesOn(file, "Keys", table.Boundary);
