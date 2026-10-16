@@ -213,6 +213,18 @@ public static partial class Sql2023Writer
 		{
 			if (name.Count == 1 && name[0] is { Style: IdentifierStyle.Regular, UnicodeEscape: null } word && (anyWord || ReservedCalls.Contains(word.Text)))
 				PutKeyWord(word);
+			else if (transactSql && IsSystemFunction(name[0]))
+			{
+				// The grammar's SystemFunction opens a name: `::fn_get_sql`, and its parts after it.
+				Word(name[0].Text);
+
+				for (var at = 1; at < name.Count; at++)
+				{
+					Tight(".");
+					Hold();
+					PutPart(name, at);
+				}
+			}
 			else
 				PutName(name);
 		}

@@ -964,4 +964,36 @@ public sealed class TransactSqlWriterTests
 		Assert.NotEqual(Read(text), tree);
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
 	}
+
+	/// <summary>`::name` opens a call and `$name` is one of the engine's own columns; any other use of either is no name.</summary>
+	[Theory]
+	[InlineData("INSERT INTO t (c) VALUES (1)", "c", "::x")]
+	[InlineData("INSERT INTO t (c) VALUES (1)", "c", "$x")]
+	[InlineData("INSERT INTO t (c) VALUES (1)", "c", "$SELECT")]
+	[InlineData("INSERT INTO t (c) VALUES (1)", "c", "::SELECT")]
+	[InlineData("DROP ROLE r", "r", "::x")]
+	[InlineData("SELECT a FROM t", "t", "::x")]
+	[InlineData("SELECT f(1)", "f", "::SELECT")]
+	[InlineData("SELECT f(1)", "f", "::$x")]
+	[InlineData("SELECT f(1)", "f", "::")]
+	[InlineData("SELECT f(1)", "f", "$ACTIONS")]
+	public void A_prefixed_name_that_is_none_is_refused(string text, string target, string bad)
+	{
+		var tree = (ISqlNode)Swap(Read(text), Plain(target), Plain(bad));
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+	}
+
+	[Theory]
+	[InlineData("SELECT * FROM ::fn_get_sql (1)")]
+	[InlineData("SELECT ::fn_x (1)")]
+	[InlineData("SELECT $ACTION, $node_id, $edge_id FROM t")]
+	[InlineData("SELECT $PARTITION.f1 (1) FROM t")]
+	[InlineData("INSERT INTO t ($ACTION) VALUES (1)")]
+	public void A_prefixed_name_that_is_one_is_written_and_read_back(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(tree, Read(TransactSqlWriter.Write(tree)));
+	}
 }

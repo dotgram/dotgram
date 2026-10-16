@@ -336,21 +336,38 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
+		/// The names the engine gives a table's own columns, which the grammar reads with a <c>$</c> in front (<c>TSql.PseudoColumn</c>
+		/// reads any word, but only these exist, and any other would read as the money or the text it is not).
+		/// </summary>
+		static readonly Regex PseudoColumn = new(@"^\$(?:IDENTITY|ROWGUID|ACTION|PARTITION|CUID|(?:NODE|EDGE|FROM|TO)_ID(?:_[0-9A-F]+)?)\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+		/// <summary>
+		/// A system function's name, <c>::fn_get_sql</c>: the <c>::</c> and a name that is not a reserved word. Read only where a
+		/// function is called, so only <see cref="PutCallName"/> writes one.
+		/// </summary>
+		static bool IsSystemFunction(Identifier name)
+		{
+			return name is { Style: IdentifierStyle.Regular, UnicodeEscape: null }
+				&& name.Text.StartsWith("::", StringComparison.Ordinal)
+				&& IsRegularName(name.Text.Substring(2))
+				&& !TransactSqlReserved.Contains(name.Text.Substring(2))
+				&& name.Text[2] != '$';
+		}
+
+		/// <summary>
 		/// A plain name: a letter or <c>_</c> and then letters, digits and <c>_ @ # $</c> (<c>TSql.RegularIdentifier</c>), or a temporary
-		/// name, which is that after one <c>#</c> or two (<c>TSql.TemporaryName</c>), or a pseudo-column, which is that after a
-		/// <c>$</c> (<c>TSql.PseudoColumn</c>: <c>$ACTION</c>, <c>$node_id</c>), or a system function's, after <c>::</c>.
-		/// The grammar reads UTF-16 units, so a letter outside the basic plane is none.
+		/// name, which is that after one <c>#</c> or two (<c>TSql.TemporaryName</c>), or one of the engine's pseudo-columns
+		/// (<see cref="PseudoColumn"/>). The grammar reads UTF-16 units, so a letter outside the basic plane is none.
 		/// </summary>
 		static bool IsRegularName(string text)
 		{
 			var at = 0;
 
-			if (text.StartsWith("::", StringComparison.Ordinal))
-				at = 2;
-			else if (text.Length > 0 && text[0] == '#')
+			if (text.Length > 0 && text[0] == '$')
+				return PseudoColumn.IsMatch(text);
+
+			if (text.Length > 0 && text[0] == '#')
 				at = text.Length > 1 && text[1] == '#' ? 2 : 1;
-			else if (text.Length > 0 && text[0] == '$')
-				at = 1;
 
 			if (at >= text.Length || !(char.IsLetter(text[at]) || text[at] == '_'))
 				return false;
