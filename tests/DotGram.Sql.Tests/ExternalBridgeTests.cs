@@ -23,6 +23,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("ALTER EXTERNAL DATA SOURCE d SET PUSHDOWN = ON, CREDENTIAL = c",       "Alter two")]
 	[InlineData("CREATE EXTERNAL FILE FORMAT f WITH (FORMAT_TYPE = DELIMITEDTEXT, FORMAT_OPTIONS (FIRST_ROW = 2))", "File format")]
 	[InlineData("CREATE EXTERNAL FILE FORMAT f WITH (FORMAT_OPTIONS ())",               "File format empty options")]
+	[InlineData("create external file format f with (format_type = orc, format_options (first_row = 2, use_type_default = false))", "File format lower case")]
 	public void The_bridge_builds_the_definition_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -37,6 +38,7 @@ public sealed class ExternalBridgeTests
 			"Alter two" => made is Ast.Statement.AlterExternalDataSource { Options: [{ Name.Text: "PUSHDOWN" }, { Name.Text: "CREDENTIAL" }] },
 			"File format" => made is Ast.Statement.CreateExternalFileFormat { Options: [{ Name.Text: "FORMAT_TYPE", Value: not null }, { Name.Text: "FORMAT_OPTIONS", Value: null, Options: [{ Name.Text: "FIRST_ROW", Value: Ast.LiteralValue.Numeric { Text: "2" } }], EqualsOmitted: false }] },
 			"File format empty options" => made is Ast.Statement.CreateExternalFileFormat { Options: [{ Name.Text: "FORMAT_OPTIONS", Value: null, Options.Count: 0 }] },
+			"File format lower case" => made is Ast.Statement.CreateExternalFileFormat { Options: [{ Name.Text: "format_type" }, { Name.Text: "format_options", Options: [{ Name.Text: "first_row" }, { Name.Text: "use_type_default", Value: Ast.Expression.Reference { Name.Parts: [{ Text: "false" }] } }] }] },
 			_ => false,
 		};
 
@@ -79,6 +81,8 @@ public sealed class ExternalBridgeTests
 	[InlineData("CREATE EXTERNAL TABLE t (a INT) WITH (DISTRIBUTION = SHARDED (c))",                  "Sharded")]
 	[InlineData("CREATE EXTERNAL TABLE t (a INT,) WITH (REJECT_VALUE = 1.5,)",                        "Commas loose")]
 	[InlineData("CREATE EXTERNAL TABLE t (a INT) WITH ()",                                            "No setting")]
+	[InlineData("create external table t (a int) with (reject_type = value, distribution = replicated, data_source = [d])", "Table lower case")]
+	[InlineData("create external table t with (location = n'x') as select 1 as a",                    "Query lower case")]
 	public void The_bridge_builds_the_table_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -96,6 +100,8 @@ public sealed class ExternalBridgeTests
 			"Sharded" => made is Ast.Statement.CreateExternalTable { Options: [{ Name.Text: "DISTRIBUTION", Value: Ast.Expression.Invocation { Name.Parts: [{ Text: "SHARDED" }], Arguments: [{ Value: Ast.Expression.Reference }] } }] },
 			"Commas loose" => made is Ast.Statement.CreateExternalTable { Contents: Ast.TableContents.Elements { Items.Count: 1 }, Options: [{ Name.Text: "REJECT_VALUE", Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Decimal } }] },
 			"No setting" => made is Ast.Statement.CreateExternalTable { Options.Count: 0 },
+			"Table lower case" => made is Ast.Statement.CreateExternalTable { Options: [{ Name.Text: "reject_type", Value: Ast.Expression.Current { Kind: Ast.CurrentValue.Value } }, { Name.Text: "distribution" }, { Name.Text: "data_source" }] },
+			"Query lower case" => made is Ast.Statement.CreateExternalTable { Contents: Ast.TableContents.AsQuery, Options: [{ Name.Text: "location", Value: Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.National } }] },
 			_ => false,
 		};
 
@@ -171,6 +177,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("CREATE EXTERNAL LANGUAGE l FROM (CONTENT = @c, FILE_NAME = 'f')",                                         "Content variable")]
 	[InlineData("CREATE EXTERNAL LANGUAGE l FROM (CONTENT = NULL, FILE_NAME = 'f')",                                       "Content NULL")]
 	[InlineData("CREATE EXTERNAL LANGUAGE l FROM (CONTENT = f(1, 2), FILE_NAME = N'f', PARAMETERS = 'p')",                 "Content call")]
+	[InlineData("create external language l authorization dbo from (content = null, file_name = 'f', platform = linux), (content = 'a', file_name = 'g')", "Language lower case")]
 	public void The_bridge_builds_the_language_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -187,6 +194,7 @@ public sealed class ExternalBridgeTests
 			"Content [value]" => made is Ast.Statement.CreateExternalLanguage { Files: [{ Options: [{ Value: Ast.Expression.Reference { Name.Parts: [{ Style: Ast.IdentifierStyle.Bracketed }] } }, ..] }] },
 			"Content variable" => made is Ast.Statement.CreateExternalLanguage { Files: [{ Options: [{ Value: Ast.Expression.Variable { Name.Text: "@c" } }, ..] }] },
 			"Content NULL" => made is Ast.Statement.CreateExternalLanguage { Files: [{ Options: [{ Value: Ast.LiteralValue.Null }, ..] }] },
+			"Language lower case" => made is Ast.Statement.CreateExternalLanguage { Authorization.Text: "dbo", Files: [{ Options: [{ Value: Ast.LiteralValue.Null }, { Name.Text: "file_name" }, { Name.Text: "platform" }] }, { Options.Count: 2 }] },
 			"Content call" => made is Ast.Statement.CreateExternalLanguage { Files: [{ Options: [{ Value: Ast.Expression.Invocation { Arguments.Count: 2 } }, { Value: Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.National } }, { Name.Text: "PARAMETERS" }] }] },
 			_ => false,
 		};
