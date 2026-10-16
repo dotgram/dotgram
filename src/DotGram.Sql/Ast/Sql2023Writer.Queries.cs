@@ -522,7 +522,7 @@ public static partial class Sql2023Writer
 
 				if (common.Search is { } search)
 				{
-					Word(search.Order == SearchOrder.DepthFirst ? "SEARCH DEPTH FIRST BY" : "SEARCH BREADTH FIRST BY");
+					Word(search.Order switch { SearchOrder.DepthFirst => "SEARCH DEPTH FIRST BY", SearchOrder.BreadthFirst => "SEARCH BREADTH FIRST BY", _ => throw NoText(search.Order) });
 					Each(search.Columns, PutIdentifier);
 					Word("SET");
 					PutIdentifier(search.SequenceColumn);
@@ -778,15 +778,18 @@ public static partial class Sql2023Writer
 						PutIdentifier(skip.Variable!);
 						break;
 
-					default:
+					case RowPatternSkipKind.Variable:
 						Word("SKIP TO");
 						PutIdentifier(skip.Variable!);
 						break;
+
+					default:
+						throw NoText(skip.Kind);
 				}
 			}
 
 			if (clause.Initial is { } initial)
-				Word(initial == RowPatternInitial.Initial ? "INITIAL" : "SEEK");
+				Word(initial switch { RowPatternInitial.Initial => "INITIAL", RowPatternInitial.Seek => "SEEK", _ => throw NoText(initial) });
 
 			Word("PATTERN");
 			Open();
@@ -881,9 +884,12 @@ public static partial class Sql2023Writer
 							Tight("{" + quantifier.Min + "}");
 							break;
 
-						default:
+						case RowPatternQuantifierKind.Range:
 							Tight("{" + quantifier.Min + "," + quantifier.Max + "}");
 							break;
+
+						default:
+							throw NoText(quantifier.Kind);
 					}
 
 					if (quantifier.Reluctant)
@@ -978,7 +984,7 @@ public static partial class Sql2023Writer
 								Word("BETWEEN");
 
 								if (between.Symmetry is { } symmetry)
-									Word(symmetry == BetweenSymmetry.Asymmetric ? "ASYMMETRIC" : "SYMMETRIC");
+									Word(symmetry switch { BetweenSymmetry.Asymmetric => "ASYMMETRIC", BetweenSymmetry.Symmetric => "SYMMETRIC", _ => throw NoText(symmetry) });
 
 								PutExpression(between.From);
 								Word("AND");
@@ -1328,8 +1334,8 @@ public static partial class Sql2023Writer
 					Word("PLAN DEFAULT");
 					Open();
 
-					var unionCross = choices.UnionCross is { } uc ? (uc == JsonTableDefaultUnionCross.Union ? "UNION" : "CROSS") : null;
-					var innerOuter = choices.InnerOuter is { } io ? (io == JsonTableDefaultInnerOuter.Inner ? "INNER" : "OUTER") : null;
+					var unionCross = choices.UnionCross is { } uc ? (uc switch { JsonTableDefaultUnionCross.Union => "UNION", JsonTableDefaultUnionCross.Cross => "CROSS", _ => throw NoText(uc) }) : null;
+					var innerOuter = choices.InnerOuter is { } io ? (io switch { JsonTableDefaultInnerOuter.Inner => "INNER", JsonTableDefaultInnerOuter.Outer => "OUTER", _ => throw NoText(io) }) : null;
 					var first      = choices.UnionCrossFirst || innerOuter is null ? unionCross : innerOuter;
 					var second     = first == unionCross ? innerOuter : unionCross;
 
@@ -1353,7 +1359,7 @@ public static partial class Sql2023Writer
 			}
 
 			if (table.OnError is { } error)
-				Word(error == JsonTableErrorBehavior.Error ? "ERROR ON ERROR" : "EMPTY ON ERROR");
+				Word(error switch { JsonTableErrorBehavior.Error => "ERROR ON ERROR", JsonTableErrorBehavior.Empty => "EMPTY ON ERROR", _ => throw NoText(error) });
 
 			Close();
 		}
@@ -1713,7 +1719,7 @@ public static partial class Sql2023Writer
 					PutSource(truncate.Target);
 
 					if (truncate.Identity is { } identity)
-						Word(identity == IdentityRestart.Continue ? "CONTINUE IDENTITY" : "RESTART IDENTITY");
+						Word(identity switch { IdentityRestart.Continue => "CONTINUE IDENTITY", IdentityRestart.Restart => "RESTART IDENTITY", _ => throw NoText(identity) });
 
 					PutPartitions(truncate.Partitions);
 
@@ -1728,7 +1734,7 @@ public static partial class Sql2023Writer
 		void PutOverride(OverrideKind? kind)
 		{
 			if (kind is { } one)
-				Word(one == OverrideKind.UserValue ? "OVERRIDING USER VALUE" : "OVERRIDING SYSTEM VALUE");
+				Word(one switch { OverrideKind.UserValue => "OVERRIDING USER VALUE", OverrideKind.SystemValue => "OVERRIDING SYSTEM VALUE", _ => throw NoText(one) });
 		}
 
 		void PutPortion(PeriodPortion? portion)

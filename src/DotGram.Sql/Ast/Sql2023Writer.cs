@@ -339,7 +339,7 @@ public static partial class Sql2023Writer
 
 					if (interval.Sign is { } sign)
 					{
-						Word(sign == UnaryOperator.Minus ? "-" : "+");
+						Word(sign switch { UnaryOperator.Minus => "-", UnaryOperator.Plus => "+", _ => throw NoText(sign) });
 						Hold();
 					}
 
@@ -594,7 +594,7 @@ public static partial class Sql2023Writer
 							Number(character.Length!.Value);
 
 						if (character.Unit is { } unit)
-							Word(unit == LengthUnit.Characters ? "CHARACTERS" : "OCTETS");
+							Word(unit switch { LengthUnit.Characters => "CHARACTERS", LengthUnit.Octets => "OCTETS", _ => throw NoText(unit) });
 
 						Close();
 					}
@@ -693,7 +693,7 @@ public static partial class Sql2023Writer
 					}
 
 					if (datetime.TimeZone is { } zone)
-						Word(zone == TimeZoneMode.With ? "WITH TIME ZONE" : "WITHOUT TIME ZONE");
+						Word(zone switch { TimeZoneMode.With => "WITH TIME ZONE", TimeZoneMode.Without => "WITHOUT TIME ZONE", _ => throw NoText(zone) });
 
 					break;
 
@@ -766,13 +766,13 @@ public static partial class Sql2023Writer
 					Word("TABLE");
 
 					if (table.PassThrough is { } through)
-						Word(through == PassThroughMode.PassThrough ? "PASS THROUGH" : "NO PASS THROUGH");
+						Word(through switch { PassThroughMode.PassThrough => "PASS THROUGH", PassThroughMode.NoPassThrough => "NO PASS THROUGH", _ => throw NoText(through) });
 
 					if (table.Semantics is { } semantics)
-						Word(semantics == TableSemantics.Row ? "WITH ROW SEMANTICS" : "WITH SET SEMANTICS");
+						Word(semantics switch { TableSemantics.Row => "WITH ROW SEMANTICS", TableSemantics.Set => "WITH SET SEMANTICS", _ => throw NoText(semantics) });
 
 					if (table.Pruning is { } pruning)
-						Word(pruning == TablePruning.PruneOnEmpty ? "PRUNE ON EMPTY" : "KEEP ON EMPTY");
+						Word(pruning switch { TablePruning.PruneOnEmpty => "PRUNE ON EMPTY", TablePruning.KeepOnEmpty => "KEEP ON EMPTY", _ => throw NoText(pruning) });
 
 					break;
 
@@ -1533,7 +1533,7 @@ public static partial class Sql2023Writer
 					if (normalize.Form is { } form)
 					{
 						Tight(",");
-						Word(form.ToString());
+						Word(Spelled(form));
 
 						if (normalize.MaxLength is { } maximum)
 						{
@@ -1544,7 +1544,7 @@ public static partial class Sql2023Writer
 								Tight(multiplier.ToString());
 
 							if (normalize.MaxLengthUnit is { } unit)
-								Word(unit == LengthUnit.Characters ? "CHARACTERS" : "OCTETS");
+								Word(unit switch { LengthUnit.Characters => "CHARACTERS", LengthUnit.Octets => "OCTETS", _ => throw NoText(unit) });
 						}
 					}
 
@@ -1552,7 +1552,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.TranslateUsing translate:
-					Word(translate.Function == TranslateFunction.Convert ? "CONVERT" : "TRANSLATE");
+					Word(translate.Function switch { TranslateFunction.Convert => "CONVERT", TranslateFunction.Translate => "TRANSLATE", _ => throw NoText(translate.Function) });
 					Call();
 					PutExpression(translate.Value);
 					Word("USING");
@@ -1580,7 +1580,7 @@ public static partial class Sql2023Writer
 					Word("BETWEEN");
 
 					if (between.Symmetry is { } symmetry)
-						Word(symmetry == BetweenSymmetry.Asymmetric ? "ASYMMETRIC" : "SYMMETRIC");
+						Word(symmetry switch { BetweenSymmetry.Asymmetric => "ASYMMETRIC", BetweenSymmetry.Symmetric => "SYMMETRIC", _ => throw NoText(symmetry) });
 
 					PutOperand(between.Lower, Tightness.Additive);
 					Word("AND");
@@ -1678,7 +1678,7 @@ public static partial class Sql2023Writer
 					Word("UNIQUE");
 
 					if (unique.Nulls is { } nulls)
-						Word(nulls == NullDistinctness.Distinct ? "NULLS DISTINCT" : "NULLS NOT DISTINCT");
+						Word(nulls switch { NullDistinctness.Distinct => "NULLS DISTINCT", NullDistinctness.NotDistinct => "NULLS NOT DISTINCT", _ => throw NoText(nulls) });
 
 					PutSubquery(unique.Query);
 					break;
@@ -1716,7 +1716,7 @@ public static partial class Sql2023Writer
 					PutNot(normalized.Not);
 
 					if (normalized.Form is { } normalForm)
-						Word(normalForm.ToString());
+						Word(Spelled(normalForm));
 
 					Word("NORMALIZED");
 					break;
@@ -2006,7 +2006,7 @@ public static partial class Sql2023Writer
 
 					if (marker.DeltaSign is { } deltaSign)
 					{
-						Word(deltaSign == UnaryOperator.Minus ? "-" : "+");
+						Word(deltaSign switch { UnaryOperator.Minus => "-", UnaryOperator.Plus => "+", _ => throw NoText(deltaSign) });
 						PutExpression(marker.Delta!);
 					}
 
@@ -2051,7 +2051,7 @@ public static partial class Sql2023Writer
 		void PutUnits(CharacterLengthUnits? units)
 		{
 			if (units is { } one)
-				Word(one == CharacterLengthUnits.Characters ? "USING CHARACTERS" : "USING OCTETS");
+				Word(one switch { CharacterLengthUnits.Characters => "USING CHARACTERS", CharacterLengthUnits.Octets => "USING OCTETS", _ => throw NoText(one) });
 		}
 
 		// A value with no arm is a fact the tree holds and the text would lose, so it is refused rather
@@ -2129,6 +2129,10 @@ public static partial class Sql2023Writer
 				Word("?");
 				return;
 			}
+
+			// The three that name a variable are written alike.
+			if (parameter.Kind is not (ParameterKind.Host or ParameterKind.Sql or ParameterKind.Embedded))
+				throw NoText(parameter.Kind);
 
 			Word(":");
 			Hold();
@@ -2263,7 +2267,7 @@ public static partial class Sql2023Writer
 			}
 
 			if (invocation.From is { } from)
-				Word(from == FromFirstOrLast.First ? "FROM FIRST" : "FROM LAST");
+				Word(from switch { FromFirstOrLast.First => "FROM FIRST", FromFirstOrLast.Last => "FROM LAST", _ => throw NoText(from) });
 
 			if (invocation.Nulls is { } nulls)
 				Word(nulls switch { NullTreatment.RespectNulls => "RESPECT NULLS", NullTreatment.IgnoreNulls => "IGNORE NULLS", _ => throw NoText(nulls) });
@@ -2295,7 +2299,7 @@ public static partial class Sql2023Writer
 		void PutSemantics(RowPatternSemantics? semantics)
 		{
 			if (semantics is { } one)
-				Word(one == RowPatternSemantics.Running ? "RUNNING" : "FINAL");
+				Word(one switch { RowPatternSemantics.Running => "RUNNING", RowPatternSemantics.Final => "FINAL", _ => throw NoText(one) });
 		}
 
 		void PutFilterAndOver(FilterClause? filter, WindowReference? over)
@@ -2417,7 +2421,7 @@ public static partial class Sql2023Writer
 			Call();
 
 			if (regex.StartOrAfter is { } where)
-				Word(where == RegexPositionStartOrAfter.Start ? "START" : "AFTER");
+				Word(where switch { RegexPositionStartOrAfter.Start => "START", RegexPositionStartOrAfter.After => "AFTER", _ => throw NoText(where) });
 
 			PutExpression(regex.Pattern);
 
@@ -2591,7 +2595,7 @@ public static partial class Sql2023Writer
 			if (quotes is null)
 				return;
 
-			Word(quotes.Behavior == JsonQuotesBehavior.Keep ? "KEEP QUOTES" : "OMIT QUOTES");
+			Word(quotes.Behavior switch { JsonQuotesBehavior.Keep => "KEEP QUOTES", JsonQuotesBehavior.Omit => "OMIT QUOTES", _ => throw NoText(quotes.Behavior) });
 
 			if (quotes.OnScalarString)
 				Word("ON SCALAR STRING");
@@ -2713,7 +2717,7 @@ public static partial class Sql2023Writer
 
 				// Two signs in a row keep a space between them: `--` begins a comment.
 				case JsonPathExpression.Unary unary:
-					Word(unary.Operator == JsonPathUnaryOperator.Minus ? "-" : "+");
+					Word(unary.Operator switch { JsonPathUnaryOperator.Minus => "-", JsonPathUnaryOperator.Plus => "+", _ => throw NoText(unary.Operator) });
 
 					if (unary.Operand is not JsonPathExpression.Unary)
 						Hold();
