@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace DotGram.Sql.Ast;
 
@@ -11,7 +14,318 @@ public static partial class Sql2023Writer
 		/// </summary>
 		bool TryPutExternal(ISqlNode node)
 		{
-			return false;
+			switch (node)
+			{
+				case Statement.CreateExternalDataSource create:
+					Word("CREATE EXTERNAL DATA SOURCE");
+					PutExternalName(create.Name, "CREATE EXTERNAL DATA SOURCE");
+					PutExternalWith(create, create.Options, CreateDataSourceSettings, "CREATE EXTERNAL DATA SOURCE", always: true);
+					return true;
+
+				// DataSourceBody's other arm: `SET` and the settings with no brackets, one at least.
+				case Statement.AlterExternalDataSource alter:
+					Word("ALTER EXTERNAL DATA SOURCE");
+					PutExternalName(alter.Name, "ALTER EXTERNAL DATA SOURCE");
+
+					if (alter.Options.Count == 0)
+						throw Empty(alter, "Options");
+
+					Word("SET");
+					PutExternalSettings(alter, alter.Options, AlterDataSourceSettings, "ALTER EXTERNAL DATA SOURCE");
+					return true;
+
+				case Statement.CreateExternalFileFormat create:
+					Word("CREATE EXTERNAL FILE FORMAT");
+					PutExternalName(create.Name, "CREATE EXTERNAL FILE FORMAT");
+					PutExternalWith(create, create.Options, FileFormatSettings, "CREATE EXTERNAL FILE FORMAT", always: true);
+					return true;
+
+				default:
+					return false;
+			}
+		}
+
+		// ── The catalogues ───────────────────────────────────────────────────────
+
+		/// <summary>
+		/// The forms of value a setting is read with, as the grammar's rules spell them: <c>ExternalName</c> (<c>Identifier</c> and
+		/// not a dotted name), <c>Quoted</c>, <c>TSql.BinaryLiteral</c>, <c>Sql92.Lexical.Digits</c>, <c>ExactNumber</c>,
+		/// <c>Sql92.Lexical.UnsignedNumericLiteral</c>, a word out of a list, a value expression.
+		/// </summary>
+		[Flags]
+		enum ExternalShape
+		{
+			None   = 0,
+			Name   = 1,
+			String = 2,
+			Hex    = 4,
+			Digits = 8,
+			Exact  = 16,
+			Number = 32,
+			Words  = 64,
+			Value  = 128,
+		}
+
+		/// <summary>
+		/// One setting a place reads: the forms of its value, the words of its value where it is one of a closed list, whether the place
+		/// lets it stand once only, and the settings of its own where its value is a bracketed list with no <c>=</c>.
+		/// </summary>
+		readonly record struct ExternalEntry(ExternalShape Shape, string[]? Words = null, bool Once = true, Dictionary<string, ExternalEntry>? Nested = null);
+
+		static readonly ExternalEntry ExternalString = new(ExternalShape.String);
+		static readonly ExternalEntry ExternalName   = new(ExternalShape.Name);
+
+		/// <summary>DataSourceShared: what a data source takes whether it is made or altered.</summary>
+		static readonly Dictionary<string, ExternalEntry> DataSourceShared = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["LOCATION"]           = ExternalString,
+			["CONNECTION_OPTIONS"] = ExternalString,
+			["CREDENTIAL"]         = ExternalName,
+			["PUSHDOWN"]           = new(ExternalShape.Words, ["ON", "OFF"]),
+		};
+
+		/// <summary>DataSourceSyntax: a data source made, with the types this server knows and elastic query's and Hadoop's.</summary>
+		static readonly Dictionary<string, ExternalEntry> CreateDataSourceSettings = new(DataSourceShared, StringComparer.OrdinalIgnoreCase)
+		{
+			["TYPE"]                      = new(ExternalShape.Words, ["BLOB_STORAGE", "HADOOP", "RDBMS", "SHARD_MAP_MANAGER"]),
+			["RESOURCE_MANAGER_LOCATION"] = ExternalString,
+			["DATABASE_NAME"]             = ExternalString,
+			["SHARD_MAP_NAME"]            = ExternalString,
+		};
+
+		/// <summary>DataSourceChangeSyntax: a data source altered, which takes two types and the resource manager.</summary>
+		static readonly Dictionary<string, ExternalEntry> AlterDataSourceSettings = new(DataSourceShared, StringComparer.OrdinalIgnoreCase)
+		{
+			["TYPE"]                      = new(ExternalShape.Words, ["BLOB_STORAGE", "HADOOP"]),
+			["RESOURCE_MANAGER_LOCATION"] = ExternalString,
+		};
+
+		/// <summary>FormatOption: a delimited text's settings, each as often as wanted.</summary>
+		static readonly Dictionary<string, ExternalEntry> FormatOptionSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["FIELD_TERMINATOR"]  = new(ExternalShape.String, Once: false),
+			["STRING_DELIMITER"]  = new(ExternalShape.String, Once: false),
+			["DATE_FORMAT"]       = new(ExternalShape.String, Once: false),
+			["ENCODING"]          = new(ExternalShape.String, Once: false),
+			["PARSER_VERSION"]    = new(ExternalShape.String, Once: false),
+			["FIRST_ROW"]         = new(ExternalShape.Digits, Once: false),
+			["USE_TYPE_DEFAULT"]  = new(ExternalShape.Words, ["TRUE", "FALSE"], Once: false),
+		};
+
+		/// <summary>FileFormatOption. The type twice, an option twice and the brackets twice are all read.</summary>
+		static readonly Dictionary<string, ExternalEntry> FileFormatSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["FORMAT_TYPE"]     = new(ExternalShape.Words, ["DELIMITEDTEXT", "RCFILE", "ORC", "PARQUET", "DELTA", "JSON"], Once: false),
+			["DATA_COMPRESSION"] = new(ExternalShape.String, Once: false),
+			["SERDE_METHOD"]    = new(ExternalShape.String, Once: false),
+			["FORMAT_OPTIONS"]  = new(ExternalShape.None, Once: false, Nested: FormatOptionSettings),
+		};
+
+		// ── Names ─────────────────────────────────────────────────────────────────
+
+		/// <summary>
+		/// A name of one part, as the grammar's <c>Identifier</c> reads it: a plain word that is neither a reserved word nor a
+		/// variable (<c>@x</c> is a variable, and a statement written with it does not read), a name in brackets or in double quotes.
+		/// </summary>
+		void PutExternalName(Identifier name, string place)
+		{
+			CheckExternalName(name, place);
+			PutIdentifier(name);
+		}
+
+		/// <summary>
+		/// The text of an identifier as the grammar's <c>Identifier</c> reads one: <c>TSqlIdentifier</c> is a regular word, a name in
+		/// double quotes, a name in brackets or a temporary name, and a string, a Unicode-delimited name and a variable are none.
+		/// </summary>
+		static void CheckExternalName(Identifier name, string place)
+		{
+			var text = name.Text;
+
+			switch (name.Style)
+			{
+				case IdentifierStyle.Regular when name.UnicodeEscape is null && IsRegularName(text):
+					return;
+
+				case IdentifierStyle.Bracketed when name.UnicodeEscape is null && IsDelimitedName(text, '[', ']'):
+				case IdentifierStyle.Delimited when name.UnicodeEscape is null && IsDelimitedName(text, '"', '"'):
+					return;
+			}
+
+			throw Misplaced(name, "Text", $"that no name in {place} reads: a plain name begins with a letter, _ or # and goes on with letters, digits and _ @ # $; @x is a variable, and a name in brackets or double quotes is closed");
+		}
+
+		static bool IsRegularName(string text)
+		{
+			if (text.Length == 0 || !(char.IsLetter(text[0]) || text[0] is '_' or '#'))
+				return false;
+
+			return text.All(static one => char.IsLetterOrDigit(one) || one is '_' or '@' or '#' or '$');
+		}
+
+		/// <summary>A name from its opening to its closing delimiter, a delimiter inside it doubled.</summary>
+		static bool IsDelimitedName(string text, char open, char close)
+		{
+			if (text.Length < 2 || text[0] != open || text[text.Length - 1] != close)
+				return false;
+
+			for (var at = 1; at < text.Length - 1; at++)
+			{
+				if (text[at] != close)
+					continue;
+
+				if (at + 1 >= text.Length - 1 || text[at + 1] != close)
+					return false;
+
+				at++;
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// A string as the grammar's <c>Quoted</c> reads it: the plain or the national one, closed, its quotes inside doubled; no
+		/// character set, no Unicode escape.
+		/// </summary>
+		static bool IsQuoted(LiteralValue.String text)
+		{
+			if (text.Kind is not (StringLiteralKind.Character or StringLiteralKind.National) || text.CharacterSet is not null || text.UnicodeEscape is not null)
+				return false;
+
+			return IsDelimitedName(text.Text, '\'', '\'');
+		}
+
+		// ── Settings ──────────────────────────────────────────────────────────────
+
+		/// <summary>
+		/// <c>WITH (setting, …)</c> with the brackets, held to the place's catalogue. <paramref name="always"/> says the place
+		/// writes the brackets however few settings there are; otherwise nothing is written for no setting.
+		/// </summary>
+		void PutExternalWith(ISqlNode owner, SqlList<Option> options, Dictionary<string, ExternalEntry> catalogue, string place, bool always)
+		{
+			if (options.Count == 0 && !always)
+				return;
+
+			Word("WITH");
+			Open();
+			PutExternalSettings(owner, options, catalogue, place);
+			Close();
+		}
+
+		/// <summary>A list of settings joined by commas, each a name the catalogue reads, once where the place reads it once.</summary>
+		void PutExternalSettings(ISqlNode owner, SqlList<Option> options, Dictionary<string, ExternalEntry> catalogue, string place)
+		{
+			var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			for (var at = 0; at < options.Count; at++)
+			{
+				if (at > 0)
+					Tight(",");
+
+				PutExternalEntry(options[at], catalogue, place, seen);
+			}
+		}
+
+		void PutExternalEntry(Option option, Dictionary<string, ExternalEntry> catalogue, string place, HashSet<string> seen)
+		{
+			// A bracketed list of settings holds settings, so the walk goes a level deeper with each; the catalogues are shallow, but
+			// the cycle is there to be checked.
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, option, (catalogue, place, seen), static (into, node, state) => into.PutExternalEntry(node, state.catalogue, state.place, state.seen));
+
+				return;
+			}
+
+			var key = KeyOf(option, place);
+
+			if (!catalogue.TryGetValue(key, out var entry))
+				throw Misplaced(option, "Name", $"in {place}, which reads no setting {key}");
+
+			if (!seen.Add(key) && entry.Once)
+				throw Misplaced(option, "Name", $"twice in {place}, which reads {key} once");
+
+			if (option.EqualsOmitted)
+				throw Misplaced(option, "EqualsOmitted", $"in {place}, whose settings are written with = (or with a bracketed list and no =), never the omitted =");
+
+			if (option.Order is not null || option.Partitions is not null || option.Place is not null)
+				throw Misplaced(option, "an order, partitions or a place", $"in {place}, whose settings are a name and a value");
+
+			PutKeyWord(option.Name);
+
+			foreach (var word in option.Words)
+				PutKeyWord(word);
+
+			if (entry.Nested is { } nested)
+			{
+				if (option.Value is not null)
+					throw Misplaced(option, "Value", $"after {key} in {place}, which is written with a bracketed list and no =");
+
+				Open();
+				PutExternalSettings(option, option.Options, nested, place + " " + key);
+				Close();
+
+				return;
+			}
+
+			if (option.Options.Count > 0)
+				throw Misplaced(option, "Options", $"after {key} in {place}, which reads none");
+
+			if (option.Value is not { } value)
+				throw Empty(option, "Value");
+
+			Word("=");
+			PutExternalValue(option, value, entry, key, place);
+		}
+
+		/// <summary>A setting's value, of a form the catalogue reads for its name.</summary>
+		void PutExternalValue(Option option, Expression value, ExternalEntry entry, string key, string place)
+		{
+			var shape = entry.Shape;
+
+			switch (value)
+			{
+				case Expression.Reference { Name: [{ } part] } when shape.HasFlag(ExternalShape.Words) && entry.Words is { } words && Plain(part, words):
+					PutKeyWord(part);
+					return;
+
+				case Expression.Reference { Name: [{ } part] } when shape.HasFlag(ExternalShape.Name):
+					PutExternalName(part, place);
+					return;
+
+				case LiteralValue.String text when shape.HasFlag(ExternalShape.String) && IsQuoted(text):
+				case LiteralValue.Binary { ZeroX: true } when shape.HasFlag(ExternalShape.Hex):
+				case LiteralValue.Numeric numeric when IsNumberOf(numeric, shape):
+					PutExpression(value);
+					return;
+
+				case Expression when shape.HasFlag(ExternalShape.Value):
+					PutExpression(value);
+					return;
+			}
+
+			throw Misplaced(option, "Value", $"of a form {key} is not read with in {place}");
+		}
+
+		/// <summary>
+		/// Whether a number is one the shape reads: digits (<c>Sql92.Lexical.Digits</c>), an exact number with no exponent
+		/// (<c>ExactNumber</c>) or any unsigned numeric literal; the kind is the one its text reads as, so that the text read
+		/// back is the same literal.
+		/// </summary>
+		static bool IsNumberOf(LiteralValue.Numeric numeric, ExternalShape shape)
+		{
+			var text = numeric.Text;
+
+			if (text.Length > 0 && text.All(static one => one is >= '0' and <= '9'))
+				return numeric.Kind == NumericLiteralKind.DecimalInteger && (shape & (ExternalShape.Digits | ExternalShape.Exact | ExternalShape.Number)) != 0;
+
+			// A point with digits on either side, or an integer, and an exponent only where the shape reads one.
+			if (!Regex.IsMatch(text, @"^(?:[0-9]+\.[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$|^[0-9]+[eE][+-]?[0-9]+$"))
+				return false;
+
+			if (text.IndexOfAny(['e', 'E']) >= 0)
+				return numeric.Kind == NumericLiteralKind.Approximate && (shape & ExternalShape.Number) != 0;
+
+			return numeric.Kind == NumericLiteralKind.Decimal && (shape & (ExternalShape.Exact | ExternalShape.Number)) != 0;
 		}
 	}
 }

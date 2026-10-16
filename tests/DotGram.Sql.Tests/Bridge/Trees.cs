@@ -122,6 +122,9 @@ static class Trees
 		"Statement.CredentialDefinition.Tail",
 		"Statement.OpenSymmetricKey.Tail",
 		"Statement.AddSignature.To",
+		// The External family: what follows the name of a data source and of a file format, kept as written.
+		"Statement.ExternalDataSourceDefinition.Tail",
+		"Statement.ExternalFileFormatDefinition.Tail",
 	};
 
 	/// <summary>

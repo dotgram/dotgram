@@ -261,6 +261,8 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.DropSymmetricKey.Tail | 1 |
 | ByCase Statement.DropTrigger.Tail | 2 |
 | ByCase Statement.Execute.Tail | 8 |
+| ByCase Statement.ExternalDataSourceDefinition.Tail | 42 |
+| ByCase Statement.ExternalFileFormatDefinition.Tail | 54 |
 | ByCase Statement.Fetch.Orientation | 0 |
 | ByCase Statement.FullTextIndexDefinition.Tail | 7 |
 | ByCase Statement.Grant.On | 2 |
@@ -394,14 +396,14 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.Delete` | Dml | A | converted 64 | — | 114 |
 | `Expression.Subquery` | Values | A | — | — | 113 |
 | `Statement.Grant` | Security | B | converted 108 | — | 108 |
-| `Statement.ExternalFileFormatDefinition` | External | C | gap 101 | 101: no target record: Statement.CreateExternalFileFormat (101) | 101 |
+| `Statement.ExternalFileFormatDefinition` | External | C | converted 97, gap 4 | 4: no target record: a stray comma in a bracketed list of the PolyBase objects, which the tree keeps nothing for (4) | 101 |
 | `Statement.FullTextIndexDefinition` | Tables | C | converted 45, gap 3 | 3: needs decision: inventory Statement.FullTextIndexDefinition (a catalog after its filegroup, or a place of other words) (2); needs decision: inventory Statement.FullTextIndexDefinition (ON (catalog) in brackets without a filegroup) (1) | 99 |
 | `Expression.Member` | Values | A | — | — | 98 |
 | `Clause.Output` | Dml | C | — | — | 97 |
 | `TableReference.Derived` | Tables | A | — | — | 97 |
 | `TableReference.Pivot` | Tables | C | — | — | 93 |
 | `Statement.AlterFullTextIndex` | Tables | C | converted 70, gap 22 | 22: needs decision: inventory Statement.AlterFullTextIndex (WITH NO POPULATION, which no Option of one name says) (22) | 92 |
-| `Statement.ExternalDataSourceDefinition` | External | C | gap 92 | 92: no target record: Statement.CreateExternalDataSource (92) | 92 |
+| `Statement.ExternalDataSourceDefinition` | External | C | converted 85, gap 7 | 7: no target record: a stray comma in a bracketed list of the PolyBase objects, which the tree keeps nothing for (7) | 92 |
 | `Statement.Print` | Procedural | C | converted 38 | — | 89 |
 | `Statement.SetVariable` | Procedural | C | converted 78 | — | 89 |
 | `Clause.DatabaseFile` | Database | C | — | — | 88 |
