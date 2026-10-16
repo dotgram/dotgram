@@ -333,7 +333,6 @@ public static partial class Sql2023Writer
 
 				if (!read)
 					throw Misplaced(node, "Columns", "with a column other than a plain name of one part, * alone, or PROPERTY (…) alone and unbracketed");
-
 			}
 
 			Word(name);
@@ -625,11 +624,7 @@ public static partial class Sql2023Writer
 				PutIdentifier(column.Name);
 				PutType(column.Type);
 
-				if (column.Collation is { } collation)
-				{
-					Word("COLLATE");
-					PutCollation(collation);
-				}
+				PutSchemaCollate(column.Collation);
 
 				// A path is one string literal and nothing else: it is written as it is.
 				if (column.Path is { } path)
@@ -647,6 +642,22 @@ public static partial class Sql2023Writer
 					Word("AS JSON");
 			});
 			Close();
+		}
+
+		/// <summary>
+		/// T-SQL: OPENJSON, OPENXML, OPENROWSET BULK, PREDICT, INSERT BULK. The collation after a column's type, which the grammar's
+		/// <c>SchemaCollation</c> reads as one plain name: not qualified, not bracketed or quoted, and not left out.
+		/// </summary>
+		void PutSchemaCollate(CollationName? collation)
+		{
+			if (collation is null)
+				return;
+
+			if (collation.Name is not [{ Text.Length: > 0, Style: IdentifierStyle.Regular } name])
+				throw Misplaced(collation, "Name", "other than one plain name, the only collation a column of a schema or a bulk reads");
+
+			Word("COLLATE");
+			PutIdentifier(name);
 		}
 
 		/// <summary>

@@ -1915,7 +1915,19 @@ public sealed class Sql2023WriterCoverageTests
 
 	static readonly OpenDataSource Server = new(new LiteralValue.String("'p'", StringLiteralKind.Character), new LiteralValue.String("'i'", StringLiteralKind.Character));
 
+	/// <summary>A collation named by the parts given.</summary>
+	static CollationName Collation(params string[] parts)
+	{
+		return new CollationName(new QualifiedName([.. parts.Select(static one => new Identifier(one))]));
+	}
+
+	static CollationName Collation(Identifier part)
+	{
+		return new CollationName(new QualifiedName([part]));
+	}
+
 	static RowsetColumn Column(string? path = null, int? ordinal = null, bool typed = true)
+
 	{
 		return new RowsetColumn(new Identifier("c"), typed ? new DataType.Numeric(NumericTypeKind.Int) : null, path, false, ordinal);
 	}
@@ -1988,6 +2000,11 @@ public sealed class Sql2023WriterCoverageTests
 	[InlineData("CONTAINSTABLE with PROPERTY in brackets")]
 	[InlineData("CONTAINSTABLE with the engine's own column")]
 	[InlineData("CONTAINSTABLE with a column left out")]
+	[InlineData("a schema column's qualified collation")]
+	[InlineData("a schema column's bracketed collation")]
+	[InlineData("a schema column's collation left out")]
+	[InlineData("an INSERT BULK column's qualified collation")]
+	[InlineData("an INSERT BULK column's bracketed collation")]
 	[InlineData("FREETEXTTABLE with a qualified column")]
 	[InlineData("FREETEXTTABLE with a value for a column")]
 	[InlineData("a MATCH with no pattern")]
@@ -2064,6 +2081,11 @@ public sealed class Sql2023WriterCoverageTests
 			"CONTAINSTABLE with no column"                       => Joined(new TableSource.ContainsTable(T, [], A, null, null) { ColumnsBracketed = true }),
 			"CONTAINSTABLE with two columns unbracketed"         => Joined(new TableSource.ContainsTable(T, [Searched("a"), Searched("b")], A, null, null)),
 			"CONTAINSTABLE with the engine's own column"         => Joined(new TableSource.ContainsTable(T, [Searched("$ACTION")], A, null, null)),
+			"a schema column's qualified collation"              => json([Column() with { Collation = Collation("a", "b") }]),
+			"a schema column's bracketed collation"              => json([Column() with { Collation = Collation(new Identifier("[a]", IdentifierStyle.Bracketed)) }]),
+			"a schema column's collation left out"               => json([Column() with { Collation = Collation("") }]),
+			"an INSERT BULK column's qualified collation"        => new Statement.InsertBulk(T, [new ColumnDefinition(new Identifier("a"), new DataType.Numeric(NumericTypeKind.Int), null, [], Collation("a", "b"))], []),
+			"an INSERT BULK column's bracketed collation"        => new Statement.InsertBulk(T, [new ColumnDefinition(new Identifier("a"), new DataType.Numeric(NumericTypeKind.Int), null, [], null) { Options = [new ColumnOption.Collation(Collation(new Identifier("[a]", IdentifierStyle.Bracketed)))] }], []),
 			"CONTAINSTABLE with a column left out"               => Joined(new TableSource.ContainsTable(T, [Searched("")], A, null, null)),
 			"CONTAINSTABLE with * among other columns"           => Joined(
 new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, null, null) { ColumnsBracketed = true }),

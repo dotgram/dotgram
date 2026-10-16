@@ -129,7 +129,12 @@ public static partial class Sql2023Writer
 				PutType(column.Type);
 
 				foreach (var option in column.Options)
-					PutColumnOption(option);
+				{
+					if (option is ColumnOption.Collation collation)
+						PutSchemaCollate(collation.Value);
+					else
+						PutColumnOption(option);
+				}
 
 				return;
 			}
@@ -145,14 +150,11 @@ public static partial class Sql2023Writer
 			if (column.Type is { } type)
 				PutType(type);
 
-			if (column.Collation is { } collation)
-			{
-				Word("COLLATE");
-				PutCollation(collation);
-			}
+			PutSchemaCollate(column.Collation);
 
 			if (column.Constraints.Count > 0)
 				Word("NOT NULL");
+
 		}
 
 		/// <summary>
