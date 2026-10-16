@@ -80,6 +80,45 @@ public static partial class Sql2023Writer
 					PutServerSetting(configuration.Setting);
 					return true;
 
+				case Statement.AlterResourceGovernor governor:
+					Word("ALTER RESOURCE GOVERNOR");
+					PutGovernorAction(governor.Action);
+
+					if (governor.ReconfigureAfter)
+						Word("RECONFIGURE");
+
+					return true;
+
+				case Statement.CreateResourcePool create:
+					Word("CREATE RESOURCE POOL");
+					PutPoolName(create.Name, "CREATE RESOURCE POOL");
+					PutPoolOptions(create, create.Options, PoolSettings, "CREATE RESOURCE POOL");
+					return true;
+
+				case Statement.AlterResourcePool alter:
+					Word("ALTER RESOURCE POOL");
+					PutPoolName(alter.Name, "ALTER RESOURCE POOL");
+
+					if (alter.Options.Count == 0)
+						throw Empty(alter, "Options");
+
+					PutPoolOptions(alter, alter.Options, PoolSettings, "ALTER RESOURCE POOL");
+					return true;
+
+				case Statement.CreateWorkloadGroup create:
+					Word("CREATE WORKLOAD GROUP");
+					PutPoolName(create.Name, "CREATE WORKLOAD GROUP");
+					PutPoolOptions(create, create.Options, WorkloadSettings, "CREATE WORKLOAD GROUP");
+					PutWorkloadPools(create, create.Pools);
+					return true;
+
+				case Statement.AlterWorkloadGroup alter:
+					Word("ALTER WORKLOAD GROUP");
+					PutPoolName(alter.Name, "ALTER WORKLOAD GROUP");
+					PutPoolOptions(alter, alter.Options, WorkloadSettings, "ALTER WORKLOAD GROUP");
+					PutWorkloadPools(alter, alter.Pools);
+					return true;
+
 				default:
 					return false;
 			}
@@ -700,6 +739,169 @@ public static partial class Sql2023Writer
 				throw Misplaced(way, "an item", "that is not USE_IDENTITY or CREDENTIAL_NAME = string");
 
 			Close();
+		}
+
+		// ── The resource governor, resource pools and workload groups ─────────────
+
+		void PutGovernorAction(ResourceGovernorAction action)
+		{
+			switch (action)
+			{
+				case ResourceGovernorAction.Reconfigure:
+					Word("RECONFIGURE");
+					break;
+
+				case ResourceGovernorAction.Disable:
+					Word("DISABLE");
+					break;
+
+				case ResourceGovernorAction.ResetStatistics:
+					Word("RESET STATISTICS");
+					break;
+
+				case ResourceGovernorAction.Settings settings:
+					PutGovernorSetting(settings, settings.Setting);
+					break;
+
+				default:
+					throw Unwritten(action);
+			}
+		}
+
+		/// <summary>
+		/// <c>WITH (setting)</c>, GovernorSetting: <c>CLASSIFIER_FUNCTION</c> is NULL or a function named by two parts exactly;
+		/// <c>MAX_OUTSTANDING_IO_PER_VOLUME</c> a number with no exponent, or DEFAULT.
+		/// </summary>
+		void PutGovernorSetting(ISqlNode owner, Option setting)
+		{
+			if (setting.Words.Count > 0 || setting.Options.Count > 0 || setting.EqualsOmitted || setting.Order is not null || setting.Partitions is not null || setting.Place is not null || setting.Name.Style != IdentifierStyle.Regular)
+				throw Misplaced(setting, "Name", "that is not a plain name and a value, in ALTER RESOURCE GOVERNOR");
+
+			var value = setting.Value ?? throw Empty(setting, "Value");
+
+			Word("WITH");
+			Open();
+
+			if (Plain(setting.Name, "CLASSIFIER_FUNCTION"))
+			{
+				PutKeyWord(setting.Name);
+				Word("=");
+
+				switch (value)
+				{
+					case LiteralValue.Null:
+						PutExpression(value);
+						break;
+
+					// Identifier '.' Identifier: two parts, none left out.
+					case Expression.Reference { Name: [{ } schema, { } function] } when schema.Text.Length > 0 && function.Text.Length > 0:
+						PutOneName(schema, "ALTER RESOURCE GOVERNOR");
+						Tight(".");
+						Hold();
+						PutOneName(function, "ALTER RESOURCE GOVERNOR");
+						break;
+
+					default:
+						throw Misplaced(setting, "Value", "that is not NULL or a function named by two parts, in CLASSIFIER_FUNCTION");
+				}
+			}
+			else if (Plain(setting.Name, "MAX_OUTSTANDING_IO_PER_VOLUME"))
+			{
+				PutKeyWord(setting.Name);
+				Word("=");
+
+				if (IsServerWord(value, "DEFAULT"))
+					PutServerWord(value);
+				else if (value is LiteralValue.Numeric number && IsNumberOf(number, ExternalShape.Exact))
+					PutExpression(number);
+				else
+					throw Misplaced(setting, "Value", "that is not a number with no exponent or DEFAULT, in MAX_OUTSTANDING_IO_PER_VOLUME");
+			}
+			else
+				throw Misplaced(setting, "Name", "that ALTER RESOURCE GOVERNOR reads no setting of");
+
+			Close();
+		}
+
+		/// <summary>
+		/// A pool's or a group's name, <c>PoolName</c>: a name of one part, or a string in single quotes (an identifier of style
+		/// String), plain only.
+		/// </summary>
+		void PutPoolName(Identifier name, string place)
+		{
+			if (name.Style == IdentifierStyle.String)
+				Word("'" + name.Text.Replace("'", "''") + "'");
+			else
+				PutOneName(name, place);
+		}
+
+		/// <summary><c>WITH (setting, …)</c> of a pool or a group, or nothing for no setting.</summary>
+		void PutPoolOptions(ISqlNode owner, SqlList<Option> options, Dictionary<string, SettingEntry> catalogue, string place)
+		{
+			if (options.Count == 0)
+				return;
+
+			Word("WITH");
+			Open();
+			PutBrokerSettings(owner, options, catalogue, place, required: [], apart: []);
+			Close();
+		}
+
+		/// <summary>PoolOption: the percentages and the I/O rates as whole numbers, the affinity to schedulers or to NUMA nodes.</summary>
+		static readonly Dictionary<string, SettingEntry> PoolSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["MIN_CPU_PERCENT"]        = new(BrokerForm.Digits, Once: false),
+			["MAX_CPU_PERCENT"]        = new(BrokerForm.Digits, Once: false),
+			["CAP_CPU_PERCENT"]        = new(BrokerForm.Digits, Once: false),
+			["MIN_MEMORY_PERCENT"]     = new(BrokerForm.Digits, Once: false),
+			["MAX_MEMORY_PERCENT"]     = new(BrokerForm.Digits, Once: false),
+			["MIN_IOPS_PER_VOLUME"]    = new(BrokerForm.Digits, Once: false),
+			["MAX_IOPS_PER_VOLUME"]    = new(BrokerForm.Digits, Once: false),
+			["TARGET_MEMORY_PERCENT"]  = new(BrokerForm.Digits, Once: false),
+			["MIN_IO_PERCENT"]         = new(BrokerForm.Digits, Once: false),
+			["MAX_IO_PERCENT"]         = new(BrokerForm.Digits, Once: false),
+			["CAP_IO_PERCENT"]         = new(BrokerForm.Digits, Once: false),
+			["AFFINITY SCHEDULER"]     = new(BrokerForm.Words | BrokerForm.Ranges, ["AUTO"], Once: false),
+			["AFFINITY NUMANODE"]      = new(BrokerForm.Ranges, Once: false),
+		};
+
+		/// <summary>WorkloadOption: the importance, the grants and the limits, each its own kind of number, as often as wanted.</summary>
+		static readonly Dictionary<string, SettingEntry> WorkloadSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["IMPORTANCE"]                          = new(BrokerForm.Words, ["LOW", "MEDIUM", "HIGH", "BELOW_NORMAL", "NORMAL", "ABOVE_NORMAL"], Once: false),
+			["REQUEST_MAX_MEMORY_GRANT_PERCENT"]    = new(BrokerForm.Exact, Once: false),
+			["REQUEST_MAX_CPU_TIME_SEC"]            = new(BrokerForm.Digits, Once: false),
+			["REQUEST_MEMORY_GRANT_TIMEOUT_SEC"]    = new(BrokerForm.Digits, Once: false),
+			["MAX_DOP"]                             = new(BrokerForm.Digits, Once: false),
+			["GROUP_MAX_REQUESTS"]                  = new(BrokerForm.Digits, Once: false),
+			["GROUP_MIN_MEMORY_PERCENT"]            = new(BrokerForm.Digits | BrokerForm.Null, Once: false),
+			["GROUP_MAX_TEMPDB_DATA_MB"]            = new(BrokerForm.Exact | BrokerForm.Null, Once: false),
+			["GROUP_MAX_TEMPDB_DATA_PERCENT"]       = new(BrokerForm.Exact | BrokerForm.Null, Once: false),
+			["MIN_PERCENTAGE_RESOURCE"]             = new(BrokerForm.Exact, Once: false),
+			["CAP_PERCENTAGE_RESOURCE"]             = new(BrokerForm.Exact, Once: false),
+			["REQUEST_MIN_RESOURCE_GRANT_PERCENT"]  = new(BrokerForm.Exact, Once: false),
+			["REQUEST_MAX_RESOURCE_GRANT_PERCENT"]  = new(BrokerForm.Exact, Once: false),
+			["QUERY_EXECUTION_TIMEOUT_SEC"]         = new(BrokerForm.Digits, Once: false),
+		};
+
+		/// <summary><c>USING pool, EXTERNAL pool</c>: a pool is named, never quoted; none for no <c>USING</c>.</summary>
+		void PutWorkloadPools(ISqlNode owner, SqlList<WorkloadPool> pools)
+		{
+			if (pools.Count == 0)
+				return;
+
+			Word("USING");
+
+			for (var at = 0; at < pools.Count; at++)
+			{
+				if (at > 0)
+					Tight(",");
+
+				if (pools[at].External)
+					Word("EXTERNAL");
+
+				PutOneName(pools[at].Name, "a workload group's pool");
+			}
 		}
 	}
 }

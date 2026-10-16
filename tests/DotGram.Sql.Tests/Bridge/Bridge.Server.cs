@@ -37,6 +37,9 @@ static partial class Bridge
 				Statement.Shutdown shutdown            => new Ast.Statement.Shutdown(shutdown.NoWait),
 				Statement.Dbcc dbcc                    => Dbcc(dbcc),
 				Statement.AlterServerConfiguration c   => Configuration(c),
+				Statement.AlterResourceGovernor g      => Governor(g),
+				Statement.ResourcePoolDefinition pool  => Pool(pool),
+				Statement.WorkloadGroupDefinition w    => Workload(w),
 				_ when Owned(Owns, old)                => throw Inventory.Unconverted(old),
 				_                                      => null,
 			};
@@ -235,6 +238,107 @@ static partial class Bridge
 			reader.ExpectPunctuation(")");
 
 			return [new Ast.Option(name, value, [])];
+		}
+
+		// ── The resource governor, resource pools and workload groups ─────────────
+
+		static Ast.Statement Governor(Statement.AlterResourceGovernor old)
+		{
+			var reader = new Broker.Tail(old, old.Tail);
+
+			Ast.ResourceGovernorAction action;
+
+			if (reader.Take("RECONFIGURE"))
+				action = new Ast.ResourceGovernorAction.Reconfigure();
+			else if (reader.Take("DISABLE"))
+				action = new Ast.ResourceGovernorAction.Disable();
+			else if (reader.Take("RESET", "STATISTICS"))
+				action = new Ast.ResourceGovernorAction.ResetStatistics();
+			else if (reader.Take("WITH"))
+			{
+				reader.ExpectPunctuation("(");
+
+				var name = reader.Name();
+
+				reader.ExpectPunctuation("=");
+
+				Ast.Expression value;
+
+				if (name.Text.Equals("CLASSIFIER_FUNCTION", StringComparison.OrdinalIgnoreCase))
+				{
+					if (reader.Take("NULL"))
+						value = Values.Of(Expression.NullValue);
+					else
+					{
+						var function = reader.Qualified();
+
+						value = function.Count == 2 ? new Ast.Expression.Reference(function) : throw reader.Unread();
+					}
+				}
+				else
+					value = reader.SettingValue();
+
+				reader.ExpectPunctuation(")");
+				action = new Ast.ResourceGovernorAction.Settings(new Ast.Option(name, value, []));
+			}
+			else
+				throw reader.Unread();
+
+			var after = reader.Take("RECONFIGURE");
+
+			reader.Finish();
+
+			return new Ast.Statement.AlterResourceGovernor(action) { ReconfigureAfter = after };
+		}
+
+		/// <summary>A pool's or a group's name: a name, or a string in single quotes held as a string-style identifier.</summary>
+		static Ast.Identifier PoolName(object old, string name)
+		{
+			return name.StartsWith('\'') ? new Ast.Identifier(name[1..^1].Replace("''", "'"), Ast.IdentifierStyle.String) : Values.Part(old, name);
+		}
+
+		static Ast.Statement Pool(Statement.ResourcePoolDefinition old)
+		{
+			var reader  = new Broker.Tail(old, old.Tail);
+			var name    = PoolName(old, old.Name);
+			var options = reader.Take("WITH") ? reader.Bracketed() : [];
+
+			reader.Finish();
+
+			return Broker.Verb(old) switch
+			{
+				"CREATE" => new Ast.Statement.CreateResourcePool(name) { Options = options },
+				"ALTER"  => new Ast.Statement.AlterResourcePool(name, options),
+				_        => throw reader.Unread(),
+			};
+		}
+
+		static Ast.Statement Workload(Statement.WorkloadGroupDefinition old)
+		{
+			var reader  = new Broker.Tail(old, old.Tail);
+			var name    = PoolName(old, old.Name);
+			var options = reader.Take("WITH") ? reader.Bracketed() : [];
+			var pools   = new List<Ast.WorkloadPool>();
+
+			if (reader.Take("USING"))
+			{
+				do
+				{
+					var external = reader.Take("EXTERNAL");
+
+					pools.Add(new Ast.WorkloadPool(reader.Name(), external));
+				}
+				while (reader.TakePunctuation(","));
+			}
+
+			reader.Finish();
+
+			return Broker.Verb(old) switch
+			{
+				"CREATE" => new Ast.Statement.CreateWorkloadGroup(name) { Options = options, Pools = pools.ToSqlList() },
+				"ALTER"  => new Ast.Statement.AlterWorkloadGroup(name) { Options = options, Pools = pools.ToSqlList() },
+				_        => throw reader.Unread(),
+			};
 		}
 
 		// ── KILL, DBCC ────────────────────────────────────────────────────────────

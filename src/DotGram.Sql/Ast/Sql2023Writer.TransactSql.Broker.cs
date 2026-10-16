@@ -593,7 +593,7 @@ public static partial class Sql2023Writer
 		/// <summary>
 		/// The forms of value a setting is read with: a string (<c>Quoted</c>), a name, an unsigned number, ON or OFF, the word ANY, the
 		/// word DEFAULT, any value, digits alone (<c>Sql92.Lexical.Digits</c>), an exact number with no exponent (<c>ExactNumber</c>),
-		/// a word out of the entry's list, and a number and the unit it is written in.
+		/// a word out of the entry's list, a number and the unit it is written in, NULL, and the ranges of an affinity in brackets.
 		/// </summary>
 		[Flags]
 		enum BrokerForm
@@ -609,6 +609,8 @@ public static partial class Sql2023Writer
 			Exact    = 256,
 			Words    = 512,
 			Measured = 1024,
+			Null     = 2048,
+			Ranges   = 4096,
 		}
 
 		/// <summary>
@@ -673,11 +675,14 @@ public static partial class Sql2023Writer
 			{
 				var option = options[at];
 
-				if (option.Words.Count > 0 || option.Name.Style != IdentifierStyle.Regular || !catalogue.TryGetValue(option.Name.Text, out var entry))
-					throw Misplaced(option, "Name", $"in {place}, which reads no setting {string.Join(" ", option.Words.Select(static one => one.Text).Prepend(option.Name.Text))}");
+				// A name of several words is looked up as the words joined: `AFFINITY SCHEDULER`.
+				var key = string.Join(" ", option.Words.Select(static one => one.Text).Prepend(option.Name.Text));
 
-				if (!seen.Add(option.Name.Text) && entry.Once)
-					throw Misplaced(option, "Name", $"twice in {place}, which reads {option.Name.Text} once (NamedOnce)");
+				if (option.Name.Style != IdentifierStyle.Regular || option.Words.Any(static one => one.Style != IdentifierStyle.Regular || one.UnicodeEscape is not null) || !catalogue.TryGetValue(key, out var entry))
+					throw Misplaced(option, "Name", $"in {place}, which reads no setting {key}");
+
+				if (!seen.Add(key) && entry.Once)
+					throw Misplaced(option, "Name", $"twice in {place}, which reads {key} once (NamedOnce)");
 
 				if (option.EqualsOmitted)
 					throw Misplaced(option, "EqualsOmitted", $"in {place}, whose settings are written with =");
@@ -695,6 +700,10 @@ public static partial class Sql2023Writer
 					Tight(",");
 
 				PutKeyWord(option.Name);
+
+				foreach (var word in option.Words)
+					PutKeyWord(word);
+
 				Word("=");
 				PutBrokerValue(option, value, entry, place);
 			}
@@ -725,6 +734,18 @@ public static partial class Sql2023Writer
 					PutOneName(word, place);
 					return;
 				}
+			}
+
+			if (value is Expression.PoolRanges ranges && forms.HasFlag(BrokerForm.Ranges))
+			{
+				PutPoolRanges(ranges);
+				return;
+			}
+
+			if (value is LiteralValue.Null && forms.HasFlag(BrokerForm.Null))
+			{
+				PutExpression(value);
+				return;
 			}
 
 			if (value is LiteralValue.String text && forms.HasFlag(BrokerForm.String) && IsQuoted(text))

@@ -741,11 +741,36 @@ static partial class Bridge
 				if (_at >= _tokens.Count || _tokens[_at].Kind != SqlTokens.Kind.Word)
 					throw Unread();
 
-				var name = Values.Part(_old, _tokens[_at++].Text);
+				var name  = Values.Part(_old, _tokens[_at++].Text);
+				var words = new List<Ast.Identifier>();
+
+				// A name of several words: `AFFINITY SCHEDULER`.
+				while (_at < _tokens.Count && _tokens[_at].Kind == SqlTokens.Kind.Word)
+					words.Add(Values.Part(_old, _tokens[_at++].Text));
 
 				ExpectPunctuation("=");
 
-				return new Ast.Option(name, SettingValue(), []);
+				return new Ast.Option(name, SettingValue(), []) { Words = words.ToSqlList() };
+			}
+
+			/// <summary><c>(a TO b, c)</c>: the ranges of an affinity in brackets, whole numbers.</summary>
+			public Ast.Expression.PoolRanges Ranges()
+			{
+				ExpectPunctuation("(");
+
+				var ranges = new List<Ast.PartitionRange>();
+
+				do
+				{
+					var from = Number();
+
+					ranges.Add(new Ast.PartitionRange(from, Take("TO") ? Number() : null));
+				}
+				while (TakePunctuation(","));
+
+				ExpectPunctuation(")");
+
+				return new Ast.Expression.PoolRanges(ranges.ToSqlList());
 			}
 
 			/// <summary>
@@ -778,6 +803,9 @@ static partial class Bridge
 				if (_at >= _tokens.Count)
 					throw Unread();
 
+				if (IsPunctuation("("))
+					return Ranges();
+
 				var token = _tokens[_at++];
 
 				switch (token.Kind)
@@ -798,6 +826,9 @@ static partial class Bridge
 
 						return number;
 					}
+
+					case SqlTokens.Kind.Word when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase):
+						return Values.Of(Expression.NullValue);
 
 					case SqlTokens.Kind.Word or SqlTokens.Kind.Delimited:
 						return new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(_old, token.Text)]));

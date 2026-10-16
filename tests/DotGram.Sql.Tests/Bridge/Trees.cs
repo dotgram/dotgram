@@ -148,6 +148,9 @@ static class Trees
 		// The Server family: what follows ALTER SERVER CONFIGURATION, ALTER RESOURCE GOVERNOR and the name of a resource pool, a
 		// workload group, an availability group and an endpoint, kept as written.
 		"Statement.AlterServerConfiguration.Tail",
+		"Statement.AlterResourceGovernor.Tail",
+		"Statement.ResourcePoolDefinition.Tail",
+		"Statement.WorkloadGroupDefinition.Tail",
 	};
 
 	/// <summary>
@@ -222,7 +225,7 @@ static class Trees
 		// The Monitoring family: the words of its statements that the writer prints in capitals.
 		"APPLICATION_LOG", "AUDIT", "DROP", "EVENT", "EXTERNAL_MONITOR", "FAN_IN", "FILEPATH", "FOR", "MODIFY", "NOT", "NOTIFICATION", "NULL", "ON", "OR", "PUBLIC", "SECURITY_LOG", "SESSION", "SPECIFICATION", "START", "STOP", "URL",
 		// The Server family: the words of its statements that the writer prints in capitals.
-		"CONFIGURATION",
+		"CONFIGURATION", "GOVERNOR", "POOL", "RECONFIGURE", "RESET", "RESOURCE", "STATISTICS", "WORKLOAD",
 	};
 
 	/// <summary>

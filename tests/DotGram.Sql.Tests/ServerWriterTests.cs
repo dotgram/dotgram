@@ -88,6 +88,16 @@ public sealed class ServerWriterTests
 		return new Expression.Row([.. names.Select(static one => Word(one))]);
 	}
 
+	static Expression PoolRanges(params (string From, string? To)[] ranges)
+	{
+		return new Expression.PoolRanges([.. ranges.Select(static one => new PartitionRange(Digits(one.From), one.To is null ? null : Digits(one.To)))]);
+	}
+
+	static Statement.AlterResourceGovernor Governed(Option setting)
+	{
+		return new Statement.AlterResourceGovernor(new ResourceGovernorAction.Settings(setting));
+	}
+
 	static ExecuteArgument Arg(Expression value, string? name = null)
 	{
 		return new ExecuteArgument(value) { Name = name is null ? null : new Identifier(name) };
@@ -241,6 +251,68 @@ public sealed class ServerWriterTests
 		["Configure external authentication by a credential"] = (
 			Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("CREDENTIAL_NAME", NStr("c")))),
 			"ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (CREDENTIAL_NAME = N'c')"),
+		["Reconfigure the governor"] = (
+			new Statement.AlterResourceGovernor(new ResourceGovernorAction.Reconfigure()),
+			"ALTER RESOURCE GOVERNOR RECONFIGURE"),
+		["Reconfigure the governor twice"] = (
+			new Statement.AlterResourceGovernor(new ResourceGovernorAction.Reconfigure()) { ReconfigureAfter = true },
+			"ALTER RESOURCE GOVERNOR RECONFIGURE RECONFIGURE"),
+		["Disable the governor"] = (
+			new Statement.AlterResourceGovernor(new ResourceGovernorAction.Disable()) { ReconfigureAfter = true },
+			"ALTER RESOURCE GOVERNOR DISABLE RECONFIGURE"),
+		["Reset the statistics of the governor"] = (
+			new Statement.AlterResourceGovernor(new ResourceGovernorAction.ResetStatistics()),
+			"ALTER RESOURCE GOVERNOR RESET STATISTICS"),
+		["Reset the statistics of the governor and reconfigure it"] = (
+			new Statement.AlterResourceGovernor(new ResourceGovernorAction.ResetStatistics()) { ReconfigureAfter = true },
+			"ALTER RESOURCE GOVERNOR RESET STATISTICS RECONFIGURE"),
+		["Name a classifier"] = (
+			Governed(Opt("CLASSIFIER_FUNCTION", new Expression.Reference(Dotted("dbo", "f")))),
+			"ALTER RESOURCE GOVERNOR WITH (CLASSIFIER_FUNCTION = dbo.f)"),
+		["Name a classifier in quotes"] = (
+			Governed(Opt("classifier_function", new Expression.Reference(new QualifiedName([new Identifier("\"dbo\"", IdentifierStyle.Delimited), new Identifier("[f]", IdentifierStyle.Bracketed)])))),
+			"ALTER RESOURCE GOVERNOR WITH (classifier_function = \"dbo\".[f])"),
+		["Name no classifier"] = (
+			Governed(Opt("CLASSIFIER_FUNCTION", new LiteralValue.Null())),
+			"ALTER RESOURCE GOVERNOR WITH (CLASSIFIER_FUNCTION = NULL)"),
+		["Limit the I/O of the governor"] = (
+			Governed(Opt("MAX_OUTSTANDING_IO_PER_VOLUME", Number(".5", NumericLiteralKind.Decimal))),
+			"ALTER RESOURCE GOVERNOR WITH (MAX_OUTSTANDING_IO_PER_VOLUME = .5)"),
+		["Limit the I/O of the governor by default"] = (
+			Governed(Opt("MAX_OUTSTANDING_IO_PER_VOLUME", Word("DEFAULT"))),
+			"ALTER RESOURCE GOVERNOR WITH (MAX_OUTSTANDING_IO_PER_VOLUME = DEFAULT)"),
+
+		["Create a resource pool"] = (
+			new Statement.CreateResourcePool(X),
+			"CREATE RESOURCE POOL x"),
+		["Create a resource pool named by a string"] = (
+			new Statement.CreateResourcePool(new Identifier("it's", IdentifierStyle.String)),
+			"CREATE RESOURCE POOL 'it''s'"),
+		["Create a resource pool with its settings"] = (
+			new Statement.CreateResourcePool(new Identifier("[default]", IdentifierStyle.Bracketed)) { Options = [Opt("MIN_CPU_PERCENT", Digits("1")), Opt("MAX_CPU_PERCENT", Digits("10")), Opt("MAX_CPU_PERCENT", Digits("20")), Opt("CAP_IO_PERCENT", Digits("80")), Opt("MIN_IOPS_PER_VOLUME", Digits("0"))] },
+			"CREATE RESOURCE POOL [default] WITH (MIN_CPU_PERCENT = 1, MAX_CPU_PERCENT = 10, MAX_CPU_PERCENT = 20, CAP_IO_PERCENT = 80, MIN_IOPS_PER_VOLUME = 0)"),
+		["Create a resource pool with an affinity"] = (
+			new Statement.CreateResourcePool(X) { Options = [Words("AFFINITY", ["SCHEDULER"], Word("AUTO")), Words("affinity", ["scheduler"], PoolRanges(("0", "63"), ("5", null))), Words("AFFINITY", ["NUMANODE"], PoolRanges(("0", null)))] },
+			"CREATE RESOURCE POOL x WITH (AFFINITY SCHEDULER = AUTO, affinity scheduler = (0 TO 63, 5), AFFINITY NUMANODE = (0))"),
+		["Alter a resource pool"] = (
+			new Statement.AlterResourcePool(X, [Opt("MAX_MEMORY_PERCENT", Digits("15"))]),
+			"ALTER RESOURCE POOL x WITH (MAX_MEMORY_PERCENT = 15)"),
+
+		["Create a workload group"] = (
+			new Statement.CreateWorkloadGroup(X),
+			"CREATE WORKLOAD GROUP x"),
+		["Create a workload group with its settings and pools"] = (
+			new Statement.CreateWorkloadGroup(X) { Options = [Opt("IMPORTANCE", Word("HIGH")), Opt("REQUEST_MAX_MEMORY_GRANT_PERCENT", Number("25.5", NumericLiteralKind.Decimal)), Opt("MAX_DOP", Digits("1")), Opt("MAX_DOP", Digits("2")), Opt("GROUP_MIN_MEMORY_PERCENT", new LiteralValue.Null()), Opt("GROUP_MAX_TEMPDB_DATA_PERCENT", Digits("42")), Opt("QUERY_EXECUTION_TIMEOUT_SEC", Digits("5")), Opt("REQUEST_MAX_RESOURCE_GRANT_PERCENT", Number("3.5", NumericLiteralKind.Decimal))], Pools = [new WorkloadPool(new Identifier("p"), false), new WorkloadPool(new Identifier("[default]", IdentifierStyle.Bracketed), true)] },
+			"CREATE WORKLOAD GROUP x WITH (IMPORTANCE = HIGH, REQUEST_MAX_MEMORY_GRANT_PERCENT = 25.5, MAX_DOP = 1, MAX_DOP = 2, GROUP_MIN_MEMORY_PERCENT = NULL, GROUP_MAX_TEMPDB_DATA_PERCENT = 42, QUERY_EXECUTION_TIMEOUT_SEC = 5, REQUEST_MAX_RESOURCE_GRANT_PERCENT = 3.5) USING p, EXTERNAL [default]"),
+		["Alter a workload group"] = (
+			new Statement.AlterWorkloadGroup(X),
+			"ALTER WORKLOAD GROUP x"),
+		["Alter a workload group named by a string"] = (
+			new Statement.AlterWorkloadGroup(new Identifier("g", IdentifierStyle.String)) { Pools = [new WorkloadPool(new Identifier("e"), true)] },
+			"ALTER WORKLOAD GROUP 'g' USING EXTERNAL e"),
+		["Alter a workload group by its settings"] = (
+			new Statement.AlterWorkloadGroup(X) { Options = [Opt("importance", Word("ABOVE_NORMAL")), Opt("GROUP_MAX_TEMPDB_DATA_MB", new LiteralValue.Null())] },
+			"ALTER WORKLOAD GROUP x WITH (importance = ABOVE_NORMAL, GROUP_MAX_TEMPDB_DATA_MB = NULL)"),
 		// @@TEXTS
 	};
 
@@ -424,6 +496,59 @@ public sealed class ServerWriterTests
 		["external authentication by a way it has not"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("CERTIFICATE", Str("c")))),
 		["external authentication by the identity with a value"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("USE_IDENTITY", Str("c")))),
 		["external authentication by a credential with no name"] = Configured(Words("EXTERNAL", ["AUTHENTICATION"], Word("ON"), Opt("CREDENTIAL_NAME", null))),
+		// GovernorAction: one setting, and the classifier is a function of two parts exactly or NULL.
+		["a governor setting it has not"] = Governed(Opt("MAX_DOP", Digits("1"))),
+		["a governor setting named in brackets"] = Governed(new Option(new Identifier("[CLASSIFIER_FUNCTION]", IdentifierStyle.Bracketed), new LiteralValue.Null(), [])),
+		["a governor setting of two words"] = Governed(Words("CLASSIFIER_FUNCTION", ["X"], new LiteralValue.Null())),
+		["a governor setting that omits its ="] = Governed(new Option(new Identifier("CLASSIFIER_FUNCTION"), new LiteralValue.Null(), []) { EqualsOmitted = true }),
+		["a governor setting with no value"] = Governed(Opt("CLASSIFIER_FUNCTION", null)),
+		["a classifier of one part"] = Governed(Opt("CLASSIFIER_FUNCTION", new Expression.Reference(Dotted("f")))),
+		["a classifier of three parts"] = Governed(Opt("CLASSIFIER_FUNCTION", new Expression.Reference(Dotted("a", "b", "c")))),
+		["a classifier with a part left out"] = Governed(Opt("CLASSIFIER_FUNCTION", new Expression.Reference(Dotted("a", "")))),
+		["a classifier that is a string"] = Governed(Opt("CLASSIFIER_FUNCTION", Str("dbo.f"))),
+		["a classifier that is a variable"] = Governed(Opt("CLASSIFIER_FUNCTION", new Expression.Reference(Dotted("dbo", "@f")))),
+		["a classifier that is a reserved word"] = Governed(Opt("CLASSIFIER_FUNCTION", new Expression.Reference(Dotted("dbo", "select")))),
+		["a classifier that is DEFAULT"] = Governed(Opt("CLASSIFIER_FUNCTION", Word("DEFAULT"))),
+		["a governor I/O limit that is signed"] = Governed(Opt("MAX_OUTSTANDING_IO_PER_VOLUME", Number("-1", NumericLiteralKind.DecimalInteger))),
+		["a governor I/O limit with an exponent"] = Governed(Opt("MAX_OUTSTANDING_IO_PER_VOLUME", Number("1e1", NumericLiteralKind.Approximate))),
+		["a governor I/O limit that is NULL"] = Governed(Opt("MAX_OUTSTANDING_IO_PER_VOLUME", new LiteralValue.Null())),
+		["a governor I/O limit that is a string"] = Governed(Opt("MAX_OUTSTANDING_IO_PER_VOLUME", Str("1"))),
+
+		// PoolName is an identifier or a string in single quotes, no national string.
+		["a pool named by a variable"] = new Statement.CreateResourcePool(new Identifier("@p")),
+		["a pool named by a reserved word"] = new Statement.CreateResourcePool(new Identifier("select")),
+		["a pool named by a national string"] = new Statement.CreateResourcePool(new Identifier("p", IdentifierStyle.NationalString)),
+		["a pool named by two words"] = new Statement.CreateResourcePool(new Identifier("a b")),
+		// PoolOption: whole numbers, no sign, no point (Msg 102); the affinity AUTO or ranges, ranges of nodes only.
+		["a pool altered with no setting"] = new Statement.AlterResourcePool(X, []),
+		["a pool setting it has not"] = new Statement.CreateResourcePool(X) { Options = [Opt("MAX_PROCESSES", Digits("1"))] },
+		["a pool percentage that is a string"] = new Statement.CreateResourcePool(X) { Options = [Opt("MAX_CPU_PERCENT", Str("1"))] },
+		["a pool percentage that is signed"] = new Statement.CreateResourcePool(X) { Options = [Opt("MAX_CPU_PERCENT", Number("-1", NumericLiteralKind.DecimalInteger))] },
+		["a pool percentage with a fraction"] = new Statement.CreateResourcePool(X) { Options = [Opt("MAX_CPU_PERCENT", Number("1.5", NumericLiteralKind.Decimal))] },
+		["a pool percentage that is a name"] = new Statement.CreateResourcePool(X) { Options = [Opt("MAX_CPU_PERCENT", Word("a"))] },
+		["a pool setting that omits its ="] = new Statement.CreateResourcePool(X) { Options = [new Option(new Identifier("MAX_CPU_PERCENT"), Digits("1"), []) { EqualsOmitted = true }] },
+		["a pool affinity of CPUs"] = new Statement.CreateResourcePool(X) { Options = [Words("AFFINITY", ["CPU"], PoolRanges(("0", null)))] },
+		["a pool affinity of nodes that is AUTO"] = new Statement.CreateResourcePool(X) { Options = [Words("AFFINITY", ["NUMANODE"], Word("AUTO"))] },
+		["a pool affinity of schedulers with no brackets"] = new Statement.CreateResourcePool(X) { Options = [Words("AFFINITY", ["SCHEDULER"], new Expression.ServerRanges([new PartitionRange(Digits("1"), null)]))] },
+		["a pool affinity alone"] = new Statement.CreateResourcePool(X) { Options = [Opt("AFFINITY", PoolRanges(("0", null)))] },
+		["a pool affinity of no range"] = new Statement.CreateResourcePool(X) { Options = [Words("AFFINITY", ["SCHEDULER"], new Expression.PoolRanges([]))] },
+		// WorkloadOption: IMPORTANCE from its six words, the grants numbers, a few of them NULL.
+		["a workload setting it has not"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("IMPORTANCES", Word("LOW"))] },
+		["a workload importance outside its words"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("IMPORTANCE", Word("URGENT"))] },
+		["a workload importance that is a string"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("IMPORTANCE", Str("LOW"))] },
+		["a workload importance that is a number"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("IMPORTANCE", Digits("1"))] },
+		["a workload limit that is signed"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("MAX_DOP", Number("-1", NumericLiteralKind.DecimalInteger))] },
+		["a workload limit with a fraction"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("MAX_DOP", Number("1.5", NumericLiteralKind.Decimal))] },
+		["a workload limit that is NULL"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("MAX_DOP", new LiteralValue.Null())] },
+		["a workload grant with an exponent"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("REQUEST_MAX_MEMORY_GRANT_PERCENT", Number("1e1", NumericLiteralKind.Approximate))] },
+		["a workload grant that is NULL"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("REQUEST_MAX_MEMORY_GRANT_PERCENT", new LiteralValue.Null())] },
+		["a workload minimum that is a decimal"] = new Statement.CreateWorkloadGroup(X) { Options = [Opt("GROUP_MIN_MEMORY_PERCENT", Number("1.5", NumericLiteralKind.Decimal))] },
+		["a workload group setting that omits its ="] = new Statement.CreateWorkloadGroup(X) { Options = [new Option(new Identifier("MAX_DOP"), Digits("1"), []) { EqualsOmitted = true }] },
+		// WorkloadPool is EXTERNAL? and a name: no string, no variable, no reserved word, and USING names one at least.
+		["a workload pool that is a string"] = new Statement.CreateWorkloadGroup(X) { Pools = [new WorkloadPool(new Identifier("p", IdentifierStyle.String), false)] },
+		["a workload pool that is a variable"] = new Statement.CreateWorkloadGroup(X) { Pools = [new WorkloadPool(new Identifier("@p"), false)] },
+		["a workload pool that is a reserved word"] = new Statement.CreateWorkloadGroup(X) { Pools = [new WorkloadPool(new Identifier("external"), false)] },
+		["a workload group named by a variable"] = new Statement.AlterWorkloadGroup(new Identifier("@g")),
 		// @@REFUSALS
 	};
 

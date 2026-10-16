@@ -68,6 +68,60 @@ public abstract partial record Statement
 	/// rule fixes the form.
 	/// </summary>
 	public sealed record AlterServerConfiguration(Option Setting) : Statement;
+
+	/// <summary>
+	/// T-SQL: ALTER RESOURCE GOVERNOR (Transact-SQL). <c>ALTER RESOURCE GOVERNOR action [RECONFIGURE]</c>: the governor reconfigured,
+	/// disabled, its statistics reset, or given one setting, and any of those followed by <c>RECONFIGURE</c>.
+	/// </summary>
+	public sealed record AlterResourceGovernor(ResourceGovernorAction Action) : Statement
+	{
+		/// <summary>T-SQL: ALTER RESOURCE GOVERNOR (Transact-SQL). A <c>RECONFIGURE</c> written after the action.</summary>
+		public bool ReconfigureAfter { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE RESOURCE POOL (Transact-SQL). <c>CREATE RESOURCE POOL pool [WITH (setting, …)]</c>: the pool is named by a name
+	/// or by a string, which an identifier of style <see cref="IdentifierStyle.String"/> holds.
+	/// </summary>
+	public sealed record CreateResourcePool(Identifier Name) : Statement
+	{
+		/// <summary>
+		/// T-SQL: CREATE RESOURCE POOL (Transact-SQL). <c>WITH (setting, …)</c>: the percentages and the I/O rates as whole numbers, and
+		/// <c>AFFINITY SCHEDULER</c> and <c>AFFINITY NUMANODE</c>, in any order and as often as wanted; none where no <c>WITH</c> is written.
+		/// </summary>
+		public SqlList<Option> Options { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER RESOURCE POOL (Transact-SQL). <c>ALTER RESOURCE POOL pool WITH (setting, …)</c>: the settings of the creating
+	/// statement, one at least.
+	/// </summary>
+	public sealed record AlterResourcePool(Identifier Name, SqlList<Option> Options) : Statement;
+
+	/// <summary>
+	/// T-SQL: CREATE WORKLOAD GROUP (Transact-SQL). <c>CREATE WORKLOAD GROUP group [WITH (setting, …)] [USING pool, …]</c>.
+	/// </summary>
+	public sealed record CreateWorkloadGroup(Identifier Name) : Statement
+	{
+		/// <summary>
+		/// T-SQL: CREATE WORKLOAD GROUP (Transact-SQL). <c>WITH (setting, …)</c>: IMPORTANCE and the limits of a request and of the
+		/// group, in any order and as often as wanted; none where no <c>WITH</c> is written.
+		/// </summary>
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE WORKLOAD GROUP (Transact-SQL). <c>USING pool, EXTERNAL pool</c>; none where no <c>USING</c> is written.</summary>
+		public SqlList<WorkloadPool> Pools { get; init; } = [];
+	}
+
+	/// <summary>T-SQL: ALTER WORKLOAD GROUP (Transact-SQL). The same parts as the creating statement, each optional.</summary>
+	public sealed record AlterWorkloadGroup(Identifier Name) : Statement
+	{
+		/// <summary>T-SQL: ALTER WORKLOAD GROUP (Transact-SQL). <c>WITH (setting, …)</c>; none where no <c>WITH</c> is written.</summary>
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>T-SQL: ALTER WORKLOAD GROUP (Transact-SQL). <c>USING pool, EXTERNAL pool</c>; none where no <c>USING</c> is written.</summary>
+		public SqlList<WorkloadPool> Pools { get; init; } = [];
+	}
 }
 
 public abstract partial record Expression
@@ -81,3 +135,43 @@ public abstract partial record Expression
 
 /// <summary>T-SQL: KILL (Transact-SQL). What a KILL does to the work it ends: <c>STATUSONLY</c>, <c>COMMIT</c> or <c>ROLLBACK</c>.</summary>
 public enum KillOption { StatusOnly, Commit, Rollback }
+
+/// <summary>T-SQL: ALTER RESOURCE GOVERNOR (Transact-SQL). What an ALTER RESOURCE GOVERNOR does.</summary>
+public abstract record ResourceGovernorAction : ISqlNode
+{
+	/// <summary>Where in the text this action was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this action was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>RECONFIGURE</c>.</summary>
+	public sealed record Reconfigure : ResourceGovernorAction;
+
+	/// <summary><c>DISABLE</c>.</summary>
+	public sealed record Disable : ResourceGovernorAction;
+
+	/// <summary><c>RESET STATISTICS</c>.</summary>
+	public sealed record ResetStatistics : ResourceGovernorAction;
+
+	/// <summary>
+	/// <c>WITH (setting)</c>: one setting in brackets — <c>CLASSIFIER_FUNCTION</c>, a function named by two parts exactly or NULL, or
+	/// <c>MAX_OUTSTANDING_IO_PER_VOLUME</c>, a number with no exponent or DEFAULT.
+	/// </summary>
+	public sealed record Settings(Option Setting) : ResourceGovernorAction;
+}
+
+/// <summary>
+/// T-SQL: CREATE WORKLOAD GROUP (Transact-SQL), ALTER WORKLOAD GROUP (Transact-SQL). One pool a workload group is used in: a
+/// resource pool by its name, or <c>EXTERNAL</c> and an external resource pool by its name.
+/// </summary>
+public sealed record WorkloadPool(Identifier Name, bool External) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}

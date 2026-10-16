@@ -158,5 +158,59 @@ public sealed class ServerBridgeTests
 		Converts(text);
 	}
 
+	[Theory]
+	[InlineData("ALTER RESOURCE GOVERNOR RECONFIGURE",                                   "Reconfigure")]
+	[InlineData("alter resource governor reconfigure reconfigure",                      "Reconfigure twice")]
+	[InlineData("ALTER RESOURCE GOVERNOR DISABLE",                                       "Disable")]
+	[InlineData("ALTER RESOURCE GOVERNOR RESET STATISTICS RECONFIGURE",                  "Reset")]
+	[InlineData("ALTER RESOURCE GOVERNOR WITH (CLASSIFIER_FUNCTION = \"dbo\".[f]) RECONFIGURE", "Classifier")]
+	[InlineData("ALTER RESOURCE GOVERNOR WITH (classifier_function = null)",            "No classifier")]
+	[InlineData("ALTER RESOURCE GOVERNOR WITH (MAX_OUTSTANDING_IO_PER_VOLUME = .5)",     "I/O limit")]
+	[InlineData("ALTER RESOURCE GOVERNOR WITH (MAX_OUTSTANDING_IO_PER_VOLUME = DEFAULT)", "I/O limit by default")]
+	[InlineData("CREATE RESOURCE POOL p",                                                "Create pool")]
+	[InlineData("ALTER RESOURCE POOL p WITH (MAX_CPU_PERCENT = 20)",                     "Alter pool")]
+	[InlineData("create resource pool 'p''q' with (affinity scheduler = auto, affinity numanode = (0 to 3, 5))", "Pool by a string and its affinity")]
+	[InlineData("CREATE RESOURCE POOL [default] WITH (MAX_CPU_PERCENT = 10, MAX_CPU_PERCENT = 20)", "Pool setting twice")]
+	[InlineData("CREATE WORKLOAD GROUP g",                                               "Create group")]
+	[InlineData("ALTER WORKLOAD GROUP g",                                                "Alter group")]
+	[InlineData("ALTER WORKLOAD GROUP g WITH (IMPORTANCE = high, GROUP_MIN_MEMORY_PERCENT = NULL, REQUEST_MAX_MEMORY_GRANT_PERCENT = 25.5) USING p, external [e]", "Group with all")]
+	[InlineData("CREATE WORKLOAD GROUP \"default\" USING \"default\"",                "Group in quotes")]
+	public void The_bridge_builds_the_governor_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = expected switch
+		{
+			"Reconfigure" => made is Ast.Statement.AlterResourceGovernor { Action: Ast.ResourceGovernorAction.Reconfigure, ReconfigureAfter: false },
+			"Reconfigure twice" => made is Ast.Statement.AlterResourceGovernor { Action: Ast.ResourceGovernorAction.Reconfigure, ReconfigureAfter: true },
+			"Disable" => made is Ast.Statement.AlterResourceGovernor { Action: Ast.ResourceGovernorAction.Disable },
+			"Reset" => made is Ast.Statement.AlterResourceGovernor { Action: Ast.ResourceGovernorAction.ResetStatistics, ReconfigureAfter: true },
+			"Classifier" => made is Ast.Statement.AlterResourceGovernor { Action: Ast.ResourceGovernorAction.Settings { Setting: { Name.Text: "CLASSIFIER_FUNCTION", Value: Ast.Expression.Reference { Name.Parts: [{ Style: Ast.IdentifierStyle.Delimited }, { Style: Ast.IdentifierStyle.Bracketed }] } } }, ReconfigureAfter: true },
+			"No classifier" => made is Ast.Statement.AlterResourceGovernor { Action: Ast.ResourceGovernorAction.Settings { Setting: { Name.Text: "classifier_function", Value: Ast.LiteralValue.Null } } },
+			"I/O limit" => made is Ast.Statement.AlterResourceGovernor { Action: Ast.ResourceGovernorAction.Settings { Setting: { Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Decimal } } } },
+			"I/O limit by default" => made is Ast.Statement.AlterResourceGovernor { Action: Ast.ResourceGovernorAction.Settings { Setting: { Value: Ast.Expression.Reference { Name.Parts: [{ Text: "DEFAULT" }] } } } },
+			"Create pool" => made is Ast.Statement.CreateResourcePool { Name.Text: "p", Options.Count: 0 },
+			"Alter pool" => made is Ast.Statement.AlterResourcePool { Options: [{ Name.Text: "MAX_CPU_PERCENT", Value: Ast.LiteralValue.Numeric }] },
+			"Pool by a string and its affinity" => made is Ast.Statement.CreateResourcePool
+			{
+				Name: { Text: "p'q", Style: Ast.IdentifierStyle.String },
+				Options: [{ Name.Text: "affinity", Words: [{ Text: "scheduler" }], Value: Ast.Expression.Reference }, { Words: [{ Text: "numanode" }], Value: Ast.Expression.PoolRanges { Ranges: [{ To: not null }, { To: null }] } }],
+			},
+			"Pool setting twice" => made is Ast.Statement.CreateResourcePool { Name.Style: Ast.IdentifierStyle.Bracketed, Options: [{ Name.Text: "MAX_CPU_PERCENT" }, { Name.Text: "MAX_CPU_PERCENT" }] },
+			"Create group" => made is Ast.Statement.CreateWorkloadGroup { Options.Count: 0, Pools.Count: 0 },
+			"Alter group" => made is Ast.Statement.AlterWorkloadGroup { Options.Count: 0, Pools.Count: 0 },
+			"Group with all" => made is Ast.Statement.AlterWorkloadGroup
+			{
+				Options: [{ Name.Text: "IMPORTANCE" }, { Value: Ast.LiteralValue.Null }, { Value: Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Decimal } }],
+				Pools: [{ Name.Text: "p", External: false }, { Name.Style: Ast.IdentifierStyle.Bracketed, External: true }],
+			},
+			"Group in quotes" => made is Ast.Statement.CreateWorkloadGroup { Name.Style: Ast.IdentifierStyle.Delimited, Pools: [{ Name.Style: Ast.IdentifierStyle.Delimited, External: false }] },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+		Converts(text);
+	}
+
 	// @@TESTS
 }

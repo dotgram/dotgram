@@ -232,6 +232,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.AlterColumnEncryptionKey.Tail | 4 |
 | ByCase Statement.AlterFullTextIndex.Tail | 29 |
 | ByCase Statement.AlterMasterKey.Tail | 6 |
+| ByCase Statement.AlterResourceGovernor.Tail | 2 |
 | ByCase Statement.AlterRole.Tail | 3 |
 | ByCase Statement.AlterSchema.Tail | 7 |
 | ByCase Statement.AlterServerConfiguration.Tail | 6 |
@@ -286,6 +287,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.QueueDefinition.Tail | 14 |
 | ByCase Statement.RaiseError.Tail | 0 |
 | ByCase Statement.RemoteServiceBindingDefinition.Tail | 5 |
+| ByCase Statement.ResourcePoolDefinition.Tail | 26 |
 | ByCase Statement.Revoke.Privileges | 10 |
 | ByCase Statement.RouteDefinition.Tail | 1 |
 | ByCase Statement.RuleDefinition.Tail | 1 |
@@ -302,6 +304,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.Transaction.Word | 0 |
 | ByCase Statement.TypeDefinition.Tail | 133 |
 | ByCase Statement.UpdateStatistics.Tail | 8 |
+| ByCase Statement.WorkloadGroupDefinition.Tail | 66 |
 | ByCase TableReference.Joined.Hint | 0 |
 | Meaning CAST (a AS money): a type of T-SQL's own in T-SQL, a user-defined type in the standard | 43 |
 | Meaning DATEADD (day, ...): a date part in T-SQL, a column in the standard | 6 |
@@ -398,7 +401,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `TableReference.Parenthesized` | Tables | A | — | — | 162 |
 | `Clause.GroupBy` | Queries | B | — | — | 158 |
 | `Clause.JsonColumn` | Tables | C | gap 1 | 1: no target record: RowsetColumn.Ordinal is a number, and keeps no spelling of it such as `00` (1) | 155 |
-| `Statement.WorkloadGroupDefinition` | Server | C | gap 155 | 155: no target record: Statement.CreateWorkloadGroup (155) | 155 |
+| `Statement.WorkloadGroupDefinition` | Server | C | converted 155 | — | 155 |
 | `Statement.CreateDatabase` | Database | C | converted 146, gap 8 | 8: needs decision: Trees.FreeText (Statement.CreateDatabase.Containment or Tail, written otherwise than the writer prints it) (8) | 154 |
 | `Clause.Set` | Dml | B | — | — | 151 |
 | `Statement.AlterIndex` | Tables | C | converted 134, gap 14 | 14: needs decision: inventory Statement.AlterIndex (a selective XML index's paths) (14) | 148 |
@@ -425,7 +428,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.Print` | Procedural | C | converted 38 | — | 89 |
 | `Statement.SetVariable` | Procedural | C | converted 78 | — | 89 |
 | `Clause.DatabaseFile` | Database | C | — | — | 88 |
-| `Statement.ResourcePoolDefinition` | Server | C | gap 86 | 86: no target record: Statement.CreateResourcePool (86) | 86 |
+| `Statement.ResourcePoolDefinition` | Server | C | converted 86 | — | 86 |
 | `Clause.Top` | Queries | C | — | — | 84 |
 | `Query.TableValueConstructor` | Queries | A | — | — | 84 |
 | `Statement.ViewDefinition` | Tables | B | converted 43, gap 37 | 37: needs decision: inventory Statement.ViewDefinition (CREATE MATERIALIZED VIEW, Synapse's) (37) | 84 |
@@ -493,7 +496,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.Send` | Broker | C | converted 30 | — | 30 |
 | `Expression.Aliased` | Values | A | — | 29: needs decision: inventory Expression.Aliased (29) | 29 |
 | `Expression.In` | Values | A | — | — | 29 |
-| `Statement.AlterResourceGovernor` | Server | C | gap 29 | 29: no target record: Statement.AlterResourceGovernor (29) | 29 |
+| `Statement.AlterResourceGovernor` | Server | C | converted 29 | — | 29 |
 | `Statement.SynonymDefinition` | Tables | C | converted 29 | — | 29 |
 | `TableReference.Changed` | Dml | A | — | — | 29 |
 | `Query.DefaultValues` | Dml | A | — | — | 28 |
