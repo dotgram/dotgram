@@ -519,6 +519,8 @@ public static partial class Sql2023Writer
 					at++;
 				else if (at + 2 < text.Length && text[at + 1] == '\r' && text[at + 2] == '\n')
 					at += 2;
+				else if (at + 1 < text.Length && text[at + 1] == '\r')
+					at++;
 				else
 					return false;
 			}

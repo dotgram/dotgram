@@ -365,6 +365,38 @@ public sealed class TransactSqlWriterTests
 		Assert.Equal(tree, Read(text));
 	}
 
+	// ── Binary strings ────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// A binary string goes on past a backslash at the end of a line, whichever end it is: a line feed, a carriage return and a line
+	/// feed, or a carriage return alone (<c>TSql.BinaryLiteral</c>).
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT 0xab\\\ncd")]
+	[InlineData("SELECT 0xab\\\r\ncd")]
+	[InlineData("SELECT 0xab\\\rcd")]
+	[InlineData("SELECT 0xab\\\r")]
+	[InlineData("SELECT 0xab\\\r\\\ncd")]
+	public void A_binary_string_continues_past_a_backslash_and_any_end_of_line(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+		Assert.Equal(tree, Read(text));
+	}
+
+	/// <summary>A backslash that ends no line, or that ends the string, is none of the digits.</summary>
+	[Theory]
+	[InlineData("ab\\cd")]
+	[InlineData("ab\\")]
+	[InlineData("ab\\ \ncd")]
+	public void A_backslash_in_a_binary_string_that_ends_no_line_is_refused(string digits)
+	{
+		var tree = new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new LiteralValue.Binary(digits) { ZeroX = true })] } };
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+	}
+
 	// ── ODBC escapes ──────────────────────────────────────────────────────────────
 
 	/// <summary>
