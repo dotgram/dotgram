@@ -20,8 +20,8 @@ public static partial class CSharpEmitter
 	/// has already measured the word, and the run is only continued from its end.
 	/// </para>
 	/// <para>
-	/// The keys are the words of a small automaton, walked as the word is read, one step a character, so
-	/// that the word's number is known where it ends. Keys are kept sorted so that a text
+	/// The keys are bucketed by length and by the first character, and a word is compared whole, character
+	/// by character, against the few keys of its bucket. Keys are kept sorted so that a text
 	/// that ends inside a word can be asked whether some keyword begins with it, which the automaton of
 	/// everything else cannot say.
 	/// </para>
@@ -32,7 +32,17 @@ public static partial class CSharpEmitter
 		var keys    = table.Keys;
 		var fold    = table.IgnoreCase;
 		var longest = table.Longest;
-		var automaton = KeywordAutomaton.Of(keys);
+		// Keys by length and by the low five bits of the first character (upper and lower case agree there),
+		// the keys of a bucket together: the scan asks the bucket of the word and compares the few in it.
+		var buckets = (longest + 1) * 32;
+		var starts  = new int[buckets + 1];
+		var order   = keys.Select((one, at) => (one, at)).OrderBy(static pair => pair.one.Length * 32 + (pair.one[0] & 31)).ThenBy(static pair => pair.at).Select(static pair => pair.at).ToArray();
+
+		foreach (var one in keys)
+			starts[one.Length * 32 + (one[0] & 31) + 1]++;
+
+		for (var at = 0; at < buckets; at++)
+			starts[at + 1] += starts[at];
 
 		var contexts = table.Contexts.Count;
 		var kinds    = new int[inventory.Kinds.Count + 1];
@@ -51,16 +61,10 @@ public static partial class CSharpEmitter
 		file.Line("/// <summary>The keywords, as they are compared, in ordinal order.</summary>");
 		KeywordArray(file, "string", "Words_Keys", keys.Select(Quoted));
 		file.Line();
-		file.Line("/// <summary>By state, where its edges begin in the tables of edges; the next state's start ends them.</summary>");
-		KeywordNumbers(file, automaton.On.Count < ushort.MaxValue ? "ushort" : "int", "Words_From", automaton.From);
-		file.Line("/// <summary>By edge, the character it is taken on, in order within a state.</summary>");
-		KeywordNumbers(file, "ushort", "Words_On", automaton.On);
-		file.Line("/// <summary>By edge, the state it leads to.</summary>");
-		KeywordNumbers(file, automaton.From.Count < ushort.MaxValue ? "ushort" : "int", "Words_To", automaton.To);
-		file.Line("/// <summary>By edge, how many keys sort before every key through it: the key's number is the sum along the way.</summary>");
-		KeywordNumbers(file, keys.Count < ushort.MaxValue ? "ushort" : "int", "Words_Skip", automaton.Skip);
-		file.Line("/// <summary>By state, 1 where a key ends there.</summary>");
-		KeywordNumbers(file, "byte", "Words_Ends", automaton.Ends);
+		file.Line("/// <summary>By length and first character, where the keys of that bucket begin in <c>Words_Order</c>.</summary>");
+		KeywordNumbers(file, "ushort", "Words_Starts", starts);
+		file.Line("/// <summary>The keys, grouped by length and first character.</summary>");
+		KeywordNumbers(file, keys.Count < ushort.MaxValue ? "ushort" : "int", "Words_Order", order);
 		file.Line("/// <summary>By key and context, the kind a keyword is: with what the rest of the patterns said of it.</summary>");
 		KeywordNumbers(file, "int", "Words_Kinds", table.Kinds);
 		file.Line("/// <summary>By key, the kind it is without asking the automaton, or 0 where it must be asked.</summary>");
@@ -80,6 +84,42 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		file.Line("/// <summary>Which key the word of the given length at <paramref name=\"pos\"/> is, or -1.</summary>");
+		file.Line("static int Words_Find(global::System.ReadOnlySpan<char> text, int pos, int length)");
+
+		using (file.Block(""))
+		{
+			file.Line("var bucket = length * 32 + (text[pos] & 31);");
+			file.Line();
+
+			using (file.Block("for (var at = (int)Words_Starts[bucket]; at < Words_Starts[bucket + 1]; at++)"))
+			{
+				file.Line("var key = Words_Order[at];");
+				file.Line();
+				file.Line("if (Words_Same(text, pos, Words_Keys[key]))");
+				file.Then("return key;");
+			}
+
+			file.Line();
+			file.Line("return -1;");
+		}
+
+		file.Line();
+		file.Line("static bool Words_Same(global::System.ReadOnlySpan<char> text, int pos, string key)");
+
+		using (file.Block(""))
+		{
+			using (file.Block("for (var i = 0; i < key.Length; i++)"))
+			{
+				file.Line($"if ({compare} != key[i])");
+				file.Then("return false;");
+			}
+
+			file.Line();
+			file.Line("return true;");
+		}
+
+		file.Line();
 		file.Line("/// <summary>Whether a keyword is longer than, and begins with, the word at <paramref name=\"pos\"/>.</summary>");
 		file.Line("static bool Words_Begin(global::System.ReadOnlySpan<char> text, int pos, int length)");
 
@@ -129,92 +169,53 @@ public static partial class CSharpEmitter
 		file.Line("/// One token: its kind by way of <paramref name=\"kind\"/>, and where it ends.");
 		file.Line("/// </summary>");
 		file.Line("/// <remarks>");
-		file.Line("/// The word is read first, and walked through the keys' automaton on the way. A keyword whose kind does not depend on what the");
-		file.Line("/// rest of the patterns say of it is the token as it stands; otherwise the automaton of the rest");
-		file.Line("/// reads the token, and a keyword no shorter than that is the keyword, as longest match would have it.");
+		file.Line("/// The automaton of the rest reads the token first, and the word is read on from where that token");
+		file.Line("/// ended: a word that is a keyword is the whole of the token it makes, or longer. A keyword whose kind");
+		file.Line("/// does not depend on what the rest of the patterns say of it is the token as it stands; otherwise the");
+		file.Line("/// kind is taken by the keyword and by that, as longest match would have it.");
 		file.Line("/// </remarks>");
 		file.Line("/// <returns>Where the token ends, or <paramref name=\"pos\"/> where none begins here.</returns>");
 		file.Line("public static int Scan(global::System.ReadOnlySpan<char> text, int pos, out int kind)");
 
 		using (file.Block(""))
 		{
-			file.Line("var run  = pos;");
-			file.Line($"var state = {automaton.Root};");
-			file.Line("var index = 0;");
-			file.Line();
-
-			using (file.Block($"while (run < text.Length && run - pos <= {longest} && WordGoesOn_DotGramKeys(text[run]))"))
-			{
-				using (file.Block("if (state >= 0)"))
-				{
-					file.Line($"var c    = {(fold ? "Words_Fold(text[run])" : "text[run]")};");
-					file.Line("var low  = (int)Words_From[state];");
-					file.Line("var high = (int)Words_From[state + 1];");
-					file.Line();
-					file.Line("state = -1;");
-					file.Line();
-
-					using (file.Block("while (low < high)"))
-					{
-						file.Line("var middle = (low + high) >> 1;");
-						file.Line("var on     = Words_On[middle];");
-						file.Line();
-
-						using (file.Block("if (on == c)"))
-						{
-							file.Line("state  = Words_To[middle];");
-							file.Line("index += Words_Skip[middle];");
-							file.Line("break;");
-						}
-
-						file.Line();
-						file.Line("if (on < c)");
-						file.Then("low = middle + 1;");
-						file.Line("else");
-						file.Then("high = middle;");
-					}
-				}
-
-				file.Line();
-				file.Line("run++;");
-			}
-
-			file.Line();
-			file.Line("var key = -1;");
-			file.Line();
-			file.Line("if (state >= 0 && Words_Ends[state] != 0)");
-
-			using (file.Block(""))
-			{
-				file.Line("key = index;");
-				file.Line();
-				file.Line("if (key >= 0 && Words_Direct[key] != 0)");
-
-				using (file.Block(""))
-				{
-					file.Line("kind = Words_Direct[key];");
-					file.Line();
-					file.Line("return run;");
-				}
-			}
-
-			file.Line();
 			file.Line("var end = ScanWords(text, pos, out kind);");
 			file.Line();
-			file.Line("if (key >= 0 && run >= end)");
+			file.Line("if (pos >= text.Length || !WordGoesOn_DotGramKeys(text[pos]))");
+			file.Then("return end;");
+			file.Line();
+			file.Line("var run = end;");
+			file.Line();
+			file.Line($"while (run < text.Length && run - pos <= {longest} && WordGoesOn_DotGramKeys(text[run]))");
+			file.Then("run++;");
+			file.Line();
+			file.Line($"if (run - pos < {table.Shortest} || run - pos > {longest})");
+			file.Then("return end;");
+			file.Line();
+			file.Line("var key = Words_Find(text, pos, run - pos);");
+			file.Line();
+			file.Line("if (key < 0)");
+			file.Then("return end;");
+			file.Line();
+			file.Line("if (Words_Direct[key] != 0)");
 
 			using (file.Block(""))
 			{
-				file.Line("var context = Words_Of[run == end ? kind : 0] & 127;");
+				file.Line("kind = Words_Direct[key];");
 				file.Line();
-				file.Line($"if (context < {contexts} && Words_Kinds[key * {contexts} + context] != 0)");
+				file.Line("return run;");
+			}
 
-				using (file.Block(""))
-				{
-					file.Line($"kind = Words_Kinds[key * {contexts} + context];");
-					file.Line();
-					file.Line("return run;");
-				}
+			file.Line();
+			file.Line("var context = Words_Of[run == end ? kind : 0] & 127;");
+			file.Line();
+			file.Line($"if (context < {contexts} && Words_Kinds[key * {contexts} + context] != 0)");
+
+			using (file.Block(""))
+			{
+				file.Line($"kind = Words_Kinds[key * {contexts} + context];");
+				file.Line();
+				file.Line("return run;");
 			}
 
 			file.Line();
@@ -238,97 +239,6 @@ public static partial class CSharpEmitter
 		}
 
 		return file.ToString();
-	}
-
-	/// <summary>
-	/// The keys as an acyclic automaton with equal tails shared, its edges in tables. Counting the keys
-	/// below each edge makes a key's number the sum along its way, which is its place in ordinal order.
-	/// </summary>
-	sealed class KeywordAutomaton
-	{
-		readonly Dictionary<string, int>          _known  = [];
-		readonly List<bool>                       _ends   = [];
-		readonly List<List<(char On, int To)>>    _edges  = [];
-		readonly List<int>                        _words  = [];
-
-		public int          Root { get; private set; }
-		public List<int>    From { get; } = [];
-		public List<int>    On   { get; } = [];
-		public List<int>    To   { get; } = [];
-		public List<int>    Skip { get; } = [];
-		public List<int>    Ends { get; } = [];
-
-		public static KeywordAutomaton Of(IReadOnlyList<string> keys)
-		{
-			var automaton = new KeywordAutomaton();
-
-			automaton.Root = automaton.Build([.. keys], 0);
-
-			for (var state = 0; state < automaton._edges.Count; state++)
-			{
-				automaton.From.Add(automaton.On.Count);
-				automaton.Ends.Add(automaton._ends[state] ? 1 : 0);
-
-				var before = automaton._ends[state] ? 1 : 0;
-
-				foreach (var (on, to) in automaton._edges[state])
-				{
-					automaton.On.Add(on);
-					automaton.To.Add(to);
-					automaton.Skip.Add(before);
-
-					before += automaton._words[to];
-				}
-			}
-
-			automaton.From.Add(automaton.On.Count);
-
-			return automaton;
-		}
-
-		/// <summary>The state of the keys from <paramref name="at"/> on, which share their text up to there.</summary>
-		int Build(List<string> keys, int at)
-		{
-			var ends  = false;
-			var edges = new List<(char On, int To)>();
-			var words = 0;
-
-			for (var from = 0; from < keys.Count;)
-			{
-				if (keys[from].Length == at)
-				{
-					ends = true;
-					words++;
-					from++;
-
-					continue;
-				}
-
-				var on = keys[from][at];
-				var to = from;
-
-				while (to < keys.Count && keys[to].Length > at && keys[to][at] == on)
-					to++;
-
-				var next = Build(keys.GetRange(from, to - from), at + 1);
-
-				edges.Add((on, next));
-				words += _words[next];
-				from  = to;
-			}
-
-			var signature = (ends ? "1" : "0") + string.Concat(edges.Select(static edge => $"{(int)edge.On}>{edge.To};"));
-
-			if (_known.TryGetValue(signature, out var known))
-				return known;
-
-			_known[signature] = _edges.Count;
-			_ends.Add(ends);
-			_edges.Add(edges);
-			_words.Add(words);
-
-			return _edges.Count - 1;
-		}
 	}
 
 	static void KeywordNumbers(Writer file, string type, string name, IReadOnlyList<int> values)
