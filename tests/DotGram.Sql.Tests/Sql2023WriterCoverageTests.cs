@@ -424,6 +424,8 @@ public sealed class Sql2023WriterCoverageTests
 		// Monitoring: how an event's predicate terms are joined, and the state an event session is put in.
 		[typeof(EventJoin)]          = v => new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Join(EventEqual(), (EventJoin)v, EventEqual()) }]),
 		[typeof(EventSessionState)]  = v => new Statement.AlterEventSession(new Identifier("s"), EventScope.Server) { State = (EventSessionState)v },
+		// Server: what a KILL does to the work it ends.
+		[typeof(KillOption)]         = v => new Statement.Kill(new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) { With = (KillOption)v },
 	};
 
 	static EventPredicate EventEqual()

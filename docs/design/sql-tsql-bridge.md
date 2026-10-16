@@ -433,7 +433,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.For` | Queries | C | — | — | 82 |
 | `Statement.ExternalResourcePoolDefinition` | External | C | converted 79 | — | 79 |
 | `Statement.CreateTrigger` | Routines | B | converted 61, gap 10 | 10: no target record: Statement.CreateTrigger (statement kinds and event names in one list, or the wrong kind for its target) (10) | 76 |
-| `Statement.Dbcc` | Server | C | gap 73 | 73: no target record: Statement.Dbcc (73) | 73 |
+| `Statement.Dbcc` | Server | C | converted 73 | — | 73 |
 | `Expression.Not` | Values | A | — | — | 71 |
 | `Statement.CreateTableAsSelect` | Tables | B | converted 50, gap 1 | 1: needs decision: inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold) (1) | 70 |
 | `Statement.AlterServerConfiguration` | Server | C | gap 68 | 68: no target record: Statement.AlterServerConfiguration (68) | 68 |
@@ -496,7 +496,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.SynonymDefinition` | Tables | C | converted 29 | — | 29 |
 | `TableReference.Changed` | Dml | A | — | — | 29 |
 | `Query.DefaultValues` | Dml | A | — | — | 28 |
-| `Statement.Kill` | Server | C | gap 28 | 28: no target record: Statement.Kill (28) | 28 |
+| `Statement.Kill` | Server | C | converted 28 | — | 28 |
 | `SetExpression.QueryExecution.Switch` | Procedural | C | — | — | 27 |
 | `Statement.SchemaDefinition` | Security | A | converted 27 | — | 27 |
 | `Statement.SymmetricKeyDefinition` | Security | C | converted 27 | — | 27 |
@@ -596,7 +596,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterDatabaseCollate` | Database | C | converted 9 | — | 9 |
 | `Statement.DropXmlSchemaCollection` | Drop | C | converted 9 | — | 9 |
 | `Statement.MasterKeyDefinition` | Security | C | converted 9 | — | 9 |
-| `Statement.Reconfigure` | Server | C | gap 9 | 9: no target record: Statement.Reconfigure (9) | 9 |
+| `Statement.Reconfigure` | Server | C | converted 9 | — | 9 |
 | `Statement.Throw` | Procedural | C | converted 7 | — | 9 |
 | `Statement.Use` | Procedural | C | converted 9 | — | 9 |
 | `TableReference.OdbcJoin` | Tables | C | — | — | 9 |
@@ -644,7 +644,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropWorkloadClassifier` | Drop | C | converted 6 | — | 6 |
 | `Statement.RestoreServiceMasterKey` | Database | C | converted 4, gap 2 | 2: needs decision: Trees.FreeText (Statement.RestoreServiceMasterKey.Tail, written otherwise than the writer prints it) (2) | 6 |
 | `Statement.SetCursor` | Procedural | C | converted 6 | — | 6 |
-| `Statement.Shutdown` | Server | C | gap 6 | 6: no target record: Statement.Shutdown (6) | 6 |
+| `Statement.Shutdown` | Server | C | converted 6 | — | 6 |
 | `Statement.While` | Procedural | C | converted 6 | — | 6 |
 | `Query.FromExecute` | Routines | C | — | 5: needs decision: inventory Query.FromExecute (outside an INSERT) (5) | 5 |
 | `SetExpression.Transactions.Switch` | Procedural | C | — | — | 5 |

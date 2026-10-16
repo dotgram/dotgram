@@ -767,7 +767,7 @@ static partial class Bridge
 			/// A value of one token, a number with its unit after it (<c>15 TB</c>, <c>1MB</c>) or a name; the unit is a word that is not
 			/// the next clause.
 			/// </summary>
-			Ast.Expression SettingValue()
+			public Ast.Expression SettingValue()
 			{
 				if (_at >= _tokens.Count)
 					throw Unread();
