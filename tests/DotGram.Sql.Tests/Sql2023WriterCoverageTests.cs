@@ -418,6 +418,9 @@ public sealed class Sql2023WriterCoverageTests
 		[typeof(BlockOperation)]     = v => new Statement.AlterSecurityPolicy(T, new SecurityPolicyChange.Predicates([new PolicyPredicate.DropBlock(T, (BlockOperation)v)])),
 		// External: the platform an external language gives up.
 		[typeof(ExternalPlatform)]   = v => new Statement.AlterExternalLanguage(new Identifier("l"), new ExternalLanguageChange.RemovePlatform((ExternalPlatform)v)),
+		// Broker: who sends a contract's message, and whether a service's contract is added or dropped.
+		[typeof(ContractSender)]     = v => new Statement.CreateContract(new Identifier("c"), [new ContractMessage(new Identifier("m"), (ContractSender)v)]),
+		[typeof(AddOrDrop)]          = v => new Statement.AlterService(new Identifier("s")) { Changes = [new ServiceChange((AddOrDrop)v, new Identifier("c"))] },
 	};
 
 	/// <summary>
@@ -770,6 +773,13 @@ public sealed class Sql2023WriterCoverageTests
 			["Password.MustChangeFirst"] = (
 				new Statement.CreateLogin(new Identifier("l"), new LoginSource.Password(new LiteralValue.String("'p'", StringLiteralKind.Character)) { Hashed = true, MustChange = true }),
 				new Statement.CreateLogin(new Identifier("l"), new LoginSource.Password(new LiteralValue.String("'p'", StringLiteralKind.Character)) { Hashed = true, MustChange = true, MustChangeFirst = true })),
+			// Broker: DIALOG CONVERSATION against DIALOG, and a lone handle in brackets or bare.
+			["BeginDialog.Conversation"] = (
+				new Statement.BeginDialog(new Identifier("@h"), new QualifiedName([new Identifier("s")]), new LiteralValue.String("'t'", StringLiteralKind.Character)),
+				new Statement.BeginDialog(new Identifier("@h"), new QualifiedName([new Identifier("s")]), new LiteralValue.String("'t'", StringLiteralKind.Character)) { Conversation = true }),
+			["Send.Bracketed"] = (
+				new Statement.Send([new Expression.Variable(new Identifier("@h"))]),
+				new Statement.Send([new Expression.Variable(new Identifier("@h"))]) { Bracketed = true }),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

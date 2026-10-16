@@ -240,9 +240,11 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.AlterUser.Tail | 5 |
 | ByCase Statement.AssemblyDefinition.Tail | 3 |
 | ByCase Statement.AsymmetricKeyDefinition.Tail | 18 |
+| ByCase Statement.BrokerPriorityDefinition.Tail | 8 |
 | ByCase Statement.CertificateDefinition.Tail | 1 |
 | ByCase Statement.ColumnEncryptionKeyDefinition.Tail | 4 |
 | ByCase Statement.ColumnMasterKeyDefinition.Tail | 5 |
+| ByCase Statement.ContractDefinition.Tail | 0 |
 | ByCase Statement.CreateFunction.Returns | 57 |
 | ByCase Statement.CreateIndex.Using | 6 |
 | ByCase Statement.CreateLogin.Tail | 16 |
@@ -255,7 +257,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.Deny.Privileges | 6 |
 | ByCase Statement.DropAssembly.Tail | 1 |
 | ByCase Statement.DropAsymmetricKey.Tail | 1 |
-| ByCase Statement.DropEventNotification.Tail | 2 |
+| ByCase Statement.DropEventNotification.Tail | 4 |
 | ByCase Statement.DropEventSession.Tail | 2 |
 | ByCase Statement.DropSignature.From | 1 |
 | ByCase Statement.DropSymmetricKey.Tail | 1 |
@@ -273,12 +275,17 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.Grant.Privileges | 6 |
 | ByCase Statement.Insert.Into | 7 |
 | ByCase Statement.MasterKeyDefinition.Tail | 3 |
+| ByCase Statement.MessageTypeDefinition.Tail | 3 |
 | ByCase Statement.OpenSymmetricKey.Tail | 7 |
+| ByCase Statement.QueueDefinition.Tail | 14 |
 | ByCase Statement.RaiseError.Tail | 0 |
+| ByCase Statement.RemoteServiceBindingDefinition.Tail | 5 |
 | ByCase Statement.Revoke.Privileges | 10 |
+| ByCase Statement.RouteDefinition.Tail | 1 |
 | ByCase Statement.RuleDefinition.Tail | 1 |
 | ByCase Statement.SchemaDefinition.Tail | 12 |
 | ByCase Statement.SequenceDefinition.Tail | 1 |
+| ByCase Statement.ServiceDefinition.Tail | 5 |
 | ByCase Statement.StatisticsDefinition.Tail | 26 |
 | ByCase Statement.SymmetricKeyDefinition.Tail | 8 |
 | ByCase Statement.SynonymDefinition.Tail | 18 |
@@ -306,8 +313,8 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Projected a key's T-SQL columns as the standard's names | 6 |
 | Recovered Alias.AsKeyword of MERGE's target | 19 |
 | Recovered Alias.AsKeyword of a table source | 952 |
-| Recovered Clause.DerivedColumn alias = expression | 429 |
-| Recovered Expression.Invocation without brackets | 43 |
+| Recovered Clause.DerivedColumn alias = expression | 432 |
+| Recovered Expression.Invocation without brackets | 45 |
 | Recovered Expression.Trim.FromKeyword | 0 |
 | Recovered Limit.FetchRowWord | 23 |
 | Recovered Limit.OffsetRowWord | 28 |
@@ -315,9 +322,9 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Recovered ParameterDefinition.AsKeyword | 273 |
 | Recovered ReferencesSpecification.DeleteRuleFirst | 44 |
 | Recovered RoutineDefinition.AsOmitted | 174 |
-| Recovered RoutineDefinition.Proc | 248 |
+| Recovered RoutineDefinition.Proc | 250 |
 | Recovered RoutineDefinition.Unbracketed | 70 |
-| Recovered SelectColumn.ExpressionItem.AsKeyword | 424 |
+| Recovered SelectColumn.ExpressionItem.AsKeyword | 427 |
 | Recovered Statement.Classification.Options | 17 |
 | Recovered Statement.Delete.FromOmitted | 85 |
 | Recovered Statement.DropRoutine.Proc | 24 |
@@ -364,7 +371,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.EventSessionDefinition` | Monitoring | C | gap 323 | 323: no target record: Statement.CreateEventSession (323) | 323 |
 | `Clause.ParameterDeclaration` | Routines | B | — | — | 298 |
 | `Clause.Hint` | Queries | C | gap 5 | 5: needs decision: inventory Clause.Hint (the old WITH (n)) (4); needs decision: inventory Clause.Hint (a hint of a shape the family does not hold) (1) | 294 |
-| `Statement.CreateProcedure` | Routines | B | converted 248, gap 19 | 19: needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1); needs decision: inventory DataType (`bit(max)`: a word in the brackets of a type) (1) | 285 |
+| `Statement.CreateProcedure` | Routines | B | converted 250, gap 19 | 19: needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1); needs decision: inventory DataType (`bit(max)`: a word in the brackets of a type) (1) | 285 |
 | `Clause.Connection` | Tables | C | — | — | 270 |
 | `Statement.EndpointDefinition` | Server | C | gap 249 | 249: no target record: Statement.CreateEndpoint (249) | 249 |
 | `Statement.Insert` | Dml | A | converted 192, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
@@ -439,7 +446,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.IsNull` | Values | A | — | — | 52 |
 | `Statement.AvailabilityGroupDefinition` | Server | C | gap 51 | 51: no target record: Statement.CreateAvailabilityGroup (51) | 51 |
 | `Statement.TriggerSwitch` | Routines | C | converted 44 | — | 51 |
-| `Statement.QueueDefinition` | Broker | C | gap 48 | 48: no target record: Statement.CreateQueue (48) | 48 |
+| `Statement.QueueDefinition` | Broker | C | converted 48 | — | 48 |
 | `Statement.If` | Procedural | C | converted 23 | — | 47 |
 | `Statement.SequenceDefinition` | Tables | A | converted 46, gap 1 | 1: needs decision: inventory cross-cutting gaps, identifier styles (a name part ` TestSeq`) (1) | 47 |
 | `Statement.AlterFullTextStopList` | Database | C | converted 46 | — | 46 |
@@ -451,7 +458,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.UpdateStatistics` | Tables | C | converted 41 | — | 43 |
 | `Clause.Into` | Queries | C | — | — | 41 |
 | `Expression.Multiply` | Values | A | — | — | 41 |
-| `Statement.EndConversation` | Broker | C | gap 34 | 34: no target record: Statement.EndConversation (34) | 41 |
+| `Statement.EndConversation` | Broker | C | converted 27 | — | 41 |
 | `Statement.ExternalLanguageDefinition` | External | C | converted 41 | — | 41 |
 | `Expression.Or` | Values | A | — | — | 40 |
 | `Clause.WindowDefinition` | Values | A | — | — | 39 |
@@ -476,7 +483,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.ShiftLeft` | Values | C | — | — | 30 |
 | `Statement.AlterDatabaseModify` | Database | C | converted 30 | — | 30 |
 | `Statement.AlterDatabaseModifyFileGroup` | Database | C | converted 11, gap 19 | 19: needs decision: Trees.FreeText (Statement.AlterDatabaseModifyFileGroup.Tail, written otherwise than the writer prints it) (10); no target record: Statement.AlterDatabase (a termination after an action other than SET) (9) | 30 |
-| `Statement.Send` | Broker | C | gap 30 | 30: no target record: Statement.Send (30) | 30 |
+| `Statement.Send` | Broker | C | converted 30 | — | 30 |
 | `Expression.Aliased` | Values | A | — | 29: needs decision: inventory Expression.Aliased (29) | 29 |
 | `Expression.In` | Values | A | — | — | 29 |
 | `Statement.AlterResourceGovernor` | Server | C | gap 29 | 29: no target record: Statement.AlterResourceGovernor (29) | 29 |
@@ -497,8 +504,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropProcedure` | Drop | B | converted 24 | — | 24 |
 | `Statement.ReadText` | Dml | C | converted 24 | — | 24 |
 | `SetExpression.Transactions.IsolationLevel` | Procedural | A | — | — | 23 |
-| `Statement.BeginDialog` | Broker | C | gap 23 | 23: no target record: Statement.BeginDialog (23) | 23 |
-| `Statement.BrokerPriorityDefinition` | Broker | C | gap 23 | 23: no target record: Statement.CreateBrokerPriority (23) | 23 |
+| `Statement.BeginDialog` | Broker | C | converted 23 | — | 23 |
+| `Statement.BrokerPriorityDefinition` | Broker | C | converted 23 | — | 23 |
 | `Statement.DropTrigger` | Drop | B | converted 19 | — | 23 |
 | `SetExpression.Miscellaneous.Switch` | Procedural | C | — | — | 22 |
 | `Statement.Break` | Procedural | C | converted 3 | — | 22 |
@@ -516,20 +523,20 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CertificateDefinition` | Security | C | converted 19 | — | 19 |
 | `Statement.DropDatabase` | Drop | C | converted 19 | — | 19 |
 | `Statement.FullTextStopListDefinition` | Database | C | converted 19 | — | 19 |
-| `Statement.TryCatch` | Procedural | C | converted 11 | — | 19 |
+| `Statement.TryCatch` | Procedural | C | converted 16 | — | 19 |
 | `Statement.AggregateDefinition` | Routines | C | converted 18 | — | 18 |
 | `Statement.AlterLogin` | Security | C | converted 18 | — | 18 |
 | `Statement.DropAssembly` | Drop | C | converted 18 | — | 18 |
-| `Statement.MessageTypeDefinition` | Broker | C | gap 18 | 18: no target record: Statement.CreateMessageType (18) | 18 |
-| `Statement.ServiceDefinition` | Broker | C | gap 18 | 18: no target record: Statement.CreateService (18) | 18 |
+| `Statement.MessageTypeDefinition` | Broker | C | converted 18 | — | 18 |
+| `Statement.ServiceDefinition` | Broker | C | converted 18 | — | 18 |
 | `Expression.Plus` | Values | A | — | — | 17 |
 | `Statement.AlterPartitionFunction` | Database | C | converted 6, gap 11 | 11: needs decision: Trees.FreeText (Statement.AlterPartitionFunction.Tail, written otherwise than the writer prints it) (11) | 17 |
 | `Statement.BackupCertificate` | Database | C | converted 14, gap 3 | 3: needs decision: Trees.FreeText (Statement.BackupCertificate.Tail, written otherwise than the writer prints it) (3) | 17 |
 | `Statement.Classification` | Security | C | converted 17 | — | 17 |
 | `Statement.DropTable` | Drop | B | converted 16 | — | 17 |
 | `Statement.EventNotificationDefinition` | Monitoring | C | gap 17 | 17: no target record: Statement.CreateEventNotification (17) | 17 |
-| `Statement.Receive` | Broker | C | gap 13 | 17: no target record: Statement.Receive (17) | 17 |
-| `Statement.RemoteServiceBindingDefinition` | Broker | C | gap 17 | 17: no target record: Statement.CreateRemoteServiceBinding (17) | 17 |
+| `Statement.Receive` | Broker | C | converted 13 | — | 17 |
+| `Statement.RemoteServiceBindingDefinition` | Broker | C | converted 17 | — | 17 |
 | `Statement.AddSignature` | Security | C | converted 16 | — | 16 |
 | `Statement.AlterMasterKey` | Security | C | converted 16 | — | 16 |
 | `Statement.DefaultDefinition` | Routines | C | converted 16 | — | 16 |
@@ -566,7 +573,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterDatabaseRebuildLog` | Database | C | converted 5, gap 6 | 6: no target record: AlterDatabaseAction.RebuildLog (REBUILD LOG ON a file) (6) | 11 |
 | `Statement.AlterSchema` | Security | C | converted 11 | — | 11 |
 | `Statement.AlterSearchPropertyList` | Database | C | converted 5, gap 6 | 6: needs decision: Trees.FreeText (Statement.AlterSearchPropertyList.Tail, written otherwise than the writer prints it) (6) | 11 |
-| `Statement.DropEventNotification` | Drop | C | converted 9, gap 2 | 2: needs decision: inventory Statement.DropEventNotification (`on queue dbo.q1` kept as written, against `ON QUEUE dbo.q1` as the writer prints it, which the old tree compares exactly) (1); needs decision: inventory Statement.DropEventNotification (`on queue q1` kept as written, against `ON QUEUE q1` as the writer prints it, which the old tree compares exactly) (1) | 11 |
+| `Statement.DropEventNotification` | Drop | C | converted 11 | — | 11 |
 | `Statement.DropQueue` | Drop | C | converted 11 | — | 11 |
 | `Statement.DropSecurityPolicy` | Drop | C | converted 11 | — | 11 |
 | `Statement.PartitionSchemeDefinition` | Database | C | converted 9, gap 2 | 2: needs decision: Trees.FreeText (Statement.PartitionSchemeDefinition.Tail, written otherwise than the writer prints it) (2) | 11 |
@@ -576,8 +583,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterPartitionScheme` | Database | C | converted 7, gap 3 | 3: needs decision: Trees.FreeText (Statement.AlterPartitionScheme.Tail, written otherwise than the writer prints it) (3) | 10 |
 | `Statement.DatabaseScopedCredentialDefinition` | Security | C | converted 10 | — | 10 |
 | `Statement.DropEventSession` | Drop | C | converted 10 | — | 10 |
-| `Statement.GetConversationGroup` | Broker | C | gap 4 | 10: no target record: Statement.GetConversationGroup (10) | 10 |
-| `Statement.WaitForStatement` | Broker | C | gap 10 | 10: no target record: Statement.WaitForReceive (10) | 10 |
+| `Statement.GetConversationGroup` | Broker | C | converted 4 | — | 10 |
+| `Statement.WaitForStatement` | Broker | C | converted 10 | — | 10 |
 | `Clause.CursorFor` | Procedural | A | — | — | 9 |
 | `Expression.Subtract` | Values | A | — | — | 9 |
 | `Statement.AlterDatabaseCollate` | Database | C | converted 9 | — | 9 |
@@ -614,13 +621,13 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropService` | Drop | C | converted 7 | — | 7 |
 | `Statement.DropSymmetricKey` | Drop | C | converted 7 | — | 7 |
 | `Statement.RestoreMasterKey` | Database | C | converted 6, gap 1 | 1: needs decision: Trees.FreeText (Statement.RestoreMasterKey.Tail, written otherwise than the writer prints it) (1) | 7 |
-| `Statement.RouteDefinition` | Broker | C | gap 7 | 7: no target record: Statement.CreateRoute (7) | 7 |
+| `Statement.RouteDefinition` | Broker | C | converted 7 | — | 7 |
 | `Statement.SearchPropertyListDefinition` | Database | C | converted 7 | — | 7 |
 | `Query.Except` | Queries | B | — | — | 6 |
 | `SetExpression.QueryExecution.RowCount` | Procedural | C | — | — | 6 |
 | `Statement.AlterSymmetricKey` | Security | C | converted 6 | — | 6 |
 | `Statement.ColumnEncryptionKeyDefinition` | Security | C | converted 6 | — | 6 |
-| `Statement.ContractDefinition` | Broker | C | gap 6 | 6: no target record: Statement.CreateContract (6) | 6 |
+| `Statement.ContractDefinition` | Broker | C | converted 6 | — | 6 |
 | `Statement.CreateApplicationRole` | Security | C | converted 6 | — | 6 |
 | `Statement.CreateRole` | Security | A | converted 6 | — | 6 |
 | `Statement.DropDatabaseAuditSpecification` | Drop | C | converted 6 | — | 6 |
@@ -638,10 +645,10 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.AlterColumnEncryptionKey` | Security | C | converted 5 | — | 5 |
 | `Statement.AlterDatabaseModifyFile` | Database | C | converted 5 | — | 5 |
 | `Statement.CloseSymmetricKey` | Security | C | converted 5 | — | 5 |
-| `Statement.ConversationTimer` | Broker | C | gap 5 | 5: no target record: Statement.BeginConversationTimer (5) | 5 |
+| `Statement.ConversationTimer` | Broker | C | converted 5 | — | 5 |
 | `Statement.CreateServerRole` | Security | C | converted 5 | — | 5 |
 | `Statement.DropExternalTable` | Drop | C | converted 5 | — | 5 |
-| `Statement.MoveConversation` | Broker | C | gap 5 | 5: no target record: Statement.MoveConversation (5) | 5 |
+| `Statement.MoveConversation` | Broker | C | converted 5 | — | 5 |
 | `Expression.Modulo` | Values | C | — | — | 4 |
 | `Query.Intersect` | Queries | B | — | — | 4 |
 | `SetExpression.Miscellaneous.FipsFlagger` | Procedural | C | — | — | 4 |

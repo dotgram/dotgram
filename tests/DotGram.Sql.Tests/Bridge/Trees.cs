@@ -129,6 +129,14 @@ static class Trees
 		"Statement.ExternalLanguageDefinition.Tail",
 		"Statement.ExternalModelDefinition.Tail",
 		"Statement.ExternalResourcePoolDefinition.Tail",
+		// The Broker family: what follows the name of a message type, a contract, a queue, a service, a route, a binding and a priority.
+		"Statement.MessageTypeDefinition.Tail",
+		"Statement.ContractDefinition.Tail",
+		"Statement.QueueDefinition.Tail",
+		"Statement.ServiceDefinition.Tail",
+		"Statement.RouteDefinition.Tail",
+		"Statement.RemoteServiceBindingDefinition.Tail",
+		"Statement.BrokerPriorityDefinition.Tail",
 	};
 
 	/// <summary>
@@ -198,6 +206,8 @@ static class Trees
 		"STATE", "SYMMETRIC", "TRANSFER", "UNLOCK", "VALUES", "VIEW", "WINDOWS", "WITHOUT",
 		// The External family: the words of an external language's and library's files that the writer prints in capitals.
 		"LINUX", "PLATFORM",
+		// The Broker family: the words of its objects and statements that the writer prints in capitals.
+		"ACTIVATION", "ADD", "BINDING", "BROKER", "BY", "CLEANUP", "CONTRACT", "CONVERSATION", "DESCRIPTION", "DIALOG", "ERROR", "EXECUTE", "GET", "INITIATOR", "LOB_COMPACTION", "MAXDOP", "MAX_QUEUE_READERS", "MESSAGE", "POISON_MESSAGE_HANDLING", "PRIORITY", "PROCEDURE_NAME", "QUEUE", "RECEIVE", "REORGANIZE", "RETENTION", "SELF", "SEND", "SENT", "STATUS", "TARGET", "TIMEOUT", "TIMER", "TOP", "VALIDATION", "VALID_XML", "WAITFOR",
 	};
 
 	/// <summary>
