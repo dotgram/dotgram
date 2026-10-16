@@ -19,8 +19,11 @@ namespace DotGram.Sql.Ast;
 /// <para>
 /// <b>It writes what the tree holds.</b> Brackets are written where the tree has them — a
 /// <see cref="Expression.Parenthesized"/>, a <see cref="Query.Parenthesized"/> — and nowhere else: a tree
-/// read from text holds every bracket that changed its shape. The one exception is a set operation built by
-/// hand whose text would mean something else without a pair, which gets one (<c>PutQuery</c>). Key words are written in
+/// read from text holds every bracket that changed its shape. The one exception is a tree built by hand whose
+/// text would mean something else without a pair — a set operation (<c>PutQuery</c>), an operand that binds
+/// looser than its operator (<c>Strength</c>, <c>PutOperand</c>): it gets the fewest that keep its shape, and
+/// read back it holds them as the <see cref="Expression.Parenthesized"/> and <see cref="Query.Parenthesized"/>
+/// nodes the text has. Key words are written in
 /// capitals, one space between tokens, none inside a name or a call; which of two spellings was written, the
 /// tree says and this repeats.
 /// </para>
@@ -789,6 +792,119 @@ public static partial class Sql2023Writer
 
 		// ── §6.28 Value expressions, §8 Predicates ─────────────────────────────────
 
+		// How tightly an expression binds where it is written without brackets, from the loosest to the
+		// tightest. A tree read from text holds a Parenthesized wherever its shape needed one, so on such a
+		// tree the levels never add a bracket; on a tree built by hand they add the fewest that keep its shape.
+		//
+		// The standard's (§6.28, §8.1, §8.12): OR, AND, NOT over a boolean test, IS [NOT] TRUE over a
+		// predicate, a predicate over values, `+ - ||` and MULTISET UNION and EXCEPT, `* /` and MULTISET
+		// INTERSECT, one sign over a primary and what follows it, and one of COLLATE, AT and an interval
+		// qualifier after a primary. So `- -a`, `NOT NOT a`, `a IS TRUE IS TRUE` and `a COLLATE x COLLATE y`
+		// are not read there, and each takes a bracket.
+		//
+		// T-SQL's (TSqlValueExpression, TSqlValuePrimary, TSqlBooleanFactor): the same towers with its
+		// operators in them — `& | ^ << >>` as weak as `+`, `%` as strong as `*`, `~` a sign — and signs and
+		// NOTs that stand on each other. After a primary come its zones, each with a COLLATE that may stand
+		// before its AT, and one COLLATE last: `a COLLATE x AT TIME ZONE b COLLATE y`.
+		static class Tightness
+		{
+			public const int Disjunct       = 1;  // OR
+			public const int Conjunct       = 2;  // AND
+			public const int Negated        = 3;  // NOT
+			public const int Tested         = 4;  // IS [NOT] TRUE, FALSE, UNKNOWN
+			public const int Predicate      = 5;  // a comparison, BETWEEN, IN, LIKE, IS NULL and every other predicate
+			public const int Additive       = 6;  // + - || & | ^ << >>, MULTISET UNION and EXCEPT
+			public const int Multiplicative = 7;  // * / %, MULTISET INTERSECT
+			public const int Signed         = 8;  // + - ~ before an operand
+			public const int Postfixed      = 9;  // COLLATE; in the standard also AT and an interval qualifier
+			public const int Zoned          = 10; // T-SQL's AT TIME ZONE
+			public const int Primary        = 11; // everything that brackets or names itself
+		}
+
+		int Strength(Expression expression)
+		{
+			return expression switch
+			{
+				Expression.Binary { Operator: BinaryOperator.Or }  => Tightness.Disjunct,
+				Expression.Binary { Operator: BinaryOperator.And } => Tightness.Conjunct,
+				Expression.Binary { Operator: BinaryOperator.Multiply or BinaryOperator.Divide or BinaryOperator.Modulo } => Tightness.Multiplicative,
+				Expression.Binary => Tightness.Additive,
+				Expression.Unary { Operator: UnaryOperator.Not } => Tightness.Negated,
+				Expression.Unary => Tightness.Signed,
+				Expression.MultisetOperation { Operator: MultisetOperator.Intersect } => Tightness.Multiplicative,
+				Expression.MultisetOperation => Tightness.Additive,
+				Expression.IsTruth => Tightness.Tested,
+				Expression.Comparison or Expression.Between or Expression.In or Expression.Like or Expression.IsNull
+					or Expression.QuantifiedComparison or Expression.Exists or Expression.Unique or Expression.Match
+					or Expression.Overlaps or Expression.IsDistinct or Expression.IsNormalized or Expression.MemberOf
+					or Expression.SubmultisetOf or Expression.IsSet or Expression.IsOf or Expression.PeriodPredicate
+					or Expression.JsonPredicate or Expression.GraphMatch => Tightness.Predicate,
+
+				// The standard reads JSON_EXISTS as a predicate, T-SQL as a call.
+				Expression.JsonExists => transactSql ? Tightness.Primary : Tightness.Predicate,
+				Expression.Collate or Expression.IntervalQualified => Tightness.Postfixed,
+				Expression.AtTimeZone => transactSql ? Tightness.Zoned : Tightness.Postfixed,
+				_ => Tightness.Primary,
+			};
+		}
+
+		/// <summary>
+		/// An operand that must bind at least as tightly as <paramref name="least"/>, in a bracket where it
+		/// does not. A left-associative operator asks its own strength of its left operand and one more of its
+		/// right: `a - (b - c)`.
+		/// </summary>
+		/// <remarks>
+		/// What the operator passed on for its operand — a condition, in T-SQL's reading — is still there for
+		/// it inside the bracket, which is what a bracket is in that reading.
+		/// </remarks>
+		void PutOperand(Expression operand, int least)
+		{
+			if (Strength(operand) >= least)
+			{
+				PutExpression(operand);
+
+				return;
+			}
+
+			Open();
+			PutExpression(operand);
+			Close();
+		}
+
+		/// <summary>
+		/// The zone after AT TIME ZONE: a primary, which the standard may follow with an interval qualifier
+		/// and T-SQL may put signs before; anything else in a bracket.
+		/// </summary>
+		void PutZone(Expression zone)
+		{
+			var fits = zone is Expression.IntervalQualified && !transactSql;
+
+			if (!fits)
+			{
+				var bottom = zone;
+				var signed = false;
+
+				// T-SQL's signs stand on each other; under the last, an operand that binds looser than a
+				// sign is bracketed by the sign itself, and only a COLLATE or an AT would run on past it.
+				while (transactSql && bottom is Expression.Unary { Operator: not UnaryOperator.Not } sign)
+				{
+					bottom = sign.Operand;
+					signed = true;
+				}
+
+				fits = Strength(bottom) >= Tightness.Primary || signed && Strength(bottom) < Tightness.Signed;
+			}
+
+			if (fits)
+				PutExpression(zone);
+			else
+			{
+				Open();
+				PutExpression(zone);
+				Close();
+			}
+		}
+
 		void PutExpression(Expression expression)
 		{
 			if (!SqlStack.Enough())
@@ -833,7 +949,7 @@ public static partial class Sql2023Writer
 				case Expression.Unary unary when unary.Operator == UnaryOperator.Not:
 					Word("NOT");
 					PassCondition(condition);
-					PutExpression(unary.Operand);
+					PutOperand(unary.Operand, transactSql ? Tightness.Negated : Tightness.Tested);
 					break;
 
 				// A sign is written against its operand; where the operand begins with a sign of its own, `Fuses`
@@ -849,12 +965,14 @@ public static partial class Sql2023Writer
 						_                        => throw NoText(unary.Operator),
 					});
 					Hold();
-					PutExpression(unary.Operand);
+					PutOperand(unary.Operand, transactSql ? Tightness.Signed : Tightness.Postfixed);
 					break;
 
 				case Expression.Binary binary:
+					var binding = Strength(binary);
+
 					PassCondition(condition);
-					PutExpression(binary.Left);
+					PutOperand(binary.Left, binding);
 					Word(binary.Operator switch
 					{
 						BinaryOperator.Add         => "+",
@@ -873,15 +991,15 @@ public static partial class Sql2023Writer
 						_                          => throw NoText(binary.Operator),
 					});
 					PassCondition(condition);
-					PutExpression(binary.Right);
+					PutOperand(binary.Right, binding + 1);
 					break;
 
 				case Expression.MultisetOperation multiset:
-					PutExpression(multiset.Left);
+					PutOperand(multiset.Left, Strength(multiset));
 					Word("MULTISET");
 					Word(multiset.Operator switch { MultisetOperator.Union => "UNION", MultisetOperator.Except => "EXCEPT", MultisetOperator.Intersect => "INTERSECT", _ => throw NoText(multiset.Operator) });
 					PutQuantifier(multiset.Quantifier);
-					PutExpression(multiset.Right);
+					PutOperand(multiset.Right, Strength(multiset) + 1);
 					break;
 
 				case Expression.Row rowValue:
@@ -1029,7 +1147,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Element element:
-					PutExpression(element.Collection);
+					PutOperand(element.Collection, Tightness.Primary);
 					Tight(element.Trigraphs ? "??(" : "[");
 					Hold();
 					PutExpression(element.Index);
@@ -1047,12 +1165,12 @@ public static partial class Sql2023Writer
 					if (transactSql && !star)
 						throw Misplaced(expression, "a node", "outside an argument, where T-SQL reads no .*");
 
-					PutExpression(wildcard.Target);
+					PutOperand(wildcard.Target, Tightness.Primary);
 					Tight(wildcard.Kind switch { WildcardKind.Member => ".*", WildcardKind.Array => "[*]", _ => throw NoText(wildcard.Kind) });
 					break;
 
 				case Expression.JsonAccessor accessor:
-					PutExpression(accessor.Target);
+					PutOperand(accessor.Target, Tightness.Primary);
 					PutPathAccessor(accessor.Accessor);
 					break;
 
@@ -1070,18 +1188,18 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Collate collate:
-					PutExpression(collate.Value);
+					PutOperand(collate.Value, transactSql ? Tightness.Zoned : Tightness.Primary);
 					Word("COLLATE");
 					PutCollation(collate.Collation);
 					break;
 
 				case Expression.AtTimeZone zone:
-					PutExpression(zone.Value);
+					PutOperand(zone.Value, transactSql ? Tightness.Postfixed : Tightness.Primary);
 
 					if (zone.Zone is { } at)
 					{
 						Word("AT TIME ZONE");
-						PutExpression(at);
+						PutZone(at);
 					}
 					else
 						Word("AT LOCAL");
@@ -1089,7 +1207,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.IntervalQualified qualified:
-					PutExpression(qualified.Value);
+					PutOperand(qualified.Value, Tightness.Primary);
 					PutQualifier(qualified.Qualifier);
 					break;
 
@@ -1239,26 +1357,26 @@ public static partial class Sql2023Writer
 					if (comparison.Exclamation && comparison.Operator != ComparisonOperator.NotEqual)
 						throw Misplaced(comparison, "Exclamation", "on a comparison that is not an inequality");
 
-					PutExpression(comparison.Left);
+					PutOperand(comparison.Left, Tightness.Additive);
 					Word(comparison.Exclamation ? "!=" : Comparison(comparison.Operator));
-					PutExpression(comparison.Right);
+					PutOperand(comparison.Right, Tightness.Additive);
 					break;
 
 				case Expression.Between between:
-					PutExpression(between.Value);
+					PutOperand(between.Value, Tightness.Additive);
 					PutNot(between.Not);
 					Word("BETWEEN");
 
 					if (between.Symmetry is { } symmetry)
 						Word(symmetry == BetweenSymmetry.Asymmetric ? "ASYMMETRIC" : "SYMMETRIC");
 
-					PutExpression(between.Lower);
+					PutOperand(between.Lower, Tightness.Additive);
 					Word("AND");
-					PutExpression(between.Upper);
+					PutOperand(between.Upper, Tightness.Additive);
 					break;
 
 				case Expression.In @in:
-					PutExpression(@in.Value);
+					PutOperand(@in.Value, Tightness.Additive);
 					PutNot(@in.Not);
 					Word("IN");
 
@@ -1274,10 +1392,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Like like:
-					PutExpression(like.Value);
+					PutOperand(like.Value, Tightness.Additive);
 					PutNot(like.Not);
 					Word(like.Kind switch { LikeKind.Like => "LIKE", LikeKind.Similar => "SIMILAR TO", LikeKind.Regex => "LIKE_REGEX", _ => throw NoText(like.Kind) });
-					PutExpression(like.Pattern);
+					PutOperand(like.Pattern, Tightness.Additive);
 
 					// T-SQL: LIKE (Transact-SQL). The escape in ODBC's braces.
 					if (like.BracedEscape)
@@ -1288,39 +1406,39 @@ public static partial class Sql2023Writer
 						Word("{");
 						Hold();
 						Word("ESCAPE");
-						PutExpression(braced);
+						PutOperand(braced, Tightness.Additive);
 						Tight("}");
 					}
 					else if (like.Escape is { } escape)
 					{
 						Word("ESCAPE");
-						PutExpression(escape);
+						PutOperand(escape, Tightness.Additive);
 					}
 
 					if (like.Flag is { } flag)
 					{
 						Word("FLAG");
-						PutExpression(flag);
+						PutOperand(flag, Tightness.Additive);
 					}
 
 					break;
 
 				case Expression.IsNull isNull:
-					PutExpression(isNull.Value);
+					PutOperand(isNull.Value, Tightness.Additive);
 					Word("IS");
 					PutNot(isNull.Not);
 					Word("NULL");
 					break;
 
 				case Expression.IsTruth isTruth:
-					PutExpression(isTruth.Value);
+					PutOperand(isTruth.Value, Tightness.Predicate);
 					Word("IS");
 					PutNot(isTruth.Not);
 					Word(Truth(isTruth.Truth));
 					break;
 
 				case Expression.QuantifiedComparison quantified:
-					PutExpression(quantified.Left);
+					PutOperand(quantified.Left, Tightness.Additive);
 					Word(Comparison(quantified.Operator));
 					Word(quantified.Quantifier switch { Quantifier.All => "ALL", Quantifier.Some => "SOME", Quantifier.Any => "ANY", _ => throw NoText(quantified.Quantifier) });
 					PutSubquery(quantified.Query);
@@ -1341,7 +1459,7 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Match match:
-					PutExpression(match.Value);
+					PutOperand(match.Value, Tightness.Additive);
 					Word("MATCH");
 
 					if (match.UniqueKeyword)
@@ -1354,21 +1472,21 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Overlaps overlaps:
-					PutExpression(overlaps.Left);
+					PutOperand(overlaps.Left, Tightness.Additive);
 					Word("OVERLAPS");
-					PutExpression(overlaps.Right);
+					PutOperand(overlaps.Right, Tightness.Additive);
 					break;
 
 				case Expression.IsDistinct distinct:
-					PutExpression(distinct.Left);
+					PutOperand(distinct.Left, Tightness.Additive);
 					Word("IS");
 					PutNot(distinct.Not);
 					Word("DISTINCT FROM");
-					PutExpression(distinct.Right);
+					PutOperand(distinct.Right, Tightness.Additive);
 					break;
 
 				case Expression.IsNormalized normalized:
-					PutExpression(normalized.Value);
+					PutOperand(normalized.Value, Tightness.Additive);
 					Word("IS");
 					PutNot(normalized.Not);
 
@@ -1379,28 +1497,28 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.MemberOf memberOf:
-					PutExpression(memberOf.Value);
+					PutOperand(memberOf.Value, Tightness.Additive);
 					PutNot(memberOf.Not);
 					Word(memberOf.OfKeyword ? "MEMBER OF" : "MEMBER");
-					PutExpression(memberOf.Collection);
+					PutOperand(memberOf.Collection, Tightness.Additive);
 					break;
 
 				case Expression.SubmultisetOf submultiset:
-					PutExpression(submultiset.Value);
+					PutOperand(submultiset.Value, Tightness.Additive);
 					PutNot(submultiset.Not);
 					Word(submultiset.OfKeyword ? "SUBMULTISET OF" : "SUBMULTISET");
-					PutExpression(submultiset.Collection);
+					PutOperand(submultiset.Collection, Tightness.Additive);
 					break;
 
 				case Expression.IsSet isSet:
-					PutExpression(isSet.Value);
+					PutOperand(isSet.Value, Tightness.Additive);
 					Word("IS");
 					PutNot(isSet.Not);
 					Word("A SET");
 					break;
 
 				case Expression.IsOf isOf:
-					PutExpression(isOf.Value);
+					PutOperand(isOf.Value, Tightness.Additive);
 					Word("IS");
 					PutNot(isOf.Not);
 					Word("OF");
@@ -1432,12 +1550,12 @@ public static partial class Sql2023Writer
 					if (period.Right is PeriodRight.Period right)
 						PutPeriod(right.Value);
 					else
-						PutExpression(((PeriodRight.Point)period.Right).Value);
+						PutOperand(((PeriodRight.Point)period.Right).Value, Tightness.Additive);
 
 					break;
 
 				case Expression.JsonPredicate json:
-					PutExpression(json.Value);
+					PutOperand(json.Value, Tightness.Additive);
 
 					if (json.Input is { } input)
 					{
@@ -2022,7 +2140,7 @@ public static partial class Sql2023Writer
 			if (transactSql && (member.Kind == MemberAccessKind.Dereference || member.Kind == MemberAccessKind.Dot && member.Arguments is null && member.Target is Expression.Reference))
 				throw Misplaced(member, "Kind", "or Target that T-SQL does not read as a member: `a.m` is a name, and `->` is not T-SQL's");
 
-			PutExpression(member.Target);
+			PutOperand(member.Target, Tightness.Primary);
 
 			switch (member.Kind)
 			{

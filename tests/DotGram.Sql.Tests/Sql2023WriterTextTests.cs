@@ -126,11 +126,15 @@ public sealed class Sql2023WriterTextTests
 	/// A sign is written against its operand, and where the operand begins with a sign of its own the two
 	/// would read as `--`, which begins a comment: `SELECT --1 FROM t` is `SELECT` and nothing else.
 	/// </summary>
+	/// <remarks>
+	/// A sign stands on a sign in T-SQL's reading; the standard's reads one sign before a primary, and brackets a
+	/// second, so the rows where signs meet are T-SQL's.
+	/// </remarks>
 	[Theory]
 	[MemberData(nameof(Signs))]
-	public void No_two_tokens_side_by_side_open_a_comment(Expression expression, string expected)
+	public void No_two_tokens_side_by_side_open_a_comment(Expression expression, bool transactSql, string expected)
 	{
-		var written = Sql2023Writer.Write(expression);
+		var written = transactSql ? TransactSqlWriter.Write(expression) : Sql2023Writer.Write(expression);
 
 		Assert.Equal(expected, written);
 		Assert.DoesNotContain("--", written, StringComparison.Ordinal);
@@ -138,20 +142,21 @@ public sealed class Sql2023WriterTextTests
 		Assert.DoesNotContain("*/", written, StringComparison.Ordinal);
 	}
 
-	public static TheoryData<Expression, string> Signs()
+	public static TheoryData<Expression, bool, string> Signs()
 	{
 		return new()
 		{
-			{ Minus(A), "-a" },
-			{ Minus(Minus(A)), "- -a" },
-			{ Minus(Minus(Minus(Number("1")))), "- - -1" },
-			{ Minus(Number("-1")), "- -1" },
-			{ new Expression.Unary(UnaryOperator.Plus, Minus(A)), "+-a" },
-			{ new Expression.Binary(A, BinaryOperator.Subtract, Number("-1")), "a - -1" },
-			{ new Expression.Binary(A, BinaryOperator.Subtract, Minus(Minus(B))), "a - - -b" },
-			{ new Expression.Binary(A, BinaryOperator.Divide, Minus(B)), "a / -b" },
-			{ new Expression.Binary(Minus(A), BinaryOperator.Multiply, Minus(B)), "-a * -b" },
-			{ new Expression.AtTimeZone(A, Minus(Minus(B))), "a AT TIME ZONE - -b" },
+			{ Minus(A), false, "-a" },
+			{ Minus(Minus(A)), true, "- -a" },
+			{ Minus(Minus(A)), false, "-(-a)" },
+			{ Minus(Minus(Minus(new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)))), true, "- - -1" },
+			{ Minus(Number("-1")), false, "- -1" },
+			{ new Expression.Unary(UnaryOperator.Plus, Minus(A)), true, "+-a" },
+			{ new Expression.Binary(A, BinaryOperator.Subtract, Number("-1")), false, "a - -1" },
+			{ new Expression.Binary(A, BinaryOperator.Subtract, Minus(Minus(B))), true, "a - - -b" },
+			{ new Expression.Binary(A, BinaryOperator.Divide, Minus(B)), false, "a / -b" },
+			{ new Expression.Binary(Minus(A), BinaryOperator.Multiply, Minus(B)), false, "-a * -b" },
+			{ new Expression.AtTimeZone(A, Minus(Minus(B))), true, "a AT TIME ZONE - -b" },
 		};
 	}
 }
