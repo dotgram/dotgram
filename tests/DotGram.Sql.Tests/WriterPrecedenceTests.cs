@@ -145,9 +145,27 @@ public sealed class WriterPrecedenceTests
 			case Expression.JsonAccessor accessor:
 				return accessor with { Target = operand(accessor.Target) };
 
+			// A WHEN that is a predicate with the case operand for its left side is no operand of its own: its parts are.
+			case Expression.Case @case:
+				return @case with
+				{
+					Operand = @case.Operand is null ? null : operand(@case.Operand),
+					Whens = [.. @case.Whens.Select(when => when with
+					{
+						When = [.. when.When.Select(one => LedByCaseOperand(one) ? Rebuild(one, operand) : operand(one))],
+						Then = operand(when.Then),
+					})],
+					Else = @case.Else is null ? null : operand(@case.Else),
+				};
+
 			default:
 				return node;
 		}
+	}
+
+	static bool LedByCaseOperand(Expression when)
+	{
+		return when is Expression.IsNull { Value: Expression.CaseOperand } or Expression.Comparison { Left: Expression.CaseOperand };
 	}
 
 	/// <summary>The tree with every <see cref="Expression.Parenthesized"/> taken out: what it means, its brackets aside.</summary>
@@ -223,7 +241,7 @@ public sealed class WriterPrecedenceTests
 		{
 			var inner = Bracketed(operand);
 
-			return inner is Expression.Reference or LiteralValue ? inner : new Expression.Parenthesized(inner);
+			return inner is Expression.Reference or LiteralValue or Expression.CaseOperand ? inner : new Expression.Parenthesized(inner);
 		});
 	}
 
@@ -455,6 +473,73 @@ public sealed class WriterPrecedenceTests
 		Standardly(Multiset(A, MultisetOperator.Except, Multiset(B, MultisetOperator.Union, C)), "a MULTISET EXCEPT (b MULTISET UNION c)");
 	}
 
+	/// <summary>
+	/// A CASE's operand and a simple CASE's WHEN are row value predicands: a predicate stands there only in a bracket,
+	/// but for a WHEN that is a predicate with the case operand left out.
+	/// </summary>
+	[Fact]
+	public void A_CASE_operand_and_WHEN_are_values()
+	{
+		static Expression Case(Expression operand, Expression when)
+		{
+			return new Expression.Case(operand, [new CaseWhen([when], One)], null);
+		}
+
+		var truth = new LiteralValue.Boolean(BooleanLiteral.True);
+
+		Standardly(Case(Equal(A, B), truth), "CASE (a = b) WHEN TRUE THEN 1 END");
+		Standardly(Case(new Expression.IsNull(A, false), truth), "CASE (a IS NULL) WHEN TRUE THEN 1 END");
+		Standardly(Case(Binary(Equal(A, B), BinaryOperator.And, Equal(B, C)), truth), "CASE (a = b AND b = c) WHEN TRUE THEN 1 END");
+		Standardly(Case(A, new Expression.IsNull(A, false)), "CASE a WHEN (a IS NULL) THEN 1 END");
+		Standardly(Case(A, new Expression.IsNull(new Expression.CaseOperand(), false)), "CASE a WHEN IS NULL THEN 1 END");
+		Standardly(Case(A, new Expression.Comparison(new Expression.CaseOperand(), ComparisonOperator.Less, Binary(B, BinaryOperator.Add, One))), "CASE a WHEN < b + 1 THEN 1 END");
+		Standardly(Case(Binary(A, BinaryOperator.Add, B), Binary(B, BinaryOperator.Multiply, C)), "CASE a + b WHEN b * c THEN 1 END");
+
+		Value(Case(Binary(A, BinaryOperator.Add, B), Unary(UnaryOperator.Minus, C)), "CASE a + b WHEN -c THEN 1 END");
+	}
+
+	/// <summary>`x IN ((SELECT …))` is IN over the subquery, so a list of one value that is a subquery has no text.</summary>
+	[Fact]
+	public void A_list_of_one_subquery_is_refused()
+	{
+		var query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(One)] };
+		var list  = new Expression.In(A, false, new InSource.Values([new Expression.Subquery(query)]));
+
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(list, false));
+		Assert.ThrowsAny<ArgumentException>(() => TransactSql.Write(list, true));
+
+		// Beside another value it is a list, and is written.
+		Condition(list with { SourceValue = new InSource.Values([new Expression.Subquery(query), One]) }, "a IN ((SELECT 1), 1)");
+	}
+
+	/// <summary>
+	/// The standard reads `a.m ()` as a call of the routine `a.m` and `a.m` as a column: a member of a name is written with
+	/// the name in a bracket, but for `.SPECIFICTYPE`, which the grammar reads after the name.
+	/// </summary>
+	[Fact]
+	public void A_member_of_a_name_brackets_the_name_in_the_standard()
+	{
+		Standardly(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m"), []), "(a).m()");
+		Standardly(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m")), "(a).m");
+		Standardly(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("SPECIFICTYPE"), []), "a.SPECIFICTYPE()");
+	}
+
+	/// <summary>
+	/// The standard reads a number written with its sign as a sign over the number, so where a sign is bracketed, so is it.
+	/// The text then reads as that sign; the signed literal itself comes back only where the grammar reads one.
+	/// </summary>
+	[Fact]
+	public void A_signed_number_binds_as_a_sign_in_the_standard()
+	{
+		var signed = Number("-1");
+
+		Assert.Equal("(-1)[1]", Sql2023Writer.Write(new Expression.Element(signed, One)));
+		Assert.Equal("-(-1)", Sql2023Writer.Write(Unary(UnaryOperator.Minus, signed)));
+		Assert.Equal("(-1) COLLATE x", Sql2023Writer.Write(Collate(signed, "x")));
+
+		Assert.Equal(Unary(UnaryOperator.Minus, new Expression.Parenthesized(Unary(UnaryOperator.Minus, One))), Both.ParseValueExpression("-(-1)"));
+	}
+
 	[Fact]
 	public void A_subscripted_or_dereferenced_value_is_a_primary()
 	{
@@ -521,7 +606,22 @@ public sealed class WriterPrecedenceTests
 			SetOperations = [new SetOperation(SetOperator.Except, Select(2) with { SetOperations = [new SetOperation(SetOperator.Except, Select(3))] })],
 		};
 
-		foreach (var (query, expected) in new[] { (flat, "(SELECT 1 UNION SELECT 2) INTERSECT SELECT 3"), (nested, "SELECT 1 EXCEPT (SELECT 2 EXCEPT SELECT 3)") })
+		// Read back, each is the tree built with the brackets the writer added: the flat list's first two operands in a
+		// bracket of their own, the nested operand in its bracket.
+		var flatRead = new Query.Parenthesized(Select(1) with { SetOperations = [new SetOperation(SetOperator.Union, Select(2))] })
+		{
+			SetOperations = [new SetOperation(SetOperator.Intersect, Select(3))],
+		};
+		var nestedRead = Select(1) with
+		{
+			SetOperations = [new SetOperation(SetOperator.Except, new Query.Parenthesized(Select(2) with { SetOperations = [new SetOperation(SetOperator.Except, Select(3))] }))],
+		};
+
+		foreach (var (query, expected, structure) in new (Query, string, Query)[]
+		{
+			(flat, "(SELECT 1 UNION SELECT 2) INTERSECT SELECT 3", flatRead),
+			(nested, "SELECT 1 EXCEPT (SELECT 2 EXCEPT SELECT 3)", nestedRead),
+		})
 		{
 			var text = TransactSqlWriter.Write(new Statement.Select { Query = query });
 
@@ -529,8 +629,8 @@ public sealed class WriterPrecedenceTests
 
 			var read = (Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
 
+			Assert.Equal(structure, read.Query);
 			Assert.Equal(text, TransactSqlWriter.Write(read));
-			Assert.Equal(new[] { 1, 2, 3 }, read.Query.Operands().Select(static one => int.Parse(((LiteralValue.Numeric)((SelectColumn.ExpressionItem)one.Columns[0]).Expression).Text)));
 		}
 	}
 
@@ -647,6 +747,35 @@ public sealed class WriterPrecedenceTests
 			return null;
 		}
 
+		/// <summary>
+		/// Whether a simple CASE's WHEN may list several operands and be a predicate with the case operand left out, `WHEN
+		/// &lt; 5`: the standard's, not T-SQL's.
+		/// </summary>
+		protected virtual bool LeavesOperandOut => false;
+
+		/// <summary>A simple CASE: its operand, and WHENs of values, of predicates, and of predicates over the operand.</summary>
+		protected Expression Case(int depth)
+		{
+			var whens = new List<CaseWhen>();
+
+			for (var count = Next(2) + 1; count > 0; count--)
+			{
+				var operands = new List<Expression>();
+
+				for (var each = LeavesOperandOut ? Next(2) + 1 : 1; each > 0; each--)
+					operands.Add((Next(4), LeavesOperandOut) switch
+					{
+						(0, true) => new Expression.IsNull(new Expression.CaseOperand(), Next(2) == 0),
+						(1, true) => new Expression.Comparison(new Expression.CaseOperand(), (ComparisonOperator)Next(6), Operand(depth - 1)),
+						_         => Operand(depth - 1),
+					});
+
+				whens.Add(new CaseWhen([.. operands], Value(depth - 1)));
+			}
+
+			return new Expression.Case(Operand(depth - 1), [.. whens], Next(2) == 0 ? Value(depth - 1) : null);
+		}
+
 		public Expression Condition(int depth)
 		{
 			if (depth <= 0)
@@ -717,6 +846,9 @@ public sealed class WriterPrecedenceTests
 				case 3:
 					return Condition(depth - 1);
 
+				case 4:
+					return Case(depth);
+
 				default:
 					return Numeric(depth, names: false);
 			}
@@ -766,6 +898,8 @@ public sealed class WriterPrecedenceTests
 			return Characters(depth);
 		}
 
+		protected override bool LeavesOperandOut => true;
+
 		protected override Expression? Truth(int depth)
 		{
 			return new Expression.IsTruth(Condition(depth - 1), Next(2) == 0, (BooleanLiteral)Next(3));
@@ -800,6 +934,9 @@ public sealed class WriterPrecedenceTests
 
 				case 3:
 					return Zone(Value(depth - 1), Value(depth - 1));
+
+				case 4:
+					return Case(depth);
 
 				default:
 					return Binary(Value(depth - 1), Operators[Next(Operators.Length)], Value(depth - 1));

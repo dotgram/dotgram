@@ -562,7 +562,8 @@ public static partial class Sql2023Writer
 					|| assignment.Operator != AssignmentOperator.Assign)
 					throw Misplaced(assignment, "Targets", "empty, with neither a variable nor a method called on a column");
 
-				PutExpression(call);
+				// The grammar reads the column's name and its method here as they stand, with no bracket.
+				PutMember(call, named: true);
 
 				return true;
 			}

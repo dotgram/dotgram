@@ -844,6 +844,8 @@ public static partial class Sql2023Writer
 				Expression.JsonExists => transactSql ? Tightness.Primary : Tightness.Predicate,
 				Expression.Collate or Expression.IntervalQualified => Tightness.Postfixed,
 				Expression.AtTimeZone => transactSql ? Tightness.Zoned : Tightness.Postfixed,
+				// The standard reads a number written with its sign as a sign over the number.
+				LiteralValue.Numeric { Text: ['-' or '+', ..] } when !transactSql => Tightness.Signed,
 				_ => Tightness.Primary,
 			};
 		}
@@ -869,6 +871,38 @@ public static partial class Sql2023Writer
 			Open();
 			PutExpression(operand);
 			Close();
+		}
+
+		/// <summary>
+		/// A simple CASE's WHEN: a predicate whose left side is the case operand, written without it (`WHEN &lt; 5`), or a value,
+		/// which a predicate is only in a bracket.
+		/// </summary>
+		void PutWhenOperand(Expression operand)
+		{
+			var left = operand switch
+			{
+				Expression.Comparison comparison           => comparison.Left,
+				Expression.QuantifiedComparison quantified => quantified.Left,
+				Expression.Between between                 => between.Value,
+				Expression.In @in                          => @in.Value,
+				Expression.Like like                       => like.Value,
+				Expression.IsNull isNull                   => isNull.Value,
+				Expression.IsDistinct distinct             => distinct.Left,
+				Expression.Match match                     => match.Value,
+				Expression.Overlaps overlaps               => overlaps.Left,
+				Expression.IsNormalized normalized         => normalized.Value,
+				Expression.MemberOf memberOf               => memberOf.Value,
+				Expression.SubmultisetOf submultiset       => submultiset.Value,
+				Expression.IsSet isSet                     => isSet.Value,
+				Expression.IsOf isOf                       => isOf.Value,
+				Expression.JsonPredicate json              => json.Value,
+				_                                          => null,
+			};
+
+			if (left is Expression.CaseOperand)
+				PutExpression(operand);
+			else
+				PutOperand(operand, Tightness.Additive);
 		}
 
 		/// <summary>
@@ -1037,8 +1071,9 @@ public static partial class Sql2023Writer
 				case Expression.Case @case:
 					Word("CASE");
 
+					// The operand and a simple CASE's WHEN are row value predicands (§6.12): a value, or a predicate in a bracket.
 					if (@case.Operand is { } operand)
-						PutExpression(operand);
+						PutOperand(operand, Tightness.Additive);
 
 					foreach (var when in @case.Whens)
 					{
@@ -1048,7 +1083,7 @@ public static partial class Sql2023Writer
 						if (@case.Operand is null)
 							Each(when.When, one => PutCondition(when, one));
 						else
-							Each(when.When, PutExpression);
+							Each(when.When, PutWhenOperand);
 						Word("THEN");
 						PutExpression(when.Then);
 					}
@@ -1376,6 +1411,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.In @in:
+					// `x IN ((SELECT …))` is read as IN over the subquery, never as a list of one value that is one.
+					if (@in.SourceValue is InSource.Values { Items: [Expression.Subquery] })
+						throw Misplaced(@in, "SourceValue", "that is a list of one subquery, which is read as IN over the subquery itself");
+
 					PutOperand(@in.Value, Tightness.Additive);
 					PutNot(@in.Not);
 					Word("IN");
@@ -2134,13 +2173,23 @@ public static partial class Sql2023Writer
 			}
 		}
 
-		void PutMember(Expression.Member member)
+		/// <summary>A member, of a value or, where <paramref name="named"/>, of a name the place reads as one.</summary>
+		void PutMember(Expression.Member member, bool named = false)
 		{
 			// T-SQL reads `a.m` as a name, and `->` not at all; a method's brackets or `::` make a member.
 			if (transactSql && (member.Kind == MemberAccessKind.Dereference || member.Kind == MemberAccessKind.Dot && member.Arguments is null && member.Target is Expression.Reference))
 				throw Misplaced(member, "Kind", "or Target that T-SQL does not read as a member: `a.m` is a name, and `->` is not T-SQL's");
 
-			PutOperand(member.Target, Tightness.Primary);
+			// The standard reads `a.m ()` as a call of the routine `a.m` and `a.m` as a column: a member of a name has the name
+			// in a bracket, but for `.SPECIFICTYPE`, which the grammar reads after a name as it stands.
+			if (!transactSql && !named && member.Kind == MemberAccessKind.Dot && member.Target is Expression.Reference && !Plain(member.Name, "SPECIFICTYPE"))
+			{
+				Open();
+				PutExpression(member.Target);
+				Close();
+			}
+			else
+				PutOperand(member.Target, Tightness.Primary);
 
 			switch (member.Kind)
 			{

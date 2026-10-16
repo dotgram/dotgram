@@ -150,7 +150,7 @@ public sealed class Sql2023WriterTextTests
 			{ Minus(Minus(A)), true, "- -a" },
 			{ Minus(Minus(A)), false, "-(-a)" },
 			{ Minus(Minus(Minus(new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)))), true, "- - -1" },
-			{ Minus(Number("-1")), false, "- -1" },
+			{ Minus(Number("-1")), false, "-(-1)" },
 			{ new Expression.Unary(UnaryOperator.Plus, Minus(A)), true, "+-a" },
 			{ new Expression.Binary(A, BinaryOperator.Subtract, Number("-1")), false, "a - -1" },
 			{ new Expression.Binary(A, BinaryOperator.Subtract, Minus(Minus(B))), true, "a - - -b" },
