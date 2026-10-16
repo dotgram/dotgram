@@ -2372,8 +2372,10 @@ public static partial class Sql2023Writer
 				throw Misplaced(member, "Kind", "or Target that T-SQL does not read as a member: `a.m` is a name, and `->` is not T-SQL's");
 
 			// The standard reads `a.m ()` as a call of the routine `a.m` and `a.m` as a column: a member of a name has the name
-			// in a bracket, but for `.SPECIFICTYPE`, which the grammar reads after a name as it stands.
-			if (!transactSql && !named && member.Kind == MemberAccessKind.Dot && member.Target is Expression.Reference && !Plain(member.Name, "SPECIFICTYPE"))
+			// in a bracket, but for `.SPECIFICTYPE`, which the grammar reads after a name as it stands. T-SQL reads `a.m ()` as
+			// that call too, and `(a).m ()` as the member.
+			if (!named && member.Kind == MemberAccessKind.Dot && member.Target is Expression.Reference && (!transactSql || member.Arguments is not null) && !Plain(member.Name, "SPECIFICTYPE"))
+
 			{
 				Open();
 				PutExpression(member.Target);

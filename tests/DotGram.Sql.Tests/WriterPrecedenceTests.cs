@@ -588,7 +588,12 @@ public sealed class WriterPrecedenceTests
 		Standardly(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m"), []), "(a).m()");
 		Standardly(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m")), "(a).m");
 		Standardly(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("SPECIFICTYPE"), []), "a.SPECIFICTYPE()");
+
+		// T-SQL reads `a.m()` as a call of the function `a.m`, so a method of a name is written with the name in a bracket.
+		Value(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m"), []), "(a).m()");
+		Assert.ThrowsAny<ArgumentException>(() => TransactSql.Write(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m")), false));
 	}
+
 
 	/// <summary>
 	/// The standard reads a number written with its sign as a sign over the number, so where a sign is bracketed, so is it.
