@@ -205,6 +205,57 @@ public sealed class WordKeywordReadingTests
 		Assert.DoesNotContain("\"go\"", source, StringComparison.Ordinal);
 	}
 
+	// ── The tokens themselves ───────────────────────────────────────────────────
+
+	const string Dashed =
+		"namespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']* & ('-' & ['a'..'z']+)*\n\tNum = ['0'..'9']+\n}\n";
+
+	const string DashedWithExponent =
+		"namespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']* & ('-' & ['a'..'z']+)*\n\tNum = ['0'..'9']+ & 'e'?\n}\n";
+
+	/// <summary>
+	/// The lexer that looks its keywords up reads the texts the one that carries a path for each reads,
+	/// and refuses the others where it does, with what it expected: a great many short texts made of
+	/// the letters of the keywords, digits, symbols and a few characters that case folding could confuse.
+	/// </summary>
+	/// <remarks>
+	/// Compared through the parse and not through the scanner: the scanner of the automaton still says a
+	/// keyword where a word goes on after it, and it is the loop around it that takes the keyword back.
+	/// </remarks>
+	[Theory]
+	[InlineData(Word + Names + "Start = ((\"if\"i | \"go\"i | \"goto\"i | \"order\"i | \"<=\" | \"<\" | \"-\" | Lex.Name) & '.'?)* & eof\nparse Start\n")]
+	[InlineData(Word + NamesAndNumbers + "Start = ((\"if\" | \"go\" | \"goto\" | \"to\" | Lex.Name | Lex.Num | \"=\" | \"==\") & '.'?)* & eof\nparse Start\n")]
+	[InlineData(Word + "Start = ((\"if\" | \"go\" | \"goto\" | \"go-to\" | \"<\" | \"<=\") & '.'?)* & eof\nparse Start\n")]
+	[InlineData(Word + Dashed + "Start = ((\"if\"i | \"go\"i | \"to\"i | Lex.Name | Lex.Num) & '.'?)* & eof\nparse Start\n")]
+	[InlineData(Word + DashedWithExponent + "Start = ((\"if\" | \"IF\"i | \"e\"i | Lex.Name | Lex.Num) & '.'?)* & eof\nparse Start\n")]
+	public void The_lexer_that_looks_keywords_up_reads_what_the_one_that_does_not_reads(string grammar)
+	{
+		grammar = "trivia = { ' '* }\n" + grammar;
+
+		var plain = Build(grammar, lexical: true, table: false, direct: true, CarrierKind.Auto);
+		var table = Build(grammar, lexical: true, table: true, direct: true, CarrierKind.Auto);
+		var rng   = new Random(20261016);
+		var alpha = "ifgotoder-<=. 01e_IFGOTODERkKsS\u212A\u017F\u00E9";
+		var wrong = new List<string>();
+
+		for (var round = 0; round < 1500 && wrong.Count < 5; round++)
+		{
+			var text = new string(Enumerable.Range(0, rng.Next(1, 14)).Select(_ => alpha[rng.Next(alpha.Length)]).ToArray());
+			var one  = EmittedCode.Match(plain, "Grammar", "TryParseStart", text);
+			var two  = EmittedCode.Match(table, "Grammar", "TryParseStart", text);
+
+			if (one.IsSuccess != two.IsSuccess || one.Position != two.Position || one.Error != two.Error)
+				wrong.Add($"\"{Escaped(text)}\": the automaton {Said(one)}, the table {Said(two)}");
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	static string Said((bool IsSuccess, object? Value, string? Error, long Position) match)
+	{
+		return match.IsSuccess ? "read it" : $"refused at {match.Position}: {match.Error}";
+	}
+
 	// ── The harness ─────────────────────────────────────────────────────────────
 
 	static string Generated(string grammar, bool table)
