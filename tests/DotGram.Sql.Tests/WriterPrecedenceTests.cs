@@ -139,7 +139,6 @@ public sealed class WriterPrecedenceTests
 			case Expression.Element element:
 				return element with { Collection = operand(element.Collection), Index = operand(element.Index), To = element.To is null ? null : operand(element.To) };
 
-
 			case Expression.Member member:
 				return member with { Target = operand(member.Target) };
 
@@ -525,14 +524,12 @@ public sealed class WriterPrecedenceTests
 		Assert.False(SqlStandardParser.TryParseExpression("x IN ((a + 1))").IsSuccess);
 
 		Standardly(List(A, B), "a IN (a, b)");
-
 		Condition(List(A, new Expression.Parenthesized(B)), "a IN (a, (b))");
 		Condition(List(Binary(A, BinaryOperator.Add, One)), "a IN (a + 1)");
 	}
 
 	[Fact]
 	public void MULTISET_INTERSECT_binds_tighter_than_UNION_and_EXCEPT()
-
 	{
 		Standardly(Multiset(Multiset(A, MultisetOperator.Union, B), MultisetOperator.Intersect, C), "(a MULTISET UNION b) MULTISET INTERSECT c");
 		Standardly(Multiset(A, MultisetOperator.Union, Multiset(B, MultisetOperator.Intersect, C)), "a MULTISET UNION b MULTISET INTERSECT c");
@@ -593,7 +590,6 @@ public sealed class WriterPrecedenceTests
 		Value(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m"), []), "(a).m()");
 		Assert.ThrowsAny<ArgumentException>(() => TransactSql.Write(new Expression.Member(A, MemberAccessKind.Dot, new Identifier("m")), false));
 	}
-
 
 	/// <summary>
 	/// The standard reads a number written with its sign as a sign over the number, so where a sign is bracketed, so is it.

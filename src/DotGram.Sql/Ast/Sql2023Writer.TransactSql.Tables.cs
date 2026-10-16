@@ -1465,8 +1465,6 @@ public static partial class Sql2023Writer
 		static void CheckTableOptions(ISqlNode owner, SqlList<Option> options, bool set)
 		{
 			foreach (var option in options)
-
-
 			{
 				if (!Plain(option.Name, "LOCK_ESCALATION", "DATA_COMPRESSION", "XML_COMPRESSION", "MEMORY_OPTIMIZED", "DURABILITY", "DISTRIBUTION"))
 					continue;
@@ -1495,7 +1493,6 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>T-SQL: CREATE TYPE (Transact-SQL). A type's name has no empty part, as a synonym's may.</summary>
-
 		static void CheckTypeName(ISqlNode owner, QualifiedName name)
 		{
 			if (name.Count == 0 || name.Parts.Any(static part => part.Text.Length == 0))

@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-
 using System.Text.RegularExpressions;
 
 using Towers = DotGram.Sql.Standard.Towers;
@@ -894,7 +893,6 @@ public static partial class Sql2023Writer
 		// makes a primary of it that every tower may take. T-SQL's reading has no towers.
 
 		/// <summary>The towers an operand written as it would be written can still be, as the parser asks them (`Towers.cs`).</summary>
-
 		int Roles(Expression expression)
 		{
 			if (!SqlStack.Enough())
@@ -930,8 +928,7 @@ public static partial class Sql2023Writer
 					if (typed.TryGetValue(binary, out var known))
 						return known.Value;
 
-					var roles
- = Typing(binary, out _, out _);
+					var roles = Typing(binary, out _, out _);
 
 					typed.Add(binary, new StrongBox<int>(roles));
 
@@ -1214,7 +1211,6 @@ public static partial class Sql2023Writer
 					Word(multiset.Operator switch { MultisetOperator.Union => "UNION", MultisetOperator.Except => "EXCEPT", MultisetOperator.Intersect => "INTERSECT", _ => throw NoText(multiset.Operator) });
 					PutQuantifier(multiset.Quantifier);
 					PutOperand(multiset.Right, Strength(multiset) + 1, !transactSql && (Written(multiset.Right, Strength(multiset) + 1) & Towers.Multiset) == 0);
-
 					break;
 
 				case Expression.Row rowValue:
@@ -1616,7 +1612,6 @@ public static partial class Sql2023Writer
 						Open();
 						Each(items, PutExpression);
 						Close();
-
 					}
 
 					break;
@@ -2375,7 +2370,6 @@ public static partial class Sql2023Writer
 			// in a bracket, but for `.SPECIFICTYPE`, which the grammar reads after a name as it stands. T-SQL reads `a.m ()` as
 			// that call too, and `(a).m ()` as the member.
 			if (!named && member.Kind == MemberAccessKind.Dot && member.Target is Expression.Reference && (!transactSql || member.Arguments is not null) && !Plain(member.Name, "SPECIFICTYPE"))
-
 			{
 				Open();
 				PutExpression(member.Target);
