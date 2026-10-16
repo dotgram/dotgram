@@ -31,6 +31,10 @@ static partial class Bridge
 			{
 				Statement.ExternalDataSourceDefinition source => DataSource(source),
 				Statement.ExternalFileFormatDefinition format => FileFormat(format),
+				Statement.ExternalLibraryDefinition library   => Library(library),
+				Statement.ExternalLanguageDefinition language => Language(language),
+				Statement.ExternalModelDefinition model       => Model(model),
+				Statement.ExternalResourcePoolDefinition pool => Pool(pool),
 				_ when Owned(Owns, old)                       => throw Inventory.Unconverted(old),
 				_                                             => null,
 			};
@@ -83,6 +87,162 @@ static partial class Bridge
 			reader.Finish();
 
 			return new Ast.Statement.CreateExternalFileFormat(name, options);
+		}
+
+		// ── Libraries, languages, models and resource pools ───────────────────────
+
+		/// <summary>
+		/// <c>CREATE EXTERNAL LIBRARY n [AUTHORIZATION o] FROM (file), … WITH (LANGUAGE = 'l')</c> and <c>ALTER EXTERNAL LIBRARY n
+		/// [AUTHORIZATION o] { SET | ADD } (file), … WITH (LANGUAGE = 'l')</c>.
+		/// </summary>
+		static Ast.Statement Library(Statement.ExternalLibraryDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var name   = Values.Part(old, old.Name);
+			var owner  = reader.Authorization();
+
+			if (old.Verb == "CREATE")
+			{
+				reader.Expect("FROM");
+
+				var files    = reader.Files(language: false);
+				var language = reader.Language();
+
+				reader.Finish();
+
+				return new Ast.Statement.CreateExternalLibrary(name, files, language) { Authorization = owner };
+			}
+
+			if (old.Verb == "ALTER")
+			{
+				var set = reader.Take("SET");
+
+				if (!set)
+					reader.Expect("ADD");
+
+				var files    = reader.Files(language: false);
+				var language = reader.Language();
+
+				reader.Finish();
+
+				return new Ast.Statement.AlterExternalLibrary(name, set ? new Ast.ExternalLibraryChange.Set(files) : new Ast.ExternalLibraryChange.Add(files), language) { Authorization = owner };
+			}
+
+			throw reader.Unread();
+		}
+
+		/// <summary>
+		/// <c>CREATE EXTERNAL LANGUAGE n [AUTHORIZATION o] FROM (file) [, (file)]</c> and <c>ALTER EXTERNAL LANGUAGE n [AUTHORIZATION o]
+		/// { SET (file) | ADD (file) | REMOVE PLATFORM p }</c>.
+		/// </summary>
+		static Ast.Statement Language(Statement.ExternalLanguageDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var name   = Values.Part(old, old.Name);
+			var owner  = reader.Authorization();
+
+			if (old.Verb == "CREATE")
+			{
+				reader.Expect("FROM");
+
+				var files = reader.Files(language: true);
+
+				reader.Finish();
+
+				return new Ast.Statement.CreateExternalLanguage(name, files) { Authorization = owner };
+			}
+
+			if (old.Verb == "ALTER")
+			{
+				Ast.ExternalLanguageChange change;
+
+				if (reader.Take("REMOVE", "PLATFORM"))
+				{
+					change = new Ast.ExternalLanguageChange.RemovePlatform(reader.Take("WINDOWS") ? Ast.ExternalPlatform.Windows : reader.Take("LINUX") ? Ast.ExternalPlatform.Linux : throw reader.Unread());
+				}
+				else
+				{
+					var set = reader.Take("SET");
+
+					if (!set)
+						reader.Expect("ADD");
+
+					var file = reader.File(language: true);
+
+					change = set ? new Ast.ExternalLanguageChange.Set(file) : new Ast.ExternalLanguageChange.Add(file);
+				}
+
+				reader.Finish();
+
+				return new Ast.Statement.AlterExternalLanguage(name, change) { Authorization = owner };
+			}
+
+			throw reader.Unread();
+		}
+
+		/// <summary>
+		/// <c>CREATE EXTERNAL MODEL n [AUTHORIZATION o] WITH (settings)</c> and <c>ALTER EXTERNAL MODEL n SET (settings)</c>.
+		/// </summary>
+		static Ast.Statement Model(Statement.ExternalModelDefinition old)
+		{
+			var reader = new Reader(old, old.Tail);
+			var name   = Values.Part(old, old.Name);
+
+			if (old.Verb == "CREATE")
+			{
+				var owner = reader.Authorization();
+
+				reader.Expect("WITH");
+
+				var options = reader.Bracketed();
+
+				reader.Finish();
+
+				return new Ast.Statement.CreateExternalModel(name, options) { Authorization = owner };
+			}
+
+			if (old.Verb == "ALTER")
+			{
+				reader.Expect("SET");
+
+				var options = reader.Bracketed();
+
+				reader.Finish();
+
+				return new Ast.Statement.AlterExternalModel(name, options);
+			}
+
+			throw reader.Unread();
+		}
+
+		/// <summary>
+		/// <c>CREATE EXTERNAL RESOURCE POOL n [WITH (settings)]</c> and <c>ALTER EXTERNAL RESOURCE POOL n WITH (settings)</c>. A
+		/// pool the grammar lets be named by a string has no place in the tree yet.
+		/// </summary>
+		static Ast.Statement Pool(Statement.ExternalResourcePoolDefinition old)
+		{
+			if (old.Name.StartsWith('\''))
+				throw BridgeGap.Open(old, "inventory Statement.ExternalResourcePoolDefinition (a pool named by a string, `" + old.Name + "`, which the name of a record does not hold)");
+
+			var reader = new Reader(old, old.Tail);
+			var name   = Values.Part(old, old.Name);
+
+			SqlList<Ast.Option> options = [];
+
+			if (!reader.End)
+			{
+				reader.Expect("WITH");
+				options = reader.Bracketed(pool: true);
+			}
+
+			reader.Finish();
+
+			return old.Verb switch
+			{
+				"CREATE" => new Ast.Statement.CreateExternalResourcePool(name) { Options = options },
+				"ALTER"  => new Ast.Statement.AlterExternalResourcePool(name, options),
+				_        => throw reader.Unread(),
+			};
 		}
 
 		// ── External tables ───────────────────────────────────────────────────────
@@ -148,6 +308,14 @@ static partial class Bridge
 				default:
 					throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the value `{token.Text}`)");
 			}
+		}
+
+		/// <summary>A value kept as text, read again as a select list's one value.</summary>
+		static Ast.Expression ValueOf(object owner, string text)
+		{
+			return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+				? Values.Of(value)
+				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a value `{text.Trim()}`)");
 		}
 
 		/// <summary>
@@ -226,8 +394,11 @@ static partial class Bridge
 					throw Unread();
 			}
 
-			/// <summary>One setting: its words, and after <c>=</c> a value of one token, or after nothing a bracketed list of its own.</summary>
-			public Ast.Option Setting()
+			/// <summary>
+			/// One setting: its words, and after <c>=</c> a value of one token, or after nothing a bracketed list of its own. In a
+			/// language's file the value of CONTENT is a value expression, and in a pool the value of an affinity is ranges.
+			/// </summary>
+			public Ast.Option Setting(bool language = false, bool pool = false)
 			{
 				var words = new List<SqlTokens.Token>();
 
@@ -248,6 +419,12 @@ static partial class Bridge
 				if (_at >= _tokens.Count)
 					throw Unread();
 
+				if (language && words.Count == 1 && words[0].Text.Equals("CONTENT", StringComparison.OrdinalIgnoreCase))
+					return new Ast.Option(name, ValueUntil(stopAtTo: false), []);
+
+				if (pool && IsPunctuation("("))
+					return new Ast.Option(name, Ranges(), []) { Words = extra };
+
 				return new Ast.Option(name, SettingValue(old, _tokens[_at++]), []) { Words = extra };
 			}
 
@@ -266,7 +443,7 @@ static partial class Bridge
 			/// Settings in brackets. The grammar lets a list of the PolyBase objects take commas loose — before the first setting,
 			/// twice running, after the last — and the tree keeps nothing for one, so a text with such a comma is a gap.
 			/// </summary>
-			public SqlList<Ast.Option> Bracketed()
+			public SqlList<Ast.Option> Bracketed(bool language = false, bool pool = false)
 			{
 				ExpectPunctuation("(");
 
@@ -279,7 +456,7 @@ static partial class Bridge
 				{
 					while (true)
 					{
-						made.Add(Setting());
+						made.Add(Setting(language, pool));
 
 						if (!TakePunctuation(","))
 							break;
@@ -292,6 +469,116 @@ static partial class Bridge
 				ExpectPunctuation(")");
 
 				return made.ToSqlList();
+			}
+
+			/// <summary><c>AUTHORIZATION owner</c>, or null where none is written.</summary>
+			public Ast.Identifier? Authorization()
+			{
+				if (!Take("AUTHORIZATION"))
+					return null;
+
+				return _at < _tokens.Count && _tokens[_at].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited ? Values.Part(old, _tokens[_at++].Text) : throw Unread();
+			}
+
+			/// <summary>One file, <c>(setting, …)</c>.</summary>
+			public Ast.ExternalFile File(bool language)
+			{
+				ExpectPunctuation("(");
+
+				var made = new List<Ast.Option> { Setting(language) };
+
+				while (TakePunctuation(","))
+					made.Add(Setting(language));
+
+				ExpectPunctuation(")");
+
+				return new Ast.ExternalFile(made.ToSqlList());
+			}
+
+			/// <summary>One file or more, joined by commas.</summary>
+			public SqlList<Ast.ExternalFile> Files(bool language)
+			{
+				var made = new List<Ast.ExternalFile> { File(language) };
+
+				while (TakePunctuation(","))
+					made.Add(File(language));
+
+				return made.ToSqlList();
+			}
+
+			/// <summary><c>WITH (LANGUAGE = 'language')</c>.</summary>
+			public Ast.LiteralValue.String Language()
+			{
+				Expect("WITH");
+				ExpectPunctuation("(");
+				Expect("LANGUAGE");
+				ExpectPunctuation("=");
+
+				if (_at >= _tokens.Count || _tokens[_at].Kind != SqlTokens.Kind.String)
+					throw Unread();
+
+				var language = (Ast.LiteralValue.String)Values.String(_tokens[_at++].Text);
+
+				ExpectPunctuation(")");
+
+				return language;
+			}
+
+			/// <summary><c>(a TO b, c)</c>: the ranges of an affinity, each bound a value expression.</summary>
+			public Ast.Expression.PoolRanges Ranges()
+			{
+				ExpectPunctuation("(");
+
+				var ranges = new List<Ast.PartitionRange>();
+
+				while (true)
+				{
+					var from = ValueUntil(stopAtTo: true);
+					var to   = Take("TO") ? ValueUntil(stopAtTo: false) : null;
+
+					ranges.Add(new Ast.PartitionRange(from, to));
+
+					if (!TakePunctuation(","))
+						break;
+				}
+
+				ExpectPunctuation(")");
+
+				return new Ast.Expression.PoolRanges(ranges.ToSqlList());
+			}
+
+			/// <summary>
+			/// A value expression read from the tokens up to the next comma or closing bracket outside brackets, or up to the word TO,
+			/// as a select list reads one.
+			/// </summary>
+			Ast.Expression ValueUntil(bool stopAtTo)
+			{
+				var start = _at;
+				var depth = 0;
+
+				for (; _at < _tokens.Count; _at++)
+				{
+					var token = _tokens[_at];
+
+					if (token.Kind == SqlTokens.Kind.Punctuation)
+					{
+						if (token.Text == "(")
+							depth++;
+						else if (token.Text == ")" && depth == 0)
+							break;
+						else if (token.Text == ")")
+							depth--;
+						else if (token.Text == "," && depth == 0)
+							break;
+					}
+					else if (stopAtTo && depth == 0 && token.Kind == SqlTokens.Kind.Word && token.Text.Equals("TO", StringComparison.OrdinalIgnoreCase))
+						break;
+				}
+
+				if (_at == start)
+					throw Unread();
+
+				return ValueOf(old, string.Join(" ", _tokens.Skip(start).Take(_at - start).Select(static one => one.Text)));
 			}
 
 			BridgeGap Stray()

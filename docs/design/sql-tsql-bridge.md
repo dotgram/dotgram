@@ -263,6 +263,10 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.Execute.Tail | 8 |
 | ByCase Statement.ExternalDataSourceDefinition.Tail | 42 |
 | ByCase Statement.ExternalFileFormatDefinition.Tail | 54 |
+| ByCase Statement.ExternalLanguageDefinition.Tail | 5 |
+| ByCase Statement.ExternalLibraryDefinition.Tail | 0 |
+| ByCase Statement.ExternalModelDefinition.Tail | 18 |
+| ByCase Statement.ExternalResourcePoolDefinition.Tail | 58 |
 | ByCase Statement.Fetch.Orientation | 0 |
 | ByCase Statement.FullTextIndexDefinition.Tail | 7 |
 | ByCase Statement.Grant.On | 2 |
@@ -414,7 +418,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Query.FromFile` | Dml | C | — | — | 83 |
 | `Clause.Dropped` | Tables | B | gap 2 | 2: needs decision: inventory Clause.Dropped (a period or an index, which no action holds) (2) | 82 |
 | `Clause.For` | Queries | C | — | — | 82 |
-| `Statement.ExternalResourcePoolDefinition` | External | C | gap 79 | 79: no target record: Statement.CreateExternalResourcePool (79) | 79 |
+| `Statement.ExternalResourcePoolDefinition` | External | C | converted 79 | — | 79 |
 | `Statement.CreateTrigger` | Routines | B | converted 61, gap 10 | 10: no target record: Statement.CreateTrigger (statement kinds and event names in one list, or the wrong kind for its target) (10) | 76 |
 | `Statement.Dbcc` | Server | C | gap 73 | 73: no target record: Statement.Dbcc (73) | 73 |
 | `Expression.Not` | Values | A | — | — | 71 |
@@ -423,7 +427,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.SystemTime` | Tables | A | — | — | 67 |
 | `Clause.MergeWhen` | Dml | B | — | — | 65 |
 | `Query.Parenthesized` | Queries | B | — | — | 64 |
-| `Statement.ExternalLibraryDefinition` | External | C | gap 59 | 59: no target record: Statement.CreateExternalLibrary (59) | 59 |
+| `Statement.ExternalLibraryDefinition` | External | C | converted 59 | — | 59 |
 | `Clause.CommonTableExpression` | Queries | A | — | — | 57 |
 | `Statement.CreateLogin` | Security | C | converted 57 | — | 57 |
 | `Statement.UpdateText` | Dml | C | converted 57 | — | 57 |
@@ -448,7 +452,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.Into` | Queries | C | — | — | 41 |
 | `Expression.Multiply` | Values | A | — | — | 41 |
 | `Statement.EndConversation` | Broker | C | gap 34 | 34: no target record: Statement.EndConversation (34) | 41 |
-| `Statement.ExternalLanguageDefinition` | External | C | gap 41 | 41: no target record: Statement.CreateExternalLanguage (41) | 41 |
+| `Statement.ExternalLanguageDefinition` | External | C | converted 41 | — | 41 |
 | `Expression.Or` | Values | A | — | — | 40 |
 | `Clause.WindowDefinition` | Values | A | — | — | 39 |
 | `Query.Ordered` | Queries | B | — | — | 39 |
@@ -463,7 +467,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.WriteText` | Dml | C | converted 35 | — | 35 |
 | `Query.Union` | Queries | B | — | — | 34 |
 | `Statement.Deny` | Security | C | converted 34 | — | 34 |
-| `Statement.ExternalModelDefinition` | External | C | gap 34 | 34: no target record: Statement.CreateExternalModel (34) | 34 |
+| `Statement.ExternalModelDefinition` | External | C | converted 34 | — | 34 |
 | `Statement.Fetch` | Procedural | A | converted 34 | — | 34 |
 | `Clause.CursorDefinition` | Procedural | B | — | — | 32 |
 | `Clause.TableSample` | Tables | A | — | — | 31 |

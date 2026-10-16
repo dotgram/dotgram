@@ -44,6 +44,11 @@ public sealed class ExternalWriterTests
 		return new Expression.Reference(new QualifiedName([name]));
 	}
 
+	static Expression Hex(string digits)
+	{
+		return new LiteralValue.Binary(digits) { ZeroX = true };
+	}
+
 	static Expression Digits(string digits)
 	{
 		return new LiteralValue.Numeric(digits, NumericLiteralKind.DecimalInteger);
@@ -72,6 +77,21 @@ public sealed class ExternalWriterTests
 	static Expression Current()
 	{
 		return new Expression.Current(CurrentValue.Value);
+	}
+
+	static ExternalFile File(params Option[] options)
+	{
+		return new ExternalFile([.. options]);
+	}
+
+	static Expression Ranges(params (string From, string? To)[] ranges)
+	{
+		return new Expression.PoolRanges([.. ranges.Select(static one => new PartitionRange(Digits(one.From), one.To is null ? null : Digits(one.To)))]);
+	}
+
+	static LiteralValue.String Quoted(string text)
+	{
+		return new LiteralValue.String("'" + text + "'", StringLiteralKind.Character);
 	}
 
 	static Option Opt(string name, Expression? value = null, params Option[] options)
@@ -131,6 +151,65 @@ public sealed class ExternalWriterTests
 		["Create external table as select with no setting"] = (
 			new Statement.CreateExternalTable(Dotted("t"), new TableContents.AsQuery([], Select("SELECT 1 AS a"), null)),
 			"CREATE EXTERNAL TABLE t WITH () AS SELECT 1 AS a"),
+		["Create external library"] = (
+			new Statement.CreateExternalLibrary(X, [File(Opt("PLATFORM", Word("WINDOWS")), Opt("CONTENT", Str("c:\\a.zip"))), File(Opt("CONTENT", Hex("01")), Opt("PLATFORM", Word("LINUX")))], Quoted("R")) { Authorization = Y },
+			"CREATE EXTERNAL LIBRARY x AUTHORIZATION y FROM (PLATFORM = WINDOWS, CONTENT = 'c:\\a.zip'), (CONTENT = 0x01, PLATFORM = LINUX) WITH (LANGUAGE = 'R')"),
+		["Create external library of every content"] = (
+			new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Word("NONE"))), File(Opt("CONTENT", Word("p"))), File(Opt("CONTENT", Digits("1"))), File(Opt("CONTENT", NStr("n")), Opt("CONTENT", Named(new Identifier("[NONE]", IdentifierStyle.Bracketed))))], new LiteralValue.String("'Python'", StringLiteralKind.National)),
+			"CREATE EXTERNAL LIBRARY x FROM (CONTENT = NONE), (CONTENT = p), (CONTENT = 1), (CONTENT = N'n', CONTENT = [NONE]) WITH (LANGUAGE = N'Python')"),
+		["Alter external library set"] = (
+			new Statement.AlterExternalLibrary(X, new ExternalLibraryChange.Set([File(Opt("CONTENT", Str("p")), Opt("PLATFORM", Word("LINUX")))]), Quoted("R")) { Authorization = Y },
+			"ALTER EXTERNAL LIBRARY x AUTHORIZATION y SET (CONTENT = 'p', PLATFORM = LINUX) WITH (LANGUAGE = 'R')"),
+		["Alter external library add"] = (
+			new Statement.AlterExternalLibrary(X, new ExternalLibraryChange.Add([File(Opt("PLATFORM", Word("WINDOWS"))), File(Opt("CONTENT", Str("q")))]), Quoted("R")),
+			"ALTER EXTERNAL LIBRARY x ADD (PLATFORM = WINDOWS), (CONTENT = 'q') WITH (LANGUAGE = 'R')"),
+		["Create external language"] = (
+			new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Hex("01")), Opt("FILE_NAME", Str("f")), Opt("PARAMETERS", NStr("p")), Opt("ENVIRONMENT_VARIABLES", Str("e"))), File(Opt("CONTENT", new Expression.Variable(new Identifier("@c"))), Opt("FILE_NAME", Str("g")), Opt("PLATFORM", Word("LINUX")))]) { Authorization = Y },
+			"CREATE EXTERNAL LANGUAGE x AUTHORIZATION y FROM (CONTENT = 0x01, FILE_NAME = 'f', PARAMETERS = N'p', ENVIRONMENT_VARIABLES = 'e'), (CONTENT = @c, FILE_NAME = 'g', PLATFORM = LINUX)"),
+		// The content is any value: NULL, a name, the key word VALUE, a call.
+		["Create external language of other contents"] = (
+			new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Null()), Opt("CONTENT", Current()), Opt("CONTENT", Call("f", Digits("1"), Word("a"))), Opt("FILE_NAME", Str("f")), Opt("PLATFORM", Word("WINDOWS")), Opt("PLATFORM", Word("LINUX")))]),
+			"CREATE EXTERNAL LANGUAGE x FROM (CONTENT = NULL, CONTENT = VALUE, CONTENT = f(1, a), FILE_NAME = 'f', PLATFORM = WINDOWS, PLATFORM = LINUX)"),
+		// A file for both platforms and a file for one differ.
+		["Create external language of two sets of platforms"] = (
+			new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Str("a")), Opt("FILE_NAME", Str("f")), Opt("PLATFORM", Word("WINDOWS")), Opt("PLATFORM", Word("LINUX"))), File(Opt("CONTENT", Str("b")), Opt("FILE_NAME", Str("g")), Opt("PLATFORM", Word("WINDOWS")))]),
+			"CREATE EXTERNAL LANGUAGE x FROM (CONTENT = 'a', FILE_NAME = 'f', PLATFORM = WINDOWS, PLATFORM = LINUX), (CONTENT = 'b', FILE_NAME = 'g', PLATFORM = WINDOWS)"),
+		["Alter external language set"] = (
+			new Statement.AlterExternalLanguage(X, new ExternalLanguageChange.Set(File(Opt("CONTENT", Str("a")), Opt("PLATFORM", Word("LINUX"))))) { Authorization = Y },
+			"ALTER EXTERNAL LANGUAGE x AUTHORIZATION y SET (CONTENT = 'a', PLATFORM = LINUX)"),
+		["Alter external language add"] = (
+			new Statement.AlterExternalLanguage(X, new ExternalLanguageChange.Add(File(Opt("FILE_NAME", Str("f"))))),
+			"ALTER EXTERNAL LANGUAGE x ADD (FILE_NAME = 'f')"),
+		["Alter external language remove Windows"] = (
+			new Statement.AlterExternalLanguage(X, new ExternalLanguageChange.RemovePlatform(ExternalPlatform.Windows)),
+			"ALTER EXTERNAL LANGUAGE x REMOVE PLATFORM WINDOWS"),
+		["Alter external language remove Linux"] = (
+			new Statement.AlterExternalLanguage(X, new ExternalLanguageChange.RemovePlatform(ExternalPlatform.Linux)) { Authorization = Y },
+			"ALTER EXTERNAL LANGUAGE x AUTHORIZATION y REMOVE PLATFORM LINUX"),
+		["Create external model"] = (
+			new Statement.CreateExternalModel(X, [Opt("LOCATION", Str("l")), Opt("API_FORMAT", Str("OpenAI")), Opt("MODEL_TYPE", Word("EMBEDDINGS")), Opt("MODEL", NStr("m")), Opt("PARAMETERS", Str("{}")), Opt("LOCAL_RUNTIME_PATH", Str("p")), Opt("CREDENTIAL", Word("c"))]) { Authorization = Y },
+			"CREATE EXTERNAL MODEL x AUTHORIZATION y WITH (LOCATION = 'l', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = N'm', PARAMETERS = '{}', LOCAL_RUNTIME_PATH = 'p', CREDENTIAL = c)"),
+		["Create external model with no setting"] = (
+			new Statement.CreateExternalModel(X, []),
+			"CREATE EXTERNAL MODEL x WITH ()"),
+		["Alter external model"] = (
+			new Statement.AlterExternalModel(X, [Opt("MODEL", Str("m")), Opt("CREDENTIAL", Named(new Identifier("[c]", IdentifierStyle.Bracketed)))]),
+			"ALTER EXTERNAL MODEL x SET (MODEL = 'm', CREDENTIAL = [c])"),
+		["Alter external model with no setting"] = (
+			new Statement.AlterExternalModel(X, []),
+			"ALTER EXTERNAL MODEL x SET ()"),
+		["Create external resource pool"] = (
+			new Statement.CreateExternalResourcePool(X),
+			"CREATE EXTERNAL RESOURCE POOL x"),
+		["Create external resource pool with settings"] = (
+			new Statement.CreateExternalResourcePool(X) { Options = [Opt("MAX_CPU_PERCENT", Digits("20")), Opt("MAX_CPU_PERCENT", Digits("30")), Opt("MAX_MEMORY_PERCENT", Digits("50")), Opt("MAX_PROCESSES", Digits("4"))] },
+			"CREATE EXTERNAL RESOURCE POOL x WITH (MAX_CPU_PERCENT = 20, MAX_CPU_PERCENT = 30, MAX_MEMORY_PERCENT = 50, MAX_PROCESSES = 4)"),
+		["Create external resource pool with affinity"] = (
+			new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), Word("AUTO"), []) { Words = [new Identifier("CPU")] }, new Option(new Identifier("AFFINITY"), Ranges(("0", "3"), ("5", null)), []) { Words = [new Identifier("CPU")] }, new Option(new Identifier("AFFINITY"), Ranges(("1", null)), []) { Words = [new Identifier("NUMANODE")] }] },
+			"CREATE EXTERNAL RESOURCE POOL x WITH (AFFINITY CPU = AUTO, AFFINITY CPU = (0 TO 3, 5), AFFINITY NUMANODE = (1))"),
+		["Alter external resource pool"] = (
+			new Statement.AlterExternalResourcePool(Y, [Opt("MAX_PROCESSES", Digits("1"))]),
+			"ALTER EXTERNAL RESOURCE POOL y WITH (MAX_PROCESSES = 1)"),
 		["Create file format"] = (
 			new Statement.CreateExternalFileFormat(X, [Opt("FORMAT_TYPE", Word("DELIMITEDTEXT")), Opt("DATA_COMPRESSION", Str("c")), Opt("FORMAT_OPTIONS", null, Opt("FIELD_TERMINATOR", Str("|")), Opt("STRING_DELIMITER", NStr("\"")), Opt("FIRST_ROW", Digits("2")), Opt("USE_TYPE_DEFAULT", Word("TRUE")), Opt("ENCODING", Str("UTF8")), Opt("DATE_FORMAT", Str("yyyy")), Opt("PARSER_VERSION", Str("2.0")))]),
 			"CREATE EXTERNAL FILE FORMAT x WITH (FORMAT_TYPE = DELIMITEDTEXT, DATA_COMPRESSION = 'c', FORMAT_OPTIONS (FIELD_TERMINATOR = '|', STRING_DELIMITER = N'\"', FIRST_ROW = 2, USE_TYPE_DEFAULT = TRUE, ENCODING = 'UTF8', DATE_FORMAT = 'yyyy', PARSER_VERSION = '2.0'))"),
@@ -310,7 +389,117 @@ public sealed class ExternalWriterTests
 		["an external table sharded by a qualified call"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", new Expression.Invocation(Dotted("dbo", "SHARDED"), [new Argument(Word("a"))]))] },
 		// A distribution is a word or a call: a number is neither.
 		["an external table distribution that is a number"] = new Statement.CreateExternalTable(Dotted("t"), Elements()) { Options = [Opt("DISTRIBUTION", Digits("1"))] },
+		// An owner is an Identifier too.
+		["a library owned by a variable"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")))], Quoted("R")) { Authorization = new Identifier("@o") },
+		["a library owned by a reserved word"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")))], Quoted("R")) { Authorization = new Identifier("from") },
+		// `FROM` is followed by a file: one at least.
+		["a library of no file"] = new Statement.CreateExternalLibrary(X, [], Quoted("R")),
+		["an altered library of no file"] = new Statement.AlterExternalLibrary(X, new ExternalLibraryChange.Add([]), Quoted("R")),
+		// LibraryFileOption reads `(` and an option at least.
+		["a library file of no setting"] = new Statement.CreateExternalLibrary(X, [File()], Quoted("R")),
+		// LibraryFileMade names its content (`FROM (PLATFORM = WINDOWS)` is Msg 319).
+		["a library file made with no content"] = new Statement.CreateExternalLibrary(X, [File(Opt("PLATFORM", Word("WINDOWS")))], Quoted("R")),
+		// A file set or added need not name its content.
+		// LibraryContent is a string, a binary string, NONE, a name or a number.
+		["a library content that is X'…'"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", new LiteralValue.Binary("'01'")))], Quoted("R")),
+		["a library content that is a hexadecimal number"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", new LiteralValue.Numeric("0x01", NumericLiteralKind.HexInteger)))], Quoted("R")),
+		["a library content that is signed"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", new LiteralValue.Numeric("-1", NumericLiteralKind.DecimalInteger)))], Quoted("R")),
+		["a library content that is a variable"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", new Expression.Variable(new Identifier("@c"))))], Quoted("R")),
+		["a library content that is a name of a variable"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Word("@c")))], Quoted("R")),
+		["a library content of two parts"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", new Expression.Reference(new QualifiedName([X, Y]))))], Quoted("R")),
+		["a library content that is NULL"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", new LiteralValue.Null()))], Quoted("R")),
+		["a library content that is a call"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Call("f")))], Quoted("R")),
+		// A platform is WINDOWS or LINUX.
+		["a library platform outside its words"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")), Opt("PLATFORM", Word("MACOS")))], Quoted("R")),
+		["a library platform in brackets"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")), Opt("PLATFORM", Named(new Identifier("[LINUX]", IdentifierStyle.Bracketed))))], Quoted("R")),
+		// LibraryFileOption has no FILE_NAME, which a language's file has.
+		["a library file setting it has not"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")), Opt("FILE_NAME", Str("f")))], Quoted("R")),
+		// LibraryWith reads LANGUAGE = Quoted.
+		["a library language that is a Unicode string"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")))], new LiteralValue.String("'R'", StringLiteralKind.Unicode)),
+		["a library language that is not closed"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")))], new LiteralValue.String("'R", StringLiteralKind.Character)),
+		["an altered library language that is not a string"] = new Statement.AlterExternalLibrary(X, new ExternalLibraryChange.Set([File(Opt("CONTENT", Str("p")))]), new LiteralValue.String("R", StringLiteralKind.Character)),
+		// A setting with a second word is none of the catalogue's.
+		["a library file setting of two words"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")), new Option(new Identifier("CONTENT"), Str("p"), []) { Words = [new Identifier("X")] })], Quoted("R")),
+		["a library file setting that holds a blank"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")), Opt("CON TENT", Str("p")))], Quoted("R")),
+		["a library file setting with its = omitted"] = new Statement.CreateExternalLibrary(X, [File(Opt("CONTENT", Str("p")), new Option(new Identifier("CONTENT"), Str("p"), []) { EqualsOmitted = true })], Quoted("R")),
+		// LanguageFile: `(` and an option at least, and the statement made reads one file or two.
+		["a language of no file"] = new Statement.CreateExternalLanguage(X, []),
+		["a language of three files"] = new Statement.CreateExternalLanguage(X, [LanguageFile("a", "WINDOWS"), LanguageFile("b", "LINUX"), LanguageFile("c", null)]),
+		["a language file of no setting"] = new Statement.CreateExternalLanguage(X, [File()]),
+		// Syntax.LanguageFiles: each file names its content and its file (Msg 39123).
+		["a language file made with no file name"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Str("a")))]),
+		["a language file made with no content"] = new Statement.CreateExternalLanguage(X, [File(Opt("FILE_NAME", Str("a")))]),
+		// Syntax.LanguageFiles: two files are for two sets of platforms (Msg 39112), and a file that names none is for Windows.
+		["two language files for the same platform"] = new Statement.CreateExternalLanguage(X, [LanguageFile("a", "LINUX"), LanguageFile("b", "LINUX")]),
+		["two language files for no platform"] = new Statement.CreateExternalLanguage(X, [LanguageFile("a", null), LanguageFile("b", null)]),
+		["two language files for Windows and no platform"] = new Statement.CreateExternalLanguage(X, [LanguageFile("a", "WINDOWS"), LanguageFile("b", null)]),
+		// LanguageOption: FILE_NAME, PARAMETERS and ENVIRONMENT_VARIABLES are BrokerString.
+		["a language file name that is a name"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Str("a")), Opt("FILE_NAME", Word("f")))]),
+		["a language parameter that is a variable"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Str("a")), Opt("FILE_NAME", Str("f")), Opt("PARAMETERS", new Expression.Variable(new Identifier("@p"))))]),
+		["a language environment that is a number"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Str("a")), Opt("FILE_NAME", Str("f")), Opt("ENVIRONMENT_VARIABLES", Digits("1")))]),
+		// CONTENT is a value, and T-SQL reads no X'…' literal.
+		["a language content that is X'…'"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Binary("'01'")), Opt("FILE_NAME", Str("f")))]),
+		["a language content that is a Unicode string"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.String("'a'", StringLiteralKind.Unicode)), Opt("FILE_NAME", Str("f")))]),
+		// A signed number is a minus over a number to a value expression.
+		["a language content that is a signed number"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new LiteralValue.Numeric("-1", NumericLiteralKind.DecimalInteger)), Opt("FILE_NAME", Str("f")))]),
+		// SetValue is a value, not a condition (Msg 4145).
+		["a language content that is a condition"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", new Expression.Comparison(Word("a"), ComparisonOperator.Equal, Word("b"))), Opt("FILE_NAME", Str("f")))]),
+		// LanguagePlatform is WINDOWS or LINUX.
+		["a language platform outside its words"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Str("a")), Opt("FILE_NAME", Str("f")), Opt("PLATFORM", Word("MACOS")))]),
+		["a language platform that is a string"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Str("a")), Opt("FILE_NAME", Str("f")), Opt("PLATFORM", Str("LINUX")))]),
+		// LanguageOption has no LOCATION.
+		["a language file setting it has not"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Str("a")), Opt("FILE_NAME", Str("f")), Opt("LOCATION", Str("l")))]),
+		["a language owned by a variable"] = new Statement.CreateExternalLanguage(X, [LanguageFile("a", null)]) { Authorization = new Identifier("@o") },
+		["an altered language file of no setting"] = new Statement.AlterExternalLanguage(X, new ExternalLanguageChange.Set(File())),
+		["an altered language removing a platform that is none"] = new Statement.AlterExternalLanguage(X, new ExternalLanguageChange.RemovePlatform((ExternalPlatform)7)),
+		// A model's owner and WITH are those of CREATE: `ALTER EXTERNAL MODEL` reads SET and nothing else (Msg 156).
+		["a model setting it has not"] = new Statement.CreateExternalModel(X, [Opt("LANGUAGE", Str("a"))]),
+		["a model setting twice"] = new Statement.CreateExternalModel(X, [Opt("MODEL", Str("a")), Opt("MODEL", Str("b"))]),
+		["an altered model setting twice"] = new Statement.AlterExternalModel(X, [Opt("MODEL", Str("a")), Opt("MODEL", Str("b"))]),
+		// MODEL_TYPE is the one word EMBEDDINGS, bare.
+		["a model type outside its word"] = new Statement.CreateExternalModel(X, [Opt("MODEL_TYPE", Word("CHAT"))]),
+		["a model type that is a string"] = new Statement.CreateExternalModel(X, [Opt("MODEL_TYPE", Str("EMBEDDINGS"))]),
+		// CREDENTIAL is a name and not a string.
+		["a model credential that is a string"] = new Statement.CreateExternalModel(X, [Opt("CREDENTIAL", Str("c"))]),
+		["a model credential that is a variable"] = new Statement.CreateExternalModel(X, [Opt("CREDENTIAL", new Expression.Variable(new Identifier("@c")))]),
+		// LOCATION, API_FORMAT, MODEL, PARAMETERS and LOCAL_RUNTIME_PATH are BrokerString, no variable.
+		["a model location that is a variable"] = new Statement.CreateExternalModel(X, [Opt("LOCATION", new Expression.Variable(new Identifier("@l")))]),
+		["a model parameter that is a name"] = new Statement.CreateExternalModel(X, [Opt("PARAMETERS", Word("p"))]),
+		["a model setting with its = omitted"] = new Statement.CreateExternalModel(X, [new Option(new Identifier("MODEL"), Str("a"), []) { EqualsOmitted = true }]),
+		["a model owned by a reserved word"] = new Statement.CreateExternalModel(X, []) { Authorization = new Identifier("with") },
+		["a model named by a variable"] = new Statement.AlterExternalModel(new Identifier("@m"), []),
+		// ExternalPoolOption: whole numbers.
+		["a pool percentage that is signed"] = new Statement.CreateExternalResourcePool(X) { Options = [Opt("MAX_CPU_PERCENT", new LiteralValue.Numeric("-1", NumericLiteralKind.DecimalInteger))] },
+		["a pool percentage that is a decimal"] = new Statement.CreateExternalResourcePool(X) { Options = [Opt("MAX_CPU_PERCENT", new LiteralValue.Numeric("1.5", NumericLiteralKind.Decimal))] },
+		["a pool percentage that is a string"] = new Statement.CreateExternalResourcePool(X) { Options = [Opt("MAX_MEMORY_PERCENT", Str("1"))] },
+		["a pool process count that is ranges"] = new Statement.CreateExternalResourcePool(X) { Options = [Opt("MAX_PROCESSES", Ranges(("0", null)))] },
+		// ExternalPoolOption has none of the resource pool's settings.
+		["a pool setting it has not"] = new Statement.CreateExternalResourcePool(X) { Options = [Opt("MIN_CPU_PERCENT", Digits("1"))] },
+		// A resource pool's AFFINITY SCHEDULER is not an external pool's.
+		["a pool affinity to schedulers"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), Word("AUTO"), []) { Words = [new Identifier("SCHEDULER")] }] },
+		["a pool affinity to nothing"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), Word("AUTO"), [])] },
+		// AFFINITY CPU = AUTO | ranges; AFFINITY NUMANODE = ranges (AUTO is Msg 102).
+		["a pool affinity to NUMA nodes that is AUTO"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), Word("AUTO"), []) { Words = [new Identifier("NUMANODE")] }] },
+		["a pool affinity to CPUs that is another word"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), Word("NONE"), []) { Words = [new Identifier("CPU")] }] },
+		["a pool affinity to CPUs that is a number"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), Digits("1"), []) { Words = [new Identifier("CPU")] }] },
+		// PoolRanges reads one range at least.
+		["a pool affinity of no range"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), new Expression.PoolRanges([]), []) { Words = [new Identifier("CPU")] }] },
+		// A bound is a value, not a condition.
+		["a pool range bounded by a condition"] = new Statement.CreateExternalResourcePool(X) { Options = [new Option(new Identifier("AFFINITY"), new Expression.PoolRanges([new PartitionRange(new Expression.Comparison(Word("a"), ComparisonOperator.Equal, Word("b")), null)]), []) { Words = [new Identifier("CPU")] }] },
+		// PoolRanges is the value of an affinity and nothing else's.
+		["ranges as the location of a data source"] = new Statement.CreateExternalDataSource(X, [Opt("LOCATION", Ranges(("0", null)))]),
+		["ranges as the content of a language file"] = new Statement.CreateExternalLanguage(X, [File(Opt("CONTENT", Ranges(("0", null))), Opt("FILE_NAME", Str("f")))]),
+		// ALTER EXTERNAL RESOURCE POOL is told something (Msg 102).
+		["an altered pool of no setting"] = new Statement.AlterExternalResourcePool(X, []),
+		["a pool named by a variable"] = new Statement.CreateExternalResourcePool(new Identifier("@p")),
 	};
+
+	static ExternalFile LanguageFile(string content, string? platform)
+	{
+		return platform is null
+			? File(Opt("CONTENT", Str(content)), Opt("FILE_NAME", Str(content)))
+			: File(Opt("CONTENT", Str(content)), Opt("FILE_NAME", Str(content)), Opt("PLATFORM", Word(platform)));
+	}
 
 	static TableContents Elements()
 	{
@@ -326,6 +515,10 @@ public sealed class ExternalWriterTests
 	[MemberData(nameof(RefusalNames))]
 	public void A_statement_with_no_text_is_refused(string which)
 	{
-		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(Refusals[which]));
+		// ArgumentException for a tree the writer reads and refuses; NotSupportedException for a node no arm takes (the ranges of an affinity
+		// anywhere but in an affinity).
+		var thrown = Assert.ThrowsAny<Exception>(() => TransactSqlWriter.Write(Refusals[which]));
+
+		Assert.True(thrown is ArgumentException or NotSupportedException, thrown.ToString());
 	}
 }

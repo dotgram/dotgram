@@ -122,9 +122,13 @@ static class Trees
 		"Statement.CredentialDefinition.Tail",
 		"Statement.OpenSymmetricKey.Tail",
 		"Statement.AddSignature.To",
-		// The External family: what follows the name of a data source and of a file format, kept as written.
+		// The External family: what follows the name of a data source, a file format, a library, a language, a model and a resource pool, kept as written.
 		"Statement.ExternalDataSourceDefinition.Tail",
 		"Statement.ExternalFileFormatDefinition.Tail",
+		"Statement.ExternalLibraryDefinition.Tail",
+		"Statement.ExternalLanguageDefinition.Tail",
+		"Statement.ExternalModelDefinition.Tail",
+		"Statement.ExternalResourcePoolDefinition.Tail",
 	};
 
 	/// <summary>
@@ -192,6 +196,8 @@ static class Trees
 		"OLD_ACCOUNT", "OLD_PASSWORD", "OPTION", "OWNER", "PASSWORD", "POLICY", "PREDICATE", "PRIVATE", "PRIVILEGES", "PROCEDURE", "PUBLIC",
 		"REGENERATE", "REVOKE", "ROLE", "SCHEMA", "SCOPED", "SECRET", "SECURITY", "SELECT", "SENSITIVITY", "SERVICE", "SIGNATURE",
 		"STATE", "SYMMETRIC", "TRANSFER", "UNLOCK", "VALUES", "VIEW", "WINDOWS", "WITHOUT",
+		// The External family: the words of an external language's and library's files that the writer prints in capitals.
+		"LINUX", "PLATFORM",
 	};
 
 	/// <summary>

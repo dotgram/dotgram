@@ -117,4 +117,136 @@ public sealed class ExternalBridgeTests
 
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}
+
+	[Theory]
+	[InlineData("CREATE EXTERNAL LIBRARY l FROM (CONTENT = 'p') WITH (LANGUAGE = 'R')",                     "Library")]
+	[InlineData("CREATE EXTERNAL LIBRARY l AUTHORIZATION dbo FROM (CONTENT = 'p') WITH (LANGUAGE = 'R')",   "Library owner")]
+	[InlineData("ALTER EXTERNAL LIBRARY l SET (CONTENT = 'p') WITH (LANGUAGE = 'R')",                       "Library set")]
+	[InlineData("ALTER EXTERNAL LIBRARY l ADD (CONTENT = 'p') WITH (LANGUAGE = 'R')",                       "Library add")]
+	[InlineData("ALTER EXTERNAL LIBRARY l AUTHORIZATION dbo SET (PLATFORM = lInUx) WITH (LANGUAGE = 'R')",  "Library altered owner")]
+	[InlineData("CREATE EXTERNAL LIBRARY l FROM (CONTENT = NONE) WITH (LANGUAGE = 'R')",                    "Content NONE")]
+	[InlineData("CREATE EXTERNAL LIBRARY l FROM (CONTENT = [NONE]) WITH (LANGUAGE = 'R')",                  "Content [NONE]")]
+	[InlineData("CREATE EXTERNAL LIBRARY l FROM (CONTENT = 1) WITH (LANGUAGE = 'R')",                       "Content number")]
+	[InlineData("CREATE EXTERNAL LIBRARY l FROM (CONTENT = p) WITH (LANGUAGE = N'R')",                      "Content name, national language")]
+	[InlineData("CREATE EXTERNAL LIBRARY l FROM (PLATFORM = WINDOWS, CONTENT = 'p'), (CONTENT = 0x01) WITH (LANGUAGE = 'R')", "Two files")]
+	[InlineData("create external library l from (content = 'p') with (language = 'R')",                       "Library lower case")]
+	[InlineData("CREATE EXTERNAL LIBRARY l FROM (CONTENT /* c /* nested */ */ = 'p') /* d */ WITH (LANGUAGE = 'R') -- e",       "Library comments")]
+	public void The_bridge_builds_the_library_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = expected switch
+		{
+			"Library" => made is Ast.Statement.CreateExternalLibrary { Authorization: null, Files: [{ Options: [{ Name.Text: "CONTENT" }] }], Language: { Kind: Ast.StringLiteralKind.Character } },
+			"Library owner" => made is Ast.Statement.CreateExternalLibrary { Authorization.Text: "dbo" },
+			"Library set" => made is Ast.Statement.AlterExternalLibrary { Authorization: null, Change: Ast.ExternalLibraryChange.Set { Files.Count: 1 } },
+			"Library add" => made is Ast.Statement.AlterExternalLibrary { Change: Ast.ExternalLibraryChange.Add { Files.Count: 1 } },
+			"Library altered owner" => made is Ast.Statement.AlterExternalLibrary { Authorization.Text: "dbo", Change: Ast.ExternalLibraryChange.Set { Files: [{ Options: [{ Name.Text: "PLATFORM", Value: Ast.Expression.Reference { Name.Parts: [{ Text: "lInUx" }] } }] }] } },
+			"Content NONE" => made is Ast.Statement.CreateExternalLibrary { Files: [{ Options: [{ Value: Ast.Expression.Reference { Name.Parts: [{ Text: "NONE", Style: Ast.IdentifierStyle.Regular }] } }] }] },
+			"Content [NONE]" => made is Ast.Statement.CreateExternalLibrary { Files: [{ Options: [{ Value: Ast.Expression.Reference { Name.Parts: [{ Text: "[NONE]", Style: Ast.IdentifierStyle.Bracketed }] } }] }] },
+			"Content number" => made is Ast.Statement.CreateExternalLibrary { Files: [{ Options: [{ Value: Ast.LiteralValue.Numeric { Text: "1", Kind: Ast.NumericLiteralKind.DecimalInteger } }] }] },
+			"Content name, national language" => made is Ast.Statement.CreateExternalLibrary { Files: [{ Options: [{ Value: Ast.Expression.Reference { Name.Parts: [{ Text: "p" }] } }] }], Language: { Kind: Ast.StringLiteralKind.National } },
+			"Library lower case" => made is Ast.Statement.CreateExternalLibrary { Files: [{ Options: [{ Name.Text: "content" }] }], Language.Text: "'R'" },
+			"Library comments" => made is Ast.Statement.CreateExternalLibrary { Files: [{ Options: [{ Name.Text: "CONTENT", Value: Ast.LiteralValue.String }] }] },
+			"Two files" => made is Ast.Statement.CreateExternalLibrary { Files: [{ Options: [{ Name.Text: "PLATFORM" }, { Name.Text: "CONTENT" }] }, { Options: [{ Value: Ast.LiteralValue.Binary { ZeroX: true } }] }] },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	[Theory]
+	[InlineData("CREATE EXTERNAL LANGUAGE l FROM (CONTENT = 0x01, FILE_NAME = 'f')",                                     "Language")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l AUTHORIZATION dbo FROM (CONTENT = 'a', FILE_NAME = 'f'), (CONTENT = 'b', FILE_NAME = 'g', PLATFORM = LINUX)", "Language two files")]
+	[InlineData("ALTER EXTERNAL LANGUAGE l SET (CONTENT = 'a')",                                                          "Language set")]
+	[InlineData("ALTER EXTERNAL LANGUAGE l ADD (CONTENT = 'a')",                                                          "Language add")]
+	[InlineData("ALTER EXTERNAL LANGUAGE l AUTHORIZATION dbo REMOVE PLATFORM WINDOWS",                                    "Language remove Windows")]
+	[InlineData("alter external language l remove platform linux",                                                        "Language remove Linux")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l FROM (CONTENT = value, FILE_NAME = 'f')",                                      "Content VALUE")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l FROM (CONTENT = [value], FILE_NAME = 'f')",                                    "Content [value]")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l FROM (CONTENT = @c, FILE_NAME = 'f')",                                         "Content variable")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l FROM (CONTENT = NULL, FILE_NAME = 'f')",                                       "Content NULL")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l FROM (CONTENT = f(1, 2), FILE_NAME = N'f', PARAMETERS = 'p')",                 "Content call")]
+	public void The_bridge_builds_the_language_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = expected switch
+		{
+			"Language" => made is Ast.Statement.CreateExternalLanguage { Authorization: null, Files: [{ Options: [{ Value: Ast.LiteralValue.Binary }, { Name.Text: "FILE_NAME" }] }] },
+			"Language two files" => made is Ast.Statement.CreateExternalLanguage { Authorization.Text: "dbo", Files.Count: 2 },
+			"Language set" => made is Ast.Statement.AlterExternalLanguage { Change: Ast.ExternalLanguageChange.Set },
+			"Language add" => made is Ast.Statement.AlterExternalLanguage { Change: Ast.ExternalLanguageChange.Add },
+			"Language remove Windows" => made is Ast.Statement.AlterExternalLanguage { Authorization.Text: "dbo", Change: Ast.ExternalLanguageChange.RemovePlatform { Platform: Ast.ExternalPlatform.Windows } },
+			"Language remove Linux" => made is Ast.Statement.AlterExternalLanguage { Change: Ast.ExternalLanguageChange.RemovePlatform { Platform: Ast.ExternalPlatform.Linux } },
+			"Content VALUE" => made is Ast.Statement.CreateExternalLanguage { Files: [{ Options: [{ Value: Ast.Expression.Current { Kind: Ast.CurrentValue.Value } }, ..] }] },
+			"Content [value]" => made is Ast.Statement.CreateExternalLanguage { Files: [{ Options: [{ Value: Ast.Expression.Reference { Name.Parts: [{ Style: Ast.IdentifierStyle.Bracketed }] } }, ..] }] },
+			"Content variable" => made is Ast.Statement.CreateExternalLanguage { Files: [{ Options: [{ Value: Ast.Expression.Variable { Name.Text: "@c" } }, ..] }] },
+			"Content NULL" => made is Ast.Statement.CreateExternalLanguage { Files: [{ Options: [{ Value: Ast.LiteralValue.Null }, ..] }] },
+			"Content call" => made is Ast.Statement.CreateExternalLanguage { Files: [{ Options: [{ Value: Ast.Expression.Invocation { Arguments.Count: 2 } }, { Value: Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.National } }, { Name.Text: "PARAMETERS" }] }] },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	[Theory]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (MODEL = 'a')",                                  "Model")]
+	[InlineData("CREATE EXTERNAL MODEL m AUTHORIZATION dbo WITH ()",                           "Model owner, empty")]
+	[InlineData("ALTER EXTERNAL MODEL m SET (MODEL = 'a')",                                    "Model altered")]
+	[InlineData("ALTER EXTERNAL MODEL m SET ()",                                               "Model altered, empty")]
+	[InlineData("create external model m with (model_type = embeddings, credential = [c])",    "Model lower case")]
+	[InlineData("CREATE EXTERNAL RESOURCE POOL p",                                             "Pool alone")]
+	[InlineData("CREATE EXTERNAL RESOURCE POOL p WITH (MAX_CPU_PERCENT = 20)",                 "Pool")]
+	[InlineData("ALTER EXTERNAL RESOURCE POOL p WITH (MAX_CPU_PERCENT = 20)",                  "Pool altered")]
+	[InlineData("CREATE EXTERNAL RESOURCE POOL p WITH (AFFINITY CPU = AUTO)",                  "Affinity AUTO")]
+	[InlineData("CREATE EXTERNAL RESOURCE POOL p WITH (AFFINITY CPU = (0 TO 3, 5))",           "Affinity CPU ranges")]
+	[InlineData("CREATE EXTERNAL RESOURCE POOL p WITH (AFFINITY NUMANODE = (1))",              "Affinity NUMA node")]
+	[InlineData("create external resource pool [p] with (affinity cpu = (@a to @b))",          "Affinity variables")]
+	public void The_bridge_builds_the_model_and_pool_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = expected switch
+		{
+			"Model" => made is Ast.Statement.CreateExternalModel { Authorization: null, Options: [{ Name.Text: "MODEL", Value: Ast.LiteralValue.String }] },
+			"Model owner, empty" => made is Ast.Statement.CreateExternalModel { Authorization.Text: "dbo", Options.Count: 0 },
+			"Model altered" => made is Ast.Statement.AlterExternalModel { Options: [{ Name.Text: "MODEL" }] },
+			"Model altered, empty" => made is Ast.Statement.AlterExternalModel { Options.Count: 0 },
+			"Model lower case" => made is Ast.Statement.CreateExternalModel { Options: [{ Name.Text: "model_type", Value: Ast.Expression.Reference { Name.Parts: [{ Text: "embeddings" }] } }, { Value: Ast.Expression.Reference { Name.Parts: [{ Text: "[c]", Style: Ast.IdentifierStyle.Bracketed }] } }] },
+			"Pool alone" => made is Ast.Statement.CreateExternalResourcePool { Options.Count: 0 },
+			"Pool" => made is Ast.Statement.CreateExternalResourcePool { Options: [{ Name.Text: "MAX_CPU_PERCENT", Value: Ast.LiteralValue.Numeric { Text: "20" } }] },
+			"Pool altered" => made is Ast.Statement.AlterExternalResourcePool { Options: [{ Name.Text: "MAX_CPU_PERCENT" }] },
+			"Affinity AUTO" => made is Ast.Statement.CreateExternalResourcePool { Options: [{ Name.Text: "AFFINITY", Words: [{ Text: "CPU" }], Value: Ast.Expression.Reference { Name.Parts: [{ Text: "AUTO" }] } }] },
+			"Affinity CPU ranges" => made is Ast.Statement.CreateExternalResourcePool { Options: [{ Words: [{ Text: "CPU" }], Value: Ast.Expression.PoolRanges { Ranges: [{ From: Ast.LiteralValue.Numeric { Text: "0" }, To: Ast.LiteralValue.Numeric { Text: "3" } }, { From: Ast.LiteralValue.Numeric { Text: "5" }, To: null }] } }] },
+			"Affinity NUMA node" => made is Ast.Statement.CreateExternalResourcePool { Options: [{ Words: [{ Text: "NUMANODE" }], Value: Ast.Expression.PoolRanges { Ranges: [{ From: Ast.LiteralValue.Numeric { Text: "1" }, To: null }] } }] },
+			"Affinity variables" => made is Ast.Statement.CreateExternalResourcePool { Name.Style: Ast.IdentifierStyle.Bracketed, Options: [{ Name.Text: "affinity", Value: Ast.Expression.PoolRanges { Ranges: [{ From: Ast.Expression.Variable, To: Ast.Expression.Variable }] } }] },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+
+		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	/// <summary>A pool the grammar lets be named by a string has no place in the tree yet.</summary>
+	[Theory]
+	[InlineData("CREATE EXTERNAL RESOURCE POOL 'default'")]
+	[InlineData("ALTER EXTERNAL RESOURCE POOL 'default' WITH (MAX_CPU_PERCENT = 1)")]
+	public void A_pool_named_by_a_string_is_a_gap(string text)
+	{
+		var old = TransactSqlParser.Located.ParseStatement(text);
+
+		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+	}
 }

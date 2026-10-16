@@ -44,6 +44,114 @@ public static partial class Sql2023Writer
 					PutExternalTable(table);
 					return true;
 
+				case Statement.CreateExternalLibrary create:
+					Word("CREATE EXTERNAL LIBRARY");
+					PutExternalName(create.Name, "CREATE EXTERNAL LIBRARY");
+					PutExternalAuthorization(create.Authorization, "CREATE EXTERNAL LIBRARY");
+					Word("FROM");
+					PutExternalFiles(create, create.Files, LibraryFileSettings, "CREATE EXTERNAL LIBRARY", required: ["CONTENT"], most: int.MaxValue, distinct: false);
+					PutExternalLanguage(create, create.Language, "CREATE EXTERNAL LIBRARY");
+					return true;
+
+				case Statement.AlterExternalLibrary alter:
+					Word("ALTER EXTERNAL LIBRARY");
+					PutExternalName(alter.Name, "ALTER EXTERNAL LIBRARY");
+					PutExternalAuthorization(alter.Authorization, "ALTER EXTERNAL LIBRARY");
+
+					switch (alter.Change)
+					{
+						case ExternalLibraryChange.Set set:
+							Word("SET");
+							PutExternalFiles(set, set.Files, LibraryFileSettings, "ALTER EXTERNAL LIBRARY", required: [], most: int.MaxValue, distinct: false);
+							break;
+
+						case ExternalLibraryChange.Add add:
+							Word("ADD");
+							PutExternalFiles(add, add.Files, LibraryFileSettings, "ALTER EXTERNAL LIBRARY", required: [], most: int.MaxValue, distinct: false);
+							break;
+
+						default:
+							throw Unwritten(alter.Change);
+					}
+
+					PutExternalLanguage(alter, alter.Language, "ALTER EXTERNAL LIBRARY");
+					return true;
+
+				case Statement.CreateExternalLanguage create:
+					Word("CREATE EXTERNAL LANGUAGE");
+					PutExternalName(create.Name, "CREATE EXTERNAL LANGUAGE");
+					PutExternalAuthorization(create.Authorization, "CREATE EXTERNAL LANGUAGE");
+					Word("FROM");
+					PutExternalFiles(create, create.Files, LanguageFileSettings, "CREATE EXTERNAL LANGUAGE", required: ["CONTENT", "FILE_NAME"], most: 2, distinct: true);
+					return true;
+
+				case Statement.AlterExternalLanguage alter:
+					Word("ALTER EXTERNAL LANGUAGE");
+					PutExternalName(alter.Name, "ALTER EXTERNAL LANGUAGE");
+					PutExternalAuthorization(alter.Authorization, "ALTER EXTERNAL LANGUAGE");
+
+					switch (alter.Change)
+					{
+						case ExternalLanguageChange.Set set:
+							Word("SET");
+							PutExternalFile(set.File, LanguageFileSettings, "ALTER EXTERNAL LANGUAGE");
+							break;
+
+						case ExternalLanguageChange.Add add:
+							Word("ADD");
+							PutExternalFile(add.File, LanguageFileSettings, "ALTER EXTERNAL LANGUAGE");
+							break;
+
+						case ExternalLanguageChange.RemovePlatform remove:
+							Word("REMOVE PLATFORM");
+							Word(remove.Platform switch
+							{
+								ExternalPlatform.Windows => "WINDOWS",
+								ExternalPlatform.Linux   => "LINUX",
+								_                        => throw NoText(remove.Platform),
+							});
+							break;
+
+						default:
+							throw Unwritten(alter.Change);
+					}
+
+					return true;
+
+				case Statement.CreateExternalModel create:
+					Word("CREATE EXTERNAL MODEL");
+					PutExternalName(create.Name, "CREATE EXTERNAL MODEL");
+					PutExternalAuthorization(create.Authorization, "CREATE EXTERNAL MODEL");
+					PutExternalWith(create, create.Options, ModelSettings, "CREATE EXTERNAL MODEL", always: true);
+					return true;
+
+				// ModelOptions after SET: the same settings in brackets, none allowed.
+				case Statement.AlterExternalModel alter:
+					Word("ALTER EXTERNAL MODEL");
+					PutExternalName(alter.Name, "ALTER EXTERNAL MODEL");
+					Word("SET");
+					Open();
+					PutExternalSettings(alter, alter.Options, ModelSettings, "ALTER EXTERNAL MODEL");
+					Close();
+					return true;
+
+				// A pool made need not be told anything; a pool altered is.
+				case Statement.CreateExternalResourcePool create:
+					Word("CREATE EXTERNAL RESOURCE POOL");
+					PutExternalName(create.Name, "CREATE EXTERNAL RESOURCE POOL");
+					PutExternalWith(create, create.Options, ExternalPoolSettings, "CREATE EXTERNAL RESOURCE POOL", always: false);
+					return true;
+
+				case Statement.AlterExternalResourcePool alter:
+					Word("ALTER EXTERNAL RESOURCE POOL");
+					PutExternalName(alter.Name, "ALTER EXTERNAL RESOURCE POOL");
+
+					if (alter.Options.Count == 0)
+						throw Empty(alter, "Options");
+
+					PutExternalWith(alter, alter.Options, ExternalPoolSettings, "ALTER EXTERNAL RESOURCE POOL", always: false);
+					return true;
+
 				default:
 					return false;
 			}
@@ -71,6 +179,7 @@ public static partial class Sql2023Writer
 			Value  = 128,
 			Call   = 256,
 			Current = 512,
+			Ranges = 1024,
 		}
 
 		/// <summary>
@@ -151,6 +260,45 @@ public static partial class Sql2023Writer
 			["DISTRIBUTION"]          = new(ExternalShape.Words | ExternalShape.Call, ["REPLICATED", "ROUND_ROBIN"]),
 		};
 
+		/// <summary>LibraryFileOption: a file's content — a string, a binary string, NONE, a name or a number — and the platform it is for.</summary>
+		static readonly Dictionary<string, ExternalEntry> LibraryFileSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["CONTENT"]  = new(ExternalShape.String | ExternalShape.Hex | ExternalShape.Number | ExternalShape.Name | ExternalShape.Words, ["NONE"], Once: false),
+			["PLATFORM"] = new(ExternalShape.Words, ["WINDOWS", "LINUX"], Once: false),
+		};
+
+		/// <summary>LanguageOption: a file's content, which is any value, its names as strings, and the platform it is for.</summary>
+		static readonly Dictionary<string, ExternalEntry> LanguageFileSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["CONTENT"]               = new(ExternalShape.Value, Once: false),
+			["FILE_NAME"]             = new(ExternalShape.String, Once: false),
+			["PARAMETERS"]            = new(ExternalShape.String, Once: false),
+			["ENVIRONMENT_VARIABLES"] = new(ExternalShape.String, Once: false),
+			["PLATFORM"]              = new(ExternalShape.Words, ["WINDOWS", "LINUX"], Once: false),
+		};
+
+		/// <summary>ModelOption: seven settings and no other, each once.</summary>
+		static readonly Dictionary<string, ExternalEntry> ModelSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["MODEL_TYPE"]         = new(ExternalShape.Words, ["EMBEDDINGS"]),
+			["CREDENTIAL"]         = ExternalName,
+			["LOCATION"]           = ExternalString,
+			["API_FORMAT"]         = ExternalString,
+			["MODEL"]              = ExternalString,
+			["PARAMETERS"]         = ExternalString,
+			["LOCAL_RUNTIME_PATH"] = ExternalString,
+		};
+
+		/// <summary>ExternalPoolOption: the percentages and processes, and the affinity to CPUs or to NUMA nodes, as often as wanted.</summary>
+		static readonly Dictionary<string, ExternalEntry> ExternalPoolSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["MAX_CPU_PERCENT"]      = new(ExternalShape.Digits, Once: false),
+			["MAX_MEMORY_PERCENT"]   = new(ExternalShape.Digits, Once: false),
+			["MAX_PROCESSES"]        = new(ExternalShape.Digits, Once: false),
+			["AFFINITY CPU"]         = new(ExternalShape.Words | ExternalShape.Ranges, ["AUTO"], Once: false),
+			["AFFINITY NUMANODE"]    = new(ExternalShape.Ranges, Once: false),
+		};
+
 		// ── Names ─────────────────────────────────────────────────────────────────
 
 		/// <summary>
@@ -222,6 +370,121 @@ public static partial class Sql2023Writer
 				return false;
 
 			return IsDelimitedName(text.Text, '\'', '\'');
+		}
+
+		// ── Libraries, languages and pools ────────────────────────────────────────
+
+		/// <summary><c>AUTHORIZATION owner</c>, or nothing where there is no owner.</summary>
+		void PutExternalAuthorization(Identifier? owner, string place)
+		{
+			if (owner is null)
+				return;
+
+			Word("AUTHORIZATION");
+			PutExternalName(owner, place);
+		}
+
+		/// <summary>
+		/// <c>WITH (LANGUAGE = 'language')</c>: the language as the grammar's <c>Quoted</c> reads it.
+		/// </summary>
+		void PutExternalLanguage(ISqlNode owner, LiteralValue.String language, string place)
+		{
+			if (!IsQuoted(language))
+				throw Misplaced(owner, "Language", $"that is no string the grammar's Quoted reads, in {place}");
+
+			Word("WITH");
+			Open();
+			Word("LANGUAGE");
+			Word("=");
+			PutExpression(language);
+			Close();
+		}
+
+		/// <summary>
+		/// The files of a library or a language, <c>(setting, …), …</c>: one at least and <paramref name="most"/> at most, each
+		/// naming the settings the place wants in it (<paramref name="required"/>), and, where <paramref name="distinct"/> says so,
+		/// two files for two platforms that differ.
+		/// </summary>
+		void PutExternalFiles(ISqlNode owner, SqlList<ExternalFile> files, Dictionary<string, ExternalEntry> catalogue, string place, string[] required, int most, bool distinct)
+		{
+			if (files.Count == 0)
+				throw Empty(owner, "Files");
+
+			if (files.Count > most)
+				throw Misplaced(owner, "Files", $"more than {most} in {place}");
+
+			foreach (var file in files)
+			{
+				if (file.Options.Count == 0)
+					throw Empty(file, "Options");
+
+				foreach (var name in required)
+					if (!file.Options.Any(one => one.Words.Count == 0 && Plain(one.Name, name)))
+						throw Misplaced(file, "Options", $"without {name}, which {place} reads in every file");
+			}
+
+			// The engine reads the platforms of a file as a set, and a file that names none is for Windows (Msg 39112).
+			if (distinct && files.Count == 2 && ExternalPlatforms(files[0]) == ExternalPlatforms(files[1]))
+				throw Misplaced(owner, "Files", $"for the same platforms in {place}, which reads two files for two (Msg 39112)");
+
+			for (var at = 0; at < files.Count; at++)
+			{
+				if (at > 0)
+					Tight(",");
+
+				PutExternalFile(files[at], catalogue, place);
+			}
+		}
+
+		/// <summary>A file's settings in brackets, one at least.</summary>
+		void PutExternalFile(ExternalFile file, Dictionary<string, ExternalEntry> catalogue, string place)
+		{
+			if (file.Options.Count == 0)
+				throw Empty(file, "Options");
+
+			Open();
+			PutExternalSettings(file, file.Options, catalogue, place);
+			Close();
+		}
+
+		/// <summary>
+		/// The platforms a file is for as a set: one bit for Windows and one for Linux, and Windows for a file that names none
+		/// (<c>Syntax.LanguageFiles</c>).
+		/// </summary>
+		static int ExternalPlatforms(ExternalFile file)
+		{
+			var platforms = 0;
+
+			foreach (var option in file.Options)
+				if (option.Words.Count == 0 && Plain(option.Name, "PLATFORM") && option.Value is Expression.Reference { Name: [{ } platform] })
+					platforms |= Plain(platform, "LINUX") ? 2 : 1;
+
+			return platforms == 0 ? 1 : platforms;
+		}
+
+		/// <summary>The ranges of an affinity, <c>(0 TO 3, 5)</c>: one at least, each a value or two joined by TO.</summary>
+		void PutPoolRanges(Expression.PoolRanges ranges)
+		{
+			if (ranges.Ranges.Count == 0)
+				throw Empty(ranges, "Ranges");
+
+			Open();
+
+			for (var at = 0; at < ranges.Ranges.Count; at++)
+			{
+				if (at > 0)
+					Tight(",");
+
+				PutExpression(ranges.Ranges[at].From);
+
+				if (ranges.Ranges[at].To is { } to)
+				{
+					Word("TO");
+					PutExpression(to);
+				}
+			}
+
+			Close();
 		}
 
 		// ── External tables ───────────────────────────────────────────────────────
@@ -410,9 +673,21 @@ public static partial class Sql2023Writer
 					Close();
 					return;
 
+				case Expression.PoolRanges ranges when shape.HasFlag(ExternalShape.Ranges):
+					PutPoolRanges(ranges);
+					return;
+
 				case LiteralValue.String text when shape.HasFlag(ExternalShape.String) && IsQuoted(text):
 				case LiteralValue.Binary { ZeroX: true } when shape.HasFlag(ExternalShape.Hex):
 				case LiteralValue.Numeric numeric when IsNumberOf(numeric, shape):
+					PutExpression(value);
+					return;
+
+				// A value expression: a literal that T-SQL does not read (X'01', U&'x', DATE '…') is none, written or not.
+				case LiteralValue literal when shape.HasFlag(ExternalShape.Value):
+					if (!IsTransactSqlLiteral(literal))
+						throw Misplaced(option, "Value", $"that is a literal T-SQL does not read, in {place}");
+
 					PutExpression(value);
 					return;
 
@@ -422,6 +697,22 @@ public static partial class Sql2023Writer
 			}
 
 			throw Misplaced(option, "Value", $"of a form {key} is not read with in {place}");
+		}
+
+		/// <summary>
+		/// Whether T-SQL reads a literal: a number (a hexadecimal, octal or binary integer is a binary string to it), a plain or a
+		/// national string with no character set, a binary string written <c>0x…</c>, or NULL.
+		/// </summary>
+		static bool IsTransactSqlLiteral(LiteralValue literal)
+		{
+			return literal switch
+			{
+				LiteralValue.Numeric numeric => numeric.Kind is NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate or NumericLiteralKind.Money,
+				LiteralValue.String text     => IsQuoted(text),
+				LiteralValue.Binary binary   => binary.ZeroX,
+				LiteralValue.Null            => true,
+				_                            => false,
+			};
 		}
 
 		/// <summary>

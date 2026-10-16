@@ -416,6 +416,8 @@ public sealed class Sql2023WriterCoverageTests
 		// Security: the database encryption key's algorithm, and the change a block predicate blocks.
 		[typeof(DatabaseKeyAlgorithm)] = v => new Statement.AlterDatabaseEncryptionKey(new DatabaseEncryptionKeyChange.Regenerate((DatabaseKeyAlgorithm)v)),
 		[typeof(BlockOperation)]     = v => new Statement.AlterSecurityPolicy(T, new SecurityPolicyChange.Predicates([new PolicyPredicate.DropBlock(T, (BlockOperation)v)])),
+		// External: the platform an external language gives up.
+		[typeof(ExternalPlatform)]   = v => new Statement.AlterExternalLanguage(new Identifier("l"), new ExternalLanguageChange.RemovePlatform((ExternalPlatform)v)),
 	};
 
 	/// <summary>
