@@ -86,6 +86,15 @@ static partial class Stand
 		if (before.Scan("tsql", select20) is { } beforeTsqlScan && after.Scan("tsql", select20) is { } afterTsqlScan)
 			yield return PairedFormRow("tsql", "select20.scan", "control", () => ScanCount(TransactSqlParser.Scan, select20), beforeTsqlScan, afterTsqlScan);
 
+		// SQL-92's lexer and the examples' three-keyword one, for the lexer that looks its keywords up (KeywordTable).
+		if (before.Scan("sql92", Sql92Join) is { } beforeSql92Scan && after.Scan("sql92", Sql92Join) is { } afterSql92Scan)
+			yield return PairedFormRow("sql92", "join.scan", "control", () => ScanCount(Sql92Parser.Scan, Sql92Join), beforeSql92Scan, afterSql92Scan);
+
+		const string query = "select name, price, quantity from products where price > 100";
+
+		if (before.Scan("light", query) is { } beforeLightScan && after.Scan("light", query) is { } afterLightScan)
+			yield return PairedFormRow("light", "query.scan", "control", () => ScanCount(DotGram.Examples.Languages.TokenizedQuery.Scan, query), beforeLightScan, afterLightScan);
+
 		if (before.Scan("el", ladder) is { } beforeElScan && after.Scan("el", ladder) is { } afterElScan)
 			yield return PairedFormRow("el", "ladder.scan", "control", () => ScanCount(DotGram.ExpressionLanguage.ExpressionParser.Scan, ladder), beforeElScan, afterElScan);
 

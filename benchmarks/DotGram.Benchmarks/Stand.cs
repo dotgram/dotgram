@@ -814,6 +814,7 @@ static partial class Stand
 	{
 		readonly Type _sql;
 		readonly Type _sql92;
+		readonly Type? _light;
 		readonly Type _elTape;
 		readonly Type _elImmediate;
 		// Each reading's own state: a type of the assembly the reading is in, which is not the package's for the
@@ -914,6 +915,7 @@ static partial class Stand
 
 			_sql         = Load("DotGram.Sql", "DotGram.Sql.Standard.SqlStandardParser");
 			_sql92       = Load("DotGram.Sql", "DotGram.Sql.Standard.Sql92Parser");
+			_light       = File.Exists(Path.Combine(directory, "DotGram.Examples.dll")) ? Find("DotGram.Examples", "DotGram.Examples.Languages.TokenizedQuery") : null;
 			_tsql        = Load("DotGram.Sql", "DotGram.Sql.TransactSql.TransactSqlParser");
 			_elPackage   = Load("DotGram.ExpressionLanguage", "DotGram.ExpressionLanguage.ExpressionParser");
 			// Three layouts, each read so that "tape" and "immediate" name the same two readings on either side of a
@@ -1172,8 +1174,9 @@ static partial class Stand
 		/// </summary>
 		public Func<int>? Scan(string parser, string text)
 		{
-			var type   = parser switch { "tsql" => _tsql, "el" => _elPackage, _ => _sql };
-			var method = type.GetMethod("Scan", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			// "light" is the examples' tokenized query: a lexer with three keywords, where the others have hundreds.
+			var type   = parser switch { "tsql" => _tsql, "el" => _elPackage, "sql92" => _sql92, "light" => _light, _ => _sql };
+			var method = type?.GetMethod("Scan", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
 			if (method is null)
 				return null;
