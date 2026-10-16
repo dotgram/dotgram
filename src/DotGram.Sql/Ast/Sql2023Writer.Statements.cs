@@ -88,7 +88,12 @@ public static partial class Sql2023Writer
 				case Statement.DropSchema drop:
 					Word("DROP SCHEMA");
 					PutIfExists(drop.IfExists);
-					Each(drop.Names, PutName);
+
+					// T-SQL: DROP SCHEMA (Transact-SQL). One name of one part (DropSingleKind): a list or a dot is Msg 102.
+					if (transactSql && drop.Names.Count > 1)
+						throw Misplaced(drop, "Names", "of more than one, which DropSingleKind does not read");
+
+					Each(drop.Names, name => PutOnePartName(name, "DROP SCHEMA (DropSingleKind)"));
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -508,7 +513,12 @@ public static partial class Sql2023Writer
 				case Statement.DropType drop:
 					Word("DROP TYPE");
 					PutIfExists(drop.IfExists);
-					Each(drop.Names, PutName);
+
+					// T-SQL: DROP TYPE (Transact-SQL). One name that begins with a part (DropLedName), never `.t`.
+					if (transactSql && drop.Names.Count > 1)
+						throw Misplaced(drop, "Names", "of more than one, which DropLedName does not read");
+
+					Each(drop.Names, name => PutLedName(name, "DROP TYPE (DropLedName)"));
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -944,7 +954,7 @@ public static partial class Sql2023Writer
 			if (constraint.Name is { } name)
 			{
 				Word("CONSTRAINT");
-				PutName(name);
+				PutOnePartName(name, "a constraint's name");
 			}
 
 			switch (constraint)

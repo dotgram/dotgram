@@ -368,7 +368,7 @@ public static partial class Sql2023Writer
 								throw Misplaced(stopList.From, "Name", "of other than one or two parts (StopListFrom, Msg 102)");
 
 							Word("FROM");
-							PutName(source);
+							PutWrittenName(source, "FROM (StopListFrom)");
 							break;
 
 						default:
@@ -1005,7 +1005,7 @@ public static partial class Sql2023Writer
 						throw Misplaced(copy, "Database", "of other than one or two parts (DatabaseTail)");
 
 					Word("AS COPY OF");
-					PutName(copy.Database);
+					PutWrittenName(copy.Database, "AS COPY OF (DatabaseTail)");
 
 					if (create.EditionOptions.Count > 0)
 						PutEditionOptions(create, create.EditionOptions);

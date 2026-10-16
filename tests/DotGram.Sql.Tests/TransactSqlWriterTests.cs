@@ -255,6 +255,68 @@ public sealed class TransactSqlWriterTests
 		Assert.Equal(text, TransactSqlWriter.Write(tree));
 	}
 
+	// ── Names with a part left out ────────────────────────────────────────────────
+
+	/// <summary>A name of dotted parts, a part with no text left out: <c>.f</c>, <c>db..t</c>.</summary>
+	static QualifiedName Dotted(string text)
+	{
+		return new QualifiedName(SqlList.From(text.Split('.').Select(static part => Plain(part)).ToArray()));
+	}
+
+	/// <summary>
+	/// A name with a part left out, or more parts than one, stands where the grammar reads <c>TSqlQualifiedName</c> and not where it
+	/// reads an <c>Identifier</c>: the call of a value, a constraint, a cursor, a schema, a type to drop, the copy of a database, a
+	/// stop list's source, a class type, an index hint, and the columns of a classification are each refused, and the standard's
+	/// writer writes them.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT dbo.f(1)",                                            "dbo.f", ".dbo.f")]
+	[InlineData("SELECT dbo.f(1)",                                            "dbo.f", "dbo..f")]
+	[InlineData("SELECT f(1) + 2",                                            "f",     ".f")]
+	[InlineData("CREATE TABLE t (a INT CONSTRAINT c CHECK (a > 0))",           "c",     ".c")]
+	[InlineData("CREATE TABLE t (a INT CONSTRAINT c NOT NULL)",                "c",     "x.c")]
+	[InlineData("CREATE TABLE t (a INT, CONSTRAINT c UNIQUE (a))",             "c",     ".c")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT c DEFAULT 1 FOR a",              "c",     ".c")]
+	[InlineData("ALTER TABLE t DROP CONSTRAINT c",                             "c",     ".c")]
+	[InlineData("OPEN cur",                                                    "cur",   ".cur")]
+	[InlineData("CLOSE cur",                                                   "cur",   "x.cur")]
+	[InlineData("FETCH NEXT FROM cur INTO @a",                                 "cur",   ".cur")]
+	[InlineData("DROP SCHEMA s",                                               "s",      ".s")]
+	[InlineData("DROP TYPE ty",                                                "ty",     ".ty")]
+	[InlineData("CREATE DATABASE d AS COPY OF s.d2",                           "s.d2",   ".d2")]
+	[InlineData("CREATE FULLTEXT STOPLIST sl FROM src",                        "src",    ".src")]
+	[InlineData("CREATE TYPE ty EXTERNAL NAME a.b",                            "ty",     ".ty")]
+	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (LABEL = 'x')",    "t.c",    ".t.c")]
+	[InlineData("SELECT * FROM t WITH (INDEX (i1))",                           "i1",     ".i1")]
+	[InlineData("SELECT * FROM t WITH (FORCESEEK (i1 (a)))",                   "i1",     "x.i1")]
+	public void A_name_with_a_part_left_out_is_refused_where_the_grammar_reads_a_plain_name(string text, string name, string other)
+	{
+		var tree    = Read(text);
+		var changed = (ISqlNode)Swap(tree, Dotted(name), Dotted(other));
+
+		Assert.NotEqual(tree, changed);
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(changed));
+		Assert.NotEmpty(Sql2023Writer.Write(changed));
+	}
+
+	/// <summary>The same places with the name the grammar reads there: written and read back to the same tree.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM .f(1)")]
+	[InlineData("SELECT * FROM dbo..f(1)")]
+	[InlineData("DROP TYPE a..b")]
+	[InlineData("DROP TABLE .x, a..b")]
+	[InlineData("CREATE DATABASE d AS COPY OF s.d2")]
+	[InlineData("CREATE FULLTEXT STOPLIST sl FROM src")]
+	[InlineData("ADD SENSITIVITY CLASSIFICATION TO dbo.t.c WITH (LABEL = 'x')")]
+	[InlineData("SELECT * FROM t WITH (INDEX (i1, 2), FORCESEEK (i1 (a)))")]
+	public void A_name_the_grammar_reads_is_written_and_read_back(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+		Assert.Equal(tree, Read(text));
+	}
+
 	// ── Condition against value ──────────────────────────────────────────────────
 
 	/// <summary>The condition every row's text holds at its place, <c>@a = 1</c>, and the value put in its stead, <c>@a</c>.</summary>

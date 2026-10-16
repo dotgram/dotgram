@@ -60,6 +60,49 @@ public static partial class Sql2023Writer
 				throw Misplaced(identifier, "Text", "a reserved word written plain, which T-SQL reads as the key word; written bracketed or quoted it is a name");
 		}
 
+		/// <summary>A part left out of a name: no text, written plain, as the schema in <c>db..t</c>.</summary>
+		static bool IsLeftOut(Identifier part)
+		{
+			return part is { Text.Length: 0, Style: IdentifierStyle.Regular, UnicodeEscape: null };
+		}
+
+		/// <summary>
+		/// A name the grammar reads as a plain dotted name, <c>Identifier ('.' Identifier)*</c>, rather than as
+		/// <c>TSqlQualifiedName</c>: every part is written, and none may be left out, which would leave a dot the grammar does not read.
+		/// </summary>
+		void PutWrittenName(QualifiedName name, string place)
+		{
+			if (transactSql)
+				for (var at = 0; at < name.Count; at++)
+					if (IsLeftOut(name[at]))
+						throw Misplaced(name, "a part left out", $"in {place}, which reads every part of a name written");
+
+			PutName(name);
+		}
+
+		/// <summary>
+		/// A name the grammar reads as one <c>Identifier</c>: one part. A name of more parts, or one whose first part is left out, is a
+		/// dot the grammar does not read there.
+		/// </summary>
+		void PutOnePartName(QualifiedName name, string place)
+		{
+			if (transactSql && name.Count != 1)
+				throw Misplaced(name, "parts", $"other than one in {place}, which reads a name of one part");
+
+			PutName(name);
+		}
+
+		/// <summary>
+		/// A name that begins with a part and may leave any after it out (<c>DropLedName</c>: <c>Identifier NamePart*</c>), never its first.
+		/// </summary>
+		void PutLedName(QualifiedName name, string place)
+		{
+			if (transactSql && name.Count > 0 && IsLeftOut(name[0]))
+				throw Misplaced(name, "a first part left out", $"in {place}, which begins a name with a part written");
+
+			PutName(name);
+		}
+
 		/// <summary>Words of letters, digits and _, one blank apart, or the percent sign of a unit.</summary>
 		static readonly System.Text.RegularExpressions.Regex KeyWordText = new(@"^(?:%|[A-Za-z_][A-Za-z0-9_]*(?: [A-Za-z_][A-Za-z0-9_]*)*)\z");
 
@@ -91,6 +134,9 @@ public static partial class Sql2023Writer
 
 		/// <summary>Whether the next expression stands where T-SQL reads a list in brackets: an argument of a full-text or rowset function.</summary>
 		bool row;
+
+		/// <summary>Set by a table-valued function in FROM, and taken by the <see cref="PutCallName"/> of its call.</summary>
+		bool tableFunction;
 
 		/// <summary>Set by a call that reads such lists for its arguments, and taken by <see cref="PutArgument"/>.</summary>
 		bool listArgument;
@@ -211,6 +257,22 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutCallName(QualifiedName name, bool anyWord)
 		{
+			var table = tableFunction;
+
+			tableFunction = false;
+
+			// A call as a value is not made through a part left out (`.f(1)`, `db..f(1)`: Msg 102) and not by one delimited
+			// part (`[LEN]('a')`); a table-valued function in FROM is read through both.
+			if (transactSql && !table)
+			{
+				for (var at = 0; at < name.Count; at++)
+					if (IsLeftOut(name[at]))
+						throw Misplaced(name, "a part left out", "in the name of a call as a value, which T-SQL reads only as a table-valued function in FROM");
+
+				if (name.Count == 1 && name[0].Style is IdentifierStyle.Bracketed or IdentifierStyle.Delimited)
+					throw Misplaced(name, "one name in brackets or double quotes", "as the name of a call as a value, which T-SQL does not read as a call");
+			}
+
 			if (name.Count == 1 && name[0] is { Style: IdentifierStyle.Regular, UnicodeEscape: null } word && (anyWord || ReservedCalls.Contains(word.Text)))
 				PutKeyWord(word);
 			else if (transactSql && IsSystemFunction(name[0]))

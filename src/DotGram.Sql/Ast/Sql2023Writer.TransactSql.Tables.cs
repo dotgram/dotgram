@@ -853,7 +853,7 @@ public static partial class Sql2023Writer
 				throw Misplaced(constraint, "IfExists", "without the word CONSTRAINT");
 
 			PutIfExists(constraint.IfExists);
-			PutName(constraint.Name);
+			PutOnePartName(constraint.Name, "DROP CONSTRAINT");
 			PutOptions(constraint.Options);
 			PutBehavior(constraint.Behavior);
 		}

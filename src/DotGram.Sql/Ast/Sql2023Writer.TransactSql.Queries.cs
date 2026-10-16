@@ -836,6 +836,16 @@ public static partial class Sql2023Writer
 					if (named.Arguments.Count > 0 && named.Name.Text.Equals("FORCESEEK", StringComparison.OrdinalIgnoreCase))
 						throw Misplaced(named, "Arguments", "on FORCESEEK, which is TableHint.ForceSeek with them");
 
+					// IndexArgument: `= v` or `(v, …)`, each an IndexValue.
+					if (named.Name is { Style: IdentifierStyle.Regular } && Plain(named.Name, "INDEX"))
+					{
+						if (named.Form == HintArgumentForm.Bare)
+							throw Misplaced(named, "Form", "Bare on INDEX, which IndexArgument does not read");
+
+						foreach (var argument in named.Arguments)
+							CheckIndexValue(argument);
+					}
+
 					PutHint(named, named.Name, named.Arguments, named.Form);
 					break;
 
@@ -845,6 +855,7 @@ public static partial class Sql2023Writer
 
 					Word("FORCESEEK");
 					Open();
+					CheckIndexValue(seek.Index);
 					PutExpression(seek.Index);
 					Open();
 					Each(seek.Columns, PutIdentifier);
@@ -855,6 +866,16 @@ public static partial class Sql2023Writer
 				default:
 					throw Unwritten(hint);
 			}
+		}
+
+		/// <summary>
+		/// T-SQL: Table Hints (Transact-SQL). The grammar's <c>IndexValue</c>: an index named by one part, or a number, and not an
+		/// expression, nor a name of other than one part.
+		/// </summary>
+		void CheckIndexValue(Expression value)
+		{
+			if (transactSql && value is not (Expression.Reference { Name.Count: 1 } or LiteralValue.Numeric))
+				throw Misplaced(value, "a value", "that is neither a name of one part nor a number, which IndexValue reads");
 		}
 
 		/// <summary>

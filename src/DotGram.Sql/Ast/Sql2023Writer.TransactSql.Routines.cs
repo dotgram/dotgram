@@ -229,7 +229,7 @@ public static partial class Sql2023Writer
 				case Statement.CreateClrType type:
 					CheckTwoParts(type, type.ExternalName);
 					Word("CREATE TYPE");
-					PutName(type.Name);
+					PutWrittenName(type.Name, "CREATE TYPE (TypeName)");
 					Word("EXTERNAL NAME");
 					PutName(type.ExternalName);
 					return true;

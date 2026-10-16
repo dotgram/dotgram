@@ -1766,7 +1766,7 @@ public static partial class Sql2023Writer
 				throw Misplaced(add, "Columns", "of other than two or three parts (ClassifiedColumn)");
 
 			Word("ADD SENSITIVITY CLASSIFICATION TO");
-			Each(add.Columns, PutName);
+			Each(add.Columns, column => PutWrittenName(column, "ClassifiedColumn"));
 			PutSettings(add, add.Options, ClassificationSettings, "ADD SENSITIVITY CLASSIFICATION", introducer: "WITH", required: true, bracketed: true);
 		}
 

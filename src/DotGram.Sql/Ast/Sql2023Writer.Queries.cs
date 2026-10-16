@@ -1135,7 +1135,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case TableSource.Function function:
+					tableFunction = transactSql;
 					PutExpression(function.Invocation);
+					tableFunction = false;
 					PutAlias(function.Alias);
 					break;
 
@@ -1797,7 +1799,7 @@ public static partial class Sql2023Writer
 				Word("PTF");
 
 			if (cursor.Name is { } name)
-				PutName(name);
+				PutOnePartName(name, "a cursor's name (CursorName)");
 			else
 				PutExpression(cursor.ExtendedName!);
 		}
