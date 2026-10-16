@@ -137,7 +137,8 @@ public sealed class WriterPrecedenceTests
 				return qualified with { Value = operand(qualified.Value) };
 
 			case Expression.Element element:
-				return element with { Collection = operand(element.Collection) };
+				return element with { Collection = operand(element.Collection), Index = operand(element.Index), To = element.To is null ? null : operand(element.To) };
+
 
 			case Expression.Member member:
 				return member with { Target = operand(member.Target) };
@@ -465,8 +466,73 @@ public sealed class WriterPrecedenceTests
 		Value(Binary(Zone(A, B), BinaryOperator.Add, C), "a AT TIME ZONE b + c");
 	}
 
+	/// <summary>
+	/// The standard types its operands: an operand whose towers have nothing in common with its operator's is bracketed, as
+	/// `-a COLLATE x` (a sign over a character factor) is not read where `-(a COLLATE x)` is. T-SQL has no towers.
+	/// </summary>
+	[Fact]
+	public void An_operand_of_another_tower_than_its_operator_is_bracketed_in_the_standard()
+	{
+		var day = new IntervalQualifier(DateTimeField.Day);
+
+		Standardly(Unary(UnaryOperator.Minus, Collate(A, "x")), "-(a COLLATE x)");
+		Standardly(Unary(UnaryOperator.Minus, Zone(A, B)), "-(a AT TIME ZONE b)");
+		Standardly(Binary(Collate(A, "x"), BinaryOperator.Add, B), "(a COLLATE x) + b");
+		Standardly(Binary(A, BinaryOperator.Subtract, Collate(B, "x")), "a - (b COLLATE x)");
+		Standardly(Binary(Unary(UnaryOperator.Minus, A), BinaryOperator.Concatenate, B), "(-a) || b");
+		Standardly(Binary(A, BinaryOperator.Concatenate, Zone(B, C)), "a || (b AT TIME ZONE c)");
+		Standardly(Binary(Zone(A, B), BinaryOperator.Multiply, B), "(a AT TIME ZONE b) * b");
+		Standardly(Binary(A, BinaryOperator.Divide, Zone(B, C)), "a / (b AT TIME ZONE c)");
+		Standardly(Binary(Binary(A, BinaryOperator.Add, B), BinaryOperator.Concatenate, C), "(a + b) || c");
+		Standardly(Binary(Binary(A, BinaryOperator.Concatenate, B), BinaryOperator.Add, C), "(a || b) + c");
+		Standardly(Binary(Zone(A, B), BinaryOperator.Subtract, Zone(C, D)), "a AT TIME ZONE b - (c AT TIME ZONE d)");
+		Standardly(Binary(new Expression.IntervalQualified(A, day), BinaryOperator.Multiply, new Expression.IntervalQualified(B, day)), "a DAY * (b DAY)");
+		Standardly(Binary(One, BinaryOperator.Divide, new Expression.IntervalQualified(A, day)), "1 / (a DAY)");
+		Standardly(Multiset(Collate(A, "x"), MultisetOperator.Union, B), "(a COLLATE x) MULTISET UNION b");
+		Standardly(new Expression.Element(A, Equal(A, B)), "a[(a = b)]");
+		Standardly(new Expression.Element(A, Collate(B, "x")), "a[(b COLLATE x)]");
+
+		// What the towers take stays bare.
+		Standardly(Binary(Collate(A, "x"), BinaryOperator.Concatenate, B), "a COLLATE x || b");
+		Standardly(Binary(Zone(A, B), BinaryOperator.Add, C), "a AT TIME ZONE b + c");
+		Standardly(Binary(Zone(A, B), BinaryOperator.Subtract, new Expression.IntervalQualified(C, day)), "a AT TIME ZONE b - c DAY");
+		Standardly(Unary(UnaryOperator.Minus, new Expression.IntervalQualified(A, day)), "-a DAY");
+		Standardly(Binary(Number("2"), BinaryOperator.Multiply, new Expression.IntervalQualified(A, day)), "2 * a DAY");
+		Standardly(new Expression.Element(A, Binary(B, BinaryOperator.Add, One)), "a[b + 1]");
+
+		Value(Binary(Collate(A, "x"), BinaryOperator.Add, B), "a COLLATE x + b");
+		Value(Binary(Unary(UnaryOperator.Minus, A), BinaryOperator.Add, B), "-a + b");
+	}
+
+	/// <summary>
+	/// The standard's in value list holds non-parenthesized primaries and explicit rows (§8.4), so `x IN (a, (b))` and `x IN (a + 1)`
+	/// are not read, and a tree that holds one has no text there. T-SQL reads any expression in a list.
+	/// </summary>
+	[Fact]
+	public void An_item_of_the_standard_s_in_list_that_is_not_a_bare_primary_is_refused()
+	{
+		static Expression.In List(params Expression[] items)
+		{
+			return new Expression.In(A, false, new InSource.Values([.. items]));
+		}
+
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(A, new Expression.Parenthesized(B)), false));
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(new Expression.Parenthesized(Binary(A, BinaryOperator.Add, One))), false));
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(new Expression.Parenthesized(Equal(A, B)), C), false));
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(Binary(A, BinaryOperator.Add, One)), false));
+		Assert.ThrowsAny<ArgumentException>(() => Standard.Write(List(Number("-1")), false));
+		Assert.False(SqlStandardParser.TryParseExpression("x IN (a, (b))").IsSuccess);
+		Assert.False(SqlStandardParser.TryParseExpression("x IN ((a + 1))").IsSuccess);
+
+		Standardly(List(A, B), "a IN (a, b)");
+
+		Condition(List(A, new Expression.Parenthesized(B)), "a IN (a, (b))");
+		Condition(List(Binary(A, BinaryOperator.Add, One)), "a IN (a + 1)");
+	}
+
 	[Fact]
 	public void MULTISET_INTERSECT_binds_tighter_than_UNION_and_EXCEPT()
+
 	{
 		Standardly(Multiset(Multiset(A, MultisetOperator.Union, B), MultisetOperator.Intersect, C), "(a MULTISET UNION b) MULTISET INTERSECT c");
 		Standardly(Multiset(A, MultisetOperator.Union, Multiset(B, MultisetOperator.Intersect, C)), "a MULTISET UNION b MULTISET INTERSECT c");

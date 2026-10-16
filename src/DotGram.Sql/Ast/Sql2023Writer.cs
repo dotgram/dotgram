@@ -2,8 +2,12 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
+
 using System.Text.RegularExpressions;
+
+using Towers = DotGram.Sql.Standard.Towers;
 
 namespace DotGram.Sql.Ast;
 
@@ -861,7 +865,16 @@ public static partial class Sql2023Writer
 		/// </remarks>
 		void PutOperand(Expression operand, int least)
 		{
-			if (Strength(operand) >= least)
+			PutOperand(operand, least, false);
+		}
+
+		/// <summary>
+		/// An operand in a bracket where it binds looser than <paramref name="least"/>, or where <paramref name="bracket"/>
+		/// asks for one: the standard's towers (<see cref="Typing"/>).
+		/// </summary>
+		void PutOperand(Expression operand, int least, bool bracket)
+		{
+			if (!bracket && Strength(operand) >= least)
 			{
 				PutExpression(operand);
 
@@ -871,6 +884,172 @@ public static partial class Sql2023Writer
 			Open();
 			PutExpression(operand);
 			Close();
+		}
+
+		// ── The standard's towers ──────────────────────────────────────────────────
+		//
+		// The BNF types its value expressions (Towers.cs): `-a COLLATE x` is a sign over a character factor, `a COLLATE x + b` a
+		// character term in a sum and `a AT TIME ZONE b * c` a datetime factor in a product, and none of them is read, though
+		// each parenthesized is. So an operand whose towers have nothing in common with its operator's is bracketed, which
+		// makes a primary of it that every tower may take. T-SQL's reading has no towers.
+
+		/// <summary>The towers an operand written as it would be written can still be, as the parser asks them (`Towers.cs`).</summary>
+
+		int Roles(Expression expression)
+		{
+			if (!SqlStack.Enough())
+			{
+				var made = new int[1];
+
+				SqlStack.Deeper(this, expression, made, static (into, node, result) => result[0] = into.Roles(node));
+
+				return made[0];
+			}
+
+			switch (expression)
+			{
+				case Expression.Collate:
+					return Towers.Character;
+
+				case Expression.AtTimeZone:
+					return Towers.Datetime;
+
+				case Expression.IntervalQualified:
+					return Towers.Interval;
+
+				case LiteralValue.Numeric { Text: ['-' or '+', ..] }:
+					return Towers.Numeric | Towers.Interval;
+
+				case Expression.Unary { Operator: not UnaryOperator.Not }:
+					return Towers.Numeric | Towers.Interval;
+
+				case Expression.MultisetOperation:
+					return Towers.Multiset;
+
+				case Expression.Binary { Operator: BinaryOperator.Concatenate or BinaryOperator.Add or BinaryOperator.Subtract or BinaryOperator.Multiply or BinaryOperator.Divide } binary:
+					if (typed.TryGetValue(binary, out var known))
+						return known.Value;
+
+					var roles
+ = Typing(binary, out _, out _);
+
+					typed.Add(binary, new StrongBox<int>(roles));
+
+					return roles;
+
+				default:
+					return Towers.Value;
+			}
+		}
+
+		// By the node itself, not by what the records compare: a deep chain would be hashed at every level.
+		readonly ConditionalWeakTable<Expression, StrongBox<int>> typed = new();
+
+		/// <summary>What an operand is, written as <see cref="PutOperand(Expression, int, bool)"/> writes it for <paramref name="least"/>: in a bracket, anything.</summary>
+		int Written(Expression operand, int least)
+		{
+			return Strength(operand) >= least ? Roles(operand) : Towers.Value;
+		}
+
+		/// <summary>
+		/// What an arithmetic or concatenation operator makes of its operands, and which of them it brackets for it: one that
+		/// no tower of the operator takes, and then, where the pair makes nothing (a datetime less a datetime is no value), the right
+		/// and then the left.
+		/// </summary>
+		int Typing(Expression.Binary binary, out bool left, out bool right)
+		{
+			left  = false;
+			right = false;
+
+			var op = binary.Operator;
+
+			if (transactSql || op is not (BinaryOperator.Concatenate or BinaryOperator.Add or BinaryOperator.Subtract or BinaryOperator.Multiply or BinaryOperator.Divide))
+				return Towers.Value;
+
+			var binding = Strength(binary);
+			var takes   = op switch
+			{
+				BinaryOperator.Concatenate                       => Towers.String | Towers.Array,
+				BinaryOperator.Multiply or BinaryOperator.Divide => Towers.Numeric | Towers.Interval,
+				_                                                => Towers.Numeric | Towers.Interval | Towers.Datetime,
+			};
+			var one = Written(binary.Left, binding);
+			var two = Written(binary.Right, binding + 1);
+
+			if ((one & takes) == 0)
+			{
+				left = true;
+				one  = Towers.Value;
+			}
+
+			if ((two & takes) == 0)
+			{
+				right = true;
+				two   = Towers.Value;
+			}
+
+			var made = Operated(op, one, two);
+
+			if (made == 0 && !right)
+			{
+				right = true;
+				made  = Operated(op, one, Towers.Value);
+			}
+
+			if (made == 0 && !left)
+			{
+				left = true;
+				made = Operated(op, Towers.Value, Towers.Value);
+			}
+
+			return made;
+		}
+
+		static int Operated(BinaryOperator op, int one, int two)
+		{
+			if (op == BinaryOperator.Concatenate)
+				return one & two & (Towers.String | Towers.Array);
+
+			var made = 0;
+
+			if ((one & Towers.Numeric) != 0 && (two & Towers.Numeric) != 0)
+				made |= Towers.Numeric;
+
+			switch (op)
+			{
+				case BinaryOperator.Multiply:
+					if ((one & Towers.Interval) != 0 && (two & Towers.Numeric) != 0 || (one & Towers.Numeric) != 0 && (two & Towers.Interval) != 0)
+						made |= Towers.Interval;
+
+					break;
+
+				case BinaryOperator.Divide:
+					if ((one & Towers.Interval) != 0 && (two & Towers.Numeric) != 0)
+						made |= Towers.Interval;
+
+					break;
+
+				default:
+					if ((one & Towers.Interval) != 0 && (two & Towers.Interval) != 0)
+						made |= Towers.Interval;
+
+					// §6.35: an interval is added to a datetime on either side and subtracted only from one.
+					if ((one & Towers.Datetime) != 0 && (two & Towers.Interval) != 0 || op == BinaryOperator.Add && (one & Towers.Interval) != 0 && (two & Towers.Datetime) != 0)
+						made |= Towers.Datetime;
+
+					break;
+			}
+
+			return made;
+		}
+
+		/// <summary>A subscript: in the standard a numeric value expression, which a predicate and the other towers' are not.</summary>
+		void PutSubscript(Expression subscript)
+		{
+			if (transactSql)
+				PutExpression(subscript);
+			else
+				PutOperand(subscript, Tightness.Additive, (Written(subscript, Tightness.Additive) & Towers.Numeric) == 0);
 		}
 
 		/// <summary>
@@ -999,14 +1178,15 @@ public static partial class Sql2023Writer
 						_                        => throw NoText(unary.Operator),
 					});
 					Hold();
-					PutOperand(unary.Operand, transactSql ? Tightness.Signed : Tightness.Postfixed);
+					PutOperand(unary.Operand, transactSql ? Tightness.Signed : Tightness.Postfixed, !transactSql && (Written(unary.Operand, Tightness.Postfixed) & (Towers.Numeric | Towers.Interval)) == 0);
 					break;
 
 				case Expression.Binary binary:
 					var binding = Strength(binary);
 
+					Typing(binary, out var bracketLeft, out var bracketRight);
 					PassCondition(condition);
-					PutOperand(binary.Left, binding);
+					PutOperand(binary.Left, binding, bracketLeft);
 					Word(binary.Operator switch
 					{
 						BinaryOperator.Add         => "+",
@@ -1025,15 +1205,16 @@ public static partial class Sql2023Writer
 						_                          => throw NoText(binary.Operator),
 					});
 					PassCondition(condition);
-					PutOperand(binary.Right, binding + 1);
+					PutOperand(binary.Right, binding + 1, bracketRight);
 					break;
 
 				case Expression.MultisetOperation multiset:
-					PutOperand(multiset.Left, Strength(multiset));
+					PutOperand(multiset.Left, Strength(multiset), !transactSql && (Written(multiset.Left, Strength(multiset)) & Towers.Multiset) == 0);
 					Word("MULTISET");
 					Word(multiset.Operator switch { MultisetOperator.Union => "UNION", MultisetOperator.Except => "EXCEPT", MultisetOperator.Intersect => "INTERSECT", _ => throw NoText(multiset.Operator) });
 					PutQuantifier(multiset.Quantifier);
-					PutOperand(multiset.Right, Strength(multiset) + 1);
+					PutOperand(multiset.Right, Strength(multiset) + 1, !transactSql && (Written(multiset.Right, Strength(multiset) + 1) & Towers.Multiset) == 0);
+
 					break;
 
 				case Expression.Row rowValue:
@@ -1185,12 +1366,12 @@ public static partial class Sql2023Writer
 					PutOperand(element.Collection, Tightness.Primary);
 					Tight(element.Trigraphs ? "??(" : "[");
 					Hold();
-					PutExpression(element.Index);
+					PutSubscript(element.Index);
 
 					if (element.To is { } to)
 					{
 						Word("TO");
-						PutExpression(to);
+						PutSubscript(to);
 					}
 
 					Tight(element.Trigraphs ? "??)" : "]");
@@ -1423,9 +1604,19 @@ public static partial class Sql2023Writer
 						PutSubquery(inQuery.Query);
 					else
 					{
+						var items = ((InSource.Values)@in.SourceValue).Items;
+
+						// §8.4: an in value list holds row value expressions, which are non-parenthesized primaries and explicit rows. `x IN
+						// (a + 1)` and `x IN ((a))` are not read by the standard, and a bracket the tree does not hold would make another tree.
+						if (!transactSql)
+							foreach (var item in items)
+								if (item is not Expression.Row && (Strength(item) < Tightness.Primary || item is Expression.Parenthesized))
+									throw Misplaced(@in, "SourceValue", "with an item that is not a primary without brackets, which the standard's in value list holds");
+
 						Open();
-						Each(((InSource.Values)@in.SourceValue).Items, PutExpression);
+						Each(items, PutExpression);
 						Close();
+
 					}
 
 					break;
