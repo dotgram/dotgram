@@ -213,6 +213,15 @@ public sealed class GramCompilerOptions
 	public bool ConstructionsMayThrow { get; set; }
 
 	/// <summary>
+	/// Whether a grammar read over tokens (<see cref="Lexical"/>) has a lexer that reads a whole word
+	/// first and looks its keyword up in a table (<c>[Gram(KeywordTable = …)]</c>), instead of one with
+	/// a path for each keyword in its automaton. The same tokens either way; the lexer is smaller where
+	/// the grammar has many keywords. Ignored over characters, and for a grammar that has no keyword to
+	/// tabulate.
+	/// </summary>
+	public bool KeywordTable { get; set; }
+
+	/// <summary>
 	/// Whether to say, in <see cref="GramCompilation.Carriers"/>, which carrier each machine has and
 	/// what the tape would hold back: the rules the gates name and the place each was found. For a
 	/// report; a parse is generated the same either way, and without it nothing of this is kept.

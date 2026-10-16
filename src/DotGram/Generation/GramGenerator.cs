@@ -1003,6 +1003,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Portable       = host.Portable,
 			Carrier        = (CarrierKind)host.Carrier,
 			ConstructionsMayThrow = host.ConstructionsMayThrow,
+			KeywordTable   = host.KeywordTable,
 			BufferedInput  = host.BufferedInput,
 			BufferedBytes  = host.BufferedBytes,
 			SpanCaptures   = host.SpanCaptures,
@@ -1355,7 +1356,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      PerCall    = false,
 		string?   LocatedFacade = null,
 		bool      LocatedFacadeDeclared = false,
-		bool      Trace      = false)
+		bool      Trace      = false,
+		bool      KeywordTable = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1683,7 +1685,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 				PerCall:    attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.PerCall)).Value.Value as bool? ?? false,
 				// A trace build of this reading (GramCompilerOptions.Trace), which a later reading
 				// takes from the first like everything else it does not say.
-				Trace:      attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.Trace)).Value.Value as bool? ?? first?.Trace ?? false);
+				Trace:      attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.Trace)).Value.Value as bool? ?? first?.Trace ?? false,
+				// How the lexer of a reading over tokens finds its keywords, which a later reading takes from the
+				// first like everything else it does not say.
+				KeywordTable: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.KeywordTable)).Value.Value as bool? ?? first?.KeywordTable ?? false);
 
 			return (host, site);
 		}

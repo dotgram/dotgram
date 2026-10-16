@@ -2670,7 +2670,11 @@ public static partial class CSharpEmitter
 	{
 		var file = new Writer(0);
 
-		file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!, utf8: utf8Literals));
+		if (lexical.Inventory.Words is { } words)
+			file.Write(KeywordScan(lexical.Inventory, words, utf8Literals));
+		else
+			file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!, utf8: utf8Literals));
+
 		file.Line();
 
 		if (lexical.Inventory.Asked.Count > 0)

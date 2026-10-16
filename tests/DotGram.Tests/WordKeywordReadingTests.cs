@@ -166,7 +166,59 @@ public sealed class WordKeywordReadingTests
 		Agree(trivia, grammar, inputs);
 	}
 
+	// ── Which lexer is written ──────────────────────────────────────────────────
+
+	/// <summary>
+	/// The keyword table is written where the grammar has keywords it can hold, and only when asked:
+	/// the answers above would be the same if it quietly were not.
+	/// </summary>
+	[Theory]
+	[InlineData(Word + "Start = ((\"go\" | \"if\") & '.'?)* & ';' & eof\nparse Start\n", true)]
+	[InlineData(Word + "Start = ((\"go\"i | \"if\"i) & '.'?)* & ';' & eof\nparse Start\n", true)]
+	[InlineData(Word + Names + "Start = ((\"go\"i | Lex.Name) & '.'?)* & ';' & eof\nparse Start\n", true)]
+	[InlineData(Word + "Start = ((\"go-to\" | \"go\") & '.'?)* & ';' & eof\nparse Start\n", true)]
+	[InlineData(Word + "Start = ((\"\u0434\u0430\"i | \"go\") & '.'?)* & ';' & eof\nparse Start\n", true)]
+	[InlineData(Word + "Start = ((\"<=\" | \"<\") & '.'?)* & ';' & eof\nparse Start\n", false)]
+	[InlineData(Word + "Start = ((\"\u0434\u0430\"i) & '.'?)* & ';' & eof\nparse Start\n", false)]
+	[InlineData("Start = ((\"go\" | \"if\") & '.'?)* & ';' & eof\nparse Start\n", false)]
+	public void The_keyword_table_is_written_where_there_are_keywords_to_hold(string grammar, bool written)
+	{
+		grammar = "trivia = { ' '* }\n" + grammar;
+
+		Assert.Equal(written, Generated(grammar, table: true).Contains("Words_Keys", StringComparison.Ordinal));
+		Assert.DoesNotContain("Words_Keys", Generated(grammar, table: false), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A keyword the table does not hold keeps its path in the automaton, and the table has the rest.
+	/// The table is of one way of comparing: where the keywords are of both, the larger group is held
+	/// and the other stays.
+	/// </summary>
+	[Fact]
+	public void A_keyword_the_table_cannot_hold_stays_in_the_automaton()
+	{
+		var grammar = "trivia = { ' '* }\n" + Word + "Start = ((\"go-to\" | \"go\" | \"if\"i) & '.'?)* & ';' & eof\nparse Start\n";
+		var source  = Generated(grammar, table: true);
+
+		Assert.Contains("\"IF\"", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("\"GO\"", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("\"go\"", source, StringComparison.Ordinal);
+	}
+
 	// ── The harness ─────────────────────────────────────────────────────────────
+
+	static string Generated(string grammar, bool table)
+	{
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions
+			{
+				ClassName = "Grammar", Lexical = true, KeywordTable = table, Direct = true,
+				CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+		return result.Sources[0].Text;
+	}
 
 	static void Agree(string grammar, string inputs)
 	{
@@ -177,8 +229,13 @@ public sealed class WordKeywordReadingTests
 	{
 		grammar = trivia + grammar;
 
-		var characters = Renderings(grammar, lexical: false).ToArray();
-		var tokens     = Renderings(grammar, lexical: true).ToArray();
+		var characters = Renderings(grammar, lexical: false, table: false).ToArray();
+
+		// Over tokens twice: the lexer that carries a path for each keyword, and the one that reads a
+		// word whole and looks it up.
+		var tokens = Renderings(grammar, lexical: true, table: false)
+			.Concat(Renderings(grammar, lexical: true, table: true))
+			.ToArray();
 
 		var disagreed = new List<string>();
 
@@ -203,21 +260,21 @@ public sealed class WordKeywordReadingTests
 	}
 
 	/// <summary>The engine, and the direct reader on each carrier it is read on.</summary>
-	static IEnumerable<Assembly> Renderings(string grammar, bool lexical)
+	static IEnumerable<Assembly> Renderings(string grammar, bool lexical, bool table)
 	{
-		yield return Build(grammar, lexical, direct: false, CarrierKind.Auto);
+		yield return Build(grammar, lexical, table, direct: false, CarrierKind.Auto);
 
 		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
-			yield return Build(grammar, lexical, direct: true, carrier);
+			yield return Build(grammar, lexical, table, direct: true, carrier);
 	}
 
-	static Assembly Build(string grammar, bool lexical, bool direct, CarrierKind carrier)
+	static Assembly Build(string grammar, bool lexical, bool table, bool direct, CarrierKind carrier)
 	{
 		var result = GramCompiler.Compile(
 			grammar,
 			new GramCompilerOptions
 			{
-				ClassName = "Grammar", Lexical = lexical, Direct = direct, Carrier = carrier,
+				ClassName = "Grammar", Lexical = lexical, KeywordTable = table, Direct = direct, Carrier = carrier,
 				CSharpScanner = RoslynCSharpScanner.Instance,
 			});
 

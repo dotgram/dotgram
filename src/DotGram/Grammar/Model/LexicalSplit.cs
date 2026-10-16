@@ -120,12 +120,12 @@ public sealed class LexicalSplit
 	/// half-done split: a machine built from a partial numbering would silently accept a
 	/// different language, and the character path is right there and correct.
 	/// </remarks>
-	public static LexicalSplit? Of(RecognitionGraph graph)
+	public static LexicalSplit? Of(RecognitionGraph graph, bool keywordTable = false)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
-		var inventory = TerminalInventory.Of(graph);
+		var inventory = TerminalInventory.Of(graph, keywordTable);
 
 		if (!inventory.Applies || inventory.Blocked.Count > 0)
 			return null;

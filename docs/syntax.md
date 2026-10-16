@@ -2630,6 +2630,7 @@ of it fails a build.
 | `Stacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
 | `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
 | `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
+| `KeywordTable` | `false` | with `Lexical`, the lexer reads each word whole and looks its keyword up in a table, rather than carrying a path for each keyword in its automaton; below. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
 | `ConstructionsMayThrow` | `false` | a construction may throw on a reading the parse gives up: the immediate carrier holds what it throws and throws it only where the tape would have (§7.5). Ignored on the tape. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
@@ -2638,6 +2639,23 @@ of it fails a build.
 `[Gram]` is a `[GramOptions]` with a grammar in it, so every option but `Source` and
 `IncludedAs` may be written on either, and a `[GramOptions]` takes what it does not say from
 the `[Gram]` (§6.6).
+
+#### `KeywordTable`
+
+A lexer (`Lexical = true`) normally has a path in its automaton for every keyword, so a grammar with
+a thousand keywords has an automaton of thousands of states. With `KeywordTable = true` the keywords
+that are whole words (§4.6) are left out of it: the lexer reads a word, the longest run of characters
+`wordboundary` names, and looks it up. A keyword is therefore never found inside a longer word, which
+is what the boundary asks of it anyway, and the automaton is the one the grammar would have without
+its keywords.
+
+The tokens are the same as without the option, keyword for keyword, and so is the answer of every
+parser; the lexer is smaller, and faster or slower according to the grammar. The option tables only
+what it can answer for as the literal does: a keyword written under the grammar's one boundary, whose
+characters all continue a word, and, for a literal that ignores case, ASCII ones. Everything else —
+`"go-to"`, `"<="`, `"order by"`, a keyword under another namespace's boundary or under none — stays
+in the automaton as before, and so does the whole lexer where the grammar has no `wordboundary` to
+name the words. It is a request, like `Lexical`, and costs a grammar that cannot use it nothing.
 
 #### `Carrier`
 

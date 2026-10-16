@@ -167,6 +167,17 @@ public sealed class TerminalInventory
 	public IReadOnlyList<Group> Asked { get; private init; } = [];
 
 	/// <summary>
+	/// The keywords the lexer looks up in a table after reading a whole word, and the automaton of the
+	/// rest; null where it was not asked for or nothing can be tabled.
+	/// </summary>
+	/// <remarks>
+	/// Kinds are the same either way: the machine of the table makes the kinds of what is not a
+	/// keyword, and the table says which kind a keyword is with it. The kinds only the machine makes are
+	/// numbered after all the others.
+	/// </remarks>
+	public KeywordTable? Words { get; private init; }
+
+	/// <summary>
 	/// The machine that reads the patterns together, and whose accepting states are the kinds.
 	/// </summary>
 	/// <remarks>
@@ -416,12 +427,14 @@ public sealed class TerminalInventory
 	}
 
 	/// <summary>Works out the inventory for a graph.</summary>
-	public static TerminalInventory Of(RecognitionGraph graph)
+	/// <param name="graph">The grammar.</param>
+	/// <param name="keywordTable">Whether the lexer looks keywords up in a table (<see cref="Words"/>) rather than carrying a path for each in its automaton.</param>
+	public static TerminalInventory Of(RecognitionGraph graph, bool keywordTable = false)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
-		var walker = new Walker(graph);
+		var walker = new Walker(graph) { TableKeywords = keywordTable };
 
 		if (!walker.Applies)
 			return new TerminalInventory(false, [], [], [], []);
@@ -527,6 +540,9 @@ public sealed class TerminalInventory
 		readonly HashSet<string>  _refused = [];
 		readonly List<string>     _reasons = [];
 		readonly List<(string Name, List<Text> Members)> _sets = [];
+
+		/// <summary>Whether the keywords are looked up in a table (<see cref="TerminalInventory.Words"/>).</summary>
+		public bool TableKeywords { get; init; }
 
 		/// <summary>The boundaries each keyword was woven with: what the lexer asks after its token.</summary>
 		readonly Dictionary<Text, List<Node.Element?>> _woven = [];
@@ -1132,6 +1148,12 @@ public sealed class TerminalInventory
 				continued[i] = continued[i] with { Extended = unions };
 			}
 
+			// A table of the keywords, if asked for: its automaton makes sets of patterns that no text makes
+			// alone, and those are kinds too, numbered after every other so that nothing numbered moves.
+			var tabled = TableKeywords
+				? Tabled(patterns, shapes!, machine.Sets.Count, kinds)
+				: null;
+
 			var (woven, wovenWith, wovenOf) = Unworded(kinds);
 			var asked = Asked(machine, kinds, woven, wovenWith, wovenOf);
 
@@ -1161,6 +1183,36 @@ public sealed class TerminalInventory
 				WordBoundaries = boundaries,
 				WordBoundaryOf = boundaryOf,
 				Asked          = asked,
+				Words          = tabled,
+			};
+		}
+
+		/// <summary>
+		/// The keywords of the grammar that a lexer can look up after reading a word, with the automaton of
+		/// the rest.
+		/// </summary>
+		KeywordTable? Tabled(List<Pattern> patterns, List<Node?> shapes, int machineKinds, List<Kind> kinds)
+		{
+			return KeywordTable.Of(
+				graph,
+				patterns,
+				shapes,
+				kinds,
+				machineKinds,
+				word => !_unguarded.Contains((word.Text, word.IgnoreCase)) &&
+					_woven.TryGetValue((word.Text, word.IgnoreCase), out var with) ? Narrowest(with) : null,
+				Holds,
+				[]);
+		}
+
+		/// <summary>Whether every token of a pattern is made of characters that continue a word under a boundary.</summary>
+		bool Holds(Pattern pattern, Node.Element boundary)
+		{
+			return pattern switch
+			{
+				Pattern.Word(_, var text, _) => text.Length > 0 && text.All(c => Inside(One(c), boundary)),
+				Pattern.Class(_, var rule) => graph.Bodies.TryGetValue(rule, out var body) && Within(body, boundary, []),
+				_ => false,
 			};
 		}
 

@@ -171,6 +171,14 @@ public static class SupportEmitter
 				/// </summary>
 				public bool ConstructionsMayThrow { get; set; }
 
+				/// <summary>
+				/// Read each word whole and look its keyword up in a table, instead of a path for each
+				/// keyword in the lexer's automaton. The same tokens; with many keywords the lexer is
+				/// much smaller. Only with <c>Lexical</c>, and only for keywords written under the
+				/// grammar's one <c>wordboundary</c>.
+				/// </summary>
+				public bool KeywordTable { get; set; }
+
 				/// <summary>Add buffered pull-input publications beside existing forms.</summary>
 				public bool BufferedInput { get; set; }
 

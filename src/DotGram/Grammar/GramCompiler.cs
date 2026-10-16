@@ -141,7 +141,7 @@ public static class GramCompiler
 		// after the diagnostics because it is a question about a sound grammar, and answered
 		// with the character machine where it cannot be: that machine is correct and right
 		// there, so a refusal is worth a word rather than a failed build.
-		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics) : null;
+		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics, options.KeywordTable) : null;
 
 		// And the one question that has a different answer on the other side of the cut:
 		// over characters an overlap between an optional and what follows it is settled by
@@ -207,7 +207,7 @@ public static class GramCompiler
 	/// come out anyway, and nothing the author did is wrong.
 	/// </para>
 	/// </remarks>
-	static LexicalSplit? Cut(RecognitionGraph graph, ICollection<GramDiagnostic> diagnostics)
+	static LexicalSplit? Cut(RecognitionGraph graph, ICollection<GramDiagnostic> diagnostics, bool keywordTable)
 	{
 		// A warning and not a remark: `Lexical = true` was asked for, and what comes out
 		// instead is a parser the author did not ask for — one that reads the same grammar
@@ -250,7 +250,7 @@ public static class GramCompiler
 			return null;
 		}
 
-		var split = LexicalSplit.Of(graph);
+		var split = LexicalSplit.Of(graph, keywordTable);
 
 		if (split is null)
 		{
