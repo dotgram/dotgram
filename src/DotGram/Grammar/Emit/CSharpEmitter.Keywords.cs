@@ -20,8 +20,8 @@ public static partial class CSharpEmitter
 	/// has already measured the word, and the run is only continued from its end.
 	/// </para>
 	/// <para>
-	/// The table is open addressing over a hash of the word, compared against the key as written: a hash
-	/// that agrees by chance costs a compare, never a wrong answer. Keys are kept sorted so that a text
+	/// The table is a switch on the length of the word and then on its characters, down to the last key
+	/// of a branch, which is compared whole. Keys are kept sorted so that a text
 	/// that ends inside a word can be asked whether some keyword begins with it, which the automaton of
 	/// everything else cannot say.
 	/// </para>
@@ -32,22 +32,6 @@ public static partial class CSharpEmitter
 		var keys    = table.Keys;
 		var fold    = table.IgnoreCase;
 		var longest = table.Longest;
-		var width   = 1;
-
-		while (width < keys.Count * 2)
-			width <<= 1;
-
-		var slots = new int[width];
-
-		foreach (var (key, at) in keys.Select((one, at) => (one, at)))
-		{
-			var slot = (int)(KeywordMix(KeywordHash(key, fold), key.Length) & (uint)(width - 1));
-
-			while (slots[slot] != 0)
-				slot = (slot + 1) & (width - 1);
-
-			slots[slot] = at + 1;
-		}
 
 		var contexts = table.Contexts.Count;
 		var kinds    = new int[inventory.Kinds.Count + 1];
@@ -66,8 +50,6 @@ public static partial class CSharpEmitter
 		file.Line("/// <summary>The keywords, as they are compared, in ordinal order.</summary>");
 		KeywordArray(file, "string", "Words_Keys", keys.Select(Quoted));
 		file.Line();
-		file.Line("/// <summary>Where a key is by its hash, one-based; 0 where there is none.</summary>");
-		KeywordNumbers(file, keys.Count < ushort.MaxValue ? "ushort" : "int", "Words_Slots", slots);
 		file.Line("/// <summary>By key and context, the kind a keyword is: with what the rest of the patterns said of it.</summary>");
 		KeywordNumbers(file, "int", "Words_Kinds", table.Kinds);
 		file.Line("/// <summary>By key, the kind it is without asking the automaton, or 0 where it must be asked.</summary>");
@@ -87,26 +69,28 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
-		file.Line("/// <summary>Which key the word of the given length and hash at <paramref name=\"pos\"/> is, or -1.</summary>");
-		file.Line("static int Words_Find(global::System.ReadOnlySpan<char> text, int pos, int length, uint hash)");
+		file.Line("/// <summary>Which key the word of the given length at <paramref name=\"pos\"/> is, or -1.</summary>");
+		file.Line("static int Words_Find(global::System.ReadOnlySpan<char> text, int pos, int length)");
 
 		using (file.Block(""))
 		{
-			file.Line($"var slot = (int)(((hash ^ (uint)length) ^ ((hash ^ (uint)length) >> 15)) & {width - 1}u);");
-			file.Line();
-
-			using (file.Block("while (Words_Slots[slot] != 0)"))
+			using (file.Block("switch (length)"))
 			{
-				file.Line("var key = Words_Slots[slot] - 1;");
-				file.Line();
-				file.Line("if (Words_Keys[key].Length == length && Words_Same(text, pos, Words_Keys[key]))");
-				file.Then("return key;");
-				file.Line();
-				file.Line($"slot = (slot + 1) & {width - 1};");
+				foreach (var group in keys.Select((one, at) => (Key: one, At: at)).GroupBy(static one => one.Key.Length).OrderBy(static one => one.Key))
+					file.Line($"case {group.Key}: return Words_Find{group.Key}(text, pos);");
 			}
 
 			file.Line();
 			file.Line("return -1;");
+		}
+
+		foreach (var group in keys.Select((one, at) => (Key: one, At: at)).GroupBy(static one => one.Key.Length).OrderBy(static one => one.Key))
+		{
+			file.Line();
+			file.Line($"static int Words_Find{group.Key}(global::System.ReadOnlySpan<char> text, int pos)");
+
+			using (file.Block(""))
+				KeywordSwitch(file, [.. group], 0, fold);
 		}
 
 		file.Line();
@@ -174,7 +158,7 @@ public static partial class CSharpEmitter
 		file.Line("/// One token: its kind by way of <paramref name=\"kind\"/>, and where it ends.");
 		file.Line("/// </summary>");
 		file.Line("/// <remarks>");
-		file.Line("/// The word is read first, and hashed on the way. A keyword whose kind does not depend on what the");
+		file.Line("/// The word is read first. A keyword whose kind does not depend on what the");
 		file.Line("/// rest of the patterns say of it is the token as it stands; otherwise the automaton of the rest");
 		file.Line("/// reads the token, and a keyword no shorter than that is the keyword, as longest match would have it.");
 		file.Line("/// </remarks>");
@@ -184,12 +168,10 @@ public static partial class CSharpEmitter
 		using (file.Block(""))
 		{
 			file.Line("var run  = pos;");
-			file.Line("var hash = 2166136261u;");
 			file.Line();
 
 			using (file.Block($"while (run < text.Length && run - pos <= {longest} && WordGoesOn_DotGramKeys(text[run]))"))
 			{
-				file.Line($"hash = (hash ^ {(fold ? "Words_Fold(text[run])" : "text[run]")}) * 16777619u;");
 				file.Line("run++;");
 			}
 
@@ -200,7 +182,7 @@ public static partial class CSharpEmitter
 
 			using (file.Block(""))
 			{
-				file.Line("key = Words_Find(text, pos, run - pos, hash);");
+				file.Line("key = Words_Find(text, pos, run - pos);");
 				file.Line();
 				file.Line("if (key >= 0 && Words_Direct[key] != 0)");
 
@@ -254,23 +236,33 @@ public static partial class CSharpEmitter
 		return file.ToString();
 	}
 
-	/// <summary>The hash a key is placed by; the scan computes the same, a character at a time.</summary>
-	static uint KeywordHash(string key, bool fold)
+	/// <summary>
+	/// The keys of one length as nested switches over their characters, one level a character, down to the
+	/// point where one key is left and the rest of the word is compared whole.
+	/// </summary>
+	static void KeywordSwitch(Writer file, List<(string Key, int At)> keys, int depth, bool fold)
 	{
-		var hash = 2166136261u;
+		if (keys.Count == 1)
+		{
+			file.Line($"return Words_Same(text, pos, Words_Keys[{keys[0].At}]) ? {keys[0].At} : -1;");
 
-		foreach (var c in key)
-			hash = (hash ^ (fold && c is >= 'a' and <= 'z' ? (uint)(c - 32) : c)) * 16777619u;
+			return;
+		}
 
-		return hash;
-	}
+		var of = fold ? $"Words_Fold(text[pos + {depth}])" : $"text[pos + {depth}]";
 
-	/// <summary>What the hash is made of once the length is known: the slot the scan looks in.</summary>
-	static uint KeywordMix(uint hash, int length)
-	{
-		hash ^= (uint)length;
+		using (file.Block($"switch ({of})"))
+		{
+			foreach (var group in keys.GroupBy(one => one.Key[depth]).OrderBy(static one => one.Key))
+			{
+				file.Line($"case {Char(group.Key)}:");
 
-		return hash ^ (hash >> 15);
+				using (file.Indent())
+					KeywordSwitch(file, [.. group], depth + 1, fold);
+			}
+		}
+
+		file.Line("return -1;");
 	}
 
 	static void KeywordNumbers(Writer file, string type, string name, IReadOnlyList<int> values)
