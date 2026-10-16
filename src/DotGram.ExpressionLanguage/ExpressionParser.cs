@@ -1649,7 +1649,7 @@ namespace DotGram.ExpressionLanguage;
 
 	// And the body of a lambda whose parameters say no types, read again once they have one.
 	private parse HeldBody as ParseBody
-	""", Lexical = true, Carrier = GramCarrier.Immediate, ConstructionsMayThrow = true)]
+	""", Lexical = true, KeywordTable = true, Carrier = GramCarrier.Immediate, ConstructionsMayThrow = true)]
 
 // The same grammar with every construction run after the parse is accepted, on the tape
 // (§6.5). It is here to be measured and to be held against the reading above: the two must

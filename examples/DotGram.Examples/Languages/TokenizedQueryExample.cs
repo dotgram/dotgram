@@ -82,7 +82,7 @@ public sealed record Comparison(string Column, string Op, string Value);
 	Value    : @string = t: (Number | Text)          => @(t)
 
 	parse Query
-	""", Lexical = true)]
+	""", Lexical = true, KeywordTable = true)]
 public static partial class TokenizedQuery
 {
 	/// <summary>A query written back out, for somebody to read.</summary>
