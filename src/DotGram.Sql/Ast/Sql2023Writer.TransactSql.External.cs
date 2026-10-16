@@ -731,10 +731,9 @@ public static partial class Sql2023Writer
 			{
 				switch (node)
 				{
-					// A variable's name is the text with its @.
+					// A variable's name is the text with its @, and then what a name goes on with, or nothing (`@3`, `@`).
 					case Expression.Variable variable:
-						if (!Regex.IsMatch(variable.Name.Text, @"^@@?[\p{L}_#][\p{L}\p{N}_@#$]*$") || variable.Name.Style != IdentifierStyle.Regular)
-							throw Misplaced(variable, "Name", $"that is no variable in {place}: @ and a word");
+						CheckVariable(variable.Name, place);
 
 						checkedParts.Add(variable.Name);
 						break;

@@ -912,4 +912,24 @@ public sealed class TransactSqlWriterTests
 
 		Assert.Equal(tree, Read(TransactSqlWriter.Write(tree)));
 	}
+
+	/// <summary>
+	/// A variable is `@` and then what a name goes on with, which may be digits or nothing; every place that reads one reads the
+	/// same, so a value there that is a variable of this form is written and read back.
+	/// </summary>
+	[Theory]
+	[InlineData("END CONVERSATION @3")]
+	[InlineData("END CONVERSATION @")]
+	[InlineData("END CONVERSATION @$x")]
+	[InlineData("END CONVERSATION @h WITH ERROR = @3 DESCRIPTION = @4")]
+	[InlineData("MOVE CONVERSATION @3 TO @4")]
+	[InlineData("WAITFOR DELAY @3")]
+	[InlineData("RECEIVE a FROM q WHERE conversation_handle = @3")]
+	public void A_variable_of_digits_is_written_and_read_back(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+		Assert.Equal(tree, Read(text));
+	}
 }
