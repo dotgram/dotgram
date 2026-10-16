@@ -1545,7 +1545,7 @@ public static partial class Sql2023Writer
 					if (insert.Columns.Count > 0)
 					{
 						Open();
-						Each(insert.Columns, PutIdentifier);
+						Each(insert.Columns, PutColumnName);
 						Close();
 					}
 
@@ -1672,7 +1672,7 @@ public static partial class Sql2023Writer
 								if (action.Columns.Count > 0)
 								{
 									Open();
-									Each(action.Columns, PutIdentifier);
+									Each(action.Columns, PutColumnName);
 									Close();
 								}
 
@@ -1769,7 +1769,8 @@ public static partial class Sql2023Writer
 
 		void PutAssignmentTarget(AssignmentTarget target)
 		{
-			PutName(target.Name);
+			// T-SQL: UPDATE (Transact-SQL). One of the engine's own columns stands alone there and carries no prefix (WrittenColumn).
+			PutName(target.Name, pseudoFrom: target.Name.Count == 1 ? 0 : int.MaxValue);
 
 			if (target.Index is { } index)
 			{

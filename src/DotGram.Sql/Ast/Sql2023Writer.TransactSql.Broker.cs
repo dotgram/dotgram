@@ -257,7 +257,7 @@ public static partial class Sql2023Writer
 
 		/// <summary>
 		/// A name of one part, as the grammar's <c>Identifier</c> reads it: <see cref="CheckExternalName"/>, and the reserved
-		/// words <see cref="PutIdentifier"/> refuses.
+		/// words <see cref="PutIdentifier(Identifier)"/> refuses.
 		/// </summary>
 		void PutOneName(Identifier name, string place)
 		{
@@ -288,7 +288,7 @@ public static partial class Sql2023Writer
 				if (part.Text.Length == 0 && part.Style == IdentifierStyle.Regular && at < name.Count - 1)
 					continue;
 
-				CheckExternalName(part, place);
+				CheckExternalName(part, place, pseudo: true);
 			}
 
 			PutName(name);

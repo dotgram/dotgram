@@ -174,6 +174,15 @@ public static partial class Sql2023Writer
 
 		void PutIdentifier(Identifier identifier)
 		{
+			PutIdentifier(identifier, pseudo: false);
+		}
+
+		/// <summary>
+		/// A name. <paramref name="pseudo"/> says the place reads one of the engine's own columns (<c>$ACTION</c>), which only the
+		/// grammar's qualified name does, and not an <c>Identifier</c>.
+		/// </summary>
+		void PutIdentifier(Identifier identifier, bool pseudo)
+		{
 			// T-SQL: SELECT Clause (Transact-SQL). A string is a column's alias and nothing else's name.
 			if (identifier.Style is IdentifierStyle.String or IdentifierStyle.NationalString)
 				throw Misplaced(identifier, "Style", "a string, which only a select column's alias is written as");
@@ -181,7 +190,7 @@ public static partial class Sql2023Writer
 			CheckReserved(identifier);
 
 			if (transactSql)
-				CheckExternalName(identifier, "a name");
+				CheckExternalName(identifier, "a name", pseudo);
 
 			Word(identifier.Text);
 
@@ -190,6 +199,16 @@ public static partial class Sql2023Writer
 		}
 
 		void PutName(QualifiedName name)
+		{
+			PutName(name, pseudoFrom: int.MaxValue);
+		}
+
+		/// <summary>
+		/// A name, whose parts from <paramref name="pseudoFrom"/> may be one of the engine's own columns (<c>$ACTION</c>): a place that
+		/// reads a column says 0, and one that reads an <c>Identifier</c> for its first part says 1. A name is a column only where the
+		/// grammar says so, which <see cref="PutName(QualifiedName)"/> does not.
+		/// </summary>
+		void PutName(QualifiedName name, int pseudoFrom)
 		{
 			if (name.Count == 0)
 				throw new ArgumentException("A name of no parts, default(QualifiedName), is no name and is not written.", nameof(name));
@@ -202,7 +221,7 @@ public static partial class Sql2023Writer
 					Hold();
 				}
 
-				PutPart(name, at);
+				PutPart(name, at, at >= pseudoFrom);
 			}
 		}
 
@@ -213,10 +232,15 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutPart(QualifiedName name, int at)
 		{
+			PutPart(name, at, pseudo: false);
+		}
+
+		void PutPart(QualifiedName name, int at, bool pseudo)
+		{
 			if (transactSql && at < name.Count - 1 && name[at] is { Text.Length: 0, Style: IdentifierStyle.Regular, UnicodeEscape: null })
 				Word("");
 			else
-				PutIdentifier(name[at]);
+				PutIdentifier(name[at], pseudo);
 		}
 
 		static string Dotted(QualifiedName name)

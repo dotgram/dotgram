@@ -60,6 +60,16 @@ public static partial class Sql2023Writer
 				throw Misplaced(identifier, "Text", "a reserved word written plain, which T-SQL reads as the key word; written bracketed or quoted it is a name");
 		}
 
+		/// <summary>
+		/// A column named alone where the grammar reads one of the engine's own, <c>$ACTION</c> or <c>$node_id</c>, as well as an
+		/// <c>Identifier</c>: an INSERT's columns (<c>WrittenColumn</c>), a MERGE's (<c>MergeColumn</c>), an index's and a statistic's
+		/// (<c>IndexName</c>).
+		/// </summary>
+		void PutColumnName(Identifier column)
+		{
+			PutIdentifier(column, pseudo: true);
+		}
+
 		/// <summary>A part left out of a name: no text, written plain, as the schema in <c>db..t</c>.</summary>
 		static bool IsLeftOut(Identifier part)
 		{
@@ -77,7 +87,7 @@ public static partial class Sql2023Writer
 					if (IsLeftOut(name[at]))
 						throw Misplaced(name, "a part left out", $"in {place}, which reads every part of a name written");
 
-			PutName(name);
+			PutName(name, pseudoFrom: name.Count);
 		}
 
 		/// <summary>
@@ -89,7 +99,7 @@ public static partial class Sql2023Writer
 			if (transactSql && name.Count != 1)
 				throw Misplaced(name, "parts", $"other than one in {place}, which reads a name of one part");
 
-			PutName(name);
+			PutName(name, pseudoFrom: name.Count);
 		}
 
 		/// <summary>
@@ -100,7 +110,7 @@ public static partial class Sql2023Writer
 			if (transactSql && name.Count > 0 && IsLeftOut(name[0]))
 				throw Misplaced(name, "a first part left out", $"in {place}, which begins a name with a part written");
 
-			PutName(name);
+			PutName(name, pseudoFrom: 1);
 		}
 
 		/// <summary>Words of letters, digits and _, one blank apart, or the percent sign of a unit.</summary>
@@ -109,7 +119,7 @@ public static partial class Sql2023Writer
 		/// <summary>
 		/// A key word the grammar reads at this place into a name or a value slot — an option's word, a catalogue's name, a
 		/// function T-SQL reserves the name of — which the place has checked against its own catalogue: written plain, as
-		/// <see cref="PutIdentifier"/> writes a name, and never held to the reserved words.
+		/// <see cref="PutIdentifier(Identifier)"/> writes a name, and never held to the reserved words.
 		/// </summary>
 		void PutKeyWord(Identifier word)
 		{
@@ -288,11 +298,27 @@ public static partial class Sql2023Writer
 				}
 			}
 			else
-				PutName(name);
+			{
+				// `$PARTITION.f(x)` names an index's partition function: the one pseudo-column a call is made through, never as the
+				// function's own name.
+				if (name.Count == 0)
+					throw new ArgumentException("A name of no parts, default(QualifiedName), is no name and is not written.", nameof(name));
+
+				for (var at = 0; at < name.Count; at++)
+				{
+					if (at > 0)
+					{
+						Tight(".");
+						Hold();
+					}
+
+					PutPart(name, at, pseudo: at < name.Count - 1 && Plain(name[at], "$PARTITION"));
+				}
+			}
 		}
 
 		/// <summary>
-		/// A column by name; its last part, where it is IDENTITYCOL or ROWGUIDCOL, is the key word the grammar reads as the
+		/// A column by name, which may be one of the engine's own (<c>$ACTION</c>); its last part, where it is IDENTITYCOL or ROWGUIDCOL, is the key word the grammar reads as the
 		/// table's identity or row-GUID column under any prefix (<c>RowColumnName</c>).
 		/// </summary>
 		void PutReference(QualifiedName name)
@@ -301,7 +327,7 @@ public static partial class Sql2023Writer
 			{
 				for (var at = 0; at < name.Count - 1; at++)
 				{
-					PutPart(name, at);
+					PutPart(name, at, pseudo: true);
 
 					Tight(".");
 					Hold();
@@ -310,7 +336,7 @@ public static partial class Sql2023Writer
 				PutKeyWord(last);
 			}
 			else
-				PutName(name);
+				PutName(name, pseudoFrom: 0);
 		}
 
 		/// <summary>

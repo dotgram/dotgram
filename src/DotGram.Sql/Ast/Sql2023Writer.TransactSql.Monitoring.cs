@@ -535,7 +535,7 @@ public static partial class Sql2023Writer
 			foreach (var part in name)
 				CheckExternalName(part, place);
 
-			PutName(name);
+			PutName(name, pseudoFrom: name.Count);
 		}
 
 		/// <summary>

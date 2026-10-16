@@ -317,6 +317,54 @@ public sealed class TransactSqlWriterTests
 		Assert.Equal(tree, Read(text));
 	}
 
+	// ── The engine's own columns ──────────────────────────────────────────────────
+
+	/// <summary>
+	/// <c>$ACTION</c> and the other pseudo-columns are read where the grammar reads a column, and not where it reads an
+	/// <c>Identifier</c> or a name of an object: they are refused there, and the standard's writer writes them.
+	/// </summary>
+	[Theory]
+	[InlineData("DROP ROLE r",                                       "r")]
+	[InlineData("CREATE ROLE r",                                     "r")]
+	[InlineData("DROP TABLE t",                                      "t")]
+	[InlineData("CREATE TABLE t (a INT)",                            "t")]
+	[InlineData("SELECT * FROM t",                                   "t")]
+	[InlineData("CREATE TABLE t (a INT CONSTRAINT c NOT NULL)",      "c")]
+	[InlineData("CREATE TABLE t (a INT)",                            "a")]
+	[InlineData("OPEN cur",                                          "cur")]
+	[InlineData("SELECT * FROM t WITH (INDEX (i1))",                 "i1")]
+	[InlineData("UPDATE t SET a.b = 1",                              "b")]
+	[InlineData("SELECT * FROM t AS x",                              "x")]
+	[InlineData("DROP SCHEMA s",                                     "s")]
+	[InlineData("EXECUTE p",                                         "p")]
+	public void A_pseudo_column_is_refused_where_the_grammar_reads_no_column(string text, string name)
+	{
+		var tree    = Read(text);
+		var changed = (ISqlNode)Swap(tree, Plain(name), Plain("$ACTION"));
+
+		Assert.NotEqual(tree, changed);
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(changed));
+		Assert.NotEmpty(Sql2023Writer.Write(changed));
+	}
+
+	/// <summary>The places that do read one: a column, a call through <c>$PARTITION</c>, and the column lists that name the engine's own.</summary>
+	[Theory]
+	[InlineData("SELECT $ACTION")]
+	[InlineData("SELECT t.$IDENTITY FROM t")]
+	[InlineData("SELECT [db].$PARTITION.f1(@a) FROM t")]
+	[InlineData("INSERT t1 ($node_id, $ACTION) VALUES (1, 2)")]
+	[InlineData("UPDATE t1 SET $IDENTITY = 1")]
+	[InlineData("CREATE INDEX i ON n (c1, $node_id) INCLUDE ($NODE_ID)")]
+	[InlineData("CREATE STATISTICS s ON n (c1, $NODE_ID)")]
+	[InlineData("MERGE INTO t USING u ON 1 = 1 WHEN NOT MATCHED THEN INSERT ($ACTION) VALUES (1)")]
+	public void A_pseudo_column_is_written_where_the_grammar_reads_a_column(string text)
+	{
+		var tree = Read(text);
+
+		Assert.Equal(text, TransactSqlWriter.Write(tree));
+		Assert.Equal(tree, Read(text));
+	}
+
 	// ── Condition against value ──────────────────────────────────────────────────
 
 	/// <summary>The condition every row's text holds at its place, <c>@a = 1</c>, and the value put in its stead, <c>@a</c>.</summary>

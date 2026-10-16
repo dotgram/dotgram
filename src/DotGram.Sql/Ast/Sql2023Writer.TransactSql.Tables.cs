@@ -294,7 +294,7 @@ public static partial class Sql2023Writer
 					Word("ON");
 					PutName(statistics.Table);
 					Open();
-					Each(statistics.Columns, PutIdentifier);
+					Each(statistics.Columns, PutColumnName);
 					Close();
 
 					if (statistics.Where is { } where)
@@ -1179,7 +1179,7 @@ public static partial class Sql2023Writer
 			{
 				Word("INCLUDE");
 				Open();
-				Each(index.Include, PutIdentifier);
+				Each(index.Include, PutColumnName);
 				Close();
 			}
 

@@ -874,7 +874,7 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void CheckIndexValue(Expression value)
 		{
-			if (transactSql && value is not (Expression.Reference { Name.Count: 1 } or LiteralValue.Numeric))
+			if (transactSql && value is not (Expression.Reference { Name: [{ Text: not ['$', ..] }] } or LiteralValue.Numeric))
 				throw Misplaced(value, "a value", "that is neither a name of one part nor a number, which IndexValue reads");
 		}
 

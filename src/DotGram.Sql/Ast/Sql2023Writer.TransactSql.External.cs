@@ -318,13 +318,13 @@ public static partial class Sql2023Writer
 		/// The text of an identifier as the grammar's <c>Identifier</c> reads one: <c>TSqlIdentifier</c> is a regular word, a name in
 		/// double quotes, a name in brackets or a temporary name, and a string, a Unicode-delimited name and a variable are none.
 		/// </summary>
-		static void CheckExternalName(Identifier name, string place)
+		static void CheckExternalName(Identifier name, string place, bool pseudo = false)
 		{
 			var text = name.Text;
 
 			switch (name.Style)
 			{
-				case IdentifierStyle.Regular when name.UnicodeEscape is null && IsRegularName(text):
+				case IdentifierStyle.Regular when name.UnicodeEscape is null && IsRegularName(text, pseudo):
 					return;
 
 				case IdentifierStyle.Bracketed when name.UnicodeEscape is null && IsDelimitedName(text, '[', ']'):
@@ -356,15 +356,15 @@ public static partial class Sql2023Writer
 
 		/// <summary>
 		/// A plain name: a letter or <c>_</c> and then letters, digits and <c>_ @ # $</c> (<c>TSql.RegularIdentifier</c>), or a temporary
-		/// name, which is that after one <c>#</c> or two (<c>TSql.TemporaryName</c>), or one of the engine's pseudo-columns
-		/// (<see cref="PseudoColumn"/>). The grammar reads UTF-16 units, so a letter outside the basic plane is none.
+		/// name, which is that after one <c>#</c> or two (<c>TSql.TemporaryName</c>), or, where <paramref name="pseudo"/> says the place
+		/// reads the grammar's qualified name, one of the engine's pseudo-columns (<see cref="PseudoColumn"/>). The grammar reads UTF-16 units, so a letter outside the basic plane is none.
 		/// </summary>
-		static bool IsRegularName(string text)
+		static bool IsRegularName(string text, bool pseudo = false)
 		{
 			var at = 0;
 
 			if (text.Length > 0 && text[0] == '$')
-				return PseudoColumn.IsMatch(text);
+				return pseudo && PseudoColumn.IsMatch(text);
 
 			if (text.Length > 0 && text[0] == '#')
 				at = text.Length > 1 && text[1] == '#' ? 2 : 1;
@@ -581,7 +581,7 @@ public static partial class Sql2023Writer
 				if (part.Text.Length == 0 && part.Style == IdentifierStyle.Regular && at < name.Count - 1)
 					continue;
 
-				CheckExternalName(part, "CREATE EXTERNAL TABLE");
+				CheckExternalName(part, "CREATE EXTERNAL TABLE", pseudo: true);
 			}
 
 			PutName(name);
@@ -764,7 +764,7 @@ public static partial class Sql2023Writer
 							checkedParts.Add(part);
 
 							if (!(part.Text.Length == 0 && part.Style == IdentifierStyle.Regular && at < reference.Name.Count - 1))
-								CheckExternalName(part, place);
+								CheckExternalName(part, place, pseudo: true);
 						}
 
 						if (Plain(reference.Name[0], "VALUE"))
