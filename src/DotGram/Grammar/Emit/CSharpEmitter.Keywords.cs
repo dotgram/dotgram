@@ -200,7 +200,7 @@ public static partial class CSharpEmitter
 
 			using (file.Block(""))
 			{
-				file.Line("key = Words_Find(text, pos, run - pos, hash);");
+				file.Line("key = -1;");
 				file.Line();
 				file.Line("if (key >= 0 && Words_Direct[key] != 0)");
 
