@@ -77,6 +77,26 @@ public static partial class CSharpEmitter
 
 		var compare = fold ? "Words_Fold(text[pos + i])" : "text[pos + i]";
 
+		if (longest < 64)
+		{
+			var mask = keys.Aggregate(0UL, static (all, one) => all | (1UL << one.Length));
+
+			file.Line("/// <summary>The lengths a keyword has: bit n is set where some keyword is n characters long.</summary>");
+			file.Line($"const ulong Words_Lengths = 0x{mask:X}UL;");
+		}
+		else
+		{
+			var lengths = new int[longest + 1];
+
+			foreach (var one in keys)
+				lengths[one.Length] = 1;
+
+			file.Line("/// <summary>The lengths a keyword has: 1 where some keyword is that long.</summary>");
+			KeywordNumbers(file, "byte", "Words_Lengths", lengths);
+		}
+
+		file.Line();
+
 		if (fold)
 		{
 			file.Line("static char Words_Fold(char c)");
@@ -196,11 +216,13 @@ public static partial class CSharpEmitter
 			file.Line();
 			file.Line("var key = -1;");
 			file.Line();
-			file.Line($"if (run - pos >= {table.Shortest} && run - pos <= {longest})");
+			file.Line(longest < 64
+				? $"if (run - pos <= {longest} && ((Words_Lengths >> (run - pos)) & 1) != 0)"
+				: $"if (run - pos <= {longest} && Words_Lengths[run - pos] != 0)");
 
 			using (file.Block(""))
 			{
-				file.Line("key = -1;");
+				file.Line("key = Words_Find(text, pos, run - pos, hash);");
 				file.Line();
 				file.Line("if (key >= 0 && Words_Direct[key] != 0)");
 
