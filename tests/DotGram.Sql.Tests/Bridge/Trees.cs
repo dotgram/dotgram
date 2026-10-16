@@ -137,6 +137,14 @@ static class Trees
 		"Statement.RouteDefinition.Tail",
 		"Statement.RemoteServiceBindingDefinition.Tail",
 		"Statement.BrokerPriorityDefinition.Tail",
+		// The Monitoring family: what follows the name of an event notification, an audit and an audit specification, an event's
+		// predicate and the state an event session is put in.
+		"Statement.EventNotificationDefinition.Tail",
+		"Statement.ServerAuditDefinition.Tail",
+		"Statement.AuditSpecificationDefinition.Tail",
+		"Statement.DatabaseAuditSpecificationDefinition.Tail",
+		"Clause.EventPiece.Where",
+		"Statement.EventSessionDefinition.State",
 	};
 
 	/// <summary>
@@ -208,6 +216,8 @@ static class Trees
 		"LINUX", "PLATFORM",
 		// The Broker family: the words of its objects and statements that the writer prints in capitals.
 		"ACTIVATION", "ADD", "BINDING", "BROKER", "BY", "CLEANUP", "CONTRACT", "CONVERSATION", "DESCRIPTION", "DIALOG", "ERROR", "EXECUTE", "GET", "INITIATOR", "LOB_COMPACTION", "MAXDOP", "MAX_QUEUE_READERS", "MESSAGE", "POISON_MESSAGE_HANDLING", "PRIORITY", "PROCEDURE_NAME", "QUEUE", "RECEIVE", "REORGANIZE", "RETENTION", "SELF", "SEND", "SENT", "STATUS", "TARGET", "TIMEOUT", "TIMER", "TOP", "VALIDATION", "VALID_XML", "WAITFOR",
+		// The Monitoring family: the words of its statements that the writer prints in capitals.
+		"APPLICATION_LOG", "AUDIT", "DROP", "EVENT", "EXTERNAL_MONITOR", "FAN_IN", "FILEPATH", "FOR", "MODIFY", "NOT", "NOTIFICATION", "NULL", "ON", "OR", "PUBLIC", "SECURITY_LOG", "SESSION", "SPECIFICATION", "START", "STOP", "URL",
 	};
 
 	/// <summary>

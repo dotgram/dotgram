@@ -421,7 +421,15 @@ public sealed class Sql2023WriterCoverageTests
 		// Broker: who sends a contract's message, and whether a service's contract is added or dropped.
 		[typeof(ContractSender)]     = v => new Statement.CreateContract(new Identifier("c"), [new ContractMessage(new Identifier("m"), (ContractSender)v)]),
 		[typeof(AddOrDrop)]          = v => new Statement.AlterService(new Identifier("s")) { Changes = [new ServiceChange((AddOrDrop)v, new Identifier("c"))] },
+		// Monitoring: how an event's predicate terms are joined, and the state an event session is put in.
+		[typeof(EventJoin)]          = v => new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Join(EventEqual(), (EventJoin)v, EventEqual()) }]),
+		[typeof(EventSessionState)]  = v => new Statement.AlterEventSession(new Identifier("s"), EventScope.Server) { State = (EventSessionState)v },
 	};
+
+	static EventPredicate EventEqual()
+	{
+		return new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.Equal, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger));
+	}
 
 	/// <summary>
 	/// Enums whose values do not decide the text, and why. Distinctness is not asked of them.
@@ -780,6 +788,13 @@ public sealed class Sql2023WriterCoverageTests
 			["Send.Bracketed"] = (
 				new Statement.Send([new Expression.Variable(new Identifier("@h"))]),
 				new Statement.Send([new Expression.Variable(new Identifier("@h"))]) { Bracketed = true }),
+			// Monitoring: a comma after an audit action's bracket, and != against <>.
+			["AuditAction.Comma"] = (
+				new Statement.CreateServerAuditSpecification(new Identifier("s")) { Actions = [new AuditAction(AddOrDrop.Add, [new ActionWords([new Identifier("a")])])] },
+				new Statement.CreateServerAuditSpecification(new Identifier("s")) { Actions = [new AuditAction(AddOrDrop.Add, [new ActionWords([new Identifier("a")])]) { Comma = true }] }),
+			["Compare.Exclamation"] = (
+				new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.NotEqual, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) }]),
+				new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.NotEqual, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) { Exclamation = true } }])),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

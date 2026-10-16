@@ -453,6 +453,7 @@ static partial class Bridge
 			readonly object _old;
 			readonly string? _text;
 			readonly List<SqlTokens.Token> _tokens;
+			readonly List<int> _starts;
 			int _at;
 
 			/// <summary>
@@ -464,8 +465,10 @@ static partial class Bridge
 				_old    = old;
 				_text   = text;
 				_tokens = [];
+				_starts = [];
 
 				var tokens = SqlTokens.Of(text ?? "");
+				var starts = Starts(text ?? "");
 
 				for (var at = 0; at < tokens.Count; at++)
 				{
@@ -474,11 +477,81 @@ static partial class Bridge
 						&& Regex.IsMatch(tokens[at + 2].Text, "^[0-9]+$"))
 					{
 						_tokens.Add(new SqlTokens.Token(SqlTokens.Kind.Number, tokens[at].Text + tokens[at + 1].Text + tokens[at + 2].Text));
+						_starts.Add(starts[at]);
 						at += 2;
 					}
 					else
+					{
 						_tokens.Add(tokens[at]);
+						_starts.Add(starts[at]);
+					}
 				}
+			}
+
+			/// <summary>The position each token of a text starts at, comments and blanks skipped as the tokens skip them.</summary>
+			static List<int> Starts(string text)
+			{
+				var starts = new List<int>();
+				var at     = 0;
+
+				foreach (var token in SqlTokens.Of(text))
+				{
+					at = SkipBlanks(text, at);
+					starts.Add(at);
+					at += token.Text.Length;
+				}
+
+				return starts;
+			}
+
+			static int SkipBlanks(string text, int at)
+			{
+				while (at < text.Length)
+				{
+					if (char.IsWhiteSpace(text[at]))
+						at++;
+					else if (text[at] == '-' && at + 1 < text.Length && text[at + 1] == '-')
+						at = text.IndexOf('\n', at) is var end && end >= 0 ? end + 1 : text.Length;
+					else if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
+					{
+						var depth = 0;
+
+						while (at < text.Length)
+						{
+							if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
+							{
+								depth++;
+								at += 2;
+							}
+							else if (text[at] == '*' && at + 1 < text.Length && text[at + 1] == '/')
+							{
+								at += 2;
+
+								if (--depth == 0)
+									break;
+							}
+							else
+								at++;
+						}
+					}
+					else
+						break;
+				}
+
+				return at;
+			}
+
+			/// <summary>The text from the next token to the end, as it was written.</summary>
+			public string Rest()
+			{
+				if (_at >= _tokens.Count)
+					throw Unread();
+
+				var rest = _text![_starts[_at]..];
+
+				_at = _tokens.Count;
+
+				return rest;
 			}
 
 			public bool End
@@ -643,40 +716,257 @@ static partial class Bridge
 			}
 
 			/// <summary>
-			/// Settings joined by commas, each a word, <c>=</c> and a value of one token: a string, a number, or a name (ON, OFF,
+			/// Settings joined by commas, each a word, <c>=</c> and a value: a string, a number and the unit after it, or a name (ON, OFF,
 			/// ANY and DEFAULT among them), the name as written.
 			/// </summary>
 			public SqlList<Ast.Option> Settings()
 			{
-				var made = new List<Ast.Option>();
+				var made = new List<Ast.Option> { Setting() };
+
+				while (TakePunctuation(","))
+					made.Add(Setting());
+
+				return made.ToSqlList();
+			}
+
+			/// <summary>One setting: a word, <c>=</c> and a value (<see cref="Settings"/>).</summary>
+			public Ast.Option Setting()
+			{
+				if (_at >= _tokens.Count || _tokens[_at].Kind != SqlTokens.Kind.Word)
+					throw Unread();
+
+				var name = Values.Part(_old, _tokens[_at++].Text);
+
+				ExpectPunctuation("=");
+
+				return new Ast.Option(name, SettingValue(), []);
+			}
+
+			/// <summary>
+			/// The words of a securable's class and the <c>::</c> after them, as the class they name, or null where the next words are
+			/// followed by no <c>::</c>. A class no word names is a gap.
+			/// </summary>
+			public Ast.SecurableClass? Class()
+			{
+				var end = _at;
+
+				while (end < _tokens.Count && _tokens[end].Kind == SqlTokens.Kind.Word)
+					end++;
+
+				if (end == _at || end + 1 >= _tokens.Count || _tokens[end] is not { Kind: SqlTokens.Kind.Punctuation, Text: ":" } || _tokens[end + 1] is not { Kind: SqlTokens.Kind.Punctuation, Text: ":" })
+					return null;
+
+				var words = string.Join(' ', _tokens.Skip(_at).Take(end - _at).Select(static one => one.Text.ToUpperInvariant()));
+
+				_at = end + 2;
+
+				return Monitoring.ClassWords.Value.TryGetValue(words, out var kind) ? kind : throw Unread();
+			}
+
+			/// <summary>
+			/// A value of one token, a number with its unit after it (<c>15 TB</c>, <c>1MB</c>) or a name; the unit is a word that is not
+			/// the next clause.
+			/// </summary>
+			Ast.Expression SettingValue()
+			{
+				if (_at >= _tokens.Count)
+					throw Unread();
+
+				var token = _tokens[_at++];
+
+				switch (token.Kind)
+				{
+					case SqlTokens.Kind.String:
+						return Values.String(token.Text);
+
+					case SqlTokens.Kind.Number:
+					{
+						// `1MB` is one token to the tokens the text is compared by and two to the grammar, and the tree keeps no blank.
+						if (Regex.IsMatch(token.Text, "^(?:[0-9]+[.]?[0-9]*|[.][0-9]+)[A-Za-z_]+$") && !Regex.IsMatch(token.Text, "^(?:[0-9]+[.]?[0-9]*|[.][0-9]+)[eE]$") && !token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+							throw BridgeGap.Lost(_old, "a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank");
+
+						var number = Values.Of(new Expression.Literal(token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? SqlLiteralKind.Hex : SqlLiteralKind.Number, token.Text));
+
+						if (_at < _tokens.Count && _tokens[_at].Kind == SqlTokens.Kind.Word)
+							return new Ast.Expression.Measured(number, new Ast.Identifier(_tokens[_at++].Text));
+
+						return number;
+					}
+
+					case SqlTokens.Kind.Word or SqlTokens.Kind.Delimited:
+						return new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(_old, token.Text)]));
+
+					default:
+						throw Unread();
+				}
+			}
+
+			/// <summary><c>( settings )</c>.</summary>
+			public SqlList<Ast.Option> Bracketed()
+			{
+				ExpectPunctuation("(");
+
+				var made = Settings();
+
+				ExpectPunctuation(")");
+
+				return made;
+			}
+
+			/// <summary>The rest of the text, a search condition, read again by the grammar's rule for it.</summary>
+			public Ast.Expression Condition()
+			{
+				var text = Rest();
+
+				return TransactSql.TransactSqlParser.TryParseSql("SELECT 1 WHERE " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
+					? Values.Of(where)
+					: throw Unread();
+			}
+
+			/// <summary>The rest of the text, values joined by commas, read again as a select list reads them.</summary>
+			public SqlList<Ast.Expression> ValueList()
+			{
+				var text = Rest();
+
+				return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: var columns } }] }
+					&& columns.All(static one => one is Clause.DerivedColumn { Name: null })
+					? Each(columns, static one => Values.Of(((Clause.DerivedColumn)one).Value))
+					: throw Unread();
+			}
+
+			/// <summary>
+			/// A run of words (<c>ActionWords</c>): the words up to a comma, a bracket or one of the words that end a run, and one at least.
+			/// </summary>
+			public Ast.ActionWords ActionWords()
+			{
+				var words = new List<Ast.Identifier>();
+
+				while (_at < _tokens.Count && _tokens[_at].Kind == SqlTokens.Kind.Word && !WordAt(_at, "ON") && !WordAt(_at, "TO") && !WordAt(_at, "FROM") && !WordAt(_at, "WITH") && !WordAt(_at, "CASCADE"))
+					words.Add(new Ast.Identifier(_tokens[_at++].Text));
+
+				return words.Count > 0 ? new Ast.ActionWords(words.ToSqlList()) : throw Unread();
+			}
+
+			/// <summary>A name of one part, two or three, joined by dots (<c>EventObject</c>).</summary>
+			public Ast.QualifiedName EventName()
+			{
+				var parts = new List<string>();
 
 				do
 				{
-					if (_at >= _tokens.Count || _tokens[_at].Kind != SqlTokens.Kind.Word)
+					if (_at >= _tokens.Count || _tokens[_at].Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited))
 						throw Unread();
 
-					var name = Values.Part(_old, _tokens[_at++].Text);
-
-					ExpectPunctuation("=");
-
-					if (_at >= _tokens.Count)
-						throw Unread();
-
-					var token = _tokens[_at++];
-
-					Ast.Expression value = token.Kind switch
-					{
-						SqlTokens.Kind.String                           => Values.String(token.Text),
-						SqlTokens.Kind.Number                           => Values.Of(new Expression.Literal(SqlLiteralKind.Number, token.Text)),
-						SqlTokens.Kind.Word or SqlTokens.Kind.Delimited => new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(_old, token.Text)])),
-						_                                               => throw Unread(),
-					};
-
-					made.Add(new Ast.Option(name, value, []));
+					parts.Add(_tokens[_at++].Text);
 				}
-				while (TakePunctuation(","));
+				while (TakePunctuation("."));
 
-				return made.ToSqlList();
+				return Values.Name(_old, string.Join('.', parts));
+			}
+
+			/// <summary>
+			/// A value of an event (<c>EventValue</c>): a number, a minus before it, a binary string or a string, in brackets as often as
+			/// written. A binary string with a minus has no place in the tree.
+			/// </summary>
+			public Ast.Expression EventValue()
+			{
+				if (TakePunctuation("("))
+				{
+					var inner = EventValue();
+
+					ExpectPunctuation(")");
+
+					return new Ast.Expression.Parenthesized(inner);
+				}
+
+				var minus = TakePunctuation("-");
+
+				if (_at >= _tokens.Count)
+					throw Unread();
+
+				var token = _tokens[_at++];
+
+				switch (token.Kind)
+				{
+					case SqlTokens.Kind.Number when token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase):
+						return minus ? throw BridgeGap.Missing(_old, "a binary string with a minus before it, which the grammar's EventValue reads and the tree has no place for") : Values.Of(new Expression.Literal(SqlLiteralKind.Hex, token.Text));
+
+					case SqlTokens.Kind.Number:
+						return Values.Of(new Expression.Literal(SqlLiteralKind.Number, (minus ? "-" : "") + token.Text));
+
+					case SqlTokens.Kind.String when !minus:
+						return Values.String(token.Text);
+
+					default:
+						throw Unread();
+				}
+			}
+
+			/// <summary>An event's predicate (<c>EventPredicate</c>): factors joined from the left by AND and OR.</summary>
+			public Ast.EventPredicate Predicate()
+			{
+				var left = Factor();
+
+				while (true)
+				{
+					var join = Take("AND") ? Ast.EventJoin.And : Take("OR") ? Ast.EventJoin.Or : (Ast.EventJoin?)null;
+
+					if (join is not { } one)
+						return left;
+
+					left = new Ast.EventPredicate.Join(left, one, Factor());
+				}
+			}
+
+			Ast.EventPredicate Factor()
+			{
+				return Take("NOT") ? new Ast.EventPredicate.Not(Factor()) : Term();
+			}
+
+			Ast.EventPredicate Term()
+			{
+				if (TakePunctuation("("))
+				{
+					var inner = Predicate();
+
+					ExpectPunctuation(")");
+
+					return new Ast.EventPredicate.Parenthesized(inner);
+				}
+
+				var name = EventName();
+
+				if (TakePunctuation("("))
+				{
+					var field = EventName();
+
+					ExpectPunctuation(",");
+
+					var value = EventValue();
+
+					ExpectPunctuation(")");
+
+					return new Ast.EventPredicate.Call(name, field, value);
+				}
+
+				if (Take("NOT", "LIKE"))
+					return new Ast.EventPredicate.Like(name, true, EventValue());
+
+				if (Take("LIKE"))
+					return new Ast.EventPredicate.Like(name, false, EventValue());
+
+				var (op, bang) = Take("<", ">") ? (Ast.ComparisonOperator.NotEqual, false)
+					: Take("!", "=") ? (Ast.ComparisonOperator.NotEqual, true)
+					: Take("!", "<") ? (Ast.ComparisonOperator.NotLess, false)
+					: Take("!", ">") ? (Ast.ComparisonOperator.NotGreater, false)
+					: Take(">", "=") ? (Ast.ComparisonOperator.GreaterOrEqual, false)
+					: Take("<", "=") ? (Ast.ComparisonOperator.LessOrEqual, false)
+					: Take("=") ? (Ast.ComparisonOperator.Equal, false)
+					: Take(">") ? (Ast.ComparisonOperator.Greater, false)
+					: Take("<") ? (Ast.ComparisonOperator.Less, false)
+					: throw Unread();
+
+				return new Ast.EventPredicate.Compare(name, op, EventValue()) { Exclamation = bang };
 			}
 		}
 	}

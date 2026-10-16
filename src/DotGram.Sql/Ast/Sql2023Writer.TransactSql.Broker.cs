@@ -590,21 +590,41 @@ public static partial class Sql2023Writer
 
 		// ── Settings of a route, a binding, a priority and a dialog ───────────────
 
-		/// <summary>The forms of value a setting is read with.</summary>
+		/// <summary>
+		/// The forms of value a setting is read with: a string (<c>Quoted</c>), a name, an unsigned number, ON or OFF, the word ANY, the
+		/// word DEFAULT, any value, digits alone (<c>Sql92.Lexical.Digits</c>), an exact number with no exponent (<c>ExactNumber</c>),
+		/// a word out of the entry's list, and a number and the unit it is written in.
+		/// </summary>
 		[Flags]
 		enum BrokerForm
 		{
-			String  = 1,
-			Name    = 2,
-			Number  = 4,
-			OnOff   = 8,
-			Any     = 16,
-			Default = 32,
-			Value   = 64,
+			String   = 1,
+			Name     = 2,
+			Number   = 4,
+			OnOff    = 8,
+			Any      = 16,
+			Default  = 32,
+			Value    = 64,
+			Digits   = 128,
+			Exact    = 256,
+			Words    = 512,
+			Measured = 1024,
+		}
+
+		/// <summary>
+		/// One setting a place reads: the forms of its value, the words and the units where its value is one of a closed list, and
+		/// whether the place lets it stand once only. A setting of the forms alone is read once.
+		/// </summary>
+		readonly record struct SettingEntry(BrokerForm Forms, string[]? Words = null, string[]? Units = null, bool Once = true)
+		{
+			public static implicit operator SettingEntry(BrokerForm forms)
+			{
+				return new SettingEntry(forms);
+			}
 		}
 
 		/// <summary>RouteOption: strings but the lifetime, which is a number.</summary>
-		static readonly Dictionary<string, BrokerForm> RouteSettings = new(StringComparer.OrdinalIgnoreCase)
+		static readonly Dictionary<string, SettingEntry> RouteSettings = new(StringComparer.OrdinalIgnoreCase)
 		{
 			["SERVICE_NAME"]    = BrokerForm.String,
 			["BROKER_INSTANCE"] = BrokerForm.String,
@@ -614,14 +634,14 @@ public static partial class Sql2023Writer
 		};
 
 		/// <summary>BindingOption: the user as a name and the switch for anonymous.</summary>
-		static readonly Dictionary<string, BrokerForm> BindingSettings = new(StringComparer.OrdinalIgnoreCase)
+		static readonly Dictionary<string, SettingEntry> BindingSettings = new(StringComparer.OrdinalIgnoreCase)
 		{
 			["USER"]      = BrokerForm.Name,
 			["ANONYMOUS"] = BrokerForm.OnOff,
 		};
 
 		/// <summary>PriorityOption: names, a string and a level, each of them or its default word.</summary>
-		static readonly Dictionary<string, BrokerForm> PrioritySettings = new(StringComparer.OrdinalIgnoreCase)
+		static readonly Dictionary<string, SettingEntry> PrioritySettings = new(StringComparer.OrdinalIgnoreCase)
 		{
 			["CONTRACT_NAME"]       = BrokerForm.Name | BrokerForm.Any,
 			["LOCAL_SERVICE_NAME"]  = BrokerForm.Name | BrokerForm.Any,
@@ -630,7 +650,7 @@ public static partial class Sql2023Writer
 		};
 
 		/// <summary>DialogOption: the related conversation and the lifetime are any value, and the encryption a switch.</summary>
-		static readonly Dictionary<string, BrokerForm> DialogSettings = new(StringComparer.OrdinalIgnoreCase)
+		static readonly Dictionary<string, SettingEntry> DialogSettings = new(StringComparer.OrdinalIgnoreCase)
 		{
 			["RELATED_CONVERSATION_GROUP"] = BrokerForm.Value,
 			["RELATED_CONVERSATION"]       = BrokerForm.Value,
@@ -642,7 +662,7 @@ public static partial class Sql2023Writer
 		/// A list of settings joined by commas, one at least, each a name the catalogue reads and each once; <paramref name="required"/>
 		/// are among them, and at most one of <paramref name="apart"/>.
 		/// </summary>
-		void PutBrokerSettings(ISqlNode owner, SqlList<Option> options, Dictionary<string, BrokerForm> catalogue, string place, string[] required, string[] apart)
+		void PutBrokerSettings(ISqlNode owner, SqlList<Option> options, Dictionary<string, SettingEntry> catalogue, string place, string[] required, string[] apart)
 		{
 			if (options.Count == 0)
 				throw Empty(owner, "Options");
@@ -653,10 +673,10 @@ public static partial class Sql2023Writer
 			{
 				var option = options[at];
 
-				if (option.Words.Count > 0 || option.Name.Style != IdentifierStyle.Regular || !catalogue.TryGetValue(option.Name.Text, out var forms))
+				if (option.Words.Count > 0 || option.Name.Style != IdentifierStyle.Regular || !catalogue.TryGetValue(option.Name.Text, out var entry))
 					throw Misplaced(option, "Name", $"in {place}, which reads no setting {string.Join(" ", option.Words.Select(static one => one.Text).Prepend(option.Name.Text))}");
 
-				if (!seen.Add(option.Name.Text))
+				if (!seen.Add(option.Name.Text) && entry.Once)
 					throw Misplaced(option, "Name", $"twice in {place}, which reads {option.Name.Text} once (NamedOnce)");
 
 				if (option.EqualsOmitted)
@@ -676,7 +696,7 @@ public static partial class Sql2023Writer
 
 				PutKeyWord(option.Name);
 				Word("=");
-				PutBrokerValue(option, value, forms, place);
+				PutBrokerValue(option, value, entry, place);
 			}
 
 			foreach (var name in required)
@@ -687,11 +707,14 @@ public static partial class Sql2023Writer
 				throw Misplaced(owner, "Options", $"that name {string.Join(" and ", apart)} together, of which {place} reads one");
 		}
 
-		void PutBrokerValue(Option option, Expression value, BrokerForm forms, string place)
+		void PutBrokerValue(Option option, Expression value, SettingEntry entry, string place)
 		{
+			var forms = entry.Forms;
+
 			if (value is Expression.Reference { Name: [{ } word] })
 			{
-				if (forms.HasFlag(BrokerForm.OnOff) && Plain(word, "ON", "OFF") || forms.HasFlag(BrokerForm.Any) && Plain(word, "ANY") || forms.HasFlag(BrokerForm.Default) && Plain(word, "DEFAULT"))
+				if (forms.HasFlag(BrokerForm.OnOff) && Plain(word, "ON", "OFF") || forms.HasFlag(BrokerForm.Any) && Plain(word, "ANY") || forms.HasFlag(BrokerForm.Default) && Plain(word, "DEFAULT")
+					|| forms.HasFlag(BrokerForm.Words) && entry.Words is { } words && Plain(word, words))
 				{
 					PutKeyWord(word);
 					return;
@@ -710,9 +733,17 @@ public static partial class Sql2023Writer
 				return;
 			}
 
-			if (value is LiteralValue.Numeric number && forms.HasFlag(BrokerForm.Number) && IsNumberOf(number, ExternalShape.Number))
+			// A setting of a number and its unit has no bare number.
+			if (value is LiteralValue.Numeric number && !forms.HasFlag(BrokerForm.Measured) && IsNumeric(number, forms))
 			{
 				PutExpression(number);
+				return;
+			}
+
+			if (value is Expression.Measured { Value: LiteralValue.Numeric amount, Unit: { } unit } && forms.HasFlag(BrokerForm.Measured) && entry.Units is { } units && Plain(unit, units) && IsNumeric(amount, forms))
+			{
+				PutExpression(amount);
+				PutKeyWord(unit);
 				return;
 			}
 
@@ -723,6 +754,14 @@ public static partial class Sql2023Writer
 			}
 
 			throw Misplaced(option, "Value", $"of a form {option.Name.Text} is not read with in {place}");
+		}
+
+		/// <summary>Whether a number is one the forms read: digits alone, an exact number with no exponent, or any unsigned number.</summary>
+		static bool IsNumeric(LiteralValue.Numeric number, BrokerForm forms)
+		{
+			var shape = (forms.HasFlag(BrokerForm.Number) ? ExternalShape.Number : 0) | (forms.HasFlag(BrokerForm.Exact) ? ExternalShape.Exact : 0) | (forms.HasFlag(BrokerForm.Digits) ? ExternalShape.Digits : 0);
+
+			return shape != 0 && IsNumberOf(number, shape);
 		}
 
 		// ── Conversations ─────────────────────────────────────────────────────────

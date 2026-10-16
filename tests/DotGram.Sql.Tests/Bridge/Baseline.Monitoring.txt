@@ -5,8 +5,8 @@
 # deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
 
 Clause.EventPiece = 0/0/0/0/0/0/0
-Statement.AuditSpecificationDefinition = 0/45/0/0/0/0/0
-Statement.DatabaseAuditSpecificationDefinition = 0/56/0/0/0/0/0
-Statement.EventNotificationDefinition = 0/17/0/0/0/0/0
-Statement.EventSessionDefinition = 0/323/0/0/0/0/0
-Statement.ServerAuditDefinition = 0/118/0/0/0/0/0
+Statement.AuditSpecificationDefinition = 45/0/0/0/0/0/0
+Statement.DatabaseAuditSpecificationDefinition = 56/0/0/0/0/0/0
+Statement.EventNotificationDefinition = 17/0/0/0/0/0/0
+Statement.EventSessionDefinition = 321/2/0/0/0/0/0
+Statement.ServerAuditDefinition = 116/2/0/0/0/0/0
