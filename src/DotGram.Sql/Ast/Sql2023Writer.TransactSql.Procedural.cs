@@ -217,11 +217,11 @@ public static partial class Sql2023Writer
 					}
 					else
 					{
-						if (declare.Properties.Sensitivity is not null)
-							Word("INSENSITIVE");
+						if (declare.Properties.Sensitivity is { } sensitivity)
+							Word(sensitivity == CursorSensitivity.Insensitive ? "INSENSITIVE" : throw NoText(sensitivity));
 
-						if (declare.Properties.Scrollability is not null)
-							Word("SCROLL");
+						if (declare.Properties.Scrollability is { } scrolling)
+							Word(scrolling == CursorScrollability.Scroll ? "SCROLL" : throw NoText(scrolling));
 
 						Word("CURSOR");
 					}
@@ -818,7 +818,7 @@ public static partial class Sql2023Writer
 				Put(scope switch { CursorScope.Local => "LOCAL", CursorScope.Global => "GLOBAL", _ => throw NoText(scope) });
 
 			if (properties.Scrollability is { } scrollability)
-				Put(scrollability == CursorScrollability.Scroll ? "SCROLL" : "FORWARD_ONLY");
+				Put(scrollability switch { CursorScrollability.Scroll => "SCROLL", CursorScrollability.NoScroll => "FORWARD_ONLY", _ => throw NoText(scrollability) });
 
 			if (properties.Type is { } type)
 				Put(type switch

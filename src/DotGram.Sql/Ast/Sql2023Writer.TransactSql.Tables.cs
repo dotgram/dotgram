@@ -734,7 +734,7 @@ public static partial class Sql2023Writer
 				|| unique.Options.Count == 2 && unique.Options[0].Name.Text.Equals(unique.Options[1].Name.Text, StringComparison.OrdinalIgnoreCase)))
 				throw Misplaced(unique, "OptionsUnbracketed", "with options other than one FILLFACTOR and one SORTED_DATA");
 
-			Word(unique.Kind == UniqueKind.Unique ? "UNIQUE" : "PRIMARY KEY");
+			Word(unique.Kind switch { UniqueKind.Unique => "UNIQUE", UniqueKind.PrimaryKey => "PRIMARY KEY", _ => throw NoText(unique.Kind) });
 			PutClustering(unique.Clustering);
 
 			if (unique.Keys is { } keys)

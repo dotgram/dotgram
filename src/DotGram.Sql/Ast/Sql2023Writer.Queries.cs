@@ -204,13 +204,13 @@ public static partial class Sql2023Writer
 			{
 				Word("OFFSET");
 				PutExpression(offset);
-				Word(limit.OffsetRowWord == RowWord.Row ? "ROW" : "ROWS");
+				Word(RowText(limit.OffsetRowWord));
 			}
 
 			if (!fetched)
 				return;
 
-			Word(limit.Position == FetchPosition.First ? "FETCH FIRST" : "FETCH NEXT");
+			Word(limit.Position switch { FetchPosition.First => "FETCH FIRST", FetchPosition.Next => "FETCH NEXT", _ => throw NoText(limit.Position) });
 
 			if (limit.Count is { } count)
 				PutExpression(count);
@@ -218,8 +218,14 @@ public static partial class Sql2023Writer
 			if (limit.Percent)
 				Word("PERCENT");
 
-			Word(limit.FetchRowWord == RowWord.Row ? "ROW" : "ROWS");
+			Word(RowText(limit.FetchRowWord));
 			Word(limit.WithTies ? "WITH TIES" : "ONLY");
+		}
+
+		/// <summary>ROW or ROWS; a word left out is ROWS.</summary>
+		static string RowText(RowWord? word)
+		{
+			return word switch { null or RowWord.Rows => "ROWS", RowWord.Row => "ROW", _ => throw NoText(word.Value) };
 		}
 
 		void PutTop(TopClause? top)
@@ -592,6 +598,11 @@ public static partial class Sql2023Writer
 			}
 		}
 
+		static string SortWord(SortDirection direction)
+		{
+			return direction switch { SortDirection.Asc => "ASC", SortDirection.Desc => "DESC", _ => throw NoText(direction) };
+		}
+
 		void PutSorts(OrderByClause order)
 		{
 			Each(order.Items, item =>
@@ -599,10 +610,10 @@ public static partial class Sql2023Writer
 				PutExpression(item.Key);
 
 				if (item.Direction is { } direction)
-					Word(direction == SortDirection.Asc ? "ASC" : "DESC");
+					Word(SortWord(direction));
 
 				if (item.NullOrdering is { } nulls)
-					Word(nulls == NullOrdering.First ? "NULLS FIRST" : "NULLS LAST");
+					Word(nulls switch { NullOrdering.First => "NULLS FIRST", NullOrdering.Last => "NULLS LAST", _ => throw NoText(nulls) });
 			});
 		}
 
@@ -684,9 +695,12 @@ public static partial class Sql2023Writer
 					Word("FOLLOWING");
 					break;
 
-				default:
+				case WindowBoundKind.UnboundedFollowing:
 					Word("UNBOUNDED FOLLOWING");
 					break;
+
+				default:
+					throw NoText(bound.Kind);
 			}
 		}
 
@@ -1232,8 +1246,10 @@ public static partial class Sql2023Writer
 
 					Word("TABLESAMPLE");
 				}
+				else if (transactSql && sample.Method != SampleMethod.System)
+					throw Misplaced(sample, "Method", "other than SYSTEM, which is the only one T-SQL reads");
 				else
-					Word(sample.Method == SampleMethod.Bernoulli ? "TABLESAMPLE BERNOULLI" : "TABLESAMPLE SYSTEM");
+					Word(sample.Method switch { SampleMethod.Bernoulli => "TABLESAMPLE BERNOULLI", SampleMethod.System => "TABLESAMPLE SYSTEM", _ => throw NoText(sample.Method) });
 
 				Open();
 				PutExpression(sample.Percentage);

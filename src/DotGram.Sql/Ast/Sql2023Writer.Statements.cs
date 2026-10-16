@@ -398,7 +398,7 @@ public static partial class Sql2023Writer
 					Word("REVOKE");
 
 					if (revoked.Option is { } revokeOption)
-						Word(revokeOption == RevokeOption.GrantOptionFor ? "GRANT OPTION FOR" : "HIERARCHY OPTION FOR");
+						Word(revokeOption switch { RevokeOption.GrantOptionFor => "GRANT OPTION FOR", RevokeOption.HierarchyOptionFor => "HIERARCHY OPTION FOR", _ => throw NoText(revokeOption) });
 
 					PutPrivileges(revoked.Items, revoked.Object);
 					// The page publishes `{ TO | FROM }` for one clause, and FROM is the standard's word.
@@ -665,6 +665,10 @@ public static partial class Sql2023Writer
 					if (drop.Routines.Count > 0)
 						PutDesignatorKind(drop.Routines[0], drop.Proc);
 
+					// The kind is named once, so a routine of another kind would be written as the first's.
+					if (drop.Routines.Any(one => one.Kind != drop.Routines[0].Kind))
+						throw Misplaced(drop, "Routines", "of more than one kind, which the statement names once");
+
 					PutIfExists(drop.IfExists);
 					Each(drop.Routines, PutDesignatorName);
 					PutBehavior(drop.Behavior);
@@ -696,7 +700,7 @@ public static partial class Sql2023Writer
 
 		void PutBehavior(DropBehavior behavior)
 		{
-			Word(behavior == DropBehavior.Cascade ? "CASCADE" : "RESTRICT");
+			Word(behavior switch { DropBehavior.Cascade => "CASCADE", DropBehavior.Restrict => "RESTRICT", _ => throw NoText(behavior) });
 		}
 
 		void PutBehavior(DropBehavior? behavior)
@@ -879,10 +883,24 @@ public static partial class Sql2023Writer
 		{
 			Word("PERIOD FOR");
 
-			if (period.ApplicationName is { } name)
-				PutIdentifier(name);
-			else
-				Word("SYSTEM_TIME");
+			// The kind says which of the two it is, and the name only the application's.
+			switch (period.Kind)
+			{
+				case PeriodKind.SystemTime when period.ApplicationName is null:
+					Word("SYSTEM_TIME");
+					break;
+
+				case PeriodKind.ApplicationTime when period.ApplicationName is { } name:
+					PutIdentifier(name);
+					break;
+
+				case PeriodKind.SystemTime:
+				case PeriodKind.ApplicationTime:
+					throw Misplaced(period, "ApplicationName", "that does not agree with Kind: only an application time is named");
+
+				default:
+					throw NoText(period.Kind);
+			}
 
 			Open();
 			PutIdentifier(period.BeginColumn);
@@ -975,7 +993,7 @@ public static partial class Sql2023Writer
 					if (PutTransactSqlKey(unique))
 						break;
 
-					Word(unique.Kind == UniqueKind.Unique ? "UNIQUE" : "PRIMARY KEY");
+					Word(unique.Kind switch { UniqueKind.Unique => "UNIQUE", UniqueKind.PrimaryKey => "PRIMARY KEY", _ => throw NoText(unique.Kind) });
 
 					if (unique.Nulls is { } nulls)
 						Word(nulls == NullDistinctness.Distinct ? "NULLS DISTINCT" : "NULLS NOT DISTINCT");
@@ -2100,12 +2118,12 @@ public static partial class Sql2023Writer
 							Word(sensitivity switch { CursorSensitivity.Sensitive => "SENSITIVE", CursorSensitivity.Insensitive => "INSENSITIVE", CursorSensitivity.Asensitive => "ASENSITIVE", _ => throw NoText(sensitivity) });
 
 						if (properties.Scrollability is { } scrollability)
-							Word(scrollability == CursorScrollability.Scroll ? "SCROLL" : "NO SCROLL");
+							Word(scrollability switch { CursorScrollability.Scroll => "SCROLL", CursorScrollability.NoScroll => "NO SCROLL", _ => throw NoText(scrollability) });
 
 						Word("CURSOR");
 
 						if (properties.Holdability is { } holdability)
-							Word(holdability == CursorHoldability.WithHold ? "WITH HOLD" : "WITHOUT HOLD");
+							Word(holdability switch { CursorHoldability.WithHold => "WITH HOLD", CursorHoldability.WithoutHold => "WITHOUT HOLD", _ => throw NoText(holdability) });
 
 						if (properties.Returnability is { } returnability)
 							Word(returnability == CursorReturnability.WithReturn ? "WITH RETURN" : "WITHOUT RETURN");

@@ -404,7 +404,7 @@ public static partial class Sql2023Writer
 				PutTriggerScope(trigger.Scope!.Value);
 
 			PutRoutineOptions(trigger, trigger.Options);
-			Word(trigger.Time == TriggerTime.InsteadOf ? "INSTEAD OF" : trigger.For ? "FOR" : "AFTER");
+			Word(trigger.Time switch { TriggerTime.InsteadOf => "INSTEAD OF", TriggerTime.After => trigger.For ? "FOR" : "AFTER", _ => throw NoText(trigger.Time) });
 
 			if (trigger.Events.Count > 0)
 				Each(trigger.Events, one => Word(one.Kind switch
@@ -624,7 +624,7 @@ public static partial class Sql2023Writer
 					PutExpression(item.Key);
 
 					if (item.Direction is { } direction)
-						Word(direction == SortDirection.Asc ? "ASC" : "DESC");
+						Word(SortWord(direction));
 				});
 				Close();
 			}
@@ -668,6 +668,9 @@ public static partial class Sql2023Writer
 			{
 				if (parameter.Name is not { } name)
 					throw Misplaced(parameter, "Name", "missing; every T-SQL parameter is named");
+
+				if (parameter.Mode is { } mode && mode is not (ParameterMode.In or ParameterMode.Out or ParameterMode.InOut))
+					throw NoText(mode);
 
 				if (parameter.Mode is ParameterMode.In or ParameterMode.InOut || parameter.Result || parameter.Locator)
 					throw Misplaced(parameter, "Mode, Result or Locator", "the standard's, beside T-SQL's form");

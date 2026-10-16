@@ -288,9 +288,10 @@ public static partial class Sql2023Writer
 
 					Word(text.Kind switch
 					{
-						StringLiteralKind.National => "N" + text.Text,
-						StringLiteralKind.Unicode  => introducer + "U&" + text.Text + (text.UnicodeEscape is { } escape ? "UESCAPE'" + escape + "'" : ""),
-						_                          => introducer + text.Text,
+						StringLiteralKind.National  => "N" + text.Text,
+						StringLiteralKind.Unicode   => introducer + "U&" + text.Text + (text.UnicodeEscape is { } escape ? "UESCAPE'" + escape + "'" : ""),
+						StringLiteralKind.Character => introducer + text.Text,
+						_                           => throw NoText(text.Kind),
 					});
 					break;
 
@@ -1047,7 +1048,7 @@ public static partial class Sql2023Writer
 						throw Misplaced(expression, "a node", "outside an argument, where T-SQL reads no .*");
 
 					PutExpression(wildcard.Target);
-					Tight(wildcard.Kind == WildcardKind.Member ? ".*" : "[*]");
+					Tight(wildcard.Kind switch { WildcardKind.Member => ".*", WildcardKind.Array => "[*]", _ => throw NoText(wildcard.Kind) });
 					break;
 
 				case Expression.JsonAccessor accessor:
@@ -1234,6 +1235,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Comparison comparison:
+					// `!=` is the spelling of the inequality, and of no other operator.
+					if (comparison.Exclamation && comparison.Operator != ComparisonOperator.NotEqual)
+						throw Misplaced(comparison, "Exclamation", "on a comparison that is not an inequality");
+
 					PutExpression(comparison.Left);
 					Word(comparison.Exclamation ? "!=" : Comparison(comparison.Operator));
 					PutExpression(comparison.Right);
@@ -1697,7 +1702,7 @@ public static partial class Sql2023Writer
 		void PutQuantifier(SetQuantifier? quantifier)
 		{
 			if (quantifier is { } one)
-				Word(one == SetQuantifier.All ? "ALL" : "DISTINCT");
+				Word(one switch { SetQuantifier.All => "ALL", SetQuantifier.Distinct => "DISTINCT", _ => throw NoText(one) });
 		}
 
 		void PutUnits(CharacterLengthUnits? units)
@@ -1918,7 +1923,7 @@ public static partial class Sql2023Writer
 				Word(from == FromFirstOrLast.First ? "FROM FIRST" : "FROM LAST");
 
 			if (invocation.Nulls is { } nulls)
-				Word(nulls == NullTreatment.RespectNulls ? "RESPECT NULLS" : "IGNORE NULLS");
+				Word(nulls switch { NullTreatment.RespectNulls => "RESPECT NULLS", NullTreatment.IgnoreNulls => "IGNORE NULLS", _ => throw NoText(nulls) });
 
 			if (invocation.WithinGroup is { } within)
 			{
@@ -2030,10 +2035,13 @@ public static partial class Sql2023Writer
 					Word("->");
 					break;
 
-				default:
+				case MemberAccessKind.StaticMethod:
 					Tight("::");
 					Hold();
 					break;
+
+				default:
+					throw NoText(member.Kind);
 			}
 
 			PutIdentifier(member.Name);
@@ -2174,6 +2182,13 @@ public static partial class Sql2023Writer
 
 		void PutMember(JsonMember member)
 		{
+			// T-SQL: JSON_OBJECT (Transact-SQL), JSON_OBJECTAGG (Transact-SQL). A key and its value are joined by a colon, never by KEY or VALUE.
+			if (member.Syntax is not (JsonMemberSyntax.KeyValue or JsonMemberSyntax.Value or JsonMemberSyntax.Colon))
+				throw NoText(member.Syntax);
+
+			if (transactSql && member.Syntax != JsonMemberSyntax.Colon)
+				throw Misplaced(member, "Syntax", "other than the colon, which is how T-SQL joins a key and its value");
+
 			if (member.Syntax == JsonMemberSyntax.KeyValue)
 				Word("KEY");
 
@@ -2201,7 +2216,7 @@ public static partial class Sql2023Writer
 		void PutNullHandling(JsonNullHandling? nulls)
 		{
 			if (nulls is { } one)
-				Word(one == JsonNullHandling.NullOnNull ? "NULL ON NULL" : "ABSENT ON NULL");
+				Word(one switch { JsonNullHandling.NullOnNull => "NULL ON NULL", JsonNullHandling.AbsentOnNull => "ABSENT ON NULL", _ => throw NoText(one) });
 		}
 
 		void PutUniqueness(JsonKeyUniqueness? uniqueness)
