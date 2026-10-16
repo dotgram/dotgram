@@ -41,7 +41,7 @@ public static partial class CSharpEmitter
 
 		foreach (var (key, at) in keys.Select((one, at) => (one, at)))
 		{
-			var slot = (int)(KeywordMix(KeywordHash(key, fold)) & (uint)(width - 1));
+			var slot = (int)(KeywordMix(KeywordHash(key, fold), key.Length) & (uint)(width - 1));
 
 			while (slots[slot] != 0)
 				slot = (slot + 1) & (width - 1);
@@ -58,9 +58,6 @@ public static partial class CSharpEmitter
 		for (var at = 0; at < contexts; at++)
 			kinds[table.Contexts[at]] = at;
 
-		foreach (var number in table.Whole)
-			kinds[number] |= 128;
-
 		file.Write(LexerEmitter.Emit(table.Machine, "Words", utf8Literals, table.Numbers));
 		file.Line();
 
@@ -73,7 +70,9 @@ public static partial class CSharpEmitter
 		KeywordNumbers(file, keys.Count < ushort.MaxValue ? "ushort" : "int", "Words_Slots", slots);
 		file.Line("/// <summary>By key and context, the kind a keyword is: with what the rest of the patterns said of it.</summary>");
 		KeywordNumbers(file, "int", "Words_Kinds", table.Kinds);
-		file.Line("/// <summary>By kind: which context it is (127 for none), and 128 where every token of it is a word.</summary>");
+		file.Line("/// <summary>By key, the kind it is without asking the automaton, or 0 where it must be asked.</summary>");
+		KeywordNumbers(file, "int", "Words_Direct", table.Direct);
+		file.Line("/// <summary>By kind: which context it is, 127 for none.</summary>");
 		KeywordNumbers(file, "byte", "Words_Of", kinds);
 
 		var compare = fold ? "Words_Fold(text[pos + i])" : "text[pos + i]";
@@ -88,19 +87,12 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
-		file.Line("/// <summary>Which key the word of the given length at <paramref name=\"pos\"/> is, or -1.</summary>");
-		file.Line("static int Words_Find(global::System.ReadOnlySpan<char> text, int pos, int length)");
+		file.Line("/// <summary>Which key the word of the given length and hash at <paramref name=\"pos\"/> is, or -1.</summary>");
+		file.Line("static int Words_Find(global::System.ReadOnlySpan<char> text, int pos, int length, uint hash)");
 
 		using (file.Block(""))
 		{
-			file.Line("var hash = 2166136261u ^ (uint)length;");
-			file.Line();
-
-			using (file.Block("for (var i = 0; i < length; i++)"))
-				file.Line($"hash = (hash ^ {compare}) * 16777619u;");
-
-			file.Line();
-			file.Line($"var slot = (int)((hash ^ (hash >> 15)) & {width - 1}u);");
+			file.Line($"var slot = (int)(((hash ^ (uint)length) ^ ((hash ^ (uint)length) >> 15)) & {width - 1}u);");
 			file.Line();
 
 			using (file.Block("while (Words_Slots[slot] != 0)"))
@@ -182,42 +174,60 @@ public static partial class CSharpEmitter
 		file.Line("/// One token: its kind by way of <paramref name=\"kind\"/>, and where it ends.");
 		file.Line("/// </summary>");
 		file.Line("/// <remarks>");
-		file.Line("/// The automaton of everything but the keywords reads the token; a word that is a keyword and no");
-		file.Line("/// shorter than that token is the keyword, as longest match would have it.");
+		file.Line("/// The word is read first, and hashed on the way. A keyword whose kind does not depend on what the");
+		file.Line("/// rest of the patterns say of it is the token as it stands; otherwise the automaton of the rest");
+		file.Line("/// reads the token, and a keyword no shorter than that is the keyword, as longest match would have it.");
 		file.Line("/// </remarks>");
 		file.Line("/// <returns>Where the token ends, or <paramref name=\"pos\"/> where none begins here.</returns>");
 		file.Line("public static int Scan(global::System.ReadOnlySpan<char> text, int pos, out int kind)");
 
 		using (file.Block(""))
 		{
-			file.Line("var end = ScanWords(text, pos, out kind);");
+			file.Line("var run  = pos;");
+			file.Line("var hash = 2166136261u;");
 			file.Line();
-			file.Line("// What the automaton read is made of word characters, or the word is read from the start.");
-			file.Line("var run = end > pos && (Words_Of[kind] & 128) != 0 ? end : pos;");
+
+			using (file.Block($"while (run < text.Length && run - pos <= {longest} && WordGoesOn_DotGramKeys(text[run]))"))
+			{
+				file.Line($"hash = (hash ^ {(fold ? "Words_Fold(text[run])" : "text[run]")}) * 16777619u;");
+				file.Line("run++;");
+			}
+
 			file.Line();
-			file.Line($"while (run < text.Length && run - pos <= {longest} && WordGoesOn_DotGramKeys(text[run]))");
-			file.Then("run++;");
+			file.Line("var key = -1;");
 			file.Line();
-			file.Line($"if (run >= end && run - pos >= {table.Shortest} && run - pos <= {longest})");
+			file.Line($"if (run - pos >= {table.Shortest} && run - pos <= {longest})");
 
 			using (file.Block(""))
 			{
-				file.Line("var key = Words_Find(text, pos, run - pos);");
+				file.Line("key = Words_Find(text, pos, run - pos, hash);");
 				file.Line();
-				file.Line("if (key >= 0)");
+				file.Line("if (key >= 0 && Words_Direct[key] != 0)");
 
 				using (file.Block(""))
 				{
-					file.Line("var context = Words_Of[run == end ? kind : 0] & 127;");
+					file.Line("kind = Words_Direct[key];");
 					file.Line();
-					file.Line($"if (context < {contexts} && Words_Kinds[key * {contexts} + context] != 0)");
+					file.Line("return run;");
+				}
+			}
 
-					using (file.Block(""))
-					{
-						file.Line($"kind = Words_Kinds[key * {contexts} + context];");
-						file.Line();
-						file.Line("return run;");
-					}
+			file.Line();
+			file.Line("var end = ScanWords(text, pos, out kind);");
+			file.Line();
+			file.Line("if (key >= 0 && run >= end)");
+
+			using (file.Block(""))
+			{
+				file.Line("var context = Words_Of[run == end ? kind : 0] & 127;");
+				file.Line();
+				file.Line($"if (context < {contexts} && Words_Kinds[key * {contexts} + context] != 0)");
+
+				using (file.Block(""))
+				{
+					file.Line($"kind = Words_Kinds[key * {contexts} + context];");
+					file.Line();
+					file.Line("return run;");
 				}
 			}
 
@@ -247,7 +257,7 @@ public static partial class CSharpEmitter
 	/// <summary>The hash a key is placed by; the scan computes the same, a character at a time.</summary>
 	static uint KeywordHash(string key, bool fold)
 	{
-		var hash = 2166136261u ^ (uint)key.Length;
+		var hash = 2166136261u;
 
 		foreach (var c in key)
 			hash = (hash ^ (fold && c is >= 'a' and <= 'z' ? (uint)(c - 32) : c)) * 16777619u;
@@ -255,8 +265,11 @@ public static partial class CSharpEmitter
 		return hash;
 	}
 
-	static uint KeywordMix(uint hash)
+	/// <summary>What the hash is made of once the length is known: the slot the scan looks in.</summary>
+	static uint KeywordMix(uint hash, int length)
 	{
+		hash ^= (uint)length;
+
 		return hash ^ (hash >> 15);
 	}
 

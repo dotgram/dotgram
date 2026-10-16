@@ -1201,19 +1201,7 @@ public sealed class TerminalInventory
 				machineKinds,
 				word => !_unguarded.Contains((word.Text, word.IgnoreCase)) &&
 					_woven.TryGetValue((word.Text, word.IgnoreCase), out var with) ? Narrowest(with) : null,
-				Holds,
 				[]);
-		}
-
-		/// <summary>Whether every token of a pattern is made of characters that continue a word under a boundary.</summary>
-		bool Holds(Pattern pattern, Node.Element boundary)
-		{
-			return pattern switch
-			{
-				Pattern.Word(_, var text, _) => text.Length > 0 && text.All(c => Inside(One(c), boundary)),
-				Pattern.Class(_, var rule) => graph.Bodies.TryGetValue(rule, out var body) && Within(body, boundary, []),
-				_ => false,
-			};
 		}
 
 		/// <summary>

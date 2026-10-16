@@ -43,7 +43,7 @@ public sealed class KeywordTable
 		IReadOnlyList<int> numbers,
 		IReadOnlyList<int> contexts,
 		IReadOnlyList<int> kinds,
-		IReadOnlyList<int> whole)
+		IReadOnlyList<int> direct)
 	{
 		Boundary   = boundary;
 		IgnoreCase = ignoreCase;
@@ -52,7 +52,7 @@ public sealed class KeywordTable
 		Numbers    = numbers;
 		Contexts   = contexts;
 		Kinds      = kinds;
-		Whole      = whole;
+		Direct     = direct;
 	}
 
 	/// <summary>What continues a word: the grammar's boundary, which every tabled keyword was written under.</summary>
@@ -83,10 +83,10 @@ public sealed class KeywordTable
 	public IReadOnlyList<int> Kinds { get; }
 
 	/// <summary>
-	/// The kinds of <see cref="Machine"/> whose every token is made of characters that continue a
-	/// word, so that a word begun by one ends no earlier than it does.
+	/// By key, the kind it is when the automaton need not be asked: the same whatever cases its
+	/// letters are in, and nothing the automaton reads goes on past the word. 0 where it must be asked.
 	/// </summary>
-	public IReadOnlyList<int> Whole { get; }
+	public IReadOnlyList<int> Direct { get; }
 
 	/// <summary>The length of the shortest key.</summary>
 	public int Shortest
@@ -117,7 +117,6 @@ public sealed class KeywordTable
 	/// <param name="kinds">The kinds the full automaton makes, the first <paramref name="machineKinds"/> of them.</param>
 	/// <param name="machineKinds">How many of <paramref name="kinds"/> the full automaton made.</param>
 	/// <param name="boundaryOf">The boundary a keyword was written under: null where none, or several that differ.</param>
-	/// <param name="holds">Whether every token of a pattern that is not tabled continues a word, under a boundary.</param>
 	/// <param name="blocked">What refused, appended to.</param>
 	internal static KeywordTable? Of(
 		RecognitionGraph graph,
@@ -126,7 +125,6 @@ public sealed class KeywordTable
 		List<TerminalInventory.Kind> kinds,
 		int machineKinds,
 		Func<TerminalInventory.Pattern.Word, Node.Element?> boundaryOf,
-		Func<TerminalInventory.Pattern, Node.Element, bool> holds,
 		List<string> blocked)
 	{
 		var candidates = new List<(TerminalInventory.Pattern.Word Word, Node.Element Boundary)>();
@@ -233,14 +231,78 @@ public sealed class KeywordTable
 		foreach (var (key, context, number) in made)
 			table[key * contexts.Count + contexts.IndexOf(context)] = number;
 
-		// The kinds of the automaton whose tokens are all word characters.
-		var whole = new List<int>();
+		// Whether the automaton need be asked about a keyword at all. It is read over every case the
+		// keyword's letters can be in at once, as a set of states: if the states it can be in at the
+		// word's end agree on what they accept, and none goes on past a character that does not
+		// continue a word, then what the rest of the patterns say of the word is the same whatever its
+		// cases, and the keyword's kind is a constant of the keyword.
+		var direct = new int[keys.Count];
 
-		for (var set = 0; set < machine.Sets.Count; set++)
-			if (machine.Sets[set].Count > 0 && machine.Sets[set].All(one => holds(patterns[one], chosen)))
-				whole.Add(numbers[set]);
+		for (var key = 0; key < keys.Count; key++)
+			if (Alone(machine, keys[key], ignoring, continuing, numbers) is { } context &&
+				contexts.IndexOf(context) is >= 0 and var at)
+				direct[key] = table[key * contexts.Count + at];
 
-		return new KeywordTable(chosen, ignoring, keys, machine, numbers, contexts, table, whole);
+		return new KeywordTable(chosen, ignoring, keys, machine, numbers, contexts, table, direct);
+	}
+
+	/// <summary>
+	/// What the automaton makes of a keyword's text, the kind of the set it accepts there or 0 for none,
+	/// when that is the same for every case of its letters and nothing it reads goes on from there past a
+	/// character that does not continue a word; null where it is not.
+	/// </summary>
+	static int? Alone(LexicalAutomaton machine, string key, bool ignoreCase, FirstSets.First continuing, IReadOnlyList<int> numbers)
+	{
+		var states = new HashSet<int> { 0 };
+
+		foreach (var c in key)
+		{
+			var next = new HashSet<int>();
+
+			foreach (var state in states)
+				foreach (var one in ignoreCase ? CaseFold.Of(c) : [c])
+					if (Step(machine, state, one) is >= 0 and var to)
+						next.Add(to);
+
+			states = next;
+		}
+
+		// A character that does not continue a word may follow, or the text may end.
+		foreach (var state in states)
+			for (var atom = 0; atom < machine.Atoms.Count; atom++)
+				if (machine.Next[state][atom] >= 0 && !continuing.Covers(FirstSets.First.Chars([machine.Atoms[atom]])))
+					return null;
+
+		var accepted = states.Select(state => machine.Accepts[state]).Distinct().ToList();
+
+		return accepted.Count switch
+		{
+			0 => 0,
+			1 => accepted[0] < 0 ? 0 : numbers[accepted[0]],
+			_ => null,
+		};
+	}
+
+	/// <summary>The state a character leads to from a state, or -1.</summary>
+	static int Step(LexicalAutomaton machine, int state, char c)
+	{
+		var low  = 0;
+		var high = machine.Atoms.Count - 1;
+
+		while (low <= high)
+		{
+			var middle = (low + high) >> 1;
+			var atom   = machine.Atoms[middle];
+
+			if (c < atom.From)
+				high = middle - 1;
+			else if (c > atom.To)
+				low = middle + 1;
+			else
+				return machine.Next[state][middle];
+		}
+
+		return -1;
 	}
 
 	/// <summary>Whether a keyword is one the table answers for as the literal does.</summary>
