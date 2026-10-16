@@ -779,6 +779,9 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.Reference reference:
+					if (transactSql && Plain(reference.Name[0], "VALUE"))
+						throw Misplaced(reference, "Name", "that begins with the plain word VALUE, which T-SQL reads as the current value; bracketed it is a name");
+
 					PutReference(reference.Name);
 					break;
 

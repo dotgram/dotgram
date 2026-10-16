@@ -854,6 +854,8 @@ public sealed class TransactSqlWriterTests
 	[InlineData("a call with an argument named by =>")]
 	[InlineData("a name as a member")]
 	[InlineData("a dereference")]
+	[InlineData("the plain name VALUE")]
+	[InlineData("the plain name VALUE qualified")]
 	public void A_form_T_SQL_does_not_read_is_refused(string which)
 	{
 		var a   = Ref(Plain("a"));
@@ -876,6 +878,8 @@ public sealed class TransactSqlWriterTests
 			"a call with an argument named by =>"  => new Expression.Invocation(Q(Plain("f")), [new Argument(one, Plain("n"), NamedAssignment: true)]),
 			"a name as a member"                   => new Expression.Member(a, MemberAccessKind.Dot, Plain("m")),
 			"a dereference"                        => new Expression.Member(a, MemberAccessKind.Dereference, Plain("m")),
+			"the plain name VALUE"                 => Ref(Plain("value")),
+			"the plain name VALUE qualified"       => new Expression.Reference(new QualifiedName([Plain("VALUE"), Plain("x")])),
 			_                                      => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 
@@ -884,7 +888,7 @@ public sealed class TransactSqlWriterTests
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
 
 		// The standard's writer has a text for the forms of the standard; the others it refuses for its own reasons.
-		if (which is not ("a boolean literal" or "an interval literal" or "a name as a member" or "a call with a named argument" or "a dereference"))
+		if (which is not ("a boolean literal" or "an interval literal" or "a name as a member" or "a call with a named argument" or "the plain name VALUE" or "the plain name VALUE qualified" or "a dereference"))
 			Sql2023Writer.Write(tree);
 	}
 
@@ -898,6 +902,9 @@ public sealed class TransactSqlWriterTests
 	[InlineData("SELECT @g.STSrid")]
 	[InlineData("SELECT geography::Point(1, 2, 3).Lat")]
 	[InlineData("SELECT a.m(1) FROM t")]
+	[InlineData("SELECT value FROM t")]
+	[InlineData("SELECT [value] FROM t")]
+	[InlineData("SELECT t.value FROM t")]
 	[InlineData("SELECT 0x1F, N'a', NULL, $5, 1.5e3")]
 	public void A_form_T_SQL_reads_is_written_and_read_back(string text)
 	{
