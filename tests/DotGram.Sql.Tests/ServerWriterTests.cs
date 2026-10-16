@@ -98,6 +98,38 @@ public sealed class ServerWriterTests
 		return new Statement.AlterResourceGovernor(new ResourceGovernorAction.Settings(setting));
 	}
 
+	static AvailabilityReplica Replica(string server, params Option[] options)
+	{
+		return new AvailabilityReplica((LiteralValue.String)Str(server), [.. options]);
+	}
+
+	static AvailabilityGroupSpec Group(string name, params Option[] options)
+	{
+		return new AvailabilityGroupSpec((LiteralValue.String)Str(name), [.. options]);
+	}
+
+	static ListenerAddress Address(string address, string? mask = null)
+	{
+		return new ListenerAddress((LiteralValue.String)Str(address), mask is null ? null : (LiteralValue.String)Str(mask));
+	}
+
+	static Statement.AlterAvailabilityGroup Altered(AvailabilityAction action)
+	{
+		return new Statement.AlterAvailabilityGroup(X, action);
+	}
+
+	static Statement.CreateAvailabilityGroup Made(AvailabilitySource source)
+	{
+		return new Statement.CreateAvailabilityGroup(X, source);
+	}
+
+	static AvailabilitySource Replicated(params AvailabilityReplica[] replicas)
+	{
+		return new AvailabilitySource.Replicas([], [.. replicas]);
+	}
+
+	static readonly Option Url = Opt("ENDPOINT_URL", Str("TCP://a:5022"));
+
 	static ExecuteArgument Arg(Expression value, string? name = null)
 	{
 		return new ExecuteArgument(value) { Name = name is null ? null : new Identifier(name) };
@@ -313,6 +345,91 @@ public sealed class ServerWriterTests
 		["Alter a workload group by its settings"] = (
 			new Statement.AlterWorkloadGroup(X) { Options = [Opt("importance", Word("ABOVE_NORMAL")), Opt("GROUP_MAX_TEMPDB_DATA_MB", new LiteralValue.Null())] },
 			"ALTER WORKLOAD GROUP x WITH (importance = ABOVE_NORMAL, GROUP_MAX_TEMPDB_DATA_MB = NULL)"),
+		["Create an availability group"] = (
+			Made(Replicated(Replica("n1", Url, Opt("AVAILABILITY_MODE", Word("SYNCHRONOUS_COMMIT")), Opt("FAILOVER_MODE", Word("AUTOMATIC"))))),
+			"CREATE AVAILABILITY GROUP x FOR REPLICA ON 'n1' WITH (ENDPOINT_URL = 'TCP://a:5022', AVAILABILITY_MODE = SYNCHRONOUS_COMMIT, FAILOVER_MODE = AUTOMATIC)"),
+		["Create an availability group with all"] = (
+			new Statement.CreateAvailabilityGroup(X, new AvailabilitySource.Replicas([new Identifier("a"), new Identifier("b")], [Replica("n1", Url, Opt("SECONDARY_ROLE", null, Opt("ALLOW_CONNECTIONS", Word("READ_ONLY")), Opt("READ_ONLY_ROUTING_URL", Str("u"))), Opt("PRIMARY_ROLE", null, Opt("READ_ONLY_ROUTING_LIST", new Expression.Row([Str("x"), NStr("y")])), Opt("ALLOW_CONNECTIONS", Word("ALL")), Opt("READ_WRITE_ROUTING_URL", Str("w")))), Replica("n2", Opt("BACKUP_PRIORITY", Digits("50")), Opt("SESSION_TIMEOUT", Digits("10")), Opt("SEEDING_MODE", Word("MANUAL")))]))
+			{
+				Options = [Opt("AUTOMATED_BACKUP_PREFERENCE", Word("SECONDARY")), Opt("DB_FAILOVER", Word("ON")), Opt("BASIC", null), Opt("CONTAINED", null), Opt("CLUSTER_TYPE", Word("EXTERNAL")), Opt("DTC_SUPPORT", Word("PER_DB")), Opt("FAILURE_CONDITION_LEVEL", Digits("3")), Opt("HEALTH_CHECK_TIMEOUT", Digits("30000")), Opt("REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT", Digits("1"))],
+				ListenerName = (LiteralValue.String)Str("dns"), Listener = new AvailabilityListener.Ip([Address("1.2.3.4", "255.255.255.0"), Address("2001:db8::1")]) { Port = Digits("60173") },
+			},
+			"CREATE AVAILABILITY GROUP x WITH (AUTOMATED_BACKUP_PREFERENCE = SECONDARY, DB_FAILOVER = ON, BASIC, CONTAINED, CLUSTER_TYPE = EXTERNAL, DTC_SUPPORT = PER_DB, FAILURE_CONDITION_LEVEL = 3, HEALTH_CHECK_TIMEOUT = 30000, REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT = 1) FOR DATABASE a, b REPLICA ON 'n1' WITH (ENDPOINT_URL = 'TCP://a:5022', SECONDARY_ROLE (ALLOW_CONNECTIONS = READ_ONLY, READ_ONLY_ROUTING_URL = 'u'), PRIMARY_ROLE (READ_ONLY_ROUTING_LIST = ('x', N'y'), ALLOW_CONNECTIONS = ALL, READ_WRITE_ROUTING_URL = 'w')), 'n2' WITH (BACKUP_PRIORITY = 50, SESSION_TIMEOUT = 10, SEEDING_MODE = MANUAL) LISTENER 'dns' (WITH IP (('1.2.3.4', '255.255.255.0'), ('2001:db8::1')), PORT = 60173)"),
+		["Create an availability group with a routing list of none"] = (
+			Made(Replicated(Replica("n1", Opt("PRIMARY_ROLE", null, Opt("READ_ONLY_ROUTING_LIST", Word("NONE")))))),
+			"CREATE AVAILABILITY GROUP x FOR REPLICA ON 'n1' WITH (PRIMARY_ROLE (READ_ONLY_ROUTING_LIST = NONE))"),
+		["Create a distributed availability group"] = (
+			new Statement.CreateAvailabilityGroup(X, new AvailabilitySource.Groups([Group("ag2", Opt("LISTENER_URL", Str("tcp://a:5022")), Opt("AVAILABILITY_MODE", Word("ASYNCHRONOUS_COMMIT")), Opt("FAILOVER_MODE", Word("MANUAL")), Opt("SEEDING_MODE", Word("AUTOMATIC"))), Group("ag3", Opt("LISTENER", Str("l")))])) { Options = [Opt("DISTRIBUTED", null)] },
+			"CREATE AVAILABILITY GROUP x WITH (DISTRIBUTED) AVAILABILITY GROUP ON 'ag2' WITH (LISTENER_URL = 'tcp://a:5022', AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT, FAILOVER_MODE = MANUAL, SEEDING_MODE = AUTOMATIC), 'ag3' WITH (LISTENER = 'l')"),
+		["Create an availability group with a listener of the network"] = (
+			new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n1", Url))) { ListenerName = (LiteralValue.String)Str("d"), Listener = new AvailabilityListener.Dhcp(null) },
+			"CREATE AVAILABILITY GROUP x FOR REPLICA ON 'n1' WITH (ENDPOINT_URL = 'TCP://a:5022') LISTENER 'd' (WITH DHCP)"),
+		["Create an availability group with a listener of a network"] = (
+			new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n1", Url))) { ListenerName = (LiteralValue.String)Str("d"), Listener = new AvailabilityListener.Dhcp(Address("1.2.3.4", "255.255.255.0")) },
+			"CREATE AVAILABILITY GROUP x FOR REPLICA ON 'n1' WITH (ENDPOINT_URL = 'TCP://a:5022') LISTENER 'd' (WITH DHCP ON ('1.2.3.4', '255.255.255.0'))"),
+		["Alter an availability group by a setting"] = (
+			Altered(new AvailabilityAction.Set(Opt("DB_FAILOVER", Word("ON")))),
+			"ALTER AVAILABILITY GROUP x SET (DB_FAILOVER = ON)"),
+		["Alter an availability group by its role"] = (
+			Altered(new AvailabilityAction.Set(Opt("ROLE", Word("SECONDARY")))),
+			"ALTER AVAILABILITY GROUP x SET (ROLE = SECONDARY)"),
+		["Alter an availability group by a setting alone"] = (
+			Altered(new AvailabilityAction.Set(Opt("BASIC", null))),
+			"ALTER AVAILABILITY GROUP x SET (BASIC)"),
+		["Alter an availability group adding a database"] = (
+			Altered(new AvailabilityAction.AddDatabase(new Identifier("db1"))),
+			"ALTER AVAILABILITY GROUP x ADD DATABASE db1"),
+		["Alter an availability group removing a database"] = (
+			Altered(new AvailabilityAction.RemoveDatabase(new Identifier("db1"))),
+			"ALTER AVAILABILITY GROUP x REMOVE DATABASE db1"),
+		["Alter an availability group adding a replica"] = (
+			Altered(new AvailabilityAction.AddReplica(Replica("n", Url))),
+			"ALTER AVAILABILITY GROUP x ADD REPLICA ON 'n' WITH (ENDPOINT_URL = 'TCP://a:5022')"),
+		["Alter an availability group modifying a replica"] = (
+			Altered(new AvailabilityAction.ModifyReplica(Replica("n", Opt("SEEDING_MODE", Word("AUTOMATIC"))))),
+			"ALTER AVAILABILITY GROUP x MODIFY REPLICA ON 'n' WITH (SEEDING_MODE = AUTOMATIC)"),
+		["Alter an availability group removing a replica"] = (
+			Altered(new AvailabilityAction.RemoveReplica((LiteralValue.String)NStr("n"))),
+			"ALTER AVAILABILITY GROUP x REMOVE REPLICA ON N'n'"),
+		["Alter an availability group joining another"] = (
+			Altered(new AvailabilityAction.JoinAvailabilityGroup([Group("g", Opt("LISTENER_URL", Str("u")))])),
+			"ALTER AVAILABILITY GROUP x JOIN AVAILABILITY GROUP ON 'g' WITH (LISTENER_URL = 'u')"),
+		["Alter an availability group modifying two"] = (
+			Altered(new AvailabilityAction.ModifyAvailabilityGroup([Group("g", Opt("SEEDING_MODE", Word("MANUAL"))), Group("h", Opt("FAILOVER_MODE", Word("MANUAL")))])),
+			"ALTER AVAILABILITY GROUP x MODIFY AVAILABILITY GROUP ON 'g' WITH (SEEDING_MODE = MANUAL), 'h' WITH (FAILOVER_MODE = MANUAL)"),
+		["Join an availability group"] = (
+			Altered(new AvailabilityAction.Join()),
+			"ALTER AVAILABILITY GROUP x JOIN"),
+		["Grant the creation of any database"] = (
+			Altered(new AvailabilityAction.CreateAnyDatabase(AvailabilityPermission.Grant)),
+			"ALTER AVAILABILITY GROUP x GRANT CREATE ANY DATABASE"),
+		["Deny the creation of any database"] = (
+			Altered(new AvailabilityAction.CreateAnyDatabase(AvailabilityPermission.Deny)),
+			"ALTER AVAILABILITY GROUP x DENY CREATE ANY DATABASE"),
+		["Fail an availability group over"] = (
+			Altered(new AvailabilityAction.Failover()),
+			"ALTER AVAILABILITY GROUP x FAILOVER"),
+		["Force an availability group over"] = (
+			Altered(new AvailabilityAction.ForceFailoverAllowDataLoss()),
+			"ALTER AVAILABILITY GROUP x FORCE_FAILOVER_ALLOW_DATA_LOSS"),
+		["Take an availability group offline"] = (
+			Altered(new AvailabilityAction.Offline()),
+			"ALTER AVAILABILITY GROUP x OFFLINE"),
+		["Add a listener"] = (
+			Altered(new AvailabilityAction.AddListener((LiteralValue.String)Str("d"), new AvailabilityListener.Ip([Address("1.2.3.4")]))),
+			"ALTER AVAILABILITY GROUP x ADD LISTENER 'd' (WITH IP (('1.2.3.4')))"),
+		["Modify a listener by an address"] = (
+			Altered(new AvailabilityAction.ModifyListener((LiteralValue.String)Str("d"), new ListenerChange.AddIp(Address("1.2.3.4", "255.255.255.0")))),
+			"ALTER AVAILABILITY GROUP x MODIFY LISTENER 'd' (ADD IP ('1.2.3.4', '255.255.255.0'))"),
+		["Modify a listener by its port"] = (
+			Altered(new AvailabilityAction.ModifyListener((LiteralValue.String)Str("d"), new ListenerChange.Port(Digits("1433")))),
+			"ALTER AVAILABILITY GROUP x MODIFY LISTENER 'd' (PORT = 1433)"),
+		["Restart a listener"] = (
+			Altered(new AvailabilityAction.RestartListener((LiteralValue.String)Str("d"))),
+			"ALTER AVAILABILITY GROUP x RESTART LISTENER 'd'"),
+		["Remove a listener"] = (
+			Altered(new AvailabilityAction.RemoveListener((LiteralValue.String)Str("d"))),
+			"ALTER AVAILABILITY GROUP x REMOVE LISTENER 'd'"),
 		// @@TEXTS
 	};
 
@@ -549,6 +666,67 @@ public sealed class ServerWriterTests
 		["a workload pool that is a variable"] = new Statement.CreateWorkloadGroup(X) { Pools = [new WorkloadPool(new Identifier("@p"), false)] },
 		["a workload pool that is a reserved word"] = new Statement.CreateWorkloadGroup(X) { Pools = [new WorkloadPool(new Identifier("external"), false)] },
 		["a workload group named by a variable"] = new Statement.AlterWorkloadGroup(new Identifier("@g")),
+		// AvailabilityBody: an ALTER does one thing; a group made says what it is made of. The group and the database are identifiers.
+		["an availability group named by a variable"] = new Statement.CreateAvailabilityGroup(new Identifier("@g"), Replicated(Replica("n", Url))),
+		["an availability group named by a string"] = Altered(new AvailabilityAction.Join()) with { Name = new Identifier("g", IdentifierStyle.String) },
+		["an availability group of a database that is a string"] = Altered(new AvailabilityAction.AddDatabase(new Identifier("d", IdentifierStyle.String))),
+		["an availability group of a database that is a variable"] = Altered(new AvailabilityAction.AddDatabase(new Identifier("@d"))),
+		["an availability group of a database that is reserved"] = Altered(new AvailabilityAction.RemoveDatabase(new Identifier("select"))),
+		["an availability group made of no replica"] = Made(new AvailabilitySource.Replicas([], [])),
+		["an availability group made of a database that is a name of two words"] = Made(new AvailabilitySource.Replicas([new Identifier("a b")], [Replica("n", Url)])),
+		["an availability group made of three groups"] = Made(new AvailabilitySource.Groups([Group("a", Opt("LISTENER", Str("l"))), Group("b", Opt("LISTENER", Str("l"))), Group("c", Opt("LISTENER", Str("l")))])),
+		["an availability group made of no group"] = Made(new AvailabilitySource.Groups([])),
+		["an availability group joined to no group"] = Altered(new AvailabilityAction.JoinAvailabilityGroup([])),
+		["an availability group made with a listener name and no listener"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { ListenerName = (LiteralValue.String)Str("d") },
+		["an availability group made with a listener and no name"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Listener = new AvailabilityListener.Dhcp(null) },
+		// AvailabilityWith: a closed list, three words alone, DB_FAILOVER ON or OFF with its =.
+		["an availability setting it has not"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("COLOUR", Word("RED"))] },
+		["an availability setting alone that takes a value"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("DB_FAILOVER", null)] },
+		["an availability word with a value"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("BASIC", Word("ON"))] },
+		["an availability backup preference outside its words"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("AUTOMATED_BACKUP_PREFERENCE", Word("ANY"))] },
+		["an availability backup preference that is a string"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("AUTOMATED_BACKUP_PREFERENCE", Str("PRIMARY"))] },
+		["an availability level that is signed"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("FAILURE_CONDITION_LEVEL", Number("-1", NumericLiteralKind.DecimalInteger))] },
+		["an availability timeout that is a decimal"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("HEALTH_CHECK_TIMEOUT", Number("1.5", NumericLiteralKind.Decimal))] },
+		["an availability failover switch that is a number"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("DB_FAILOVER", Digits("1"))] },
+		["an availability cluster type outside its words"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("CLUSTER_TYPE", Word("MIXED"))] },
+		["an availability setting of a group made that is the role"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { Options = [Opt("ROLE", Word("SECONDARY"))] },
+		["an availability role that is PRIMARY"] = Altered(new AvailabilityAction.Set(Opt("ROLE", Word("PRIMARY")))),
+		["an availability setting set with a name that omits its ="] = Altered(new AvailabilityAction.Set(new Option(new Identifier("DB_FAILOVER"), Word("ON"), []) { EqualsOmitted = true })),
+		// AvailabilityReplica: a string and a bracket of one setting at least.
+		["a replica named by a name"] = Made(Replicated(new AvailabilityReplica((LiteralValue.String)new LiteralValue.String("n", StringLiteralKind.Character), [Url]))),
+		["a replica named by a string with a character set"] = Made(Replicated(new AvailabilityReplica(new LiteralValue.String("'n'", StringLiteralKind.Character) { CharacterSet = new CharacterSetName(Dotted("utf8")) }, [Url]))),
+		["a replica of no setting"] = Made(Replicated(Replica("n"))),
+		["a replica setting it has not"] = Made(Replicated(Replica("n", Opt("PORT", Digits("1"))))),
+		["a replica endpoint that is a name"] = Made(Replicated(Replica("n", Opt("ENDPOINT_URL", Word("u"))))),
+		["a replica availability mode outside its words"] = Made(Replicated(Replica("n", Opt("AVAILABILITY_MODE", Word("LAZY"))))),
+		["a replica failover mode outside its words"] = Made(Replicated(Replica("n", Opt("FAILOVER_MODE", Word("SYNCHRONOUS_COMMIT"))))),
+		["a replica seeding mode that is EXTERNAL"] = Made(Replicated(Replica("n", Opt("SEEDING_MODE", Word("EXTERNAL"))))),
+		["a replica priority that is signed"] = Made(Replicated(Replica("n", Opt("BACKUP_PRIORITY", Number("-1", NumericLiteralKind.DecimalInteger))))),
+		["a replica secondary role with no setting"] = Made(Replicated(Replica("n", Opt("SECONDARY_ROLE", null)))),
+		["a replica secondary role with a value"] = Made(Replicated(Replica("n", Opt("SECONDARY_ROLE", Word("ON"), Opt("ALLOW_CONNECTIONS", Word("ALL")))))),
+		["a replica secondary role allowing writes"] = Made(Replicated(Replica("n", Opt("SECONDARY_ROLE", null, Opt("ALLOW_CONNECTIONS", Word("READ_WRITE")))))),
+		["a replica primary role allowing reads only"] = Made(Replicated(Replica("n", Opt("PRIMARY_ROLE", null, Opt("ALLOW_CONNECTIONS", Word("READ_ONLY")))))),
+		["a replica primary role routing to a name"] = Made(Replicated(Replica("n", Opt("PRIMARY_ROLE", null, Opt("READ_ONLY_ROUTING_LIST", new Expression.Row([Word("a")])))))),
+		["a replica primary role routing to nothing"] = Made(Replicated(Replica("n", Opt("PRIMARY_ROLE", null, Opt("READ_ONLY_ROUTING_LIST", new Expression.Row([])))))),
+		["a replica primary role routing to a list written ROW"] = Made(Replicated(Replica("n", Opt("PRIMARY_ROLE", null, Opt("READ_ONLY_ROUTING_LIST", new Expression.Row([Str("a")], RowKeyword: true)))))),
+		["a replica primary role routing to a string alone"] = Made(Replicated(Replica("n", Opt("PRIMARY_ROLE", null, Opt("READ_ONLY_ROUTING_LIST", Str("a")))))),
+		["a replica role in a role"] = Made(Replicated(Replica("n", Opt("PRIMARY_ROLE", null, Opt("PRIMARY_ROLE", null, Opt("ALLOW_CONNECTIONS", Word("ALL"))))))),
+		// AvailabilityGroupOption: where a group listens, and its modes.
+		["a group setting it has not"] = Altered(new AvailabilityAction.JoinAvailabilityGroup([Group("g", Opt("ENDPOINT_URL", Str("u")))])),
+		["a group of no setting"] = Altered(new AvailabilityAction.JoinAvailabilityGroup([Group("g")])),
+		["a group failover mode that is AUTOMATIC"] = Altered(new AvailabilityAction.ModifyAvailabilityGroup([Group("g", Opt("FAILOVER_MODE", Word("AUTOMATIC")))])),
+		["a group availability mode that is CONFIGURATION_ONLY"] = Altered(new AvailabilityAction.ModifyAvailabilityGroup([Group("g", Opt("AVAILABILITY_MODE", Word("CONFIGURATION_ONLY")))])),
+		["a group listener that is a name"] = Altered(new AvailabilityAction.ModifyAvailabilityGroup([Group("g", Opt("LISTENER", Word("l")))])),
+		// A listener: DHCP, or IP and addresses with a port; an address is a string and, where it has one, a mask; both with DHCP.
+		["a listener on the network with an address and no mask"] = new Statement.CreateAvailabilityGroup(X, Replicated(Replica("n", Url))) { ListenerName = (LiteralValue.String)Str("d"), Listener = new AvailabilityListener.Dhcp(Address("1.2.3.4")) },
+		["a listener of no address"] = Altered(new AvailabilityAction.AddListener((LiteralValue.String)Str("d"), new AvailabilityListener.Ip([]))),
+		["a listener of an address that is a name"] = Altered(new AvailabilityAction.AddListener((LiteralValue.String)Str("d"), new AvailabilityListener.Ip([new ListenerAddress(new LiteralValue.String("a", StringLiteralKind.Character), null)]))),
+		["a listener of a port that is signed"] = Altered(new AvailabilityAction.AddListener((LiteralValue.String)Str("d"), new AvailabilityListener.Ip([Address("1.2.3.4")]) { Port = Number("-1", NumericLiteralKind.DecimalInteger) })),
+		["a listener of a port that is a decimal"] = Altered(new AvailabilityAction.AddListener((LiteralValue.String)Str("d"), new AvailabilityListener.Ip([Address("1.2.3.4")]) { Port = Number("1.5", NumericLiteralKind.Decimal) })),
+		["a listener modified to a port that is signed"] = Altered(new AvailabilityAction.ModifyListener((LiteralValue.String)Str("d"), new ListenerChange.Port(Number("-1", NumericLiteralKind.DecimalInteger)))),
+		["a listener named by a name"] = Altered(new AvailabilityAction.RestartListener(new LiteralValue.String("d", StringLiteralKind.Character))),
+		["a listener named by a variable"] = Altered(new AvailabilityAction.RemoveListener(new LiteralValue.String("@d", StringLiteralKind.Character))),
+		["an availability permission that is none"] = Altered(new AvailabilityAction.CreateAnyDatabase((AvailabilityPermission)9)),
 		// @@REFUSALS
 	};
 

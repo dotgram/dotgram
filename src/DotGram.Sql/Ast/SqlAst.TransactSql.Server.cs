@@ -122,7 +122,200 @@ public abstract partial record Statement
 		/// <summary>T-SQL: ALTER WORKLOAD GROUP (Transact-SQL). <c>USING pool, EXTERNAL pool</c>; none where no <c>USING</c> is written.</summary>
 		public SqlList<WorkloadPool> Pools { get; init; } = [];
 	}
+
+	/// <summary>
+	/// T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL). <c>CREATE AVAILABILITY GROUP group [WITH (setting, …)] source [LISTENER
+	/// 'name' (listener)]</c>: a group is made of its replicas or of other groups, and says so.
+	/// </summary>
+	public sealed record CreateAvailabilityGroup(Identifier Name, AvailabilitySource Source) : Statement
+	{
+		/// <summary>
+		/// T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL). <c>WITH (setting, …)</c>: AUTOMATED_BACKUP_PREFERENCE,
+		/// FAILURE_CONDITION_LEVEL, HEALTH_CHECK_TIMEOUT, DB_FAILOVER, DTC_SUPPORT, REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT and
+		/// CLUSTER_TYPE with their values, and BASIC, DISTRIBUTED and CONTAINED alone; none where no <c>WITH</c> is written.
+		/// </summary>
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL). <c>LISTENER 'name'</c>: the listener's name, a string; null where no listener is written.</summary>
+		public LiteralValue.String? ListenerName { get; init; }
+
+		/// <summary>T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL). <c>LISTENER 'name' (listener)</c>: how the listener is addressed, with <see cref="ListenerName"/> or not at all.</summary>
+		public AvailabilityListener? Listener { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: ALTER AVAILABILITY GROUP (Transact-SQL). <c>ALTER AVAILABILITY GROUP group action</c>: an ALTER does one thing.
+	/// </summary>
+	public sealed record AlterAvailabilityGroup(Identifier Name, AvailabilityAction Action) : Statement;
 }
+
+/// <summary>T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL). What an availability group is made of.</summary>
+public abstract record AvailabilitySource : ISqlNode
+{
+	/// <summary>Where in the text this source was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this source was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>
+	/// <c>FOR [DATABASE db, …] REPLICA ON 'server' WITH (setting, …), …</c>: the databases, none where no <c>DATABASE</c> is written,
+	/// and the replicas, one at least.
+	/// </summary>
+	public sealed record Replicas(SqlList<Identifier> Databases, SqlList<AvailabilityReplica> Servers) : AvailabilitySource;
+
+	/// <summary><c>AVAILABILITY GROUP ON 'group' WITH (setting, …) [, 'group' WITH (…)]</c>, with no <c>FOR</c>: a distributed group, of one group or of two.</summary>
+	public sealed record Groups(SqlList<AvailabilityGroupSpec> Specs) : AvailabilitySource;
+}
+
+/// <summary>
+/// T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL), ALTER AVAILABILITY GROUP (Transact-SQL). A replica: a server instance, and the
+/// bracket that says how it takes part.
+/// </summary>
+public sealed record AvailabilityReplica(LiteralValue.String Server, SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>
+/// T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL), ALTER AVAILABILITY GROUP (Transact-SQL). A group joined to another: named, and told
+/// where to listen.
+/// </summary>
+public sealed record AvailabilityGroupSpec(LiteralValue.String Group, SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL), ALTER AVAILABILITY GROUP (Transact-SQL). How a listener takes its address.</summary>
+public abstract record AvailabilityListener : ISqlNode
+{
+	/// <summary>Where in the text this listener was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this listener was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>WITH DHCP [ON ('address', 'mask')]</c>: the address from the network, and, where it is told, the network it is on; both strings.</summary>
+	public sealed record Dhcp(ListenerAddress? On) : AvailabilityListener;
+
+	/// <summary><c>WITH IP (('address', 'mask'), …) [, PORT = n]</c>: given addresses, one at least, and a port.</summary>
+	public sealed record Ip(SqlList<ListenerAddress> Addresses) : AvailabilityListener
+	{
+		/// <summary>T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL). <c>, PORT = n</c>, whole digits; null where none is written.</summary>
+		public LiteralValue.Numeric? Port { get; init; }
+	}
+}
+
+/// <summary>
+/// T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL), ALTER AVAILABILITY GROUP (Transact-SQL). An address of a listener, a string, and
+/// its subnet mask, a string, where the address has one.
+/// </summary>
+public sealed record ListenerAddress(LiteralValue.String Address, LiteralValue.String? Mask) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>T-SQL: ALTER AVAILABILITY GROUP (Transact-SQL). What an ALTER AVAILABILITY GROUP does, one thing at a time.</summary>
+public abstract record AvailabilityAction : ISqlNode
+{
+	/// <summary>Where in the text this action was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this action was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>SET (setting)</c>: one of the settings of the group's <c>WITH</c>, or <c>ROLE = SECONDARY</c>.</summary>
+	public sealed record Set(Option Setting) : AvailabilityAction;
+
+	/// <summary><c>ADD DATABASE db</c>.</summary>
+	public sealed record AddDatabase(Identifier Database) : AvailabilityAction;
+
+	/// <summary><c>REMOVE DATABASE db</c>.</summary>
+	public sealed record RemoveDatabase(Identifier Database) : AvailabilityAction;
+
+	/// <summary><c>ADD REPLICA ON 'server' WITH (setting, …)</c>.</summary>
+	public sealed record AddReplica(AvailabilityReplica Replica) : AvailabilityAction;
+
+	/// <summary><c>MODIFY REPLICA ON 'server' WITH (setting, …)</c>.</summary>
+	public sealed record ModifyReplica(AvailabilityReplica Replica) : AvailabilityAction;
+
+	/// <summary><c>REMOVE REPLICA ON 'server'</c>.</summary>
+	public sealed record RemoveReplica(LiteralValue.String Server) : AvailabilityAction;
+
+	/// <summary><c>JOIN AVAILABILITY GROUP ON 'group' WITH (…) [, 'group' WITH (…)]</c>: one group or two.</summary>
+	public sealed record JoinAvailabilityGroup(SqlList<AvailabilityGroupSpec> Specs) : AvailabilityAction;
+
+	/// <summary><c>MODIFY AVAILABILITY GROUP ON 'group' WITH (…) [, 'group' WITH (…)]</c>: one group or two.</summary>
+	public sealed record ModifyAvailabilityGroup(SqlList<AvailabilityGroupSpec> Specs) : AvailabilityAction;
+
+	/// <summary><c>JOIN</c>.</summary>
+	public sealed record Join : AvailabilityAction;
+
+	/// <summary><c>GRANT CREATE ANY DATABASE</c> or <c>DENY CREATE ANY DATABASE</c>.</summary>
+	public sealed record CreateAnyDatabase(AvailabilityPermission Permission) : AvailabilityAction;
+
+	/// <summary><c>FAILOVER</c>.</summary>
+	public sealed record Failover : AvailabilityAction;
+
+	/// <summary><c>FORCE_FAILOVER_ALLOW_DATA_LOSS</c>.</summary>
+	public sealed record ForceFailoverAllowDataLoss : AvailabilityAction;
+
+	/// <summary><c>OFFLINE</c>.</summary>
+	public sealed record Offline : AvailabilityAction;
+
+	/// <summary><c>ADD LISTENER 'name' (listener)</c>.</summary>
+	public sealed record AddListener(LiteralValue.String Name, AvailabilityListener Listener) : AvailabilityAction;
+
+	/// <summary><c>MODIFY LISTENER 'name' (change)</c>.</summary>
+	public sealed record ModifyListener(LiteralValue.String Name, ListenerChange Change) : AvailabilityAction;
+
+	/// <summary><c>RESTART LISTENER 'name'</c>.</summary>
+	public sealed record RestartListener(LiteralValue.String Name) : AvailabilityAction;
+
+	/// <summary><c>REMOVE LISTENER 'name'</c>.</summary>
+	public sealed record RemoveListener(LiteralValue.String Name) : AvailabilityAction;
+}
+
+/// <summary>T-SQL: ALTER AVAILABILITY GROUP (Transact-SQL). What <c>MODIFY LISTENER</c> changes.</summary>
+public abstract record ListenerChange : ISqlNode
+{
+	/// <summary>Where in the text this change was written.</summary>
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this change was written.</summary>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary><c>ADD IP ('address' [, 'mask'])</c>.</summary>
+	public sealed record AddIp(ListenerAddress Address) : ListenerChange;
+
+	/// <summary><c>PORT = n</c>, whole digits.</summary>
+	public sealed record Port(LiteralValue.Numeric Number) : ListenerChange;
+}
+
+/// <summary>T-SQL: ALTER AVAILABILITY GROUP (Transact-SQL). <c>GRANT</c> or <c>DENY</c> of the permission to create any database.</summary>
+public enum AvailabilityPermission { Grant, Deny }
 
 public abstract partial record Expression
 {

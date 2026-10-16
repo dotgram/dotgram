@@ -40,6 +40,7 @@ static partial class Bridge
 				Statement.AlterResourceGovernor g      => Governor(g),
 				Statement.ResourcePoolDefinition pool  => Pool(pool),
 				Statement.WorkloadGroupDefinition w    => Workload(w),
+				Statement.AvailabilityGroupDefinition a => Availability(a),
 				_ when Owned(Owns, old)                => throw Inventory.Unconverted(old),
 				_                                      => null,
 			};
@@ -339,6 +340,281 @@ static partial class Bridge
 				"ALTER"  => new Ast.Statement.AlterWorkloadGroup(name) { Options = options, Pools = pools.ToSqlList() },
 				_        => throw reader.Unread(),
 			};
+		}
+
+		// ── Availability groups ───────────────────────────────────────────────────
+
+		static Ast.Statement Availability(Statement.AvailabilityGroupDefinition old)
+		{
+			var reader = new Broker.Tail(old, old.Tail);
+			var name   = Values.Part(old, old.Name);
+
+			if (Broker.Verb(old) == "ALTER")
+			{
+				var action = AvailabilityAction(old, reader);
+
+				reader.Finish();
+
+				return new Ast.Statement.AlterAvailabilityGroup(name, action);
+			}
+
+			SqlList<Ast.Option> options = [];
+
+			if (reader.Take("WITH"))
+			{
+				reader.ExpectPunctuation("(");
+				options = AvailabilityOptions(reader, closing: true);
+			}
+
+			Ast.AvailabilitySource source;
+
+			// The FOR belongs to the replicas: a distributed group is made of `AVAILABILITY GROUP ON …` alone.
+			if (reader.Take("AVAILABILITY", "GROUP", "ON"))
+				source = new Ast.AvailabilitySource.Groups(GroupSpecs(reader));
+			else
+			{
+				reader.Expect("FOR");
+
+				var databases = new List<Ast.Identifier>();
+
+				if (reader.Take("DATABASE"))
+				{
+					do
+						databases.Add(reader.Name());
+					while (reader.TakePunctuation(","));
+				}
+
+				reader.Expect("REPLICA", "ON");
+
+				var servers = new List<Ast.AvailabilityReplica> { Replica(reader) };
+
+				while (reader.TakePunctuation(","))
+					servers.Add(Replica(reader));
+
+				source = new Ast.AvailabilitySource.Replicas(databases.ToSqlList(), servers.ToSqlList());
+			}
+
+			Ast.LiteralValue.String? listenerName = null;
+			Ast.AvailabilityListener? listener    = null;
+
+			if (reader.Take("LISTENER"))
+			{
+				listenerName = reader.String();
+				reader.ExpectPunctuation("(");
+				listener = Listener(reader);
+				reader.ExpectPunctuation(")");
+			}
+
+			reader.Finish();
+
+			return new Ast.Statement.CreateAvailabilityGroup(name, source) { Options = options, ListenerName = listenerName, Listener = listener };
+		}
+
+		static Ast.AvailabilityAction AvailabilityAction(object old, Broker.Tail reader)
+		{
+			if (reader.Take("SET"))
+			{
+				reader.ExpectPunctuation("(");
+
+				var options = AvailabilityOptions(reader, closing: true);
+
+				return options is [{ } setting] ? new Ast.AvailabilityAction.Set(setting) : throw reader.Unread();
+			}
+
+			if (reader.Take("ADD", "DATABASE"))
+				return new Ast.AvailabilityAction.AddDatabase(reader.Name());
+
+			if (reader.Take("REMOVE", "DATABASE"))
+				return new Ast.AvailabilityAction.RemoveDatabase(reader.Name());
+
+			if (reader.Take("ADD", "REPLICA", "ON"))
+				return new Ast.AvailabilityAction.AddReplica(Replica(reader));
+
+			if (reader.Take("MODIFY", "REPLICA", "ON"))
+				return new Ast.AvailabilityAction.ModifyReplica(Replica(reader));
+
+			if (reader.Take("REMOVE", "REPLICA", "ON"))
+				return new Ast.AvailabilityAction.RemoveReplica(reader.String());
+
+			if (reader.Take("JOIN", "AVAILABILITY", "GROUP", "ON"))
+				return new Ast.AvailabilityAction.JoinAvailabilityGroup(GroupSpecs(reader));
+
+			if (reader.Take("MODIFY", "AVAILABILITY", "GROUP", "ON"))
+				return new Ast.AvailabilityAction.ModifyAvailabilityGroup(GroupSpecs(reader));
+
+			if (reader.Take("JOIN"))
+				return new Ast.AvailabilityAction.Join();
+
+			if (reader.Take("GRANT", "CREATE", "ANY", "DATABASE"))
+				return new Ast.AvailabilityAction.CreateAnyDatabase(Ast.AvailabilityPermission.Grant);
+
+			if (reader.Take("DENY", "CREATE", "ANY", "DATABASE"))
+				return new Ast.AvailabilityAction.CreateAnyDatabase(Ast.AvailabilityPermission.Deny);
+
+			if (reader.Take("FAILOVER"))
+				return new Ast.AvailabilityAction.Failover();
+
+			if (reader.Take("FORCE_FAILOVER_ALLOW_DATA_LOSS"))
+				return new Ast.AvailabilityAction.ForceFailoverAllowDataLoss();
+
+			if (reader.Take("OFFLINE"))
+				return new Ast.AvailabilityAction.Offline();
+
+			if (reader.Take("ADD", "LISTENER"))
+			{
+				var name = reader.String();
+
+				reader.ExpectPunctuation("(");
+
+				var listener = Listener(reader);
+
+				reader.ExpectPunctuation(")");
+
+				return new Ast.AvailabilityAction.AddListener(name, listener);
+			}
+
+			if (reader.Take("MODIFY", "LISTENER"))
+			{
+				var name = reader.String();
+
+				reader.ExpectPunctuation("(");
+
+				Ast.ListenerChange change = reader.Take("ADD", "IP") ? new Ast.ListenerChange.AddIp(Address(reader))
+					: reader.Take("PORT") ? PortChange(reader)
+					: throw reader.Unread();
+
+				reader.ExpectPunctuation(")");
+
+				return new Ast.AvailabilityAction.ModifyListener(name, change);
+			}
+
+			if (reader.Take("RESTART", "LISTENER"))
+				return new Ast.AvailabilityAction.RestartListener(reader.String());
+
+			if (reader.Take("REMOVE", "LISTENER"))
+				return new Ast.AvailabilityAction.RemoveListener(reader.String());
+
+			throw reader.Unread();
+		}
+
+		static Ast.ListenerChange PortChange(Broker.Tail reader)
+		{
+			reader.ExpectPunctuation("=");
+
+			return new Ast.ListenerChange.Port(reader.Number());
+		}
+
+		/// <summary><c>('address' [, 'mask'])</c>.</summary>
+		static Ast.ListenerAddress Address(Broker.Tail reader)
+		{
+			reader.ExpectPunctuation("(");
+
+			var address = reader.String();
+			var mask    = reader.TakePunctuation(",") ? reader.String() : null;
+
+			reader.ExpectPunctuation(")");
+
+			return new Ast.ListenerAddress(address, mask);
+		}
+
+		static Ast.AvailabilityListener Listener(Broker.Tail reader)
+		{
+			reader.Expect("WITH");
+
+			if (reader.Take("DHCP"))
+				return new Ast.AvailabilityListener.Dhcp(reader.Take("ON") ? Address(reader) : null);
+
+			reader.Expect("IP");
+			reader.ExpectPunctuation("(");
+
+			var addresses = new List<Ast.ListenerAddress> { Address(reader) };
+
+			while (reader.TakePunctuation(","))
+				addresses.Add(Address(reader));
+
+			reader.ExpectPunctuation(")");
+
+			return new Ast.AvailabilityListener.Ip(addresses.ToSqlList()) { Port = reader.TakePunctuation(",") ? PortOf(reader) : null };
+		}
+
+		static Ast.LiteralValue.Numeric PortOf(Broker.Tail reader)
+		{
+			reader.Expect("PORT");
+			reader.ExpectPunctuation("=");
+
+			return reader.Number();
+		}
+
+		/// <summary><c>'server' WITH ( options )</c>.</summary>
+		static Ast.AvailabilityReplica Replica(Broker.Tail reader)
+		{
+			var server = reader.String();
+
+			reader.Expect("WITH");
+			reader.ExpectPunctuation("(");
+
+			return new Ast.AvailabilityReplica(server, AvailabilityOptions(reader, closing: true));
+		}
+
+		static SqlList<Ast.AvailabilityGroupSpec> GroupSpecs(Broker.Tail reader)
+		{
+			var specs = new List<Ast.AvailabilityGroupSpec>();
+
+			do
+			{
+				var group = reader.String();
+
+				reader.Expect("WITH");
+				reader.ExpectPunctuation("(");
+				specs.Add(new Ast.AvailabilityGroupSpec(group, AvailabilityOptions(reader, closing: true)));
+			}
+			while (reader.TakePunctuation(","));
+
+			return specs.ToSqlList();
+		}
+
+		/// <summary>
+		/// The options of an availability object after its opening bracket and up to the closing one: a word alone, a word and a value
+		/// after <c>=</c> (a word, a string, a number, or strings in brackets), or a word and a bracket of options of its own.
+		/// </summary>
+		static SqlList<Ast.Option> AvailabilityOptions(Broker.Tail reader, bool closing)
+		{
+			var options = new List<Ast.Option>();
+
+			do
+			{
+				var name = reader.Name();
+
+				if (reader.TakePunctuation("="))
+				{
+					Ast.Expression value;
+
+					if (reader.TakePunctuation("("))
+					{
+						var strings = new List<Ast.Expression> { reader.String() };
+
+						while (reader.TakePunctuation(","))
+							strings.Add(reader.String());
+
+						reader.ExpectPunctuation(")");
+						value = new Ast.Expression.Row(strings.ToSqlList());
+					}
+					else
+						value = reader.SettingValue();
+
+					options.Add(new Ast.Option(name, value, []));
+				}
+				else if (reader.TakePunctuation("("))
+					options.Add(new Ast.Option(name, null, AvailabilityOptions(reader, closing: true)));
+				else
+					options.Add(new Ast.Option(name, null, []));
+			}
+			while (reader.TakePunctuation(","));
+
+			if (closing)
+				reader.ExpectPunctuation(")");
+
+			return options.ToSqlList();
 		}
 
 		// ── KILL, DBCC ────────────────────────────────────────────────────────────

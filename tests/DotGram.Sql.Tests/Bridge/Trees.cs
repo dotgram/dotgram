@@ -151,6 +151,7 @@ static class Trees
 		"Statement.AlterResourceGovernor.Tail",
 		"Statement.ResourcePoolDefinition.Tail",
 		"Statement.WorkloadGroupDefinition.Tail",
+		"Statement.AvailabilityGroupDefinition.Tail",
 	};
 
 	/// <summary>
@@ -225,7 +226,7 @@ static class Trees
 		// The Monitoring family: the words of its statements that the writer prints in capitals.
 		"APPLICATION_LOG", "AUDIT", "DROP", "EVENT", "EXTERNAL_MONITOR", "FAN_IN", "FILEPATH", "FOR", "MODIFY", "NOT", "NOTIFICATION", "NULL", "ON", "OR", "PUBLIC", "SECURITY_LOG", "SESSION", "SPECIFICATION", "START", "STOP", "URL",
 		// The Server family: the words of its statements that the writer prints in capitals.
-		"CONFIGURATION", "GOVERNOR", "POOL", "RECONFIGURE", "RESET", "RESOURCE", "STATISTICS", "WORKLOAD",
+		"AVAILABILITY", "CONFIGURATION", "DENY", "DHCP", "FAILOVER", "FORCE_FAILOVER_ALLOW_DATA_LOSS", "GOVERNOR", "IP", "LISTENER", "OFFLINE", "POOL", "PORT", "RECONFIGURE", "REPLICA", "RESET", "RESOURCE", "RESTART", "STATISTICS", "WORKLOAD",
 	};
 
 	/// <summary>

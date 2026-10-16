@@ -244,6 +244,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.AssemblyDefinition.Tail | 3 |
 | ByCase Statement.AsymmetricKeyDefinition.Tail | 18 |
 | ByCase Statement.AuditSpecificationDefinition.Tail | 10 |
+| ByCase Statement.AvailabilityGroupDefinition.Tail | 4 |
 | ByCase Statement.BrokerPriorityDefinition.Tail | 8 |
 | ByCase Statement.CertificateDefinition.Tail | 1 |
 | ByCase Statement.ColumnEncryptionKeyDefinition.Tail | 4 |
@@ -454,7 +455,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropIndex` | Drop | C | converted 47 | — | 53 |
 | `Statement.Merge` | Dml | A | converted 46 | — | 53 |
 | `Expression.IsNull` | Values | A | — | — | 52 |
-| `Statement.AvailabilityGroupDefinition` | Server | C | gap 51 | 51: no target record: Statement.CreateAvailabilityGroup (51) | 51 |
+| `Statement.AvailabilityGroupDefinition` | Server | C | converted 51 | — | 51 |
 | `Statement.TriggerSwitch` | Routines | C | converted 44 | — | 51 |
 | `Statement.QueueDefinition` | Broker | C | converted 48 | — | 48 |
 | `Statement.If` | Procedural | C | converted 23 | — | 47 |

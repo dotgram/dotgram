@@ -105,6 +105,16 @@ public static partial class Sql2023Writer
 					PutPoolOptions(alter, alter.Options, PoolSettings, "ALTER RESOURCE POOL");
 					return true;
 
+				case Statement.CreateAvailabilityGroup create:
+					PutCreateAvailabilityGroup(create);
+					return true;
+
+				case Statement.AlterAvailabilityGroup alter:
+					Word("ALTER AVAILABILITY GROUP");
+					PutOneName(alter.Name, "ALTER AVAILABILITY GROUP");
+					PutAvailabilityAction(alter.Action);
+					return true;
+
 				case Statement.CreateWorkloadGroup create:
 					Word("CREATE WORKLOAD GROUP");
 					PutPoolName(create.Name, "CREATE WORKLOAD GROUP");
@@ -901,6 +911,340 @@ public static partial class Sql2023Writer
 					Word("EXTERNAL");
 
 				PutOneName(pools[at].Name, "a workload group's pool");
+			}
+		}
+
+		// ── Availability groups ───────────────────────────────────────────────────
+
+		/// <summary>AvailabilityWith: the settings of a group made, and the three words alone.</summary>
+		static readonly Dictionary<string, SettingEntry> AvailabilityWith = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["AUTOMATED_BACKUP_PREFERENCE"]                 = new(BrokerForm.Words, ["PRIMARY", "SECONDARY_ONLY", "SECONDARY", "NONE"], Once: false),
+			["FAILURE_CONDITION_LEVEL"]                     = new(BrokerForm.Digits, Once: false),
+			["HEALTH_CHECK_TIMEOUT"]                        = new(BrokerForm.Digits, Once: false),
+			["DB_FAILOVER"]                                 = new(BrokerForm.OnOff, Once: false),
+			["DTC_SUPPORT"]                                 = new(BrokerForm.Words, ["PER_DB", "NONE"], Once: false),
+			["REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT"] = new(BrokerForm.Digits, Once: false),
+			["CLUSTER_TYPE"]                                = new(BrokerForm.Words, ["WSFC", "EXTERNAL", "NONE"], Once: false),
+			["BASIC"]                                       = new(BrokerForm.Bare, Once: false),
+			["DISTRIBUTED"]                                 = new(BrokerForm.Bare, Once: false),
+			["CONTAINED"]                                   = new(BrokerForm.Bare, Once: false),
+		};
+
+		/// <summary>AvailabilitySetting: those, and the role of a replica.</summary>
+		static readonly Dictionary<string, SettingEntry> AvailabilitySetting = new(AvailabilityWith, StringComparer.OrdinalIgnoreCase)
+		{
+			["ROLE"] = new(BrokerForm.Words, ["SECONDARY"], Once: false),
+		};
+
+		static readonly Dictionary<string, SettingEntry> SecondaryRole = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["ALLOW_CONNECTIONS"]       = new(BrokerForm.Words, ["NO", "READ_ONLY", "ALL"], Once: false),
+			["READ_ONLY_ROUTING_URL"]   = new(BrokerForm.String, Once: false),
+		};
+
+		static readonly Dictionary<string, SettingEntry> PrimaryRole = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["ALLOW_CONNECTIONS"]       = new(BrokerForm.Words, ["READ_WRITE", "ALL"], Once: false),
+			["READ_ONLY_ROUTING_LIST"]  = new(BrokerForm.Strings | BrokerForm.Words, ["NONE"], Once: false),
+			["READ_WRITE_ROUTING_URL"]  = new(BrokerForm.String, Once: false),
+		};
+
+		/// <summary>AvailabilityReplicaOption: the endpoint, the modes, the numbers and the roles in brackets.</summary>
+		static readonly Dictionary<string, SettingEntry> ReplicaSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["ENDPOINT_URL"]       = new(BrokerForm.String, Once: false),
+			["AVAILABILITY_MODE"]  = new(BrokerForm.Words, ["SYNCHRONOUS_COMMIT", "ASYNCHRONOUS_COMMIT", "CONFIGURATION_ONLY"], Once: false),
+			["FAILOVER_MODE"]      = new(BrokerForm.Words, ["AUTOMATIC", "MANUAL", "EXTERNAL"], Once: false),
+			["SEEDING_MODE"]       = new(BrokerForm.Words, ["AUTOMATIC", "MANUAL"], Once: false),
+			["BACKUP_PRIORITY"]    = new(BrokerForm.Digits, Once: false),
+			["SESSION_TIMEOUT"]    = new(BrokerForm.Digits, Once: false),
+			["SECONDARY_ROLE"]     = new(0, Once: false, Nested: SecondaryRole),
+			["PRIMARY_ROLE"]       = new(0, Once: false, Nested: PrimaryRole),
+		};
+
+		/// <summary>AvailabilityGroupOption: where a group listens and how it takes part.</summary>
+		static readonly Dictionary<string, SettingEntry> GroupSettings = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["LISTENER_URL"]       = new(BrokerForm.String, Once: false),
+			["LISTENER"]           = new(BrokerForm.String, Once: false),
+			["AVAILABILITY_MODE"]  = new(BrokerForm.Words, ["SYNCHRONOUS_COMMIT", "ASYNCHRONOUS_COMMIT"], Once: false),
+			["FAILOVER_MODE"]      = new(BrokerForm.Words, ["MANUAL"], Once: false),
+			["SEEDING_MODE"]       = new(BrokerForm.Words, ["AUTOMATIC", "MANUAL"], Once: false),
+		};
+
+		void PutCreateAvailabilityGroup(Statement.CreateAvailabilityGroup create)
+		{
+			if ((create.ListenerName is null) != (create.Listener is null))
+				throw Misplaced(create, create.ListenerName is null ? "Listener" : "ListenerName", "without the other, which are said together");
+
+			Word("CREATE AVAILABILITY GROUP");
+			PutOneName(create.Name, "CREATE AVAILABILITY GROUP");
+
+			if (create.Options.Count > 0)
+			{
+				Word("WITH");
+				Open();
+				PutBrokerSettings(create, create.Options, AvailabilityWith, "CREATE AVAILABILITY GROUP", required: [], apart: []);
+				Close();
+			}
+
+			switch (create.Source)
+			{
+				case AvailabilitySource.Replicas replicas:
+					if (replicas.Servers.Count == 0)
+						throw Empty(replicas, "Servers");
+
+					Word("FOR");
+
+					if (replicas.Databases.Count > 0)
+					{
+						Word("DATABASE");
+						Each(replicas.Databases, one => PutOneName(one, "CREATE AVAILABILITY GROUP"));
+					}
+
+					Word("REPLICA ON");
+					Each(replicas.Servers, PutReplica);
+					break;
+
+				case AvailabilitySource.Groups groups:
+					Word("AVAILABILITY GROUP ON");
+					PutGroupSpecs(groups, groups.Specs);
+					break;
+
+				default:
+					throw Unwritten(create.Source);
+			}
+
+			if (create.ListenerName is { } name && create.Listener is { } listener)
+			{
+				Word("LISTENER");
+				PutBrokerString(create, "ListenerName", name);
+				Open();
+				PutAvailabilityListener(listener);
+				Close();
+			}
+		}
+
+		void PutBrokerString(ISqlNode owner, string member, LiteralValue.String text)
+		{
+			if (!IsQuoted(text))
+				throw Misplaced(owner, member, "that is no string the grammar's BrokerString reads");
+
+			PutExpression(text);
+		}
+
+		/// <summary><c>'server' WITH (setting, …)</c>: the settings of a replica, one at least.</summary>
+		void PutReplica(AvailabilityReplica replica)
+		{
+			PutBrokerString(replica, "Server", replica.Server);
+			Word("WITH");
+			Open();
+			PutBrokerSettings(replica, replica.Options, ReplicaSettings, "an availability replica", required: [], apart: []);
+			Close();
+		}
+
+		/// <summary>The groups a distributed group is made of or joined to: one, or two joined by a comma.</summary>
+		void PutGroupSpecs(ISqlNode owner, SqlList<AvailabilityGroupSpec> specs)
+		{
+			if (specs.Count is < 1 or > 2)
+				throw Misplaced(owner, "Specs", $"{specs.Count} in number, where the grammar reads one or two");
+
+			for (var at = 0; at < specs.Count; at++)
+			{
+				if (at > 0)
+					Tight(",");
+
+				PutBrokerString(specs[at], "Group", specs[at].Group);
+				Word("WITH");
+				Open();
+				PutBrokerSettings(specs[at], specs[at].Options, GroupSettings, "an availability group", required: [], apart: []);
+				Close();
+			}
+		}
+
+		void PutListenerAddress(ListenerAddress address, bool maskRequired)
+		{
+			if (maskRequired && address.Mask is null)
+				throw Empty(address, "Mask");
+
+			Open();
+			PutBrokerString(address, "Address", address.Address);
+
+			if (address.Mask is { } mask)
+			{
+				Tight(",");
+				PutBrokerString(address, "Mask", mask);
+			}
+
+			Close();
+		}
+
+		void PutAvailabilityListener(AvailabilityListener listener)
+		{
+			switch (listener)
+			{
+				case AvailabilityListener.Dhcp dhcp:
+					Word("WITH DHCP");
+
+					if (dhcp.On is { } on)
+					{
+						Word("ON");
+						PutListenerAddress(on, maskRequired: true);
+					}
+
+					break;
+
+				case AvailabilityListener.Ip ip:
+					if (ip.Addresses.Count == 0)
+						throw Empty(ip, "Addresses");
+
+					Word("WITH IP");
+					Open();
+					Each(ip.Addresses, one => PutListenerAddress(one, maskRequired: false));
+					Close();
+
+					if (ip.Port is { } port)
+					{
+						Tight(",");
+						Word("PORT =");
+						PutListenerPort(ip, port);
+					}
+
+					break;
+
+				default:
+					throw Unwritten(listener);
+			}
+		}
+
+		void PutListenerPort(ISqlNode owner, LiteralValue.Numeric port)
+		{
+			if (!IsNumberOf(port, ExternalShape.Digits))
+				throw Misplaced(owner, "Port", "that is no whole number the grammar's Digits reads");
+
+			PutExpression(port);
+		}
+
+		void PutAvailabilityAction(AvailabilityAction action)
+		{
+			switch (action)
+			{
+				case AvailabilityAction.Set set:
+					Word("SET");
+					Open();
+
+					// One setting, in brackets.
+					PutBrokerSettings(set, [set.Setting], AvailabilitySetting, "ALTER AVAILABILITY GROUP", required: [], apart: []);
+					Close();
+					break;
+
+				case AvailabilityAction.AddDatabase add:
+					Word("ADD DATABASE");
+					PutOneName(add.Database, "ALTER AVAILABILITY GROUP");
+					break;
+
+				case AvailabilityAction.RemoveDatabase remove:
+					Word("REMOVE DATABASE");
+					PutOneName(remove.Database, "ALTER AVAILABILITY GROUP");
+					break;
+
+				case AvailabilityAction.AddReplica add:
+					Word("ADD REPLICA ON");
+					PutReplica(add.Replica);
+					break;
+
+				case AvailabilityAction.ModifyReplica modify:
+					Word("MODIFY REPLICA ON");
+					PutReplica(modify.Replica);
+					break;
+
+				case AvailabilityAction.RemoveReplica remove:
+					Word("REMOVE REPLICA ON");
+					PutBrokerString(remove, "Server", remove.Server);
+					break;
+
+				case AvailabilityAction.JoinAvailabilityGroup join:
+					Word("JOIN AVAILABILITY GROUP ON");
+					PutGroupSpecs(join, join.Specs);
+					break;
+
+				case AvailabilityAction.ModifyAvailabilityGroup modify:
+					Word("MODIFY AVAILABILITY GROUP ON");
+					PutGroupSpecs(modify, modify.Specs);
+					break;
+
+				case AvailabilityAction.Join:
+					Word("JOIN");
+					break;
+
+				case AvailabilityAction.CreateAnyDatabase permission:
+					Word(permission.Permission switch
+					{
+						AvailabilityPermission.Grant => "GRANT",
+						AvailabilityPermission.Deny  => "DENY",
+						_                            => throw NoText(permission.Permission),
+					});
+
+					Word("CREATE ANY DATABASE");
+					break;
+
+				case AvailabilityAction.Failover:
+					Word("FAILOVER");
+					break;
+
+				case AvailabilityAction.ForceFailoverAllowDataLoss:
+					Word("FORCE_FAILOVER_ALLOW_DATA_LOSS");
+					break;
+
+				case AvailabilityAction.Offline:
+					Word("OFFLINE");
+					break;
+
+				case AvailabilityAction.AddListener add:
+					Word("ADD LISTENER");
+					PutBrokerString(add, "Name", add.Name);
+					Open();
+					PutAvailabilityListener(add.Listener);
+					Close();
+					break;
+
+				case AvailabilityAction.ModifyListener modify:
+					Word("MODIFY LISTENER");
+					PutBrokerString(modify, "Name", modify.Name);
+					Open();
+
+					switch (modify.Change)
+					{
+						case ListenerChange.AddIp add:
+							Word("ADD IP");
+							PutListenerAddress(add.Address, maskRequired: false);
+							break;
+
+						case ListenerChange.Port port:
+							Word("PORT =");
+							PutListenerPort(port, port.Number);
+							break;
+
+						default:
+							throw Unwritten(modify.Change);
+					}
+
+					Close();
+					break;
+
+				case AvailabilityAction.RestartListener restart:
+					Word("RESTART LISTENER");
+					PutBrokerString(restart, "Name", restart.Name);
+					break;
+
+				case AvailabilityAction.RemoveListener remove:
+					Word("REMOVE LISTENER");
+					PutBrokerString(remove, "Name", remove.Name);
+					break;
+
+				default:
+					throw Unwritten(action);
 			}
 		}
 	}

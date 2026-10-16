@@ -339,7 +339,7 @@ static partial class Bridge
 
 				reader.Expect("TO", "SERVICE");
 
-				var service = (Ast.LiteralValue.String)reader.String();
+				var service = reader.String();
 
 				reader.Expect("WITH");
 
@@ -690,7 +690,7 @@ static partial class Bridge
 			}
 
 			/// <summary>A string, plain or national.</summary>
-			public Ast.LiteralValue String()
+			public Ast.LiteralValue.String String()
 			{
 				return _at < _tokens.Count && _tokens[_at].Kind == SqlTokens.Kind.String && Values.String(_tokens[_at++].Text) is Ast.LiteralValue.String text
 					? text

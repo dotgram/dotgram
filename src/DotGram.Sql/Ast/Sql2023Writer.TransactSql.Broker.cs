@@ -593,7 +593,8 @@ public static partial class Sql2023Writer
 		/// <summary>
 		/// The forms of value a setting is read with: a string (<c>Quoted</c>), a name, an unsigned number, ON or OFF, the word ANY, the
 		/// word DEFAULT, any value, digits alone (<c>Sql92.Lexical.Digits</c>), an exact number with no exponent (<c>ExactNumber</c>),
-		/// a word out of the entry's list, a number and the unit it is written in, NULL, and the ranges of an affinity in brackets.
+		/// a word out of the entry's list, a number and the unit it is written in, NULL, the ranges of an affinity in brackets, no value at
+		/// all (the setting is a word alone), and a list of strings in brackets.
 		/// </summary>
 		[Flags]
 		enum BrokerForm
@@ -611,13 +612,16 @@ public static partial class Sql2023Writer
 			Measured = 1024,
 			Null     = 2048,
 			Ranges   = 4096,
+			Bare     = 8192,
+			Strings  = 16384,
 		}
 
 		/// <summary>
 		/// One setting a place reads: the forms of its value, the words and the units where its value is one of a closed list, and
-		/// whether the place lets it stand once only. A setting of the forms alone is read once.
+		/// whether the place lets it stand once only, and the settings of its own where it is a bracketed list with no <c>=</c>. A setting of
+		/// the forms alone is read once.
 		/// </summary>
-		readonly record struct SettingEntry(BrokerForm Forms, string[]? Words = null, string[]? Units = null, bool Once = true)
+		readonly record struct SettingEntry(BrokerForm Forms, string[]? Words = null, string[]? Units = null, bool Once = true, Dictionary<string, SettingEntry>? Nested = null)
 		{
 			public static implicit operator SettingEntry(BrokerForm forms)
 			{
@@ -666,6 +670,15 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutBrokerSettings(ISqlNode owner, SqlList<Option> options, Dictionary<string, SettingEntry> catalogue, string place, string[] required, string[] apart)
 		{
+			// A setting may hold a bracket of settings of its own, so the walk goes a level deeper with each; the catalogues are shallow,
+			// but the cycle is there to be checked.
+			if (!SqlStack.Enough())
+			{
+				SqlStack.Deeper(this, owner, (options, catalogue, place, required, apart), static (into, node, state) => into.PutBrokerSettings(node, state.options, state.catalogue, state.place, state.required, state.apart));
+
+				return;
+			}
+
 			if (options.Count == 0)
 				throw Empty(owner, "Options");
 
@@ -685,16 +698,10 @@ public static partial class Sql2023Writer
 					throw Misplaced(option, "Name", $"twice in {place}, which reads {key} once (NamedOnce)");
 
 				if (option.EqualsOmitted)
-					throw Misplaced(option, "EqualsOmitted", $"in {place}, whose settings are written with =");
+					throw Misplaced(option, "EqualsOmitted", $"in {place}, whose settings are written in the form their own rule fixes");
 
 				if (option.Order is not null || option.Partitions is not null || option.Place is not null)
 					throw Misplaced(option, "an order, partitions or a place", $"in {place}, whose settings are a name and a value");
-
-				if (option.Options.Count > 0)
-					throw Misplaced(option, "Options", $"after {option.Name.Text} in {place}, which reads none");
-
-				if (option.Value is not { } value)
-					throw Empty(option, "Value");
 
 				if (at > 0)
 					Tight(",");
@@ -703,6 +710,33 @@ public static partial class Sql2023Writer
 
 				foreach (var word in option.Words)
 					PutKeyWord(word);
+
+				// A bracketed list of settings of its own, with no value and no =.
+				if (entry.Nested is { } nested)
+				{
+					if (option.Value is not null)
+						throw Misplaced(option, "Value", $"after {key} in {place}, which is written with a bracketed list and no =");
+
+					Open();
+					PutBrokerSettings(option, option.Options, nested, place + " " + key, required: [], apart: []);
+					Close();
+					continue;
+				}
+
+				if (option.Options.Count > 0)
+					throw Misplaced(option, "Options", $"after {key} in {place}, which reads none");
+
+				// A word alone: BASIC, DISTRIBUTED.
+				if (entry.Forms.HasFlag(BrokerForm.Bare))
+				{
+					if (option.Value is not null)
+						throw Misplaced(option, "Value", $"after {key} in {place}, which is a word alone");
+
+					continue;
+				}
+
+				if (option.Value is not { } value)
+					throw Empty(option, "Value");
 
 				Word("=");
 				PutBrokerValue(option, value, entry, place);
@@ -734,6 +768,14 @@ public static partial class Sql2023Writer
 					PutOneName(word, place);
 					return;
 				}
+			}
+
+			if (value is Expression.Row { RowKeyword: false, Items: { Count: > 0 } items } && forms.HasFlag(BrokerForm.Strings) && items.All(static one => one is LiteralValue.String text && IsQuoted(text)))
+			{
+				Open();
+				Each(items, PutExpression);
+				Close();
+				return;
 			}
 
 			if (value is Expression.PoolRanges ranges && forms.HasFlag(BrokerForm.Ranges))

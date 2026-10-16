@@ -212,5 +212,87 @@ public sealed class ServerBridgeTests
 		Converts(text);
 	}
 
+	[Theory]
+	[InlineData("CREATE AVAILABILITY GROUP g FOR REPLICA ON 'n' WITH (ENDPOINT_URL = 'u')",                   "Create with replicas")]
+	[InlineData("CREATE AVAILABILITY GROUP g WITH (BASIC, db_failover = on) FOR DATABASE a, b REPLICA ON 'n' WITH (ENDPOINT_URL = 'u', SECONDARY_ROLE (ALLOW_CONNECTIONS = READ_ONLY), PRIMARY_ROLE (READ_ONLY_ROUTING_LIST = ('x', N'y'))), 'm' WITH (SEEDING_MODE = MANUAL) LISTENER 'd' (WITH IP (('1.2.3.4', '255.255.255.0'), ('::1')), PORT = 1433)", "Create with all")]
+	[InlineData("CREATE AVAILABILITY GROUP g WITH (DISTRIBUTED) AVAILABILITY GROUP ON 'a' WITH (LISTENER_URL = 'u'), 'b' WITH (LISTENER = 'l')", "Create distributed")]
+	[InlineData("create availability group g for replica on 'n' with (endpoint_url = 'u') listener 'd' (with dhcp on ('1.2.3.4', '255.255.255.0'))", "Create lower case, a network")]
+	[InlineData("ALTER AVAILABILITY GROUP g SET (DB_FAILOVER = ON)",                                          "Alter by a setting")]
+	[InlineData("ALTER AVAILABILITY GROUP g ADD DATABASE db1",                                               "Add a database")]
+	[InlineData("ALTER AVAILABILITY GROUP g REMOVE REPLICA ON N'n'",                                         "Remove a replica")]
+	[InlineData("ALTER AVAILABILITY GROUP g MODIFY REPLICA ON 'n' WITH (SEEDING_MODE = AUTOMATIC)",           "Modify a replica")]
+	[InlineData("ALTER AVAILABILITY GROUP g JOIN AVAILABILITY GROUP ON 'a' WITH (SEEDING_MODE = MANUAL)",    "Join a group")]
+	[InlineData("ALTER AVAILABILITY GROUP g JOIN",                                                           "Join")]
+	[InlineData("alter availability group g deny create any database",                                       "Deny")]
+	[InlineData("ALTER AVAILABILITY GROUP g GRANT CREATE ANY DATABASE",                                      "Grant")]
+	[InlineData("alter availability group g failover",                                                       "Failover")]
+	[InlineData("ALTER AVAILABILITY GROUP g FORCE_FAILOVER_ALLOW_DATA_LOSS",                                 "Force")]
+	[InlineData("ALTER AVAILABILITY GROUP g OFFLINE",                                                        "Offline")]
+	[InlineData("ALTER AVAILABILITY GROUP g ADD LISTENER 'd' (WITH DHCP)",                                   "Add a listener")]
+	[InlineData("ALTER AVAILABILITY GROUP g MODIFY LISTENER 'd' (ADD IP ('1.2.3.4', '255.255.255.0'))",      "Modify a listener by an address")]
+	[InlineData("ALTER AVAILABILITY GROUP g MODIFY LISTENER 'd' (PORT = 1433)",                              "Modify a listener by its port")]
+	[InlineData("ALTER AVAILABILITY GROUP g RESTART LISTENER 'd'",                                           "Restart")]
+	[InlineData("ALTER AVAILABILITY GROUP g REMOVE LISTENER 'd'",                                            "Remove a listener")]
+	public void The_bridge_builds_the_availability_record_the_text_means(string text, string expected)
+	{
+		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+
+		var holds = expected switch
+		{
+			"Create with replicas" => made is Ast.Statement.CreateAvailabilityGroup { Source: Ast.AvailabilitySource.Replicas { Databases.Count: 0, Servers: [{ Options: [{ Name.Text: "ENDPOINT_URL" }] }] }, Options.Count: 0, ListenerName: null, Listener: null },
+			"Create with all" => made is Ast.Statement.CreateAvailabilityGroup
+			{
+				Options: [{ Name.Text: "BASIC", Value: null }, { Name.Text: "db_failover", Value: Ast.Expression.Reference { Name.Parts: [{ Text: "on" }] } }],
+				Source: Ast.AvailabilitySource.Replicas
+				{
+					Databases.Count: 2,
+					Servers:
+					[
+						{ Options: [_, { Name.Text: "SECONDARY_ROLE", Value: null, Options: [{ Name.Text: "ALLOW_CONNECTIONS" }] }, { Name.Text: "PRIMARY_ROLE", Options: [{ Value: Ast.Expression.Row { RowKeyword: false, Items: [Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.Character }, Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.National }] } }] }] },
+						{ Options: [{ Name.Text: "SEEDING_MODE" }] },
+					],
+				},
+				ListenerName: not null, Listener: Ast.AvailabilityListener.Ip { Addresses: [{ Mask: not null }, { Mask: null }], Port.Text: "1433" },
+			},
+			"Create distributed" => made is Ast.Statement.CreateAvailabilityGroup { Options: [{ Name.Text: "DISTRIBUTED" }], Source: Ast.AvailabilitySource.Groups { Specs: [{ Options: [{ Name.Text: "LISTENER_URL" }] }, { Options: [{ Name.Text: "LISTENER" }] }] } },
+			"Create lower case, a network" => made is Ast.Statement.CreateAvailabilityGroup { Listener: Ast.AvailabilityListener.Dhcp { On: { Mask: not null } } },
+			"Alter by a setting" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.Set { Setting.Name.Text: "DB_FAILOVER" } },
+			"Add a database" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.AddDatabase { Database.Text: "db1" } },
+			"Remove a replica" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.RemoveReplica { Server.Kind: Ast.StringLiteralKind.National } },
+			"Modify a replica" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.ModifyReplica },
+			"Join a group" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.JoinAvailabilityGroup { Specs.Count: 1 } },
+			"Join" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.Join },
+			"Deny" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.CreateAnyDatabase { Permission: Ast.AvailabilityPermission.Deny } },
+			"Grant" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.CreateAnyDatabase { Permission: Ast.AvailabilityPermission.Grant } },
+			"Failover" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.Failover },
+			"Force" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.ForceFailoverAllowDataLoss },
+			"Offline" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.Offline },
+			"Add a listener" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.AddListener { Listener: Ast.AvailabilityListener.Dhcp { On: null } } },
+			"Modify a listener by an address" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.ModifyListener { Change: Ast.ListenerChange.AddIp { Address.Mask: not null } } },
+			"Modify a listener by its port" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.ModifyListener { Change: Ast.ListenerChange.Port { Number.Text: "1433" } } },
+			"Restart" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.RestartListener },
+			"Remove a listener" => made is Ast.Statement.AlterAvailabilityGroup { Action: Ast.AvailabilityAction.RemoveListener },
+			_ => false,
+		};
+
+		Assert.True(holds, $"{text} built {made}");
+		Converts(text);
+	}
+
+	/// <summary>
+	/// A text the grammar reads and the records do not hold is a gap that says so, never another record: the body of the other verb
+	/// (the grammar reads an action after CREATE and a group's makings after ALTER).
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE AVAILABILITY GROUP g ADD DATABASE d")]
+	[InlineData("ALTER AVAILABILITY GROUP g FOR REPLICA ON 'n' WITH (ENDPOINT_URL = 'u')")]
+	[InlineData("CREATE AVAILABILITY GROUP g FAILOVER")]
+	public void An_availability_body_of_the_other_verb_is_a_gap(string text)
+	{
+		var old = TransactSqlParser.Located.ParseStatement(text);
+
+		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+	}
+
 	// @@TESTS
 }
