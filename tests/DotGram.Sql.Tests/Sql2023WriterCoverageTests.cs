@@ -539,7 +539,7 @@ public sealed class Sql2023WriterCoverageTests
 	public void Option_values_the_grammar_reads_are_written()
 	{
 		Assert.Contains("MAXDOP = 1e3", Sql2023Writer.Write(XmlWith(new Option(new Identifier("MAXDOP"), Number("1e3", NumericLiteralKind.Approximate), []), Set("IGNORE_DUP_KEY", "OFF"), Set("ONLINE", "off"), Set("PAD_INDEX", "ON"))), StringComparison.Ordinal);
-		Assert.Contains("MAXDOP =", Sql2023Writer.Write(SpatialWith(new Option(new Identifier("MAXDOP"), Number("- 0"), []), Set("ONLINE", "OFF"), Set("FILLFACTOR", "A") with { Value = Number("100") })), StringComparison.Ordinal);
+		Assert.Contains("MAXDOP =", Sql2023Writer.Write(SpatialWith(new Option(new Identifier("MAXDOP"), Number("-0"), []), Set("ONLINE", "OFF"), Set("FILLFACTOR", "A") with { Value = Number("100") })), StringComparison.Ordinal);
 		Assert.Contains("COMPRESSION_DELAY = 2 MINUTE", Sql2023Writer.Write(Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Options = [new Option(new Identifier("COMPRESSION_DELAY"), new Expression.Measured(Two, new Identifier("MINUTE")), []), Set("ONLINE", "ON")] })), StringComparison.Ordinal);
 		Assert.Contains("CACHE", Sql2023Writer.Write(SequenceWith(new SequenceOption.Cache(Two))), StringComparison.Ordinal);
 	}

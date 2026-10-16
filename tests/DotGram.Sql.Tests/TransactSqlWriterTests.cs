@@ -708,4 +708,83 @@ public sealed class TransactSqlWriterTests
 
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
 	}
+
+	// ── Writer round: what is written is read back as the same tree, or refused ──────────────────────
+
+	static readonly Expression One = new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger);
+
+	/// <summary>The statement read from <paramref name="text"/>, its number 1 put in the place of <paramref name="bad"/>.</summary>
+	static ISqlNode WithNumber(string text, Expression bad)
+	{
+		return (ISqlNode)Swap(Read(text), One, bad);
+	}
+
+	/// <summary>
+	/// A number's text is written as it stands, so a text that is no number would reach the output (`1; SHUTDOWN;--` in
+	/// `WHERE c = ...` is a second statement) and one of another kind than the node's reads back as another literal.
+	/// </summary>
+	[Theory]
+	[InlineData("1; SHUTDOWN;--", NumericLiteralKind.DecimalInteger)]
+	[InlineData("1 OR 1 = 1", NumericLiteralKind.DecimalInteger)]
+	[InlineData("1\n", NumericLiteralKind.DecimalInteger)]
+	[InlineData("", NumericLiteralKind.DecimalInteger)]
+	[InlineData("1.5", NumericLiteralKind.DecimalInteger)]
+	[InlineData("1", NumericLiteralKind.Decimal)]
+	[InlineData("1", NumericLiteralKind.Approximate)]
+	[InlineData("1e5", NumericLiteralKind.Decimal)]
+	[InlineData("1.5e", NumericLiteralKind.Decimal)]
+	[InlineData("2e.5", NumericLiteralKind.Approximate)]
+	[InlineData("0x1F", NumericLiteralKind.HexInteger)]
+	[InlineData("0o17", NumericLiteralKind.OctalInteger)]
+	[InlineData("0b101", NumericLiteralKind.BinaryInteger)]
+	[InlineData("1_000", NumericLiteralKind.DecimalInteger)]
+	[InlineData("5", NumericLiteralKind.Money)]
+	[InlineData("$5; SHUTDOWN", NumericLiteralKind.Money)]
+	[InlineData("$ 1 0", NumericLiteralKind.Money)]
+	public void A_number_that_reads_as_another_is_refused(string text, NumericLiteralKind kind)
+	{
+		var bad = new LiteralValue.Numeric(text, kind);
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(WithNumber("SELECT a FROM t WHERE a = 1", bad)));
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(WithNumber("WHILE a = 1 BREAK", bad)));
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(WithNumber("SET LOCK_TIMEOUT 1", bad)));
+	}
+
+	/// <summary>The numbers of each kind that T-SQL reads are written as they stand and read back as the same tree.</summary>
+	[Theory]
+	[InlineData("1", NumericLiteralKind.DecimalInteger)]
+	[InlineData("1.", NumericLiteralKind.Decimal)]
+	[InlineData(".5", NumericLiteralKind.Decimal)]
+	[InlineData("1.5", NumericLiteralKind.Decimal)]
+	[InlineData("1e5", NumericLiteralKind.Approximate)]
+	[InlineData("1.5E-3", NumericLiteralKind.Approximate)]
+	[InlineData("2e", NumericLiteralKind.Approximate)]
+	[InlineData("$5", NumericLiteralKind.Money)]
+	[InlineData("$ 10.12", NumericLiteralKind.Money)]
+	public void A_number_of_its_kind_is_written_and_read_back(string text, NumericLiteralKind kind)
+	{
+		var tree = WithNumber("SELECT a FROM t WHERE a = 1", new LiteralValue.Numeric(text, kind));
+		var written = TransactSqlWriter.Write(tree);
+
+		Assert.Equal("SELECT a FROM t WHERE a = " + text, written);
+		Assert.Equal(tree, Read(written));
+	}
+
+	/// <summary>A number the standard reads is written by the standard's writer, one that is none is refused there too.</summary>
+	[Theory]
+	[InlineData("1; SHUTDOWN;--", NumericLiteralKind.DecimalInteger, false)]
+	[InlineData("1 OR 1 = 1", NumericLiteralKind.DecimalInteger, false)]
+	[InlineData("1\n", NumericLiteralKind.Decimal, false)]
+	[InlineData("0x1F", NumericLiteralKind.HexInteger, true)]
+	[InlineData("1_000", NumericLiteralKind.DecimalInteger, true)]
+	[InlineData("-1.5e3", NumericLiteralKind.Approximate, true)]
+	public void The_standard_writer_refuses_a_text_that_is_no_number(string text, NumericLiteralKind kind, bool written)
+	{
+		var tree = WithNumber("SELECT a FROM t WHERE a = 1", new LiteralValue.Numeric(text, kind));
+
+		if (written)
+			Assert.Equal("SELECT a FROM t WHERE a = " + text, Sql2023Writer.Write(tree));
+		else
+			Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(tree));
+	}
 }

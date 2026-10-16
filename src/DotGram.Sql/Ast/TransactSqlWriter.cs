@@ -164,7 +164,7 @@ public static partial class Sql2023Writer
 			{
 				// Its text, as PutLiteral writes a number: the sign is the token's.
 				case LiteralValue.Numeric numeric:
-					Word(numeric.Text);
+					Word(NumericText(numeric));
 					break;
 
 				case Expression.Unary { Operator: UnaryOperator.Minus or UnaryOperator.Plus, Operand: LiteralValue.Numeric } when transactSql:

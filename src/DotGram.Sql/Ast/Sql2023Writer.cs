@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace DotGram.Sql.Ast;
 
@@ -234,7 +235,7 @@ public static partial class Sql2023Writer
 			switch (literal)
 			{
 				case LiteralValue.Numeric numeric:
-					Word(numeric.Text);
+					Word(NumericText(numeric));
 					break;
 
 				// The introducer and the letters before the quote are the literal's, and no space may stand in it.
@@ -293,6 +294,50 @@ public static partial class Sql2023Writer
 
 					throw Unwritten(literal);
 			}
+		}
+
+		/// <summary>
+		/// <c>TSql.MoneyLiteral</c> with a sign in front: a currency sign from the closed list the engine reads, a sign and blanks
+		/// as far apart as they like, then digits with a point that hugs them. The standard's writer carries it for the T-SQL
+		/// nodes it writes.
+		/// </summary>
+		const string MoneyNumber = @"^[+-]?[$¢-¥৲-৳฿៛₠-₱﷼﹩＄￠-￡￥-￦][\u0001-\u001F\u0085\u200B\p{Zs}\p{Zl}\p{Zp}]*[+-]?[\u0001-\u001F\u0085\u200B\p{Zs}\p{Zl}\p{Zp}]*[0-9]+(?:\.[0-9]*)?\z";
+
+		const string Dec = "[0-9](?:_?[0-9])*";
+
+		/// <summary>
+		/// <c>UnsignedNumericLiteral</c> as the standard reads it, after its sign: an exact or approximate number, or an integer in
+		/// any radix, digits grouped by single underscores.
+		/// </summary>
+		static readonly string StandardNumber = "(?:(?:" + Dec + @"\." + "(?:" + Dec + ")?|\\." + Dec + "|0[xX](?:_?[0-9a-fA-F])+|0[oO](?:_?[0-7])+|0[bB](?:_?[01])+|" + Dec + ")(?:[eE][+-]?" + Dec + ")?)";
+
+		/// <summary>
+		/// The text of a number, held to its kind in T-SQL's reading and to some numeric literal in the standard's: a text that is
+		/// no number is not written, since it would reach the output as it stands (`1; SHUTDOWN;--` is a number to no one), and in
+		/// T-SQL a text of another kind than the node's is another literal when read back (`1.5` is a decimal, not an integer).
+		/// T-SQL has no integer in another radix and no number with underscores: its hexadecimal literal is a binary string.
+		/// </summary>
+		string NumericText(LiteralValue.Numeric numeric)
+		{
+			var text = numeric.Text;
+
+			var reads = transactSql
+				? numeric.Kind switch
+				{
+					NumericLiteralKind.DecimalInteger => Regex.IsMatch(text, @"^[+-]?[0-9]+\z"),
+					NumericLiteralKind.Decimal        => Regex.IsMatch(text, @"^[+-]?(?:[0-9]+\.[0-9]*|\.[0-9]+)\z"),
+					NumericLiteralKind.Approximate    => Regex.IsMatch(text, @"^[+-]?(?:[0-9]+\.[0-9]*|\.[0-9]+|[0-9]+)[eE][+-]?[0-9]*\z"),
+					NumericLiteralKind.Money          => Regex.IsMatch(text, MoneyNumber),
+					_                                 => false,
+				}
+				: numeric.Kind == NumericLiteralKind.Money
+					? Regex.IsMatch(text, MoneyNumber)
+					: Regex.IsMatch(text, "^[+-]?" + StandardNumber + @"\z");
+
+			if (!reads)
+				throw Misplaced(numeric, "Text", $"that is no {numeric.Kind} number literal{(transactSql ? " of T-SQL" : "")}, which would reach the output as it stands");
+
+			return text;
 		}
 
 		static string Truth(BooleanLiteral value)
