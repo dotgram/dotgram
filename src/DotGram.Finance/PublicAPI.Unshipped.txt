@@ -1879,15 +1879,15 @@ DotGram.Finance.Fix.FixList<T>.Enumerator.Enumerator() -> void
 DotGram.Finance.Fix.FixList<T>.Enumerator.MoveNext() -> bool
 DotGram.Finance.Fix.FixList<T>.GetEnumerator() -> DotGram.Finance.Fix.FixList<T>.Enumerator
 DotGram.Finance.Fix.FixList<T>.this[int index].get -> T
-DotGram.Finance.Fix.FixListExtensions
+System.Linq.FixListExtensions
 static DotGram.Finance.Fix.FixList.Create<T>(System.ReadOnlySpan<T> items) -> DotGram.Finance.Fix.FixList<T>!
-static DotGram.Finance.Fix.FixListExtensions.Any<T>(this DotGram.Finance.Fix.FixList<T>! list) -> bool
-static DotGram.Finance.Fix.FixListExtensions.Any<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> bool
-static DotGram.Finance.Fix.FixListExtensions.Count<T>(this DotGram.Finance.Fix.FixList<T>! list) -> int
-static DotGram.Finance.Fix.FixListExtensions.Count<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> int
-static DotGram.Finance.Fix.FixListExtensions.First<T>(this DotGram.Finance.Fix.FixList<T>! list) -> T
-static DotGram.Finance.Fix.FixListExtensions.First<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> T
-static DotGram.Finance.Fix.FixListExtensions.FirstOrDefault<T>(this DotGram.Finance.Fix.FixList<T>! list) -> T?
-static DotGram.Finance.Fix.FixListExtensions.FirstOrDefault<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> T?
-static DotGram.Finance.Fix.FixListExtensions.ToArray<T>(this DotGram.Finance.Fix.FixList<T>! list) -> T[]!
-static DotGram.Finance.Fix.FixListExtensions.Where<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> DotGram.Finance.Fix.FixList<T>!
+static System.Linq.FixListExtensions.Any<T>(this DotGram.Finance.Fix.FixList<T>! list) -> bool
+static System.Linq.FixListExtensions.Any<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> bool
+static System.Linq.FixListExtensions.Count<T>(this DotGram.Finance.Fix.FixList<T>! list) -> int
+static System.Linq.FixListExtensions.Count<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> int
+static System.Linq.FixListExtensions.First<T>(this DotGram.Finance.Fix.FixList<T>! list) -> T
+static System.Linq.FixListExtensions.First<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> T
+static System.Linq.FixListExtensions.FirstOrDefault<T>(this DotGram.Finance.Fix.FixList<T>! list) -> T?
+static System.Linq.FixListExtensions.FirstOrDefault<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> T?
+static System.Linq.FixListExtensions.ToArray<T>(this DotGram.Finance.Fix.FixList<T>! list) -> T[]!
+static System.Linq.FixListExtensions.Where<T>(this DotGram.Finance.Fix.FixList<T>! list, System.Func<T, bool>! predicate) -> DotGram.Finance.Fix.FixList<T>!

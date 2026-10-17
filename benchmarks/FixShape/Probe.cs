@@ -30,12 +30,10 @@ public partial class FixCollectionShapeBenchmarks
 
 		bench.Setup();
 
-		var names = new[]
-		{
-			nameof(ProbeCount), nameof(ProbeCountPredicate), nameof(ProbeAny), nameof(ProbeAnyPredicate), nameof(ProbeFirst),
-			nameof(ProbeFirstPredicate), nameof(ProbeFirstOrDefault), nameof(ProbeFirstOrDefaultPredicate), nameof(ProbeWhere),
-			nameof(ProbeToArray), nameof(ProbeWhereToArray),
-		};
+		var names = typeof(FixCollectionShapeBenchmarks).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+			.Where(m => m.Name.StartsWith("Probe", StringComparison.Ordinal) && m.ReturnType == typeof(long) && m.GetParameters().Length == 0)
+			.Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+
 
 		foreach (var name in names)
 		{
