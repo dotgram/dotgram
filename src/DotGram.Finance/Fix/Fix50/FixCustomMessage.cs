@@ -49,7 +49,7 @@ public abstract class FixCustomMessage : FixMessage
 	}
 
 	// Called by the reader once the factory has built the message: the type and the fields it was read with.
-	internal FixCustomMessage Read(string type, List<FixField> fields)
+	internal FixCustomMessage Read(string type, FixList<FixField> fields)
 	{
 		MessageType = type;
 		Fields      = fields;

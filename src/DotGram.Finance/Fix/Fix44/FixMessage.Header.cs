@@ -45,7 +45,7 @@ public abstract partial class FixMessage
 			case FixTag.NoHops: if (NoHops is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoHops = (FixField.Integer)field; break;
 			case FixTag.HopCompID:
 				if (NoHopsGroups is null && NoHops is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoHops, field.Position, field, -1));
-				(NoHopsGroups ??= []).Add(new () { HopCompID = (FixField.Text)field });
+				(NoHopsGroups ??= new()).Add(new () { HopCompID = (FixField.Text)field });
 				break;
 			case FixTag.HopSendingTime:
 				if (NoHopsGroups is null || NoHopsGroups.Count == 0)
@@ -155,7 +155,7 @@ public abstract partial class FixMessage
 	public FixField.Integer? NoHops { get; protected set; }
 
 	/// <summary>The entries counted by NoHops, tag 627; null when the group is absent.</summary>
-	public List<FixMessage.NoHopsGroup>? NoHopsGroups { get; protected set; }
+	public FixList<FixMessage.NoHopsGroup>? NoHopsGroups { get; protected set; }
 
 	/// <summary>The FIX SignatureLength, tag 93, of this message's StandardTrailer; null when the field is absent.</summary>
 	public FixField.Integer? SignatureLength { get; protected set; }
