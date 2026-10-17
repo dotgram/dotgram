@@ -40,6 +40,9 @@ static class Program
 			return 0;
 		}
 
+		if (args.Length == 1 && args[0] == "--probe")
+			return FixCollectionShapeBenchmarks.Probe();
+
 		var at = Array.IndexOf(args, "--window");
 
 		if (at < 0 || at + 1 >= args.Length)
@@ -59,7 +62,7 @@ static class Program
 			"W1a"          => [.. Fix44All.Where(r => r[0] is 'P' or 'V' or 'E').Select(r => "Fix44_" + r)],
 			"W1b"          => [.. Fix44All.Where(r => r[0] == 'I').Select(r => "Fix44_" + r)],
 			"W2"           => [.. Others.Select(r => "Fix42_" + r), .. Others.Select(r => "Fix50_" + r)],
-			"W3" or "dry8" => [.. Fix44All.Where(r => r[0] is 'I' or 'E').Select(r => "Fix44_" + r)],
+			"W3" or "dry8" => [.. Fix44All.Select(r => "Fix44_" + r)],
 			"W4"           => [.. Fix44All.Where(r => r[0] == 'I' && r[1] != '6').Select(r => "Fix44_" + r)],
 			_              => throw new ArgumentException("No window " + window),
 		};
