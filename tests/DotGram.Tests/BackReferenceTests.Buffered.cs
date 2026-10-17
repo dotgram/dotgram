@@ -15,8 +15,9 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// The rows read through a buffer — a reader, a stream, bytes held whole — as the string form
-/// reads them: the same answer, the same value, and a refusal at the same place with the same
-/// words, whatever the size of the pieces the input arrives in.
+/// reads them: the same answer, the same value, and a refusal at the same place and, but for
+/// the rows a buffer words apart (<c>WordedApartOverABuffer</c>), in the same words, whatever
+/// the size of the pieces the input arrives in.
 /// </summary>
 /// <remarks>
 /// A buffer of one item makes every boundary between two items a boundary between two reads,
@@ -30,11 +31,11 @@ public sealed partial class BackReferenceTests
 	static readonly int[] BufferSizes = [1, 2, 3, 5, 4096];
 
 	/// <summary>
-	/// The rows whose refusals a buffered reading words otherwise than the string's, for a reason
-	/// that is not the bindings': the same grammar with a literal where the binding is, or with a
-	/// number where the length is, is worded apart the same way. Where the input ends inside a
-	/// look the reading over a buffer may leave out the class it would have read there, or say it
-	/// as <c>[^ ]</c> where the string's says <c>any</c>
+	/// The rows whose refusals a buffered reading words otherwise than the string's, in the ways
+	/// it words them apart over grammars with no binding as well: a literal where the binding is,
+	/// or a number where the length is, shows the same kinds of difference. Where the input
+	/// ends inside a look the reading over a buffer may leave out the class it would have read
+	/// there, or say it as <c>[^ ]</c> where the string's says <c>any</c>
 	/// (<c>"[==[" &amp; (?!"]==]" &amp; any)* &amp; "]==]"</c> on <c>[==[a]=]</c>, on the engine); a
 	/// repetition's next turn may go unsaid (<c>'a'+ &amp; ':' &amp; "bc"{1,2} &amp; "bc" &amp; 'x'</c>
 	/// on <c>aa:bcx</c> is <c>"bc" or "bcx"</c> to the string and <c>"bcx"</c> to the reader); and the
