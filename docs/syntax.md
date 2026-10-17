@@ -429,10 +429,17 @@ fix is to bind the whole run, `$q: (X & ',')*`.
 what it read, so there would be nothing to bind. A binding or a reference over kinds is
 refused too; there a guard does the job: `close: Name & when @(close == open)`.
 Case-insensitive references, references across rules and arithmetic in counts are out of
-scope (§11). Three places are not yet supported and are refused with a message saying so:
+scope (§11). Two places are not yet supported and are refused with a message saying so:
 anything that holds a recovery point (§8.2) — a recovery point inside a binding, or a
-`recover` on a repetition that holds one; a rule the lexer reads once a grammar is cut in
-two (§4); and a publication over a `TextReader` or a stream.
+`recover` on a repetition that holds one; and a rule the lexer reads once a grammar is cut
+in two (§4).
+
+A publication over a `TextReader` or a stream (§6.3) reads bindings as the string form does,
+bytes included. A reference compares the items where they stand in the buffer, so the buffer
+keeps a binding's text until the rule that bound it is done with it: a binding holds the
+input from where it began, as a text capture does. A feed whose recovering repetition
+would otherwise let the buffer go at every record keeps what it has read instead, once any
+rule it reads binds. Over bytes, a length `#q` counts bytes.
 
 Trivia, where it is woven in, is part of a binding's text — as in a text capture — and
 is woven around a reference as around a literal. Rules that use bindings are, in

@@ -139,7 +139,8 @@ then quietly mean nothing.
 | a count by the length of a binding, `X{#q}` `{#q,}` `{n,#q}` §3.5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a binding read where it may not have happened, `($q: X)?` then `$q`, refused with the fix §3.5.1 | ✓ | ✓ | ✓ | — | — |
 | a binding inside a lookahead, or over a recovery point, refused §3.5.1 | ✓ | ✓ | ✓ | — | — |
-| a binding or a back-reference in a terminal the lexer reads, or reaching a buffered or streamed publication, refused, not yet supported §3.5.1 | ✓ | ✓ | ✓ | — | — |
+| a binding or a back-reference in a terminal the lexer reads, refused, not yet supported §3.5.1 | ✓ | ✓ | ✓ | — | — |
+| a binding and its back-reference read through a `TextReader` or a stream, bytes included §3.5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 **Two things this table used to carry as rows are decisions rather than gaps**, and a
 row of crosses read as neither. **Repairing a document** — searching a broken input for
@@ -507,8 +508,9 @@ What it does not do is refused at build time with a diagnostic that says where:
   fix (`GRAM4032`).
 - A binding inside a lookahead is refused (`GRAM4033`); a reference inside one is fine.
 - Not yet supported (`GRAM4034`): a binding in a repetition that recovers, or in what such
-  a repetition skips to; in a terminal the lexer reads once a grammar is cut into a lexer
-  and a syntactic half; and in a publication over a `TextReader` or a stream.
+  a repetition skips to; and in a terminal the lexer reads once a grammar is cut into a lexer
+  and a syntactic half. A publication over a `TextReader` or a stream reads bindings as the
+  string form does.
 - Over kinds neither a binding nor a reference is accepted (`GRAM4035`); a guard compares
   two captures there.
 

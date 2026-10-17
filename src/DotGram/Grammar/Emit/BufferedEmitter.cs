@@ -396,7 +396,8 @@ public static partial class CSharpEmitter
 					file.Line("start = end;");
 					// What an element read is let go once it is handed back, a line or a column
 					// asked for or not: the buffer counts line breaks as it lets them go (Located).
-					// Only a look behind reads back past where an element began.
+					// Only a look behind reads back past where an element began. A binding does not:
+					// it is read in the rule that bound it, which the element has finished.
 					if (!Reaches(graph, publication.Rule).Any(rule =>
 						NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind)))
 						file.Line("text.ReleaseBefore(start);");
@@ -406,6 +407,8 @@ public static partial class CSharpEmitter
 		}
 		if (publication.Kind == PublishKind.Find)
 		{
+			// Each try is a reading of its own, and a binding is read where it was bound, inside
+			// one: only a look behind reads back past where a try began.
 			var retain = Reaches(graph, publication.Rule).Any(rule =>
 				NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind));
 			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");

@@ -118,17 +118,6 @@ public static class GramCompiler
 						"The byte input form returns byte[], which is not assignable to the publication type.",
 						contract.At.Position, contract.At.Length, GramSeverity.Error));
 
-			// A reader or stream form asked for, over a binding: a reference compares text bound
-			// earlier, which a window may have let go, and that is not built yet. Said before
-			// anything is emitted, so the string form is not built either for a grammar that asked.
-			foreach (var publication in graph.Publications)
-				if ((options.BufferedInput || options.BufferedBytes || publication.BufferedInput || publication.BufferedBytes) &&
-					graph.ReachesBoundText(publication.Rule))
-					diagnostics.Add(new GramDiagnostic(GrammarNormalizer.BindingNotSupported,
-						$"'{publication.MethodName}' is asked for over a reader or a stream and reaches a binding " +
-						"('$q: X'), and reading one through a buffer is not supported yet. The string form reads it.",
-						publication.At.Position, publication.At.Length, GramSeverity.Error));
-
 			diagnostics.AddRange(Retention.Check(graph));
 			diagnostics.AddRange(FirstSets.Check(graph));
 		}
