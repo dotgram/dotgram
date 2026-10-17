@@ -129,7 +129,7 @@ public readonly struct FixList<T> : IReadOnlyList<T>
 /// </summary>
 /// <typeparam name="T">The type of an entry.</typeparam>
 [CollectionBuilder(typeof(FixList), nameof(FixList.Create))]
-public sealed class FixList<T> : IReadOnlyList<T>
+public sealed class FixList<T> : IReadOnlyList<T>, IList<T>
 {
 	internal static readonly FixList<T> Empty = new();
 
@@ -222,6 +222,68 @@ public sealed class FixList<T> : IReadOnlyList<T>
 	IEnumerator IEnumerable.GetEnumerator()
 	{
 		return GetEnumerator();
+	}
+
+	// The writing half of IList<T> is explicit and refuses, as ReadOnlyCollection<T> does: the interface is here so that
+	// the operators of System.Linq that look for ICollection<T> and IList<T> take their fast paths.
+	bool ICollection<T>.IsReadOnly
+	{
+		get
+		{
+			return true;
+		}
+	}
+
+	T IList<T>.this[int index]
+	{
+		get
+		{
+			return this[index];
+		}
+		set
+		{
+			throw new NotSupportedException("The list is read-only.");
+		}
+	}
+
+	void ICollection<T>.Add(T item)
+	{
+		throw new NotSupportedException("The list is read-only.");
+	}
+
+	void ICollection<T>.Clear()
+	{
+		throw new NotSupportedException("The list is read-only.");
+	}
+
+	bool ICollection<T>.Remove(T item)
+	{
+		throw new NotSupportedException("The list is read-only.");
+	}
+
+	void IList<T>.Insert(int index, T item)
+	{
+		throw new NotSupportedException("The list is read-only.");
+	}
+
+	void IList<T>.RemoveAt(int index)
+	{
+		throw new NotSupportedException("The list is read-only.");
+	}
+
+	bool ICollection<T>.Contains(T item)
+	{
+		return Array.IndexOf(_items, item, 0, _count) >= 0;
+	}
+
+	int IList<T>.IndexOf(T item)
+	{
+		return Array.IndexOf(_items, item, 0, _count);
+	}
+
+	void ICollection<T>.CopyTo(T[] array, int arrayIndex)
+	{
+		Array.Copy(_items, 0, array, arrayIndex, _count);
 	}
 
 	/// <summary>

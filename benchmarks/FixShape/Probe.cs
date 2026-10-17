@@ -24,6 +24,53 @@ public partial class FixCollectionShapeBenchmarks
 	long ProbeToArray()             { var e = _snapshots[0].NoMDEntriesGroups ?? []; return e.ToArray().Length; }
 	long ProbeWhereToArray()        { var e = _snapshots[0].NoMDEntriesGroups ?? []; return e.Where(x => x.MDEntryType.Value == '0').ToArray().Length; }
 
+	public static int ProbeRows()
+	{
+		var bench = new FixCollectionShapeBenchmarks();
+
+		bench.Setup();
+
+		foreach (var (row, _) in Expected.Where(e => e.Row.Contains("_I", StringComparison.Ordinal) && e.Row.StartsWith("Fix44", StringComparison.Ordinal)))
+		{
+			for (var i = 0; i < 300; i++)
+				bench.Run(row);
+
+			var calls = 0;
+			var probe = System.Diagnostics.Stopwatch.GetTimestamp();
+
+			while (System.Diagnostics.Stopwatch.GetElapsedTime(probe).TotalMilliseconds < 20)
+			{
+				bench.Run(row);
+				calls++;
+			}
+
+			var rounds = new double[9];
+
+			for (var r = 0; r < rounds.Length; r++)
+			{
+				var start = System.Diagnostics.Stopwatch.GetTimestamp();
+
+				for (var i = 0; i < calls; i++)
+					bench.Run(row);
+
+				rounds[r] = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds * 1e6 / calls;
+			}
+
+			Array.Sort(rounds);
+
+			var before = GC.GetAllocatedBytesForCurrentThread();
+
+			for (var i = 0; i < 200; i++)
+				bench.Run(row);
+
+			var bytes = (GC.GetAllocatedBytesForCurrentThread() - before) / 200.0;
+
+			Console.WriteLine($"ROW {row} {rounds[4]:F0} {bytes:F0}");
+		}
+
+		return 0;
+	}
+
 	public static int Probe()
 	{
 		var bench = new FixCollectionShapeBenchmarks();
@@ -56,7 +103,21 @@ public partial class FixCollectionShapeBenchmarks
 
 			var bytes = (GC.GetAllocatedBytesForCurrentThread() - before) / 1000.0;
 
-			Console.WriteLine($"{name,-32} result {result,5}  alloc {bytes,8:F1} B/call  IL: {Calls(method)}");
+			var rounds = new double[5];
+
+			for (var r = 0; r < rounds.Length; r++)
+			{
+				var start = System.Diagnostics.Stopwatch.GetTimestamp();
+
+				for (var i = 0; i < 2000; i++)
+					result = call();
+
+				rounds[r] = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds * 1e6 / 2000;
+			}
+
+			Array.Sort(rounds);
+
+			Console.WriteLine($"{name,-32} result {result,5}  alloc {bytes,8:F1} B/call  {rounds[2],10:F0} ns/call  IL: {Calls(method)}");
 		}
 
 		return 0;

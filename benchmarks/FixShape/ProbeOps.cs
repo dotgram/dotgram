@@ -21,4 +21,8 @@ public partial class FixCollectionShapeBenchmarks
 	long ProbeOpSelectForeach() { var e = _snapshots[0].NoMDEntriesGroups ?? []; var n = 0L; foreach (var x in e.Select(x => (long)x.MDEntryType.Value)) n += x; return n; }
 	long ProbeOpOrderByForeach() { var e = _snapshots[0].NoMDEntriesGroups ?? []; var n = 0L; foreach (var x in e.OrderBy(x => x.MDEntryType.Value)) n++; return n; }
 	long ProbeOpSkipTakeForeach() { var e = _snapshots[0].NoMDEntriesGroups ?? []; var n = 0L; foreach (var x in e.Skip(10).Take(5)) n++; return n; }
+	long ProbeOpElementAt() { var e = _snapshots[0].NoMDEntriesGroups ?? []; return e.ElementAt(500).MDEntryType.Value; }
+	long ProbeOpLast() { var e = _snapshots[0].NoMDEntriesGroups ?? []; return e.Last().MDEntryType.Value; }
+	long ProbeOpContains() { var e = _snapshots[0].NoMDEntriesGroups ?? []; return e.Contains(e[999]) ? 1 : 0; }
+	long ProbeOpNewList() { var e = _snapshots[0].NoMDEntriesGroups ?? []; return new List<DotGram.Finance.Fix.Fix44.FixMessage.MarketDataSnapshotFullRefresh.NoMDEntriesGroup>(e).Count; }
 }

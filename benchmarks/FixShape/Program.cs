@@ -40,6 +40,9 @@ static class Program
 			return 0;
 		}
 
+		if (args.Length == 1 && args[0] == "--probe-rows")
+			return FixCollectionShapeBenchmarks.ProbeRows();
+
 		if (args.Length == 1 && args[0] == "--probe")
 			return FixCollectionShapeBenchmarks.Probe();
 
