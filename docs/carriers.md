@@ -13,16 +13,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-14 23:32 |
-| DotGram.Examples | 2026-10-14 23:30 |
-| DotGram.ExpressionLanguage | 2026-10-14 23:30 |
-| DotGram.ExpressionLanguage.Tape | 2026-10-14 23:30 |
-| DotGram.Finance | 2026-10-14 23:30 |
-| DotGram.Finance.Fix44 | 2026-10-14 23:31 |
-| DotGram.Sql | 2026-10-14 23:31 |
-| DotGram.Sql.Productions | 2026-10-14 23:32 |
-| DotGram.Tests | 2026-10-14 23:32 |
-| DotGram.Web | 2026-10-14 23:30 |
+| DotGram.Benchmarks | 2026-10-17 17:48 |
+| DotGram.Examples | 2026-10-17 17:46 |
+| DotGram.ExpressionLanguage | 2026-10-17 17:46 |
+| DotGram.ExpressionLanguage.Tape | 2026-10-17 17:46 |
+| DotGram.Finance | 2026-10-17 17:46 |
+| DotGram.Finance.Fix44 | 2026-10-17 17:47 |
+| DotGram.Sql | 2026-10-17 17:47 |
+| DotGram.Sql.Productions | 2026-10-17 17:47 |
+| DotGram.Tests | 2026-10-17 17:48 |
+| DotGram.Web | 2026-10-17 17:46 |
 
 **Carrier** is what a grammar left to the generator is read with — `immediate`, or `tape` where the
 immediate carrier refused a machine — or the author's own choice. **Gate** is what the tape would
@@ -66,7 +66,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Possession.Open | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Possession.Settled | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Settlements | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 7/7 |
-| DotGram.Benchmarks.TapeSql |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 12/244 |
+| DotGram.Benchmarks.TapeSql |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 12/310 |
 | DotGram.Benchmarks.TapeSqlStandard |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
 | DotGram.Benchmarks.TinyScalar | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
@@ -93,7 +93,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Formats.FixedWidth.Tape |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 22/22 |
 | DotGram.Examples.Formats.HttpParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 5 | 0 | 0 | 6 | 0 | 0 | 10/10 |
 | DotGram.Examples.Formats.IniParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 7 | 0 | 0 | 11 | 0 | 0 | 14/14 |
-| DotGram.Examples.Formats.JsonParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 9 | 0 | 0 | 11 | 0 | 0 | 30/30 |
+| DotGram.Examples.Formats.JsonParser | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 30/30 |
 | DotGram.Examples.Formats.Links | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 1/1 |
 | DotGram.Examples.Formats.MarkdownParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 9 | 0 | 0 | 8 | 0 | 0 | 24/24 |
 | DotGram.Examples.Formats.MetricsLine | 1 | 0 | immediate | read again | read again | GRAM5012 | 5 | 0 | 0 | 3 | 0 | 0 | 11/11 |
@@ -119,9 +119,9 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 14/14 |
 | DotGram.Sql.Productions.SqlStandardLocated |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
 | DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1307/2672 |
-| DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/244 |
+| DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/310 |
 | DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
-| DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2352/3138 |
+| DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2357/3132 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -139,7 +139,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Web.Rfc6901 | 2 | 0 | immediate | none | none | none |  |  |  |  |  |  | 4/4 |
 | DotGram.Web.Rfc7239 |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 16/16 |
 | DotGram.Web.Rfc8259 | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 29/29 |
-| DotGram.Web.Rfc8288 |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 9/9 |
+| DotGram.Web.Rfc8288 |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 14/14 |
 | DotGram.Web.Rfc9110 | 1 | 0 | immediate | read again | read again | GRAM5012 | 4 | 0 | 0 | 6 | 0 | 0 | 13/13 |
 | DotGram.Web.Rfc9651 | 3 | 0 | immediate | read again | read again | GRAM5012 | 15 | 0 | 0 | 16 | 0 | 0 | 44/44 |
 
@@ -181,7 +181,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Formats.FixedWidth | ParseFeed | whole | immediate | none | 0 | 0 | 0 | 0 | 22/22 |
 | DotGram.Examples.Formats.HttpParser | ParseHeaders | whole | immediate | read again | 5 | 0 | 6 | 0 | 10/10 |
 | DotGram.Examples.Formats.IniParser | ParseIni | whole | immediate | read again | 7 | 0 | 11 | 0 | 14/14 |
-| DotGram.Examples.Formats.JsonParser | ParseJson | whole | immediate | read again | 9 | 0 | 11 | 0 | 30/30 |
+| DotGram.Examples.Formats.JsonParser | ParseJson | whole | immediate | none | 0 | 0 | 0 | 0 | 30/30 |
 | DotGram.Examples.Formats.MarkdownParser | ParseDoc | whole | immediate | read again | 9 | 0 | 8 | 0 | 24/24 |
 | DotGram.Examples.Formats.MetricsLine | ParseLine | whole | immediate | read again | 5 | 0 | 3 | 0 | 11/11 |
 | DotGram.Examples.Formats.Netstrings | ParseStream | whole | immediate | read again | 2 | 0 | 1 | 0 | 3/3 |
@@ -231,13 +231,13 @@ or which nothing calls, so that no caller asks it again.
 | choice | alternatives begin alike | 8 | 14 | 21 | 0 | 5 | Urls.Host: `(IPv4 \| RegName)` |
 | turns | a turn led by what may read nothing | 5 | 9 | 21 | 4 | 1 | IniParser.Entries: `(item0: Entry \| Blank)*` |
 | choice | alternatives begin apart | 1 | 6 | 19 | 0 | 0 | Rfc5322.Ctext: `(['!'..'\'' \| '*'..'[' \| ']'..'~'] \| Never)` |
-| run | what follows begins alike | 9 | 17 | 17 | 0 | 0 | Config.Value: `[^ '\n' \| '\r']*` |
+| run | what follows begins alike | 8 | 16 | 16 | 0 | 0 | Config.Value: `[^ '\n' \| '\r']*` |
 | choice | every alternative led by what may read nothing | 4 | 7 | 15 | 0 | 1 | IniParser.Entries: `(item0: Entry \| Blank)` |
 | optional | what follows begins alike | 5 | 5 | 9 | 7 | 1 | Urls.Authority: `(user: UserInfo & '@')?` |
 | choice | an alternative that may read nothing | 5 | 8 | 9 | 0 | 0 | HttpParser.Field: `(eol \| ?=eof)` |
-| turns | what follows begins alike | 3 | 4 | 5 | 4 | 1 | JsonParser.Body: `(Plain \| Escape)*` |
 | turns | follow unknown | 1 | 1 | 5 | 0 | 0 | Rfc5322.Cfws: `(Fws? & Comment)+` |
 | choice | literals, a shorter one wanted | 4 | 4 | 4 | 0 | 0 | HttpParser.eol: `("\r\n" \| '\r')` |
+| turns | what follows begins alike | 2 | 3 | 4 | 4 | 1 | Netstrings.Stream: `item0: Frame*` |
 | turns | the seam leads every alternative of the turn | 3 | 3 | 3 | 3 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | optional | a turn led by what may read nothing | 1 | 2 | 2 | 0 | 0 | Rfc5322.AngleAddr: `ObsRoute?` |
 | choice | literals, follow unknown | 1 | 1 | 1 | 0 | 0 | FeedReader.eol: `("\r\n" \| '\r')` |
@@ -436,21 +436,8 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Formats.JsonParser
 
-- machine ParseJson [whole]: carrier: immediate; gate: read again; building: 9; replayed: 0; read again: 11; refused: 0; points: 30/30
+- machine ParseJson [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 30/30
 - memo ParseJson [whole]: remembered 0; not 1: Value (characters)
-- again Array: through trivia
-- again Body: opens a way
-- open Body: turns; what follows begins alike; open; (Plain | Escape)*
-- again Json: through Value
-- again List: through trivia
-- again List: through Value
-- again Member: through Value
-- again Number: through trivia
-- again Object: through trivia
-- again Text: through trivia
-- again Value: through Object
-- again trivia: opens a way
-- open trivia: run; what follows begins alike; open; ['\t'..'\n' | '\r' | ' ']*
 
 ## DotGram.Examples.Formats.MarkdownParser
 
