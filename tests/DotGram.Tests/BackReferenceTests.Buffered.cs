@@ -15,15 +15,16 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// The rows read through a buffer — a reader, a stream, bytes held whole — as the string form
-/// reads them: the same answer, the same value, and a refusal at the same place and, but for
-/// the rows a buffer words apart (<c>WordedApartOverABuffer</c>), in the same words, whatever
-/// the size of the pieces the input arrives in.
+/// reads them: the same answer and the same value, whatever the size of the pieces the input
+/// arrives in; and a refusal at the same place in the same words, but for the rows a buffer
+/// places and words apart for reasons that are not the bindings' (<c>WordedApartOverABuffer</c>).
 /// </summary>
 /// <remarks>
 /// A buffer of one item makes every boundary between two items a boundary between two reads,
 /// so a binding, the reference to it and a count by its length are each cut through somewhere
-/// on every input of every row. Bytes are read for the inputs that are ASCII, where an item of
-/// the one is an item of the other.
+/// on every input of every row — and, read from a source that hands over one item per read
+/// whatever room it is given, inside a window that has grown as well. Bytes are read for the
+/// inputs that are ASCII, where an item of the one is an item of the other.
 /// </remarks>
 public sealed partial class BackReferenceTests
 {
@@ -31,7 +32,7 @@ public sealed partial class BackReferenceTests
 	static readonly int[] BufferSizes = [1, 2, 3, 5, 4096];
 
 	/// <summary>
-	/// The rows whose refusals a buffered reading words otherwise than the string's, in the ways
+	/// The rows whose refusals a buffered reading places or words otherwise than the string's, in the ways
 	/// it words them apart over grammars with no binding as well: a literal where the binding is,
 	/// or a number where the length is, shows the same kinds of difference. Where the input
 	/// ends inside a look the reading over a buffer may leave out the class it would have read
@@ -40,8 +41,10 @@ public sealed partial class BackReferenceTests
 	/// repetition's next turn may go unsaid (<c>'a'+ &amp; ':' &amp; "bc"{1,2} &amp; "bc" &amp; 'x'</c>
 	/// on <c>aa:bcx</c> is <c>"bc" or "bcx"</c> to the string and <c>"bcx"</c> to the reader); and the
 	/// engine names the class a rule is where the string names the rule (<c>Title</c>, <c>N</c>).
-	/// Their answers, values and places are held to the string's all the same, and their words to
-	/// every other buffered reading of the row.
+	/// After a lookahead that failed near the end the place can move too:
+	/// <c>'b' &amp; ('b' &amp; ':')* &amp; any &amp; ?=("b") &amp; eof</c> on <c>ba</c>. Their answers
+	/// and values are held to the string's; where and in what words they refuse, to every other
+	/// buffered reading of the row.
 	/// </summary>
 	static readonly HashSet<string> WordedApartOverABuffer =
 	[
@@ -87,6 +90,8 @@ public sealed partial class BackReferenceTests
 				if (bytes && IsAscii(row.Text!))
 					Assert.Equal(row.Found!.Select(static at => (long)at), FoundOver(assembly, "Find" + row.Rule, row.Text!, typeof(Stream), size));
 			}
+
+			Assert.Equal(row.Found!.Select(static at => (long)at), FoundOver(assembly, "Find" + row.Rule, row.Text!, typeof(TextReader), 4096, trickle: true));
 		}
 	}
 
@@ -219,6 +224,39 @@ public sealed partial class BackReferenceTests
 	}
 
 	/// <summary>
+	/// A binding that must be held longer than the buffer may grow: the reading stops with the
+	/// buffer's own <see cref="IOException"/>, as it does for the same input without a binding,
+	/// and never takes the text let go of for a mismatch. An input that fits reads.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_binding_longer_than_the_buffer_may_hold_stops_with_the_buffer_s_exception(bool direct)
+	{
+		BackReferenceEmission.RequireBoth();
+
+		foreach (var grammar in new[] { "R = $q: 'a'+ & ':' & $q\nparse R\n", "R = 'a'+ & ':' & 'a'+\nparse R\n" })
+		{
+			var (assembly, bytes) = Buffered(grammar, CarrierKind.Auto, direct);
+
+			Assert.True(bytes);
+
+			foreach (var over in new[] { typeof(TextReader), typeof(Stream) })
+			{
+				foreach (var input in new[] { "aaaaaaaaa:aaaaaaaaa", "aaaa:aaaa" })
+				{
+					var thrown = Assert.Throws<TargetInvocationException>(() => Over(assembly, "TryParseR", input, over, 1, retained: 8));
+
+					Assert.IsType<IOException>(thrown.InnerException);
+					Assert.Contains("maxRetained", thrown.InnerException!.Message, StringComparison.Ordinal);
+				}
+
+				Assert.Equal((true, "aaa:aaa"), Answer(Over(assembly, "TryParseR", "aaa:aaa", over, 1, retained: 8)));
+			}
+		}
+	}
+
+	/// <summary>
 	/// A terminal of a grammar cut in two is still refused where it holds a binding: the lexer
 	/// measures what follows the regular beginning of a terminal from where that beginning ended,
 	/// and a reference there reads back into it. Lifting the refusal over a buffer leaves this one.
@@ -303,7 +341,7 @@ public sealed partial class BackReferenceTests
 			var expected = worded ? Spelled(whole) : Spelled(buffered);
 
 			Assert.True(
-				(whole.IsSuccess, Spelled(whole.Value), whole.Position) == (read.IsSuccess, Spelled(read.Value), read.Position) &&
+				(whole.IsSuccess, Spelled(whole.Value)) == (read.IsSuccess, Spelled(read.Value)) &&
 				expected == Spelled(read),
 				$"{row}, {how}, {over}: \"{Escaped(input)}\"\n  string: {Spelled(whole)}\n  " +
 				(worded ? "" : $"buffer: {Spelled(buffered)}\n  ") + $"{over}: {Spelled(read)}");
@@ -315,6 +353,15 @@ public sealed partial class BackReferenceTests
 
 			if (bytes && IsAscii(input))
 				Same(Over(assembly, method, input, typeof(Stream), size), $"a stream in pieces of {size}");
+		}
+
+		// A buffer that has grown still meets a refill boundary between every two items.
+		foreach (var size in new[] { 1, 4096 })
+		{
+			Same(Over(assembly, method, input, typeof(TextReader), size, trickle: true), $"a reader handing one item a read, buffer {size}");
+
+			if (bytes && IsAscii(input))
+				Same(Over(assembly, method, input, typeof(Stream), size, trickle: true), $"a stream handing one item a read, buffer {size}");
 		}
 
 		if (bytes && IsAscii(input))
@@ -354,8 +401,10 @@ public sealed partial class BackReferenceTests
 	/// A <c>Try…</c> form over a reader, a stream or bytes held whole, handed the input in pieces
 	/// of <paramref name="size"/>; the value read back as text, as the string form hands it.
 	/// </summary>
+	/// <param name="retained">The most the buffer may hold, or null for the default.</param>
+	/// <param name="trickle">Whether the source hands over one item per read, whatever room it is given.</param>
 	static (bool IsSuccess, object? Value, string? Error, long Position) Over(
-		Assembly assembly, string method, string input, Type over, int size)
+		Assembly assembly, string method, string input, Type over, int size, int? retained = null, bool trickle = false)
 	{
 		var type = assembly.GetType("Grammar")!;
 		object match;
@@ -364,11 +413,9 @@ public sealed partial class BackReferenceTests
 			match = type.GetMethod(method, [typeof(byte[])])!.Invoke(null, [Encoding.ASCII.GetBytes(input)])!;
 		else
 		{
-			using var source = over == typeof(TextReader)
-				? (IDisposable)new StringReader(input)
-				: new MemoryStream(Encoding.ASCII.GetBytes(input));
+			using var source = Source(input, over, trickle);
 
-			match = type.GetMethod(method, [over, typeof(int?), typeof(int?)])!.Invoke(null, [source, size, null])!;
+			match = type.GetMethod(method, [over, typeof(int?), typeof(int?)])!.Invoke(null, [source, size, retained])!;
 		}
 
 		object? Read(string name)
@@ -382,11 +429,9 @@ public sealed partial class BackReferenceTests
 	}
 
 	/// <summary>Where a <c>find</c> over a reader or a stream in pieces of <paramref name="size"/> finds each occurrence.</summary>
-	static long[] FoundOver(Assembly assembly, string method, string text, Type over, int size)
+	static long[] FoundOver(Assembly assembly, string method, string text, Type over, int size, bool trickle = false)
 	{
-		using var source = over == typeof(TextReader)
-			? (IDisposable)new StringReader(text)
-			: new MemoryStream(Encoding.ASCII.GetBytes(text));
+		using var source = Source(text, over, trickle);
 
 		var found = (System.Collections.IEnumerable)assembly.GetType("Grammar")!
 			.GetMethod(method, [over, typeof(int?), typeof(int?)])!
@@ -398,6 +443,92 @@ public sealed partial class BackReferenceTests
 			positions.Add(Convert.ToInt64(match!.GetType().GetProperty("Position")!.GetValue(match)));
 
 		return [.. positions];
+	}
+
+	/// <summary>A reader or a stream over the input, handing over all it is asked for or one item a read.</summary>
+	static IDisposable Source(string input, Type over, bool trickle)
+	{
+		if (over == typeof(TextReader))
+			return trickle ? new OneAtATimeReader(input) : new StringReader(input);
+
+		var bytes = Encoding.ASCII.GetBytes(input);
+
+		return trickle ? new OneAtATimeStream(bytes) : new MemoryStream(bytes);
+	}
+
+	/// <summary>A reader that hands over at most one character per read, as a slow pipe may.</summary>
+	sealed class OneAtATimeReader(string text) : TextReader
+	{
+		int _at;
+
+		public override int Peek()
+		{
+			return _at < text.Length ? text[_at] : -1;
+		}
+
+		public override int Read()
+		{
+			return _at < text.Length ? text[_at++] : -1;
+		}
+
+		public override int Read(char[] buffer, int index, int count)
+		{
+			if (count == 0 || _at == text.Length)
+				return 0;
+
+			buffer[index] = text[_at++];
+
+			return 1;
+		}
+	}
+
+	/// <summary>A stream that hands over at most one byte per read.</summary>
+	sealed class OneAtATimeStream(byte[] bytes) : Stream
+	{
+		int _at;
+
+		public override bool CanRead => true;
+
+		public override bool CanSeek => false;
+
+		public override bool CanWrite => false;
+
+		public override long Length => bytes.Length;
+
+		public override long Position
+		{
+			get => _at;
+			set => throw new NotSupportedException();
+		}
+
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			if (count == 0 || _at == bytes.Length)
+				return 0;
+
+			buffer[offset] = bytes[_at++];
+
+			return 1;
+		}
+
+		public override void Flush()
+		{
+		}
+
+		public override long Seek(long offset, SeekOrigin origin)
+		{
+			throw new NotSupportedException();
+		}
+
+		public override void SetLength(long value)
+		{
+			throw new NotSupportedException();
+		}
+
+		public override void Write(byte[] buffer, int offset, int count)
+		{
+			throw new NotSupportedException();
+		}
 	}
 
 	static string Spelled((bool IsSuccess, object? Value, string? Error, long Position) match)
