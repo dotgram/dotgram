@@ -316,7 +316,7 @@ CastOperand       : @Expression = v: ValueExpression => @(v) | "NULL"i => @(Node
 
 DataType : @DataType
     = w: ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i) & n: Length? & ("CHARACTER"i & "SET"i & set: QualifiedName)?
-        => @(Nodes.Characters(Nodes.CharacterType(w, n), set is null ? null : new CharacterSetName(set), null))
+        => @(Nodes.Characters(Nodes.CharacterType(w, n), set is null ? null : new CharacterSetName(set.Value), null))
     | w: ("NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NCHAR"i & "VARYING"i?) & n: Length?
         => @(Nodes.CharacterType(w, n))
     | w: ("BIT"i & "VARYING"i?) & n: Length? => @(Nodes.BitString(w, n))
@@ -359,7 +359,7 @@ NonSecondDatetimeField = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i
 
 // ── §6.3 Value specification, §6.4 Column reference ────────────────────────
 
-UnsignedValueSpecification : @Expression = l: UnsignedLiteral => @(new Expression.Literal(l)) | v: GeneralValueSpecification => @(v)
+UnsignedValueSpecification : @Expression = l: UnsignedLiteral => @(l) | v: GeneralValueSpecification => @(v)
 
 // The literals a value may begin with. A typed literal keeps the string after its key
 // word, from its first quote to its last, as SQL:2023's does. A bit string left the
@@ -543,7 +543,7 @@ SortSpecification : @SortItem
 // §13.1 sorts by a column or by its position in the select list.
 SortKey : @Expression
     = c: ColumnReference          => @(c)
-    | t: UnsignedNumericLiteral   => @(new Expression.Literal(Nodes.NumericLiteral(t)))
+    | t: UnsignedNumericLiteral   => @(Nodes.NumericLiteral(t))
 
 // ── §5.2 Reserved words ────────────────────────────────────────────────────
 //

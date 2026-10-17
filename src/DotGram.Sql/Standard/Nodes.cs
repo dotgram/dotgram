@@ -1907,6 +1907,36 @@ static class Nodes
 	}
 
 	/// <summary>
+	/// A predicate read as a tail, its left operand left empty, with the row it follows put in: SQL-92's
+	/// predicates other than the comparisons, which <c>Predicate</c> builds whole (<see cref="Compared(Expression, string, string?, Query?, Expression?)"/>).
+	/// </summary>
+	public static Expression Predicated(Expression left, Expression tail)
+	{
+		return tail switch
+		{
+			Expression.Between b  => b with { Value = left },
+			Expression.In i       => i with { Value = left },
+			Expression.Like l     => l with { Value = left },
+			Expression.IsNull n   => n with { Value = left },
+			Expression.Match m    => m with { Value = left },
+			Expression.Overlaps o => o with { Left = left },
+			_ => throw new ArgumentOutOfRangeException(nameof(tail), tail, "A predicate this method cannot complete."),
+		};
+	}
+
+	/// <summary>A SQL-92 predicate with `NOT` in it, where it was written: BETWEEN, IN and LIKE take one.</summary>
+	public static Expression Negated(Expression predicate, bool not)
+	{
+		return !not ? predicate : predicate switch
+		{
+			Expression.Between b => b with { Not = true },
+			Expression.In i      => i with { Not = true },
+			Expression.Like l    => l with { Not = true },
+			_ => throw new ArgumentOutOfRangeException(nameof(predicate), predicate, "A predicate that takes no NOT."),
+		};
+	}
+
+	/// <summary>
 	/// A qualified name from the text it was read from: its parts, each a regular name or a delimited one with
 	/// its quotes, and the periods between them, with whatever spacing and comments the grammar's trivia let
 	/// stand there skipped.
@@ -1961,7 +1991,7 @@ static class Nodes
 				at++;
 		}
 
-		return new QualifiedName(SqlList.From(parts));
+		return parts.Count == 1 ? new QualifiedName(parts[0]) : new QualifiedName(parts[0], parts.GetRange(1, parts.Count - 1).ToArray());
 	}
 
 	/// <summary>A select sublist's expression with no name after it.</summary>

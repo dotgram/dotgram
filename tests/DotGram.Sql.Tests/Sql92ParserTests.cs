@@ -238,7 +238,7 @@ public sealed class Sql92ParserTests
 			// operators group, and a bracket that changed the grouping is already a node.
 			Expression.Parenthesized(var inner) => Shape(inner),
 			Expression.Reference(var name) => string.Join(".", name.Parts.Select(static one => one.Text)),
-			Expression.Literal(LiteralValue.Numeric(var text, _)) => text,
+			LiteralValue.Numeric(var text, _) => text,
 			_ => node.GetType().Name,
 		};
 	}

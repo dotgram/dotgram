@@ -181,7 +181,7 @@ public sealed class Sql92TreeTests
 			new Ast.Expression.Cast(Column("a"), new Ast.DataType.BitString(Ast.BitStringTypeKind.Bit)),
 			Sql92Parser.ParseValueExpression("CAST(a AS BIT)"));
 		Assert.Equal(
-			new Ast.Expression.Literal(new Ast.LiteralValue.BitString("'0101'")),
+			new Ast.LiteralValue.BitString("'0101'"),
 			Sql92Parser.ParseValueExpression("B'0101'"));
 
 		var select = Assert.IsType<Ast.Query.Select>(Sql92Parser.ParseQuery("SELECT a FROM t UNION JOIN u"));

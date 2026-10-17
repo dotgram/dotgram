@@ -1864,7 +1864,7 @@ public sealed class Sql2023WriterCoverageTests
 				Identity   = IdentityRestart.Restart,
 				Partitions = [new PartitionRange(Two, null)],
 			},
-			"a bit string literal without quotes"   => new Expression.Literal(new LiteralValue.BitString("0101")),
+			"a bit string literal without quotes"   => new LiteralValue.BitString("0101"),
 			"a union join with a condition"         => UnionJoin with { Specification = new JoinSpecification.On(A) },
 			"a natural union join"                  => UnionJoin with { Natural = true },
 			"an outer union join"                   => UnionJoin with { OuterKeyword = true },
@@ -2251,7 +2251,7 @@ new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, nul
 	public void SQL92s_own_nodes_are_written()
 	{
 		Assert.Equal("SELECT a FROM t UNION JOIN u", Sql2023Writer.Write(Selected with { From = new FromClause([UnionJoin]) }));
-		Assert.Equal("B'0101'", Sql2023Writer.Write(new Expression.Literal(new LiteralValue.BitString("'0101'"))));
+		Assert.Equal("B'0101'", Sql2023Writer.Write(new LiteralValue.BitString("'0101'")));
 		Assert.Equal("BIT VARYING(8)", Sql2023Writer.Write(new DataType.BitString(BitStringTypeKind.BitVarying, 8)));
 	}
 
