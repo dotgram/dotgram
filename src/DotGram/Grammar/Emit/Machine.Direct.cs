@@ -265,8 +265,8 @@ sealed partial class Machine
 	/// every element at its rule's end and a bad one where it is stepped over, so what came
 	/// before is built by then; the repetition is the first thing its rule reads, so no capture
 	/// of the rule stands before it; the rule's value is typed, its constructions and guards ask
-	/// for no text of the whole rule, and no rule of the machine looks behind or binds text. A
-	/// line or a column is counted by the buffer as it lets go.
+	/// for no text of the whole rule, and no rule of the machine looks behind. A line or a column
+	/// is counted by the buffer as it lets go.
 	/// </para>
 	/// <para>
 	/// A stream only: bytes held in place hold nothing a release would free.
@@ -284,10 +284,8 @@ sealed partial class Machine
 			NodeWalk.Descendants(body).Any(node => node is Node.Guard guard && CSharpEmitter.Uses(_graph, guard.Text, "parserText")))
 			return false;
 
-		// Nor where a rule binds text a reference reads later: a turn begun after the binding, here
-		// or in a rule that calls this one, would let go of what the reference compares with.
 		foreach (var one in _rules)
-			if (_graph.Bodies.TryGetValue(one, out var read) && NodeWalk.Descendants(read).Any(static node => node is Node.Behind or Node.Bind))
+			if (_graph.Bodies.TryGetValue(one, out var read) && NodeWalk.Descendants(read).Any(static node => node is Node.Behind))
 				return false;
 
 		while (body is Node.Construct(var built, _))
@@ -300,6 +298,46 @@ sealed partial class Machine
 			body = held;
 
 		return _recoveryReads.ContainsKey(body);
+	}
+
+	/// <summary>
+	/// Whether a binding may still be read when a turn of <paramref name="repeat"/>, the
+	/// repetition of <paramref name="rule"/> that lets the window go (<see cref="ReleasesTurns"/>),
+	/// begins: one whose body holds the repetition, or calls a rule that reaches
+	/// <paramref name="rule"/>.
+	/// </summary>
+	/// <remarks>
+	/// The window is let go at every turn, so the text such a binding began on would be let go
+	/// before the reference after it compares with it. Nothing the grammar may say today gets
+	/// there — the repetition is the first thing its rule reads, so no binding of the rule is open
+	/// before it, and a binding around a recovery point, written there or reached through a call,
+	/// is refused (GRAM4034) — so the reader asks this only to stop with a defect where that
+	/// stops being so, rather than to decide anything. Bindings that begin after the turn, in the
+	/// rule's continuation or in trivia, are read whole before the next turn and hold nothing back.
+	/// </remarks>
+	internal bool BindingLiveAtTurn(RuleSymbol rule, Node repeat)
+	{
+		foreach (var one in _rules)
+			if (_graph.Bodies.TryGetValue(one, out var read))
+				foreach (var node in NodeWalk.Descendants(read))
+					if (node is Node.Bind(_, var bound, _) && Holds(bound))
+						return true;
+
+		return false;
+
+		bool Holds(Node bound)
+		{
+			foreach (var inner in NodeWalk.Descendants(bound))
+			{
+				if (ReferenceEquals(inner, repeat))
+					return true;
+
+				if (inner is Node.Call(var called, _) && _graph.Reaches(called).Contains(rule))
+					return true;
+			}
+
+			return false;
+		}
 	}
 
 	/// <summary>Whether a reader of this machine reads a repetition marked <c>recover</c>.</summary>

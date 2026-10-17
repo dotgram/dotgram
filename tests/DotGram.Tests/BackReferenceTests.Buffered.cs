@@ -120,12 +120,16 @@ public sealed partial class BackReferenceTests
 
 	/// <summary>
 	/// A feed that lets the window go at every turn of its recovering repetition, and binds text
-	/// after it: the window is kept whole where any rule binds, as it is where one looks behind,
-	/// and the same feed with no binding still lets go — so what is kept is the binding's doing.
-	/// Read alike in pieces of every size, a bad line recovered from included.
+	/// where no turn is open: in what follows the repetition, and in the trivia woven there.
+	/// Such a binding begins after the turn that lets go and is read before the next, so the feed
+	/// still streams: a long input is read through a window far smaller than itself, which a
+	/// window kept whole could not do (it would need all of it and say so). Short inputs, a bad
+	/// line recovered from included, read alike in pieces of every size.
 	/// </summary>
-	[Fact]
-	public void A_window_is_not_let_go_where_a_rule_binds()
+	[Theory]
+	[InlineData("Tail = $q: W & ':' & $q\nparse Feed\n", "")]
+	[InlineData("Tail = T.Pair\nnamespace T\n{\n\ttrivia = { $s: (' '*) & $s }\n\tPair = W & ':' & W\n}\nparse Feed\n", "  ")]
+	public void A_feed_that_binds_where_no_turn_is_open_still_lets_the_window_go(string tail, string spaces)
 	{
 		BackReferenceEmission.RequireBoth();
 
@@ -136,28 +140,49 @@ public sealed partial class BackReferenceTests
 			W              = ['a'..'z']+
 			""";
 
-		var bound = Recovering(feed + "Tail = $q: W & ':' & $q\nparse Feed\n");
-		var plain = Recovering(feed + "Tail = W & ':' & W\nparse Feed\n");
-
-		Assert.DoesNotContain("text.LetGo(", bound.Source, StringComparison.Ordinal);
-		Assert.Contains("text.LetGo(", plain.Source, StringComparison.Ordinal);
+		var (assembly, source) = Recovering(feed + tail);
 
 		string[] inputs = ["1\n22\n333\nab:ab", "1\nx\n22\nab:ab", "1\n22\nab:ac", "ab:ab", "1\n22\nab:a"];
 
-		foreach (var input in inputs)
+		foreach (var input in inputs.Select(one => one.Replace(":", spaces + ":")))
 		{
-			var whole = Spelled(EmittedCode.Match(bound.Assembly, "Grammar", "TryParseFeed", input));
+			var whole = Spelled(EmittedCode.Match(assembly, "Grammar", "TryParseFeed", input));
 
 			foreach (var size in BufferSizes)
 			{
-				Assert.Equal(whole, Spelled(Over(bound.Assembly, "TryParseFeed", input, typeof(TextReader), size)));
-				Assert.Equal(whole, Spelled(Over(bound.Assembly, "TryParseFeed", input, typeof(Stream), size)));
+				Assert.Equal(whole, Spelled(Over(assembly, "TryParseFeed", input, typeof(TextReader), size)));
+				Assert.Equal(whole, Spelled(Over(assembly, "TryParseFeed", input, typeof(Stream), size)));
 			}
 		}
 
-		var read = Over(bound.Assembly, "TryParseFeed", inputs[1], typeof(TextReader), 1);
+		Assert.Equal((true, "1|!|22"), Answer(Over(assembly, "TryParseFeed", inputs[1].Replace(":", spaces + ":"), typeof(TextReader), 1)));
 
-		Assert.Equal((true, "1|!|22"), (read.IsSuccess, read.Value));
+		// 20,000 lines, some 120,000 characters, through a buffer of 16 that may hold 256 at most.
+		const int lines = 20000;
+
+		var text = string.Concat(Enumerable.Repeat("12345\n", lines)) + "ab" + spaces + ":ab";
+		var type = assembly.GetType("Grammar")!;
+
+		foreach (var over in new[] { typeof(TextReader), typeof(Stream) })
+		{
+			using var input = over == typeof(TextReader)
+				? (IDisposable)new StringReader(text)
+				: new MemoryStream(Encoding.ASCII.GetBytes(text));
+
+			var match = type.GetMethod("TryParseFeed", [over, typeof(int?), typeof(int?)])!.Invoke(null, [input, 16, 256])!;
+			var value = (string?)match.GetType().GetProperty("Value")!.GetValue(match);
+
+			Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
+			Assert.Equal(lines * 6 - 1, value!.Length);
+		}
+
+		// And that is the turns letting go, not a window that happened to fit.
+		Assert.Contains("text.LetGo(", source, StringComparison.Ordinal);
+	}
+
+	static (bool, object?) Answer((bool IsSuccess, object? Value, string? Error, long Position) match)
+	{
+		return (match.IsSuccess, match.Value);
 	}
 
 	/// <summary>
