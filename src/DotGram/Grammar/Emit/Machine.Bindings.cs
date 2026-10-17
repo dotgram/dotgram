@@ -89,16 +89,22 @@ sealed partial class Machine
 	/// written the first time it is asked for.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// Positions only: the recorded text is read where it stands in the input, so a reference
 	/// allocates nothing. A binding that recorded nothing matches anywhere and reads nothing,
 	/// and one longer than what is left of the input does not match.
+	/// </para>
+	/// <para>
+	/// Over a buffer the comparison is made in its window. Room at the reference is asked for
+	/// first, the one call that may read on and move what the window holds; the binding stands
+	/// before the reference and the window has not let it go (<see cref="ReleasesTurns"/>,
+	/// <see cref="CanReleaseBuffered"/>), so both spans taken after it are held, and neither
+	/// outlives the call.
+	/// </para>
 	/// </remarks>
 	internal string SameText()
 	{
 		var name = "Same_DotGram" + _tag;
-
-		if (BufferedInput)
-			throw new InvalidOperationException("A reference over buffered input passed CanRead.");
 
 		if (_sameTextWritten)
 			return name;
@@ -112,12 +118,27 @@ sealed partial class Machine
 		helper.Line("/// <paramref name=\"to\"/>, item by item and ordinally: what a back-reference matches.");
 		helper.Line("/// </summary>");
 
-		using (helper.Block($"static bool {name}(global::System.ReadOnlySpan<char> text, int at, int from, int to)"))
+		if (BufferedInput)
 		{
-			helper.Line("var length = to - from;");
-			helper.Line();
-			helper.Line("return (uint)(at + length) <= (uint)text.Length &&");
-			helper.Line("\tglobal::System.MemoryExtensions.SequenceEqual(text.Slice(at, length), text.Slice(from, length));");
+			using (helper.Block($"static bool {name}({InputType} text, int at, int from, int to)"))
+			{
+				helper.Line("var length = to - from;");
+				helper.Line();
+				helper.Line("// Room at the reference first: the one call that may read on. The binding before it");
+				helper.Line("// is held then too, since nothing lets the window go past a binding still to be read.");
+				helper.Line("return text.Ensure(at, length) &&");
+				helper.Line("\tglobal::System.MemoryExtensions.SequenceEqual(text.Slice(at, length), text.Slice(from, length));");
+			}
+		}
+		else
+		{
+			using (helper.Block($"static bool {name}(global::System.ReadOnlySpan<char> text, int at, int from, int to)"))
+			{
+				helper.Line("var length = to - from;");
+				helper.Line();
+				helper.Line("return (uint)(at + length) <= (uint)text.Length &&");
+				helper.Line("\tglobal::System.MemoryExtensions.SequenceEqual(text.Slice(at, length), text.Slice(from, length));");
+			}
 		}
 
 		_extra.Add(helper.ToString());

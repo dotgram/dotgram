@@ -63,7 +63,9 @@ sealed partial class Machine
 
 	// A first conservative release proof: one source-independent, deterministic rule.
 	// Silent proves that its repetitions cannot be shortened by the continuation.
-	// More general graphs keep input until their outstanding obligations are tracked.
+	// More general graphs keep input until their outstanding obligations are tracked —
+	// a look behind and a binding among them, which the list of nodes below leaves out:
+	// a reference compares with text bound earlier, which the window has to keep.
 	internal bool CanReleaseBuffered
 	{
 		get
