@@ -591,10 +591,10 @@ public sealed class SecurityWriterTests
 			"Alter service master key regenerate" => new Statement.AlterServiceMasterKey(new ServiceMasterKeyChange.Regenerate { Force = true }),
 			"Alter service master key old" => new Statement.AlterServiceMasterKey(new ServiceMasterKeyChange.OldAccount(Quoted("a"), Quoted("p"))),
 			"Alter service master key new" => new Statement.AlterServiceMasterKey(new ServiceMasterKeyChange.NewAccount(Quoted("a"), Quoted("p"))),
-			"Create database encryption key" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.TripleDes3Key, new KeyEncryptor.Certificate(T) { Server = true }),
-			"Create database encryption key asymmetric" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.Aes128, new KeyEncryptor.AsymmetricKey(T) { Server = true }),
+			"Create database encryption key" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.TripleDes3Key, new KeyEncryptor.Certificate(T)),
+			"Create database encryption key asymmetric" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.Aes128, new KeyEncryptor.AsymmetricKey(T)),
 			"Alter database encryption key regenerate" => new Statement.AlterDatabaseEncryptionKey(new DatabaseEncryptionKeyChange.Regenerate(DatabaseKeyAlgorithm.Aes256)),
-			"Alter database encryption key encrypted" => new Statement.AlterDatabaseEncryptionKey(new DatabaseEncryptionKeyChange.EncryptedBy(new KeyEncryptor.Certificate(T) { Server = true })),
+			"Alter database encryption key encrypted" => new Statement.AlterDatabaseEncryptionKey(new DatabaseEncryptionKeyChange.EncryptedBy(new KeyEncryptor.Certificate(T))),
 			"Create column encryption key" => new Statement.CreateColumnEncryptionKey(X, [new ColumnKeyValue([Opt("COLUMN_MASTER_KEY", Word("m")), Opt("ALGORITHM", Str("RSA_OAEP")), Opt("ENCRYPTED_VALUE", Hex("01"))]), new ColumnKeyValue([Opt("ALGORITHM", Str("a")), Opt("ENCRYPTED_VALUE", Hex("02")), Opt("COLUMN_MASTER_KEY", Word("n"))])]),
 			"Alter column encryption key add" => new Statement.AlterColumnEncryptionKey(X, new ColumnKeyChange.AddValue(new ColumnKeyValue([Opt("COLUMN_MASTER_KEY", Word("m")), Opt("ALGORITHM", Str("a")), Opt("ENCRYPTED_VALUE", Hex("01"))]))),
 			"Alter column encryption key drop" => new Statement.AlterColumnEncryptionKey(X, new ColumnKeyChange.DropValue(new ColumnKeyValue([Opt("COLUMN_MASTER_KEY", Word("m"))]))),
@@ -809,7 +809,6 @@ public sealed class SecurityWriterTests
 	[InlineData("a symmetric key made here with no encryptor")]
 	[InlineData("a symmetric key setting it has not")]
 	[InlineData("a symmetric key locked by the service master key")]
-	[InlineData("a symmetric key locked by a server certificate")]
 	[InlineData("a symmetric key locked by a certificate and its password")]
 	[InlineData("a symmetric key altered by none")]
 	[InlineData("a certificate made here with no setting")]
@@ -821,8 +820,9 @@ public sealed class SecurityWriterTests
 	[InlineData("a certificate binary written X'…'")]
 	[InlineData("a certificate private key of no setting")]
 	[InlineData("a master key added by a certificate")]
-	[InlineData("a database key locked by a certificate that is not the server's")]
 	[InlineData("a database key locked by a password")]
+	[InlineData("a database key changed to a symmetric key")]
+	[InlineData("a database key locked by a certificate and its password")]
 	[InlineData("a database key algorithm that is none")]
 	[InlineData("a column key of no value")]
 	[InlineData("a column key value of two settings")]
@@ -837,7 +837,6 @@ public sealed class SecurityWriterTests
 	[InlineData("a key opened by a symmetric key of two parts")]
 	[InlineData("a key opened by a certificate of two parts")]
 	[InlineData("a key opened by the service master key")]
-	[InlineData("a key opened by a server certificate")]
 	[InlineData("a policy function with a variable")]
 	[InlineData("a policy table named with an @")]
 	[InlineData("a policy function named with an @")]
@@ -882,8 +881,6 @@ public sealed class SecurityWriterTests
 			"a symmetric key setting it has not" => new Statement.CreateSymmetricKey(X) { Options = [Opt("SUBJECT", Str("s"))], EncryptedBy = [PasswordOf("p")] },
 			// KeyEncryptor has no SERVICE MASTER KEY: Msg 102.
 			"a symmetric key locked by the service master key" => new Statement.CreateSymmetricKey(X) { Options = [Opt("ALGORITHM", Word("DES"))], EncryptedBy = [new KeyEncryptor.ServiceMasterKey()] },
-			// KeyEncryptor reads CERTIFICATE, not SERVER CERTIFICATE, which is the database encryption key's.
-			"a symmetric key locked by a server certificate" => new Statement.CreateSymmetricKey(X) { Options = [Opt("ALGORITHM", Word("DES"))], EncryptedBy = [new KeyEncryptor.Certificate(T) { Server = true }] },
 			// KeyEncryptor reads WITH PASSWORD nowhere: KeyDecryptor does.
 			"a symmetric key locked by a certificate and its password" => new Statement.CreateSymmetricKey(X) { Options = [Opt("ALGORITHM", Word("DES"))], EncryptedBy = [new KeyEncryptor.Certificate(T) { WithPassword = Quoted("p") }] },
 			// ALTER SYMMETRIC KEY reads one encryptor at least.
@@ -906,12 +903,13 @@ public sealed class SecurityWriterTests
 			"a certificate private key of no setting" => new Statement.AlterCertificate(X, new CertificateChange.WithPrivateKey([])),
 			// MasterKeyChange adds a service master key or a password.
 			"a master key added by a certificate" => new Statement.AlterMasterKey(new MasterKeyChange.AddEncryption(new KeyEncryptor.Certificate(T))),
-			// ServerEncryption reads SERVER before CERTIFICATE.
-			"a database key locked by a certificate that is not the server's" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.Aes128, new KeyEncryptor.Certificate(T)),
-			// ServerEncryption reads a certificate or an asymmetric key.
+			// ServerEncryption reads a certificate or an asymmetric key, at both of its places: CREATE's and ALTER's.
 			"a database key locked by a password" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.Aes128, PasswordOf("p")),
+			"a database key changed to a symmetric key" => new Statement.AlterDatabaseEncryptionKey(new DatabaseEncryptionKeyChange.EncryptedBy(new KeyEncryptor.SymmetricKey(T))),
+			// ServerEncryption reads no WITH PASSWORD: KeyDecryptor does.
+			"a database key locked by a certificate and its password" => new Statement.CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm.Aes128, new KeyEncryptor.Certificate(T) { WithPassword = Quoted("p") }),
 			// DatabaseKeyAlgorithm is a closed list of four.
-			"a database key algorithm that is none" => new Statement.CreateDatabaseEncryptionKey((DatabaseKeyAlgorithm)9, new KeyEncryptor.Certificate(T) { Server = true }),
+			"a database key algorithm that is none" => new Statement.CreateDatabaseEncryptionKey((DatabaseKeyAlgorithm)9, new KeyEncryptor.Certificate(T)),
 			// CREATE COLUMN ENCRYPTION KEY reads one value at least.
 			"a column key of no value" => new Statement.CreateColumnEncryptionKey(X, []),
 			// ColumnKeyValue reads three settings in the brackets.
@@ -938,8 +936,6 @@ public sealed class SecurityWriterTests
 			"a key opened by a certificate of two parts" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.Certificate(Q)),
 			// KeyDecryptor has no SERVICE MASTER KEY.
 			"a key opened by the service master key" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.ServiceMasterKey()),
-			// KeyDecryptor reads CERTIFICATE, not SERVER CERTIFICATE.
-			"a key opened by a server certificate" => new Statement.OpenSymmetricKey(X, new KeyEncryptor.Certificate(T) { Server = true }),
 			// WithoutVariable: `dbo.f (c, @user_id)` is Msg 112.
 			"a policy function with a variable" => new Statement.CreateSecurityPolicy(T) { Predicates = [new PolicyPredicate.AddFilter(Function("f", new Expression.Variable(new Identifier("@u"))), T)] },
 			// PolicySetting is STATE and SCHEMABINDING.

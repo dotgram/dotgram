@@ -208,7 +208,8 @@ public abstract partial record Statement
 
 	/// <summary>
 	/// T-SQL: CREATE DATABASE ENCRYPTION KEY (Transact-SQL). <c>CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = a ENCRYPTION BY
-	/// SERVER { CERTIFICATE | ASYMMETRIC KEY } name</c>: <paramref name="By"/> is a server certificate or a server asymmetric key.
+	/// SERVER { CERTIFICATE | ASYMMETRIC KEY } name</c>: <paramref name="By"/> is the server's certificate or asymmetric key, and
+	/// <c>SERVER</c> is always written before it.
 	/// </summary>
 	public sealed record CreateDatabaseEncryptionKey(DatabaseKeyAlgorithm Algorithm, KeyEncryptor By) : Statement;
 
@@ -530,9 +531,6 @@ public abstract record KeyEncryptor : ISqlNode
 	{
 		/// <summary>T-SQL: OPEN SYMMETRIC KEY (Transact-SQL). <c>WITH PASSWORD = 'p'</c> after a certificate that opens a key; null where none is written.</summary>
 		public LiteralValue.String? WithPassword { get; init; }
-
-		/// <summary>T-SQL: CREATE DATABASE ENCRYPTION KEY (Transact-SQL). <c>SERVER CERTIFICATE c</c>: the certificate of the server.</summary>
-		public bool Server { get; init; }
 	}
 
 	/// <summary><c>SYMMETRIC KEY k</c>.</summary>
@@ -543,9 +541,6 @@ public abstract record KeyEncryptor : ISqlNode
 	{
 		/// <summary>T-SQL: OPEN SYMMETRIC KEY (Transact-SQL). <c>WITH PASSWORD = 'p'</c> after an asymmetric key that opens a key; null where none is written.</summary>
 		public LiteralValue.String? WithPassword { get; init; }
-
-		/// <summary>T-SQL: CREATE DATABASE ENCRYPTION KEY (Transact-SQL). <c>SERVER ASYMMETRIC KEY k</c>: the asymmetric key of the server.</summary>
-		public bool Server { get; init; }
 	}
 
 	/// <summary>T-SQL: ALTER MASTER KEY (Transact-SQL). <c>SERVICE MASTER KEY</c>.</summary>
@@ -761,7 +756,10 @@ public abstract record DatabaseEncryptionKeyChange : ISqlNode
 	/// <summary><c>REGENERATE WITH ALGORITHM = a</c>.</summary>
 	public sealed record Regenerate(DatabaseKeyAlgorithm Algorithm) : DatabaseEncryptionKeyChange;
 
-	/// <summary><c>ENCRYPTION BY SERVER { CERTIFICATE | ASYMMETRIC KEY } name</c>.</summary>
+	/// <summary>
+	/// <c>ENCRYPTION BY SERVER { CERTIFICATE | ASYMMETRIC KEY } name</c>: <paramref name="By"/> is the server's certificate or
+	/// asymmetric key, and <c>SERVER</c> is always written before it.
+	/// </summary>
 	public sealed record EncryptedBy(KeyEncryptor By) : DatabaseEncryptionKeyChange;
 }
 
