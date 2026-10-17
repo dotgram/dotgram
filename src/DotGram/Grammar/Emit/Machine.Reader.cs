@@ -4942,6 +4942,12 @@ sealed partial class Machine
 				// it go (Machine.ReleasesTurns).
 				if (machine.ReleasesTurns(owner))
 				{
+					// Where the turn begins no binding is open: a binding still to be read would
+					// keep the text it began on, and letting go here would lose it.
+					if (machine.BindingLiveAtTurn(owner, repeat))
+						throw new InvalidOperationException(
+							$"'{owner.Name}' lets the window go at each turn while a binding begun before the turn is still to be read.");
+
 					code.Line("text.LetGo(p);");
 					code.Line();
 				}

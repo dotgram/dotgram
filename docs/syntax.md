@@ -437,9 +437,9 @@ in two (§4).
 A publication over a `TextReader` or a stream (§6.3) reads bindings as the string form does,
 bytes included. A reference compares the items where they stand in the buffer, so the buffer
 keeps a binding's text until the rule that bound it is done with it: a binding holds the
-input from where it began, as a text capture does. A feed whose recovering repetition
-would otherwise let the buffer go at every record keeps what it has read instead, once any
-rule it reads binds. Over bytes, a length `#q` counts bytes.
+input from where it began, as a text capture does. A feed that lets the buffer go at every
+record (§8.2) still does with bindings in it: a binding there begins after a record does and
+is read before the next. Over bytes, a length `#q` counts bytes.
 
 Trivia, where it is woven in, is part of a binding's text — as in a text capture — and
 is woven around a reference as around a literal. Rules that use bindings are, in

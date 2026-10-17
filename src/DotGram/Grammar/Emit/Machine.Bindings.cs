@@ -97,7 +97,7 @@ sealed partial class Machine
 	/// <para>
 	/// Over a buffer the comparison is made in its window. Room at the reference is asked for
 	/// first, the one call that may read on and move what the window holds; the binding stands
-	/// before the reference and the window has not let it go (<see cref="ReleasesTurns"/>,
+	/// before the reference and the window has not let it go (<see cref="BindingLiveAtTurn"/>,
 	/// <see cref="CanReleaseBuffered"/>), so both spans taken after it are held, and neither
 	/// outlives the call.
 	/// </para>
