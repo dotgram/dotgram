@@ -19,7 +19,7 @@ namespace DotGram.Finance.FixShape;
 // the setup, so every column is proven to do the same work. The rows that return a message return it as
 // object: the project BenchmarkDotNet generates references this one, not the DotGram.Finance under it.
 [MemoryDiagnoser]
-public class FixCollectionShapeBenchmarks
+public partial class FixCollectionShapeBenchmarks
 {
 	const int Orders    = 100;
 	const int Snapshots = 10;
@@ -48,6 +48,7 @@ public class FixCollectionShapeBenchmarks
 		("Fix44_I5_LinqCount",              5000),
 		("Fix44_I6_MultipleForeach",        24500),
 		("Fix44_I7_AbsentForeach",          100),
+		("Fix44_I8_LinqCountSystemLinq",    5000),
 		("Fix44_E1_ParseIterateSnapshot",   12887838),
 		("Fix44_E2_ParseIterateOrder",      4877),
 		("Fix42_P2_ParseSnapshot",          3011),
@@ -114,6 +115,7 @@ public class FixCollectionShapeBenchmarks
 			"Fix44_I5_LinqCount"             => Fix44_I5_LinqCount(),
 			"Fix44_I6_MultipleForeach"       => Fix44_I6_MultipleForeach(),
 			"Fix44_I7_AbsentForeach"         => Fix44_I7_AbsentForeach(),
+			"Fix44_I8_LinqCountSystemLinq"   => Fix44_I8_LinqCountSystemLinq(),
 			"Fix44_E1_ParseIterateSnapshot"  => Fix44_E1_ParseIterateSnapshot(),
 			"Fix44_E2_ParseIterateOrder"     => Fix44_E2_ParseIterateOrder(),
 			"Fix42_P2_ParseSnapshot"         => Fields(Fix42_P2_ParseSnapshot()),

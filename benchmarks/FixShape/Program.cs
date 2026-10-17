@@ -19,7 +19,7 @@ static class Program
 	[
 		"P1_ParseOrder", "P2_ParseSnapshot", "V1_ParseValidateOrder", "V2_ParseValidateSnapshot",
 		"I1_GroupsForeach", "I2_GroupsFor", "I3_NestedForeach", "I4_FieldsForeach", "I5_LinqCount",
-		"I6_MultipleForeach", "I7_AbsentForeach", "E1_ParseIterateSnapshot", "E2_ParseIterateOrder",
+		"I6_MultipleForeach", "I7_AbsentForeach", "I8_LinqCountSystemLinq", "E1_ParseIterateSnapshot", "E2_ParseIterateOrder",
 	];
 
 	static readonly string[] Others = ["P2_ParseSnapshot", "E1_ParseIterateSnapshot", "E2_ParseIterateOrder"];
@@ -50,7 +50,7 @@ static class Program
 
 		var window  = args[at + 1];
 		var rest    = args.Where((_, i) => i != at && i != at + 1).ToArray();
-		var columns = (Environment.GetEnvironmentVariable("FIXH1_COLUMNS") ?? "A1,A2,B,C,F").Split(',');
+		var columns = (Environment.GetEnvironmentVariable("FIXH1_COLUMNS") ?? "A1,A2,P,Q").Split(',');
 
 		string[] rows = window switch
 		{
