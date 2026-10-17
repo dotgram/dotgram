@@ -234,4 +234,10 @@ namespace DotGram.Compatibility
 	public partial class Tokens
 	{
 	}
+
+	/// <summary>A back-reference and a count by its length, read through a buffer, over characters and over bytes.</summary>
+	[Gram("Raw : @int = $q: '\"'+ & (?!$q & any)* & $q & 'x'{#q} => @(1)\nparse Raw", BufferedInput = true, BufferedBytes = true)]
+	public partial class BufferedBackReference
+	{
+	}
 }
