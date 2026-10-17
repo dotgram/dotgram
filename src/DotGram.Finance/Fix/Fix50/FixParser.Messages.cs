@@ -136,7 +136,7 @@ public static partial class FixParser
 	{
 		message = null;
 
-		var     fields = new List<FixField>(input is ICollection c ? c.Count : 6);
+		var     fields = new FixList<FixField>(input is ICollection c ? c.Count : 6);
 		string? type   = null;
 
 		foreach (var field in input)

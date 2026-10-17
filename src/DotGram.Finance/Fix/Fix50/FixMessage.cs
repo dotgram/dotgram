@@ -19,7 +19,7 @@ namespace DotGram.Finance.Fix.Fix50;
 /// </remarks>
 public abstract partial class FixMessage : IFixFindings
 {
-	internal FixMessage(string messageType, List<FixField> fields)
+	internal FixMessage(string messageType, FixList<FixField> fields)
 	{
 		MessageType = messageType;
 		Fields      = fields;
@@ -32,11 +32,11 @@ public abstract partial class FixMessage : IFixFindings
 	/// <summary>
 	/// All fields in wire order, including header and trailer; group entries are flattened into the list.
 	/// </summary>
-	public List<FixField> Fields      { get; private protected set; }
+	public FixList<FixField> Fields      { get; private protected set; }
 
 
 	/// <summary>Everything found wrong with this message, or null while nothing has been.</summary>
-	public List<FixFinding>? InvalidFindings { get; private set; }
+	public FixList<FixFinding>? InvalidFindings { get; private set; }
 
 	/// <summary>Whether nothing has been found wrong with this message.</summary>
 	/// <remarks>
@@ -81,7 +81,7 @@ public abstract partial class FixMessage : IFixFindings
 	/// <param name="finding">What is wrong.</param>
 	protected internal void AddFinding(FixFinding finding)
 	{
-		(InvalidFindings ??= []).Add(finding);
+		(InvalidFindings ??= new()).Add(finding);
 	}
 
 	void IFixFindings.AddFinding(FixFinding finding)
@@ -97,7 +97,7 @@ public abstract partial class FixMessage : IFixFindings
 	/// </remarks>
 	public sealed class Invalid : FixMessage
 	{
-		internal Invalid(string type, List<FixField> fields) : base(type, fields)
+		internal Invalid(string type, FixList<FixField> fields) : base(type, fields)
 		{
 			foreach (var field in fields)
 				SetStandardField(field);
