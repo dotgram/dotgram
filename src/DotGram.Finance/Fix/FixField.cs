@@ -402,7 +402,7 @@ public abstract class FixField : IFixLocation
 	{
 		internal List<string> Items => Raw.Items!;
 	}
-#elif FIXSHAPE_F
+#elif FIXSHAPE_F && !FIXSHAPE_P
 	public sealed class Multiple(int tag, (bool Valid, string[] Value) value)
 		: Typed<FixList<string>>(tag, (value.Valid, new FixList<string>(value.Value)))
 	{

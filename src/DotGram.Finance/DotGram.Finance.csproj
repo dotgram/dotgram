@@ -22,6 +22,8 @@
 		     hand-written ones follow this property. -->
 		<FixShape Condition="'$(FixShape)' == ''">A</FixShape>
 		<DefineConstants>$(DefineConstants);FIXSHAPE_$(FixShape)</DefineConstants>
+		<!-- F' (P) and F'' (Q) are F with Multiple left a string[]; Q adds the extension methods. -->
+		<DefineConstants Condition="'$(FixShape)' == 'P' or '$(FixShape)' == 'Q'">$(DefineConstants);FIXSHAPE_F;FIXSHAPE_P</DefineConstants>
 	</PropertyGroup>
 	<ItemGroup>
 		<InternalsVisibleTo Include="DotGram.Finance.Tests" />

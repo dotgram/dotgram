@@ -554,8 +554,8 @@ static class Shape
 			"A" => $"List<{type}>?",
 			"B" => $"IReadOnlyList<{type}>?",
 			"C" => $"FixList<{type}>",
-			"F" => $"FixList<{type}>?",
-			_   => throw new GeneratorException($"FIX_SHAPE '{Name}' is not one of A, B, C, F."),
+			"F" or "P" or "Q" => $"FixList<{type}>?",
+			_   => throw new GeneratorException($"FIX_SHAPE '{Name}' is not one of A, B, C, F, P, Q."),
 		};
 	}
 
@@ -564,7 +564,7 @@ static class Shape
 		return Stored ? list + "Store" : list;
 	}
 
-	public static string New => Name == "F" ? "new()" : "[]";
+	public static string New => Name is "F" or "P" or "Q" ? "new()" : "[]";
 
 	// What a check reads a group through: the store where the class of the subject is known, the public
 	// property where only its interface is.
@@ -589,11 +589,11 @@ static class Shape
 		};
 	}
 
-	public static string MultipleItems => Name == "A" ? "field.Value" : "field.Items";
+	public static string MultipleItems => Name is "A" or "P" or "Q" ? "field.Value" : "field.Items";
 
 	public static Dictionary<string, string> Tokens()
 	{
-		var fieldsType  = Name == "F" ? "FixList<FixField>" : "List<FixField>";
+		var fieldsType  = Name is "F" or "P" or "Q" ? "FixList<FixField>" : "List<FixField>";
 		var fieldsStore = Stored ? "FieldStore" : "Fields";
 
 		var fieldsDecl = Name switch
