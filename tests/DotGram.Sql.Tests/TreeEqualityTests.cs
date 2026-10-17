@@ -218,7 +218,7 @@ public sealed class TreeEqualityTests
 
 					if (!secondRead.IsSuccess)
 						faults.Add($"`{candidate}` printed as `{written}`, which SQL-92 refuses to read back");
-					else if (!Equals(firstRead.Value, secondRead.Value))
+					else if (!Equals(firstRead.Value, secondRead.Value) && !Sql92TreeTests.IsWrittenAsAnotherTree(candidate, written, secondRead.Value!))
 						faults.Add($"`{candidate}` printed as `{written}`, which reparses to a different tree");
 				}
 			}

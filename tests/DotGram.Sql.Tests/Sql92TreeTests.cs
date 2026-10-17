@@ -77,6 +77,25 @@ public sealed class Sql92TreeTests
 
 	const string Removed = "SQL-92's bit string type, bit string literal and union join, which SQL:2003 removed, are SQL-92's own records";
 
+	/// <summary>
+	/// What SQL-92 reads to a tree that no text <see cref="Sql2023Writer"/> writes reads back to, and why. Keyed as
+	/// <see cref="ReadBySql92Alone"/> is. Each is held to the writer writing the reading back as the same text, so
+	/// that only the tree the text gives differs, and each listed text is held to being met.
+	/// </summary>
+	static readonly Dictionary<string, string> WrittenAsAnotherTree = new(StringComparer.Ordinal)
+	{
+		["SELECT - -1 FROM t"] = "a sign before a signed value, which this grammar's tower lets stand and a <factor> of SQL:2023 does not: the writer brackets the inner sign, and the bracket reads back as a bracketed value",
+	};
+
+	/// <summary>
+	/// Whether <paramref name="text"/> is one SQL-92 reads to a tree the writer's text gives back otherwise, and the
+	/// writer's text read and written again is that text (<see cref="WrittenAsAnotherTree"/>).
+	/// </summary>
+	public static bool IsWrittenAsAnotherTree(string text, string written, ISqlNode again)
+	{
+		return WrittenAsAnotherTree.ContainsKey(Spaced(text)) && Sql2023Writer.Write(again) == written;
+	}
+
 	/// <summary>Every text both read, at every level both read it, is the same tree.</summary>
 	[Fact]
 	public void Every_text_both_parsers_read_is_the_same_tree()
@@ -222,6 +241,7 @@ public sealed class Sql92TreeTests
 	{
 		var read   = 0;
 		var faults = new List<string>();
+		var listed = new HashSet<string>(StringComparer.Ordinal);
 
 		foreach (var text in Texts())
 			foreach (var level in Enum.GetValues<Level>())
@@ -248,12 +268,17 @@ public sealed class Sql92TreeTests
 
 				if (again is null)
 					faults.Add($"{level} `{text}` was written as `{written}`, which SQL-92 refuses");
-				else if (!Equals(first, again))
+				else if (Equals(first, again))
+					continue;
+				else if (IsWrittenAsAnotherTree(text, written, again))
+					listed.Add(Spaced(text));
+				else
 					faults.Add($"{level} `{text}` was written as `{written}`, which SQL-92 reads to another tree");
 			}
 
 		Assert.True(read > 300, $"{read} readings written");
 		Assert.Equal([], faults);
+		Assert.Equal(WrittenAsAnotherTree.Keys.Order(StringComparer.Ordinal), listed.Order(StringComparer.Ordinal));
 	}
 
 	// ── The readings ────────────────────────────────────────────────────────────
