@@ -86,7 +86,14 @@ public abstract record ColumnOption : ISqlNode
 	public Identifier? Name { get; init; }
 
 	/// <summary>T-SQL: column_definition (Transact-SQL). <c>DEFAULT value</c>.</summary>
-	public sealed record Default(Expression Value) : ColumnOption;
+	public sealed record Default(Expression Value) : ColumnOption
+	{
+		/// <summary>
+		/// T-SQL: ALTER TABLE (Transact-SQL). <c>DEFAULT 1 WITH VALUES</c>: the rows already there take the value, said where
+		/// a column is added.
+		/// </summary>
+		public bool WithValues { get; init; }
+	}
 
 	/// <summary>T-SQL: column_definition (Transact-SQL). <c>IDENTITY</c>, or <c>IDENTITY (seed, increment)</c>.</summary>
 	public sealed record Identity(Expression? Seed, Expression? Increment) : ColumnOption;
@@ -207,7 +214,14 @@ public abstract partial record Constraint
 	/// T-SQL: table_constraint (Transact-SQL). <c>CONSTRAINT d DEFAULT value FOR c</c>, a default written at the
 	/// table for one of its columns.
 	/// </summary>
-	public sealed record Default(Expression Value, Identifier Column) : Constraint;
+	public sealed record Default(Expression Value, Identifier Column) : Constraint
+	{
+		/// <summary>
+		/// T-SQL: ALTER TABLE (Transact-SQL). <c>CONSTRAINT d DEFAULT 1 FOR c WITH VALUES</c>: the rows already there take the
+		/// value, said where the constraint is added.
+		/// </summary>
+		public bool WithValues { get; init; }
+	}
 
 	/// <summary>
 	/// T-SQL: CREATE TABLE (SQL Graph). <c>CONNECTION (a TO b, …) [ON DELETE CASCADE]</c>, which node tables an

@@ -683,8 +683,8 @@ static partial class Bridge
 					yield return ColumnOption(option, words, name);
 					break;
 
-				case Clause.ConstraintDefinition { Kind: "DEFAULT", Check: { } value, ForColumn: null, Options: null or { Length: 0 } } @default:
-					yield return new Ast.ColumnOption.Default(Values.Of(value)) { Name = @default.Name is { } named ? Values.Part(old, named) : null };
+				case Clause.ConstraintDefinition { Kind: "DEFAULT", Check: { } value, ForColumn: null } @default when WithValues(@default) is { } valued:
+					yield return new Ast.ColumnOption.Default(Values.Of(value)) { Name = @default.Name is { } named ? Values.Part(old, named) : null, WithValues = valued };
 					break;
 
 				case Clause.ConstraintDefinition { Kind: "DEFAULT" }:
@@ -701,6 +701,20 @@ static partial class Bridge
 				default:
 					throw BridgeGap.Open(old, $"inventory Clause.ColumnDefinition (an option {NameOf(old)})");
 			}
+		}
+
+		/// <summary>
+		/// Whether a default says WITH VALUES, which the old tree keeps as the one option VALUES, unbracketed; null where it
+		/// holds anything else.
+		/// </summary>
+		static bool? WithValues(Clause.ConstraintDefinition old)
+		{
+			return old switch
+			{
+				{ Options: null or { Length: 0 }, Bracketed: true } => false,
+				{ Options: [Clause.Option { Name: var name, Value: null, Options.Length: 0, Partitions: null }], Bracketed: false } when name.Equals("VALUES", StringComparison.OrdinalIgnoreCase) => true,
+				_ => null,
+			};
 		}
 
 		static Ast.ColumnOption ColumnOption(Clause.ColumnOption old, string words, string? name)
@@ -763,8 +777,8 @@ static partial class Bridge
 			if (old.Hash || old.Columnstore || old.Order is not null || old.Include is not null || old.Filter is not null)
 				throw BridgeGap.Open(old, $"inventory Clause.ConstraintDefinition ({old.Kind} with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter)");
 
-			if (old.Kind is not ("PRIMARY KEY" or "UNIQUE") && (old.Clustering is not null || old.Placements is not null || !old.Bracketed
-				|| old.Options is { Length: > 0 } && old.Kind is not ("CHECK" or "CONNECTION")))
+			if (old.Kind is not ("PRIMARY KEY" or "UNIQUE") && (old.Clustering is not null || old.Placements is not null || !old.Bracketed && old.Kind != "DEFAULT"
+				|| old.Options is { Length: > 0 } && old.Kind is not ("CHECK" or "CONNECTION" or "DEFAULT")))
 				throw BridgeGap.Open(old, $"inventory Clause.ConstraintDefinition ({old.Kind} with a key's parts)");
 
 			Ast.Constraint made = old.Kind switch
@@ -774,8 +788,8 @@ static partial class Bridge
 				"REFERENCES"              => new Ast.Constraint.ForeignKey([], null, References(old)),
 				"CHECK"                   => Check(old),
 				"CONNECTION" when table   => Connection(old),
-				"DEFAULT" when table && old is { Check: { } value, ForColumn: { } column, Options: null or { Length: 0 } }
-					=> new Ast.Constraint.Default(Values.Of(value), Values.Part(old, column)),
+				"DEFAULT" when table && old is { Check: { } value, ForColumn: { } column } && WithValues(old) is { } valued
+					=> new Ast.Constraint.Default(Values.Of(value), Values.Part(old, column)) { WithValues = valued },
 				_ => throw BridgeGap.Open(old, $"inventory Clause.ConstraintDefinition ({old.Kind}{(table ? " at the table" : " on a column")})"),
 			};
 
@@ -1107,20 +1121,13 @@ static partial class Bridge
 
 		/// <summary>
 		/// ADD: one column or one constraint is the standard's action, a period the standard's too, and one index or
-		/// two elements or more T-SQL's. A default added <c>WITH VALUES</c>, and the constraint the grammar reads with
-		/// a <c>FOR</c> it then drops, are gaps.
+		/// two elements or more T-SQL's; a default's <c>WITH VALUES</c> its own. The constraint the grammar reads with a
+		/// <c>FOR</c> it then drops is a gap.
 		/// </summary>
 		static Ast.AlterTableAction Added(Statement.AlterTable old)
 		{
 			if (old.Options is { Length: > 0 } || old.Tail is not null)
 				throw BridgeGap.Open(old, "inventory Statement.AlterTable (ADD with options)");
-
-			foreach (var element in old.Elements)
-			{
-				if (element is Clause.ConstraintDefinition { Kind: "DEFAULT", Options: { Length: > 0 } }
-					|| element is Clause.ColumnDefinition { Options: var options } && options.Any(static one => one is Clause.ConstraintDefinition { Kind: "DEFAULT", Options.Length: > 0 }))
-					throw BridgeGap.Open(element, "inventory Clause.ConstraintDefinition (a default added WITH VALUES)");
-			}
 
 			// `ADD CHECK (…) FOR c`: the grammar reads the FOR and keeps no trace of it, so the text alone says so.
 			if (old.Elements is [Clause.ConstraintDefinition { Kind: not "DEFAULT" }] && Spelled(old) is { } text && Words(text) is [.., not "NOT", "FOR", _])

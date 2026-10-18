@@ -70,6 +70,11 @@ public static partial class Sql2023Writer
 
 		bool held = true;
 
+		/// <summary>
+		/// Whether what is written is a column or a constraint ALTER TABLE adds, the one place a default reads WITH VALUES.
+		/// </summary>
+		bool adding;
+
 		public override string ToString()
 		{
 			return written.ToString();

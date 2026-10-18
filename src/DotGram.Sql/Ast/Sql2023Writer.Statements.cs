@@ -1164,7 +1164,9 @@ public static partial class Sql2023Writer
 			{
 				case AlterTableAction.AddColumn add:
 					Word(add.ColumnKeyword ? "ADD COLUMN" : "ADD");
+					adding = true;
 					PutColumn(add.Column);
+					adding = false;
 					break;
 
 				case AlterTableAction.AlterColumn alter:
@@ -1184,7 +1186,9 @@ public static partial class Sql2023Writer
 
 				case AlterTableAction.AddConstraint add:
 					Word("ADD");
+					adding = true;
 					PutConstraint(add.Constraint);
+					adding = false;
 					break;
 
 				case AlterTableAction.AlterConstraint alter:
