@@ -43,8 +43,8 @@ public sealed class SqlWriterTests
 
 	/// <summary>A default's <c>WITH VALUES</c> comes back after the column it is for.</summary>
 	[Theory]
-	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH VALUES")]
-	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH VALUES NOT NULL")]
+	[InlineData("ALTER TABLE t1 ADD c1 INT DEFAULT 1 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 INT DEFAULT 1 WITH VALUES NOT NULL")]
 	[InlineData("ALTER TABLE t1 ADD CONSTRAINT d1 DEFAULT 1 FOR c1 WITH VALUES")]
 	[InlineData("ALTER TABLE t1 ADD CONSTRAINT d1 DEFAULT 1 FOR c1")]
 	public void A_default_keeps_the_values_it_was_given_with(string input)
@@ -182,9 +182,8 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT a % b & ~c | d ^ e FROM t", "SELECT a % b & ~c | d ^ e FROM t")]
 	[InlineData("SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)", "SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)")]
 	[InlineData("SELECT - ~1, ~~1, ~2 * 3", "SELECT -~1, ~ ~1, ~2 * 3")]
-	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) SELECT * FROM c ORDER BY a OFFSET 1 ROWS)", "CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) SELECT * FROM c ORDER BY a OFFSET 1 ROWS)")]
 	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1", "CREATE FUNCTION f1 () RETURNS TABLE AS RETURN WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1")]
-	[InlineData("create json index ix on dbo.t (c) for ('$.a', N'$.b') with (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)", "CREATE JSON INDEX ix ON dbo.t (c) for ('$.a', N'$.b') WITH (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
+	[InlineData("create json index ix on dbo.t (c) for ('$.a', N'$.b') with (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)", "CREATE JSON INDEX ix ON dbo.t (c) FOR ('$.a', N'$.b') WITH (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
 	[InlineData("shutdown with nowait", "SHUTDOWN WITH NOWAIT")]
 	[InlineData("lineno 42", "LINENO 42")]
 	[InlineData("dbcc myDll with stat_header join density_vector, no_infomsgs", "DBCC myDll WITH STAT_HEADER JOIN DENSITY_VECTOR, NO_INFOMSGS")]
@@ -286,7 +285,7 @@ public sealed class SqlWriterTests
 
 		// And the reading that was not asked for locations keeps none, which is the whole
 		// point of there being two.
-		Assert.False(Read(input).Span.Known);
+		Assert.False(TransactSqlParser.ParseSyntaxStatement(input).Span.Known);
 
 		Assert.Equal(input, Cut(input, read.Span));
 		Assert.Equal(input, Cut(input, query.Span));

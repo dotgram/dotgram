@@ -320,9 +320,9 @@ public sealed class ProceduralWriterTests
 		if (tree is Statement.Compound { Atomic: not null })
 		{
 			var source = "CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS " + text;
-			var body   = ((DotGram.Sql.Statement.CreateProcedure)OldTree.Located.ParseStatement(source)).Body[0];
+			var made   = (Statement.CreateRoutine)Bridge.ToAst(OldTree.Located.ParseStatement(source), source);
 
-			Assert.Equal(tree, Bridge.ToAst(body, source));
+			Assert.Equal(tree, ((RoutineBody.Statements)made.Definition.Body).List[0]);
 
 			return;
 		}

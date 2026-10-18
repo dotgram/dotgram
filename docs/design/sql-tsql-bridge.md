@@ -110,7 +110,6 @@ still applies to it, and only the gate for switching the grammar leaves them out
 - `WindowReference.NameRef against (name)`: `OVER w` against `OVER (w)`.
 - `Expression.Invocation without brackets`: a call with no arguments written without its brackets.
 - `Expression.Trim.FromKeyword`: `TRIM (LEADING FROM s)` against `TRIM (LEADING s)`.
-- `Statement.DropRoutine.Proc`: `PROC` against `PROCEDURE`.
 - `Statement.SetTransaction.Tran`: `TRAN` against `TRANSACTION`.
 - `Statement.Delete.FromOmitted`: `DELETE t` against `DELETE FROM t`.
 - `ReferencesSpecification.DeleteRuleFirst`: `ON DELETE … ON UPDATE …` against the other order, where both
@@ -197,81 +196,81 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 
 | Counter | Count |
 | --- | ---: |
-| ByCase Clause.ColumnDefinition.Type | 2054 |
-| ByCase Clause.Dropped.Tail | 5 |
+| ByCase Clause.ColumnDefinition.Type | 298 |
+| ByCase Clause.Dropped.Tail | 0 |
 | ByCase Clause.EventPiece.Where | 68 |
 | ByCase Clause.For.Kind | 20 |
 | ByCase Clause.For.Options | 44 |
 | ByCase Clause.GroupBy.With | 2 |
-| ByCase Clause.Hint.Text | 33 |
+| ByCase Clause.Hint.Text | 28 |
 | ByCase Clause.JsonColumn.Type | 71 |
-| ByCase Clause.Option.Name | 13 |
-| ByCase Clause.Option.Partitions | 3 |
-| ByCase Clause.ParameterDeclaration.Type | 158 |
+| ByCase Clause.Option.Name | 11 |
+| ByCase Clause.Option.Partitions | 0 |
+| ByCase Clause.ParameterDeclaration.Type | 0 |
 | ByCase Clause.SystemTime.Kind | 0 |
 | ByCase Clause.TableSample.Unit | 4 |
 | ByCase Clause.Top.With | 0 |
-| ByCase Clause.VariableDeclaration.Type | 106 |
+| ByCase Clause.VariableDeclaration.Type | 97 |
 | ByCase Clause.Window.Frame | 7 |
-| ByCase Expression.ColumnReference.Text of EXECUTE AS | 9 |
-| ByCase Expression.ColumnReference.Text of a date part | 112 |
-| ByCase Expression.ColumnReference.Text under Statement.DropIndex | 13 |
-| ByCase Expression.ColumnReference.Text under Statement.DropSignature | 5 |
+| ByCase Expression.ColumnReference.Text of EXECUTE AS | 0 |
+| ByCase Expression.ColumnReference.Text of a date part | 110 |
+| ByCase Expression.ColumnReference.Text under Statement.DropIndex | 0 |
+| ByCase Expression.ColumnReference.Text under Statement.DropSignature | 0 |
 | ByCase Expression.GraphMatch.Pattern | 114 |
-| ByCase Expression.Hinted.Words | 15 |
+| ByCase Expression.Hinted.Words | 11 |
 | ByCase Expression.Literal.Text | 27 |
 | ByCase Expression.Match.Qualifier | 0 |
 | ByCase Expression.NamedArgument.Name | 3 |
 | ByCase Expression.OdbcEscape.Kind | 1 |
 | ByCase Expression.Prefixed.Word | 27 |
 | ByCase Expression.Quantified.Quantifier | 0 |
-| ByCase Expression.RoutineInvocation.Name | 134 |
-| ByCase Expression.RoutineInvocation.Word | 170 |
+| ByCase Expression.RoutineInvocation.Name | 132 |
+| ByCase Expression.RoutineInvocation.Word | 162 |
 | ByCase Expression.WindowFunction.Within | 16 |
 | ByCase Query.Specification.Quantifier | 5 |
 | ByCase SetExpression.Statistics.Report.Kind | 2 |
 | ByCase SetExpression.Transactions.IsolationLevel.Level | 0 |
-| ByCase Statement.AddSignature.To | 3 |
-| ByCase Statement.AggregateDefinition.Tail | 13 |
+| ByCase Statement.AddSignature.To | 0 |
+| ByCase Statement.AggregateDefinition.Tail | 0 |
 | ByCase Statement.AlterAsymmetricKey.Tail | 6 |
 | ByCase Statement.AlterCertificate.Tail | 5 |
 | ByCase Statement.AlterColumnEncryptionKey.Tail | 4 |
-| ByCase Statement.AlterDatabaseModifyFileGroup.Tail | 14 |
-| ByCase Statement.AlterDatabaseRebuildLog.Tail | 1 |
-| ByCase Statement.AlterFullTextCatalog.Tail | 5 |
-| ByCase Statement.AlterFullTextIndex.Tail | 35 |
-| ByCase Statement.AlterIndex.Namespaces | 1 |
-| ByCase Statement.AlterIndex.Paths | 17 |
+| ByCase Statement.AlterDatabaseModifyFileGroup.Tail | 0 |
+| ByCase Statement.AlterDatabaseRebuildLog.Tail | 0 |
+| ByCase Statement.AlterFullTextCatalog.Tail | 0 |
+| ByCase Statement.AlterFullTextIndex.Tail | 0 |
+| ByCase Statement.AlterIndex.Namespaces | 0 |
+| ByCase Statement.AlterIndex.Paths | 0 |
 | ByCase Statement.AlterMasterKey.Tail | 6 |
-| ByCase Statement.AlterPartitionFunction.Tail | 11 |
-| ByCase Statement.AlterPartitionScheme.Tail | 3 |
+| ByCase Statement.AlterPartitionFunction.Tail | 0 |
+| ByCase Statement.AlterPartitionScheme.Tail | 0 |
 | ByCase Statement.AlterResourceGovernor.Tail | 2 |
 | ByCase Statement.AlterRole.Tail | 3 |
 | ByCase Statement.AlterSchema.Tail | 7 |
-| ByCase Statement.AlterSearchPropertyList.Tail | 6 |
+| ByCase Statement.AlterSearchPropertyList.Tail | 0 |
 | ByCase Statement.AlterServerConfiguration.Tail | 6 |
 | ByCase Statement.AlterServerRole.Tail | 3 |
 | ByCase Statement.AlterServiceMasterKey.Tail | 2 |
 | ByCase Statement.AlterSymmetricKey.Tail | 2 |
-| ByCase Statement.AlterTable.Tail | 56 |
+| ByCase Statement.AlterTable.Tail | 0 |
 | ByCase Statement.AlterUser.Tail | 5 |
-| ByCase Statement.AssemblyDefinition.Tail | 3 |
+| ByCase Statement.AssemblyDefinition.Tail | 0 |
 | ByCase Statement.AsymmetricKeyDefinition.Tail | 18 |
 | ByCase Statement.AuditSpecificationDefinition.Tail | 10 |
 | ByCase Statement.AvailabilityGroupDefinition.Tail | 4 |
-| ByCase Statement.BackupCertificate.Tail | 3 |
-| ByCase Statement.BackupDatabase.Tail | 13 |
-| ByCase Statement.BackupServiceMasterKey.Tail | 1 |
-| ByCase Statement.BackupTransactionLog.Tail | 8 |
+| ByCase Statement.BackupCertificate.Tail | 0 |
+| ByCase Statement.BackupDatabase.Tail | 0 |
+| ByCase Statement.BackupServiceMasterKey.Tail | 0 |
+| ByCase Statement.BackupTransactionLog.Tail | 0 |
 | ByCase Statement.BrokerPriorityDefinition.Tail | 8 |
 | ByCase Statement.CertificateDefinition.Tail | 1 |
 | ByCase Statement.ColumnEncryptionKeyDefinition.Tail | 4 |
 | ByCase Statement.ColumnMasterKeyDefinition.Tail | 5 |
 | ByCase Statement.ContractDefinition.Tail | 0 |
-| ByCase Statement.CreateDatabase.Containment | 2 |
-| ByCase Statement.CreateDatabase.Tail | 6 |
-| ByCase Statement.CreateFunction.Returns | 61 |
-| ByCase Statement.CreateIndex.Using | 39 |
+| ByCase Statement.CreateDatabase.Containment | 0 |
+| ByCase Statement.CreateDatabase.Tail | 0 |
+| ByCase Statement.CreateFunction.Returns | 0 |
+| ByCase Statement.CreateIndex.Using | 0 |
 | ByCase Statement.CreateLogin.Tail | 16 |
 | ByCase Statement.CreateRole.Tail | 1 |
 | ByCase Statement.CreateServerRole.Tail | 1 |
@@ -279,15 +278,15 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.CredentialDefinition.Tail | 4 |
 | ByCase Statement.CursorAction.Verb | 0 |
 | ByCase Statement.DatabaseAuditSpecificationDefinition.Tail | 9 |
-| ByCase Statement.DefaultDefinition.Tail | 2 |
+| ByCase Statement.DefaultDefinition.Tail | 0 |
 | ByCase Statement.Deny.Privileges | 6 |
-| ByCase Statement.DropAssembly.Tail | 1 |
-| ByCase Statement.DropAsymmetricKey.Tail | 1 |
-| ByCase Statement.DropEventNotification.Tail | 4 |
-| ByCase Statement.DropEventSession.Tail | 2 |
-| ByCase Statement.DropSignature.From | 1 |
-| ByCase Statement.DropSymmetricKey.Tail | 1 |
-| ByCase Statement.DropTrigger.Tail | 2 |
+| ByCase Statement.DropAssembly.Tail | 0 |
+| ByCase Statement.DropAsymmetricKey.Tail | 0 |
+| ByCase Statement.DropEventNotification.Tail | 0 |
+| ByCase Statement.DropEventSession.Tail | 0 |
+| ByCase Statement.DropSignature.From | 0 |
+| ByCase Statement.DropSymmetricKey.Tail | 0 |
+| ByCase Statement.DropTrigger.Tail | 0 |
 | ByCase Statement.EndpointDefinition.Payload | 69 |
 | ByCase Statement.EndpointDefinition.Protocol | 69 |
 | ByCase Statement.EventNotificationDefinition.Tail | 4 |
@@ -295,49 +294,49 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.Execute.Tail | 8 |
 | ByCase Statement.ExternalDataSourceDefinition.Tail | 42 |
 | ByCase Statement.ExternalFileFormatDefinition.Tail | 54 |
-| ByCase Statement.ExternalLanguageDefinition.Tail | 5 |
+| ByCase Statement.ExternalLanguageDefinition.Tail | 0 |
 | ByCase Statement.ExternalLibraryDefinition.Tail | 0 |
-| ByCase Statement.ExternalModelDefinition.Tail | 18 |
+| ByCase Statement.ExternalModelDefinition.Tail | 0 |
 | ByCase Statement.ExternalResourcePoolDefinition.Tail | 58 |
 | ByCase Statement.Fetch.Orientation | 0 |
-| ByCase Statement.FullTextCatalogDefinition.Tail | 5 |
-| ByCase Statement.FullTextIndexDefinition.Tail | 11 |
+| ByCase Statement.FullTextCatalogDefinition.Tail | 0 |
+| ByCase Statement.FullTextIndexDefinition.Tail | 0 |
 | ByCase Statement.Grant.On | 2 |
 | ByCase Statement.Grant.Privileges | 6 |
-| ByCase Statement.Insert.Into | 7 |
+| ByCase Statement.Insert.Into | 1 |
 | ByCase Statement.MasterKeyDefinition.Tail | 3 |
 | ByCase Statement.MessageTypeDefinition.Tail | 3 |
 | ByCase Statement.OpenSymmetricKey.Tail | 7 |
-| ByCase Statement.PartitionFunctionDefinition.Tail | 7 |
-| ByCase Statement.PartitionSchemeDefinition.Tail | 2 |
+| ByCase Statement.PartitionFunctionDefinition.Tail | 0 |
+| ByCase Statement.PartitionSchemeDefinition.Tail | 0 |
 | ByCase Statement.QueueDefinition.Tail | 14 |
 | ByCase Statement.RaiseError.Tail | 0 |
 | ByCase Statement.RemoteServiceBindingDefinition.Tail | 5 |
 | ByCase Statement.ResourcePoolDefinition.Tail | 26 |
-| ByCase Statement.RestoreDatabase.Tail | 13 |
-| ByCase Statement.RestoreFileListOnly.Tail | 1 |
-| ByCase Statement.RestoreLabelOnly.Tail | 1 |
-| ByCase Statement.RestoreLog.Tail | 1 |
-| ByCase Statement.RestoreMasterKey.Tail | 1 |
-| ByCase Statement.RestoreRewindOnly.Tail | 2 |
-| ByCase Statement.RestoreServiceMasterKey.Tail | 2 |
-| ByCase Statement.RestoreVerifyOnly.Tail | 1 |
+| ByCase Statement.RestoreDatabase.Tail | 0 |
+| ByCase Statement.RestoreFileListOnly.Tail | 0 |
+| ByCase Statement.RestoreLabelOnly.Tail | 0 |
+| ByCase Statement.RestoreLog.Tail | 0 |
+| ByCase Statement.RestoreMasterKey.Tail | 0 |
+| ByCase Statement.RestoreRewindOnly.Tail | 0 |
+| ByCase Statement.RestoreServiceMasterKey.Tail | 0 |
+| ByCase Statement.RestoreVerifyOnly.Tail | 0 |
 | ByCase Statement.Revoke.Privileges | 10 |
 | ByCase Statement.RouteDefinition.Tail | 1 |
-| ByCase Statement.RuleDefinition.Tail | 1 |
+| ByCase Statement.RuleDefinition.Tail | 0 |
 | ByCase Statement.SchemaDefinition.Tail | 12 |
-| ByCase Statement.SequenceDefinition.Tail | 1 |
+| ByCase Statement.SequenceDefinition.Tail | 0 |
 | ByCase Statement.ServerAuditDefinition.Tail | 6 |
 | ByCase Statement.ServiceDefinition.Tail | 5 |
 | ByCase Statement.StatisticsDefinition.Tail | 26 |
 | ByCase Statement.SymmetricKeyDefinition.Tail | 8 |
-| ByCase Statement.SynonymDefinition.Tail | 18 |
-| ByCase Statement.TableDefinition.Kind | 8 |
+| ByCase Statement.SynonymDefinition.Tail | 0 |
+| ByCase Statement.TableDefinition.Kind | 0 |
 | ByCase Statement.Transaction.Kind | 0 |
 | ByCase Statement.Transaction.Name | 27 |
 | ByCase Statement.Transaction.Tail | 15 |
 | ByCase Statement.Transaction.Word | 0 |
-| ByCase Statement.TypeDefinition.Tail | 156 |
+| ByCase Statement.TypeDefinition.Tail | 0 |
 | ByCase Statement.UpdateStatistics.Tail | 8 |
 | ByCase Statement.WorkloadGroupDefinition.Tail | 66 |
 | ByCase TableReference.Joined.Hint | 0 |
@@ -372,7 +371,6 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Recovered SelectColumn.ExpressionItem.AsKeyword | 497 |
 | Recovered Statement.Classification.Options | 17 |
 | Recovered Statement.Delete.FromOmitted | 89 |
-| Recovered Statement.DropRoutine.Proc | 24 |
 | Recovered Statement.ExecuteAs.Exec | 20 |
 | Recovered Statement.ExecuteModule.Keyword | 88 |
 | Recovered Statement.ExecuteString.Exec | 24 |
@@ -388,172 +386,161 @@ many nodes of the record the statements hold, at any depth. All three are over t
 
 | Old record | Family | Category | Counted | Gaps | Occurrences |
 | --- | --- | --- | --- | --- | ---: |
-| `Expression.Literal` | Values | B | — | — | 9361 |
-| `Expression.ColumnReference` | Values | B | — | 282: needs decision: inventory cross-cutting gaps, identifier styles (a name part `2` that is no name) (76); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'pw1'` that is no name) (9) | 9239 |
-| `Clause.Option` | Tables | C | — | — | 6517 |
-| `Clause.ColumnDefinition` | Tables | B | gap 22 | 22: needs decision: inventory DataType (a type `national text` of several words) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `national sys`) (4) | 3528 |
-| `Query.Specification` | Queries | B | — | — | 3369 |
-| `Clause.ColumnOption` | Tables | B | — | — | 2995 |
-| `Statement.Select` | Queries | B | converted 2533 | — | 2987 |
-| `Clause.DerivedColumn` | Queries | A | — | — | 2978 |
-| `TableReference.Named` | Tables | A | gap 8 | 8: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'Something'` that is no name) (3) | 2944 |
-| `Expression.RoutineInvocation` | Values | B | gap 8 | 24: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); no target record: a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements (4) | 2312 |
-| `Statement.TableDefinition` | Tables | B | converted 1807 | — | 1906 |
-| `Clause.ConstraintDefinition` | Tables | B | — | — | 1841 |
-| `Clause.SortSpecification` | Queries | A | — | — | 1303 |
-| `Clause.QualifiedAsterisk` | Queries | A | — | — | 1221 |
-| `Expression.Comparison` | Values | A | — | — | 841 |
+| `Expression.Literal` | Values | B | — | — | 6604 |
+| `Expression.ColumnReference` | Values | B | — | 195: needs decision: inventory cross-cutting gaps, identifier styles (a name part `2` that is no name) (76); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'pw1'` that is no name) (9) | 4404 |
+| `Query.Specification` | Queries | B | — | — | 2957 |
+| `TableReference.Named` | Tables | A | gap 8 | 8: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'Something'` that is no name) (3) | 2709 |
+| `Statement.Select` | Queries | B | converted 2533 | — | 2611 |
+| `Clause.DerivedColumn` | Queries | A | — | — | 2447 |
+| `Clause.Option` | Tables | C | — | — | 2346 |
+| `Expression.RoutineInvocation` | Values | B | gap 8 | 24: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); no target record: a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements (4) | 2022 |
+| `Statement.TableDefinition` | Tables | B | converted 1807 | — | 1844 |
+| `Clause.QualifiedAsterisk` | Queries | A | — | — | 1146 |
 | `Statement.AlterTable` | Tables | B | converted 644 | — | 644 |
+| `Expression.Comparison` | Values | A | — | — | 643 |
 | `Clause.EventPiece` | Monitoring | C | — | — | 514 |
-| `Expression.NamedArgument` | Values | A | — | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
 | `Statement.CreateIndex` | Tables | C | converted 493, gap 2 | 2: needs decision: inventory Statement.CreateIndex (a spatial index USING FOO) (2) | 495 |
-| `TableReference.FunctionCall` | Tables | A | gap 2 | 2: needs decision: inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema) (2) | 487 |
-| `Expression.Parenthesized` | Values | A | — | — | 436 |
-| `TableReference.Joined` | Tables | A | — | — | 382 |
-| `Clause.VariableDeclaration` | Procedural | C | gap 8 | 8: needs decision: inventory DataType (a type `"ncharacter" varying` of several words) (1); needs decision: inventory DataType (a type `[ncharacter] varying` of several words) (1) | 357 |
-| `Statement.Declare` | Procedural | C | converted 292 | — | 347 |
-| `Statement.Compound` | Procedural | C | converted 17 | — | 338 |
+| `Expression.NamedArgument` | Values | A | — | 175: needs decision: inventory Expression.NamedArgument (175) | 492 |
+| `TableReference.FunctionCall` | Tables | A | gap 2 | 2: needs decision: inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema) (2) | 482 |
+| `Clause.ColumnDefinition` | Tables | B | gap 22 | 22: needs decision: inventory DataType (a type `national text` of several words) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `national sys`) (4) | 437 |
+| `TableReference.Joined` | Tables | A | — | — | 378 |
+| `Clause.ColumnOption` | Tables | B | — | — | 372 |
+| `Clause.VariableDeclaration` | Procedural | C | gap 8 | 8: needs decision: inventory DataType (a type `"ncharacter" varying` of several words) (1); needs decision: inventory DataType (a type `[ncharacter] varying` of several words) (1) | 336 |
+| `Expression.Parenthesized` | Values | A | — | — | 334 |
+| `Statement.Declare` | Procedural | C | converted 292 | — | 326 |
 | `Statement.EventSessionDefinition` | Monitoring | C | converted 321, gap 2 | 2: not kept by the old tree: a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank (2) | 323 |
-| `Clause.ParameterDeclaration` | Routines | B | — | — | 298 |
-| `Clause.Hint` | Queries | C | gap 5 | 5: needs decision: inventory Clause.Hint (the old WITH (n)) (4); needs decision: inventory Clause.Hint (a hint of a shape the family does not hold) (1) | 294 |
 | `Statement.CreateProcedure` | Routines | B | converted 284, gap 1 | 1: needs decision: inventory DataType (a type `double precision(max)` of several words) (1) | 285 |
-| `Clause.Connection` | Tables | C | — | — | 270 |
+| `Clause.Hint` | Queries | C | gap 5 | 5: needs decision: inventory Clause.Hint (the old WITH (n)) (4); needs decision: inventory Clause.Hint (a hint of a shape the family does not hold) (1) | 282 |
 | `Statement.EndpointDefinition` | Server | C | converted 249 | — | 249 |
-| `Statement.Insert` | Dml | A | converted 196, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
-| `Expression.Measured` | Values | C | — | 190: target exists, no writer arm: Expression.Measured (190) | 234 |
+| `Statement.Insert` | Dml | A | converted 196, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 228 |
 | `Statement.AlterDatabaseSet` | Database | C | converted 218 | — | 218 |
-| `Expression.Add` | Values | A | — | — | 200 |
-| `Expression.RowValueConstructor` | Values | A | — | — | 186 |
-| `Expression.WindowFunction` | Values | B | gap 4 | 4: needs decision: inventory Expression.WindowFunction (a window over something that is not a call) (3); needs decision: inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for) (1) | 184 |
+| `Clause.SortSpecification` | Queries | A | — | — | 214 |
 | `Statement.CreateFunction` | Routines | B | converted 182 | — | 182 |
-| `Clause.Window` | Values | A | — | — | 181 |
-| `Clause.OrderBy` | Queries | B | — | — | 177 |
-| `Clause.Placement` | Tables | C | — | — | 177 |
 | `Statement.TypeDefinition` | Tables | B | converted 173, gap 1 | 1: needs decision: inventory DataType (a type `double precision(max)` of several words) (1) | 174 |
-| `Expression.Negate` | Values | A | — | — | 173 |
-| `Statement.SetStatement` | Procedural | C | converted 154 | — | 165 |
+| `Expression.WindowFunction` | Values | B | gap 4 | 4: needs decision: inventory Expression.WindowFunction (a window over something that is not a call) (3); needs decision: inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for) (1) | 172 |
+| `Clause.OrderBy` | Queries | B | — | — | 169 |
+| `Expression.Add` | Values | A | — | — | 164 |
 | `TableReference.Parenthesized` | Tables | A | — | — | 162 |
-| `Clause.GroupBy` | Queries | B | — | — | 158 |
+| `Statement.SetStatement` | Procedural | C | converted 154 | — | 160 |
 | `Expression.Prefixed` | Values | C | — | 156: no target record: a typed T-SQL rowset table source (proposal 7) (156) | 156 |
 | `Clause.JsonColumn` | Tables | C | gap 1 | 1: no target record: RowsetColumn.Ordinal is a number, and keeps no spelling of it such as `00` (1) | 155 |
+| `Clause.Window` | Values | A | — | — | 155 |
 | `Statement.WorkloadGroupDefinition` | Server | C | converted 155 | — | 155 |
 | `Statement.CreateDatabase` | Database | C | converted 154 | — | 154 |
 | `Clause.Set` | Dml | B | — | — | 151 |
 | `Statement.AlterIndex` | Tables | C | converted 148 | — | 148 |
-| `Statement.Execute` | Routines | B | converted 135, shape 1 | — | 147 |
-| `Statement.Return` | Procedural | A | converted 3 | — | 146 |
-| `Clause.References` | Tables | A | — | — | 145 |
+| `Expression.RowValueConstructor` | Values | A | — | — | 144 |
+| `Statement.Execute` | Routines | B | converted 135, shape 1 | — | 144 |
 | `Statement.Update` | Dml | A | converted 116 | — | 140 |
 | `Expression.GraphMatch` | Values | C | — | — | 131 |
-| `Expression.Hinted` | Values | C | — | 127: needs decision: inventory Expression.Hinted (127) | 127 |
-| `Statement.Transaction` | Procedural | B | converted 115 | — | 125 |
-| `Expression.And` | Values | A | — | — | 122 |
+| `Statement.Transaction` | Procedural | B | converted 115 | — | 124 |
+| `Expression.Negate` | Values | A | — | — | 121 |
 | `Statement.ServerAuditDefinition` | Monitoring | C | converted 116, gap 2 | 2: not kept by the old tree: a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank (2) | 118 |
 | `Statement.Delete` | Dml | A | converted 68 | — | 114 |
-| `Expression.Subquery` | Values | A | — | — | 113 |
+| `Expression.Hinted` | Values | C | — | 111: needs decision: inventory Expression.Hinted (111) | 111 |
 | `Statement.Grant` | Security | B | converted 108 | — | 108 |
 | `Statement.ExternalFileFormatDefinition` | External | C | converted 97, gap 4 | 4: no target record: a stray comma in a bracketed list of the PolyBase objects, which the tree keeps nothing for (4) | 101 |
 | `Statement.FullTextIndexDefinition` | Tables | C | converted 99 | — | 99 |
-| `Expression.Member` | Values | A | — | — | 98 |
 | `Clause.Output` | Dml | C | — | — | 97 |
-| `TableReference.Derived` | Tables | A | — | — | 97 |
+| `Expression.Member` | Values | A | — | — | 96 |
+| `Clause.GroupBy` | Queries | B | — | — | 95 |
+| `Expression.Measured` | Values | C | — | 65: target exists, no writer arm: Expression.Measured (65) | 94 |
+| `TableReference.Derived` | Tables | A | — | — | 93 |
 | `TableReference.Pivot` | Tables | C | — | — | 93 |
 | `Statement.AlterFullTextIndex` | Tables | C | converted 92 | — | 92 |
 | `Statement.ExternalDataSourceDefinition` | External | C | converted 85, gap 7 | 7: no target record: a stray comma in a bracketed list of the PolyBase objects, which the tree keeps nothing for (7) | 92 |
-| `Statement.Print` | Procedural | C | converted 38 | — | 89 |
-| `Statement.SetVariable` | Procedural | C | converted 78 | — | 89 |
-| `Clause.DatabaseFile` | Database | C | — | — | 88 |
+| `Expression.Subquery` | Values | A | — | — | 89 |
+| `Expression.And` | Values | A | — | — | 88 |
 | `Statement.ResourcePoolDefinition` | Server | C | converted 86 | — | 86 |
 | `Clause.Top` | Queries | C | — | — | 84 |
-| `Query.TableValueConstructor` | Queries | A | — | — | 84 |
 | `Statement.ViewDefinition` | Tables | B | converted 84 | — | 84 |
 | `Query.FromFile` | Dml | C | — | — | 83 |
-| `Clause.Dropped` | Tables | B | — | — | 82 |
-| `Clause.For` | Queries | C | — | — | 82 |
+| `Statement.SetVariable` | Procedural | C | converted 78 | — | 83 |
 | `Statement.ExternalResourcePoolDefinition` | External | C | converted 79 | — | 79 |
 | `Statement.CreateTrigger` | Routines | B | converted 76 | — | 76 |
+| `Clause.For` | Queries | C | — | — | 74 |
 | `Statement.Dbcc` | Server | C | converted 73 | — | 73 |
-| `Expression.Not` | Values | A | — | — | 71 |
-| `Statement.CreateTableAsSelect` | Tables | B | converted 64 | — | 70 |
+| `Query.TableValueConstructor` | Queries | A | — | — | 70 |
 | `Statement.AlterServerConfiguration` | Server | C | converted 68 | — | 68 |
 | `Clause.SystemTime` | Tables | A | — | — | 67 |
 | `Clause.MergeWhen` | Dml | B | — | — | 65 |
-| `Query.Parenthesized` | Queries | B | — | — | 64 |
+| `Statement.CreateTableAsSelect` | Tables | B | converted 64 | — | 64 |
 | `Statement.ExternalLibraryDefinition` | External | C | converted 59 | — | 59 |
-| `Clause.CommonTableExpression` | Queries | A | — | — | 57 |
 | `Statement.CreateLogin` | Security | C | converted 57 | — | 57 |
 | `Statement.UpdateText` | Dml | C | converted 57 | — | 57 |
-| `Expression.OdbcEscape` | Values | C | — | — | 56 |
 | `Statement.DatabaseAuditSpecificationDefinition` | Monitoring | C | converted 56 | — | 56 |
-| `Expression.Collated` | Values | A | — | — | 55 |
-| `Statement.DropIndex` | Drop | C | converted 47 | — | 53 |
+| `Expression.Not` | Values | A | — | — | 54 |
 | `Statement.Merge` | Dml | A | converted 48 | — | 53 |
-| `Expression.IsNull` | Values | A | — | — | 52 |
+| `Statement.Print` | Procedural | C | converted 38 | — | 53 |
+| `Expression.OdbcEscape` | Values | C | — | — | 52 |
+| `Expression.Collated` | Values | A | — | — | 51 |
 | `Statement.AvailabilityGroupDefinition` | Server | C | converted 51 | — | 51 |
-| `Statement.TriggerSwitch` | Routines | C | converted 44 | — | 51 |
+| `Clause.CommonTableExpression` | Queries | A | — | — | 48 |
+| `Query.Parenthesized` | Queries | B | — | — | 48 |
 | `Statement.QueueDefinition` | Broker | C | converted 48 | — | 48 |
-| `Statement.If` | Procedural | C | converted 23 | — | 47 |
+| `Statement.DropIndex` | Drop | C | converted 47 | — | 47 |
 | `Statement.SequenceDefinition` | Tables | A | converted 46, gap 1 | 1: needs decision: inventory cross-cutting gaps, identifier styles (a name part ` TestSeq`) (1) | 47 |
 | `Statement.AlterFullTextStopList` | Database | C | converted 46 | — | 46 |
 | `Statement.RestoreDatabase` | Database | C | converted 46 | — | 46 |
 | `Statement.AuditSpecificationDefinition` | Monitoring | C | converted 45 | — | 45 |
+| `Statement.TriggerSwitch` | Routines | C | converted 44 | — | 45 |
 | `Statement.AssemblyDefinition` | Routines | C | converted 44 | — | 44 |
 | `Statement.AsymmetricKeyDefinition` | Security | C | converted 43 | — | 43 |
 | `Statement.StatisticsDefinition` | Tables | C | converted 43 | — | 43 |
-| `Statement.UpdateStatistics` | Tables | C | converted 41 | — | 43 |
 | `Clause.Into` | Queries | C | — | — | 41 |
-| `Expression.Multiply` | Values | A | — | — | 41 |
-| `Statement.EndConversation` | Broker | C | converted 27 | — | 41 |
 | `Statement.ExternalLanguageDefinition` | External | C | converted 41 | — | 41 |
-| `Expression.Or` | Values | A | — | — | 40 |
-| `Clause.WindowDefinition` | Values | A | — | — | 39 |
-| `Query.Ordered` | Queries | B | — | — | 39 |
-| `Expression.JsonPair` | Values | A | — | 31: needs decision: inventory Expression.JsonPair (31) | 38 |
-| `Expression.IsDistinctFrom` | Values | A | — | — | 37 |
+| `Statement.UpdateStatistics` | Tables | C | converted 41 | — | 41 |
+| `Clause.ConstraintDefinition` | Tables | B | — | — | 39 |
+| `Statement.If` | Procedural | C | converted 23 | — | 38 |
 | `Statement.BackupDatabase` | Database | C | converted 37 | — | 37 |
 | `Statement.CreateUser` | Security | C | converted 37 | — | 37 |
 | `Statement.SecurityPolicyDefinition` | Security | C | converted 37 | — | 37 |
-| `Statement.Label` | Procedural | C | converted 30 | — | 36 |
 | `Statement.Revoke` | Security | B | converted 36 | — | 36 |
 | `SetExpression.Miscellaneous.Offset` | Procedural | C | — | — | 35 |
 | `Statement.WriteText` | Dml | C | converted 35 | — | 35 |
-| `Query.Union` | Queries | B | — | — | 34 |
 | `Statement.Deny` | Security | C | converted 34 | — | 34 |
 | `Statement.ExternalModelDefinition` | External | C | converted 34 | — | 34 |
 | `Statement.Fetch` | Procedural | A | converted 34 | — | 34 |
 | `Clause.CursorDefinition` | Procedural | B | — | — | 32 |
+| `Statement.EndConversation` | Broker | C | converted 27 | — | 32 |
 | `Clause.TableSample` | Tables | A | — | — | 31 |
-| `Clause.When` | Values | A | — | — | 30 |
-| `Expression.Case` | Values | A | — | — | 30 |
-| `Expression.ShiftLeft` | Values | C | — | — | 30 |
+| `Expression.IsDistinctFrom` | Values | A | — | — | 31 |
+| `Query.Ordered` | Queries | B | — | — | 31 |
+| `Query.Union` | Queries | B | — | — | 31 |
+| `Statement.Compound` | Procedural | C | converted 17 | — | 31 |
+| `Statement.Label` | Procedural | C | converted 30 | — | 31 |
 | `Statement.AlterDatabaseModify` | Database | C | converted 30 | — | 30 |
 | `Statement.AlterDatabaseModifyFileGroup` | Database | C | converted 30 | — | 30 |
 | `Statement.Send` | Broker | C | converted 30 | — | 30 |
 | `Expression.Aliased` | Values | A | — | 29: needs decision: inventory Expression.Aliased (29) | 29 |
-| `Expression.In` | Values | A | — | — | 29 |
 | `Statement.AlterResourceGovernor` | Server | C | converted 29 | — | 29 |
 | `Statement.SynonymDefinition` | Tables | C | converted 29 | — | 29 |
 | `TableReference.Changed` | Dml | A | — | — | 29 |
-| `Query.DefaultValues` | Dml | A | — | — | 28 |
+| `Expression.ShiftLeft` | Values | C | — | — | 28 |
 | `Statement.Kill` | Server | C | converted 28 | — | 28 |
-| `SetExpression.QueryExecution.Switch` | Procedural | C | — | — | 27 |
+| `Expression.Multiply` | Values | A | — | — | 27 |
 | `Statement.SchemaDefinition` | Security | A | converted 27 | — | 27 |
 | `Statement.SymmetricKeyDefinition` | Security | C | converted 27 | — | 27 |
-| `Clause.VariableAssignment` | Queries | C | — | — | 26 |
 | `Statement.DeclareCursor` | Procedural | B | converted 22, gap 4 | 4: not kept by the old tree: Clause.CursorDefinition (the ISO form's words in another order, or twice) (2); needs decision: inventory cross-cutting gaps, identifier styles (a qualified name `dbo.t.a` where one name stands) (1) | 26 |
-| `Expression.Like` | Values | A | — | — | 25 |
+| `Clause.WindowDefinition` | Values | A | — | — | 25 |
 | `SetExpression.IsoSettings.Switch` | Procedural | C | — | — | 25 |
 | `Statement.CursorAction` | Procedural | A | converted 25 | — | 25 |
 | `Statement.Truncate` | Dml | A | converted 25 | — | 25 |
+| `Clause.VariableAssignment` | Queries | C | — | — | 24 |
+| `Expression.IsNull` | Values | A | — | — | 24 |
+| `Expression.Or` | Values | A | — | — | 24 |
+| `Query.DefaultValues` | Dml | A | — | — | 24 |
 | `SetExpression.Statistics.Report` | Procedural | C | — | — | 24 |
 | `Statement.DropProcedure` | Drop | B | converted 24 | — | 24 |
 | `Statement.ReadText` | Dml | C | converted 24 | — | 24 |
+| `Expression.JsonPair` | Values | A | — | 20: needs decision: inventory Expression.JsonPair (20) | 23 |
 | `SetExpression.Transactions.IsolationLevel` | Procedural | A | — | — | 23 |
 | `Statement.BeginDialog` | Broker | C | converted 23 | — | 23 |
 | `Statement.BrokerPriorityDefinition` | Broker | C | converted 23 | — | 23 |
-| `Statement.DropTrigger` | Drop | B | converted 19 | — | 23 |
+| `Clause.When` | Values | A | — | — | 22 |
+| `Expression.Case` | Values | A | — | — | 22 |
 | `SetExpression.Miscellaneous.Switch` | Procedural | C | — | — | 22 |
-| `Statement.Break` | Procedural | C | converted 3 | — | 22 |
+| `SetExpression.QueryExecution.Switch` | Procedural | C | — | — | 22 |
 | `Statement.OpenSymmetricKey` | Security | C | converted 22 | — | 22 |
 | `Statement.AlterAsymmetricKey` | Security | C | converted 21 | — | 21 |
 | `Statement.PartitionFunctionDefinition` | Database | C | converted 21 | — | 21 |
@@ -561,14 +548,13 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CredentialDefinition` | Security | C | converted 20 | — | 20 |
 | `Statement.ExecuteAs` | Procedural | C | converted 20 | — | 20 |
 | `Statement.FullTextCatalogDefinition` | Database | C | converted 20 | — | 20 |
-| `Statement.RaiseError` | Procedural | C | converted 12 | — | 20 |
 | `Statement.RuleDefinition` | Routines | C | converted 20 | — | 20 |
 | `Statement.WaitFor` | Procedural | C | converted 20 | — | 20 |
-| `Expression.BitwiseNot` | Values | C | — | — | 19 |
+| `Expression.In` | Values | A | — | — | 19 |
 | `Statement.CertificateDefinition` | Security | C | converted 19 | — | 19 |
 | `Statement.DropDatabase` | Drop | C | converted 19 | — | 19 |
+| `Statement.DropTrigger` | Drop | B | converted 19 | — | 19 |
 | `Statement.FullTextStopListDefinition` | Database | C | converted 19 | — | 19 |
-| `Statement.TryCatch` | Procedural | C | converted 16 | — | 19 |
 | `Statement.AggregateDefinition` | Routines | C | converted 18 | — | 18 |
 | `Statement.AlterLogin` | Security | C | converted 18 | — | 18 |
 | `Statement.DropAssembly` | Drop | C | converted 18 | — | 18 |
@@ -581,16 +567,16 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.EventNotificationDefinition` | Monitoring | C | converted 17 | — | 17 |
 | `Statement.Receive` | Broker | C | converted 13 | — | 17 |
 | `Statement.RemoteServiceBindingDefinition` | Broker | C | converted 17 | — | 17 |
+| `Expression.Like` | Values | A | — | — | 16 |
 | `Statement.AddSignature` | Security | C | converted 16 | — | 16 |
 | `Statement.AlterMasterKey` | Security | C | converted 16 | — | 16 |
 | `Statement.DefaultDefinition` | Routines | C | converted 16 | — | 16 |
 | `Statement.DropFunction` | Drop | B | converted 16 | — | 16 |
+| `Statement.TryCatch` | Procedural | C | converted 16 | — | 16 |
 | `Clause.PartitionRange` | Dml | C | — | — | 15 |
-| `Expression.Plus` | Values | A | — | — | 15 |
 | `Statement.BackupTransactionLog` | Database | C | converted 15 | — | 15 |
 | `Statement.DropAggregate` | Drop | C | converted 15 | — | 15 |
 | `Statement.DropView` | Drop | B | converted 15 | — | 15 |
-| `Clause.FileGroup` | Database | C | — | — | 14 |
 | `Expression.Concatenate` | Values | A | — | — | 14 |
 | `Query.FromStream` | Dml | C | — | — | 14 |
 | `Statement.AlterCertificate` | Security | C | converted 14 | — | 14 |
@@ -598,7 +584,6 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropSequence` | Drop | B | converted 14 | — | 14 |
 | `Statement.DropType` | Drop | B | converted 14 | — | 14 |
 | `Statement.RestoreLog` | Database | C | converted 14 | — | 14 |
-| `Expression.ShiftRight` | Values | C | — | — | 13 |
 | `Statement.AlterDatabaseScopedConfiguration` | Database | C | converted 13 | — | 13 |
 | `Statement.AlterFullTextCatalog` | Database | C | converted 13 | — | 13 |
 | `Statement.AlterServiceMasterKey` | Security | C | converted 13 | — | 13 |
@@ -609,11 +594,12 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropSynonym` | Drop | C | converted 13 | — | 13 |
 | `Statement.SetUser` | Procedural | C | converted 13 | — | 13 |
 | `Clause.ExecutionContext` | Routines | C | — | — | 12 |
-| `Expression.Divide` | Values | A | — | — | 12 |
 | `Expression.RowsetOrder` | Values | C | — | 12: no target record: a typed T-SQL rowset table source (proposal 7) (12) | 12 |
 | `Statement.DropSignature` | Drop | C | converted 12 | — | 12 |
 | `Statement.DropStatistics` | Drop | C | converted 12 | — | 12 |
+| `Statement.RaiseError` | Procedural | C | converted 12 | — | 12 |
 | `Expression.Exists` | Values | A | — | — | 11 |
+| `Expression.ShiftRight` | Values | C | — | — | 11 |
 | `Statement.AlterAuthorization` | Security | C | converted 11 | — | 11 |
 | `Statement.AlterDatabaseRebuildLog` | Database | C | converted 11 | — | 11 |
 | `Statement.AlterSchema` | Security | C | converted 11 | — | 11 |
@@ -624,15 +610,16 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.PartitionSchemeDefinition` | Database | C | converted 11 | — | 11 |
 | `Statement.Revert` | Procedural | C | converted 11 | — | 11 |
 | `Statement.XmlSchemaCollectionDefinition` | Routines | C | converted 11 | — | 11 |
-| `Expression.Between` | Values | A | — | — | 10 |
+| `Expression.BitwiseNot` | Values | C | — | — | 10 |
+| `Expression.Divide` | Values | A | — | — | 10 |
 | `Statement.AlterPartitionScheme` | Database | C | converted 10 | — | 10 |
 | `Statement.DatabaseScopedCredentialDefinition` | Security | C | converted 10 | — | 10 |
 | `Statement.DropEventSession` | Drop | C | converted 10 | — | 10 |
 | `Statement.GetConversationGroup` | Broker | C | converted 4 | — | 10 |
 | `Statement.WaitForStatement` | Broker | C | converted 10 | — | 10 |
 | `Clause.CursorFor` | Procedural | A | — | — | 9 |
-| `Expression.Subtract` | Values | A | — | — | 9 |
 | `Statement.AlterDatabaseCollate` | Database | C | converted 9 | — | 9 |
+| `Statement.Break` | Procedural | C | converted 3 | — | 9 |
 | `Statement.DropXmlSchemaCollection` | Drop | C | converted 9 | — | 9 |
 | `Statement.MasterKeyDefinition` | Security | C | converted 9 | — | 9 |
 | `Statement.Reconfigure` | Server | C | converted 9 | — | 9 |
@@ -651,8 +638,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropExternalLanguage` | Drop | C | converted 8 | — | 8 |
 | `Statement.DropExternalLibrary` | Drop | C | converted 8 | — | 8 |
 | `Statement.DropRole` | Drop | B | converted 8 | — | 8 |
-| `Statement.DropUser` | Drop | C | converted 6 | — | 8 |
-| `Statement.GoTo` | Procedural | C | converted 3 | — | 8 |
+| `Expression.Subtract` | Values | A | — | — | 7 |
 | `SetExpression.Miscellaneous.IdentityInsert` | Procedural | C | — | — | 7 |
 | `Statement.AlterDatabaseAddFile` | Database | C | converted 7 | — | 7 |
 | `Statement.AlterServerRole` | Security | C | converted 7 | — | 7 |
@@ -665,6 +651,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropRoute` | Drop | C | converted 7 | — | 7 |
 | `Statement.DropService` | Drop | C | converted 7 | — | 7 |
 | `Statement.DropSymmetricKey` | Drop | C | converted 7 | — | 7 |
+| `Statement.GoTo` | Procedural | C | converted 3 | — | 7 |
 | `Statement.RestoreMasterKey` | Database | C | converted 7 | — | 7 |
 | `Statement.RouteDefinition` | Broker | C | converted 7 | — | 7 |
 | `Statement.SearchPropertyListDefinition` | Database | C | converted 7 | — | 7 |
@@ -680,6 +667,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropSchema` | Drop | B | converted 6 | — | 6 |
 | `Statement.DropServerAudit` | Drop | C | converted 6 | — | 6 |
 | `Statement.DropServerAuditSpecification` | Drop | C | converted 6 | — | 6 |
+| `Statement.DropUser` | Drop | C | converted 6 | — | 6 |
 | `Statement.DropWorkloadClassifier` | Drop | C | converted 6 | — | 6 |
 | `Statement.RestoreServiceMasterKey` | Database | C | converted 6 | — | 6 |
 | `Statement.SetCursor` | Procedural | C | converted 6 | — | 6 |
@@ -694,6 +682,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.CreateServerRole` | Security | C | converted 5 | — | 5 |
 | `Statement.DropExternalTable` | Drop | C | converted 5 | — | 5 |
 | `Statement.MoveConversation` | Broker | C | converted 5 | — | 5 |
+| `Expression.Between` | Values | A | — | — | 4 |
 | `Expression.Modulo` | Values | C | — | — | 4 |
 | `Query.Intersect` | Queries | B | — | — | 4 |
 | `SetExpression.Miscellaneous.FipsFlagger` | Procedural | C | — | — | 4 |
@@ -739,6 +728,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.RestoreFileListOnly` | Database | C | converted 3 | — | 3 |
 | `Statement.RestoreHeaderOnly` | Database | C | converted 3 | — | 3 |
 | `Statement.RestoreVerifyOnly` | Database | C | converted 3 | — | 3 |
+| `Statement.Return` | Procedural | A | converted 3 | — | 3 |
 | `Expression.BitwiseOr` | Values | C | — | — | 2 |
 | `Expression.BitwiseXor` | Values | C | — | — | 2 |
 | `SetExpression.Locking.LockTimeout` | Procedural | C | — | — | 2 |
@@ -752,12 +742,21 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.RestoreLabelOnly` | Database | C | converted 2 | — | 2 |
 | `Statement.RestoreSymmetricKey` | Database | C | converted 2 | — | 2 |
 | `Expression.Pieced` | Values | C | — | 1: no target record: a typed T-SQL rowset table source (proposal 7) (1) | 1 |
+| `Expression.Plus` | Values | A | — | — | 1 |
 | `Expression.Quantified` | Values | A | — | — | 1 |
 | `Query.ExplicitTable` | Queries | A | — | — | 1 |
 | `Statement.BackupGroup` | Database | C | converted 1 | — | 1 |
 | `Statement.BackupSymmetricKey` | Database | C | converted 1 | — | 1 |
+| `Clause.Connection` | Tables | C | — | — | 0 |
+| `Clause.DatabaseFile` | Database | C | — | — | 0 |
+| `Clause.Dropped` | Tables | B | — | — | 0 |
+| `Clause.FileGroup` | Database | C | — | — | 0 |
+| `Clause.ParameterDeclaration` | Routines | B | — | — | 0 |
+| `Clause.Placement` | Tables | C | — | — | 0 |
+| `Clause.References` | Tables | A | — | — | 0 |
 | `Expression.IsTruth` | Values | A | — | — | 0 |
 | `Expression.Match` | Values | A | — | — | 0 |
 | `Expression.Overlaps` | Values | A | — | — | 0 |
 | `Expression.Unique` | Values | A | — | — | 0 |
 | `Statement.BackupServer` | Database | C | — | — | 0 |
+| `Statement.Built` | Built |  | — | — | 0 |

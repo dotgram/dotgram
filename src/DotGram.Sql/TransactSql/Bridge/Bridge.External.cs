@@ -32,8 +32,6 @@ static partial class Bridge
 				Statement.ExternalDataSourceDefinition source => DataSource(source),
 				Statement.ExternalFileFormatDefinition format => FileFormat(format),
 				Statement.ExternalLibraryDefinition library   => Library(library),
-				Statement.ExternalLanguageDefinition language => Language(language),
-				Statement.ExternalModelDefinition model       => Model(model),
 				Statement.ExternalResourcePoolDefinition pool => Pool(pool),
 				_ when Owned(Owns, old)                       => throw Unconverted(old),
 				_                                             => null,
@@ -135,7 +133,7 @@ static partial class Bridge
 		/// <c>CREATE EXTERNAL LANGUAGE n [AUTHORIZATION o] FROM (file) [, (file)]</c> and <c>ALTER EXTERNAL LANGUAGE n [AUTHORIZATION o]
 		/// { SET (file) | ADD (file) | REMOVE PLATFORM p }</c>.
 		/// </summary>
-		static Ast.Statement Language(Statement.ExternalLanguageDefinition old)
+		internal static Ast.Statement Language(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -183,7 +181,7 @@ static partial class Bridge
 		/// <summary>
 		/// <c>CREATE EXTERNAL MODEL n [AUTHORIZATION o] WITH (settings)</c> and <c>ALTER EXTERNAL MODEL n SET (settings)</c>.
 		/// </summary>
-		static Ast.Statement Model(Statement.ExternalModelDefinition old)
+		internal static Ast.Statement Model(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var name   = Values.Part(old, old.Name);

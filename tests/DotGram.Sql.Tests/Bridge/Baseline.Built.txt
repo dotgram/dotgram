@@ -1,0 +1,7 @@
+# What became of the statements counted under each old record the Built family owns:
+# `Record = converted/gap/refused/crashed/unread/different/shape` (docs/design/sql-tsql-bridge.md). A
+# statement is counted under the record its first gap names, or else under its own. BridgeTests fails
+# where `converted` falls or any of the last five rises, and prints a gain; this file is rewritten
+# deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
+
+Statement.Built = 0/0/0/0/0/0/0

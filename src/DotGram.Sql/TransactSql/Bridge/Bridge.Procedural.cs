@@ -481,11 +481,8 @@ static partial class Bridge
 
 			if (type == "TABLE" && elements is { } body)
 			{
-				// CREATE TABLE's body as the Tables family reads it, through the statement it owns.
-				if (StatementOf(new Statement.TableDefinition("t", null, body, [], [])) is not Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var items) })
-					throw BridgeGap.Open(old, "inventory Clause.VariableDeclaration (a table's body)");
-
-				return new Ast.VariableDeclaration.Table(variable, items) { AsKeyword = asKeyword };
+				// CREATE TABLE's body as the Tables family reads it.
+				return new Ast.VariableDeclaration.Table(variable, Tables.Elements(body)) { AsKeyword = asKeyword };
 			}
 
 			if (elements is not null)

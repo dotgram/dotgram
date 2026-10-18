@@ -76,7 +76,7 @@ public sealed class TreeEqualityTests
 					if (Deepest(statement) is not { } literal)
 						continue;
 
-					var edited = (Statement)Replace(statement, literal, literal with { Text = literal.Text + "0" });
+					var edited = (Statement)Replace(statement, literal, Retexted(literal));
 
 					Assert.NotEqual(statement, edited);
 					Assert.NotEqual(edited, second.Value[i]);
@@ -93,9 +93,13 @@ public sealed class TreeEqualityTests
 		Assert.True(changed > 2_000, $"{changed} statements with a literal");
 		Assert.True(collisions <= Tolerated(changed), $"{collisions} of {changed} changed statements hash as before");
 		Assert.True(distinct.Count > 4_000, $"{distinct.Count} distinct statements");
-		var hashed = distinct.Select(static one => one.GetHashCode()).Distinct().Count();
 
-		Assert.True(distinct.Count - hashed <= Tolerated(distinct.Count), $"{distinct.Count} distinct statements, {hashed} distinct hashes");
+		// A statement whose rule builds the common tree hashes as that tree does, whose records hash a member left out as its
+		// default (`CONTAINMENT = NONE` and none at all): the hashes held here are this tree's.
+		var own    = distinct.Where(static one => one is not Statement.Built).ToList();
+		var hashed = own.Select(static one => one.GetHashCode()).Distinct().Count();
+
+		Assert.True(own.Count - hashed <= Tolerated(own.Count), $"{own.Count} distinct statements, {hashed} distinct hashes");
 	}
 
 	/// <summary>
@@ -124,6 +128,10 @@ public sealed class TreeEqualityTests
 				foreach (var statement in first.Value)
 				{
 					read++;
+
+					// A statement whose rule builds the common tree and found a gap there: neither writer has it to write.
+					if (statement is Statement.Built { Made: null })
+						continue;
 
 					string written;
 
@@ -692,9 +700,24 @@ public sealed class TreeEqualityTests
 	}
 
 	/// <summary>The deepest numeric or text literal of a tree, or null where it has none.</summary>
-	static Expression.Literal? Deepest(ISqlSpan root)
+	/// <summary>A literal of either tree with a digit more in its text.</summary>
+	static ISqlSpan Retexted(ISqlSpan literal)
 	{
-		Expression.Literal? found = null;
+		return literal switch
+		{
+			Expression.Literal old                       => old with { Text = old.Text + "0" },
+			DotGram.Sql.Ast.LiteralValue.Numeric numeric => numeric with { Text = numeric.Text + "0" },
+			DotGram.Sql.Ast.LiteralValue.String text     => text with { Text = text.Text + "0" },
+			_                                            => throw new ArgumentException(literal.GetType().Name, nameof(literal)),
+		};
+	}
+
+	/// <summary>
+	/// The deepest literal of a tree — of this one, or of the common tree a statement whose rule builds it holds.
+	/// </summary>
+	static ISqlSpan? Deepest(ISqlSpan root)
+	{
+		ISqlSpan? found = null;
 		var deepest = -1;
 
 		Visit(root, 0);
@@ -703,9 +726,9 @@ public sealed class TreeEqualityTests
 
 		void Visit(object value, int depth)
 		{
-			if (value is Expression.Literal { Kind: SqlLiteralKind.Number or SqlLiteralKind.Text or SqlLiteralKind.National } literal && depth > deepest)
+			if (value is Expression.Literal { Kind: SqlLiteralKind.Number or SqlLiteralKind.Text or SqlLiteralKind.National } or DotGram.Sql.Ast.LiteralValue.Numeric or DotGram.Sql.Ast.LiteralValue.String && depth > deepest)
 			{
-				found   = literal;
+				found   = (ISqlSpan)value;
 				deepest = depth;
 			}
 

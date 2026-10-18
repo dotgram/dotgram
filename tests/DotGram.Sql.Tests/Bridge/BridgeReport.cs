@@ -135,7 +135,6 @@ static class BridgeReport
 		- `WindowReference.NameRef against (name)`: `OVER w` against `OVER (w)`.
 		- `Expression.Invocation without brackets`: a call with no arguments written without its brackets.
 		- `Expression.Trim.FromKeyword`: `TRIM (LEADING FROM s)` against `TRIM (LEADING s)`.
-		- `Statement.DropRoutine.Proc`: `PROC` against `PROCEDURE`.
 		- `Statement.SetTransaction.Tran`: `TRAN` against `TRANSACTION`.
 		- `Statement.Delete.FromOmitted`: `DELETE t` against `DELETE FROM t`.
 		- `ReferencesSpecification.DeleteRuleFirst`: `ON DELETE … ON UPDATE …` against the other order, where both

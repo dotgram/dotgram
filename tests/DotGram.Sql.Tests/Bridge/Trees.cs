@@ -114,6 +114,19 @@ static class Trees
 		if (left is not ISqlSpan)
 			return;
 
+		// A statement whose rule builds the common tree: what it holds, compared as the common tree is.
+		if (left is Statement.Built built)
+		{
+			var other = (Statement.Built)right;
+
+			if (built.Gap?.Message != other.Gap?.Message)
+				found.Add(new Diff([.. path], $"gap {built.Gap?.Message} against {other.Gap?.Message}", left, right));
+			else
+				Compare(built.Made, other.Made, [.. path, new Step(left, nameof(built.Made), null)], false, byCase, found);
+
+			return;
+		}
+
 		var record = Bridge.NameOf(left);
 
 		foreach (var property in Properties(left.GetType()))
@@ -253,6 +266,11 @@ static class Trees
 			var node = pending.Pop();
 
 			yield return node;
+
+			// A statement whose rule builds the common tree holds no node of this tree: what its builder was handed is not
+			// one, and what it made is the common tree's.
+			if (node is Statement.Built)
+				continue;
 
 			foreach (var property in Properties(node.GetType()))
 			{

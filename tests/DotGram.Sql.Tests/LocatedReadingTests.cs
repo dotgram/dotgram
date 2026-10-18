@@ -55,7 +55,7 @@ public sealed class LocatedReadingTests
 	[Fact]
 	public void A_plain_reading_locates_nothing()
 	{
-		var statement = OldTree.ParseStatement("SELECT a, b FROM t WHERE a = 1");
+		var statement = TransactSqlParser.ParseSyntaxStatement("SELECT a, b FROM t WHERE a = 1");
 
 		Assert.True(SqlWalker.Walk(statement, static node => !node.Span.Known && node.Span.GapStart == 0));
 	}
@@ -510,7 +510,7 @@ public sealed class LocatedReadingTests
 		Assert.Equal(original.Span.Length, copy.Span.Length);
 		Assert.Equal(original.Span.GapStart, copy.Span.GapStart);
 
-		var plain = (Expression.Comparison)Nodes(OldTree.ParseStatement(text)).OfType<Expression.Comparison>().Single();
+		var plain = (Expression.Comparison)Nodes(TransactSqlParser.ParseSyntaxStatement(text)).OfType<Expression.Comparison>().Single();
 
 		Assert.False((plain with { Left = plain.Right }).Span.IsStale);
 	}
@@ -585,7 +585,8 @@ public sealed class LocatedReadingTests
 			}
 		}
 
-		Assert.True(gaps > 100_000, $"{gaps} gaps");
+		// The nodes of this tree only: the statements whose rules build the common tree hold none of them.
+		Assert.True(gaps > 50_000, $"{gaps} gaps");
 		Assert.True(ends > 4_000, $"{ends} reading ends");
 
 		void Agree(TransactSqlParser.Match<Statement[]> plain, TransactSqlParser.Match<Statement[]> located, string text, int floor)
@@ -627,6 +628,11 @@ public sealed class LocatedReadingTests
 
 		SqlWalker.Walk(statement, node =>
 		{
+			// A node of the common tree, held by a statement whose rule builds that tree: the bridge tells it where it was
+			// written, as it tells every node of that tree (TransactSqlEntryTests).
+			if (node is DotGram.Sql.Ast.ISqlNode)
+				return true;
+
 			var span = node.Span;
 
 			// A node told where it was written is this reading's own: one object shared between

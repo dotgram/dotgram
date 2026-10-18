@@ -14,6 +14,10 @@ static partial class Bridge
 	/// The sixty-five <c>DROP</c> statements. The standard's take a list, <c>IF EXISTS</c> and a behavior that
 	/// may be left out (decided 2026-09-15); the rest have a record each (SqlAst.TransactSql.Drop.cs).
 	/// </summary>
+	/// <remarks>
+	/// Their rules build the common tree (<see cref="Dropped"/>, <see cref="Signature"/>), so the family carries nothing:
+	/// it owns the records those rules built before, under which their statements are counted.
+	/// </remarks>
 	internal static class Drop
 	{
 		public static readonly string[] Owns =
@@ -21,93 +25,173 @@ static partial class Bridge
 			.. typeof(Statement).GetNestedTypes().Where(static one => one.IsSubclassOf(typeof(Statement.Removal))).Select(NameOf),
 		];
 
-		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
+		/// <summary>
+		/// What a <c>DROP</c> rule hands its builder: the T-SQL tree's record the statement was, the names, what was written
+		/// after them and whether <c>IF EXISTS</c> was.
+		/// </summary>
+		sealed record Dropping(string Record, SqlList<Expression> Names, string? Tail, bool IfExists) : Given(Record);
+
+		/// <summary>
+		/// The <c>DROP</c> the words name, on the common tree: the kind as it was written, the names, what was written after
+		/// them and the <c>IF EXISTS</c>, where it was.
+		/// </summary>
+		internal static Statement Dropped(string kind, SqlList<Expression>? some, string? tail = null, string? ifExists = null)
 		{
-			made = null;
+			var what    = Syntax.Squared(kind);
+			var removal = new Dropping(Record(what), some ?? [], Syntax.Tail(tail), ifExists is not null);
 
-			if (old is not Statement.Removal removal)
-				return false;
+			return Hold(removal, () => Made(what, removal));
+		}
 
-			made = removal switch
+		static Ast.Statement Made(string what, Dropping removal)
+		{
+			return what switch
 			{
-				Statement.DropTable    => new Ast.Statement.DropTable { Names = Names(removal), IfExists = removal.IfExists },
-				Statement.DropView     => new Ast.Statement.DropView { Names = Names(removal), IfExists = removal.IfExists },
-				Statement.DropSchema   => new Ast.Statement.DropSchema { Names = Names(removal), IfExists = removal.IfExists },
-				Statement.DropSequence => new Ast.Statement.DropSequence { Names = Names(removal), IfExists = removal.IfExists },
-				Statement.DropType     => new Ast.Statement.DropType { Names = Names(removal), IfExists = removal.IfExists },
-				Statement.DropRole     => new Ast.Statement.DropRole { Names = Each(Names(removal), one => Single(old, one)), IfExists = removal.IfExists },
-				Statement.DropFunction => Routines(removal, Ast.RoutineKind.Function),
-				Statement.DropProcedure => Routines(removal, Ast.RoutineKind.Procedure),
-				Statement.DropTrigger  => Trigger(removal),
-
-				// T-SQL's drops, a record each (SqlAst.TransactSql.Drop.cs).
-				Statement.DropAggregate                  => new Ast.Statement.DropAggregate(Names(removal)) { IfExists = removal.IfExists },
-				Statement.DropDefault                    => new Ast.Statement.DropDefault(Names(removal)) { IfExists = removal.IfExists },
-				Statement.DropRule                       => new Ast.Statement.DropRule(Names(removal)) { IfExists = removal.IfExists },
-				Statement.DropSecurityPolicy             => new Ast.Statement.DropSecurityPolicy(Names(removal)) { IfExists = removal.IfExists },
-				Statement.DropSynonym                    => new Ast.Statement.DropSynonym(Names(removal)) { IfExists = removal.IfExists },
-				Statement.DropUser                       => new Ast.Statement.DropUser(Part(removal)) { IfExists = removal.IfExists },
-				Statement.DropContract                   => new Ast.Statement.DropContract(One(removal)),
-				Statement.DropExternalTable              => new Ast.Statement.DropExternalTable(One(removal)),
-				Statement.DropMessageType                => new Ast.Statement.DropMessageType(One(removal)),
-				Statement.DropQueue                      => new Ast.Statement.DropQueue(One(removal)),
-				Statement.DropRemoteServiceBinding       => new Ast.Statement.DropRemoteServiceBinding(One(removal)),
-				Statement.DropRoute                      => new Ast.Statement.DropRoute(One(removal)),
-				Statement.DropService                    => new Ast.Statement.DropService(One(removal)),
-				Statement.DropXmlSchemaCollection        => new Ast.Statement.DropXmlSchemaCollection(One(removal)),
-				Statement.DropStatistics                 => new Ast.Statement.DropStatistics(Names(removal)),
-				Statement.DropWorkloadClassifier         => new Ast.Statement.DropWorkloadClassifier(Names(removal)),
-				Statement.DropApplicationRole            => new Ast.Statement.DropApplicationRole(Part(removal)),
-				Statement.DropAvailabilityGroup          => new Ast.Statement.DropAvailabilityGroup(Part(removal)),
-				Statement.DropBrokerPriority             => new Ast.Statement.DropBrokerPriority(Part(removal)),
-				Statement.DropCertificate                => new Ast.Statement.DropCertificate(Part(removal)),
-				Statement.DropColumnEncryptionKey        => new Ast.Statement.DropColumnEncryptionKey(Part(removal)),
-				Statement.DropColumnMasterKey            => new Ast.Statement.DropColumnMasterKey(Part(removal)),
-				Statement.DropCredential                 => new Ast.Statement.DropCredential(Part(removal)),
-				Statement.DropCryptographicProvider      => new Ast.Statement.DropCryptographicProvider(Part(removal)),
-				Statement.DropDatabaseAuditSpecification => new Ast.Statement.DropDatabaseAuditSpecification(Part(removal)),
-				Statement.DropDatabaseScopedCredential   => new Ast.Statement.DropDatabaseScopedCredential(Part(removal)),
-				Statement.DropEndpoint                   => new Ast.Statement.DropEndpoint(Part(removal)),
-				Statement.DropExternalDataSource         => new Ast.Statement.DropExternalDataSource(Part(removal)),
-				Statement.DropExternalFileFormat         => new Ast.Statement.DropExternalFileFormat(Part(removal)),
-				Statement.DropExternalModel              => new Ast.Statement.DropExternalModel(Part(removal)),
-				Statement.DropExternalResourcePool       => new Ast.Statement.DropExternalResourcePool(Part(removal)),
-				Statement.DropFulltextCatalog            => new Ast.Statement.DropFullTextCatalog(Part(removal)),
-				Statement.DropFulltextStoplist           => new Ast.Statement.DropFullTextStopList(Part(removal)),
-				Statement.DropLogin                      => new Ast.Statement.DropLogin(Part(removal)),
-				Statement.DropPartitionFunction          => new Ast.Statement.DropPartitionFunction(Part(removal)),
-				Statement.DropPartitionScheme            => new Ast.Statement.DropPartitionScheme(Part(removal)),
-				Statement.DropResourcePool               => new Ast.Statement.DropResourcePool(Part(removal)),
-				Statement.DropSearchPropertyList         => new Ast.Statement.DropSearchPropertyList(Part(removal)),
-				Statement.DropServerAudit                => new Ast.Statement.DropServerAudit(Part(removal)),
-				Statement.DropServerAuditSpecification   => new Ast.Statement.DropServerAuditSpecification(Part(removal)),
-				Statement.DropServerRole                 => new Ast.Statement.DropServerRole(Part(removal)),
-				Statement.DropWorkloadGroup              => new Ast.Statement.DropWorkloadGroup(Part(removal)),
-				Statement.DropAsymmetricKey              => new Ast.Statement.DropAsymmetricKey(Part(removal with { Tail = null })) { RemoveProviderKey = Said(removal, "REMOVE PROVIDER KEY") },
-				Statement.DropSymmetricKey               => new Ast.Statement.DropSymmetricKey(Part(removal with { Tail = null })) { RemoveProviderKey = Said(removal, "REMOVE PROVIDER KEY") },
-				Statement.DropExternalLanguage           => new Ast.Statement.DropExternalLanguage(Part(removal with { Tail = null })) { Authorization = Owner(removal) },
-				Statement.DropDatabase                   => new Ast.Statement.DropDatabase(Each(Names(removal), one => Single(old, one))) { IfExists = removal.IfExists },
-				Statement.DropAssembly                   => new Ast.Statement.DropAssembly(Names(removal with { Tail = null }), removal.IfExists, Said(removal, "WITH NO DEPENDENTS")),
-				Statement.DropEventSession               => new Ast.Statement.DropEventSession(Part(removal with { Tail = null }), EventScope(removal)),
-				Statement.DropEventNotification          => new Ast.Statement.DropEventNotification(Each(Names(removal with { Tail = null }), one => Single(old, one)), NotificationScope(removal)),
-				Statement.DropExternalLibrary            => new Ast.Statement.DropExternalLibrary(Part(removal with { Tail = null }), Owner(removal)),
-				Statement.DropFulltextIndex              => new Ast.Statement.DropFullTextIndex(One(removal)),
-				Statement.DropSensitivityClassification  => new Ast.Statement.DropSensitivityClassification(Names(removal)),
-				Statement.DropMasterKey                  => new Ast.Statement.DropMasterKey(),
-				Statement.DropDatabaseEncryptionKey      => new Ast.Statement.DropDatabaseEncryptionKey(),
-				Statement.DropIndex drop                 => Index(drop),
-				Statement.DropSignature signature        => Signature(signature),
-
-				_ => throw Unconverted(old),
+				"TABLE"                        => new Ast.Statement.DropTable { Names = Names(removal), IfExists = removal.IfExists },
+				"VIEW"                         => new Ast.Statement.DropView { Names = Names(removal), IfExists = removal.IfExists },
+				"SCHEMA"                       => new Ast.Statement.DropSchema { Names = Names(removal), IfExists = removal.IfExists },
+				"SEQUENCE"                     => new Ast.Statement.DropSequence { Names = Names(removal), IfExists = removal.IfExists },
+				"TYPE"                         => new Ast.Statement.DropType { Names = Names(removal), IfExists = removal.IfExists },
+				"ROLE"                         => new Ast.Statement.DropRole { Names = Each(Names(removal), one => Single(removal, one)), IfExists = removal.IfExists },
+				"FUNCTION"                     => Routines(removal, Ast.RoutineKind.Function, false),
+				"PROCEDURE" or "PROC"          => Routines(removal, Ast.RoutineKind.Procedure, what == "PROC"),
+				"TRIGGER"                      => Trigger(removal),
+				"AGGREGATE"                    => new Ast.Statement.DropAggregate(Names(removal)) { IfExists = removal.IfExists },
+				"DEFAULT"                      => new Ast.Statement.DropDefault(Names(removal)) { IfExists = removal.IfExists },
+				"RULE"                         => new Ast.Statement.DropRule(Names(removal)) { IfExists = removal.IfExists },
+				"SECURITY POLICY"              => new Ast.Statement.DropSecurityPolicy(Names(removal)) { IfExists = removal.IfExists },
+				"SYNONYM"                      => new Ast.Statement.DropSynonym(Names(removal)) { IfExists = removal.IfExists },
+				"USER"                         => new Ast.Statement.DropUser(Part(removal)) { IfExists = removal.IfExists },
+				"CONTRACT"                     => new Ast.Statement.DropContract(One(removal)),
+				"EXTERNAL TABLE"               => new Ast.Statement.DropExternalTable(One(removal)),
+				"MESSAGE TYPE"                 => new Ast.Statement.DropMessageType(One(removal)),
+				"QUEUE"                        => new Ast.Statement.DropQueue(One(removal)),
+				"REMOTE SERVICE BINDING"       => new Ast.Statement.DropRemoteServiceBinding(One(removal)),
+				"ROUTE"                        => new Ast.Statement.DropRoute(One(removal)),
+				"SERVICE"                      => new Ast.Statement.DropService(One(removal)),
+				"XML SCHEMA COLLECTION"        => new Ast.Statement.DropXmlSchemaCollection(One(removal)),
+				"STATISTICS"                   => new Ast.Statement.DropStatistics(Names(removal)),
+				"WORKLOAD CLASSIFIER"          => new Ast.Statement.DropWorkloadClassifier(Names(removal)),
+				"APPLICATION ROLE"             => new Ast.Statement.DropApplicationRole(Part(removal)),
+				"AVAILABILITY GROUP"           => new Ast.Statement.DropAvailabilityGroup(Part(removal)),
+				"BROKER PRIORITY"              => new Ast.Statement.DropBrokerPriority(Part(removal)),
+				"CERTIFICATE"                  => new Ast.Statement.DropCertificate(Part(removal)),
+				"COLUMN ENCRYPTION KEY"        => new Ast.Statement.DropColumnEncryptionKey(Part(removal)),
+				"COLUMN MASTER KEY"            => new Ast.Statement.DropColumnMasterKey(Part(removal)),
+				"CREDENTIAL"                   => new Ast.Statement.DropCredential(Part(removal)),
+				"CRYPTOGRAPHIC PROVIDER"       => new Ast.Statement.DropCryptographicProvider(Part(removal)),
+				"DATABASE AUDIT SPECIFICATION" => new Ast.Statement.DropDatabaseAuditSpecification(Part(removal)),
+				"DATABASE SCOPED CREDENTIAL"   => new Ast.Statement.DropDatabaseScopedCredential(Part(removal)),
+				"ENDPOINT"                     => new Ast.Statement.DropEndpoint(Part(removal)),
+				"EXTERNAL DATA SOURCE"         => new Ast.Statement.DropExternalDataSource(Part(removal)),
+				"EXTERNAL FILE FORMAT"         => new Ast.Statement.DropExternalFileFormat(Part(removal)),
+				"EXTERNAL MODEL"               => new Ast.Statement.DropExternalModel(Part(removal)),
+				"EXTERNAL RESOURCE POOL"       => new Ast.Statement.DropExternalResourcePool(Part(removal)),
+				"FULLTEXT CATALOG"             => new Ast.Statement.DropFullTextCatalog(Part(removal)),
+				"FULLTEXT STOPLIST"            => new Ast.Statement.DropFullTextStopList(Part(removal)),
+				"LOGIN"                        => new Ast.Statement.DropLogin(Part(removal)),
+				"PARTITION FUNCTION"           => new Ast.Statement.DropPartitionFunction(Part(removal)),
+				"PARTITION SCHEME"             => new Ast.Statement.DropPartitionScheme(Part(removal)),
+				"RESOURCE POOL"                => new Ast.Statement.DropResourcePool(Part(removal)),
+				"SEARCH PROPERTY LIST"         => new Ast.Statement.DropSearchPropertyList(Part(removal)),
+				"SERVER AUDIT"                 => new Ast.Statement.DropServerAudit(Part(removal)),
+				"SERVER AUDIT SPECIFICATION"   => new Ast.Statement.DropServerAuditSpecification(Part(removal)),
+				"SERVER ROLE"                  => new Ast.Statement.DropServerRole(Part(removal)),
+				"WORKLOAD GROUP"               => new Ast.Statement.DropWorkloadGroup(Part(removal)),
+				"ASYMMETRIC KEY"               => new Ast.Statement.DropAsymmetricKey(Part(removal with { Tail = null })) { RemoveProviderKey = Said(removal, "REMOVE PROVIDER KEY") },
+				"SYMMETRIC KEY"                => new Ast.Statement.DropSymmetricKey(Part(removal with { Tail = null })) { RemoveProviderKey = Said(removal, "REMOVE PROVIDER KEY") },
+				"EXTERNAL LANGUAGE"            => new Ast.Statement.DropExternalLanguage(Part(removal with { Tail = null })) { Authorization = Owner(removal) },
+				"DATABASE"                     => new Ast.Statement.DropDatabase(Each(Names(removal), one => Single(removal, one))) { IfExists = removal.IfExists },
+				"ASSEMBLY"                     => new Ast.Statement.DropAssembly(Names(removal with { Tail = null }), removal.IfExists, Said(removal, "WITH NO DEPENDENTS")),
+				"EVENT SESSION"                => new Ast.Statement.DropEventSession(Part(removal with { Tail = null }), EventScope(removal)),
+				"EVENT NOTIFICATION"           => new Ast.Statement.DropEventNotification(Each(Names(removal with { Tail = null }), one => Single(removal, one)), NotificationScope(removal)),
+				"EXTERNAL LIBRARY"             => new Ast.Statement.DropExternalLibrary(Part(removal with { Tail = null }), Owner(removal)),
+				"FULLTEXT INDEX"               => new Ast.Statement.DropFullTextIndex(One(removal)),
+				"SENSITIVITY CLASSIFICATION"   => new Ast.Statement.DropSensitivityClassification(Names(removal)),
+				"MASTER KEY"                   => new Ast.Statement.DropMasterKey(),
+				"DATABASE ENCRYPTION KEY"      => new Ast.Statement.DropDatabaseEncryptionKey(),
+				"INDEX"                        => Index(removal),
+				_ => throw new ArgumentOutOfRangeException(nameof(what), what, "The grammar reads this after DROP and the tree has no record for it."),
 			};
+		}
 
-			return true;
+		/// <summary>The T-SQL tree's record for a kind, which the gaps of its statement are counted under.</summary>
+		static string Record(string what)
+		{
+			return what switch
+			{
+				"AGGREGATE"                    => "Statement.DropAggregate",
+				"APPLICATION ROLE"             => "Statement.DropApplicationRole",
+				"AVAILABILITY GROUP"           => "Statement.DropAvailabilityGroup",
+				"BROKER PRIORITY"              => "Statement.DropBrokerPriority",
+				"CERTIFICATE"                  => "Statement.DropCertificate",
+				"COLUMN ENCRYPTION KEY"        => "Statement.DropColumnEncryptionKey",
+				"COLUMN MASTER KEY"            => "Statement.DropColumnMasterKey",
+				"CONTRACT"                     => "Statement.DropContract",
+				"CREDENTIAL"                   => "Statement.DropCredential",
+				"CRYPTOGRAPHIC PROVIDER"       => "Statement.DropCryptographicProvider",
+				"DATABASE AUDIT SPECIFICATION" => "Statement.DropDatabaseAuditSpecification",
+				"DATABASE SCOPED CREDENTIAL"   => "Statement.DropDatabaseScopedCredential",
+				"DATABASE"                     => "Statement.DropDatabase",
+				"DEFAULT"                      => "Statement.DropDefault",
+				"ENDPOINT"                     => "Statement.DropEndpoint",
+				"EXTERNAL DATA SOURCE"         => "Statement.DropExternalDataSource",
+				"EXTERNAL FILE FORMAT"         => "Statement.DropExternalFileFormat",
+				"EXTERNAL LANGUAGE"            => "Statement.DropExternalLanguage",
+				"EXTERNAL MODEL"               => "Statement.DropExternalModel",
+				"EXTERNAL RESOURCE POOL"       => "Statement.DropExternalResourcePool",
+				"EXTERNAL TABLE"               => "Statement.DropExternalTable",
+				"FULLTEXT CATALOG"             => "Statement.DropFulltextCatalog",
+				"FULLTEXT STOPLIST"            => "Statement.DropFulltextStoplist",
+				"FUNCTION"                     => "Statement.DropFunction",
+				"LOGIN"                        => "Statement.DropLogin",
+				"MESSAGE TYPE"                 => "Statement.DropMessageType",
+				"PARTITION FUNCTION"           => "Statement.DropPartitionFunction",
+				"PARTITION SCHEME"             => "Statement.DropPartitionScheme",
+				"PROCEDURE" or "PROC"          => "Statement.DropProcedure",
+				"QUEUE"                        => "Statement.DropQueue",
+				"REMOTE SERVICE BINDING"       => "Statement.DropRemoteServiceBinding",
+				"RESOURCE POOL"                => "Statement.DropResourcePool",
+				"ROLE"                         => "Statement.DropRole",
+				"ROUTE"                        => "Statement.DropRoute",
+				"RULE"                         => "Statement.DropRule",
+				"SCHEMA"                       => "Statement.DropSchema",
+				"SEARCH PROPERTY LIST"         => "Statement.DropSearchPropertyList",
+				"SECURITY POLICY"              => "Statement.DropSecurityPolicy",
+				"SEQUENCE"                     => "Statement.DropSequence",
+				"SERVER AUDIT SPECIFICATION"   => "Statement.DropServerAuditSpecification",
+				"SERVER AUDIT"                 => "Statement.DropServerAudit",
+				"SERVER ROLE"                  => "Statement.DropServerRole",
+				"SERVICE"                      => "Statement.DropService",
+				"STATISTICS"                   => "Statement.DropStatistics",
+				"SYNONYM"                      => "Statement.DropSynonym",
+				"TABLE"                        => "Statement.DropTable",
+				"TYPE"                         => "Statement.DropType",
+				"USER"                         => "Statement.DropUser",
+				"VIEW"                         => "Statement.DropView",
+				"WORKLOAD CLASSIFIER"          => "Statement.DropWorkloadClassifier",
+				"WORKLOAD GROUP"               => "Statement.DropWorkloadGroup",
+				"XML SCHEMA COLLECTION"        => "Statement.DropXmlSchemaCollection",
+				"ASYMMETRIC KEY"               => "Statement.DropAsymmetricKey",
+				"SYMMETRIC KEY"                => "Statement.DropSymmetricKey",
+				"ASSEMBLY"                     => "Statement.DropAssembly",
+				"EXTERNAL LIBRARY"             => "Statement.DropExternalLibrary",
+				"EVENT SESSION"                => "Statement.DropEventSession",
+				"EVENT NOTIFICATION"           => "Statement.DropEventNotification",
+				"FULLTEXT INDEX"               => "Statement.DropFulltextIndex",
+				"INDEX"                        => "Statement.DropIndex",
+				"SENSITIVITY CLASSIFICATION"   => "Statement.DropSensitivityClassification",
+				"TRIGGER"                      => "Statement.DropTrigger",
+				"MASTER KEY"                   => "Statement.DropMasterKey",
+				"DATABASE ENCRYPTION KEY"      => "Statement.DropDatabaseEncryptionKey",
+				_ => "Statement.Removal",
+			};
 		}
 
 		/// <summary>
 		/// The names dropped, which the old tree keeps as column references; and nothing after them.
 		/// </summary>
-		static SqlList<Ast.QualifiedName> Names(Statement.Removal old)
+		static SqlList<Ast.QualifiedName> Names(Dropping old)
 		{
 			if (old.Tail is not null)
 				throw BridgeGap.Open(old, $"inventory {NameOf(old)} (`{old.Tail}` after the names)");
@@ -123,14 +207,10 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// <c>DROP FUNCTION</c> and <c>DROP PROCEDURE</c>, whose list is of designators. Which of <c>PROC</c> and
-		/// <c>PROCEDURE</c> was written the old tree does not keep, and the text says.
+		/// <c>DROP FUNCTION</c> and <c>DROP PROCEDURE</c>, whose list is of designators, and whether <c>PROC</c> was written.
 		/// </summary>
-		static Ast.Statement Routines(Statement.Removal old, Ast.RoutineKind kind)
+		static Ast.Statement Routines(Dropping old, Ast.RoutineKind kind, bool proc)
 		{
-			var proc = kind == Ast.RoutineKind.Procedure
-				&& Recover("Statement.DropRoutine.Proc", Spelled(old), static text => Words(text) is [_, "PROC", ..], false);
-
 			return new Ast.Statement.DropRoutine
 			{
 				Routines = Each(Names(old), one => new Ast.RoutineDesignator(kind, one)),
@@ -142,7 +222,7 @@ static partial class Bridge
 		/// <summary>
 		/// <c>DROP TRIGGER</c>, and the scope of a DDL trigger, which the old tree keeps as its tail.
 		/// </summary>
-		static Ast.Statement Trigger(Statement.Removal old)
+		static Ast.Statement Trigger(Dropping old)
 		{
 			if (old.Tail is not { } tail)
 				return new Ast.Statement.DropTrigger { Names = Names(old), IfExists = old.IfExists };
@@ -164,13 +244,13 @@ static partial class Bridge
 		// ── T-SQL's drops ────────────────────────────────────────────────────────────────────────────────
 
 		/// <summary>The one name a kind drops as a table's, and nothing after it.</summary>
-		static Ast.QualifiedName One(Statement.Removal old)
+		static Ast.QualifiedName One(Dropping old)
 		{
 			return Names(old) is [var one] ? one : throw BridgeGap.Open(old, $"inventory {NameOf(old)} (other than one name)");
 		}
 
 		/// <summary>The one name of one part a kind drops, and nothing after it.</summary>
-		static Ast.Identifier Part(Statement.Removal old)
+		static Ast.Identifier Part(Dropping old)
 		{
 			return Single(old, One(old));
 		}
@@ -180,7 +260,7 @@ static partial class Bridge
 		/// round trip compares it as the oracle does, so a tail written otherwise than the writer prints it, beyond the case
 		/// of its key words and its blanks where it is free text, is a gap.
 		/// </summary>
-		static bool Said(Statement.Removal old, string words)
+		static bool Said(Dropping old, string words)
 		{
 			if (old.Tail is not { } tail)
 				return false;
@@ -225,7 +305,7 @@ static partial class Bridge
 		}
 
 		/// <summary><c>AUTHORIZATION owner</c> after an external library's or language's name, or null.</summary>
-		static Ast.Identifier? Owner(Statement.Removal old)
+		static Ast.Identifier? Owner(Dropping old)
 		{
 			if (old.Tail is not { } tail)
 				return null;
@@ -241,7 +321,7 @@ static partial class Bridge
 		}
 
 		/// <summary><c>ON SERVER</c> or <c>ON DATABASE</c> after an event session's name.</summary>
-		static Ast.EventScope EventScope(Statement.Removal old)
+		static Ast.EventScope EventScope(Dropping old)
 		{
 			var scope = old.Tail is { } tail ? string.Join(" ", Words(tail)) : "";
 
@@ -258,7 +338,7 @@ static partial class Bridge
 		}
 
 		/// <summary><c>ON SERVER</c>, <c>ON DATABASE</c> or <c>ON QUEUE q</c> after an event notification's names.</summary>
-		static Ast.NotificationScope NotificationScope(Statement.Removal old)
+		static Ast.NotificationScope NotificationScope(Dropping old)
 		{
 			var tokens = SqlTokens.Of(old.Tail ?? "");
 			var words  = Words(old.Tail ?? "");
@@ -289,7 +369,7 @@ static partial class Bridge
 		/// DROP INDEX: each index the old tree keeps as one text — <c>i ON t WITH (…)</c> as written, or a qualified name —
 		/// read again from its tokens.
 		/// </summary>
-		static Ast.Statement Index(Statement.DropIndex old)
+		static Ast.Statement Index(Dropping old)
 		{
 			if (old.Tail is not null)
 				throw BridgeGap.Open(old, $"inventory Statement.DropIndex (`{old.Tail}` after the names)");
@@ -458,11 +538,16 @@ static partial class Bridge
 		/// DROP SIGNATURE: the module, which the old tree keeps as text with its class before <c>::</c>, and what signed it, kept as
 		/// words; both are read as ADD SIGNATURE's are (<see cref="Security.SignedModule"/>).
 		/// </summary>
-		static Ast.Statement Signature(Statement.DropSignature old)
+		internal static Statement Signature(SqlList<Expression> names, string? from, bool counter)
 		{
-			var (kind, module) = Security.SignedModule(old, old.From, "Statement.DropSignature.From");
+			var old = new Dropping("Statement.DropSignature", names, null, false);
 
-			return new Ast.Statement.DropSignature(old.Counter, module, Security.Signers(old, old.Names)) { Class = kind };
+			return Hold(old, () =>
+			{
+				var (kind, module) = Security.SignedModule(old, from, "Statement.DropSignature.From");
+
+				return new Ast.Statement.DropSignature(counter, module, Security.Signers(old, names)) { Class = kind };
+			});
 		}
 	}
 }

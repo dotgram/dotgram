@@ -41,19 +41,10 @@ static partial class Bridge
 			made = old switch
 			{
 				TableReference source when Owned(Owns, old) => Of(source),
-				Statement.TableDefinition table              => CreateTable(table),
-				Statement.CreateTableAsSelect query          => CreateTableAsSelect(query),
-				Statement.AlterTable alter                   => AlterTable(alter),
-				Statement.CreateIndex index                  => CreateIndex(index),
-				Statement.AlterIndex alter                   => AlterIndex(alter),
-				Statement.FullTextIndexDefinition fullText   => CreateFullTextIndex(fullText),
-				Statement.AlterFullTextIndex fullText        => AlterFullTextIndex(fullText),
-				Statement.ViewDefinition view                => View(view),
+				Statement.TableDefinition { External: true } table       => External.Table(table, Elements(table.Elements)),
+				Statement.CreateTableAsSelect { External: true } query   => External.TableAsSelect(query),
 				Statement.StatisticsDefinition statistics    => CreateStatistics(statistics),
 				Statement.UpdateStatistics statistics        => UpdateStatistics(statistics),
-				Statement.TypeDefinition type                => CreateType(type),
-				Statement.SynonymDefinition synonym          => Synonym(synonym),
-				Statement.SequenceDefinition sequence        => Sequence(sequence),
 				_ when Owned(Owns, old) => throw Unconverted(old),
 				_                       => null,
 			};
@@ -609,19 +600,18 @@ static partial class Bridge
 		/// <summary>
 		/// A table declared: its name, its kind, its elements, placements and options. A temporary table is its name.
 		/// </summary>
-		static Ast.Statement CreateTable(Statement.TableDefinition old)
+		internal static Statement CreateTable(string name, string? kind, SqlList<Clause> elements, SqlList<Clause> placements, SqlList<Clause> options)
 		{
-			if (old.External)
-				return External.Table(old, Elements(old.Elements));
+			var old = new Defining("Statement.TableDefinition", name);
 
-			return new Ast.Statement.CreateTable
+			return Hold(old, () => new Ast.Statement.CreateTable
 			{
-				Name       = Values.Name(old, old.Name),
-				Contents   = new Ast.TableContents.Elements(Elements(old.Elements)),
-				Kind       = Kind(old, old.Kind),
-				Placements = Each(old.Placements, Placement),
-				Options    = Each(old.Options, Option),
-			};
+				Name       = Values.Name(old, name),
+				Contents   = new Ast.TableContents.Elements(Elements(elements)),
+				Kind       = Kind(old, kind),
+				Placements = Each(placements, Placement),
+				Options    = Each(options, Option),
+			});
 		}
 
 		static Ast.TableKind? Kind(object owner, string? kind)
@@ -640,23 +630,25 @@ static partial class Bridge
 		/// A table made of a query, Synapse's: the column names, the options before the AS, and the query with its hints,
 		/// which writes no <c>WITH [NO] DATA</c>.
 		/// </summary>
-		static Ast.Statement CreateTableAsSelect(Statement.CreateTableAsSelect old)
+		internal static Statement CreateTableAsSelect(string name, SqlList<string>? columns, SqlList<Clause> options, Statement body)
 		{
-			if (old.External)
-				return External.TableAsSelect(old);
+			var old = new Defining("Statement.CreateTableAsSelect", name) { Options = options };
 
-			if (StatementOf(old.Body) is not Ast.Statement.Select select)
-				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (a query that is no SELECT)");
-
-			return new Ast.Statement.CreateTable
+			return Hold(old, () =>
 			{
-				Name     = Values.Name(old, old.Name),
-				Contents = new Ast.TableContents.AsQuery(Values.Parts(old, old.Columns), select.Query, null) { Hints = select.Hints },
-				Options  = Each(old.Options, GenericOption),
-			};
+				if (StatementOf(body) is not Ast.Statement.Select select)
+					throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (a query that is no SELECT)");
+
+				return new Ast.Statement.CreateTable
+				{
+					Name     = Values.Name(old, name),
+					Contents = new Ast.TableContents.AsQuery(Values.Parts(old, columns), select.Query, null) { Hints = select.Hints },
+					Options  = Each(options, GenericOption),
+				};
+			});
 		}
 
-		static SqlList<Ast.TableElement> Elements(SqlList<Clause> elements)
+		internal static SqlList<Ast.TableElement> Elements(SqlList<Clause> elements)
 		{
 			return Each(elements, Element);
 		}
@@ -1144,6 +1136,19 @@ static partial class Bridge
 		/// ALTER TABLE: one action a statement, as the old tree keeps it — the word, the elements, the options, and
 		/// the rest of the action as text, which is read again here.
 		/// </summary>
+		/// <summary>
+		/// ALTER TABLE, on the common tree: the table, and the action its rules read, which they gather into the T-SQL
+		/// tree's record; it stands where the statement was written, as the text it was read from says.
+		/// </summary>
+		internal static Statement AlterTable(string name, Statement.AlterTable action, SqlSpan at)
+		{
+			var read = action with { Name = name };
+
+			read.Locate(at.At, at.Length);
+
+			return Hold(new Read<Statement.AlterTable>("Statement.AlterTable", read), () => AlterTable(read));
+		}
+
 		static Ast.Statement AlterTable(Statement.AlterTable old)
 		{
 			var words = Words(old.Action);
@@ -1509,9 +1514,7 @@ static partial class Bridge
 		/// </summary>
 		static SqlList<Ast.Option> OptionsOf(object owner, string text)
 		{
-			var read = TransactSql.TransactSqlParser.TryParseSyntaxSql("CREATE TABLE t (a) WITH " + text.Trim() + " AS SELECT 1");
-
-			return read is { IsSuccess: true, Value: [Statement.CreateTableAsSelect { Options: var options }] }
+			return Skim("CREATE TABLE t (a) WITH " + text.Trim() + " AS SELECT 1") is [Statement.Built { Given: Defining { Options: { } options } }]
 				? Each(options, Option)
 				: throw BridgeGap.Open(owner, $"inventory Statement.AlterTable (options `{text.Trim()}` the option list does not read)");
 		}
@@ -1533,6 +1536,14 @@ static partial class Bridge
 		/// are records of their own, their kind and what they are built over kept by the old tree as words. A selective
 		/// XML index, a JSON index and a vector index are gaps.
 		/// </summary>
+		/// <summary>CREATE INDEX, on the common tree: the table, the index as its rules read it, its kind and what it is built over.</summary>
+		internal static Statement CreateIndex(string on, Clause index, string? kind = null, string? over = null)
+		{
+			var read = new Statement.CreateIndex(on, index, kind, over);
+
+			return Hold(new Read<Statement.CreateIndex>("Statement.CreateIndex", read), () => CreateIndex(read));
+		}
+
 		static Ast.Statement CreateIndex(Statement.CreateIndex old)
 		{
 			if (old.Index is not Clause.ConstraintDefinition index)
@@ -1767,6 +1778,22 @@ static partial class Bridge
 		}
 
 		/// <summary>ALTER INDEX: one index or ALL, and the action, a selective XML index's paths among them.</summary>
+		/// <summary>ALTER INDEX of a selective XML index's paths, on the common tree.</summary>
+		internal static Statement AlterIndexPaths(string name, string on, SqlList<Clause>? options, SqlList<string>? paths, string? namespaces)
+		{
+			var read = new Statement.AlterIndex(name, on, "FOR", null, options, paths, namespaces);
+
+			return Hold(new Read<Statement.AlterIndex>("Statement.AlterIndex", read), () => AlterIndex(read));
+		}
+
+		/// <summary>ALTER INDEX, on the common tree: the index or ALL, the table, and the action its rules read.</summary>
+		internal static Statement AlterIndex(string name, string on, Statement.AlterIndex action)
+		{
+			var read = action with { Name = name, On = on };
+
+			return Hold(new Read<Statement.AlterIndex>("Statement.AlterIndex", read), () => AlterIndex(read));
+		}
+
 		static Ast.Statement AlterIndex(Statement.AlterIndex old)
 		{
 			var all = old.Name == "ALL";
@@ -1841,7 +1868,7 @@ static partial class Bridge
 		/// CREATE VIEW, ALTER VIEW, CREATE OR ALTER VIEW: the standard's view, with T-SQL's verb and attributes; Synapse's
 		/// materialized view, its query and its options. A query with OPTION is a gap.
 		/// </summary>
-		static Ast.Statement View(Statement.ViewDefinition old)
+		internal static Ast.Statement View(Statement.ViewDefinition old)
 		{
 			if (StatementOf(old.Body) is not Ast.Statement.Select { Hints.Count: 0 } select)
 				throw BridgeGap.Open(old, "inventory Statement.ViewDefinition (a query with OPTION, which CreateView cannot hold)");
@@ -1994,7 +2021,7 @@ static partial class Bridge
 		/// CREATE TYPE, which the old tree keeps as text after the name: a type made of another, with its nullability,
 		/// or of a table, whose body is read again as a table's. A type of an assembly's class is a gap.
 		/// </summary>
-		static Ast.Statement CreateType(Statement.TypeDefinition old)
+		internal static Ast.Statement CreateType(Defining old)
 		{
 			var tail  = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.TypeDefinition (nothing after the name)");
 			var words = Words(tail);
@@ -2020,13 +2047,15 @@ static partial class Bridge
 					return new Ast.Statement.CreateAliasType(name, Values.Type(old, type)) { Nullability = nullability };
 
 				case ["AS", "TABLE", "(", ..]:
+					// The body read as a table's, its parts carried with the text it is read from.
 					var body = "CREATE TABLE t " + tail[(tail.IndexOf('('))..];
-					var read = TransactSql.TransactSqlParser.Located.TryParseSyntaxSql(body);
+					var read = Inside(body, () => TransactSql.TransactSqlParser.Located.TryParseSyntaxSql(body));
 
-					if (read is not { IsSuccess: true, Value: [Statement.TableDefinition { External: false, Kind: null, Placements.Length: 0 } table] })
+					if (read is not { IsSuccess: true, Value: [Statement.Built table] }
+						|| StatementOf(table) is not Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var elements), Kind: null, Placements.Count: 0 } made)
 						throw BridgeGap.Open(old, "inventory Statement.TypeDefinition (a table type's body that a table's does not read)");
 
-					return Inside(body, () => new Ast.Statement.CreateTableType(name, Elements(table.Elements)) { Options = Each(table.Options, Option) });
+					return new Ast.Statement.CreateTableType(name, elements) { Options = made.Options };
 
 				case ["EXTERNAL", "NAME", ..]:
 					return Routines.ClrType(old);
@@ -2045,7 +2074,7 @@ static partial class Bridge
 		}
 
 		/// <summary>CREATE SYNONYM, which the old tree keeps as text after the name: <c>FOR</c> and the name stood for.</summary>
-		static Ast.Statement Synonym(Statement.SynonymDefinition old)
+		internal static Ast.Statement Synonym(Defining old)
 		{
 			var tail = old.Tail ?? "";
 
@@ -2060,7 +2089,7 @@ static partial class Bridge
 		/// catalog and filegroup, and the options. The options are carried as every option is; a catalog alone in
 		/// brackets, and the filegroup before the catalog, are gaps.
 		/// </summary>
-		static Ast.Statement CreateFullTextIndex(Statement.FullTextIndexDefinition old)
+		internal static Ast.Statement CreateFullTextIndex(Defining old)
 		{
 			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.FullTextIndexDefinition (nothing after the table)");
 			var tokens = Located(tail);
@@ -2217,7 +2246,7 @@ static partial class Bridge
 		/// ALTER FULLTEXT INDEX, which the old tree keeps as text after the table: one action, and <c>WITH NO
 		/// POPULATION</c> after it as the action's one option, the name <c>NO</c> with the word <c>POPULATION</c>.
 		/// </summary>
-		static Ast.Statement AlterFullTextIndex(Statement.AlterFullTextIndex old)
+		internal static Ast.Statement AlterFullTextIndex(Defining old)
 		{
 			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.AlterFullTextIndex (nothing after the table)");
 			var tokens = Located(tail);
@@ -2378,7 +2407,7 @@ static partial class Bridge
 		/// says <c>NO</c> and the type, and as nodes, which hold the values; the two are read side by side, in the
 		/// order written.
 		/// </summary>
-		static Ast.Statement Sequence(Statement.SequenceDefinition old)
+		internal static Ast.Statement Sequence(Defining old)
 		{
 			var words   = old.Tail is { } tail ? Words(tail) : [];
 			var options = old.Options ?? [];

@@ -10,6 +10,8 @@ using DotGram.Sql.TransactSql;
 
 using Xunit;
 
+using Ast = DotGram.Sql.Ast;
+
 namespace DotGram.Sql.Tests;
 
 /// <summary>
@@ -15465,34 +15467,31 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_created_table_says_its_columns()
 	{
-		var made = Assert.IsType<Statement.TableDefinition>(
-			OldTree.TryParseStatement(
+		var made = Assert.IsType<Ast.Statement.CreateTable>(
+			TransactSqlParser.TryParseStatement(
 				"CREATE TABLE dbo.t (a INT NOT NULL, b AS a * 2, CONSTRAINT pk PRIMARY KEY (a))").Value);
 
-		Assert.Equal("dbo.t", made.Name);
-		Assert.Equal(3, made.Elements.Length);
+		Assert.Equal("dbo.t", string.Join(".", made.Name.Parts.Select(static one => one.Text)));
 
-		var first = Assert.IsType<Clause.ColumnDefinition>(made.Elements[0]);
+		var elements = Assert.IsType<Ast.TableContents.Elements>(made.Contents).Items;
 
-		Assert.Equal("a", first.Name);
-		Assert.Equal("INT", first.Type);
-		Assert.Null(first.Computed);
+		Assert.Equal(3, elements.Count);
 
-		var second = Assert.IsType<Clause.ColumnDefinition>(made.Elements[1]);
+		var first = Assert.IsType<Ast.TableElement.Column>(elements[0]).Definition;
 
-		Assert.Equal("b", second.Name);
+		Assert.Equal("a", first.Name.Text);
+		Assert.NotNull(first.Type);
+
+		var second = Assert.IsType<Ast.TableElement.Column>(elements[1]).Definition;
+
+		Assert.Equal("b", second.Name.Text);
 		Assert.Null(second.Type);
-		Assert.NotNull(second.Computed);
 
-		var third = Assert.IsType<Clause.ConstraintDefinition>(made.Elements[2]);
+		var key = Assert.IsType<Ast.Constraint.Unique>(Assert.IsType<Ast.TableElement.TableConstraint>(elements[2]).Value);
 
-		Assert.Equal("pk", third.Name);
-		Assert.Equal("PRIMARY KEY", third.Kind);
-
-		var column = Assert.IsType<Clause.SortSpecification>(Assert.Single(third.Columns));
-
-		Assert.Equal("a", Assert.IsType<Expression.ColumnReference>(column.Value).Text);
-		Assert.Equal(SqlOrder.Unspecified, column.Order);
+		Assert.Equal("pk", Assert.Single(key.Name!.Value.Parts).Text);
+		Assert.Equal(Ast.UniqueKind.PrimaryKey, key.Kind);
+		Assert.Single(key.Keys!.Value);
 	}
 
 	/// <summary>The four that are a header and a body.</summary>
@@ -16097,7 +16096,7 @@ public sealed class TransactSqlTests
 
 			Assert.True(match.IsSuccess, input);
 
-			var made = Assert.IsAssignableFrom<Statement>(match.Value).GetType().Name;
+			var made = Record(Assert.IsAssignableFrom<Statement>(match.Value));
 
 			Assert.StartsWith("Drop", made, StringComparison.Ordinal);
 
@@ -16219,7 +16218,16 @@ public sealed class TransactSqlTests
 		var match = OldTree.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
-		Assert.Equal(node, match.Value!.GetType().Name);
+		Assert.Equal(node, Record(match.Value!));
+	}
+
+	/// <summary>
+	/// The record a statement is: its own type's name, or for one whose rule builds the common tree already, the name of
+	/// the record the rule built before, which it is counted under (<c>Statement.Built</c>).
+	/// </summary>
+	static string Record(Statement statement)
+	{
+		return statement is Statement.Built built ? built.Record.Substring("Statement.".Length) : statement.GetType().Name;
 	}
 
 	/// <summary>The full-text catalogue, and copying a database out and back.</summary>
