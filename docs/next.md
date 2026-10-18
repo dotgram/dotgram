@@ -26004,3 +26004,50 @@ the grammar's own, at the same place with the same message.
   select-long 11,682 to 35,694 ns, conditions1000 +138% — and a refusal +5..6%, what locating costs it. The
   benchmarks' README keeps the table, so that a T-SQL row that moves before the rules build the common tree is
   held against it first; until then no T-SQL figure taken on main is quoted.
+
+## T-SQL's statement rules build the common tree
+
+Every statement rule of `TransactSql.gram` but the query's now builds the statement of `DotGram.Sql.Ast` in its own
+action: the DDL sections first, then the ones that change rows and the procedural ones, then security and the
+server. Their parts — names, values, types, queries, the clauses the old tree kept — are still the T-SQL tree's, and
+the bridge carries them across as it did; what goes is the bridge's statement arms. A query, and every part, is the
+next step's.
+
+- **Where such a statement stands.** The rules that hold statements — a text of statements, a block, a body, an
+  `IF` — are not switched yet and hold the T-SQL tree's `Statement`. A switched rule hands back `Statement.Built`,
+  which holds the common tree's statement, or the gap its builder found; the bridge carries it as itself and throws
+  the gap there, so a statement the common tree has no place for is still an `Extension` exactly where it was one,
+  alone or inside a procedure. It is counted under the record its rule built before, so the family baselines did not
+  move.
+- **The text before the reading.** The bridge reads the words the old tree drops (`AS`, `PROC`, `TRAN`, …) from the
+  text at the spans of the old nodes, and it was handed the text after the parse. A builder runs during it, so each
+  entry now carries its reading with its text from before it starts (`Bridge.Over`). `parserInput` would have handed
+  it the text without that and is what the generator refuses (`GRAM5005`, see the entry before); `parserSpan` it does
+  not refuse, and a builder that cuts the statement's own text is handed the rule's extent.
+- **What a builder read, counted once.** The immediate carrier builds readings it then gives up. What a builder read
+  from the text is taken off the reading's count and kept with its statement, which puts it back when the statement
+  is carried; a reading given up leaves nothing counted.
+- **Checks that read a written text again.** A few conversions write what they built and read it back to compare the
+  words the old tree kept (a definition's tail, CREATE DATABASE's containment). Read back, the statement is now a
+  `Statement.Built`: such a reading is skimmed, its rules handing their builders what they read and nothing being
+  built, which would have checked itself without end.
+- **Where a statement's parts are gathered by other rules.** CREATE DATABASE, ALTER TABLE, ALTER INDEX, the
+  routines with their verb, INSERT, UPDATE, DELETE and MERGE are read by rules that gather the T-SQL tree's record
+  in pieces, and a data change table source, MERGE's WHEN and a guard (`Syntax.Returns`) hold or ask that record.
+  Their statement is built where the statement is complete: the rule that reads the table's name, the verb, the
+  WITH in front. Where a conversion reads the T-SQL tree's record, the builder still gathers the rule's parts into
+  it, and the record is then no statement of any tree; rewriting those conversions onto parameters, a few thousand
+  lines that build nothing different, waits for the parts.
+- **Held to the tree before.** Every batch of the ScriptDom corpus and every string of `TransactSqlTests` were read
+  through the plain and the located door before and after each section, and the two dumps of the trees (every
+  member, every span) and of the refusals were compared byte for byte: the same, at each of the three. The old
+  tree's text debts of the switched statements (`ByCase`) went to nothing: their round trip now compares the common
+  tree, which keeps the words as its own.
+- **Speed.** The bridge's cost is in the parts, which it still carries, and not in the statement it now no longer
+  dispatches, so the rows read as they did. A first measurement of the three sections read some rows a few per cent
+  slower with more bytes: each public entry allocated a carriage and a list to count what the builders read, which
+  nothing asks of it, and each built statement a closure, a delegate and a name; those are gone. Against main, a
+  paired stand in a shared window, T-SQL rows, five runs each with the parent's A/A (directional): create-table
+  -0.3% (A/A +2.5%), select-long -2.0% (+0.2%), insert-values -1.0% (+0.2%), update-subquery +0.6% (0.0%), script400
+  -2.9% (+2.0%), conditions1000 +3.2% (+0.7%), refused-late +2.0% (-0.5%); the bytes the same or up to 192 more a
+  row (select-long +0.4%, insert-values.at +1.5%). The carriage's own cost goes with the bridge.
