@@ -66,6 +66,7 @@ static class Program
 			"W1b"          => [.. Fix44All.Where(r => r[0] == 'I').Select(r => "Fix44_" + r)],
 			"W2"           => [.. Others.Select(r => "Fix42_" + r), .. Others.Select(r => "Fix50_" + r)],
 			"W3" or "dry8" => [.. Fix44All.Select(r => "Fix44_" + r)],
+			"WI" or "WI8" or "dryWI" or "dryWI8" => ["Fix44_I1_GroupsForeach", "Fix44_I2_GroupsFor", "Fix44_I9_SelectForeach", "Fix44_I10_NewList"],
 			"W4"           => [.. Fix44All.Where(r => r[0] == 'I' && r[1] != '6').Select(r => "Fix44_" + r)],
 			_              => throw new ArgumentException("No window " + window),
 		};
@@ -74,7 +75,7 @@ static class Program
 		if (Environment.GetEnvironmentVariable("FIXH1_ROWS") is { Length: > 0 } only)
 			rows = [.. rows.Where(r => only.Split(',').Any(o => r.EndsWith(o, StringComparison.Ordinal)))];
 
-		var runtime = window is "W3" or "dry8" ? CoreRuntime.Core80 : CoreRuntime.Core10_0;
+		var runtime = window is "W3" or "dry8" or "WI8" or "dryWI8" ? CoreRuntime.Core80 : CoreRuntime.Core10_0;
 		var config  = DefaultConfig.Instance
 			.AddExporter(JsonExporter.Full)
 			.AddFilter(new NameFilter(name => rows.Contains(name)))
@@ -82,9 +83,12 @@ static class Program
 
 		foreach (var column in columns)
 		{
+			// A column is a build of DotGram.Finance: A1 and A2 the same one, L and F the shape Q built from two branches.
+			var root = Environment.GetEnvironmentVariable("FIXM_ROOT") ?? "/ramdisk/build/dotgram/fix-m";
+			var (shape, dlls) = column[0] switch { 'A' => ("A", "dllsA"), 'L' => ("Q", "dllsL"), 'F' => ("Q", "dllsF"), _ => (column[..1], "dlls") };
 			var job = (window.StartsWith("dry", StringComparison.Ordinal) ? Job.Dry : Job.Default.WithLaunchCount(3).WithWarmupCount(5).WithIterationCount(15))
 				.WithRuntime(runtime)
-				.WithArguments([new MsBuildArgument("/p:FixShape=" + column[..1])])
+				.WithArguments([new MsBuildArgument("/p:FixShape=" + shape), new MsBuildArgument("/p:FixShapeDlls=" + root + "/" + dlls), new MsBuildArgument("/p:FixVariant=" + column)])
 				.WithEnvironmentVariable("FIXH1_COLUMN", column)
 				.WithId(column);
 

@@ -15,7 +15,7 @@
 		<DefineConstants>$(DefineConstants);FIXSHAPE_$(FixShape)</DefineConstants>
 
 		<!-- BenchmarkDotNet builds the columns side by side: each its own output. -->
-		<ArtifactsPivots>$(Configuration.ToLowerInvariant())_$(TargetFramework)_$(FixShape)</ArtifactsPivots>
+		<ArtifactsPivots>$(Configuration.ToLowerInvariant())_$(TargetFramework)_$(FixShape)$(FixVariant)</ArtifactsPivots>
 	</PropertyGroup>
 
 	<ItemGroup>
