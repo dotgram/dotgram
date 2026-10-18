@@ -23,6 +23,25 @@ public static partial class CSharpEmitter
 				element.Ranges.Any(range => range.To > 255 && !(range.From == 0 && range.To == char.MaxValue))))
 				return "byte sets must use values in 0..255 without Unicode categories or external sets";
 		}
+
+		// A type the grammar makes for a rule holds a raw capture as a string, and a raw capture
+		// of the byte form is a ReadOnlySpan<byte> that nothing decodes (§6.3): the constructor
+		// call written for it did not compile.
+		foreach (var rule in rules)
+		{
+			if (graph.Types.ContainsKey(rule))
+				continue;
+
+			foreach (var member in graph.Results[rule])
+				if (member.Element is null &&
+					(member.Rule is null ||
+					!graph.Types.ContainsKey(member.Rule) && (!graph.Results.TryGetValue(member.Rule, out var held) || held.Count == 0)))
+				{
+					return $"the type made for '{rule.Name}' holds the raw capture '{member.Name}' as a string, and a raw " +
+						"capture over bytes is a ReadOnlySpan<byte>; declare the rule's type and build it with '=>'";
+				}
+		}
+
 		return null;
 	}
 
