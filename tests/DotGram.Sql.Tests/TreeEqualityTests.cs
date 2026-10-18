@@ -93,9 +93,13 @@ public sealed class TreeEqualityTests
 		Assert.True(changed > 2_000, $"{changed} statements with a literal");
 		Assert.True(collisions <= Tolerated(changed), $"{collisions} of {changed} changed statements hash as before");
 		Assert.True(distinct.Count > 4_000, $"{distinct.Count} distinct statements");
-		var hashed = distinct.Select(static one => one.GetHashCode()).Distinct().Count();
 
-		Assert.True(distinct.Count - hashed <= Tolerated(distinct.Count), $"{distinct.Count} distinct statements, {hashed} distinct hashes");
+		// A statement whose rule builds the common tree hashes as that tree does, whose records hash a member left out as its
+		// default (`CONTAINMENT = NONE` and none at all): the hashes held here are this tree's.
+		var own    = distinct.Where(static one => one is not Statement.Built).ToList();
+		var hashed = own.Select(static one => one.GetHashCode()).Distinct().Count();
+
+		Assert.True(own.Count - hashed <= Tolerated(own.Count), $"{own.Count} distinct statements, {hashed} distinct hashes");
 	}
 
 	/// <summary>
@@ -776,6 +780,10 @@ public sealed class TreeEqualityTests
 	/// <summary>The nodes and lists a node holds directly.</summary>
 	static IEnumerable<object> Held(object value)
 	{
+		// A statement whose rule builds the common tree holds none of this tree's nodes.
+		if (value is Statement.Built)
+			yield break;
+
 		if (value is ISqlSpan node)
 		{
 			foreach (var property in Writable(node.GetType()))

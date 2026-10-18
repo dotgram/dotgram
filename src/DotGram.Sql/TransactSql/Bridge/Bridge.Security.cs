@@ -73,14 +73,12 @@ static partial class Bridge
 				Statement.CredentialDefinition credential => Credential(credential),
 				Statement.DatabaseScopedCredentialDefinition credential => DatabaseScopedCredential(credential),
 				Statement.SecurityPolicyDefinition policy => SecurityPolicy(policy),
-				Statement.CryptographicProviderDefinition provider => CryptographicProvider(provider),
 				Statement.OpenSymmetricKey open   => OpenSymmetricKey(open),
 				Statement.OpenMasterKey open      => OpenMasterKey(open),
 				Statement.CloseSymmetricKey close => new Ast.Statement.CloseSymmetricKey(Values.Part(close, close.Name)),
 				Statement.CloseAllSymmetricKeys   => new Ast.Statement.CloseAllSymmetricKeys(),
 				Statement.CloseMasterKey          => new Ast.Statement.CloseMasterKey(),
 				Statement.Classification classification => Classification(classification),
-				Statement.AddSignature add        => AddSignature(add),
 				Statement.Grant grant             => Grant(grant),
 				Statement.Deny deny               => Deny(deny),
 				Statement.Revoke revoke           => Revoke(revoke),
@@ -1471,7 +1469,7 @@ static partial class Bridge
 			};
 		}
 
-		static Ast.Statement CryptographicProvider(Statement.CryptographicProviderDefinition old)
+		internal static Ast.Statement CryptographicProvider(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -1864,11 +1862,17 @@ static partial class Bridge
 			return new Ast.SignatureProof.Signature(signature);
 		}
 
-		static Ast.Statement AddSignature(Statement.AddSignature old)
+		/// <summary>ADD SIGNATURE, on the common tree: what signs, the module it signs and whether it countersigns.</summary>
+		internal static Statement AddSignature(SqlList<Expression> by, string? to, bool counter)
 		{
-			var (kind, module) = SignedModule(old, old.To, "Statement.AddSignature.To");
+			var old = new Defining("Statement.AddSignature", "");
 
-			return new Ast.Statement.AddSignature(old.Counter, module, Signers(old, old.By)) { Class = kind };
+			return Hold(old, () =>
+			{
+				var (kind, module) = SignedModule(old, to, "Statement.AddSignature.To");
+
+				return new Ast.Statement.AddSignature(counter, module, Signers(old, by)) { Class = kind };
+			});
 		}
 
 		static Ast.Statement Role(Statement.CreateRole old)

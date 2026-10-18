@@ -114,6 +114,19 @@ static class Trees
 		if (left is not ISqlSpan)
 			return;
 
+		// A statement whose rule builds the common tree: what it holds, compared as the common tree is.
+		if (left is Statement.Built built)
+		{
+			var other = (Statement.Built)right;
+
+			if (built.Gap?.Message != other.Gap?.Message)
+				found.Add(new Diff([.. path], $"gap {built.Gap?.Message} against {other.Gap?.Message}", left, right));
+			else
+				Compare(built.Made, other.Made, [.. path, new Step(left, nameof(built.Made), null)], false, byCase, found);
+
+			return;
+		}
+
 		var record = Bridge.NameOf(left);
 
 		foreach (var property in Properties(left.GetType()))

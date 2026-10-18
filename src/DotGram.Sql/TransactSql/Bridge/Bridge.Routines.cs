@@ -34,12 +34,6 @@ static partial class Bridge
 				Statement.CreateProcedure procedure => Procedure(procedure),
 				Statement.CreateFunction function => Function(function),
 				Statement.CreateTrigger trigger => Trigger(trigger),
-				Statement.AssemblyDefinition assembly => Assembly(assembly),
-				Statement.RuleDefinition rule => Rule(rule),
-				Statement.DefaultDefinition @default => Default(@default),
-				Statement.AggregateDefinition aggregate => Aggregate(aggregate),
-				Statement.XmlSchemaCollectionDefinition collection => SchemaCollection(collection, alter: false),
-				Statement.AlterXmlSchemaCollection collection => SchemaCollection(collection, alter: true),
 				Statement.TriggerSwitch(var enable, var names, var on) => Switch(old, enable, names, on),
 				Query.FromExecute         => throw BridgeGap.Open(old, "inventory Query.FromExecute (outside an INSERT)"),
 				_ when Owned(Owns, old) => throw Unconverted(old),
@@ -319,7 +313,7 @@ static partial class Bridge
 		/// <c>CREATE ASSEMBLY a [AUTHORIZATION o] FROM v, … [WITH PERMISSION_SET = …]</c>, or ALTER ASSEMBLY's parts in their
 		/// order: FROM, WITH, DROP FILE, ADD FILE.
 		/// </summary>
-		static Ast.Statement Assembly(Statement.AssemblyDefinition old)
+		internal static Ast.Statement Assembly(Defining old)
 		{
 			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.AssemblyDefinition (nothing after the name)");
 			var tokens = Located(tail);
@@ -411,7 +405,7 @@ static partial class Bridge
 			return Checked(old, made);
 		}
 
-		static Ast.AssemblyPermissionSet Permission(Statement old, string word)
+		static Ast.AssemblyPermissionSet Permission(ISqlSpan old, string word)
 		{
 			return word.ToUpperInvariant() switch
 			{
@@ -423,7 +417,7 @@ static partial class Bridge
 		}
 
 		/// <summary><c>CREATE RULE r AS condition</c>, the condition read again as a WHERE.</summary>
-		static Ast.Statement Rule(Statement.RuleDefinition old)
+		internal static Ast.Statement Rule(Defining old)
 		{
 			var tail = old.Tail ?? "";
 
@@ -433,7 +427,7 @@ static partial class Bridge
 		}
 
 		/// <summary><c>CREATE DEFAULT d AS value</c>, the value read again as a select list's.</summary>
-		static Ast.Statement Default(Statement.DefaultDefinition old)
+		internal static Ast.Statement Default(Defining old)
 		{
 			var tail = old.Tail ?? "";
 
@@ -443,7 +437,7 @@ static partial class Bridge
 		}
 
 		/// <summary><c>CREATE AGGREGATE a (@p [AS] type [NULL | NOT NULL], …) RETURNS type EXTERNAL NAME asm[.class]</c>.</summary>
-		static Ast.Statement Aggregate(Statement.AggregateDefinition old)
+		internal static Ast.Statement Aggregate(Defining old)
 		{
 			var tail    = old.Tail ?? "";
 			var tokens  = Located(tail);
@@ -477,7 +471,7 @@ static partial class Bridge
 		}
 
 		/// <summary><c>CREATE XML SCHEMA COLLECTION c AS value</c> and <c>ALTER … ADD value</c>.</summary>
-		static Ast.Statement SchemaCollection(Statement.Definition old, bool alter)
+		internal static Ast.Statement SchemaCollection(Defining old, bool alter)
 		{
 			var tail   = old.Tail ?? "";
 			var tokens = Located(tail);
@@ -493,7 +487,7 @@ static partial class Bridge
 		}
 
 		/// <summary><c>CREATE TYPE t EXTERNAL NAME asm[.class]</c>, which the Tables family hands on.</summary>
-		internal static Ast.Statement ClrType(Statement.TypeDefinition old)
+		internal static Ast.Statement ClrType(Defining old)
 		{
 			var tail   = old.Tail ?? "";
 			var tokens = Located(tail);
@@ -505,7 +499,7 @@ static partial class Bridge
 		/// A statement made of a tail the old tree keeps as written and compares as the oracle does: only one whose text,
 		/// written and read again, keeps the same tail carries over.
 		/// </summary>
-		static Ast.Statement Checked(Statement.Definition old, Ast.Statement made)
+		static Ast.Statement Checked(Defining old, Ast.Statement made)
 		{
 			string text;
 
@@ -518,7 +512,7 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] }
+			return Skim(text) is [Statement.Built { Given: Defining { Tail: var tail } }]
 				&& (tail == old.Tail || tail is not null && old.Tail is not null && Same(old, NameOf(old) + ".Tail", tail, old.Tail))
 				? made
 				: throw BridgeGap.Open(old, $"Trees.FreeText ({NameOf(old)}.Tail, written otherwise than the writer prints it)");
@@ -629,7 +623,7 @@ static partial class Bridge
 		}
 
 		/// <summary>A routine's verb: null for the plain CREATE, the standard's.</summary>
-		static Ast.DefinitionVerb? Verb(Statement old, string verb)
+		static Ast.DefinitionVerb? Verb(ISqlSpan old, string verb)
 		{
 			return string.Join(' ', Words(verb)) switch
 			{
@@ -644,7 +638,7 @@ static partial class Bridge
 		/// A type the old tree keeps as written and compares as the oracle does: only one written as the writer prints it,
 		/// token by token where the member is free text, carries over.
 		/// </summary>
-		static Ast.DataType Printed(Statement old, string text, string member)
+		static Ast.DataType Printed(ISqlSpan old, string text, string member)
 		{
 			var type = Values.Type(old, text);
 
@@ -652,7 +646,7 @@ static partial class Bridge
 		}
 
 		/// <summary>A returned table's columns, read as CREATE TABLE's body is.</summary>
-		static SqlList<Ast.TableElement> Elements(Statement old, SqlList<Clause> columns)
+		static SqlList<Ast.TableElement> Elements(ISqlSpan old, SqlList<Clause> columns)
 		{
 			return StatementOf(new Statement.TableDefinition("t", null, columns, [], [])) is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var items) }
 				? items
@@ -663,7 +657,7 @@ static partial class Bridge
 		/// The parameters: <c>@a [AS] type [NULL] [= v] [OUTPUT | OUT] [READONLY]</c>, or a cursor's <c>CURSOR VARYING
 		/// OUTPUT</c>. AS is read from the text; the words after the value carry over only in the order the writer prints.
 		/// </summary>
-		static SqlList<Ast.ParameterDefinition> Parameters(Statement old, SqlList<Clause> parameters)
+		static SqlList<Ast.ParameterDefinition> Parameters(ISqlSpan old, SqlList<Clause> parameters)
 		{
 			return Each(parameters, one =>
 			{
@@ -704,7 +698,7 @@ static partial class Bridge
 		/// A module's WITH: EXECUTE AS, the two ON NULL INPUT forms, and every other a setting. The old tree keeps EXECUTE
 		/// AS's word as written; CALLER, SELF and OWNER are key words at that place, whatever their case.
 		/// </summary>
-		static SqlList<Ast.RoutineOption> RoutineOptions(Statement old, SqlList<Clause>? options)
+		static SqlList<Ast.RoutineOption> RoutineOptions(ISqlSpan old, SqlList<Clause>? options)
 		{
 			return Each<Clause, Ast.RoutineOption>(options ?? [], one => one switch
 			{
@@ -727,7 +721,7 @@ static partial class Bridge
 		}
 
 		/// <summary>A string's context, <c>AS LOGIN = 'x'</c> or <c>AS USER = N'u'</c>.</summary>
-		static Ast.ExecutionContext Context(Statement old, Clause context)
+		static Ast.ExecutionContext Context(ISqlSpan old, Clause context)
 		{
 			return context switch
 			{
@@ -738,7 +732,7 @@ static partial class Bridge
 		}
 
 		/// <summary>One value passed: <c>@p = v</c>, and OUTPUT or OUT after it, which the old tree keeps as a hint.</summary>
-		static Ast.ExecuteArgument ExecuteArgument(Statement old, Expression value)
+		static Ast.ExecuteArgument ExecuteArgument(ISqlSpan old, Expression value)
 		{
 			Ast.OutputKeyword? output = null;
 
@@ -800,7 +794,7 @@ static partial class Bridge
 		}
 
 		/// <summary>One result set: its columns, read again as a table's, or AS OBJECT, AS TYPE, AS FOR XML.</summary>
-		static Ast.ResultSet ResultSet(Statement old, List<SqlTokens.Token> set)
+		static Ast.ResultSet ResultSet(ISqlSpan old, List<SqlTokens.Token> set)
 		{
 			var words = set.Select(static one => one.Kind == SqlTokens.Kind.Word ? one.Text.ToUpperInvariant() : one.Text).ToArray();
 			var rest  = string.Join(' ', set.Skip(2).Select(static one => one.Text));

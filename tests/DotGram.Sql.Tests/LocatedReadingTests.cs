@@ -627,6 +627,11 @@ public sealed class LocatedReadingTests
 
 		SqlWalker.Walk(statement, node =>
 		{
+			// A node of the common tree, held by a statement whose rule builds that tree: the bridge tells it where it was
+			// written, as it tells every node of that tree (TransactSqlEntryTests).
+			if (node is DotGram.Sql.Ast.ISqlNode)
+				return true;
+
 			var span = node.Span;
 
 			// A node told where it was written is this reading's own: one object shared between

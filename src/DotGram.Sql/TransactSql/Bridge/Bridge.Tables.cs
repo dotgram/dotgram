@@ -46,14 +46,9 @@ static partial class Bridge
 				Statement.AlterTable alter                   => AlterTable(alter),
 				Statement.CreateIndex index                  => CreateIndex(index),
 				Statement.AlterIndex alter                   => AlterIndex(alter),
-				Statement.FullTextIndexDefinition fullText   => CreateFullTextIndex(fullText),
-				Statement.AlterFullTextIndex fullText        => AlterFullTextIndex(fullText),
 				Statement.ViewDefinition view                => View(view),
 				Statement.StatisticsDefinition statistics    => CreateStatistics(statistics),
 				Statement.UpdateStatistics statistics        => UpdateStatistics(statistics),
-				Statement.TypeDefinition type                => CreateType(type),
-				Statement.SynonymDefinition synonym          => Synonym(synonym),
-				Statement.SequenceDefinition sequence        => Sequence(sequence),
 				_ when Owned(Owns, old) => throw Unconverted(old),
 				_                       => null,
 			};
@@ -1994,7 +1989,7 @@ static partial class Bridge
 		/// CREATE TYPE, which the old tree keeps as text after the name: a type made of another, with its nullability,
 		/// or of a table, whose body is read again as a table's. A type of an assembly's class is a gap.
 		/// </summary>
-		static Ast.Statement CreateType(Statement.TypeDefinition old)
+		internal static Ast.Statement CreateType(Defining old)
 		{
 			var tail  = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.TypeDefinition (nothing after the name)");
 			var words = Words(tail);
@@ -2045,7 +2040,7 @@ static partial class Bridge
 		}
 
 		/// <summary>CREATE SYNONYM, which the old tree keeps as text after the name: <c>FOR</c> and the name stood for.</summary>
-		static Ast.Statement Synonym(Statement.SynonymDefinition old)
+		internal static Ast.Statement Synonym(Defining old)
 		{
 			var tail = old.Tail ?? "";
 
@@ -2060,7 +2055,7 @@ static partial class Bridge
 		/// catalog and filegroup, and the options. The options are carried as every option is; a catalog alone in
 		/// brackets, and the filegroup before the catalog, are gaps.
 		/// </summary>
-		static Ast.Statement CreateFullTextIndex(Statement.FullTextIndexDefinition old)
+		internal static Ast.Statement CreateFullTextIndex(Defining old)
 		{
 			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.FullTextIndexDefinition (nothing after the table)");
 			var tokens = Located(tail);
@@ -2217,7 +2212,7 @@ static partial class Bridge
 		/// ALTER FULLTEXT INDEX, which the old tree keeps as text after the table: one action, and <c>WITH NO
 		/// POPULATION</c> after it as the action's one option, the name <c>NO</c> with the word <c>POPULATION</c>.
 		/// </summary>
-		static Ast.Statement AlterFullTextIndex(Statement.AlterFullTextIndex old)
+		internal static Ast.Statement AlterFullTextIndex(Defining old)
 		{
 			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.AlterFullTextIndex (nothing after the table)");
 			var tokens = Located(tail);
@@ -2378,7 +2373,7 @@ static partial class Bridge
 		/// says <c>NO</c> and the type, and as nodes, which hold the values; the two are read side by side, in the
 		/// order written.
 		/// </summary>
-		static Ast.Statement Sequence(Statement.SequenceDefinition old)
+		internal static Ast.Statement Sequence(Defining old)
 		{
 			var words   = old.Tail is { } tail ? Words(tail) : [];
 			var options = old.Options ?? [];

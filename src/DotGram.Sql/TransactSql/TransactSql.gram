@@ -2711,24 +2711,24 @@ CodeStatement : @Statement
 	= "CREATE"i & "ASSEMBLY"i & name: TSqlIdentifier
 	  & tail: (("AUTHORIZATION"i & TSqlIdentifier)? & "FROM"i & SetValue & (',' & SetValue)*
 			   & ("WITH"i & "PERMISSION_SET"i & '=' & AssemblyPermission)?)
-		=> @(Statement.Defined("ASSEMBLY", name, Syntax.Tail(tail), "CREATE"))
+		=> @(Bridge.Defined("ASSEMBLY", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "ASSEMBLY"i & name: TSqlIdentifier
 	  & tail: (("FROM"i & SetValue)? & options: AssemblyOptions? & AssemblyDrop? & AssemblyAdd?)
 	  & when @(Syntax.Tail(tail) is not null)
-		=> @(Statement.Defined("ASSEMBLY", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("ASSEMBLY", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: TSqlIdentifier & tail: ("FROM"i & "FILE"i & '=' & Quoted)
-		=> @(Statement.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "CREATE"))
+		=> @(Bridge.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: TSqlIdentifier
 	  & tail: ("ENABLE"i | "DISABLE"i | "FROM"i & "FILE"i & '=' & Quoted)
-		=> @(Statement.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "ALTER"))
+		=> @(Bridge.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "ALTER"))
 	| "CREATE"i & "EXTERNAL"i & "LANGUAGE"i & name: TSqlIdentifier
 	  & tail: (("AUTHORIZATION"i & TSqlIdentifier)? & "FROM"i & file: LanguageFile & (',' & other: LanguageFile)?)
 	  & when @(Syntax.LanguageFiles(file, other))
-		=> @(Statement.Defined("EXTERNAL LANGUAGE", name, Syntax.Tail(tail), "CREATE"))
+		=> @(Bridge.Defined("EXTERNAL LANGUAGE", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "EXTERNAL"i & "LANGUAGE"i & name: TSqlIdentifier
 	  & tail: (("AUTHORIZATION"i & TSqlIdentifier)?
 			   & (("SET"i | "ADD"i) & LanguageFile | "REMOVE"i & "PLATFORM"i & LanguagePlatform))
-		=> @(Statement.Defined("EXTERNAL LANGUAGE", name, Syntax.Tail(tail), "ALTER"))
+		=> @(Bridge.Defined("EXTERNAL LANGUAGE", name, Syntax.Tail(tail), "ALTER"))
 	// A model served from outside, SQL Server 2025's, on no page on disk; put to the engine
 	// forty-three times. Created with an owner and its settings in brackets after `WITH`,
 	// altered with `SET (…)` and nothing else — no owner, no `WITH`, no second `SET` (`Msg
@@ -2740,21 +2740,21 @@ CodeStatement : @Statement
 	| "CREATE"i & "EXTERNAL"i & "MODEL"i & name: TSqlIdentifier
 	  & tail: (("AUTHORIZATION"i & TSqlIdentifier)? & "WITH"i & options: ModelOptions)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "EXTERNAL"i & "MODEL"i & name: TSqlIdentifier & tail: ("SET"i & options: ModelOptions)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "RULE"i & name: TwoPartName & tail: ("AS"i & c: SearchCondition) & when @(Syntax.Binds(c, true))
-		=> @(Statement.Defined("RULE", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("RULE", name, Syntax.Tail(tail)))
 	| "CREATE"i & "DEFAULT"i & name: TwoPartName & tail: ("AS"i & v: SetValue) & when @(Syntax.Binds(v, false))
-		=> @(Statement.Defined("DEFAULT", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("DEFAULT", name, Syntax.Tail(tail)))
 	| "CREATE"i & "AGGREGATE"i & name: TwoPartName
 	  & tail: ('(' & AggregateParameter & (',' & AggregateParameter)* & ')'
 			   & "RETURNS"i & TSqlDataType & "EXTERNAL"i & "NAME"i & TSqlIdentifier & ('.' & TSqlIdentifier)?)
-		=> @(Statement.Defined("AGGREGATE", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("AGGREGATE", name, Syntax.Tail(tail)))
 	| "ADD"i & counter: "COUNTER"i? & "SIGNATURE"i & "TO"i & to: SignedModule & "BY"i
 	  & crypto: SignatureCrypto & (',' & cryptos: SignatureCrypto)*
-		=> @(new Statement.AddSignature(SqlList.Own(Syntax.Listed(crypto, cryptos)), to, counter is not null))
+		=> @(Bridge.Security.AddSignature(SqlList.Own(Syntax.Listed(crypto, cryptos)), to, counter is not null))
 
 AssemblyPermission = "SAFE"i | "EXTERNAL_ACCESS"i | "UNSAFE"i
 
@@ -2890,13 +2890,13 @@ TypeStatement : @Statement
 	  & tail: ("FROM"i & TSqlDataType & NullSpec?
 			  | "EXTERNAL"i & "NAME"i & TSqlIdentifier & ('.' & TSqlIdentifier)?
 			  | "AS"i & "TABLE"i & TableTypeBody & ("WITH"i & '(' & "MEMORY_OPTIMIZED"i & '=' & OnOff & ')')?)
-		=> @(Statement.Defined("TYPE", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("TYPE", name, Syntax.Tail(tail)))
 	| "CREATE"i & "XML"i & "SCHEMA"i & "COLLECTION"i & name: TSqlQualifiedName & tail: ("AS"i & TSqlValueExpression)
-		=> @(Statement.Defined("XML SCHEMA COLLECTION", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("XML SCHEMA COLLECTION", name, Syntax.Tail(tail)))
 	| "ALTER"i & "XML"i & "SCHEMA"i & "COLLECTION"i & name: TSqlQualifiedName & tail: ("ADD"i & TSqlValueExpression)
-		=> @(Statement.Defined("ALTER XML SCHEMA COLLECTION", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER XML SCHEMA COLLECTION", name, Syntax.Tail(tail)))
 	| "CREATE"i & "SYNONYM"i & synonym: SynonymName & tail: ("FOR"i & TSqlQualifiedName)
-		=> @(Statement.Defined("SYNONYM", synonym, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("SYNONYM", synonym, Syntax.Tail(tail)))
 
 TableTypeBody : @Clause[] = '(' & body: DeclaredBody & ')' & when @(Syntax.TableTyped(body)) => @(body)
 
@@ -2923,10 +2923,10 @@ TypeName    = TSqlIdentifier & ('.' & TSqlIdentifier)*
 SequenceStatement : @Statement
 	= "CREATE"i & "SEQUENCE"i & name: SequenceName & tail: (options: SequenceOption*)
 	  & when @(Syntax.NamedOnce(null, options) && !Syntax.HasOption(options, "RESTART"))
-		=> @(Statement.Defined("SEQUENCE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("SEQUENCE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "SEQUENCE"i & name: SequenceName & tail: (options: SequenceOption+)
 	  & when @(Syntax.NamedOnce(null, options) && !Syntax.HasOption(options, "START") && !Syntax.HasOption(options, "AS"))
-		=> @(Statement.Defined("SEQUENCE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("SEQUENCE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 
 SequenceName : @string = t: TSqlQualifiedName => @(t)
 
@@ -2964,16 +2964,16 @@ PartitionStatement : @Statement
 	= "CREATE"i & "PARTITION"i & "FUNCTION"i & name: TSqlIdentifier
 	  & tail: ('(' & TSqlDataType & ("COLLATE"i & TSqlQualifiedName)? & ')' & "AS"i & "RANGE"i & ("LEFT"i | "RIGHT"i)? & "FOR"i & "VALUES"i
 			   & '(' & (PartitionBoundary & (',' & PartitionBoundary)*)? & ')')
-		=> @(Statement.Defined("PARTITION FUNCTION", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("PARTITION FUNCTION", name, Syntax.Tail(tail)))
 	| "ALTER"i & "PARTITION"i & "FUNCTION"i & name: TSqlIdentifier
 	  & tail: ('(' & ')' & ("SPLIT"i | "MERGE"i) & ("RANGE"i & '(' & PartitionBoundary & ')')?)
-		=> @(Statement.Defined("ALTER PARTITION FUNCTION", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER PARTITION FUNCTION", name, Syntax.Tail(tail)))
 	| "CREATE"i & "PARTITION"i & "SCHEME"i & name: TSqlIdentifier
 	  & tail: ("AS"i & "PARTITION"i & TSqlIdentifier & "ALL"i? & "TO"i
 			   & '(' & PartitionFileGroup & (',' & PartitionFileGroup)* & ')')
-		=> @(Statement.Defined("PARTITION SCHEME", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("PARTITION SCHEME", name, Syntax.Tail(tail)))
 	| "ALTER"i & "PARTITION"i & "SCHEME"i & name: TSqlIdentifier & tail: ("NEXT"i & "USED"i & PartitionFileGroup?)
-		=> @(Statement.Defined("ALTER PARTITION SCHEME", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER PARTITION SCHEME", name, Syntax.Tail(tail)))
 
 PartitionBoundary  = "NULL"i | TSqlValueExpression
 PartitionFileGroup = TSqlIdentifier | Quoted
@@ -5427,28 +5427,28 @@ FullTextStatement : @Statement
 	= "CREATE"i & "FULLTEXT"i & "INDEX"i & "ON"i & on: TSqlQualifiedName
 	  & tail: (('(' & FullTextColumn & (',' & FullTextColumn)* & ')')?
 			   & "KEY"i & "INDEX"i & TSqlIdentifier & ("ON"i & FullTextCatalogOn)? & FullTextWith?)
-		=> @(Statement.Defined("FULLTEXT INDEX", on, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("FULLTEXT INDEX", on, Syntax.Tail(tail)))
 	| "ALTER"i & "FULLTEXT"i & "INDEX"i & "ON"i & on: TSqlQualifiedName & tail: FullTextAction
-		=> @(Statement.Defined("ALTER FULLTEXT INDEX", on, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER FULLTEXT INDEX", on, Syntax.Tail(tail)))
 
 	| "CREATE"i & "FULLTEXT"i & "CATALOG"i & name: TSqlIdentifier
 	  & tail: (("ON"i & "FILEGROUP"i & TSqlIdentifier)? & ("IN"i & "PATH"i & TSqlValueExpression)?
 			   & CatalogWith? & AsDefault? & ("AUTHORIZATION"i & TSqlIdentifier)?)
-		=> @(Statement.Defined("FULLTEXT CATALOG", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("FULLTEXT CATALOG", name, Syntax.Tail(tail)))
 	| "ALTER"i & "FULLTEXT"i & "CATALOG"i & name: TSqlIdentifier & tail: FullTextCatalogAction
-		=> @(Statement.Defined("ALTER FULLTEXT CATALOG", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER FULLTEXT CATALOG", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "FULLTEXT"i & "STOPLIST"i & name: TSqlIdentifier
 	  & tail: (StopListFrom? & ("AUTHORIZATION"i & TSqlIdentifier)?)
-		=> @(Statement.Defined("FULLTEXT STOPLIST", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("FULLTEXT STOPLIST", name, Syntax.Tail(tail)))
 	| "ALTER"i & "FULLTEXT"i & "STOPLIST"i & name: TSqlIdentifier & tail: StopListAction
-		=> @(Statement.Defined("ALTER FULLTEXT STOPLIST", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER FULLTEXT STOPLIST", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: TSqlIdentifier
 	  & tail: (("FROM"i & TSqlQualifiedName)? & ("AUTHORIZATION"i & TSqlIdentifier)?)
-		=> @(Statement.Defined("SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
 	| "ALTER"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: TSqlIdentifier & tail: PropertyListAction
-		=> @(Statement.Defined("ALTER SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
 
 // Bracketed or not, which the published block writes one way and the corpus both — and the engine
 // reads both. Each option once and in any order (`Msg 102`), the equals sign wanted or not: how
@@ -5539,10 +5539,10 @@ BackupStatement : @Statement
 	// A group is several databases, which no other backup is.
 	= "BACKUP"i & "GROUP"i & name: BackupGroup
 	  & tail: ("TO"i & BackupDevices & MirrorTo* & BackupWith?)
-		=> @(Statement.BackedUp("GROUP", name, Syntax.Tail(tail)))
+		=> @(Bridge.Database.BackedUp("GROUP", name, Syntax.Tail(tail), parserSpan))
 	| "BACKUP"i & what: BackupWhat & name: BackupTarget?
 	  & tail: (BackupFiles* & "TO"i & BackupDevices & MirrorTo* & BackupWith?)
-		=> @(Statement.BackedUp(what, name, Syntax.Tail(tail)))
+		=> @(Bridge.Database.BackedUp(what, name, Syntax.Tail(tail), parserSpan))
 	// A key or a certificate to a file, put to the engine some sixty times: the path and the
 	// passwords are strings, never variables; the name is one part. A certificate goes to a
 	// file only and takes no password of its own, its private key going beside it in a list
@@ -5550,28 +5550,28 @@ BackupStatement : @Statement
 	// file only.
 	| "BACKUP"i & "CERTIFICATE"i & key: TSqlIdentifier
 	  & tail: ("TO"i & "FILE"i & '=' & Quoted & CertificatePrivateKey?)
-		=> @(Statement.BackedUp("CERTIFICATE", key, Syntax.Tail(tail)))
+		=> @(Bridge.Database.BackedUp("CERTIFICATE", key, Syntax.Tail(tail), parserSpan))
 	| "BACKUP"i & "SYMMETRIC"i & "KEY"i & key: TSqlIdentifier & tail: ("TO"i & KeyPlace & KeyLockedBy)
-		=> @(Statement.BackedUp("SYMMETRIC KEY", key, Syntax.Tail(tail)))
+		=> @(Bridge.Database.BackedUp("SYMMETRIC KEY", key, Syntax.Tail(tail), parserSpan))
 	| "BACKUP"i & "MASTER"i & "KEY"i & tail: ("TO"i & KeyPlace & KeyLockedBy)
-		=> @(Statement.BackedUp("MASTER KEY", null, Syntax.Tail(tail)))
+		=> @(Bridge.Database.BackedUp("MASTER KEY", null, Syntax.Tail(tail), parserSpan))
 	| "BACKUP"i & "SERVICE"i & "MASTER"i & "KEY"i & tail: ("TO"i & "FILE"i & '=' & Quoted & KeyLockedBy)
-		=> @(Statement.BackedUp("SERVICE MASTER KEY", null, Syntax.Tail(tail)))
+		=> @(Bridge.Database.BackedUp("SERVICE MASTER KEY", null, Syntax.Tail(tail), parserSpan))
 
 // And back: the password it was locked with, then — for the two that are locked again — the
 // one to lock it with, in that order, and `FORCE` last.
 RestoreStatement : @Statement
 	= "RESTORE"i & "MASTER"i & "KEY"i & tail: ("FROM"i & KeyPlace & KeyUnlockedBy & KeyLockedBy & "FORCE"i?)
-		=> @(Statement.Restored("MASTER KEY", null, Syntax.Tail(tail)))
+		=> @(Bridge.Database.Restored("MASTER KEY", null, Syntax.Tail(tail), parserSpan))
 	| "RESTORE"i & "SERVICE"i & "MASTER"i & "KEY"i
 	  & tail: ("FROM"i & "FILE"i & '=' & Quoted & KeyUnlockedBy & "FORCE"i?)
-		=> @(Statement.Restored("SERVICE MASTER KEY", null, Syntax.Tail(tail)))
+		=> @(Bridge.Database.Restored("SERVICE MASTER KEY", null, Syntax.Tail(tail), parserSpan))
 	| "RESTORE"i & "SYMMETRIC"i & "KEY"i & key: TSqlIdentifier
 	  & tail: ("FROM"i & KeyPlace & KeyUnlockedBy & KeyLockedBy & "FORCE"i?)
-		=> @(Statement.Restored("SYMMETRIC KEY", key, Syntax.Tail(tail)))
+		=> @(Bridge.Database.Restored("SYMMETRIC KEY", key, Syntax.Tail(tail), parserSpan))
 	| "RESTORE"i & what: RestoreWhat & name: BackupTarget?
 	  & tail: (BackupFiles* & ("FROM"i & RestoreFrom)? & RestoreWith?)
-		=> @(Statement.Restored(what, name, Syntax.Tail(tail)))
+		=> @(Bridge.Database.Restored(what, name, Syntax.Tail(tail), parserSpan))
 
 // Where a key goes and comes from, and the two passwords it is locked and unlocked with.
 KeyPlace      = ("FILE"i | "URL"i) & '=' & Quoted
@@ -6736,15 +6736,10 @@ DropNamedKind
 CreateDatabaseStatement : @Statement
 	= "CREATE"i & "DATABASE"i & name: TSqlIdentifier & ("COLLATE"i & collation: TSqlQualifiedName)? & options: EditionOptions
 	  & ("WITH"i & first: CreateDatabaseOption & (',' & rest: CreateDatabaseOption)*)?
-		=> @(new Statement.CreateDatabase(name, Clause.None, Tail: "", Options: SqlList.OwnOrNull(options),
-				 With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))) with { Collation = collation })
+		=> @(Bridge.Database.Create(name, collation, SqlList.OwnOrNull(options), SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 	| "CREATE"i & "DATABASE"i & name: TSqlIdentifier & ("CONTAINMENT"i & '=' & containment: ("NONE"i | "PARTIAL"i))?
 	  & files: DatabaseFiles? & ("COLLATE"i & collation: TSqlQualifiedName)? & tail: DatabaseTail?
-		=> @((tail ?? new Statement.CreateDatabase("", Clause.None)) with
-			 {
-				 Name = name, Containment = containment, Collation = collation,
-				 Files = files?.Files ?? Clause.None, Primary = files?.Primary ?? false, Log = files?.Log,
-			 })
+		=> @(Bridge.Database.Create(name, containment, collation, files, tail))
 
 // What a database may be made out of instead of nothing: another database, a snapshot of
 // one, or files that already exist. Each is the tail's words, and then the bracket and the
@@ -6896,25 +6891,23 @@ FileGroupContains = "CONTAINS"i & FileGroupHolds
 AlterDatabaseStatement : @Statement
 	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & "FOR"i & "SECONDARY"i
 	  & scoped: ScopedSet
-		=> @(scoped with { Secondary = true })
+		=> @(Bridge.Database.Scoped(scoped with { Secondary = true }))
 	| "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & scoped: ScopedConfiguration
-		=> @(scoped)
+		=> @(Bridge.Database.Scoped(scoped))
 
 	// The one action that keeps what it read, so the one written before the rest.
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget
 	  & "SET"i & first: DatabaseSetting & (',' & rest: DatabaseSetting)* & how: DatabaseTermination?
-		=> @(new Statement.AlterDatabaseSet(name, SqlList.Own(Syntax.Listed(first, rest)), how))
+		=> @(Bridge.Database.AlterSet(name, SqlList.Own(Syntax.Listed(first, rest)), how))
 
 	// The one action with a body of its own: what is modified, and how the cutover goes.
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & "MODIFY"i & options: EditionOptions
 	  & ("WITH"i & with: ManualCutover)? & DatabaseTermination?
-		=> @(new Statement.AlterDatabaseModify(name, SqlList.OwnOrNull(options), SqlList.OwnOrNull(with)))
+		=> @(Bridge.Database.Modify(name, SqlList.OwnOrNull(options), SqlList.OwnOrNull(with), parserSpan))
 
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & action: AlterDatabaseAction
 	  & how: DatabaseTermination?
-		=> @(Statement.OfDatabase(
-				 name, action.Action, null,
-				 how is null ? action.Tail : action.Tail + " " + how))
+		=> @(Bridge.Database.OfDatabase(name, action.Action, how is null ? action.Tail : action.Tail + " " + how))
 
 DatabaseTarget : @string = "CURRENT"i => @("CURRENT") | t: TSqlIdentifier => @(t)
 

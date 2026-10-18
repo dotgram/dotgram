@@ -38,21 +38,7 @@ static partial class Bridge
 		{
 			made = old switch
 			{
-				Statement.AlterDatabaseModify modify => AlterModify(modify),
-				Statement.AlterDatabaseSet set => Target(set, set.Name, new Ast.AlterDatabaseAction.Set(Each(set.Settings, one => Setting(set, one)))) with { Termination = Termination(set, set.Termination) },
-				Statement.AlterDatabaseScopedConfiguration scoped => Scoped(scoped),
-				Statement.CreateDatabase create => Create(create),
-				Statement.PartitionFunctionDefinition or Statement.AlterPartitionFunction or Statement.PartitionSchemeDefinition or Statement.AlterPartitionScheme
-					or Statement.FullTextCatalogDefinition or Statement.AlterFullTextCatalog or Statement.FullTextStopListDefinition or Statement.AlterFullTextStopList
-					or Statement.SearchPropertyListDefinition or Statement.AlterSearchPropertyList
-					=> Checked((Statement.Definition)old, Defined((Statement.Definition)old)),
 				Statement.Checkpoint(var duration) => new Ast.Statement.Checkpoint(duration is null ? null : Values.Of(duration)),
-				Statement.Definition definition when definition.GetType().Name.StartsWith("Backup", StringComparison.Ordinal)
-					=> Checked(definition, Backup(definition)),
-				Statement.Definition definition when definition.GetType().Name.StartsWith("Restore", StringComparison.Ordinal)
-					=> Checked(definition, Restore(definition)),
-				Statement.Definition definition when definition.GetType().Name.StartsWith("AlterDatabase", StringComparison.Ordinal)
-					=> Alter(definition),
 				_ when Owned(Owns, old) => throw Unconverted(old),
 				_ => null,
 			};
@@ -60,12 +46,141 @@ static partial class Bridge
 			return made is not null;
 		}
 
+		/// <summary>What is backed up, on the common tree: the words that say what, the name, the words after it.</summary>
+		internal static Statement BackedUp(string what, string? name, string? tail, TransactSqlParser.SourceSpan at)
+		{
+			var record = what switch
+			{
+				"DATABASE"           => "Statement.BackupDatabase",
+				"LOG"                => "Statement.BackupTransactionLog",
+				"SERVER"             => "Statement.BackupServer",
+				"GROUP"              => "Statement.BackupGroup",
+				"CERTIFICATE"        => "Statement.BackupCertificate",
+				"MASTER KEY"         => "Statement.BackupMasterKey",
+				"SERVICE MASTER KEY" => "Statement.BackupServiceMasterKey",
+				"SYMMETRIC KEY"      => "Statement.BackupSymmetricKey",
+				_                    => throw Syntax.Unknown(what),
+			};
+			var old = new Defining(record, name ?? "") { Tail = tail, Span = At(at) };
+
+			return Hold(old, () => Checked(old, Backup(old)));
+		}
+
+		/// <summary>What is restored, likewise.</summary>
+		internal static Statement Restored(string what, string? name, string? tail, TransactSqlParser.SourceSpan at)
+		{
+			var record = what switch
+			{
+				"DATABASE"           => "Statement.RestoreDatabase",
+				"LOG"                => "Statement.RestoreLog",
+				"FILELISTONLY"       => "Statement.RestoreFileListOnly",
+				"HEADERONLY"         => "Statement.RestoreHeaderOnly",
+				"LABELONLY"          => "Statement.RestoreLabelOnly",
+				"REWINDONLY"         => "Statement.RestoreRewindOnly",
+				"VERIFYONLY"         => "Statement.RestoreVerifyOnly",
+				"MASTER KEY"         => "Statement.RestoreMasterKey",
+				"SERVICE MASTER KEY" => "Statement.RestoreServiceMasterKey",
+				"SYMMETRIC KEY"      => "Statement.RestoreSymmetricKey",
+				_                    => throw Syntax.Unknown(what),
+			};
+			var old = new Defining(record, name ?? "") { Tail = tail, Span = At(at) };
+
+			return Hold(old, () => Checked(old, Restore(old)));
+		}
+
+		/// <summary>
+		/// An ALTER DATABASE action other than SET and MODIFY's edition options, on the common tree: the database, the
+		/// action's words and what was written after them.
+		/// </summary>
+		internal static Statement OfDatabase(string name, string action, string? tail)
+		{
+			var record = action switch
+			{
+				"COLLATE"                         => "Statement.AlterDatabaseCollate",
+				"MODIFY NAME"                     => "Statement.AlterDatabaseModifyName",
+				"MODIFY FILEGROUP"                => "Statement.AlterDatabaseModifyFileGroup",
+				"MODIFY FILE"                     => "Statement.AlterDatabaseModifyFile",
+				"MODIFY"                          => "Statement.AlterDatabaseModify",
+				"ADD FILEGROUP"                   => "Statement.AlterDatabaseAddFileGroup",
+				"ADD LOG FILE"                    => "Statement.AlterDatabaseAddLogFile",
+				"ADD FILE"                        => "Statement.AlterDatabaseAddFile",
+				"REMOVE FILEGROUP"                => "Statement.AlterDatabaseRemoveFileGroup",
+				"REMOVE FILE"                     => "Statement.AlterDatabaseRemoveFile",
+				"REBUILD LOG"                     => "Statement.AlterDatabaseRebuildLog",
+				"PERFORM_CUTOVER"                 => "Statement.AlterDatabasePerformCutover",
+				"MODIFY BACKUP_STORAGE_REDUNDANCY" => "Statement.AlterDatabaseModifyBackupStorageRedundancy",
+				_                                 => throw Syntax.Unknown(action),
+			};
+			var old = new Defining(record, name) { Tail = Syntax.Tail(tail) };
+
+			return Hold(old, () => Alter(old));
+		}
+
+		/// <summary>ALTER DATABASE … SET, on the common tree: the database, its settings and how open transactions end.</summary>
+		internal static Statement AlterSet(string name, SqlList<Clause> settings, string? termination)
+		{
+			var old = new Defining("Statement.AlterDatabaseSet", name);
+
+			return Hold(old, () => Target(old, name, new Ast.AlterDatabaseAction.Set(Each(settings, one => Setting(old, one)))) with { Termination = Termination(old, termination) });
+		}
+
+		/// <summary>ALTER DATABASE … MODIFY with edition options, on the common tree.</summary>
+		internal static Statement Modify(string name, SqlList<Clause>? options, SqlList<Clause>? with, TransactSqlParser.SourceSpan at)
+		{
+			var old = new Defining("Statement.AlterDatabaseModify", name) { Span = At(at) };
+
+			return Hold(old, () => AlterModify(old, options, with));
+		}
+
+		/// <summary>ALTER DATABASE SCOPED CONFIGURATION, on the common tree, from what its rules read.</summary>
+		internal static Statement Scoped(Statement.AlterDatabaseScopedConfiguration read)
+		{
+			var old = new Read<Statement.AlterDatabaseScopedConfiguration>("Statement.AlterDatabaseScopedConfiguration", read);
+
+			return Hold(old, () => Scoped(old, read));
+		}
+
+		/// <summary>Azure's CREATE DATABASE, on the common tree: the name, the collation, the edition options and the WITH.</summary>
+		internal static Statement Create(string name, string? collation, SqlList<Clause>? options, SqlList<Clause>? with)
+		{
+			return Create(new Statement.CreateDatabase(name, Clause.None, Tail: "", Options: options, With: with) { Collation = collation });
+		}
+
+		/// <summary>
+		/// CREATE DATABASE, on the common tree: the name, the containment, the files and the collation, and the tail that
+		/// says what the database is made from, as its rules gathered them.
+		/// </summary>
+		internal static Statement Create(string name, string? containment, string? collation, Statement.CreateDatabase? files, Statement.CreateDatabase? tail)
+		{
+			return Create((tail ?? new Statement.CreateDatabase("", Clause.None)) with
+			{
+				Name = name, Containment = containment, Collation = collation,
+				Files = files?.Files ?? Clause.None, Primary = files?.Primary ?? false, Log = files?.Log,
+			});
+		}
+
+		static Statement Create(Statement.CreateDatabase read)
+		{
+			var old = new Read<Statement.CreateDatabase>("Statement.CreateDatabase", read);
+
+			return Hold(old, () => Create(old, read));
+		}
+
+		/// <summary>
+		/// Partition functions and schemes, full-text catalogues and stoplists, search property lists, on the common tree
+		/// (<see cref="Bridge.Defined"/>).
+		/// </summary>
+		internal static Ast.Statement Definition(Defining old)
+		{
+			return Checked(old, Defined(old));
+		}
+
 		/// <summary>
 		/// ALTER DATABASE's actions other than SET, which the old tree keeps as a record each and the words after the action
 		/// as text: read again by tokens, and a file specification as CREATE DATABASE's. The termination the grammar reads
 		/// after any of them, which the old tree keeps at the end of the text, is the statement's.
 		/// </summary>
-		static Ast.Statement Alter(Statement.Definition old)
+		static Ast.Statement Alter(Defining old)
 		{
 			var tail   = old.Tail ?? "";
 			var tokens = Located(tail);
@@ -83,29 +198,29 @@ static partial class Bridge
 
 			var words  = Words(tail);
 
-			Ast.AlterDatabaseAction action = old switch
+			Ast.AlterDatabaseAction action = old.Record switch
 			{
-				Statement.AlterDatabaseCollate => new Ast.AlterDatabaseAction.Collate(new Ast.CollationName(Values.Name(old, tail))),
-				Statement.AlterDatabaseModifyName when words is ["=", _] => new Ast.AlterDatabaseAction.ModifyName(Values.Part(old, tokens[1].Token.Text)),
-				Statement.AlterDatabaseModifyBackupStorageRedundancy when words is ["=", _] && tokens[1].Token.Kind == SqlTokens.Kind.String
+				"Statement.AlterDatabaseCollate" => new Ast.AlterDatabaseAction.Collate(new Ast.CollationName(Values.Name(old, tail))),
+				"Statement.AlterDatabaseModifyName" when words is ["=", _] => new Ast.AlterDatabaseAction.ModifyName(Values.Part(old, tokens[1].Token.Text)),
+				"Statement.AlterDatabaseModifyBackupStorageRedundancy" when words is ["=", _] && tokens[1].Token.Kind == SqlTokens.Kind.String
 					=> new Ast.AlterDatabaseAction.ModifyBackupStorageRedundancy(Values.String(tokens[1].Token.Text)),
-				Statement.AlterDatabasePerformCutover when tail.Length == 0 => new Ast.AlterDatabaseAction.PerformCutover(),
-				Statement.AlterDatabaseRebuildLog when tail.Length == 0 => new Ast.AlterDatabaseAction.RebuildLog(),
-				Statement.AlterDatabaseRebuildLog when Is(tokens, 0, "ON") && tokens.Count > 1
+				"Statement.AlterDatabasePerformCutover" when tail.Length == 0 => new Ast.AlterDatabaseAction.PerformCutover(),
+				"Statement.AlterDatabaseRebuildLog" when tail.Length == 0 => new Ast.AlterDatabaseAction.RebuildLog(),
+				"Statement.AlterDatabaseRebuildLog" when Is(tokens, 0, "ON") && tokens.Count > 1
 					=> new Ast.AlterDatabaseAction.RebuildLog { On = Files(old, tail[tokens[1].At..]) is [var log] ? log : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})") },
-				Statement.AlterDatabaseAddFile => AddFile(old, tail, tokens, log: false),
-				Statement.AlterDatabaseAddLogFile => AddFile(old, tail, tokens, log: true),
-				Statement.AlterDatabaseModifyFile => new Ast.AlterDatabaseAction.ModifyFile(Files(old, tail) is [var file] ? file : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})")),
-				Statement.AlterDatabaseRemoveFile when tokens.Count == 1 => new Ast.AlterDatabaseAction.RemoveFile(Values.Part(old, tail)),
-				Statement.AlterDatabaseRemoveFileGroup when tokens.Count == 1 => new Ast.AlterDatabaseAction.RemoveFileGroup(Values.Part(old, tail)),
-				Statement.AlterDatabaseAddFileGroup => words switch
+				"Statement.AlterDatabaseAddFile" => AddFile(old, tail, tokens, log: false),
+				"Statement.AlterDatabaseAddLogFile" => AddFile(old, tail, tokens, log: true),
+				"Statement.AlterDatabaseModifyFile" => new Ast.AlterDatabaseAction.ModifyFile(Files(old, tail) is [var file] ? file : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})")),
+				"Statement.AlterDatabaseRemoveFile" when tokens.Count == 1 => new Ast.AlterDatabaseAction.RemoveFile(Values.Part(old, tail)),
+				"Statement.AlterDatabaseRemoveFileGroup" when tokens.Count == 1 => new Ast.AlterDatabaseAction.RemoveFileGroup(Values.Part(old, tail)),
+				"Statement.AlterDatabaseAddFileGroup" => words switch
 				{
 					[_] => new Ast.AlterDatabaseAction.AddFileGroup(Values.Part(old, tokens[0].Token.Text), null),
 					[_, "CONTAINS", "FILESTREAM"] => new Ast.AlterDatabaseAction.AddFileGroup(Values.Part(old, tokens[0].Token.Text), Ast.FileGroupContents.Filestream),
 					[_, "CONTAINS", "MEMORY_OPTIMIZED_DATA"] => new Ast.AlterDatabaseAction.AddFileGroup(Values.Part(old, tokens[0].Token.Text), Ast.FileGroupContents.MemoryOptimizedData),
 					_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})"),
 				},
-				Statement.AlterDatabaseModifyFileGroup when tokens.Count >= 2 => new Ast.AlterDatabaseAction.ModifyFileGroup(Values.Part(old, tokens[0].Token.Text), words[1..] switch
+				"Statement.AlterDatabaseModifyFileGroup" when tokens.Count >= 2 => new Ast.AlterDatabaseAction.ModifyFileGroup(Values.Part(old, tokens[0].Token.Text), words[1..] switch
 				{
 					["READONLY"]             => new Ast.FileGroupChange.Updatability(Ast.FileGroupUpdatability.ReadOnly, false),
 					["READ_ONLY"]            => new Ast.FileGroupChange.Updatability(Ast.FileGroupUpdatability.ReadOnly, true),
@@ -130,7 +245,7 @@ static partial class Bridge
 		}
 
 		/// <summary>ADD FILE and ADD LOG FILE: the files, and the filegroup after TO FILEGROUP.</summary>
-		static Ast.AlterDatabaseAction AddFile(Statement old, string tail, List<(SqlTokens.Token Token, int At)> tokens, bool log)
+		static Ast.AlterDatabaseAction AddFile(ISqlSpan old, string tail, List<(SqlTokens.Token Token, int At)> tokens, bool log)
 		{
 			var to    = Index(tokens, "TO");
 			var files = Files(old, to < 0 ? tail : Slice(tail, tokens, 0, to));
@@ -150,12 +265,12 @@ static partial class Bridge
 		/// The Azure MODIFY: its edition options and MANUAL_CUTOVER. The old tree drops a termination after it, which the
 		/// text has; such a text has no member and stays a gap.
 		/// </summary>
-		static Ast.Statement AlterModify(Statement.AlterDatabaseModify old)
+		static Ast.Statement AlterModify(Defining old, SqlList<Clause>? options, SqlList<Clause>? with)
 		{
 			if (Spelled(old) is { } text && Words(text) is var words && (words.Contains("ROLLBACK") || words.Contains("NO_WAIT")))
 				throw BridgeGap.Lost(old, "Statement.AlterDatabaseModify (a termination after MODIFY)");
 
-			var action = new Ast.AlterDatabaseAction.Modify(Each(old.Options ?? [], one => one is Clause.Option option ? Tables.Option(option) : throw BridgeGap.Open(one, $"inventory {NameOf(one)}")), old.With is { Length: > 0 });
+			var action = new Ast.AlterDatabaseAction.Modify(Each(options ?? [], one => one is Clause.Option option ? Tables.Option(option) : throw BridgeGap.Open(one, $"inventory {NameOf(one)}")), with is { Length: > 0 });
 
 			return Target(old, old.Name, action);
 		}
@@ -166,7 +281,7 @@ static partial class Bridge
 		/// the name: the last word is the value, but for <c>QUERY_STORE CLEAR [ALL]</c>, which is a name of several words
 		/// and nothing more. The form, <c>=</c> or none, is the catalogue's but for the one setting read both ways.
 		/// </summary>
-		static Ast.Option Setting(Statement old, Clause clause)
+		static Ast.Option Setting(ISqlSpan old, Clause clause)
 		{
 			if (clause is not Clause.Option(var name, var value, var options, null, var bare))
 				throw BridgeGap.Open(old, $"inventory {NameOf(clause)} (in {NameOf(old)})");
@@ -196,7 +311,7 @@ static partial class Bridge
 		}
 
 		/// <summary>The termination after SET, which the old tree keeps as its words.</summary>
-		static Ast.Termination? Termination(Statement old, string? text)
+		static Ast.Termination? Termination(ISqlSpan old, string? text)
 		{
 			if (text is null)
 				return null;
@@ -214,14 +329,14 @@ static partial class Bridge
 		}
 
 		/// <summary>ALTER DATABASE SCOPED CONFIGURATION: SET and its one setting, or CLEAR PROCEDURE_CACHE and its plan handle.</summary>
-		static Ast.Statement Scoped(Statement.AlterDatabaseScopedConfiguration old)
+		static Ast.Statement Scoped(ISqlSpan old, Statement.AlterDatabaseScopedConfiguration read)
 		{
-			Ast.ScopedConfigurationAction action = old switch
+			Ast.ScopedConfigurationAction action = read switch
 			{
-				{ Action: "SET", Settings: [var setting], Argument: null } => new Ast.ScopedConfigurationAction.Set(Setting(old, setting)) { Secondary = old.Secondary },
+				{ Action: "SET", Settings: [var setting], Argument: null } => new Ast.ScopedConfigurationAction.Set(Setting(old, setting)) { Secondary = read.Secondary },
 				{ Action: "CLEAR PROCEDURE_CACHE", Settings: [], Secondary: false } => new Ast.ScopedConfigurationAction.ClearProcedureCache(
-					old.Argument is null ? null : Values.Of(old.Argument) as Ast.LiteralValue.Binary ?? throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a plan handle that is not binary)")),
-				_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({old.Action})"),
+					read.Argument is null ? null : Values.Of(read.Argument) as Ast.LiteralValue.Binary ?? throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a plan handle that is not binary)")),
+				_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({read.Action})"),
 			};
 
 			return new Ast.Statement.AlterDatabaseScopedConfiguration(action);
@@ -232,12 +347,12 @@ static partial class Bridge
 		/// collation as their words, the edition options, and the tail that says what the database is made from: empty
 		/// for Azure's form, the attach's words, or the words of a snapshot or a copy and the database they name.
 		/// </summary>
-		static Ast.Statement Create(Statement.CreateDatabase old)
+		static Ast.Statement Create(ISqlSpan old, Statement.CreateDatabase read)
 		{
 			var files  = new List<Ast.DatabaseFile>();
 			var groups = new List<Ast.FileGroup>();
 
-			foreach (var one in old.Files)
+			foreach (var one in read.Files)
 			{
 				switch (one)
 				{
@@ -263,9 +378,9 @@ static partial class Bridge
 				}
 			}
 
-			var tokens = SqlTokens.Of(old.Tail ?? "").ToList();
+			var tokens = SqlTokens.Of(read.Tail ?? "").ToList();
 
-			Ast.DatabaseSource? source = Words(old.Tail ?? "") switch
+			Ast.DatabaseSource? source = Words(read.Tail ?? "") switch
 			{
 				[]                               => null,
 				["FOR", "ATTACH"]                => new Ast.DatabaseSource.ForAttach(Ast.AttachKind.Attach),
@@ -273,25 +388,25 @@ static partial class Bridge
 				["FOR", "ATTACH_FORCE_REBUILD_LOG"] => new Ast.DatabaseSource.ForAttach(Ast.AttachKind.AttachForceRebuildLog),
 				["AS", "SNAPSHOT", "OF", _]      => new Ast.DatabaseSource.AsSnapshotOf(Values.Part(old, tokens[3].Text)),
 				["AS", "COPY", "OF", ..]         => new Ast.DatabaseSource.AsCopyOf(Values.Name(old, string.Concat(tokens.Skip(3).Select(static one => one.Text)))),
-				_                                => throw BridgeGap.Open(old, $"inventory Statement.CreateDatabase (tail `{old.Tail}`)"),
+				_                                => throw BridgeGap.Open(old, $"inventory Statement.CreateDatabase (tail `{read.Tail}`)"),
 			};
 
-			var made = new Ast.Statement.CreateDatabase(Values.Part(old, old.Name))
+			var made = new Ast.Statement.CreateDatabase(Values.Part(old, read.Name))
 			{
-				Containment = old.Containment is null ? null : Words(old.Containment) switch
+				Containment = read.Containment is null ? null : Words(read.Containment) switch
 				{
 					["NONE"]    => Ast.DatabaseContainment.None,
 					["PARTIAL"] => Ast.DatabaseContainment.Partial,
-					_           => throw BridgeGap.Open(old, $"inventory Statement.CreateDatabase (CONTAINMENT = {old.Containment})"),
+					_           => throw BridgeGap.Open(old, $"inventory Statement.CreateDatabase (CONTAINMENT = {read.Containment})"),
 				},
-				Primary        = old.Primary,
+				Primary        = read.Primary,
 				Files          = [.. files],
 				FileGroups     = [.. groups],
-				LogFiles       = Each(old.Log ?? [], one => one is Clause.DatabaseFile file ? File(old, file) : throw BridgeGap.Open(old, $"inventory {NameOf(one)} (in LOG ON)")),
-				Collation      = old.Collation is null ? null : new Ast.CollationName(Values.Name(old, old.Collation)),
-				EditionOptions = Each(old.Options ?? [], one => one is Clause.Option option ? Tables.Option(option) : throw BridgeGap.Open(one, $"inventory {NameOf(one)}")),
+				LogFiles       = Each(read.Log ?? [], one => one is Clause.DatabaseFile file ? File(old, file) : throw BridgeGap.Open(old, $"inventory {NameOf(one)} (in LOG ON)")),
+				Collation      = read.Collation is null ? null : new Ast.CollationName(Values.Name(old, read.Collation)),
+				EditionOptions = Each(read.Options ?? [], one => one is Clause.Option option ? Tables.Option(option) : throw BridgeGap.Open(one, $"inventory {NameOf(one)}")),
 				Source         = source,
-				Options        = Each(old.With ?? [], one => Setting(old, one)),
+				Options        = Each(read.With ?? [], one => Setting(old, one)),
 			};
 
 			// The containment and the tail are kept as written and compared token by token: a text that differs from the
@@ -307,8 +422,8 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.CreateDatabase again] }
-				&& Kept(old, "Statement.CreateDatabase.Containment", again.Containment, old.Containment) && Kept(old, "Statement.CreateDatabase.Tail", again.Tail, old.Tail)
+			return Skim(text) is [Statement.Built { Given: Read<Statement.CreateDatabase> { Value: var again } }]
+				&& Kept(old, "Statement.CreateDatabase.Containment", again.Containment, read.Containment) && Kept(old, "Statement.CreateDatabase.Tail", again.Tail, read.Tail)
 				? made
 				: throw BridgeGap.Open(old, "Trees.FreeText (Statement.CreateDatabase.Containment or Tail, written otherwise than the writer prints it)");
 		}
@@ -318,7 +433,7 @@ static partial class Bridge
 		/// the files, the devices after TO and after each MIRROR TO, the options after WITH; a key's or a certificate's
 		/// place and passwords. Read again by tokens.
 		/// </summary>
-		static Ast.Statement Backup(Statement.Definition old)
+		static Ast.Statement Backup(Defining old)
 		{
 			var text   = old.Tail ?? "";
 			var tokens = Located(text);
@@ -329,7 +444,7 @@ static partial class Bridge
 
 			switch (old)
 			{
-				case Statement.BackupCertificate:
+				case { Record: "Statement.BackupCertificate" }:
 					if (words is not ["TO", "FILE", "=", _, ..] || tokens[3].Token.Kind != SqlTokens.Kind.String)
 						throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 
@@ -350,16 +465,16 @@ static partial class Bridge
 						? certificate with { PrivateKey = Options(old, text[(tokens[at + 2].At + 1)..tokens[^1].At]) }
 						: throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 
-				case Statement.BackupMasterKey when words is ["TO", _, "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _]:
+				case { Record: "Statement.BackupMasterKey" } when words is ["TO", _, "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _]:
 					return new Ast.Statement.BackupMasterKey(Place(old, tokens, 1), Password(old, tokens, 8));
 
-				case Statement.BackupServiceMasterKey when words is ["TO", "FILE", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _]:
+				case { Record: "Statement.BackupServiceMasterKey" } when words is ["TO", "FILE", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _]:
 					return new Ast.Statement.BackupServiceMasterKey(Password(old, tokens, 3), Password(old, tokens, 8));
 
-				case Statement.BackupSymmetricKey when words is ["TO", _, "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _]:
+				case { Record: "Statement.BackupSymmetricKey" } when words is ["TO", _, "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _]:
 					return new Ast.Statement.BackupSymmetricKey(Values.Part(old, old.Name), Place(old, tokens, 1), Password(old, tokens, 8));
 
-				case Statement.BackupMasterKey or Statement.BackupServiceMasterKey or Statement.BackupSymmetricKey:
+				case { Record: "Statement.BackupMasterKey" or "Statement.BackupServiceMasterKey" or "Statement.BackupSymmetricKey" }:
 					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 			}
 
@@ -389,15 +504,15 @@ static partial class Bridge
 
 			var options = with < 0 ? [] : Options(old, Slice(text, tokens, with + 1, tokens.Count));
 
-			if (files.Count > 0 && old is not Statement.BackupDatabase)
+			if (files.Count > 0 && old.Record is not "Statement.BackupDatabase")
 				throw BridgeGap.Missing(old, $"{NameOf(old)} (files, which only BACKUP DATABASE's syntax names)");
 
-			return old switch
+			return old.Record switch
 			{
-				Statement.BackupDatabase       => new Ast.Statement.BackupDatabase(BackupName(old, old.Name), devices) { Files = files, Mirrors = [.. mirrors], Options = options },
-				Statement.BackupTransactionLog => new Ast.Statement.BackupLog(BackupName(old, old.Name), devices) { Mirrors = [.. mirrors], Options = options },
-				Statement.BackupServer when old.Name.Length == 0 => new Ast.Statement.BackupServer(devices) { Mirrors = [.. mirrors], Options = options },
-				Statement.BackupGroup          => new Ast.Statement.BackupGroup([.. Listed(old.Name).Select(one => BackupName(old, one))], devices) { Mirrors = [.. mirrors], Options = options },
+				"Statement.BackupDatabase"       => new Ast.Statement.BackupDatabase(BackupName(old, old.Name), devices) { Files = files, Mirrors = [.. mirrors], Options = options },
+				"Statement.BackupTransactionLog" => new Ast.Statement.BackupLog(BackupName(old, old.Name), devices) { Mirrors = [.. mirrors], Options = options },
+				"Statement.BackupServer" when old.Name.Length == 0 => new Ast.Statement.BackupServer(devices) { Mirrors = [.. mirrors], Options = options },
+				"Statement.BackupGroup"          => new Ast.Statement.BackupGroup([.. Listed(old.Name).Select(one => BackupName(old, one))], devices) { Mirrors = [.. mirrors], Options = options },
 				_                              => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({old.Name})"),
 			};
 		}
@@ -406,7 +521,7 @@ static partial class Bridge
 		/// RESTORE: likewise — the files, the devices or the snapshot after FROM, the options after WITH; a key's place,
 		/// its passwords and FORCE.
 		/// </summary>
-		static Ast.Statement Restore(Statement.Definition old)
+		static Ast.Statement Restore(Defining old)
 		{
 			var text   = old.Tail ?? "";
 			var tokens = Located(text);
@@ -417,16 +532,16 @@ static partial class Bridge
 
 			switch (old)
 			{
-				case Statement.RestoreMasterKey when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
+				case { Record: "Statement.RestoreMasterKey" } when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
 					return new Ast.Statement.RestoreMasterKey(Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Count == 1 };
 
-				case Statement.RestoreServiceMasterKey when words is ["FROM", "FILE", "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
+				case { Record: "Statement.RestoreServiceMasterKey" } when words is ["FROM", "FILE", "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
 					return new Ast.Statement.RestoreServiceMasterKey(Password(old, tokens, 3), Password(old, tokens, 8)) { Force = force.Count == 1 };
 
-				case Statement.RestoreSymmetricKey when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
+				case { Record: "Statement.RestoreSymmetricKey" } when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
 					return new Ast.Statement.RestoreSymmetricKey(Values.Part(old, old.Name), Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Count == 1 };
 
-				case Statement.RestoreMasterKey or Statement.RestoreServiceMasterKey or Statement.RestoreSymmetricKey:
+				case { Record: "Statement.RestoreMasterKey" or "Statement.RestoreServiceMasterKey" or "Statement.RestoreSymmetricKey" }:
 					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 			}
 
@@ -445,24 +560,24 @@ static partial class Bridge
 
 			var options = with < 0 ? [] : Options(old, Slice(text, tokens, with + 1, tokens.Count));
 
-			if (old is not (Statement.RestoreDatabase or Statement.RestoreLog) && (old.Name.Length > 0 || files.Count > 0))
+			if (old.Record is not ("Statement.RestoreDatabase" or "Statement.RestoreLog") && (old.Name.Length > 0 || files.Count > 0))
 				throw BridgeGap.Missing(old, $"{NameOf(old)} (a database or files, which its syntax does not name)");
 
-			if (old is Statement.RestoreDatabase or Statement.RestoreLog && old.Name.Length == 0)
+			if (old.Record is "Statement.RestoreDatabase" or "Statement.RestoreLog" && old.Name.Length == 0)
 				throw BridgeGap.Missing(old, $"{NameOf(old)} (no database, which its syntax names)");
 
-			if (snapshot is not null && old is not Statement.RestoreDatabase)
+			if (snapshot is not null && old.Record is not "Statement.RestoreDatabase")
 				throw BridgeGap.Missing(old, $"{NameOf(old)} (FROM DATABASE_SNAPSHOT, which only RESTORE DATABASE's syntax names)");
 
-			return old switch
+			return old.Record switch
 			{
-				Statement.RestoreDatabase     => new Ast.Statement.RestoreDatabase(BackupName(old, old.Name)) { Files = files, From = devices, DatabaseSnapshot = snapshot, Options = options },
-				Statement.RestoreLog          => new Ast.Statement.RestoreLog(BackupName(old, old.Name)) { Files = files, From = devices, Options = options },
-				Statement.RestoreFileListOnly => new Ast.Statement.RestoreFileListOnly(devices) { Options = options },
-				Statement.RestoreHeaderOnly   => new Ast.Statement.RestoreHeaderOnly(devices) { Options = options },
-				Statement.RestoreLabelOnly    => new Ast.Statement.RestoreLabelOnly(devices) { Options = options },
-				Statement.RestoreRewindOnly   => new Ast.Statement.RestoreRewindOnly(devices) { Options = options },
-				Statement.RestoreVerifyOnly   => new Ast.Statement.RestoreVerifyOnly(devices) { Options = options },
+				"Statement.RestoreDatabase"     => new Ast.Statement.RestoreDatabase(BackupName(old, old.Name)) { Files = files, From = devices, DatabaseSnapshot = snapshot, Options = options },
+				"Statement.RestoreLog"          => new Ast.Statement.RestoreLog(BackupName(old, old.Name)) { Files = files, From = devices, Options = options },
+				"Statement.RestoreFileListOnly" => new Ast.Statement.RestoreFileListOnly(devices) { Options = options },
+				"Statement.RestoreHeaderOnly"   => new Ast.Statement.RestoreHeaderOnly(devices) { Options = options },
+				"Statement.RestoreLabelOnly"    => new Ast.Statement.RestoreLabelOnly(devices) { Options = options },
+				"Statement.RestoreRewindOnly"   => new Ast.Statement.RestoreRewindOnly(devices) { Options = options },
+				"Statement.RestoreVerifyOnly"   => new Ast.Statement.RestoreVerifyOnly(devices) { Options = options },
 				_                             => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
 			};
 		}
@@ -472,7 +587,7 @@ static partial class Bridge
 		/// each as a name and the words after it, read again by tokens; a type as a declared variable's, a value as a
 		/// select list's.
 		/// </summary>
-		static Ast.Statement Defined(Statement.Definition old)
+		static Ast.Statement Defined(Defining old)
 		{
 			var text   = old.Tail ?? "";
 			var tokens = Located(text);
@@ -481,7 +596,7 @@ static partial class Bridge
 
 			switch (old)
 			{
-				case Statement.PartitionFunctionDefinition when words is ["(", ..]:
+				case { Record: "Statement.PartitionFunctionDefinition" } when words is ["(", ..]:
 					var close   = Closing(tokens, 0);
 					var collate = tokens.FindIndex(static one => one.Token.Kind == SqlTokens.Kind.Word && one.Token.Text.Equals("COLLATE", StringComparison.OrdinalIgnoreCase));
 					var type    = Slice(text, tokens, 1, collate > 0 && collate < close ? collate : close);
@@ -505,7 +620,7 @@ static partial class Bridge
 						Range     = side,
 					};
 
-				case Statement.AlterPartitionFunction when words is ["(", ")", "SPLIT" or "MERGE", ..]:
+				case { Record: "Statement.AlterPartitionFunction" } when words is ["(", ")", "SPLIT" or "MERGE", ..]:
 					Ast.Expression? boundary = words[3..] switch
 					{
 						[] => null,
@@ -515,15 +630,15 @@ static partial class Bridge
 
 					return new Ast.Statement.AlterPartitionFunction(name, words[2] == "SPLIT" ? new Ast.PartitionFunctionAction.Split(boundary) : new Ast.PartitionFunctionAction.Merge(boundary));
 
-				case Statement.PartitionSchemeDefinition when words is ["AS", "PARTITION", _, .. var rest] && rest is ["ALL", "TO", "(", .., ")"] or ["TO", "(", .., ")"]:
+				case { Record: "Statement.PartitionSchemeDefinition" } when words is ["AS", "PARTITION", _, .. var rest] && rest is ["ALL", "TO", "(", .., ")"] or ["TO", "(", .., ")"]:
 					var all = rest[0] == "ALL";
 
 					return new Ast.Statement.CreatePartitionScheme(name, Values.Part(old, tokens[2].Token.Text), [.. Listed(Slice(text, tokens, all ? 6 : 5, tokens.Count - 1)).Select(one => FileGroupOf(old, one))]) { All = all };
 
-				case Statement.AlterPartitionScheme when words is ["NEXT", "USED", .. var used] && used.Count <= 1:
+				case { Record: "Statement.AlterPartitionScheme" } when words is ["NEXT", "USED", .. var used] && used.Count <= 1:
 					return new Ast.Statement.AlterPartitionScheme(name, used.Count == 0 ? null : FileGroupOf(old, tokens[2].Token.Text));
 
-				case Statement.FullTextCatalogDefinition:
+				case { Record: "Statement.FullTextCatalogDefinition" }:
 					var catalog = new Ast.Statement.CreateFullTextCatalog(name);
 					var at      = 0;
 
@@ -559,7 +674,7 @@ static partial class Bridge
 
 					return at == words.Count ? catalog : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 
-				case Statement.AlterFullTextCatalog:
+				case { Record: "Statement.AlterFullTextCatalog" }:
 					return new Ast.Statement.AlterFullTextCatalog(name, words switch
 					{
 						["REBUILD"]                     => new Ast.FullTextCatalogAction.Rebuild(null),
@@ -569,7 +684,7 @@ static partial class Bridge
 						_                               => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
 					});
 
-				case Statement.FullTextStopListDefinition:
+				case { Record: "Statement.FullTextStopListDefinition" }:
 					var owner = Index(tokens, "AUTHORIZATION");
 					var from  = words[..(owner < 0 ? words.Count : owner)] switch
 					{
@@ -583,7 +698,7 @@ static partial class Bridge
 						? throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})")
 						: new Ast.Statement.CreateFullTextStopList(name) { From = from, Authorization = owner < 0 ? null : Values.Part(old, tokens[owner + 1].Token.Text) };
 
-				case Statement.AlterFullTextStopList:
+				case { Record: "Statement.AlterFullTextStopList" }:
 					return new Ast.Statement.AlterFullTextStopList(name, words switch
 					{
 						["ADD", _, "LANGUAGE", _]  => new Ast.StopListAction.Add(Value(old, tokens[1].Token), Language(old, tokens[3].Token)),
@@ -593,7 +708,7 @@ static partial class Bridge
 						_                          => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
 					});
 
-				case Statement.SearchPropertyListDefinition:
+				case { Record: "Statement.SearchPropertyListDefinition" }:
 					var by   = Index(tokens, "AUTHORIZATION");
 					var list = new Ast.Statement.CreateSearchPropertyList(name) { Authorization = by < 0 ? null : Values.Part(old, tokens[by + 1].Token.Text) };
 
@@ -607,7 +722,7 @@ static partial class Bridge
 						_           => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
 					};
 
-				case Statement.AlterSearchPropertyList:
+				case { Record: "Statement.AlterSearchPropertyList" }:
 					var with = Index(tokens, "WITH");
 
 					return new Ast.Statement.AlterSearchPropertyList(name, words switch
@@ -648,7 +763,7 @@ static partial class Bridge
 		}
 
 		/// <summary>PartitionFileGroup: a name of one part or a string.</summary>
-		static Ast.Expression FileGroupOf(Statement old, string text)
+		static Ast.Expression FileGroupOf(ISqlSpan old, string text)
 		{
 			return SqlTokens.Of(text) is [var one] && one.Kind is SqlTokens.Kind.String or SqlTokens.Kind.Word or SqlTokens.Kind.Delimited && !one.Text.StartsWith("@", StringComparison.Ordinal)
 				? Value(old, one)
@@ -656,7 +771,7 @@ static partial class Bridge
 		}
 
 		/// <summary>StopListLanguage: a string, a number, a binary string or a name.</summary>
-		static Ast.Expression Language(Statement old, SqlTokens.Token token)
+		static Ast.Expression Language(ISqlSpan old, SqlTokens.Token token)
 		{
 			return token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
 				? Values.Of(new Expression.Literal(SqlLiteralKind.Hex, token.Text))
@@ -664,7 +779,7 @@ static partial class Bridge
 		}
 
 		/// <summary>A search property's setting: a name, <c>=</c>, a value.</summary>
-		static Ast.Option Property(Statement old, string text)
+		static Ast.Option Property(ISqlSpan old, string text)
 		{
 			var tokens = Located(text);
 
@@ -674,7 +789,7 @@ static partial class Bridge
 		}
 
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
-		static Ast.Expression ValueOf(Statement old, string text)
+		static Ast.Expression ValueOf(ISqlSpan old, string text)
 		{
 			return TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 				? Values.Of(value)
@@ -682,7 +797,7 @@ static partial class Bridge
 		}
 
 		/// <summary>BackupFile, each between commas; files with no comma between them are a gap.</summary>
-		static SqlList<Ast.BackupFile> BackupFiles(Statement old, string text)
+		static SqlList<Ast.BackupFile> BackupFiles(ISqlSpan old, string text)
 		{
 			if (text.Length == 0)
 				return [];
@@ -698,7 +813,7 @@ static partial class Bridge
 		}
 
 		/// <summary>BackupName: a name of one part or several, a variable, or a string.</summary>
-		static Ast.Expression BackupName(Statement old, string text)
+		static Ast.Expression BackupName(ISqlSpan old, string text)
 		{
 			var tokens = SqlTokens.Of(text);
 
@@ -713,7 +828,7 @@ static partial class Bridge
 		}
 
 		/// <summary>BackupDevice, each between commas.</summary>
-		static SqlList<Ast.BackupDevice> Devices(Statement old, string text)
+		static SqlList<Ast.BackupDevice> Devices(ISqlSpan old, string text)
 		{
 			return [.. Listed(text).Select(piece =>
 			{
@@ -733,7 +848,7 @@ static partial class Bridge
 		/// The options of a WITH or of a bracket: a name of a word or several, then nothing, <c>= value</c> or a bracketed
 		/// list; MOVE's second string after TO and STOPATMARK's AFTER and its value, the option's own options.
 		/// </summary>
-		static SqlList<Ast.Option> Options(Statement old, string text)
+		static SqlList<Ast.Option> Options(ISqlSpan old, string text)
 		{
 			return [.. Listed(text).Select(piece =>
 			{
@@ -767,7 +882,7 @@ static partial class Bridge
 		}
 
 		/// <summary>One token as a value: a string, a number, a variable, NULL, or a word or a name in brackets.</summary>
-		static Ast.Expression Value(Statement old, SqlTokens.Token token)
+		static Ast.Expression Value(ISqlSpan old, SqlTokens.Token token)
 		{
 			return token switch
 			{
@@ -781,7 +896,7 @@ static partial class Bridge
 		}
 
 		/// <summary>KeyPlace at a token: FILE or URL, <c>=</c>, a string.</summary>
-		static Ast.KeyPlace Place(Statement old, List<(SqlTokens.Token Token, int At)> tokens, int at)
+		static Ast.KeyPlace Place(ISqlSpan old, List<(SqlTokens.Token Token, int At)> tokens, int at)
 		{
 			return new Ast.KeyPlace(tokens[at].Token.Text.ToUpperInvariant() switch
 			{
@@ -792,13 +907,13 @@ static partial class Bridge
 		}
 
 		/// <summary>A string at a token, as a path or a password is written.</summary>
-		static Ast.Expression Password(Statement old, List<(SqlTokens.Token Token, int At)> tokens, int at)
+		static Ast.Expression Password(ISqlSpan old, List<(SqlTokens.Token Token, int At)> tokens, int at)
 		{
 			return tokens[at].Token.Kind == SqlTokens.Kind.String ? Values.String(tokens[at].Token.Text) : throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a password or path `{tokens[at].Token.Text}`)");
 		}
 
 		/// <summary>ALTER DATABASE's target: CURRENT, the word, or a name.</summary>
-		static Ast.Statement.AlterDatabase Target(Statement old, string name, Ast.AlterDatabaseAction action)
+		static Ast.Statement.AlterDatabase Target(ISqlSpan old, string name, Ast.AlterDatabaseAction action)
 		{
 			return name == "CURRENT"
 				? new Ast.Statement.AlterDatabase(null, action) { Current = true }
@@ -806,15 +921,15 @@ static partial class Bridge
 		}
 
 		/// <summary>File specifications kept as text, read again as CREATE DATABASE's data files.</summary>
-		static SqlList<Ast.DatabaseFile> Files(Statement old, string text)
+		static SqlList<Ast.DatabaseFile> Files(ISqlSpan old, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSyntaxSql("CREATE DATABASE d ON " + text) is { IsSuccess: true, Value: [Statement.CreateDatabase { Files: var files, Log: null }] }
+			return Skim("CREATE DATABASE d ON " + text) is [Statement.Built { Given: Read<Statement.CreateDatabase> { Value: { Files: var files, Log: null } } }]
 				&& files.All(static one => one is Clause.DatabaseFile)
 				? Each(files, one => File(old, (Clause.DatabaseFile)one))
 				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (files `{text}`)");
 		}
 
-		static Ast.DatabaseFile File(Statement old, Clause.DatabaseFile file)
+		static Ast.DatabaseFile File(ISqlSpan old, Clause.DatabaseFile file)
 		{
 			return new Ast.DatabaseFile(Each(file.Options, one => one is Clause.Option option ? Tables.Option(option) : throw BridgeGap.Open(old, $"inventory {NameOf(one)} (in a file)")));
 		}
@@ -823,7 +938,7 @@ static partial class Bridge
 		/// A statement made of a tail the old tree keeps as written: only one whose text, written and read again, keeps the
 		/// same tail, but for the case of its key words and its blanks, carries over.
 		/// </summary>
-		static Ast.Statement Checked(Statement.Definition old, Ast.Statement made)
+		static Ast.Statement Checked(Defining old, Ast.Statement made)
 		{
 			string text;
 
@@ -836,7 +951,7 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] } && Kept(old, NameOf(old) + ".Tail", tail, old.Tail)
+			return Skim(text) is [Statement.Built { Given: Defining { Tail: var tail } }] && Kept(old, NameOf(old) + ".Tail", tail, old.Tail)
 				? made
 				: throw BridgeGap.Open(old, $"Trees.FreeText ({NameOf(old)}.Tail, written otherwise than the writer prints it)");
 		}
