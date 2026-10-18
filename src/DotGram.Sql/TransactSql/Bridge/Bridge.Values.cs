@@ -673,11 +673,10 @@ static partial class Bridge
 
 		static Ast.Expression DatePart(Expression.RoutineInvocation old)
 		{
-			if (old.Arguments is not [Expression.ColumnReference(var part), ..] || part.Contains('.'))
-				throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({old.Name} without a date part)");
-
-			if (!DateParts.TryGetValue(part, out var made))
-				throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation (a date part `{part}` the reference's table does not have)");
+			// A word of the reference's table, unquoted and unbracketed, is the date part; anything else first — `[yy]`,
+			// `(year)`, a string, a variable — is the call as written, its first argument a value as the others are.
+			if (old.Arguments is not [Expression.ColumnReference(var part), ..] || !DateParts.TryGetValue(part, out var made))
+				return new Ast.Expression.Invocation(Name(old, old.Name), Each(old.Arguments, Argument));
 
 			return new Ast.Expression.Invocation(
 				Name(old, old.Name),
