@@ -1481,6 +1481,19 @@ static partial class Bridge
 				case "SELECTIVE XML":
 					return SelectiveXmlIndex(old, table, index);
 
+				// FOR ('$.a', …), which the old tree keeps as text: the paths, strings each.
+				case "JSON":
+					var over  = old.Using is null ? [] : SqlTokens.Of(old.Using);
+					var paths = old.Using is null ? [] : over is [{ Text: var word }, { Text: "(" }, _, ..] && over[^1].Text == ")" && word.Equals("FOR", StringComparison.OrdinalIgnoreCase)
+						? Queries.Split(over.GetRange(2, over.Count - 3)).Select(one => one is [{ Kind: SqlTokens.Kind.String } path] ? (Ast.LiteralValue.String)Values.String(path.Text) : throw BridgeGap.Open(old, $"inventory Statement.CreateIndex (a JSON index's paths `{old.Using}`)")).ToSqlList()
+						: throw BridgeGap.Open(old, $"inventory Statement.CreateIndex (a JSON index's paths `{old.Using}`)");
+
+					return new Ast.Statement.CreateJsonIndex(table, IndexName(index), Column(index))
+					{
+						Paths   = paths,
+						Options = Each(index.Options ?? [], Option),
+					};
+
 				case "SPATIAL":
 					return new Ast.Statement.CreateSpatialIndex(table, IndexName(index), Column(index))
 					{

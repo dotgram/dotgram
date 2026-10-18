@@ -43,6 +43,8 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE TRIGGER tr ON dbo.t FOR CREATE_TABLE AS PRINT 1", "event names on a table")]
 	[InlineData("CREATE TRIGGER tr ON dbo.t FOR INSERT AS PRINT 1", "statements on a table")]
 	[InlineData("alter database d1 modify filegroup fg1 readonly", "READONLY in lower case")]
+	[InlineData("CREATE JSON INDEX ix ON dbo.t (j) FOR ('$.a', N'$.b') WITH (MAXDOP = 2)", "a JSON index with paths")]
+	[InlineData("CREATE JSON INDEX ix ON dbo.t (j)", "a JSON index")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -101,6 +103,8 @@ public sealed class DdlRemainderBridgeTests
 			"hints in another order" => made is Ast.Statement.CreateSelectiveXmlIndex { Paths: [{ Hints: [Ast.PathHint.Singleton, Ast.PathHint.XQuery] }] },
 			"namespaces and a bare XQUERY" => made is Ast.Statement.CreateSelectiveXmlIndex { XmlNamespaces: [{ Prefix.Text: "ns" }], Paths: [{ Hints: [Ast.PathHint.XQuery { Type: null, MaxLength: null }] }] },
 			"paths changed" => made is Ast.Statement.AlterIndex { Name.Text: "sxi", Action: Ast.IndexAlteration.Paths { Actions: [Ast.PathAction.Add { Path.Name.Text: "p1" }, Ast.PathAction.Remove { Name.Text: "p2" }, Ast.PathAction.Alter { Path.Hints: [Ast.PathHint.XQuery] }] } },
+			"a JSON index with paths" => made is Ast.Statement.CreateJsonIndex { Column.Text: "j", Paths: [{ Kind: Ast.StringLiteralKind.Character }, { Kind: Ast.StringLiteralKind.National }], Options: [{ Name.Text: "MAXDOP" }] },
+			"a JSON index" => made is Ast.Statement.CreateJsonIndex { Paths.Count: 0, Options.Count: 0 },
 			_ => false,
 		};
 
