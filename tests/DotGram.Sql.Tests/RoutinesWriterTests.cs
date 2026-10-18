@@ -361,8 +361,8 @@ public sealed class RoutinesWriterTests
 	[InlineData("a standard trigger with no action")]
 	[InlineData("a scope and a table")]
 	[InlineData("neither scope nor table")]
-	[InlineData("statements on a scope")]
-	[InlineData("event names on a table")]
+	[InlineData("statements and event names")]
+	[InlineData("event names after INSTEAD OF")]
 	[InlineData("no event")]
 	[InlineData("BEFORE")]
 	[InlineData("FOR with INSTEAD OF")]
@@ -537,10 +537,11 @@ public sealed class RoutinesWriterTests
 			"a scope and a table" => Trigger() with { Scope = TriggerScope.Database },
 			// TriggerStatement: ON TriggerOn.
 			"neither scope nor table" => Trigger() with { Table = null },
-			// a DDL trigger fires on events, not statements.
-			"statements on a scope" => Ddl() with { Events = [new TriggerEvent(TriggerEventKind.Insert, [])], EventNames = [] },
-			// a DML trigger fires on INSERT, UPDATE, DELETE.
-			"event names on a table" => Trigger() with { Events = [], EventNames = [Name("CREATE_TABLE")] },
+			// TriggerEvents: the list is of one kind or the other, `FOR INSERT, CREATE_TABLE` is Msg 102. Either kind on
+			// either target is read; the engine answers it after reading (Msg 1098).
+			"statements and event names" => Ddl() with { Events = [new TriggerEvent(TriggerEventKind.Insert, [])] },
+			// Syntax.Fired: INSTEAD OF takes statements alone (Msg 102).
+			"event names after INSTEAD OF" => Ddl() with { Time = TriggerTime.InsteadOf },
 			// TriggerEvents: one at least.
 			"no event" => Trigger() with { Events = [] },
 			// TriggerWhen: INSTEAD OF, AFTER, FOR.
