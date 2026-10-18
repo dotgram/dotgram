@@ -721,6 +721,8 @@ public sealed partial class GrammarNormalizer
 		if (_bounds.TryGetValue(node, out var bound))
 			_bounds[rebuilt] = bound;
 
+		Placed(node, rebuilt);
+
 		if (_recoveries.TryGetValue(node, out var recovery))
 			_recoveries[rebuilt] = recovery with { Sync = SpliceWithSites(recovery.Sync, rewrites) };
 

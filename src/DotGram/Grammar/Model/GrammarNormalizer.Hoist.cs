@@ -57,7 +57,7 @@ public sealed partial class GrammarNormalizer
 					when (min >= 1 || max is null) &&
 						!_recoveries.ContainsKey(node) &&
 						PureText(captured):
-					return new Node.Capture(name, new Node.Repeat(Hoist(captured), min, max));
+					return new Node.Capture(name, Placed(node, new Node.Repeat(Hoist(captured), min, max)));
 
 				// A count by a length, on the same terms: its turns are as contiguous. A length may
 				// be zero, so a lower bound that is one counts as none, and only a count with no
@@ -65,7 +65,7 @@ public sealed partial class GrammarNormalizer
 				case Node.Counted(Node.Capture(var name, var captured), var min, var max)
 					when (min is CountBound.Items { Count: >= 1 } || max is null) &&
 						PureText(captured):
-					return new Node.Capture(name, new Node.Counted(Hoist(captured), min, max));
+					return new Node.Capture(name, Placed(node, new Node.Counted(Hoist(captured), min, max)));
 
 				case Node.Sequence(var parts):
 				{

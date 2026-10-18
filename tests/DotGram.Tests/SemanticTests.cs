@@ -3486,6 +3486,8 @@ public sealed class SemanticTests
 	[InlineData("P(x) = x & 'b'\nStart = 'a' & P* & eof", "P*")]
 	[InlineData("P(x) = x & 'b'\nStart = 'a' & (v: P)+ & eof", "P)")]
 	[InlineData("P(x) = x & 'b'\nStart = 'a' & P('a', 'c')* & eof", "P(")]
+	[InlineData("P(x) = x\nStart = 'a' & ($q: P & 'a'?)* & eof", "P &")]
+	[InlineData("P(x) = x\nStart = $r: 'x' & (P{1,#r} & 'a'?)* & eof", "P{")]
 	public void A_refused_call_under_a_repetition_is_the_one_mistake_told(string grammar, string call)
 	{
 		var told = Assert.Single(
@@ -3516,18 +3518,22 @@ public sealed class SemanticTests
 	/// Two repetitions of one rule that match nothing are told each where it is written, so
 	/// that a build saying each diagnostic once still says both.
 	/// </summary>
-	[Fact]
-	public void Two_repetitions_that_match_nothing_are_told_where_each_is()
+	[Theory]
+	[InlineData("Start = ('a'?)* & ('b'?)* & eof", "('a'", "('b'")]
+	// Hoisted: a text capture of every turn becomes a capture of the repetition, rebuilt.
+	[InlineData("Start = (t: ('a'?))* & (u: ('b'?))* & eof", "(t:", "(u:")]
+	// Copied: a namespace's header makes a copy of what it reaches.
+	[InlineData("B = 'b'\nD = 'd'\nnamespace Ns with (B = D) { X = ('a'?)* & ('b'?)* & B }\nStart = Ns.X", "('a'", "('b'")]
+	public void Two_repetitions_that_match_nothing_are_told_where_each_is(string grammar, string first, string second)
 	{
-		const string grammar = "Start = ('a'?)* & ('b'?)* & eof";
-
 		var told = Compile(grammar + "\nparse Start").Diagnostics
 			.Where(static one => one.Id == GrammarNormalizer.NullableRepetition)
 			.Select(static one => one.Position)
+			.Distinct()
 			.OrderBy(static one => one)
 			.ToArray();
 
-		Assert.Equal([grammar.IndexOf("('a'", StringComparison.Ordinal), grammar.IndexOf("('b'", StringComparison.Ordinal)], told);
+		Assert.Equal([grammar.IndexOf(first, StringComparison.Ordinal), grammar.IndexOf(second, StringComparison.Ordinal)], told);
 	}
 
 	/// <summary>

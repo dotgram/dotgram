@@ -786,6 +786,8 @@ public sealed partial class GrammarNormalizer
 			Node.Construct(var body, var how)       => new Node.Construct(WithoutRefused(body), how),
 			Node.Atomic(var body)                   => new Node.Atomic(WithoutRefused(body)),
 			Node.Marked(var body, var text)         => new Node.Marked(WithoutRefused(body), text),
+			Node.Bind bind                          => bind with { Body = WithoutRefused(bind.Body) },
+			Node.Counted counted                    => counted with { Body = WithoutRefused(counted.Body) },
 			_                                       => node,
 		};
 	}

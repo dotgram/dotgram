@@ -1121,6 +1121,18 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// <paramref name="copy"/>, a repetition rebuilt or copied from <paramref name="original"/>,
+	/// told where the original was written.
+	/// </summary>
+	Node Placed(Node original, Node copy)
+	{
+		if (_repetitionsAt.TryGetValue(original, out var at))
+			_repetitionsAt[copy] = at;
+
+		return copy;
+	}
+
+	/// <summary>
 	/// What a refused call stands as: an empty node of its own, so that the checks after it can
 	/// tell it from one the grammar wrote. A repetition over it was told that its body can match
 	/// without consuming input, above the refusal that was the reason; the call is the one

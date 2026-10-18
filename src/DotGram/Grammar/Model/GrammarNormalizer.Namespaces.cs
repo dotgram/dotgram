@@ -1555,6 +1555,8 @@ public sealed partial class GrammarNormalizer
 		if (_bounds.TryGetValue(node, out var bound))
 			_bounds[clone] = bound;
 
+		Placed(node, clone);
+
 		if (_recoveries.TryGetValue(node, out var recovery))
 			_recoveries[clone] = recovery with
 			{
