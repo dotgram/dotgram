@@ -719,6 +719,9 @@ static partial class Bridge
 				case "ROWGUIDCOL":
 					return new Ast.ColumnOption.RowGuidCol();
 
+				case "COLUMN_SET FOR ALL_SPARSE_COLUMNS":
+					return new Ast.ColumnOption.ColumnSet();
+
 				case "PERSISTED":
 					return new Ast.ColumnOption.Persisted();
 

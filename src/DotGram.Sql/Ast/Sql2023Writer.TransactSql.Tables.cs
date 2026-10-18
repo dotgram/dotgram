@@ -607,6 +607,14 @@ public static partial class Sql2023Writer
 					if (at < options.Count && options[at] is ColumnOption.Hidden)
 						at++;
 				}
+				else if (at < options.Count && options[at] is ColumnOption.ColumnSet set)
+				{
+					// Syntax.Tailed: a column set follows a type written with no brackets at all.
+					if (Bracketed(column.Type))
+						throw Misplaced(set, "ColumnSet", "after a type written with brackets, which a column set does not follow (Syntax.Tailed)");
+
+					at++;
+				}
 				else
 				{
 					var filestream = false;
@@ -633,13 +641,43 @@ public static partial class Sql2023Writer
 			{
 				var option = options[at];
 
-				if (option is ColumnOption.Collation or ColumnOption.GeneratedAlways or ColumnOption.Hidden or ColumnOption.Masked or ColumnOption.Encrypted or ColumnOption.Computed
+				if (option is ColumnOption.Collation or ColumnOption.GeneratedAlways or ColumnOption.Hidden or ColumnOption.Masked or ColumnOption.Encrypted or ColumnOption.Computed or ColumnOption.ColumnSet
 					|| !untyped && option is ColumnOption.Filestream or ColumnOption.Sparse or ColumnOption.Persisted)
 					throw Misplaced(option, option.GetType().Name, "where the column's options read back in another order");
 
 				if (option is ColumnOption.NotForReplication && (untyped || at == 0 || options[at - 1] is not ColumnOption.Identity))
 					throw Misplaced(option, "NotForReplication", "not directly after an Identity, or on a column with no type");
 			}
+		}
+
+		/// <summary>
+		/// Whether a type is written with brackets after its name, as Syntax.Tailed asks of a column's front: its text
+		/// holds an opening bracket outside its quoted names.
+		/// </summary>
+		static bool Bracketed(DataType? type)
+		{
+			if (type is null)
+				return false;
+
+			var text  = Sql2023Writer.Write(type, true);
+			var until = '\0';
+
+			foreach (var c in text)
+			{
+				if (until != '\0')
+				{
+					if (c == until)
+						until = '\0';
+				}
+				else if (c == '[')
+					until = ']';
+				else if (c == '"')
+					until = '"';
+				else if (c == '(')
+					return true;
+			}
+
+			return false;
 		}
 
 		void PutColumnOption(ColumnOption option)
@@ -726,6 +764,10 @@ public static partial class Sql2023Writer
 
 				case ColumnOption.Hidden:
 					Word("HIDDEN");
+					break;
+
+				case ColumnOption.ColumnSet:
+					Word("COLUMN_SET FOR ALL_SPARSE_COLUMNS");
 					break;
 
 				case ColumnOption.Masked masked:
@@ -1882,8 +1924,8 @@ public static partial class Sql2023Writer
 
 			switch (option)
 			{
-				case ColumnOption.Sparse or ColumnOption.Filestream or ColumnOption.Encrypted or ColumnOption.NotForReplication:
-					throw Misplaced(type, "Elements", "with a column that is SPARSE, FILESTREAM, ENCRYPTED or NOT FOR REPLICATION, which a table type does not read");
+				case ColumnOption.Sparse or ColumnOption.Filestream or ColumnOption.Encrypted or ColumnOption.NotForReplication or ColumnOption.ColumnSet:
+					throw Misplaced(type, "Elements", "with a column that is SPARSE, FILESTREAM, ENCRYPTED, NOT FOR REPLICATION or a column set, which a table type does not read");
 
 				case ColumnOption.Constraint constraint:
 					CheckTypedConstraint(type, constraint.Value);

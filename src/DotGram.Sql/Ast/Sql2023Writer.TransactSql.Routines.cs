@@ -646,7 +646,7 @@ public static partial class Sql2023Writer
 		{
 			foreach (var element in columns)
 				if (element is TableElement.Column { Definition.Options: var options }
-					&& options.Any(static one => one is ColumnOption.Sparse or ColumnOption.Filestream or ColumnOption.NotForReplication
+					&& options.Any(static one => one is ColumnOption.Sparse or ColumnOption.Filestream or ColumnOption.NotForReplication or ColumnOption.ColumnSet
 						|| one is ColumnOption.Constraint { Value: Constraint.ForeignKey { ForeignKeyWords: false } }))
 					throw Misplaced(owner, "Returns.Elements", "a column sparse, FILESTREAM, NOT FOR REPLICATION or with REFERENCES alone (Syntax.Returned)");
 		}

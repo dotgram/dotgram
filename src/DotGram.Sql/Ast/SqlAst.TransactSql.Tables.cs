@@ -131,6 +131,12 @@ public abstract record ColumnOption : ISqlNode
 	public sealed record Hidden : ColumnOption;
 
 	/// <summary>
+	/// T-SQL: CREATE TABLE (Transact-SQL). <c>COLUMN_SET FOR ALL_SPARSE_COLUMNS</c>: the XML column that holds every sparse
+	/// column of the table, after a type written with no brackets.
+	/// </summary>
+	public sealed record ColumnSet : ColumnOption;
+
+	/// <summary>
 	/// T-SQL: column_definition (Transact-SQL). <c>MASKED WITH (FUNCTION = 'f()')</c>: the function, the string it
 	/// is named in.
 	/// </summary>
