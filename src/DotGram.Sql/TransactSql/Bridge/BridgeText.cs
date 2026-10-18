@@ -151,6 +151,7 @@ static class BridgeText
 		// The Database family's tails: BACKUP and RESTORE, partitions, full-text catalogs, search property lists, a
 		// filegroup's change, and CREATE DATABASE's containment, written as the writer prints them but for case and blanks.
 		"Statement.AlterDatabaseModifyFileGroup.Tail",
+		"Statement.AlterDatabaseRebuildLog.Tail",
 		"Statement.AlterFullTextCatalog.Tail",
 		"Statement.AlterPartitionFunction.Tail",
 		"Statement.AlterPartitionScheme.Tail",
