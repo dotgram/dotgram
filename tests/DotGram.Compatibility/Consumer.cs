@@ -240,4 +240,20 @@ namespace DotGram.Compatibility
 	public partial class BufferedBackReference
 	{
 	}
+
+	/// <summary>A terminal that binds text in a grammar cut in two: begun by the lexer, measured by its own rule from the token's start.</summary>
+	[Gram(
+		"trivia = { ' '* }\n" +
+		"namespace Token\n" +
+		"{\n" +
+		"\ttrivia = none\n" +
+		"\tRaw  = $q: '\"'{3,} & (?!$q & any)* & $q\n" +
+		"\tName = ['a'..'z']+\n" +
+		"}\n" +
+		"Item  : @string   = r: Token.Raw => @(r) | n: Token.Name => @(n)\n" +
+		"Items : @string[] = items: Item* & eof => @(items)\n" +
+		"parse Items", Lexical = true)]
+	public partial class BegunBackReference
+	{
+	}
 }
