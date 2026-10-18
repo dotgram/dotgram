@@ -62,6 +62,17 @@ sealed partial class Machine
 			: _captureSlots[capture];
 	}
 
+	/// <summary>Whether any written state touches the local an arena capture's opening is hinted in.</summary>
+	bool UsesOpened(int slot)
+	{
+		foreach (var index in _order)
+			if (_bodies[index].Contains($"opened{slot} ", StringComparison.Ordinal) ||
+				_bodies[index].Contains($"opened{slot};", StringComparison.Ordinal))
+				return true;
+
+		return false;
+	}
+
 	/// <summary>Whether any written state touches the capture local for a slot.</summary>
 	/// <remarks>
 	/// A rule every call of which was compiled as a site leaves its own states
@@ -351,43 +362,10 @@ sealed partial class Machine
 		{
 			// The same open-and-count protocol the ordinary capture uses — see the
 			// comment there, and `ParserEntry.CaptureOpen` for why it is not a mark.
-			atOpen.Line(
-				$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {site.Boundary}, p, " +
-				"call, atomic, repeat, lookahead, 0));");
+			OpenCapture(atOpen, site.Boundary);
 			atOpen.Line($"goto {Label(atOpen, inlined)};");
 
-			atClose.Line("var closed  = 0;");
-			atClose.Line("var openedAt = entries.Count - 1;");
-			atClose.Line();
-
-			using (atClose.Block("for (; openedAt >= 0; openedAt--)"))
-			{
-				atClose.Line("var opened = entries[openedAt];");
-				atClose.Line();
-				atClose.Line($"if (opened.State != {site.Boundary}) continue;");
-				atClose.Line();
-
-				using (atClose.Block("if (opened.Kind == ParserEntry.Capture)"))
-				{
-					atClose.Line("closed++;");
-					atClose.Line("continue;");
-				}
-
-				atClose.Line();
-				atClose.Line("if (opened.Kind != ParserEntry.CaptureOpen)");
-				atClose.Then("continue;");
-				atClose.Line();
-				atClose.Line("if (closed == 0)");
-				atClose.Then("break;");
-				atClose.Line();
-				atClose.Line("closed--;");
-			}
-
-			atClose.Line();
-			atClose.Line("global::System.Diagnostics.Debug.Assert(openedAt >= 0);");
-			atClose.Line(
-				$"entries.Add(new ParserEntry(ParserEntry.Capture, {site.Boundary}, " +
-				"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
+			CloseOpened(atClose, site.Boundary, stepped: false);
 			atClose.Line($"goto {Label(atClose, next)};");
 		}
 		else

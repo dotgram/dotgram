@@ -1865,6 +1865,16 @@ sealed partial class Machine
 				declaration(field);
 		}
 
+		if (CountsRules && _nestedCaptures.Count > 0)
+		{
+			file.Line("#if DOTGRAM_COUNTS");
+			file.Line("// The records a close searched back over for its opening, for a test that counts them;");
+			file.Line("// compiled only under DOTGRAM_COUNTS, which no project defines, and not a supported setting.");
+			file.Line($"internal static long {Searched} = 0;");
+			file.Line("#endif");
+			file.Line();
+		}
+
 		using (file.Block(
 			$"static int {name}({InputType} text, int pos, int state, " +
 			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, " +
@@ -1935,6 +1945,9 @@ sealed partial class Machine
 				for (var i = 0; i < _captures; i++)
 					if (_textCaptures.Contains(i) && !_nestedCaptures.Contains(i) && UsesCapture(i))
 						file.Line($"var capture{i} = 0;");
+				for (var i = 0; i < _captures; i++)
+					if (_nestedCaptures.Contains(i) && UsesOpened(i))
+						file.Line($"var opened{i} = -1;");
 				foreach (var slot in _bindingSlots.Values.OrderBy(static slot => slot))
 					if (UsesBound(slot))
 						file.Line($"var bound{slot} = -1;");
@@ -3047,9 +3060,7 @@ sealed partial class Machine
 				// would find an opening that says it is spoken for.
 				if (_nestedCaptures.Contains(slot))
 				{
-					writer.Line(
-						$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
-						"call, atomic, repeat, lookahead, 0));");
+					OpenCapture(writer, slot);
 					writer.Line($"Step_DotGram(\"open capture\", {slot}, p, entries.Count{Traced});");
 					writer.Line($"goto {Label(writer, inner)};");
 
@@ -4099,37 +4110,88 @@ sealed partial class Machine
 	readonly ExecutionPlan _plan;
 
 	/// <summary>
-	/// Writes the close of a capture whose opening is an arena entry: the opening found by
-	/// counting openings against closes, the way brackets are counted, and the capture recorded
+	/// Writes the opening of a capture kept in the arena: an entry of its own, and where it is
+	/// in a local, the hint <see cref="CloseOpened"/> tries first.
+	/// </summary>
+	void OpenCapture(Writer writer, int slot)
+	{
+		writer.Line($"opened{slot} = entries.Count;");
+		writer.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
+			"call, atomic, repeat, lookahead, 0));");
+	}
+
+	/// <summary>
+	/// Writes the close of a capture whose opening is an arena entry, and the capture recorded
 	/// from where it opened to here.
 	/// </summary>
-	void CloseOpened(Writer atClose, int slot)
+	/// <remarks>
+	/// <para>
+	/// The opening is where the local the opening wrote says, wherever that still holds an
+	/// opening of this capture in this call. That is the latest opening of it, and in one call
+	/// the capture cannot open again before it closes — only a rule that reaches itself opens it
+	/// again, in a call of its own. Backtracking does not put the local back, but whatever it
+	/// gives back is cut from the arena: a later opening given back leaves the local past the
+	/// end, or on an entry that is no opening of this capture in this call, and a close reached
+	/// again inside a turn already closed finds its own opening there still. Searching back for
+	/// every close counted every record the capture held, and a repetition inside it given back
+	/// a turn at a time made that quadratic.
+	/// </para>
+	/// <para>
+	/// Where the local does not hold, the opening is found by counting openings against
+	/// closes, the way brackets are counted: an inner call's close, or one reached again after
+	/// a later opening was given back.
+	/// </para>
+	/// </remarks>
+	/// <summary>
+	/// The records a close searched back over for its opening, counted where a test asks for it
+	/// (<see cref="CountsRules"/>, under <c>DOTGRAM_COUNTS</c>).
+	/// </summary>
+	string Searched => $"Searched_DotGram{_tag}";
+
+	void CloseOpened(Writer atClose, int slot, bool stepped = true)
 	{
-		atClose.Line("var closed  = 0;");
-		atClose.Line("var openedAt = entries.Count - 1;");
+		atClose.Line($"var openedAt = opened{slot};");
 		atClose.Line();
 
-		using (atClose.Block("for (; openedAt >= 0; openedAt--)"))
+		using (atClose.Block(
+			"if ((uint)openedAt >= (uint)entries.Count || " +
+			"entries[openedAt].Kind != ParserEntry.CaptureOpen || " +
+			$"entries[openedAt].State != {slot} || " +
+			"entries[openedAt].CallIndex != call)"))
 		{
-			atClose.Line("var opened = entries[openedAt];");
-			atClose.Line();
-			atClose.Line($"if (opened.State != {slot}) continue;");
+			atClose.Line("var closed = 0;");
 			atClose.Line();
 
-			using (atClose.Block("if (opened.Kind == ParserEntry.Capture)"))
+			using (atClose.Block("for (openedAt = entries.Count - 1; openedAt >= 0; openedAt--)"))
 			{
-				atClose.Line("closed++;");
-				atClose.Line("continue;");
-			}
+				if (CountsRules)
+				{
+					atClose.Line("#if DOTGRAM_COUNTS");
+					atClose.Line($"{Searched}++;");
+					atClose.Line("#endif");
+				}
 
-			atClose.Line();
-			atClose.Line("if (opened.Kind != ParserEntry.CaptureOpen)");
-			atClose.Then("continue;");
-			atClose.Line();
-			atClose.Line("if (closed == 0)");
-			atClose.Then("break;");
-			atClose.Line();
-			atClose.Line("closed--;");
+				atClose.Line("var opened = entries[openedAt];");
+				atClose.Line();
+				atClose.Line($"if (opened.State != {slot}) continue;");
+				atClose.Line();
+
+				using (atClose.Block("if (opened.Kind == ParserEntry.Capture)"))
+				{
+					atClose.Line("closed++;");
+					atClose.Line("continue;");
+				}
+
+				atClose.Line();
+				atClose.Line("if (opened.Kind != ParserEntry.CaptureOpen)");
+				atClose.Then("continue;");
+				atClose.Line();
+				atClose.Line("if (closed == 0)");
+				atClose.Then("break;");
+				atClose.Line();
+				atClose.Line("closed--;");
+			}
 		}
 
 		atClose.Line();
@@ -4137,7 +4199,9 @@ sealed partial class Machine
 		atClose.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, " +
 			"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
-		atClose.Line($"Step_DotGram(\"capture\", {slot}, p, entries.Count{Traced});");
+
+		if (stepped)
+			atClose.Line($"Step_DotGram(\"capture\", {slot}, p, entries.Count{Traced});");
 	}
 
 	/// <summary>The machine-wide slot a binding is recorded in.</summary>
@@ -4173,9 +4237,7 @@ sealed partial class Machine
 
 		if (_nestedCaptures.Contains(slot))
 		{
-			writer.Line(
-				$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
-				"call, atomic, repeat, lookahead, 0));");
+			OpenCapture(writer, slot);
 			writer.Line($"Step_DotGram(\"open capture\", {slot}, p, entries.Count{Traced});");
 			writer.Line($"goto {Label(writer, inner)};");
 
