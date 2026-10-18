@@ -410,7 +410,6 @@ namespace DotGram.Snapshots
 			{
 				readonly global::System.ReadOnlySpan<char> text;
 				internal Failure failure;
-				const Ways? ways = null;
 				readonly ImmediateValues values;
 				readonly string parserSource;
 				readonly int[] parserStarts;
