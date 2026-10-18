@@ -263,7 +263,7 @@ static class BridgeText
 		// A selective XML index's promoted paths.
 		"MAXLENGTH", "SINGLETON", "SQL", "XQUERY",
 		// A statement's WITH.
-		"CHANGE_TRACKING_CONTEXT",
+		"CHANGE_TRACKING_CONTEXT", "FILETABLE_NAMESPACE",
 	};
 
 	/// <summary>

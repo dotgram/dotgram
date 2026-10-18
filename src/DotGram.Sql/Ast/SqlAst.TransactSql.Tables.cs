@@ -382,6 +382,20 @@ public abstract partial record AlterTableAction
 	/// <c>DISABLE CHANGE_TRACKING</c>.
 	/// </summary>
 	public sealed record ChangeTracking(bool Enable, SqlList<Option> Options) : AlterTableAction;
+
+	/// <summary>
+	/// T-SQL: ALTER TABLE (Transact-SQL), the Synapse block. <c>SPLIT RANGE (v)</c>: a partition cut in two at a boundary.
+	/// </summary>
+	public sealed record SplitRange(Expression Boundary) : AlterTableAction;
+
+	/// <summary>
+	/// T-SQL: ALTER TABLE (Transact-SQL), the Synapse block. <c>MERGE RANGE (v)</c>: the two partitions beside a boundary
+	/// made one.
+	/// </summary>
+	public sealed record MergeRange(Expression Boundary) : AlterTableAction;
+
+	/// <summary>T-SQL: ALTER TABLE (Transact-SQL). <c>ENABLE FILETABLE_NAMESPACE</c> or <c>DISABLE</c>, a FileTable's namespace.</summary>
+	public sealed record FileTableNamespace(bool Enable) : AlterTableAction;
 }
 
 public abstract partial record AlterColumnAction

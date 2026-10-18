@@ -1088,6 +1088,7 @@ static partial class Bridge
 				["DROP"]                => Dropped(old),
 				["CHECK" or "NOCHECK"]  => CheckConstraints(old, Checked(old, words[0])),
 				["ENABLE" or "DISABLE"] => Enabled(old, words[0] == "ENABLE"),
+				["SPLIT" or "MERGE"]    => Ranged(old, words[0] == "SPLIT"),
 				["SET"]                 => new Ast.AlterTableAction.SetOptions(OptionsOf(old, Tail(old))),
 				["REBUILD"]             => Rebuild(old),
 				["SWITCH"]              => Switch(old),
@@ -1293,10 +1294,28 @@ static partial class Bridge
 			if (words is ["CHANGE_TRACKING"])
 				return new Ast.AlterTableAction.ChangeTracking(enable, []);
 
+			if (words is ["FILETABLE_NAMESPACE"])
+				return new Ast.AlterTableAction.FileTableNamespace(enable);
+
 			if (words is ["CHANGE_TRACKING", "WITH", "(", ..])
 				return new Ast.AlterTableAction.ChangeTracking(enable, OptionsOf(old, tail[(tail.IndexOf("WITH", StringComparison.OrdinalIgnoreCase) + "WITH".Length)..]));
 
 			throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action} {words[0]})");
+		}
+
+		/// <summary><c>SPLIT RANGE (v)</c> and <c>MERGE RANGE (v)</c>, the boundary kept as text and read again as a value.</summary>
+		static Ast.AlterTableAction Ranged(Statement.AlterTable old, bool split)
+		{
+			var tail  = Tail(old);
+			var open  = tail.IndexOf('(');
+			var close = tail.LastIndexOf(')');
+
+			if (Words(tail) is not ["RANGE", "(", .., ")"] || close <= open)
+				throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action} {tail})");
+
+			var boundary = ValueOf(old, tail.Substring(open + 1, close - open - 1));
+
+			return split ? new Ast.AlterTableAction.SplitRange(boundary) : new Ast.AlterTableAction.MergeRange(boundary);
 		}
 
 		/// <summary>The word, then ALL or the names separated by commas.</summary>
