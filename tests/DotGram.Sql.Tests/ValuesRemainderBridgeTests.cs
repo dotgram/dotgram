@@ -52,7 +52,7 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT a FROM t WHERE FREETEXT (PROPERTY (db..t.c, 'Title'), 'x')", "FREETEXT of a property with a part left out")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -95,7 +95,7 @@ public sealed class ValuesRemainderBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}

@@ -50,9 +50,9 @@ public sealed class TreeEqualityTests
 		{
 			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
 			{
-				var first   = TransactSqlParser.TryParseSql(batch);
-				var second  = TransactSqlParser.TryParseSql(batch);
-				var located = TransactSqlParser.Located.TryParseSql(batch);
+				var first   = OldTree.TryParseSql(batch);
+				var second  = OldTree.TryParseSql(batch);
+				var located = OldTree.Located.TryParseSql(batch);
 
 				if (!first.IsSuccess)
 					continue;
@@ -116,7 +116,7 @@ public sealed class TreeEqualityTests
 		foreach (var file in files)
 			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
 			{
-				var first = TransactSqlParser.TryParseSql(batch);
+				var first = OldTree.TryParseSql(batch);
 
 				if (!first.IsSuccess)
 					continue;
@@ -138,7 +138,7 @@ public sealed class TreeEqualityTests
 						continue;
 					}
 
-					var reparsed = TransactSqlParser.TryParseStatement(written);
+					var reparsed = OldTree.TryParseStatement(written);
 
 					if (!reparsed.IsSuccess)
 						faults.Add($"printed as `{written}`, which the parser refuses to read back");
@@ -173,7 +173,7 @@ public sealed class TreeEqualityTests
 		foreach (var file in files)
 			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
 			{
-				var first = TransactSqlParser.TryParseSql(batch);
+				var first = OldTree.TryParseSql(batch);
 
 				if (!first.IsSuccess)
 					continue;
@@ -246,7 +246,7 @@ public sealed class TreeEqualityTests
 		foreach (var file in files)
 			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
 			{
-				var first = TransactSqlParser.TryParseSql(batch);
+				var first = OldTree.TryParseSql(batch);
 
 				if (!first.IsSuccess)
 					continue;
@@ -316,7 +316,7 @@ public sealed class TreeEqualityTests
 		var hashes = new HashSet<int>();
 
 		for (var i = 0; i < count; i++)
-			hashes.Add(TransactSqlParser.ParseStatement(string.Format(template, i)).GetHashCode());
+			hashes.Add(OldTree.ParseStatement(string.Format(template, i)).GetHashCode());
 
 		Assert.True(count - hashes.Count <= Tolerated(count), $"{hashes.Count} distinct hashes of {count} statements");
 	}
@@ -471,7 +471,7 @@ public sealed class TreeEqualityTests
 	[Fact]
 	public void A_copy_changed_and_changed_back_is_equal_again()
 	{
-		var located = (Query.Specification)((Statement.Select)TransactSqlParser.Located.ParseStatement("SELECT a, b FROM t WHERE a = 1")).Of;
+		var located = (Query.Specification)((Statement.Select)OldTree.Located.ParseStatement("SELECT a, b FROM t WHERE a = 1")).Of;
 		var changed = located with { Columns = [.. located.Columns.Skip(1)] };
 		var back    = changed with { Columns = located.Columns };
 

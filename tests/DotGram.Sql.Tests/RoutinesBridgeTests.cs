@@ -74,7 +74,7 @@ public sealed class RoutinesBridgeTests
 	[InlineData("CREATE TYPE t EXTERNAL NAME asm.cls", "CREATE TYPE EXTERNAL NAME")]
 	public void The_bridge_builds_the_routine_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -140,7 +140,7 @@ public sealed class RoutinesBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}

@@ -127,7 +127,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		const string text = "SELECT TOP (1) a /* c */ AS x FROM t";
 
-		var made   = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made   = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 		var column = (Ast.SelectColumn.ExpressionItem)((Ast.Query.Select)made.Query).Columns[0];
 
 		Assert.True(column.AsKeyword);
@@ -141,7 +141,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	{
 		const string text = "CREATE SCHEMA s AUTHORIZATION /* outer /* inner */ cache -- */ [realowner]";
 
-		var old = TransactSqlParser.Located.ParseStatement(text);
+		var old = OldTree.Located.ParseStatement(text);
 
 		try
 		{
@@ -163,7 +163,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something' AS Z")]
 	public void A_name_part_that_is_none_is_a_gap(string text)
 	{
-		var old = TransactSqlParser.Located.ParseStatement(text);
+		var old = OldTree.Located.ParseStatement(text);
 
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}
@@ -175,7 +175,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("EXEC [dbo] . [p]")]
 	public void A_delimited_name_with_a_blank_is_the_blank_s_gap(string text)
 	{
-		var old    = TransactSqlParser.Located.ParseStatement(text);
+		var old    = OldTree.Located.ParseStatement(text);
 		var thrown = Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 
 		Assert.DoesNotContain("that is no name", thrown.Reason, StringComparison.Ordinal);
@@ -189,7 +189,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT a AS x FROM t", "SELECT a x FROM t",    false)]
 	public void A_word_read_from_the_text_is_held_to_the_written_text(string text, string written, bool same)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		Assert.Equal(same, BridgeOracle.Again(made, written) is null);
 	}
@@ -232,7 +232,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("DELETE FROM ONLY (t) WHERE a = 1",     "DELETE FROM ONLY (t) WHERE a = 2",     BridgeOracle.Only, true)]
 	public void A_dialect_pattern_exempts_its_subtree_and_no_more(string bridged, string standard, string pattern, bool shape)
 	{
-		var made        = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(bridged), bridged);
+		var made        = Bridge.ToAst(OldTree.Located.ParseStatement(bridged), bridged);
 		var differences = Trees.Differences(made, SqlStandardParser.ParseStatement(standard), old: false);
 		var exempted    = BridgeOracle.Meaning(differences, out var unexplained);
 
@@ -249,7 +249,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	{
 		const string text = "SELECT a FROM t OPTION (RECOMPILE)";
 
-		var made     = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made     = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 		var standard = made with { Hints = [new Ast.QueryHint.Named(new Ast.Identifier("MAXDOP"), [])] };
 
 		Assert.Contains(BridgeOracle.Option, BridgeOracle.Meaning(Trees.Differences(made, made with { Hints = [] }, old: false), out var none));
@@ -268,7 +268,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	{
 		const string text = "SELECT CAST (a AS MyType) FROM t";
 
-		Assert.Equal(SqlStandardParser.ParseStatement(text), Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+		Assert.Equal(SqlStandardParser.ParseStatement(text), Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
 
 		var mine = new Ast.QualifiedName([new Ast.Identifier("MyType")]);
 		var made   = new Ast.QualifiedName([new Ast.Identifier("INT")]);
@@ -350,7 +350,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("MERGE INTO t USING u ON t.a = u.a WHEN NOT MATCHED BY SOURCE AND t.b = 1 THEN UPDATE SET b = 2 WHEN NOT MATCHED BY TARGET THEN INSERT DEFAULT VALUES;", "Merge.BySource ByTarget DefaultValues")]
 	public void The_bridge_builds_the_data_change_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -444,7 +444,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -487,7 +487,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("CREATE TABLE t (a INT) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = [dbo 2].[t history]))", "Option a bracketed name with a blank")]
 	public void The_bridge_builds_the_table_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		static SqlList<Ast.TableElement> Elements(Ast.Statement made)
 		{
@@ -587,7 +587,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -637,7 +637,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("CREATE SYNONYM s FOR srv.db.dbo.t",                                                                                                                                      "Synonym")]
 	public void The_bridge_builds_the_definition_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		static Ast.Option Word(string name, string value)
 		{
@@ -701,7 +701,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -716,7 +716,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	{
 		const string text = "CREATE TABLE t (a INT DEFAULT 1 NOT NULL, PRIMARY KEY (a))";
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.Equal(BridgeOracle.Status.Converted, outcome.Status);
 		Assert.True(outcome.Standard);
@@ -724,7 +724,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 		Assert.Equal([BridgeOracle.ProjectedColumn, BridgeOracle.ProjectedKey], outcome.Projected);
 
 		var standard = SqlStandardParser.ParseStatement(text);
-		var made     = (Ast.Statement.CreateTable)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made     = (Ast.Statement.CreateTable)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 		var items    = ((Ast.TableContents.Elements)made.Contents).Items;
 		var column   = ((Ast.TableElement.Column)items[0]).Definition;
 
@@ -762,7 +762,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	{
 		const string text = "CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_BIN)";
 
-		var made        = BridgeOracle.Projection(Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text), []);
+		var made        = BridgeOracle.Projection(Bridge.ToAst(OldTree.Located.ParseStatement(text), text), []);
 		var differences = Trees.Differences(made, SqlStandardParser.ParseStatement(standard), old: false);
 		var exempted    = BridgeOracle.Meaning(differences, out var unexplained);
 
@@ -782,7 +782,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	{
 		const string text = "CREATE TABLE t (a VARCHAR(10) COLLATE Latin1_General_BIN NOT NULL, PRIMARY KEY (a))";
 
-		var made = (Ast.Statement.CreateTable)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = (Ast.Statement.CreateTable)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		Assert.Null(BridgeOracle.Unprojected(made));
 
@@ -819,7 +819,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT JSON_ARRAYAGG(a ORDER BY b) FROM t")]
 	public void A_json_function_is_the_standards_node(string text)
 	{
-		Assert.Equal(SqlStandardParser.ParseStatement(text), Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+		Assert.Equal(SqlStandardParser.ParseStatement(text), Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
 	}
 
 	/// <summary>
@@ -843,7 +843,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT JSON_ARRAYAGG(a ORDER BY b || c) FROM t")]
 	public void A_statement_converts(string text)
 	{
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -896,7 +896,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT ISJSON (a)",                                  "Expression.Invocation ISJSON")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
-		var made  = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made  = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 		var value = ((Ast.SelectColumn.ExpressionItem)((Ast.Query.Select)made.Query).Columns[0]).Expression;
 
 		static Ast.DataType Target(Ast.Expression value)
@@ -1010,7 +1010,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT * FROM FREETEXTTABLE (t, (*), @s, 5) AS k",       "TableSource.FreetextTable")]
 	public void The_bridge_builds_the_query_record_the_text_means(string text, string expected)
 	{
-		var made   = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made   = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 		var select = (Ast.Query.Select)made.Query;
 		var source = select.From?.Sources[0];
 
@@ -1097,7 +1097,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT a FROM \"as\" AS x", true)]
 	public void A_quoted_name_is_not_the_word_AS(string text, bool said)
 	{
-		var made = (Ast.Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 		var from = ((Ast.Query.Select)made.Query).From!.Sources[0];
 
 		Assert.Equal(said, ((Ast.TableSource.Named)from).Alias!.AsKeyword);
@@ -1113,7 +1113,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("CREATE SCHEMA s AUTHORIZATION dbo CREATE TABLE t (c int)", "dbo", 1)]
 	public void A_schema_owner_is_one_name(string text, string owner, int elements)
 	{
-		var made = (Ast.Statement.CreateSchema)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = (Ast.Statement.CreateSchema)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		Assert.Equal(owner, made.Authorization!.Name.Text);
 		Assert.Equal(elements, made.Elements.Count);

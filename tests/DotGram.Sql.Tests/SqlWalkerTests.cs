@@ -22,7 +22,7 @@ public sealed class SqlWalkerTests
 	[Fact]
 	public void Every_node_is_visited_the_root_first()
 	{
-		var statement = TransactSqlParser.ParseStatement("SELECT a + 1 FROM t WHERE b = 2");
+		var statement = OldTree.ParseStatement("SELECT a + 1 FROM t WHERE b = 2");
 		var seen      = new List<ISqlSpan>();
 
 		Assert.True(SqlWalker.Walk(statement, node =>
@@ -61,7 +61,7 @@ public sealed class SqlWalkerTests
 	[Fact]
 	public void A_visit_that_answers_false_ends_the_walk()
 	{
-		var statement = TransactSqlParser.ParseStatement("SELECT a + 1 FROM t WHERE b = 2");
+		var statement = OldTree.ParseStatement("SELECT a + 1 FROM t WHERE b = 2");
 		var all       = 0;
 		var seen      = 0;
 
@@ -95,7 +95,7 @@ public sealed class SqlWalkerTests
 	{
 		var found = new List<string>();
 
-		SqlWalker.Walk(TransactSqlParser.ParseStatement(input), node =>
+		SqlWalker.Walk(OldTree.ParseStatement(input), node =>
 		{
 			SqlList<Clause>? options = node switch
 			{

@@ -16,7 +16,10 @@ is what to decide before using one, the contract they share, and what is easy to
 ## Which parser
 
 - **`TransactSqlParser`** (`DotGram.Sql.TransactSql`) — code written for SQL Server. It reads
-  what the engine reads, held against SQL Server itself, and builds the tree in `DotGram.Sql`.
+  what the engine reads, held against SQL Server itself, and builds the tree in `DotGram.Sql.Ast`,
+  the one the other two build, with T-SQL's constructs in it. It reads at four of the standard's
+  levels, by the same names: `ParseExpression`, `ParseSearchCondition`, `ParseStatement` and
+  `ParseSql`; and `ParseSelect`, a query statement and nothing else, and `ParseScript`.
 - **`SqlStandardParser`** (`DotGram.Sql.Standard`) — the ISO SQL:2023 language, when the
   question is whether a text is standard SQL, or when a tree of the standard's own constructs is
   wanted. It builds the tree in `DotGram.Sql.Ast`. It refuses what the standard does not have:
@@ -28,8 +31,7 @@ is what to decide before using one, the contract they share, and what is easy to
   among them, which holds an `Ast.Query` — the node a subquery holds too. A `UNION`, `EXCEPT` or
   `INTERSECT` is a list on the query it follows (`Query.SetOperations`), and that query's
   `OrderBy`, `Limit` and locking clauses are then the whole result's; its `Columns`, `From`,
-  `Where` are the first operand's. `Query.Operands()` gives every SELECT of a compound. `TransactSqlParser.ParseValueExpression` is an expression and
-  `SqlStandardParser.ParseValue` a literal: the names are not the same level yet.
+  `Where` are the first operand's. `Query.Operands()` gives every SELECT of a compound.
 - **`Sql92Parser`** (`DotGram.Sql.Standard`) — SQL-92, the base T-SQL is written on. Four
   entries: `ParseSelect` (an `Ast.Statement`, a `Statement.Select`), `ParseQuery` (an `Ast.Query`),
   `ParseSearchCondition` and `ParseValueExpression` (an `Ast.Expression`). It builds the tree in
@@ -50,17 +52,19 @@ is what to decide before using one, the contract they share, and what is easy to
   located or not. Every list a node holds is a `SqlList<T>`, read only and compared element by
   element; make one with `[a, b]`, `[.. items]` or `SqlList.From(items)` — an array does not
   convert. A list a record may leave out is a `SqlList<T>?`. Equality and the hash throw
-  `InsufficientExecutionStackException` on a tree deeper than the stack. `SqlWriter.Write`
-  prints a T-SQL tree back as text; `Sql2023Writer.Write` (in `DotGram.Sql.Ast`) prints the
-  standard's, which `SqlStandardParser` and `Sql92Parser` build.
+  `InsufficientExecutionStackException` on a tree deeper than the stack. `Sql2023Writer.Write`
+  (in `DotGram.Sql.Ast`) prints a tree back as text; `TransactSqlWriter.Write` prints the same
+  text and refuses a tree T-SQL would read as another one.
 - **`SqlWalker.Walk(root, visit)`** hands every node under `root` to `visit`, parent first,
   until `visit` answers false. It walks either tree; a check is a pattern match in the lambda.
 
 ```csharp
 using System.Collections.Generic;
 
-using DotGram.Sql;
+using DotGram.Sql.Ast;
 using DotGram.Sql.TransactSql;
+
+using SqlWalker = DotGram.Sql.SqlWalker;
 
 var match = TransactSqlParser.TryParseStatement("select name from Users where id > @id");
 
@@ -68,13 +72,13 @@ if (!match.IsSuccess)
     return;                                          // match.Error, match.Position
 
 var select = (Statement.Select)match.Value;
-string text = SqlWriter.Write(select);              // SELECT name FROM Users WHERE id > @id
+string text = TransactSqlWriter.Write(select);      // SELECT name FROM Users WHERE id > @id
 
 var tables = new List<string>();
 SqlWalker.Walk(select, node =>
 {
-    if (node is TableReference.Named named)
-        tables.Add(named.Table);                    // Users
+    if (node is TableSource.Named named)
+        tables.Add(named.Name.Last.Text);           // Users
     return true;                                    // false stops the walk
 });
 ```
@@ -96,7 +100,7 @@ value from outside still goes in as a parameter.
   because that is what the server does with that text in one call. **Text from a file or an
   editor is a script: `ParseScript`. Text a program sends in one command: `ParseSql`.** Pasting
   a script into `ParseSql` is the mistake to avoid; nothing in `ParseSql` guesses.
-- `ParseScript` cuts a script as sqlcmd cuts it and gives back a `Batch[]`, one for each batch
+- `ParseScript` cuts a script as sqlcmd cuts it and gives back a `Batch[]` (`DotGram.Sql.Ast`), one for each batch
   sqlcmd would send: a `GO` with nothing before it sends nothing, a batch of only spacing or a
   comment is sent and reads as no statements, `GO;` is text. `:setvar` and `$(name)` are
   substituted, a `:r` is refused, other commands are passed over.
@@ -115,15 +119,16 @@ read everything any level reads. A database at level 150 refuses a `WINDOW` clau
 
 **Locations are paid for, and only where asked.** A node from `TransactSqlParser` has a `Span`
 that says nothing (`Known` is false). `TransactSqlParser.Located` is the same parser with
-spans filled in: `TransactSqlParser.Located.ParseStatement(text).Span`. `Span.GapStart` is where
-the trivia in front of the node begins, so `text[GapStart..At]` holds its leading comments and
-nothing else; a match's `ReadingEnd` is where the reading stopped looking, so the comments after
-the last statement lie between its end and that. Spans take no part in equality: key a table of
-nodes by reference. A copy made with `with` keeps the span and says `IsStale`.
+spans filled in for a statement and the queries, expressions and table sources in it:
+`TransactSqlParser.Located.ParseStatement(text).Span`. A match's `ReadingEnd` is where the
+reading stopped looking, so the comments after the last statement lie between its end and that.
+Spans take no part in equality: key a table of nodes by reference.
 
-**Two trees with the same names.** `DotGram.Sql` and `DotGram.Sql.Ast` both have a `Statement`
-and an `Expression`, and they are different types. Code that uses both parsers imports one
-namespace and aliases the other: `using Ast = DotGram.Sql.Ast;`.
+**Two namespaces, one tree.** The tree the parsers build is in `DotGram.Sql.Ast`; `DotGram.Sql`
+holds what no tree is — `SqlList<T>`, `SqlSpan`, `SqlWalker`, `SqlScript` — and the records of
+the tree T-SQL's grammar built before, which a parser no longer hands back. Both have a
+`Statement` and an `Expression`: import `DotGram.Sql.Ast` for the parsers' tree, or alias it,
+`using Ast = DotGram.Sql.Ast;`.
 
 **A refusal's message can be long.** Where a statement stops at a position that could begin
 almost anything, `Error` lists everything that could have stood there, hundreds of keywords

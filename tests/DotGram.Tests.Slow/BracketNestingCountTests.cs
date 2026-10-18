@@ -215,7 +215,7 @@ public sealed class BracketNestingCountTests
 	/// <summary>Rule entries of one reading of a statement at level 170, from a fresh zero.</summary>
 	static long Count(string text, bool accepted)
 	{
-		return Count(Parser, "TryParseStatement170", text, accepted);
+		return Count(Parser, SqlVariants.Entry(SqlVariants.TransactSql, "TryParseStatement170"), text, accepted);
 	}
 
 	/// <summary>Rule entries of one reading by a counted parser's publication, from a fresh zero.</summary>
@@ -228,7 +228,7 @@ public sealed class BracketNestingCountTests
 
 		var read = parser.GetMethod(
 			publication,
-			BindingFlags.Public | BindingFlags.Static,
+			BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
 			binder: null,
 			[typeof(string)],
 			modifiers: null)!;

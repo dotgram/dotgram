@@ -16,7 +16,7 @@ public sealed class ServerBridgeTests
 {
 	static void Converts(string text)
 	{
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -36,7 +36,7 @@ public sealed class ServerBridgeTests
 	[InlineData("shutdown with nowait",                                         "Shutdown with no wait")]
 	public void The_bridge_builds_the_command_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -72,12 +72,12 @@ public sealed class ServerBridgeTests
 	{
 		if (expected == "Money with blanks")
 		{
-			Assert.Throws<BridgeGap>(() => Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+			Assert.Throws<BridgeGap>(() => Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
 
 			return;
 		}
 
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -125,7 +125,7 @@ public sealed class ServerBridgeTests
 	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (USE_IDENTITY)",        "Authentication by the identity")]
 	public void The_bridge_builds_the_configuration_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -177,7 +177,7 @@ public sealed class ServerBridgeTests
 	[InlineData("CREATE WORKLOAD GROUP \"default\" USING \"default\"",                "Group in quotes")]
 	public void The_bridge_builds_the_governor_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -235,7 +235,7 @@ public sealed class ServerBridgeTests
 	[InlineData("ALTER AVAILABILITY GROUP g REMOVE LISTENER 'd'",                                            "Remove a listener")]
 	public void The_bridge_builds_the_availability_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -289,7 +289,7 @@ public sealed class ServerBridgeTests
 	[InlineData("CREATE AVAILABILITY GROUP g FAILOVER")]
 	public void An_availability_body_of_the_other_verb_is_a_gap(string text)
 	{
-		var old = TransactSqlParser.Located.ParseStatement(text);
+		var old = OldTree.Located.ParseStatement(text);
 
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}
@@ -312,7 +312,7 @@ public sealed class ServerBridgeTests
 	[InlineData("CREATE ENDPOINT e FOR SOAP ()",                                                      "Soap, empty")]
 	public void The_bridge_builds_the_endpoint_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{

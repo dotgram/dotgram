@@ -875,7 +875,7 @@ static partial class Bridge
 			{
 				var text = Rest();
 
-				return TransactSql.TransactSqlParser.TryParseSql("SELECT 1 WHERE " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
+				return TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT 1 WHERE " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
 					? Values.Of(where)
 					: throw Unread();
 			}
@@ -885,7 +885,7 @@ static partial class Bridge
 			{
 				var text = Rest();
 
-				return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: var columns } }] }
+				return TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: var columns } }] }
 					&& columns.All(static one => one is Clause.DerivedColumn { Name: null })
 					? Each(columns, static one => Values.Of(((Clause.DerivedColumn)one).Value))
 					: throw Unread();

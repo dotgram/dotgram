@@ -110,7 +110,7 @@ static class BridgeOracle
 				Recovered: recovered, Gaps: gaps, Standard: read, Shape: shape, Dialects: dialects, Projected: projected);
 		}
 
-		var back = TransactSqlParser.TryParseSql(written);
+		var back = OldTree.TryParseSql(written);
 
 		if (!back.IsSuccess || back.Value!.Length != 1)
 			return new Outcome(root, root, Status.Unread, text, Written: written, Detail: detail,
@@ -279,7 +279,7 @@ static class BridgeOracle
 	/// </summary>
 	public static string? Again(Ast.Statement made, string written)
 	{
-		var back = TransactSqlParser.Located.TryParseSql(written);
+		var back = OldTree.Located.TryParseSql(written);
 
 		if (!back.IsSuccess || back.Value!.Length != 1)
 			return "the written text does not read located";
@@ -626,7 +626,7 @@ static class BridgeOracle
 	/// <summary>
 	/// The statement's own text, cut from the batch by its span.
 	/// </summary>
-	static string Text(Statement old, string source)
+	internal static string Text(Statement old, string source)
 	{
 		var span = old.Span;
 
@@ -650,7 +650,7 @@ static class BridgeOracle
 		foreach (var file in Directory.GetFiles(Corpus(), "*.sql", SearchOption.AllDirectories).OrderBy(static one => one, StringComparer.Ordinal))
 			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
 			{
-				var read = TransactSqlParser.Located.TryParseSql(batch);
+				var read = OldTree.Located.TryParseSql(batch);
 
 				if (!read.IsSuccess)
 					continue;
@@ -661,7 +661,9 @@ static class BridgeOracle
 	}
 
 	/// <summary>
-	/// The statements <c>TreeEqualityTests</c> counts, read the way it reads them: not located.
+	/// The statements the parser's public entry reads from the corpus, not located: the common tree, carried across by
+	/// the bridge, so that a statement the bridge has no place for is refused there and this count falls short of
+	/// <see cref="CorpusStatements"/>.
 	/// </summary>
 	public static int CorpusCount()
 	{
@@ -702,7 +704,7 @@ static class BridgeOracle
 				if (!seen.Add(input))
 					continue;
 
-				var read = TransactSqlParser.Located.TryParseSql(input);
+				var read = OldTree.Located.TryParseSql(input);
 
 				if (!read.IsSuccess)
 					continue;

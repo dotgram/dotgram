@@ -39,6 +39,21 @@ static class SqlVariants
 	/// <summary>The SQL-92 parser T-SQL includes.</summary>
 	public const string Sql92 = "Sql92";
 
+	/// <summary>
+	/// The name a variant publishes an entry under. T-SQL's grammar publishes its entries to its own assembly as
+	/// <c>TryParseSyntax…</c>, building the T-SQL tree, and the shipped class carries them onto the common tree under
+	/// the public names; a variant is the grammar alone, so it has the first.
+	/// </summary>
+	public static string Entry(string grammar, string publication)
+	{
+		if (grammar != TransactSql || !publication.StartsWith("TryParse", StringComparison.Ordinal) || publication.StartsWith("TryParseSyntax", StringComparison.Ordinal))
+			return publication;
+
+		var level = publication.Substring("TryParse".Length);
+
+		return "TryParseSyntax" + (level == "SearchCondition" ? "Condition" : level);
+	}
+
 	/// <summary>A parser of one grammar compiled one way.</summary>
 	/// <param name="follow"><c>off</c>, <c>true</c> or <c>split</c>, as <c>DotGramPositionalFollow</c> says it.</param>
 	/// <param name="memo">Whether the memo of failures is written (<c>DOTGRAM_NO_MEMO</c> where not).</param>

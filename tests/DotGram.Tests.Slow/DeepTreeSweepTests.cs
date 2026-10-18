@@ -80,7 +80,7 @@ public sealed class DeepTreeSweepTests
 			Assert.True(TransactSqlParser.Located.TryParseStatement(text).IsSuccess, $"{shape}: the located reading refused it");
 			Assert.True(TransactSqlParser.TryParseScript(text).IsSuccess, $"{shape}: the script reading refused it");
 
-			return RoundTrip(text, TransactSqlParser.ParseStatement, SqlWriter.Write);
+			return RoundTrip(text, TransactSqlParser.ParseStatement, DotGram.Sql.Ast.TransactSqlWriter.Write);
 		});
 
 		Assert.Null(thrown);

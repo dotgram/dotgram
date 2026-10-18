@@ -46,12 +46,12 @@ public sealed class DeepTreeTests
 
 		var (written, thrown) = OnStack(() =>
 		{
-			Assert.True(TransactSqlParser.TryParseStatement(text, 0).IsSuccess, "the positional reading refused it");
-			Assert.True(TransactSqlParser.Located.TryParseStatement(text).IsSuccess, "the located reading refused it");
+			Assert.True(OldTree.TryParseStatement(text, 0).IsSuccess, "the positional reading refused it");
+			Assert.True(OldTree.Located.TryParseStatement(text).IsSuccess, "the located reading refused it");
 			Assert.True(TransactSqlParser.TryParseScript(text).IsSuccess, "the script reading refused it");
 			Assert.True(Sql92Parser.TryParseSelect(text + " FROM t").IsSuccess, "SQL-92 refused it");
 
-			return RoundTrip(text, TransactSqlParser.ParseStatement, SqlWriter.Write);
+			return RoundTrip(text, TransactSqlParser.ParseStatement, Ast.TransactSqlWriter.Write);
 		});
 
 		Assert.Null(thrown);
@@ -71,11 +71,13 @@ public sealed class DeepTreeTests
 
 		var (written, thrown) = OnStack(() =>
 		{
-			var transact = SqlWriter.Write(TransactSqlParser.ParseStatement(chain));
+			var transact = SqlWriter.Write(OldTree.ParseStatement(chain));
+			var carried  = Ast.TransactSqlWriter.Write(TransactSqlParser.ParseStatement(chain));
 			var standard = Ast.Sql2023Writer.Write(SqlStandardParser.ParseStatement(from));
 			var sql92    = Ast.Sql2023Writer.Write(Sql92Parser.ParseSelect(from));
 
 			Assert.Equal(chain, transact);
+			Assert.Equal(chain, carried);
 			Assert.Equal(from, standard);
 			Assert.Equal(from, sql92);
 
@@ -128,7 +130,7 @@ public sealed class DeepTreeTests
 			// Thrown again by the thread that handed the walk over, which is what says it crossed.
 			Assert.Contains("SqlStack", caught.StackTrace, StringComparison.Ordinal);
 
-			return SqlWriter.Write(TransactSqlParser.ParseStatement(deep));
+			return SqlWriter.Write(OldTree.ParseStatement(deep));
 		});
 
 		Assert.Null(thrown);
@@ -149,7 +151,7 @@ public sealed class DeepTreeTests
 
 		var (nodes, thrown) = OnStack(() =>
 		{
-			var tree  = TransactSqlParser.ParseStatement(text);
+			var tree  = OldTree.ParseStatement(text);
 			var count = 0;
 
 			SqlWalker.Walk(tree, _ =>

@@ -63,7 +63,7 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 
 		foreach (var statement in Statements())
 		{
-			Compare(with, without, "TryParseStatement", statement, random, ref count, wrong);
+			Compare(with, without, SqlVariants.Entry(SqlVariants.TransactSql, "TryParseStatement"), statement, random, ref count, wrong);
 
 			if (index++ % 16 == 0)
 				foreach (var name in all)
@@ -71,7 +71,7 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 		}
 
 		foreach (var (name, text) in Nests(Tsql: true))
-			Compare(with, without, name, text, random, ref count, wrong);
+			Compare(with, without, SqlVariants.Entry(SqlVariants.TransactSql, name), text, random, ref count, wrong);
 
 		Report("T-SQL", count, wrong, 50_000);
 	}
@@ -155,7 +155,7 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 	static string Answer(Type parser, string name, object[] arguments)
 	{
 		var method = parser.GetMethod(
-			name, BindingFlags.Public | BindingFlags.Static, binder: null,
+			name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null,
 			[.. arguments.Select(static one => one.GetType())], modifiers: null);
 
 		if (method is null)
@@ -227,7 +227,7 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 	{
 		return
 		[
-			.. parser.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.. parser.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
 				.Where(static one => one.Name.StartsWith("TryParse", StringComparison.Ordinal) &&
 					one.GetParameters() is [var only] && only.ParameterType == typeof(string) &&
 					one.ReturnType.Name.StartsWith("Match", StringComparison.Ordinal))

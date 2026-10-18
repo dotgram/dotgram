@@ -30,12 +30,12 @@ public sealed class ShippedExampleTests
 	{
 		var match = TransactSqlParser.TryParseSelect("select name from Users where id > @id");
 
-		var select = (Statement.Select)match.Value;
-		var query  = (Query.Specification)select.Of;
+		var select = (Ast.Statement.Select)match.Value;
+		var query  = (Ast.Query.Select)select.Query;
 
-		var from = (TableReference.Named)query.From[0];   // from.Table is "Users"
+		var from = (Ast.TableSource.Named)query.From!.Sources[0];   // from.Name.Last.Text is "Users"
 
-		Assert.Equal("Users", from.Table);
+		Assert.Equal("Users", from.Name.Last.Text);
 	}
 
 	/// <summary>
@@ -81,14 +81,14 @@ public sealed class ShippedExampleTests
 
 		Assert.True(match.IsSuccess);                       // the page returns here instead
 
-		var select = (Statement.Select)match.Value;
-		string text = SqlWriter.Write(select);              // SELECT name FROM Users WHERE id > @id
+		var select = (Ast.Statement.Select)match.Value;
+		string text = Ast.TransactSqlWriter.Write(select);  // SELECT name FROM Users WHERE id > @id
 
 		var tables = new List<string>();
 		SqlWalker.Walk(select, node =>
 		{
-			if (node is TableReference.Named named)
-				tables.Add(named.Table);                    // Users
+			if (node is Ast.TableSource.Named named)
+				tables.Add(named.Name.Last.Text);           // Users
 			return true;                                    // false stops the walk
 		});
 

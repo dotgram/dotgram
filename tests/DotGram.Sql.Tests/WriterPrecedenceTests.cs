@@ -284,7 +284,7 @@ public sealed class WriterPrecedenceTests
 		},
 		static (text, condition) =>
 		{
-			var read = TransactSqlParser.Located.TryParseStatement(text);
+			var read = OldTree.Located.TryParseStatement(text);
 
 			if (!read.IsSuccess)
 				return null;
@@ -741,7 +741,7 @@ public sealed class WriterPrecedenceTests
 
 			Assert.Equal(expected, text);
 
-			var read = (Statement.Select)Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+			var read = (Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 			Assert.Equal(structure, read.Query);
 			Assert.Equal(text, TransactSqlWriter.Write(read));

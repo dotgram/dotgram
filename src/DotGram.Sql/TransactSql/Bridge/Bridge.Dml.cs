@@ -64,7 +64,7 @@ static partial class Bridge
 		/// <summary>The text from the end of one located node to the end of the node it stands in.</summary>
 		static string? After(ISqlSpan node, ISqlSpan within)
 		{
-			if (source is null || !node.Span.Known || !within.Span.Known || node.Span.IsStale || within.Span.IsStale)
+			if (!Cuttable(node.Span) || !Cuttable(within.Span))
 				return null;
 
 			return node.Span.End <= within.Span.End && within.Span.End <= source.Length ? source[node.Span.End..within.Span.End] : null;
@@ -83,7 +83,7 @@ static partial class Bridge
 			{
 				var inside = name[(name.IndexOf('(') + 1)..name.LastIndexOf(')')];
 
-				if (value is not null || TransactSql.TransactSqlParser.TryParseSql("SELECT 1 ORDER BY " + inside) is not { IsSuccess: true, Value: [Statement.Select { OrderBy: Clause.OrderBy by }] })
+				if (value is not null || TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT 1 ORDER BY " + inside) is not { IsSuccess: true, Value: [Statement.Select { OrderBy: Clause.OrderBy by }] })
 					throw BridgeGap.Open(old, "inventory Clause.Option (an ORDER that is not a sort list)");
 
 				return new Ast.Option(new Ast.Identifier("ORDER"), null, []) { Order = new Ast.RowOrder(Queries.Order(by).Items, false) };
@@ -246,7 +246,7 @@ static partial class Bridge
 		/// </summary>
 		static string? Before(Statement.Delete old, TableReference target)
 		{
-			if (source is null || !old.Span.Known || !target.Span.Known || old.Span.IsStale || target.Span.IsStale)
+			if (!Cuttable(old.Span) || !Cuttable(target.Span))
 				return null;
 
 			var from = old.Top is { Span: { Known: true, IsStale: false } top } ? top.End : old.Span.At;

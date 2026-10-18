@@ -64,14 +64,14 @@ public sealed class SecurityWriterTests
 	{
 		const string text = "CREATE PROCEDURE p AS SELECT 1";
 
-		return Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		return Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 	}
 
 	static Statement Trigger()
 	{
 		const string text = "CREATE TRIGGER tr ON t AFTER INSERT AS SELECT 1";
 
-		return Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		return Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 	}
 
 	static Grantee Principal(string name)
@@ -162,7 +162,7 @@ public sealed class SecurityWriterTests
 		var tree = Tree(which);
 		var text = TransactSqlWriter.Write(tree);
 
-		Assert.Equal(tree, Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
 	}
 
 	/// <summary>
@@ -393,7 +393,7 @@ public sealed class SecurityWriterTests
 		var tree = PrincipalTree(which);
 		var text = TransactSqlWriter.Write(tree);
 
-		Assert.Equal(tree, Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
 	}
 
 	/// <summary>
@@ -790,7 +790,7 @@ public sealed class SecurityWriterTests
 		var tree = KeyTree(which);
 		var text = TransactSqlWriter.Write(tree);
 
-		Assert.Equal(tree, Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
 	}
 
 	/// <summary>

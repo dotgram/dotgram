@@ -26,7 +26,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("create external file format f with (format_type = orc, format_options (first_row = 2, use_type_default = false))", "File format lower case")]
 	public void The_bridge_builds_the_definition_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -44,7 +44,7 @@ public sealed class ExternalBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -64,7 +64,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("CREATE EXTERNAL FILE FORMAT f WITH (FORMAT_TYPE = DELIMITEDTEXT, FORMAT_OPTIONS (FIRST_ROW = 2,))")]
 	public void A_text_the_records_do_not_hold_is_a_gap(string text)
 	{
-		var old = TransactSqlParser.Located.ParseStatement(text);
+		var old = OldTree.Located.ParseStatement(text);
 
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}
@@ -85,7 +85,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("create external table t with (location = n'x') as select 1 as a",                    "Query lower case")]
 	public void The_bridge_builds_the_table_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -107,7 +107,7 @@ public sealed class ExternalBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -119,7 +119,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("CREATE EXTERNAL TABLE t WITH (LOCATION = 'l') AS SELECT 1 AS a OPTION (RECOMPILE)")]
 	public void A_query_the_records_do_not_hold_is_a_gap(string text)
 	{
-		var old = TransactSqlParser.Located.ParseStatement(text);
+		var old = OldTree.Located.ParseStatement(text);
 
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}
@@ -139,7 +139,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("CREATE EXTERNAL LIBRARY l FROM (CONTENT /* c /* nested */ */ = 'p') /* d */ WITH (LANGUAGE = 'R') -- e",       "Library comments")]
 	public void The_bridge_builds_the_library_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -160,7 +160,7 @@ public sealed class ExternalBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -180,7 +180,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("create external language l authorization dbo from (content = null, file_name = 'f', platform = linux), (content = 'a', file_name = 'g')", "Language lower case")]
 	public void The_bridge_builds_the_language_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -201,7 +201,7 @@ public sealed class ExternalBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -221,7 +221,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("create external resource pool [p] with (affinity cpu = (@a to @b))",          "Affinity variables")]
 	public void The_bridge_builds_the_model_and_pool_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -242,7 +242,7 @@ public sealed class ExternalBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -253,7 +253,7 @@ public sealed class ExternalBridgeTests
 	[InlineData("ALTER EXTERNAL RESOURCE POOL 'default' WITH (MAX_CPU_PERCENT = 1)")]
 	public void A_pool_named_by_a_string_is_a_gap(string text)
 	{
-		var old = TransactSqlParser.Located.ParseStatement(text);
+		var old = OldTree.Located.ParseStatement(text);
 
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}

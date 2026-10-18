@@ -108,7 +108,7 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE PROCEDURE p1 @a INT WITH EXECUTE AS 'caller' AS PRINT 'hi'", "EXECUTE AS a user called caller")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
+		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
 
 		var holds = expected switch
 		{
@@ -208,7 +208,7 @@ public sealed class DdlRemainderBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
+		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 	}
@@ -238,7 +238,7 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE OR ALTER MATERIALIZED VIEW v AS SELECT 1 AS a")]
 	public void A_materialized_view_altered_is_a_gap(string text)
 	{
-		var old = TransactSqlParser.Located.ParseStatement(text);
+		var old = OldTree.Located.ParseStatement(text);
 
 		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}

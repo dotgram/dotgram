@@ -90,7 +90,7 @@ static string Script(string text)
 	foreach (var batch in read.Value!)
 	{
 		foreach (var statement in batch.Statements)
-			written.Append(SqlWriter.Write(statement)).Append(" ;; ");
+			written.Append(TransactSqlWriter.Write(statement)).Append(" ;; ");
 
 		written.Append("GO ").Append(batch.Go).Append(" || ");
 	}
@@ -102,7 +102,7 @@ static string TSql(string text)
 {
 	var read = TransactSqlParser.TryParseStatement(text);
 
-	return read.IsSuccess ? "ok " + SqlWriter.Write(read.Value!) : Refused(read.Position, read.Error);
+	return read.IsSuccess ? "ok " + TransactSqlWriter.Write(read.Value!) : Refused(read.Position, read.Error);
 }
 
 static string Standard(string text)

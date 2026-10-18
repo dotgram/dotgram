@@ -88,7 +88,7 @@ static partial class Bridge
 		{
 			var open  = text.IndexOf('(');
 			var close = text.LastIndexOf(')');
-			var read  = close > open ? TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Substring(open + 1, close - open - 1)) : default;
+			var read  = close > open ? TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Substring(open + 1, close - open - 1)) : default;
 
 			return close > open && read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 				? Values.Of(value)
@@ -574,7 +574,7 @@ static partial class Bridge
 				return value;
 
 			var text = string.Join(" ", tokens.Select(static one => one.Text));
-			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSql("SELECT " + text);
+			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text);
 
 			return read.IsSuccess && read.Value is [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn(var expression, null)] } }]
 				? Values.Of(expression)
@@ -608,6 +608,20 @@ static partial class Bridge
 		}
 
 		public static Ast.Query Of(Query old)
+		{
+			if (!SqlStack.Enough())
+				return Deeper(old, static node => Of((Query)node));
+
+			var made = Converted(old);
+
+			// The family recurses on itself rather than through the dispatcher, so it places its own nodes.
+			if (locating && old.Span is { Known: true, IsStale: false } span)
+				Place(made, span);
+
+			return made;
+		}
+
+		static Ast.Query Converted(Query old)
 		{
 			switch (old)
 			{

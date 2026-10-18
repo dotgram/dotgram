@@ -24,7 +24,7 @@ namespace DotGram.Benchmarks;
 /// </para>
 /// <para>
 /// The comparison is not against the original text. Each statement is printed by ScriptDom twice —
-/// once from ScriptDom's own reading and once from what this grammar read and <see cref="SqlWriter"/>
+/// once from ScriptDom's own reading and once from what this grammar read and <see cref="DotGram.Sql.Ast.TransactSqlWriter"/>
 /// wrote — and the two printings are held against each other. So formatting is not what is being
 /// measured; what the tree holds is.
 /// </para>
@@ -169,7 +169,7 @@ internal static class CorpusRoundTrip
 
 					try
 					{
-						printed = SqlWriter.Write(made);
+						printed = DotGram.Sql.Ast.TransactSqlWriter.Write(made);
 					}
 					catch (Exception failure)
 					{
@@ -247,13 +247,13 @@ internal static class CorpusRoundTrip
 	}
 
 	/// <summary>What this grammar makes of one statement, or null where it refuses or throws.</summary>
-	static Statement? Ours(string original)
+	static DotGram.Sql.Ast.Statement? Ours(string original)
 	{
 		try
 		{
 			var match = TransactSqlParser.TryParseStatement(original);
 
-			return match.IsSuccess ? match.Value as Statement : null;
+			return match.IsSuccess ? match.Value : null;
 		}
 		catch (Exception)
 		{

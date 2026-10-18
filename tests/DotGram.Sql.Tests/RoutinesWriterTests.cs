@@ -284,7 +284,7 @@ public sealed class RoutinesWriterTests
 		var tree = Tree(which);
 		var text = TransactSqlWriter.Write(tree);
 
-		Assert.Equal(tree, Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
 	}
 
 	/// <summary>

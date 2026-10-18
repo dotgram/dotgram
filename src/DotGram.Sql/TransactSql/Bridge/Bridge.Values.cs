@@ -33,6 +33,20 @@ static partial class Bridge
 
 		public static Ast.Expression Of(Expression old)
 		{
+			if (!SqlStack.Enough())
+				return Deeper(old, static node => Of((Expression)node));
+
+			var made = Converted(old);
+
+			// The family recurses on itself rather than through the dispatcher, so it places its own nodes.
+			if (locating && old.Span is { Known: true, IsStale: false } span)
+				Place(made, span);
+
+			return made;
+		}
+
+		static Ast.Expression Converted(Expression old)
+		{
 			return old switch
 			{
 				Expression.Or(var left, var right)          => Binary(left, Ast.BinaryOperator.Or, right),
@@ -678,7 +692,7 @@ static partial class Bridge
 			{
 				// The keyword's own place in the text, not the first token spelled as it is (`PARAMETERS.PARAMETERS`).
 				var at   = located[parameters].At;
-				var read = TransactSql.TransactSqlParser.TryParseSql("SELECT " + words[(at + "PARAMETERS".Length)..]);
+				var read = TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + words[(at + "PARAMETERS".Length)..]);
 
 				given = read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 					? Of(value)
@@ -880,7 +894,7 @@ static partial class Bridge
 		/// </summary>
 		static Ast.OrderByClause Ordering(object owner, string text)
 		{
-			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSql("SELECT 1 " + text);
+			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT 1 " + text);
 
 			if (read.IsSuccess && read.Value is [Statement.Select { OrderBy: Clause.OrderBy { Offset: null, Fetch: null } by }])
 				return Queries.Order(by);

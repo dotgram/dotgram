@@ -249,11 +249,11 @@ public sealed class TransactSqlTests
 	{
 		var statement = TransactSqlParser.TryParseStatement(input);
 		var select    = TransactSqlParser.TryParseSelect(input);
-		var query     = TransactSqlParser.TryParseQuery(input);
+		var value     = TransactSqlParser.TryParseExpression(input);
 
 		Assert.False(statement.IsSuccess, input);
 		Assert.False(select.IsSuccess, input);
-		Assert.False(query.IsSuccess, input);
+		Assert.False(value.IsSuccess, input);
 
 		var located = TransactSqlParser.Located.TryParseStatement(input);
 
@@ -261,7 +261,7 @@ public sealed class TransactSqlTests
 		Assert.Equal(statement.Position, located.Position);
 		Assert.Equal(statement.Error, located.Error);
 		Assert.False(TransactSqlParser.Located.TryParseSelect(input).IsSuccess, input);
-		Assert.False(TransactSqlParser.Located.TryParseQuery(input).IsSuccess, input);
+		Assert.False(TransactSqlParser.Located.TryParseExpression(input).IsSuccess, input);
 	}
 
 	// ── The query layer ─────────────────────────────────────────────────────────
@@ -14114,7 +14114,7 @@ public sealed class TransactSqlTests
 	public void An_ordered_query_keeps_its_order()
 	{
 		var select = Assert.IsType<Statement.Select>(
-			TransactSqlParser.TryParseStatement("SELECT * FROM (SELECT TOP 1 a FROM t UNION SELECT b FROM u ORDER BY 1) AS x").Value);
+			OldTree.TryParseStatement("SELECT * FROM (SELECT TOP 1 a FROM t UNION SELECT b FROM u ORDER BY 1) AS x").Value);
 		var outer  = Assert.IsType<Query.Specification>(select.Of);
 		var derived = Assert.IsType<TableReference.Derived>(Assert.Single(outer.From));
 		var ordered = Assert.IsType<Query.Ordered>(derived.Query);
@@ -14123,7 +14123,7 @@ public sealed class TransactSqlTests
 		Assert.NotNull(ordered.By);
 		Assert.Null(ordered.For);
 
-		var insert = Assert.IsType<Statement.Insert>(TransactSqlParser.TryParseStatement("INSERT INTO x SELECT y FROM z").Value);
+		var insert = Assert.IsType<Statement.Insert>(OldTree.TryParseStatement("INSERT INTO x SELECT y FROM z").Value);
 
 		Assert.IsType<Query.Specification>(insert.Rows);
 	}
@@ -14385,12 +14385,12 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_column_list_is_not_a_call()
 	{
-		var insert = Assert.IsType<Statement.Insert>(TransactSqlParser.TryParseStatement("INSERT t (c1) VALUES (1)").Value);
+		var insert = Assert.IsType<Statement.Insert>(OldTree.TryParseStatement("INSERT t (c1) VALUES (1)").Value);
 
 		Assert.IsType<TableReference.Named>(insert.Target);
 		Assert.Equal(new[] { "c1" }, insert.Columns);
 
-		var called = Assert.IsType<Statement.Insert>(TransactSqlParser.TryParseStatement("INSERT dbo.f() (c1) DEFAULT VALUES").Value);
+		var called = Assert.IsType<Statement.Insert>(OldTree.TryParseStatement("INSERT dbo.f() (c1) DEFAULT VALUES").Value);
 
 		Assert.IsType<TableReference.FunctionCall>(called.Target);
 		Assert.Equal(new[] { "c1" }, called.Columns);
@@ -14436,50 +14436,50 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void The_operators_group_as_the_engine_computes()
 	{
-		var and = Assert.IsType<Expression.BitwiseAnd>(TransactSqlParser.TryParseValueExpression("2 + 5 & 4").Value);
+		var and = Assert.IsType<Expression.BitwiseAnd>(OldTree.TryParseValueExpression("2 + 5 & 4").Value);
 		Assert.IsType<Expression.Add>(and.Left);
 
-		var add = Assert.IsType<Expression.Add>(TransactSqlParser.TryParseValueExpression("5 & 4 + 2").Value);
+		var add = Assert.IsType<Expression.Add>(OldTree.TryParseValueExpression("5 & 4 + 2").Value);
 		Assert.IsType<Expression.BitwiseAnd>(add.Left);
 
-		var times = Assert.IsType<Expression.Multiply>(TransactSqlParser.TryParseValueExpression("7 % 3 * 2").Value);
+		var times = Assert.IsType<Expression.Multiply>(OldTree.TryParseValueExpression("7 % 3 * 2").Value);
 		Assert.IsType<Expression.Modulo>(times.Left);
 
-		var inverted = Assert.IsType<Expression.Multiply>(TransactSqlParser.TryParseValueExpression("~2 * 3").Value);
+		var inverted = Assert.IsType<Expression.Multiply>(OldTree.TryParseValueExpression("~2 * 3").Value);
 		Assert.IsType<Expression.BitwiseNot>(inverted.Left);
 
-		var masked = Assert.IsType<Expression.BitwiseAnd>(TransactSqlParser.TryParseValueExpression("6 & 3 * 2").Value);
+		var masked = Assert.IsType<Expression.BitwiseAnd>(OldTree.TryParseValueExpression("6 & 3 * 2").Value);
 		Assert.IsType<Expression.Multiply>(masked.Right);
 
 		// The shifts stand with `+`: `1 << 1 + 1` is 3, `1 + 1 << 1` is 4, `1 & 1 << 1` is 2,
 		// `8 >> 1 + 1` is 5, and `1 << 1 * 2` is 4 because `*` is stronger.
-		var shifted = Assert.IsType<Expression.Add>(TransactSqlParser.TryParseValueExpression("1 << 1 + 1").Value);
+		var shifted = Assert.IsType<Expression.Add>(OldTree.TryParseValueExpression("1 << 1 + 1").Value);
 		Assert.IsType<Expression.ShiftLeft>(shifted.Left);
 
-		var summed = Assert.IsType<Expression.ShiftLeft>(TransactSqlParser.TryParseValueExpression("1 + 1 << 1").Value);
+		var summed = Assert.IsType<Expression.ShiftLeft>(OldTree.TryParseValueExpression("1 + 1 << 1").Value);
 		Assert.IsType<Expression.Add>(summed.Left);
 
-		var anded = Assert.IsType<Expression.ShiftLeft>(TransactSqlParser.TryParseValueExpression("1 & 1 << 1").Value);
+		var anded = Assert.IsType<Expression.ShiftLeft>(OldTree.TryParseValueExpression("1 & 1 << 1").Value);
 		Assert.IsType<Expression.BitwiseAnd>(anded.Left);
 
-		var right = Assert.IsType<Expression.Add>(TransactSqlParser.TryParseValueExpression("8 >> 1 + 1").Value);
+		var right = Assert.IsType<Expression.Add>(OldTree.TryParseValueExpression("8 >> 1 + 1").Value);
 		Assert.IsType<Expression.ShiftRight>(right.Left);
 
-		var scaled = Assert.IsType<Expression.ShiftLeft>(TransactSqlParser.TryParseValueExpression("1 << 1 * 2").Value);
+		var scaled = Assert.IsType<Expression.ShiftLeft>(OldTree.TryParseValueExpression("1 << 1 * 2").Value);
 		Assert.IsType<Expression.Multiply>(scaled.Right);
 
-		var twice = Assert.IsType<Expression.ShiftRight>(TransactSqlParser.TryParseValueExpression("1 << 1 >> 1").Value);
+		var twice = Assert.IsType<Expression.ShiftRight>(OldTree.TryParseValueExpression("1 << 1 >> 1").Value);
 		Assert.IsType<Expression.ShiftLeft>(twice.Left);
 
-		var compared2 = Assert.IsType<Expression.Comparison>(TransactSqlParser.TryParseSearchCondition("1 << 1 = 2").Value);
+		var compared2 = Assert.IsType<Expression.Comparison>(OldTree.TryParseSearchCondition("1 << 1 = 2").Value);
 		Assert.IsType<Expression.ShiftLeft>(compared2.Left);
 
-		var compared = Assert.IsType<Expression.Comparison>(TransactSqlParser.TryParseSearchCondition("1 & 3 = 1").Value);
+		var compared = Assert.IsType<Expression.Comparison>(OldTree.TryParseSearchCondition("1 & 3 = 1").Value);
 		Assert.IsType<Expression.BitwiseAnd>(compared.Left);
 
 		Assert.Equal(
 			SqlComparison.NotEqualBang,
-			Assert.IsType<Expression.Comparison>(TransactSqlParser.TryParseSearchCondition("a ! = 1").Value).Operator);
+			Assert.IsType<Expression.Comparison>(OldTree.TryParseSearchCondition("a ! = 1").Value).Operator);
 	}
 
 	/// <summary>T-SQL's operators, as the engine answers them.</summary>
@@ -15304,7 +15304,7 @@ public sealed class TransactSqlTests
 	public void A_statement_and_a_query_hold_each_other()
 	{
 		var written = Assert.IsType<Statement.Insert>(
-			TransactSqlParser.TryParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1").Value);
+			OldTree.TryParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1").Value);
 
 		Assert.Equal(new[] { "a" }, written.Columns);
 
@@ -15314,7 +15314,7 @@ public sealed class TransactSqlTests
 		Assert.NotNull(query.Where);
 
 		var merged = Assert.IsType<Statement.Merge>(
-			TransactSqlParser.TryParseStatement(
+			OldTree.TryParseStatement(
 				"MERGE t USING u ON t.id = u.id WHEN MATCHED THEN UPDATE SET a = 1").Value);
 
 		var arm = Assert.IsType<Clause.MergeWhen>(Assert.Single(merged.Whens));
@@ -15466,7 +15466,7 @@ public sealed class TransactSqlTests
 	public void A_created_table_says_its_columns()
 	{
 		var made = Assert.IsType<Statement.TableDefinition>(
-			TransactSqlParser.TryParseStatement(
+			OldTree.TryParseStatement(
 				"CREATE TABLE dbo.t (a INT NOT NULL, b AS a * 2, CONSTRAINT pk PRIMARY KEY (a))").Value);
 
 		Assert.Equal("dbo.t", made.Name);
@@ -15639,7 +15639,7 @@ public sealed class TransactSqlTests
 		"DatabaseEncryptionKeyDefinition")]
 	public void And_what_only_begins_like_a_database_is_read_as_itself(string input, string node)
 	{
-		var match = TransactSqlParser.TryParseStatement(input);
+		var match = OldTree.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 		Assert.Equal(node, match.Value!.GetType().Name);
@@ -16093,7 +16093,7 @@ public sealed class TransactSqlTests
 		foreach (var kind in kinds)
 		{
 			var input = $"DROP {kind} x";
-			var match = TransactSqlParser.TryParseStatement(input);
+			var match = OldTree.TryParseStatement(input);
 
 			Assert.True(match.IsSuccess, input);
 
@@ -16216,7 +16216,7 @@ public sealed class TransactSqlTests
 	[InlineData("BEGIN PRINT 1 END",                "Compound")]
 	public void A_statement_is_the_record_its_production_is_named_after(string input, string node)
 	{
-		var match = TransactSqlParser.TryParseStatement(input);
+		var match = OldTree.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 		Assert.Equal(node, match.Value!.GetType().Name);
@@ -16414,7 +16414,7 @@ public sealed class TransactSqlTests
 	public void A_select_keeps_the_clauses_written_around_it()
 	{
 		var read = Assert.IsType<Statement.Select>(
-			TransactSqlParser.TryParseStatement(
+			OldTree.TryParseStatement(
 				"WITH c AS (SELECT a FROM u) SELECT a INTO #t FROM c ORDER BY a " +
 				"OFFSET 5 ROWS FETCH NEXT 2 ROWS ONLY FOR XML AUTO OPTION (MAXDOP 2)").Value);
 
@@ -16433,7 +16433,7 @@ public sealed class TransactSqlTests
 	static Query.Specification Selected(string input)
 	{
 		return Assert.IsType<Query.Specification>(
-			Assert.IsType<Statement.Select>(TransactSqlParser.TryParseSelect(input).Value).Of);
+			Assert.IsType<Statement.Select>(OldTree.TryParseSelect(input).Value).Of);
 	}
 
 	/// <summary>A bracketed name may be a reserved word, which is what brackets are for.</summary>
@@ -16474,9 +16474,9 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void Every_entry_point_reads_the_dialect()
 	{
-		Assert.True(TransactSqlParser.TryParseQuery          ("SELECT [a] FROM t UNION SELECT @v").IsSuccess);
+		Assert.True(TransactSqlParser.TryParseSelect         ("SELECT [a] FROM t UNION SELECT @v").IsSuccess);
 		Assert.True(TransactSqlParser.TryParseSearchCondition("[a] > dbo.f(@v)")                  .IsSuccess);
-		Assert.True(TransactSqlParser.TryParseValueExpression("dbo.f(@v) + [b]")                  .IsSuccess);
+		Assert.True(TransactSqlParser.TryParseExpression     ("dbo.f(@v) + [b]")                  .IsSuccess);
 
 		Assert.False(Sql92Parser.TryParseSearchCondition("[a] > dbo.f(@v)").IsSuccess);
 		Assert.False(Sql92Parser.TryParseValueExpression("dbo.f(@v) + [b]").IsSuccess);

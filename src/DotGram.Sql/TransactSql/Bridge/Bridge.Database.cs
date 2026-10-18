@@ -307,7 +307,7 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.CreateDatabase again] }
+			return TransactSql.TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.CreateDatabase again] }
 				&& Kept(old, "Statement.CreateDatabase.Containment", again.Containment, old.Containment) && Kept(old, "Statement.CreateDatabase.Tail", again.Tail, old.Tail)
 				? made
 				: throw BridgeGap.Open(old, "Trees.FreeText (Statement.CreateDatabase.Containment or Tail, written otherwise than the writer prints it)");
@@ -676,7 +676,7 @@ static partial class Bridge
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(Statement old, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+			return TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a value `{text.Trim()}`)");
 		}
@@ -808,7 +808,7 @@ static partial class Bridge
 		/// <summary>File specifications kept as text, read again as CREATE DATABASE's data files.</summary>
 		static SqlList<Ast.DatabaseFile> Files(Statement old, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSql("CREATE DATABASE d ON " + text) is { IsSuccess: true, Value: [Statement.CreateDatabase { Files: var files, Log: null }] }
+			return TransactSql.TransactSqlParser.TryParseSyntaxSql("CREATE DATABASE d ON " + text) is { IsSuccess: true, Value: [Statement.CreateDatabase { Files: var files, Log: null }] }
 				&& files.All(static one => one is Clause.DatabaseFile)
 				? Each(files, one => File(old, (Clause.DatabaseFile)one))
 				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (files `{text}`)");
@@ -836,7 +836,7 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] } && Kept(old, NameOf(old) + ".Tail", tail, old.Tail)
+			return TransactSql.TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] } && Kept(old, NameOf(old) + ".Tail", tail, old.Tail)
 				? made
 				: throw BridgeGap.Open(old, $"Trees.FreeText ({NameOf(old)}.Tail, written otherwise than the writer prints it)");
 		}

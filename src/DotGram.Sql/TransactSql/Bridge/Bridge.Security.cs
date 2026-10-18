@@ -121,7 +121,7 @@ static partial class Bridge
 
 			// The elements are the five statements a schema declares in its own breath: read as a script, the text after the owner.
 			var text = tail[tokens[at].At..];
-			var read = TransactSql.TransactSqlParser.Located.TryParseSql(text);
+			var read = TransactSql.TransactSqlParser.Located.TryParseSyntaxSql(text);
 
 			if (!read.IsSuccess || read.Value is not { Length: > 0 } elements)
 				throw BridgeGap.Open(old, "inventory Statement.SchemaDefinition (elements that a script does not read)");
@@ -1588,7 +1588,7 @@ static partial class Bridge
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(object owner, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+			return TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a value `{text.Trim()}`)");
 		}

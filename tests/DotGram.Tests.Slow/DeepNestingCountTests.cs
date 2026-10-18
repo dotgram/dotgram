@@ -74,7 +74,7 @@ public sealed class DeepNestingCountTests(ITestOutputHelper output)
 	[InlineData("IN (SELECT …)", "SELECT 1 WHERE ", "1 IN (SELECT 1 WHERE ",        "1 = 1", ")",                  "", 40)]
 	public void A_TSql_nest_is_walked_once(string shape, string prefix, string open, string middle, string close, string suffix, int perLevel)
 	{
-		Holds(SqlVariants.Parser(SqlVariants.TransactSql, counts: true), "TryParseStatement", "T-SQL " + shape, depth => Nested(prefix, open, middle, close, suffix, depth), perLevel);
+		Holds(SqlVariants.Parser(SqlVariants.TransactSql, counts: true), SqlVariants.Entry(SqlVariants.TransactSql, "TryParseStatement"), "T-SQL " + shape, depth => Nested(prefix, open, middle, close, suffix, depth), perLevel);
 	}
 
 	void Holds(Type parser, string publication, string shape, Func<int, string> text, int perLevel)
@@ -117,7 +117,7 @@ public sealed class DeepNestingCountTests(ITestOutputHelper output)
 
 		var read = parser.GetMethod(
 			publication,
-			BindingFlags.Public | BindingFlags.Static,
+			BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static,
 			binder: null,
 			[typeof(string)],
 			modifiers: null)!;
