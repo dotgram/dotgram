@@ -223,7 +223,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			{
 				Dictionary<string, SyntaxTree>? found = null;
 
-				var said = new HashSet<(string, DiagnosticSeverity, Location, string)>();
+				var said = new HashSet<Said>();
 
 				foreach (var host in input.Left)
 					host.Parser.Report(
@@ -627,6 +627,24 @@ public sealed class GramGenerator : IIncrementalGenerator
 	}
 
 	/// <summary>
+	/// What makes two diagnostics one: the identifier, severity and message, and where in which
+	/// grammar it was found.
+	/// </summary>
+	/// <remarks>
+	/// Where in the grammar, and not where Roslyn places it: a grammar that cannot be mapped into
+	/// its attribute — a constant named there rather than a literal — places every diagnostic on
+	/// the whole attribute, so two mistakes at two places in it would read as one, and a second
+	/// reading places the same mistake on an attribute of its own, so one would read as two.
+	/// <para>
+	/// A report about the host rather than its grammar — the Roslyn shell's own, which carries no
+	/// grammar text — is told apart by where Roslyn places it, the reading's own attribute.
+	/// </para>
+	/// </remarks>
+	readonly record struct Said(
+		string Id, DiagnosticSeverity Severity, string Message, string? Path, Place? Grammar, int Position, int Length,
+		Location? Host);
+
+	/// <summary>
 	/// Everything one host produced, as values: the file to add and the diagnostics to
 	/// report.
 	/// </summary>
@@ -652,21 +670,22 @@ public sealed class GramGenerator : IIncrementalGenerator
 	{
 		/// <summary>The diagnostics, which need a tree to point into and so cannot be cached.</summary>
 		/// <param name="said">
-		/// What every host reported so far, by identifier, severity, place and message: one
-		/// already there is not said again.
+		/// What every host reported so far: one already there is not said again.
 		/// </param>
 		public void Report(
 			SourceProductionContext context, Site site, Func<string, SyntaxTree?> treeOf,
-			HashSet<(string, DiagnosticSeverity, Location, string)> said)
+			HashSet<Said> said)
 		{
 			foreach (var report in Reports.Items)
 				try
 				{
 					var diagnostic = report.ToRoslyn(treeOf, site);
 
-					if (said.Add((
-						diagnostic.Id, diagnostic.Severity, diagnostic.Location,
-						diagnostic.GetMessage(CultureInfo.InvariantCulture))))
+					if (said.Add(new Said(
+						diagnostic.Id, diagnostic.Severity, diagnostic.GetMessage(CultureInfo.InvariantCulture),
+						report.FilePath, report.FilePath is null ? site.GrammarOf(report.Anchor) : null,
+						report.Position, report.Length,
+						report.Grammar is null && report.FilePath is null ? diagnostic.Location : null)))
 					{
 						context.ReportDiagnostic(diagnostic);
 					}
@@ -1667,6 +1686,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 					: declaration.Identifier.GetLocation()),
 				Bases = new EquatableArray<Site.Base>([.. included.Select(static one => one.Site)]),
 			};
+
+			site = site with { Named = named ? firstRead!.Value.Site.Named : site.At };
 
 			var host = new Host(
 				Key:       key,

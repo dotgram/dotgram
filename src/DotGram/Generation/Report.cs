@@ -66,6 +66,11 @@ readonly record struct Place(string? Path, TextSpan Span, LinePositionSpan Lines
 /// <param name="Line">The literal's first line, 1-based.</param>
 /// <param name="Column">The literal's first column, 1-based.</param>
 /// <param name="Bases">The attribute of each grammar the host includes, in the host's order.</param>
+/// <param name="Named">
+/// The attribute that names the grammar: <paramref name="At"/>, or for a reading that takes its
+/// grammar from the class's first, the first's. What two diagnostics are told apart by when
+/// neither can be placed inside the grammar (<c>GramGenerator.Said</c>).
+/// </param>
 readonly record struct Site(
 	string                   Key,
 	Place?                   At,
@@ -73,7 +78,8 @@ readonly record struct Site(
 	int                      LiteralAt,
 	int                      Line,
 	int                      Column,
-	EquatableArray<Site.Base> Bases)
+	EquatableArray<Site.Base> Bases,
+	Place?                   Named = null)
 {
 	public const int None      = -1;
 	public const int Attribute = 0;
@@ -86,6 +92,12 @@ readonly record struct Site(
 	public static int Include(int index)
 	{
 		return index + 1;
+	}
+
+	/// <summary>The attribute that names the grammar a report of <paramref name="anchor"/> is about.</summary>
+	public Place? GrammarOf(int anchor)
+	{
+		return anchor == Attribute ? Named ?? At : PlaceOf(anchor);
 	}
 
 	public Place? PlaceOf(int anchor)
