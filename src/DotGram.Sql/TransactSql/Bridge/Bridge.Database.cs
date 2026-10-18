@@ -278,8 +278,8 @@ static partial class Bridge
 				Options        = Each(old.With ?? [], one => Setting(old, one)),
 			};
 
-			// The containment and the tail are kept as written and compared exactly, so a text in another case than the
-			// writer's capitals stays a gap.
+			// The containment and the tail are kept as written and compared token by token: a text that differs from the
+			// writer's only by the case of its key words or its blanks carries over, any other stays a gap.
 			string text;
 
 			try
@@ -292,7 +292,7 @@ static partial class Bridge
 			}
 
 			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.CreateDatabase again] }
-				&& again.Containment == old.Containment && again.Tail == old.Tail
+				&& Kept(old, "Statement.CreateDatabase.Containment", again.Containment, old.Containment) && Kept(old, "Statement.CreateDatabase.Tail", again.Tail, old.Tail)
 				? made
 				: throw BridgeGap.Open(old, "Trees.FreeText (Statement.CreateDatabase.Containment or Tail, written otherwise than the writer prints it)");
 		}
@@ -802,8 +802,8 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// A statement made of a tail the old tree keeps as written and compares exactly: only one whose text, written and
-		/// read again, keeps the same tail carries over.
+		/// A statement made of a tail the old tree keeps as written: only one whose text, written and read again, keeps the
+		/// same tail, but for the case of its key words and its blanks, carries over.
 		/// </summary>
 		static Ast.Statement Checked(Statement.Definition old, Ast.Statement made)
 		{
@@ -818,9 +818,18 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] } && tail == old.Tail
+			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] } && Kept(old, NameOf(old) + ".Tail", tail, old.Tail)
 				? made
 				: throw BridgeGap.Open(old, $"Trees.FreeText ({NameOf(old)}.Tail, written otherwise than the writer prints it)");
+		}
+
+		/// <summary>
+		/// Whether a text the old tree keeps, read again from what the writer printed, is the one written: the same, or,
+		/// for a member of the closed list, the same token by token but for the case of key words and the blanks.
+		/// </summary>
+		static bool Kept(object old, string member, string? again, string? written)
+		{
+			return again == written || again is not null && written is not null && Same(old, member, again, written);
 		}
 
 		/// <summary>The tokens of a text and where each begins.</summary>
