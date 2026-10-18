@@ -342,7 +342,8 @@ public static partial class Sql2023Writer
 		/// T-SQL: CREATE TRIGGER (Transact-SQL). A trigger with T-SQL's body is written in T-SQL's form (TriggerStatement),
 		/// true then; a standard trigger answers false once it has its Event, Table and Action and none of T-SQL's members.
 		/// T-SQL's is ON a table or view, or DATABASE or ALL SERVER, one of them; WITH; FOR, AFTER or INSTEAD OF; INSERT,
-		/// UPDATE, DELETE on a table and event names on a scope; WITH APPEND, NOT FOR REPLICATION, AS and the body.
+		/// UPDATE, DELETE or event names, one list or the other on any target (TriggerEvents reads both on both, the engine
+		/// answers Msg 1098 after reading); WITH APPEND, NOT FOR REPLICATION, AS and the body.
 		/// </summary>
 		bool PutTransactSqlTrigger(Statement.CreateTrigger trigger)
 		{
@@ -366,8 +367,13 @@ public static partial class Sql2023Writer
 			if (trigger.Scope is not null == trigger.Table is not null)
 				throw trigger.Scope is not null ? Both(trigger, "Scope", "Table") : Empty(trigger, "Scope", "Table");
 
-			if (trigger.Scope is not null ? trigger.Events.Count > 0 || trigger.EventNames.Count == 0 : trigger.EventNames.Count > 0 || trigger.Events.Count == 0)
-				throw Misplaced(trigger, "Events or EventNames", "other than statements on a table and event names on a scope");
+			// TriggerEvents: statements or event names, never both (Msg 102, 156) and never neither.
+			if (trigger.Events.Count > 0 == trigger.EventNames.Count > 0)
+				throw trigger.Events.Count > 0 ? Both(trigger, "Events", "EventNames") : Empty(trigger, "Events", "EventNames");
+
+			// Syntax.Fired: INSTEAD OF takes statements alone (Msg 102).
+			if (trigger.Time == TriggerTime.InsteadOf && trigger.EventNames.Count > 0)
+				throw Misplaced(trigger, "EventNames", "after INSTEAD OF, which takes statements alone (Syntax.Fired)");
 
 			if (trigger.Time == TriggerTime.Before || trigger.For && trigger.Time != TriggerTime.After)
 				throw Misplaced(trigger, "Time or For", "BEFORE, or FOR beside other than AFTER (TriggerWhen)");

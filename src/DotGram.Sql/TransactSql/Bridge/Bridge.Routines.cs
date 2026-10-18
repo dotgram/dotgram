@@ -243,7 +243,9 @@ static partial class Bridge
 
 		/// <summary>
 		/// <c>CREATE TRIGGER t ON table | DATABASE | ALL SERVER WITH … FOR | AFTER | INSTEAD OF events … AS …</c>: a DML
-		/// trigger's statements, or a DDL or logon trigger's event names; a list of both is a shape no member holds.
+		/// trigger's statements, or a DDL or logon trigger's event names, on whichever target was written: TriggerEvents
+		/// reads either list on either, and the engine answers the wrong kind only after reading it (Msg 1098). A list of
+		/// both, which the grammar refuses, is a shape no member holds.
 		/// </summary>
 		static Ast.Statement Trigger(Statement.CreateTrigger old)
 		{
@@ -256,8 +258,8 @@ static partial class Bridge
 
 			var statements = old.Events.All(static one => one is "INSERT" or "UPDATE" or "DELETE");
 
-			if (scope is null != statements || !statements && old.Events.Any(static one => one is "INSERT" or "UPDATE" or "DELETE"))
-				throw BridgeGap.Missing(old, "Statement.CreateTrigger (statement kinds and event names in one list, or the wrong kind for its target)");
+			if (!statements && old.Events.Any(static one => one is "INSERT" or "UPDATE" or "DELETE"))
+				throw BridgeGap.Missing(old, "Statement.CreateTrigger (statement kinds and event names in one list)");
 
 			var (time, @for) = string.Join(' ', Words(old.When)) switch
 			{

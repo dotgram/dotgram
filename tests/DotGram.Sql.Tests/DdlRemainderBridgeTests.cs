@@ -38,6 +38,10 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k ON (c)", "the catalog in brackets")]
 	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k ON c", "the catalog alone")]
 	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k ON (FILEGROUP fg)", "the filegroup alone")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE FOR INSERT AS PRINT 1", "statements on a scope")]
+	[InlineData("CREATE TRIGGER tr ON DATABASE FOR CREATE_TABLE AS PRINT 1", "event names on a scope")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR CREATE_TABLE AS PRINT 1", "event names on a table")]
+	[InlineData("CREATE TRIGGER tr ON dbo.t FOR INSERT AS PRINT 1", "statements on a table")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -67,6 +71,10 @@ public sealed class DdlRemainderBridgeTests
 			"the catalog in brackets" => made is Ast.Statement.CreateFullTextIndex { Catalog.Text: "c", FileGroup: null, FileGroupFirst: false, CatalogBracketed: true },
 			"the catalog alone" => made is Ast.Statement.CreateFullTextIndex { Catalog.Text: "c", FileGroup: null, FileGroupFirst: false, CatalogBracketed: false },
 			"the filegroup alone" => made is Ast.Statement.CreateFullTextIndex { Catalog: null, FileGroup.Text: "fg", FileGroupFirst: false, CatalogBracketed: false },
+			"statements on a scope" => made is Ast.Statement.CreateTrigger { Scope: Ast.TriggerScope.Database, Table: null, Events: [{ Kind: Ast.TriggerEventKind.Insert }], EventNames.Count: 0 },
+			"event names on a scope" => made is Ast.Statement.CreateTrigger { Scope: Ast.TriggerScope.Database, Table: null, Events.Count: 0, EventNames: [{ Text: "CREATE_TABLE" }] },
+			"event names on a table" => made is Ast.Statement.CreateTrigger { Scope: null, Table: not null, Events.Count: 0, EventNames: [{ Text: "CREATE_TABLE" }] },
+			"statements on a table" => made is Ast.Statement.CreateTrigger { Scope: null, Table: not null, Events: [{ Kind: Ast.TriggerEventKind.Insert }], EventNames.Count: 0 },
 			_ => false,
 		};
 
