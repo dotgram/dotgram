@@ -311,6 +311,15 @@ public sealed class TerminalInventory
 		/// </summary>
 		public IReadOnlyList<int> Shared { get; init; } = [];
 
+		/// <summary>
+		/// The machine over what every alternative that binds text necessarily begins with — its
+		/// operands through the binding's — run from the token's start before the rule is: where
+		/// it accepts nothing, no such alternative could have been taken, the automaton read the
+		/// token through an alternative that binds nothing, whole, and the rule is not read again.
+		/// Null where the terminal is always read again.
+		/// </summary>
+		public LexicalAutomaton? Tagged { get; init; }
+
 		/// <summary>The beginning, where it is one fixed spelling; what a longer token is asked to start with.</summary>
 		public string? Beginning { get; init; }
 
@@ -1242,10 +1251,14 @@ public sealed class TerminalInventory
 			LexicalAutomaton? masked      = null;
 			var                maskedKinds = new List<int>();
 
-			if (continued.Any(static one => one.FromStart))
-			{
-				var hidden = new HashSet<int>(continued.Where(static one => one.FromStart).Select(static one => one.Pattern.Index));
+			var hidden = new HashSet<int>(continued.Where(static one => one.FromStart).Select(static one => one.Pattern.Index));
 
+			// Only where it could find something: a failed reading began with a beginning string,
+			// and what the second machine could find at that place is a token matching a prefix
+			// of it — a longer one is refused at build time. Where no other kind accepts along the
+			// way to a beginning, there is nothing to look for, and no machine is written.
+			if (hidden.Count > 0 && RelexFinds(machine, hidden))
+			{
 				masked = LexicalAutomaton.Of(
 					graph,
 					[.. shapes.Select((shape, index) => hidden.Contains(index) ? Nothing : shape!)],
@@ -1718,6 +1731,17 @@ public sealed class TerminalInventory
 
 			if (graph.ReachesBoundText(rule))
 			{
+				// Where the terminal's alternatives that bind no text can be read whole by the
+				// automaton, they are, and the rule is not read again for a token none of the
+				// others could have been (Skipping); else the longest regular prefix begins it.
+				if (Skipping(rule, body) is var (shape, tags))
+				{
+					_skips[rule] = tags;
+					_tails[rule] = (shape, new Node.Call(rule, []), null, true);
+
+					return _tails[rule];
+				}
+
 				var begun = Beginning(body, []);
 
 				_tails[rule] = begun is Node.Empty ? null : (begun, new Node.Call(rule, []), null, true);
@@ -1902,6 +1926,341 @@ public sealed class TerminalInventory
 		readonly Dictionary<Node, bool>       _regular    = new(NodeIdentity.Instance);
 		readonly Dictionary<RuleSymbol, Node> _beginnings = [];
 
+		/// <summary>By terminal, what its alternatives that bind text necessarily begin with (<see cref="Skipping"/>).</summary>
+		readonly Dictionary<RuleSymbol, Node> _skips = [];
+
+		/// <summary>By rule, what it necessarily begins with through its binding (<see cref="Necessary"/>), remembered as a beginning is.</summary>
+		readonly Dictionary<RuleSymbol, Node> _necessary = [];
+
+		/// <summary>
+		/// For a terminal that binds text, the shape the automaton reads where the rule need not
+		/// read every token again, and the tags that say when it must; null where it always must.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// A terminal written as one atomic choice of forms — a raw string and a plain one — binds
+		/// text in some alternatives and not in others. A token read through an alternative that
+		/// binds nothing is a regular token, and the automaton reads it whole; the rule read again
+		/// from the token's start would only say the same, at the cost of a reading. It is not read
+		/// again where that cannot change the answer, which is when none of the alternatives before
+		/// the one taken could have been: those that bind text are tagged by what they necessarily
+		/// begin with — their operands through the binding's — and a tag that accepts no prefix of
+		/// the text at the token's start rules its alternative out; those that bind nothing are
+		/// held apart at build time, no earlier one matching a string that begins a later one's.
+		/// A lookahead in an alternative that binds nothing is dropped from what the automaton
+		/// reads and must be answered by the tags instead: where it would refuse, a tag must have
+		/// accepted, which is a containment of regular languages, decided here.
+		/// </para>
+		/// <para>
+		/// The token is then the alternative's longest match, as every regular token's is, where
+		/// the rule read again would give its first reading; the two differ only where the
+		/// alternative's own reading can stop short of its longest, which is the ordinary contract
+		/// of a token (docs/syntax.md §3.5.1).
+		/// </para>
+		/// </remarks>
+		(Node Shape, Node Tags)? Skipping(RuleSymbol rule, Node body)
+		{
+			var inner = body;
+
+			while (true)
+			{
+				switch (inner)
+				{
+					case Node.Construct(var built, _): inner = built; continue;
+					case Node.Marked(var noted, _):    inner = noted; continue;
+					case Node.Capture(_, var held):    inner = held;  continue;
+				}
+
+				break;
+			}
+
+			if (inner is not Node.Atomic(var kept))
+				return null;
+
+			var alternatives = kept is Node.Choice { Selection: null } choice ? choice.Nodes : [kept];
+			var shapes       = new List<Node>(alternatives.Count);
+			var tags         = new List<Node>();
+			var whole        = new List<Node>();
+			var looks        = new List<(Node Before, Node Seen)>();
+
+			foreach (var alternative in alternatives)
+			{
+				if (ReachesBinding(alternative))
+				{
+					var tag = Necessary(alternative, []);
+
+					if (tag is Node.Empty || !Regular(tag) || Language.Shortest(graph, tag) is not { Length: > 0 })
+						return null;
+
+					tags.Add(tag);
+					shapes.Add(Beginning(alternative, []));
+
+					continue;
+				}
+
+				if (Relaxed(alternative, looks, []) is not { } relaxed || !Regular(relaxed))
+					return null;
+
+				shapes.Add(relaxed);
+				whole.Add(relaxed);
+			}
+
+			if (tags.Count == 0 || whole.Count == 0 || shapes.Any(static one => one is Node.Empty))
+				return null;
+
+			var tagged = tags.Count == 1 ? tags[0] : new Node.Choice(tags);
+
+			// Every lookahead's failure, from the alternative's start and whatever follows, lies
+			// inside what some tag accepts and whatever follows: then a token the tags passed is
+			// one the lookahead passes.
+			foreach (var (before, seen) in looks)
+			{
+				var failing = new Node.Sequence([before, Over(seen, []), Anything]);
+				var within  = LexicalAutomaton.Of(graph, [failing, .. tags.Select(static tag => new Node.Sequence([tag, Anything]))], []);
+
+				if (within is null || within.Sets.Any(static set => set.Contains(0) && set.Count == 1))
+					return null;
+			}
+
+			// An alternative that binds nothing may not match a string that begins a later one's:
+			// the automaton would take the later, longer reading where the rule takes the earlier.
+			for (var i = 0; i < whole.Count; i++)
+				for (var j = i + 1; j < whole.Count; j++)
+				{
+					var pair = LexicalAutomaton.Of(graph, [whole[i], whole[j]], []);
+
+					if (pair is null || Prefixes(pair, 0, 1))
+						return null;
+				}
+
+			return (shapes.Count == 1 ? shapes[0] : new Node.Choice(shapes), tagged);
+		}
+
+		/// <summary>
+		/// An alternative that binds nothing, as the automaton reads it: its lookaheads taken out
+		/// and recorded with what stands before each; null where it is no sequence of regular
+		/// operands and negative lookaheads among them.
+		/// </summary>
+		Node? Relaxed(Node alternative, List<(Node Before, Node Seen)> looks, HashSet<RuleSymbol> inside)
+		{
+			var node = alternative;
+
+			while (true)
+			{
+				switch (node)
+				{
+					case Node.Construct(var built, _): node = built; continue;
+					case Node.Marked(var noted, _):    node = noted; continue;
+					case Node.Capture(_, var held):    node = held;  continue;
+					case Node.Atomic(var held):        node = held;  continue;
+
+					case Node.Call(var called, _) when !inside.Contains(called) && graph.Bodies.TryGetValue(called, out var body):
+						inside.Add(called);
+						node = body;
+
+						continue;
+				}
+
+				break;
+			}
+
+			if (Regular(node))
+				return node;
+
+			if (node is not Node.Sequence(var parts))
+				return null;
+
+			var read = new List<Node>(parts.Count);
+
+			foreach (var part in parts)
+			{
+				if (part is Node.Lookahead(var positive, var seen))
+				{
+					if (positive)
+						return null;
+
+					looks.Add((read.Count == 0 ? Node.Empty.Instance : read.Count == 1 ? read[0] : new Node.Sequence([.. read]), seen));
+
+					continue;
+				}
+
+				if (!Regular(part))
+					return null;
+
+				read.Add(part);
+			}
+
+			return read.Count switch
+			{
+				0 => Node.Empty.Instance,
+				1 => read[0],
+				_ => new Node.Sequence(read),
+			};
+		}
+
+		/// <summary>
+		/// What a node that binds text necessarily begins with: its leading operands through the
+		/// first that binds, the binding read as its body; <see cref="Node.Empty"/> where nothing
+		/// regular begins it.
+		/// </summary>
+		Node Necessary(Node node, HashSet<RuleSymbol> inside)
+		{
+			switch (node)
+			{
+				case Node.Sequence(var parts):
+				{
+					var leading = new List<Node>();
+
+					foreach (var part in parts)
+					{
+						if (!ReachesBinding(part))
+						{
+							if (!Regular(part))
+								break;
+
+							leading.Add(part);
+
+							continue;
+						}
+
+						if (Necessary(part, inside) is var through && through is not Node.Empty)
+							leading.Add(through);
+
+						break;
+					}
+
+					return leading.Count switch
+					{
+						0 => Node.Empty.Instance,
+						1 => leading[0],
+						_ => new Node.Sequence(leading),
+					};
+				}
+
+				case Node.Choice { Selection: not null }:
+					return Node.Empty.Instance;
+
+				case Node.Choice(var alternatives):
+				{
+					var begun = new List<Node>(alternatives.Count);
+
+					foreach (var alternative in alternatives)
+					{
+						if (Necessary(alternative, inside) is var one && one is Node.Empty)
+							return Node.Empty.Instance;
+
+						// As in Beginning: two alternatives that begin as one rule does, once.
+						if (!begun.Any(known => ReferenceEquals(known, one)))
+							begun.Add(one);
+					}
+
+					return begun.Count == 1 ? begun[0] : new Node.Choice(begun);
+				}
+
+				case Node.Bind(_, var bound, _):  return Regular(bound) ? bound : Necessary(bound, inside);
+				case Node.Repeat(var turns, var min, _): return min > 0 ? Necessary(turns, inside) : Node.Empty.Instance;
+				case Node.Atomic(var kept):       return Necessary(kept, inside);
+				case Node.Marked(var kept, _):    return Necessary(kept, inside);
+				case Node.Capture(_, var held):   return Necessary(held, inside);
+				case Node.Construct(var made, _): return Necessary(made, inside);
+
+				case Node.Call(var called, _):
+				{
+					if (_necessary.TryGetValue(called, out var known))
+						return known;
+
+					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
+						return Node.Empty.Instance;
+
+					var through = Necessary(body, inside);
+
+					inside.Remove(called);
+					_necessary[called] = through;
+
+					return through;
+				}
+
+				default:
+					return Node.Empty.Instance;
+			}
+		}
+
+		/// <summary>Whether a node binds text, or calls a rule that does.</summary>
+		bool ReachesBinding(Node node)
+		{
+			if (GrammarNormalizer.HoldsBoundText(node))
+				return true;
+
+			foreach (var each in NodeWalk.Descendants(node))
+				if (each is Node.Call(var called, _) && graph.ReachesBoundText(called))
+					return true;
+
+			return node is Node.Call(var rule, _) && graph.ReachesBoundText(rule);
+		}
+
+		/// <summary>
+		/// Whether, in a machine over two patterns, some string the first accepts begins a string
+		/// the second accepts — the string itself included.
+		/// </summary>
+		static bool Prefixes(LexicalAutomaton machine, int a, int b)
+		{
+			bool Holds(int state, int which)
+			{
+				return machine.Accepts[state] >= 0 && machine.Sets[machine.Accepts[state]].Contains(which);
+			}
+
+			for (var state = 0; state < machine.Accepts.Count; state++)
+				if (Holds(state, a) && (Holds(state, b) || Onward(machine, state).Any(next => Holds(next, b))))
+					return true;
+
+			return false;
+		}
+
+		/// <summary>
+		/// Whether some kind other than a terminal that binds text accepts along the way to one of
+		/// their beginnings — so that reading the position again without them can find a token.
+		/// </summary>
+		static bool RelexFinds(LexicalAutomaton machine, HashSet<int> hidden)
+		{
+			bool Bound(int state)
+			{
+				return machine.Accepts[state] >= 0 && machine.Sets[machine.Accepts[state]].Any(hidden.Contains);
+			}
+
+			// The states from which a beginning is still reachable, found backwards.
+			var before  = new List<int>[machine.Next.Count];
+			var leading = new HashSet<int>();
+			var pending = new Stack<int>();
+
+			for (var state = 0; state < machine.Next.Count; state++)
+				before[state] = [];
+
+			for (var state = 0; state < machine.Next.Count; state++)
+				foreach (var next in machine.Next[state])
+					if (next >= 0)
+						before[next].Add(state);
+
+			for (var state = 0; state < machine.Next.Count; state++)
+				if (Bound(state) && leading.Add(state))
+					pending.Push(state);
+
+			while (pending.Count > 0)
+				foreach (var earlier in before[pending.Pop()])
+					if (leading.Add(earlier))
+						pending.Push(earlier);
+
+			// State 0 is the start, before any character: a kind accepting there accepts the
+			// empty string, which no reading again looks for.
+			for (var state = 1; state < machine.Next.Count; state++)
+				if (leading.Contains(state) && machine.Accepts[state] >= 0 &&
+					machine.Sets[machine.Accepts[state]].Any(one => !hidden.Contains(one)))
+				{
+					return true;
+				}
+
+			return false;
+		}
+
 		/// <summary>A node that reads nothing: what a terminal held back from a machine is replaced by.</summary>
 		static readonly Node Nothing = new Node.Element(false, [], [], []);
 
@@ -2025,6 +2384,7 @@ public sealed class TerminalInventory
 			{
 				FromStart      = true,
 				Shared         = shared,
+				Tagged         = _skips.TryGetValue(pattern.Rule, out var tags) ? LexicalAutomaton.Of(graph, [tags], []) : null,
 				Beginning      = (spelled as Node.Literal)?.Text,
 				BeginningFolds = spelled is Node.Literal { IgnoreCase: true },
 			};

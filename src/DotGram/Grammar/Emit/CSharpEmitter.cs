@@ -2684,6 +2684,16 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		// And for a terminal that binds text in some alternatives only, the machine over what
+		// those necessarily begin with: run at a token's start, it says whether the rule has to
+		// read the token again at all.
+		foreach (var continuation in lexical.Inventory.Continued)
+			if (continuation.Tagged is { } tagged)
+			{
+				file.Write(LexerEmitter.Emit(tagged, $"_Tag{continuation.Kind}", utf8: utf8Literals));
+				file.Line();
+			}
+
 		if (lexical.Inventory.Asked.Count > 0)
 			Unworded(file, lexical.Inventory);
 
@@ -3187,40 +3197,72 @@ file.Line("return spare;");
 							var output = valuing!.Results.QualifiedOf(rule) is null ? "" : ", out _";
 							var from   = continuation.FromStart ? "p" : "end";
 
-							file.Line($"var failure  = new {FailureType} {{ Quiet = true }};");
-							// The whole input where a construction in that machine asks for it: a
-							// terminal's value may be a piece of the text it has to read again later.
-							file.Line(
-								$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref failure{output}" +
-								$"{(valuing!.UsesInput ? ", input" : "")});");
-							file.Line();
-
-							// A terminal that binds text: its rule decides the token, from the
-							// token's start. Longer than what the automaton read, or begun on its own,
-							// it is the terminal. As long as a string another token shares, the kind
-							// stays both. Refused, or shorter than the shared string, the position is
-							// read again without such terminals, and the other token stands — the
-							// answer an ordinary token in its place would have given.
-							if (continuation.FromStart)
+							// A terminal that binds text in some alternatives and not in others: where
+							// none of what the binding ones necessarily begin with accepts at the
+							// token's start, the token was read whole through one that binds nothing,
+							// and stands as the automaton gave it (TerminalInventory.Continuation.Tagged).
+							if (continuation.Tagged is not null)
 							{
-								using (file.Block("if (measured > end)"))
+								file.Line($"Scan_Tag{continuation.Kind}(text, p, out var tagged);");
+								file.Line();
+							}
+
+							using (continuation.Tagged is not null ? file.Block("if (tagged != 0)") : null)
+							{
+								file.Line($"var failure  = new {FailureType} {{ Quiet = true }};");
+								// The whole input where a construction in that machine asks for it: a
+								// terminal's value may be a piece of the text it has to read again later.
+								file.Line(
+									$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref failure{output}" +
+									$"{(valuing!.UsesInput ? ", input" : "")});");
+								file.Line();
+
+								// A terminal that binds text: its rule decides the token, from the
+								// token's start. Longer than what the automaton read, or begun on its own,
+								// it is the terminal. As long as a string another token shares, the kind
+								// stays both. Refused, or shorter than the shared string, the position is
+								// read again without such terminals, and the other token stands — the
+								// answer an ordinary token in its place would have given. Where no other
+								// token can stand at such a place, nothing is read again: a refusal is
+								// a refusal, cut short where the rule refused at the end of the text.
+								if (continuation.FromStart && relexes)
 								{
-									file.Line($"kind = {continuation.Kind};");
-									file.Line("end  = measured;");
+									using (file.Block("if (measured > end)"))
+									{
+										file.Line($"kind = {continuation.Kind};");
+										file.Line("end  = measured;");
+									}
+
+									file.Line($"else if (measured >= 0 && kind == {continuation.Kind})");
+									file.Then("end = measured;");
+
+									using (file.Block("else if (measured != end)"))
+									{
+										file.Line("end = Scan_Unbound(text.Slice(0, limit), p, out kind);");
+										file.Line();
+
+										// Nothing else stands here either. Where the rule refused at the
+										// end of the text, the token is cut short rather than refused
+										// (-1, below): more input could still complete it.
+										using (file.Block("if (kind == 0 && measured < 0)"))
+										{
+											file.Line($"var again = new {FailureType}();");
+											file.Line();
+											file.Line(
+												$"Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref again{output}" +
+												$"{(valuing!.UsesInput ? ", input" : "")});");
+											file.Line();
+											file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
+										}
+									}
 								}
-
-								file.Line($"else if (measured >= 0 && kind == {continuation.Kind})");
-								file.Then("end = measured;");
-
-								using (file.Block("else if (measured != end)"))
+								else
 								{
-									file.Line("end = Scan_Unbound(text.Slice(0, limit), p, out kind);");
-									file.Line();
-
-									// Nothing else stands here either. Where the rule refused at the
-									// end of the text, the token is cut short rather than refused
-									// (-1, below): more input could still complete it.
-									using (file.Block("if (kind == 0 && measured < 0)"))
+									// The quiet measuring writes down no position, so where it refused it is
+									// asked again, recording, whether it ran out of text: a string the text
+									// ends inside of is cut short rather than refused (-1, below). Paid only
+									// where the token did not close.
+									using (file.Block("if (measured < 0)"))
 									{
 										file.Line($"var again = new {FailureType}();");
 										file.Line();
@@ -3230,27 +3272,10 @@ file.Line("return spare;");
 										file.Line();
 										file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
 									}
-								}
-							}
-							else
-							{
-								// The quiet measuring writes down no position, so where it refused it is
-								// asked again, recording, whether it ran out of text: a string the text
-								// ends inside of is cut short rather than refused (-1, below). Paid only
-								// where the token did not close.
-								using (file.Block("if (measured < 0)"))
-								{
-									file.Line($"var again = new {FailureType}();");
-									file.Line();
-									file.Line(
-										$"Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref again{output}" +
-										$"{(valuing!.UsesInput ? ", input" : "")});");
-									file.Line();
-									file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
-								}
 
-								file.Line("else");
-								file.Then("end = measured;");
+									file.Line("else");
+									file.Then("end = measured;");
+								}
 							}
 						}
 						else
