@@ -140,9 +140,9 @@ public static class HandExpression
 	// The strings with holes, and the raw ones. The lexer only finds where each ends; what
 	// one is made of is cut out of it again where it is built, which is where it is wanted.
 	const byte Interpolated = 65;   // `$"…"`, `$@"…"` and `@$"…"`
-	const byte RawText      = 66;   // three to five quotes, no dollar
+	const byte RawText      = 66;   // three quotes or more, no dollar
 	const byte RawHoles     = 67;   // three to five quotes after one dollar or two
-	const byte RawLong      = 68;   // six quotes or more, or three dollars or more
+	const byte RawLong      = 68;   // three dollars or more, or six quotes after a dollar
 
 	const byte Identifier = 69;
 
@@ -989,20 +989,14 @@ public static class HandExpression
 	/// <remarks>
 	/// A raw string of three to five quotes that finds no end is not refused on the spot: its
 	/// first two quotes are an empty string as well, and the longest token that ends is the one
-	/// taken. Six quotes or more are only ever a raw string, and one with no end is none.
+	/// taken. Six quotes or more are only ever a raw string, and one with no end is none: the
+	/// text running out inside it is a string not yet finished, as it is for the shorter ones.
 	/// </remarks>
 	static int Quoted(ReadOnlySpan<char> s, int p, out byte kind)
 	{
 		var quotes = Count(s, p, '"');
 
-		if (quotes >= 6)
-		{
-			kind = RawLong;
-
-			return LongRaw(s, p + quotes, 0, quotes);
-		}
-
-		if (quotes >= 3 && RawTextEnd(s, p, quotes) is var raw && raw >= 0)
+		if (quotes >= 3 && RawTextEnd(s, p, quotes) is var raw && (raw >= 0 || quotes >= 6))
 		{
 			kind = RawText;
 
@@ -1426,7 +1420,7 @@ public static class HandExpression
 		var dollars = Count(s, at, '$');
 		var quotes  = Count(s, at + dollars, '"');
 
-		if (dollars >= 3 && quotes >= 3 || dollars <= 2 && quotes >= 6)
+		if (dollars >= 3 && quotes >= 3 || dollars <= 2 && quotes >= 6 || dollars == 0 && quotes >= 3)
 		{
 			var end = LongRawEnd(s, at + dollars + quotes, dollars, quotes);
 
@@ -1441,7 +1435,7 @@ public static class HandExpression
 
 			var end = dollars is 1 or 2
 				? RawHolesEnd(s, at + dollars + width, dollars, width, null)
-				: dollars == 0 ? RawTextEnd(s, at, width) : -1;
+				: -1;
 
 			if (end >= 0)
 				return end;
@@ -4969,7 +4963,7 @@ public static class HandExpression
 			if (kind == Verbatim)  return Expression.Constant(Unverbatim(i));
 
 			if (kind == RawText)
-				return Expression.Constant(ExpressionParser.Raw(Cut(i), Count(_text.AsSpan(0, _starts[i] + _lengths[i]), _starts[i], '"')));
+				return Expression.Constant(ExpressionParser.Raw(Cut(i)));
 
 			if (kind >= Interpolated)
 				return ExpressionParser.Interpolation(Pieces(i, kind), _context, Hole);

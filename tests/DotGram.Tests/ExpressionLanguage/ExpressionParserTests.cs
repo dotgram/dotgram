@@ -2538,6 +2538,109 @@ public sealed class ExpressionParserTests
 	}
 
 	/// <summary>
+	/// A plain raw string of any number of quotes is one rule on the quotes it opened with: the
+	/// text may hold runs of quotes shorter than that, and the first run as long closes it.
+	/// </summary>
+	[Theory]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	[InlineData(7)]
+	[InlineData(10)]
+	public void A_raw_string_of_any_number_of_quotes_ends_at_as_many_as_opened_it(int quotes)
+	{
+		var open    = new string('"', quotes);
+		var shorter = new string('"', quotes - 1);
+
+		(string Body, string Expected)[] cases =
+		[
+			("abc",                                                        "abc"),
+			($"a{shorter}b",                                               $"a{shorter}b"),
+			($"a\"b{shorter}c\"d",                                         $"a\"b{shorter}c\"d"),
+			($"x {new string('"', 1)} y {shorter} z",                      $"x \" y {shorter} z"),
+			("\n  one\n  " + shorter + "\n  ",                             "one\n" + shorter),
+		];
+
+		foreach (var (body, expected) in cases)
+		{
+			var actual = Both.Compile<Func<string>>($"() => {open}{body}{open}")();
+
+			Assert.Equal(expected, actual);
+		}
+	}
+
+	/// <summary>
+	/// A plain string and a raw one side by side, each read to its own end: two quotes are an empty
+	/// string, three begin a raw one, and what follows a raw one is read afresh.
+	/// </summary>
+	[Theory]
+	[InlineData("\"a\" + \"\"\"b\"\"\"",                           "ab")]
+	[InlineData("\"\"\"b\"\"\" + \"a\"",                           "ba")]
+	[InlineData("\"\" + \"\"\"b\"c\"\"\" + \"\"",                  "b\"c")]
+	[InlineData("\"\"\"a\"\"\"+\"\"+\"\"\"\"b\"\"\"\"",           "ab")]
+	[InlineData("\"x\\\"y\" + \"\"\"x\\\"\"\"",                    "x\"yx\\")]
+	[InlineData("\"\"\"\"\"\"a\"\"\"\"\"\" + \"\"\"b\"\"\"",       "ab")]
+	[InlineData("\"\"\"\"\"\"\"a\"\"\"\"\"\"\" + \"b\"",           "ab")]
+	public void A_plain_string_stands_beside_a_raw_one(string text, string expected)
+	{
+		Assert.Equal(expected, Both.Compile<Func<string>>($"() => {text}")());
+	}
+
+	/// <summary>
+	/// A raw string that is not finished is refused where the scannerless reading refuses it: the
+	/// text running out inside it is a string not yet finished, and a closing run that is shorter
+	/// than the opening one is none. Three to five quotes that open nothing are an empty string
+	/// first, and six or more are only ever a raw string.
+	/// </summary>
+	[Theory]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	[InlineData(7)]
+	[InlineData(10)]
+	public void A_raw_string_that_is_not_finished_is_refused_as_the_scannerless_reading_refuses_it(int quotes)
+	{
+		var open    = new string('"', quotes);
+		var shorter = new string('"', quotes - 1);
+
+		// The agreement with the hand-written reading, position and message included, is Both's.
+		var runsOut = Both.TryParse($"() => {open}abc");
+		var short_  = Both.TryParse($"() => {open}a{shorter}");
+		var bare    = Both.TryParse($"() => {open}");
+		var longer  = Both.TryParse($"() => {open}a{open}\"");
+
+		// Four and five quotes that find no end are two empty strings and the text after them, which is
+		// no more an expression than a string beside a string is; three begin a string the text may
+		// still finish, and six or more can be nothing else.
+		var unfinished = quotes == 3 || quotes >= 6;
+
+		Assert.Equal(unfinished ? ExpressionParser.Outcome.Starved : ExpressionParser.Outcome.NoMatch, runsOut.Outcome);
+		Assert.Equal(unfinished ? 6 + quotes + 3 : 8, runsOut.Position);
+		Assert.Equal(quotes >= 6 ? ExpressionParser.Outcome.Starved : ExpressionParser.Outcome.NoMatch, short_.Outcome);
+		Assert.Equal(unfinished ? ExpressionParser.Outcome.Starved : ExpressionParser.Outcome.NoMatch, bare.Outcome);
+		Assert.False(longer.IsSuccess);
+	}
+
+	/// <summary>
+	/// The plain string and the raw ones are one token, and the lexer reads it by the opening
+	/// quotes it found rather than by reading over characters: the rule that measures it from its
+	/// start is in the generated parser.
+	/// </summary>
+	[Fact]
+	public void A_string_is_one_token_the_lexer_begins_and_the_rule_ends()
+	{
+		var measures = typeof(ExpressionParser).Assembly
+			.GetTypes()
+			.Where(type => type.Namespace == typeof(ExpressionParser).Namespace)
+			.SelectMany(type => type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))
+			.Where(method => method.Name == "Measure_Lexical_Str_DotGram");
+
+		Assert.NotEmpty(measures);
+	}
+
+	/// <summary>
 	/// An interpolated string is a <c>FormattableString</c> or an <c>IFormattable</c> where one is
 	/// wanted, held against C# itself.
 	/// </summary>
