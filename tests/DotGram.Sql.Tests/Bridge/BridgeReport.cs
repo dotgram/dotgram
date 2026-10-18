@@ -47,6 +47,11 @@ static class BridgeReport
 		The bridge is `src/DotGram.Sql/TransactSql/Bridge`, internal: the parser's public entries carry what they read
 		across with it, and a statement it has no place for is handed back as an extension of the new tree.
 
+		Every statement rule but a query's now builds the new tree in its action, its parts still carried by the
+		bridge: such a statement is read into the old tree as a `Statement.Built`, which holds what was built (or the
+		gap found) and is counted under the record the rule built before. Its round trip is the new tree's own: the
+		statement is written, read back, and the two new trees are held to each other.
+
 		Each statement is **converted** (the same tree came back), a **gap**, **refused** by the writer (it said no:
 		`NotSupportedException`, a rejected argument or operation), **crashed** (anything else the writer threw),
 		**unread** (the text written does not read), or **different** (it reads as another tree). Where
