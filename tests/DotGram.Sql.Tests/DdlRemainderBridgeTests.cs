@@ -215,7 +215,8 @@ public sealed class DdlRemainderBridgeTests
 
 	/// <summary>
 	/// A tail the old tree keeps compares token by token: a key word without its case and the blanks between tokens, and
-	/// nothing else — not a string, a name in brackets, a plain name, a word or the order of the words.
+	/// nothing else — not a string, a name in brackets, a plain name, a word or the order of the words. A comment is
+	/// no token: the tree keeps none, so its words are neither compared nor taken for key words.
 	/// </summary>
 	[Theory]
 	[InlineData("Statement.RestoreLabelOnly.Tail", "from disk = 'd:'", "FROM DISK = 'd:'", true)]
@@ -228,6 +229,8 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("Statement.BackupDatabase.Tail", "with format, compression", "WITH compression, format", false)]
 	[InlineData("Statement.AlterDatabaseModifyFileGroup.Tail", "fg1 readonly", "fg1 READ_ONLY", false)]
 	[InlineData("Statement.RestoreDatabase.Tail", "with stats = 10", "WITH stats = 20", false)]
+	[InlineData("Statement.BackupDatabase.Tail", "with /* Format */ format", "WITH FORMAT", true)]
+	[InlineData("Statement.BackupDatabase.Tail", "with format -- 'a' [b]\n, stats = 10", "WITH FORMAT, STATS = 20", false)]
 	public void A_tail_compares_key_words_without_case_and_nothing_else(string member, string one, string two, bool same)
 	{
 		Assert.Equal(same, Trees.SameTokens(new object(), member, one, two));
