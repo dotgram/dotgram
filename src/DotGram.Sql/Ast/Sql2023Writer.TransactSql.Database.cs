@@ -1227,8 +1227,11 @@ public static partial class Sql2023Writer
 		/// </summary>
 		sealed record Setting(bool Assigned, Func<Expression?, bool> Takes, Nest? Nest = null);
 
-		/// <summary>The list in brackets after a setting: its own catalogue, whether it must be written, whether it holds one.</summary>
-		sealed record Nest(Dictionary<string, Setting[]> Catalogue, bool Required = false, bool Single = false, Func<string[], bool>? Sequence = null);
+		/// <summary>
+		/// The list in brackets after a setting: its own catalogue, whether it must be written, whether it holds one; or,
+		/// where <paramref name="Bare"/>, the words after its value with no brackets, RESTORE's <c>MOVE 'f' TO 'p'</c>.
+		/// </summary>
+		sealed record Nest(Dictionary<string, Setting[]> Catalogue, bool Required = false, bool Single = false, Func<string[], bool>? Sequence = null, bool Bare = false);
 
 		/// <summary>
 		/// A setting of a closed catalogue, keyed by its name and further words: the first of the ways it is written whose
@@ -1276,7 +1279,12 @@ public static partial class Sql2023Writer
 			else if (option.Value is { } value)
 				PutExpression(value);
 
-			if (option.Options.Count > 0)
+			if (option.Options.Count > 0 && form.Nest!.Bare)
+			{
+				foreach (var one in option.Options)
+					PutSetting(one, form.Nest.Catalogue, rule);
+			}
+			else if (option.Options.Count > 0)
 			{
 				Open();
 				Each(option.Options, one => PutSetting(one, form.Nest!.Catalogue, rule));
@@ -1394,8 +1402,9 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// T-SQL: RESTORE (Transact-SQL). RestoreOption: one list for every form of RESTORE, as the engine reads it. MOVE,
-		/// with its two strings, has no place in an option and is not here.
+		/// T-SQL: RESTORE (Transact-SQL). RestoreOption: one list for every form of RESTORE, as the engine reads it. MOVE's
+		/// second string and STOPATMARK's and STOPBEFOREMARK's AFTER are the option's own, written after its value with
+		/// no brackets.
 		/// </summary>
 		static readonly Dictionary<string, Setting[]> RestoreOptions = RestoreCatalogue();
 
@@ -1406,6 +1415,7 @@ public static partial class Sql2023Writer
 				["FILE"]       = [new(true, static value => value is Expression.Variable || UnsignedNumber(value))],
 				["STATS"]      = [new(false, None), new(true, BackupValue)],
 				["FILESTREAM"] = [new(false, None, new(Settings(("DIRECTORY_NAME", true, static value => StringValue(value) || value is LiteralValue.Null)), Required: true, Single: true))],
+				["MOVE"]       = [new(false, BackupString, new(Settings(("TO", false, BackupString)), Required: true, Single: true, Bare: true))],
 			};
 
 			foreach (var word in new[] { "RECOVERY", "NORECOVERY", "REPLACE", "RESTART", "RESTRICTED_USER", "PARTIAL", "LOADHISTORY", "METADATA_ONLY", "SNAPSHOT", "CHECKSUM", "NO_CHECKSUM", "STOP_ON_ERROR", "CONTINUE_AFTER_ERROR", "REWIND", "NOREWIND", "UNLOAD", "NOUNLOAD", "KEEP_REPLICATION", "KEEP_CDC", "KEEP_TEMPORAL_RETENTION", "ENABLE_BROKER", "ERROR_BROKER_CONVERSATIONS", "NEW_BROKER" })
@@ -1414,8 +1424,11 @@ public static partial class Sql2023Writer
 			foreach (var name in new[] { "STANDBY", "CREDENTIAL", "PASSWORD", "MEDIAPASSWORD", "MEDIANAME", "DBNAME", "RESTORE_OPTIONS" })
 				catalogue.Add(name, [new(true, BackupString)]);
 
-			foreach (var name in new[] { "BLOCKSIZE", "BUFFERCOUNT", "MAXTRANSFERSIZE", "STOPAT", "STOPATMARK", "STOPBEFOREMARK" })
+			foreach (var name in new[] { "BLOCKSIZE", "BUFFERCOUNT", "MAXTRANSFERSIZE", "STOPAT" })
 				catalogue.Add(name, [new(true, BackupValue)]);
+
+			foreach (var name in new[] { "STOPATMARK", "STOPBEFOREMARK" })
+				catalogue.Add(name, [new(true, BackupValue, new(Settings(("AFTER", false, BackupValue)), Single: true, Bare: true))]);
 
 			return catalogue;
 		}

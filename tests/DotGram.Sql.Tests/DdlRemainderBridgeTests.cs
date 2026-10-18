@@ -82,6 +82,10 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("ALTER DATABASE d SET SINGLE_USER WITH NO_WAIT", "SET with a termination")]
 	[InlineData("ALTER DATABASE d REBUILD LOG ON (NAME = 'n', FILENAME = 'f')", "REBUILD LOG ON a file")]
 	[InlineData("ALTER DATABASE d ADD LOG FILE (NAME = l) TO FILEGROUP g", "a log file TO FILEGROUP")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH MOVE 'a' TO 'b', MOVE @c TO @d", "MOVE TO, twice")]
+	[InlineData("RESTORE LOG d FROM DISK = 'x' WITH STOPATMARK = 'm' AFTER '2020-01-01'", "STOPATMARK AFTER")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH STOPBEFOREMARK = 'm' AFTER @t", "STOPBEFOREMARK AFTER")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH STOPATMARK = 'm'", "STOPATMARK alone")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -179,6 +183,10 @@ public sealed class DdlRemainderBridgeTests
 			"SET with a termination" => made is Ast.Statement.AlterDatabase { Action: Ast.AlterDatabaseAction.Set, Termination: Ast.Termination.NoWait },
 			"REBUILD LOG ON a file" => made is Ast.Statement.AlterDatabase { Action: Ast.AlterDatabaseAction.RebuildLog { On.Options.Count: 2 }, Termination: null },
 			"a log file TO FILEGROUP" => made is Ast.Statement.AlterDatabase { Action: Ast.AlterDatabaseAction.AddLogFile { ToFileGroup.Text: "g" } },
+			"MOVE TO, twice" => made is Ast.Statement.RestoreDatabase { Options: [{ Name.Text: "MOVE", Value: Ast.LiteralValue.String, Options: [{ Name.Text: "TO", Value: Ast.LiteralValue.String }] }, { Name.Text: "MOVE", Value: Ast.Expression.Variable, Options: [{ Name.Text: "TO", Value: Ast.Expression.Variable }] }] },
+			"STOPATMARK AFTER" => made is Ast.Statement.RestoreLog { Options: [{ Name.Text: "STOPATMARK", Options: [{ Name.Text: "AFTER", Value: Ast.LiteralValue.String }] }] },
+			"STOPBEFOREMARK AFTER" => made is Ast.Statement.RestoreDatabase { Options: [{ Name.Text: "STOPBEFOREMARK", Options: [{ Name.Text: "AFTER", Value: Ast.Expression.Variable }] }] },
+			"STOPATMARK alone" => made is Ast.Statement.RestoreDatabase { Options: [{ Name.Text: "STOPATMARK", Options.Count: 0 }] },
 			_ => false,
 		};
 
