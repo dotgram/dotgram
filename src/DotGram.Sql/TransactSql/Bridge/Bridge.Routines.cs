@@ -516,7 +516,7 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] }
+			return TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] }
 				&& (tail == old.Tail || tail is not null && old.Tail is not null && Same(old, NameOf(old) + ".Tail", tail, old.Tail))
 				? made
 				: throw BridgeGap.Open(old, $"Trees.FreeText ({NameOf(old)}.Tail, written otherwise than the writer prints it)");
@@ -525,7 +525,7 @@ static partial class Bridge
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(object owner, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+			return TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a value `{text.Trim()}`)");
 		}
@@ -533,7 +533,7 @@ static partial class Bridge
 		/// <summary>A search condition kept as text, read again as a query's WHERE.</summary>
 		static Ast.Expression ConditionOf(object owner, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSql("SELECT 1 WHERE " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
+			return TransactSqlParser.TryParseSyntaxSql("SELECT 1 WHERE " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
 				? Values.Of(where)
 				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a condition `{text.Trim()}`)");
 		}
@@ -817,7 +817,7 @@ static partial class Bridge
 				case ["(", .., ")"]:
 					var body = string.Join(' ', set.Skip(1).Take(set.Count - 2).Select(static one => one.Text));
 
-					return TransactSql.TransactSqlParser.TryParseSql("CREATE TABLE t (" + body + ")") is { IsSuccess: true, Value: [Statement.TableDefinition table] }
+					return TransactSqlParser.TryParseSyntaxSql("CREATE TABLE t (" + body + ")") is { IsSuccess: true, Value: [Statement.TableDefinition table] }
 						&& StatementOf(table) is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var elements) }
 						? new Ast.ResultSet.Columns(elements)
 						: throw BridgeGap.Open(old, $"inventory Statement.Execute (a result set `{body}`)");

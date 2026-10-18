@@ -1,6 +1,7 @@
 ﻿using System;
 
 using DotGram;
+using DotGram.Sql.Standard;
 
 namespace DotGram.Sql.TransactSql;
 
@@ -9,12 +10,20 @@ namespace DotGram.Sql.TransactSql;
 /// other grammar, and the rules it shares in shape with ISO/IEC 9075:1992 are restated in it.
 /// </summary>
 /// <remarks>
+/// <para>
+/// It reads at the standard's levels, with <see cref="SqlStandardParser"/>'s names and the same tree
+/// (<c>DotGram.Sql.Ast</c>): <c>ParseExpression</c>, <c>ParseSearchCondition</c>, <c>ParseStatement</c>
+/// and <c>ParseSql</c>, and a query statement alone, <c>ParseSelect</c>, which refuses any other
+/// statement. A query is the <c>Statement.Select</c> that holds it.
+/// </para>
+/// <para>
 /// <c>ParseSql</c> reads what a program sends the server in one call, and reads it as the server
 /// does — so a <c>GO</c> there is a word, and <c>SELECT 1</c> and then a line <c>GO</c> is a column
 /// called <c>GO</c>. Text from a file or an editor is a script, whose <c>GO</c> lines and sqlcmd
 /// commands are the client tool's: read it with <c>ParseScript</c>, or cut it with
 /// <see cref="SqlScript.Read"/> and read each batch with <c>TryParseSql(ScriptBatch)</c>.
 /// <see cref="SqlScript.HasClientSyntax"/> says whether text of unknown origin is a script.
+/// </para>
 /// </remarks>
 // One parser, read through two doors: the methods below, and the same methods in `Located`,
 // which ask the same reading to tell every value where it was written and where the text in
@@ -30,6 +39,8 @@ namespace DotGram.Sql.TransactSql;
 // none can. The factories (SqlSyntax.cs) build records from what they are given and read no host
 // state; the dialect's version is a binding fixed at compile time and whether a reading locates is
 // a flag of the call, so a discarded derivation leaves nothing behind that a later one could read.
+// The entries' actions carry the whole reading onto the common tree (TransactSql/Bridge), and a
+// construct with no place there yet is an Extension node rather than an exception.
 // Held to the tape by an agreement run over the ScriptDom corpus, each statement whole and cut,
 // every string of the tests, every accepted text cut at each word boundary and given a stray
 // token, through the plain and the located door: the same trees, the same messages, nothing thrown.

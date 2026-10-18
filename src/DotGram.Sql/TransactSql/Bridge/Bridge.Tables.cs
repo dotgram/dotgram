@@ -380,7 +380,7 @@ static partial class Bridge
 		/// </summary>
 		static string? WordsAfter(ISqlSpan node, ISqlSpan within)
 		{
-			if (source is null || !node.Span.Known || !within.Span.Known || node.Span.IsStale || within.Span.IsStale)
+			if (!Cuttable(node.Span) || !Cuttable(within.Span))
 				return null;
 
 			var from = node.Span.End;
@@ -1031,10 +1031,10 @@ static partial class Bridge
 			var words = Words(old.Action);
 			Ast.ConstraintCheck? check = null;
 
-			if (words is ["WITH", var mode, .. var rest])
+			if (words is ["WITH", var mode, ..])
 			{
 				check = Checked(old, mode);
-				words = rest;
+				words = [.. words.Skip(2)];
 			}
 
 			var action = words switch
@@ -1178,7 +1178,7 @@ static partial class Bridge
 			Ast.ColumnPropertyKind kind;
 			Ast.Expression? function = null;
 
-			switch (words[1..])
+			switch (words.AsSpan(1))
 			{
 				case ["ROWGUIDCOL"]: kind = Ast.ColumnPropertyKind.RowGuidCol; break;
 				case ["PERSISTED"]: kind = Ast.ColumnPropertyKind.Persisted; break;
@@ -1382,7 +1382,7 @@ static partial class Bridge
 		/// </summary>
 		static SqlList<Ast.Option> OptionsOf(object owner, string text)
 		{
-			var read = TransactSql.TransactSqlParser.TryParseSql("CREATE TABLE t (a) WITH " + text.Trim() + " AS SELECT 1");
+			var read = TransactSqlParser.TryParseSyntaxSql("CREATE TABLE t (a) WITH " + text.Trim() + " AS SELECT 1");
 
 			return read is { IsSuccess: true, Value: [Statement.CreateTableAsSelect { Options: var options }] }
 				? Each(options, Option)
@@ -1392,7 +1392,7 @@ static partial class Bridge
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(object owner, string text)
 		{
-			var read = TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim());
+			var read = TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim());
 
 			return read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 				? Values.Of(value)
@@ -1547,7 +1547,7 @@ static partial class Bridge
 				throw BridgeGap.Open(owner, $"inventory Clause.Option (partitions `{text}`)");
 
 			var list = text[text.IndexOf('(')..];
-			var read = TransactSql.TransactSqlParser.TryParseSql("TRUNCATE TABLE t WITH (PARTITIONS " + list + ")");
+			var read = TransactSqlParser.TryParseSyntaxSql("TRUNCATE TABLE t WITH (PARTITIONS " + list + ")");
 
 			return read is { IsSuccess: true, Value: [Statement.Truncate { Partitions: { } partitions }] }
 				? Each(partitions, one => one is Clause.PartitionRange(var from, var to)
@@ -1694,7 +1694,7 @@ static partial class Bridge
 		/// <summary>A search condition kept as text, read again as a query's WHERE.</summary>
 		static Ast.Expression Condition(object owner, string text)
 		{
-			var read = TransactSql.TransactSqlParser.TryParseSql("SELECT 1 WHERE " + text.Trim());
+			var read = TransactSqlParser.TryParseSyntaxSql("SELECT 1 WHERE " + text.Trim());
 
 			return read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
 				? Values.Of(where)
@@ -1732,7 +1732,7 @@ static partial class Bridge
 
 				case ["AS", "TABLE", "(", ..]:
 					var body = "CREATE TABLE t " + tail[(tail.IndexOf('('))..];
-					var read = TransactSql.TransactSqlParser.Located.TryParseSql(body);
+					var read = TransactSqlParser.Located.TryParseSyntaxSql(body);
 
 					if (read is not { IsSuccess: true, Value: [Statement.TableDefinition { External: false, Kind: null, Placements.Length: 0 } table] })
 						throw BridgeGap.Open(old, "inventory Statement.TypeDefinition (a table type's body that a table's does not read)");

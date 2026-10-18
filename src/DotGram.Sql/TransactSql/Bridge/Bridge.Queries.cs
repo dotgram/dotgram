@@ -91,7 +91,7 @@ static partial class Bridge
 
 			var made = new List<Ast.XmlNamespace>();
 
-			foreach (var item in Split(tokens[2..^1]))
+			foreach (var item in Split(tokens.GetRange(2, tokens.Count - 3)))
 			{
 				made.Add(item switch
 				{
@@ -395,10 +395,10 @@ static partial class Bridge
 			// A string in brackets after the words: ROOT's or XMLSCHEMA's name.
 			Ast.Expression? name = null;
 
-			if (tokens is [.. var words, { Text: "(" }, { Kind: SqlTokens.Kind.String } value, { Text: ")" }])
+			if (tokens is [.., { Text: "(" }, { Kind: SqlTokens.Kind.String } value, { Text: ")" }])
 			{
 				name   = Values.String(value.Text);
-				tokens = words;
+				tokens = [.. tokens.Take(tokens.Length - 3)];
 			}
 
 			var said = string.Join(" ", tokens.Select(static one => one.Kind == SqlTokens.Kind.Word ? one.Text.ToUpperInvariant() : "?"));
@@ -476,8 +476,8 @@ static partial class Bridge
 							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), null, false),
 						[{ Kind: SqlTokens.Kind.Word } variable, { Kind: SqlTokens.Kind.Word } unknown] when variable.Text.StartsWith('@') && unknown.Text.Equals("UNKNOWN", StringComparison.OrdinalIgnoreCase) =>
 							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), null, true),
-						[{ Kind: SqlTokens.Kind.Word } variable, { Text: "=" }, .. var value] when variable.Text.StartsWith('@') && value.Length > 0 =>
-							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), HintValue(old, value), false),
+						[{ Kind: SqlTokens.Kind.Word } variable, { Text: "=" }, _, ..] when variable.Text.StartsWith('@') =>
+							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), HintValue(old, new ArraySegment<SqlTokens.Token>(item, 2, item.Length - 2)), false),
 						_ => throw Unread(old),
 					})]);
 
@@ -544,9 +544,9 @@ static partial class Bridge
 			return tokens switch
 			{
 				[_]                                   => (hint, [], Ast.HintArgumentForm.Brackets),
-				[_, { Text: "=" }, .. var value]      => (hint, [HintValue(old, value)], Ast.HintArgumentForm.Assigned),
+				[_, { Text: "=" }, ..]                => (hint, [HintValue(old, new ArraySegment<SqlTokens.Token>(tokens, 2, tokens.Length - 2))], Ast.HintArgumentForm.Assigned),
 				[_, { Text: "(" }, .., { Text: ")" }] => (hint, [.. Split(tokens.Skip(2).Take(tokens.Length - 3).ToList()).Select(item => HintValue(old, item))], Ast.HintArgumentForm.Brackets),
-				[_, .. var value]                     => (hint, [HintValue(old, value)], Ast.HintArgumentForm.Bare),
+				[_, ..]                               => (hint, [HintValue(old, new ArraySegment<SqlTokens.Token>(tokens, 1, tokens.Length - 1))], Ast.HintArgumentForm.Bare),
 				_                                     => throw Unread(old),
 			};
 		}
@@ -558,7 +558,7 @@ static partial class Bridge
 				return value;
 
 			var text = string.Join(" ", tokens.Select(static one => one.Text));
-			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSql("SELECT " + text);
+			var read = TransactSqlParser.TryParseSyntaxSql("SELECT " + text);
 
 			return read.IsSuccess && read.Value is [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn(var expression, null)] } }]
 				? Values.Of(expression)
@@ -592,6 +592,20 @@ static partial class Bridge
 		}
 
 		public static Ast.Query Of(Query old)
+		{
+			if (!SqlStack.Enough())
+				return Deeper(old, static node => Of((Query)node));
+
+			var made = Converted(old);
+
+			// The family recurses on itself rather than through the dispatcher, so it places its own nodes.
+			if (locating && old.Span is { Known: true, IsStale: false } span)
+				Place(made, span);
+
+			return made;
+		}
+
+		static Ast.Query Converted(Query old)
 		{
 			switch (old)
 			{

@@ -33,6 +33,20 @@ static partial class Bridge
 
 		public static Ast.Expression Of(Expression old)
 		{
+			if (!SqlStack.Enough())
+				return Deeper(old, static node => Of((Expression)node));
+
+			var made = Converted(old);
+
+			// The family recurses on itself rather than through the dispatcher, so it places its own nodes.
+			if (locating && old.Span is { Known: true, IsStale: false } span)
+				Place(made, span);
+
+			return made;
+		}
+
+		static Ast.Expression Converted(Expression old)
+		{
 			return old switch
 			{
 				Expression.Or(var left, var right)          => Binary(left, Ast.BinaryOperator.Or, right),
@@ -386,7 +400,7 @@ static partial class Bridge
 
 			if (nulls is not null)
 			{
-				said = said[..^3];
+				said = said.GetRange(0, said.Count - 3);
 				end -= 3;
 			}
 
@@ -786,7 +800,7 @@ static partial class Bridge
 		/// </summary>
 		static Ast.OrderByClause Ordering(object owner, string text)
 		{
-			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSql("SELECT 1 " + text);
+			var read = TransactSqlParser.TryParseSyntaxSql("SELECT 1 " + text);
 
 			if (read.IsSuccess && read.Value is [Statement.Select { OrderBy: Clause.OrderBy { Offset: null, Fetch: null } by }])
 				return Queries.Order(by);

@@ -31,8 +31,8 @@ public sealed class LocatedReadingTests
 	[InlineData("a BETWEEN 1 AND 2 AND NOT b LIKE 'c%'", true)]
 	public void A_located_tree_equals_the_plain_tree(string text, bool condition)
 	{
-		var plain   = condition ? TransactSqlParser.ParseSearchCondition(text) : TransactSqlParser.ParseValueExpression(text);
-		var located = condition ? TransactSqlParser.Located.ParseSearchCondition(text) : TransactSqlParser.Located.ParseValueExpression(text);
+		var plain   = condition ? OldTree.ParseSearchCondition(text) : OldTree.ParseValueExpression(text);
+		var located = condition ? OldTree.Located.ParseSearchCondition(text) : OldTree.Located.ParseValueExpression(text);
 
 		Assert.False(plain.Span.Known);
 		Assert.True(located.Span.Known);
@@ -44,8 +44,8 @@ public sealed class LocatedReadingTests
 	[Fact]
 	public void Two_located_trees_that_differ_only_in_trivia_are_equal()
 	{
-		var tight = TransactSqlParser.Located.ParseValueExpression("a+b*2");
-		var loose = TransactSqlParser.Located.ParseValueExpression("a  +  /* two */ b * -- c\n 2");
+		var tight = OldTree.Located.ParseValueExpression("a+b*2");
+		var loose = OldTree.Located.ParseValueExpression("a  +  /* two */ b * -- c\n 2");
 
 		Assert.NotEqual(tight.Span, loose.Span);
 		Assert.Equal(tight, loose);
@@ -55,7 +55,7 @@ public sealed class LocatedReadingTests
 	[Fact]
 	public void A_plain_reading_locates_nothing()
 	{
-		var statement = TransactSqlParser.ParseStatement("SELECT a, b FROM t WHERE a = 1");
+		var statement = OldTree.ParseStatement("SELECT a, b FROM t WHERE a = 1");
 
 		Assert.True(SqlWalker.Walk(statement, static node => !node.Span.Known && node.Span.GapStart == 0));
 	}
@@ -65,7 +65,7 @@ public sealed class LocatedReadingTests
 	public void A_node_says_where_the_text_in_front_of_it_begins()
 	{
 		var text      = "SELECT a, /* about b */\n  b FROM t";
-		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var statement = OldTree.Located.ParseStatement(text);
 		var b         = Nodes(statement).OfType<Expression.ColumnReference>().Single(node => node.Span.At == text.IndexOf("b FROM", StringComparison.Ordinal));
 
 		Assert.Equal(text.IndexOf(',') + 1, b.Span.GapStart);
@@ -78,13 +78,13 @@ public sealed class LocatedReadingTests
 	{
 		var text  = "SELECT 1\n-- second\nSELECT 2";
 		var at    = text.IndexOf('\n');
-		var match = TransactSqlParser.Located.TryParseSql(text, at, text.Length - at);
+		var match = OldTree.Located.TryParseSql(text, at, text.Length - at);
 
 		Assert.True(match.IsSuccess);
 		Assert.Equal(at, match.Value.Single().Span.GapStart);
 		Assert.Equal(text.IndexOf("SELECT 2", StringComparison.Ordinal), match.Value.Single().Span.At);
 
-		var whole = TransactSqlParser.Located.ParseSql(text);
+		var whole = OldTree.Located.ParseSql(text);
 
 		Assert.Equal(0, whole[0].Span.GapStart);
 		Assert.Equal(text.IndexOf('1') + 1, whole[1].Span.GapStart);
@@ -99,17 +99,17 @@ public sealed class LocatedReadingTests
 	{
 		var text = "SELECT 1; -- end\n";
 
-		Assert.Equal(text.Length, TransactSqlParser.Located.TryParseSql(text).ReadingEnd);
-		Assert.Equal(text.Length, TransactSqlParser.TryParseSql(text).ReadingEnd);
-		Assert.Equal(text.Length - 3, TransactSqlParser.Located.TryParseSql(text, 0, text.Length - 3).ReadingEnd);
+		Assert.Equal(text.Length, OldTree.Located.TryParseSql(text).ReadingEnd);
+		Assert.Equal(text.Length, OldTree.TryParseSql(text).ReadingEnd);
+		Assert.Equal(text.Length - 3, OldTree.Located.TryParseSql(text, 0, text.Length - 3).ReadingEnd);
 
-		var from = TransactSqlParser.Located.TryParseStatement(text, 0);
+		var from = OldTree.Located.TryParseStatement(text, 0);
 
 		Assert.Equal(from.Position + from.Length, from.ReadingEnd);
 
 		var batch = SqlScript.Read("SELECT 1\nGO\n-- only a comment\n").Batches.Last();
 
-		Assert.Equal(batch.At + batch.Length, TransactSqlParser.Located.TryParseSql(batch).ReadingEnd);
+		Assert.Equal(batch.At + batch.Length, OldTree.Located.TryParseSql(batch).ReadingEnd);
 	}
 
 	/// <summary>
@@ -130,7 +130,7 @@ public sealed class LocatedReadingTests
 	[InlineData("SELECT 1 WHERE a > ALL (SELECT b FROM t)", typeof(Expression.Quantified))]
 	public void A_predicate_completed_with_with_keeps_its_spans(string text, Type predicate)
 	{
-		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var statement = OldTree.Located.ParseStatement(text);
 		var where     = text.IndexOf("WHERE", StringComparison.Ordinal);
 		var node      = Nodes(statement).Single(node => node.GetType() == predicate);
 		var operand   = Nodes(node).OfType<Expression.ColumnReference>().First();
@@ -153,7 +153,7 @@ public sealed class LocatedReadingTests
 	[InlineData("IF 1 = 1 SELECT 1 ELSE SELECT 2", "SELECT 2")]
 	public void A_condition_is_spanned_without_its_keyword(string text, string condition)
 	{
-		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var statement = OldTree.Located.ParseStatement(text);
 		var at        = text.LastIndexOf(condition, StringComparison.Ordinal);
 
 		Assert.Contains(Nodes(statement), node => node.Span.At == at && node.Span.Length == condition.Length);
@@ -168,7 +168,7 @@ public sealed class LocatedReadingTests
 	public void A_chain_closed_while_reading_spans_all_of_it_and_is_fresh()
 	{
 		var text      = "SELECT (c1).P1.P2, d AT TIME ZONE 'UTC'";
-		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var statement = OldTree.Located.ParseStatement(text);
 		var chain     = text.IndexOf("(c1)", StringComparison.Ordinal);
 		var members   = Nodes(statement).OfType<Expression.Member>().ToList();
 
@@ -186,8 +186,8 @@ public sealed class LocatedReadingTests
 	[Fact]
 	public void A_null_is_a_node_of_its_own_in_every_reading()
 	{
-		var first  = TransactSqlParser.Located.ParseStatement("UPDATE t SET a = NULL");
-		var second = TransactSqlParser.Located.ParseStatement("UPDATE t SET a = 1, bb = NULL");
+		var first  = OldTree.Located.ParseStatement("UPDATE t SET a = NULL");
+		var second = OldTree.Located.ParseStatement("UPDATE t SET a = 1, bb = NULL");
 		var one    = Nodes(first).OfType<Expression.Literal>().Single(static node => node.Kind == SqlLiteralKind.Null);
 		var two    = Nodes(second).OfType<Expression.Literal>().Single(static node => node.Kind == SqlLiteralKind.Null);
 
@@ -198,7 +198,7 @@ public sealed class LocatedReadingTests
 		System.Threading.Tasks.Parallel.For(0, 64, i =>
 		{
 			var text    = new string(' ', i) + "UPDATE t SET a = NULL";
-			var literal = Nodes(TransactSqlParser.Located.ParseStatement(text)).OfType<Expression.Literal>().Single();
+			var literal = Nodes(OldTree.Located.ParseStatement(text)).OfType<Expression.Literal>().Single();
 
 			Assert.Equal(i + 17, literal.Span.At);
 		});
@@ -212,7 +212,7 @@ public sealed class LocatedReadingTests
 	[InlineData("SELECT SUM(x) OVER (ORDER BY x) FROM t", "ORDER BY x", "OVER (")]
 	public void A_window_is_spanned_without_its_over(string text, string window, string before)
 	{
-		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var statement = OldTree.Located.ParseStatement(text);
 		var gap       = text.IndexOf(before, StringComparison.Ordinal) + before.Length;
 		var spanned   = Nodes(statement).OfType<Clause.Window>().First(node => node.Span.GapStart == gap);
 
@@ -228,14 +228,14 @@ public sealed class LocatedReadingTests
 	public void A_window_cut_short_by_the_lexer_says_where_it_stopped()
 	{
 		var text    = "SELECT 1 \uFFFF and more";
-		var plain   = TransactSqlParser.TryParseSql(text, 0, text.Length);
-		var located = TransactSqlParser.Located.TryParseSql(text, 0, text.Length);
+		var plain   = OldTree.TryParseSql(text, 0, text.Length);
+		var located = OldTree.Located.TryParseSql(text, 0, text.Length);
 
 		Assert.True(located.IsSuccess);
 		Assert.Equal("SELECT 1".Length, located.ReadingEnd);
 		Assert.Equal(located.ReadingEnd, plain.ReadingEnd);
 
-		var whole = TransactSqlParser.Located.TryParseSql(text, 0, "SELECT 1 ".Length);
+		var whole = OldTree.Located.TryParseSql(text, 0, "SELECT 1 ".Length);
 
 		Assert.Equal("SELECT 1 ".Length, whole.ReadingEnd);
 	}
@@ -249,7 +249,7 @@ public sealed class LocatedReadingTests
 	{
 		var script = ":setvar table Orders\nSELECT a FROM $(table) /* t */ WHERE b = 1 -- end\nGO\n";
 		var batch  = SqlScript.Read(script).Batches.First(static one => !one.IsVerbatim);
-		var match  = TransactSqlParser.Located.TryParseSql(batch);
+		var match  = OldTree.Located.TryParseSql(batch);
 
 		Assert.True(match.IsSuccess);
 		Assert.Equal(batch.At + batch.Length, match.ReadingEnd);
@@ -488,7 +488,7 @@ public sealed class LocatedReadingTests
 	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH REPLACE")]
 	public void A_statement_given_its_tail_with_with_keeps_its_span(string text)
 	{
-		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var statement = OldTree.Located.ParseStatement(text);
 
 		Assert.Equal(new SqlSpan(0, text.Length, 0), statement.Span);
 	}
@@ -501,7 +501,7 @@ public sealed class LocatedReadingTests
 	public void A_copy_keeps_the_span_and_is_stale()
 	{
 		var text     = "SELECT 1 WHERE  a = 1";
-		var original = (Expression.Comparison)Nodes(TransactSqlParser.Located.ParseStatement(text)).OfType<Expression.Comparison>().Single();
+		var original = (Expression.Comparison)Nodes(OldTree.Located.ParseStatement(text)).OfType<Expression.Comparison>().Single();
 		var copy     = original with { Left = original.Right };
 
 		Assert.False(original.Span.IsStale);
@@ -510,7 +510,7 @@ public sealed class LocatedReadingTests
 		Assert.Equal(original.Span.Length, copy.Span.Length);
 		Assert.Equal(original.Span.GapStart, copy.Span.GapStart);
 
-		var plain = (Expression.Comparison)Nodes(TransactSqlParser.ParseStatement(text)).OfType<Expression.Comparison>().Single();
+		var plain = (Expression.Comparison)Nodes(OldTree.ParseStatement(text)).OfType<Expression.Comparison>().Single();
 
 		Assert.False((plain with { Left = plain.Right }).Span.IsStale);
 	}
@@ -557,12 +557,12 @@ public sealed class LocatedReadingTests
 
 			Assert.Equal(TransactSqlParser.TryParseScript(text).IsSuccess, TransactSqlParser.Located.TryParseScript(text).IsSuccess);
 
-			Agree(TransactSqlParser.TryParseSql(text), TransactSqlParser.Located.TryParseSql(text), text, 0);
+			Agree(OldTree.TryParseSql(text), OldTree.Located.TryParseSql(text), text, 0);
 
 			for (int at = 0, guard = 0; at < text.Length && guard < 10_000; guard++)
 			{
-				var plain   = TransactSqlParser.TryParseStatement(text, at);
-				var located = TransactSqlParser.Located.TryParseStatement(text, at);
+				var plain   = OldTree.TryParseStatement(text, at);
+				var located = OldTree.Located.TryParseStatement(text, at);
 
 				Assert.Equal(plain.IsSuccess, located.IsSuccess);
 				Assert.Equal(plain.Position, located.Position);
@@ -578,10 +578,10 @@ public sealed class LocatedReadingTests
 			foreach (var batch in SqlScript.Read(text).Batches)
 			{
 				Agree(
-					TransactSqlParser.TryParseSql(batch.Text, batch.At, batch.Length),
-					TransactSqlParser.Located.TryParseSql(batch.Text, batch.At, batch.Length),
+					OldTree.TryParseSql(batch.Text, batch.At, batch.Length),
+					OldTree.Located.TryParseSql(batch.Text, batch.At, batch.Length),
 					batch.Text, batch.At);
-				Agree(TransactSqlParser.TryParseSql(batch), TransactSqlParser.Located.TryParseSql(batch), batch.Text, batch.At);
+				Agree(OldTree.TryParseSql(batch), OldTree.Located.TryParseSql(batch), batch.Text, batch.At);
 			}
 		}
 

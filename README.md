@@ -788,15 +788,15 @@ reads, what it hands back, and the suite it is held to.
 ## DotGram.Sql
 
 [`DotGram.Sql`](src/DotGram.Sql) is SQL, a package of its own, with a parser per dialect, each in a
-namespace of its own. T-SQL builds a tree of records in `DotGram.Sql`; SQL:2023 and SQL-92 build
-the standard's own tree in `DotGram.Sql.Ast`. Each tree has a writer that turns it back into SQL.
+namespace of its own. All three build one tree, the standard's own, in `DotGram.Sql.Ast`, with
+T-SQL's constructs beside the standard's; a writer turns it back into SQL.
 
 ```csharp
 var match  = TransactSqlParser.TryParseSelect("select name from Users where id > @id");
 var select = (Statement.Select)match.Value;
-var query  = (Query.Specification)select.Of;
+var query  = (Query.Select)select.Query;
 
-query.From[0];  // TableReference.Named { Table = "Users" }
+query.From!.Sources[0];  // TableSource.Named { Name = Users }
 ```
 
 | Parser | What it reads |

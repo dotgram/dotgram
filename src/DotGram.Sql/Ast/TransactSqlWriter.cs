@@ -13,9 +13,25 @@ namespace DotGram.Sql.Ast;
 public static class TransactSqlWriter
 {
 	/// <summary>The tree's text, as T-SQL reads it.</summary>
+	/// <remarks>
+	/// A statement SQL Server reads only with its terminator — <c>MERGE</c> (Msg 10713) and the full-text stop lists,
+	/// search property lists and sensitivity classifications the published syntax writes it into — is written with its
+	/// <c>;</c>, as it is inside a block.
+	/// </remarks>
 	public static string Write(ISqlNode node)
 	{
-		return Sql2023Writer.Write(node, transactSql: true);
+		var text = Sql2023Writer.Write(node, transactSql: true);
+
+		return node is Statement statement && Terminated(statement) ? text + ";" : text;
+	}
+
+	/// <summary>Whether SQL Server reads a statement only with its terminator.</summary>
+	static bool Terminated(Statement statement)
+	{
+		return statement is Statement.Merge
+			or Statement.CreateFullTextStopList or Statement.AlterFullTextStopList or Statement.DropFullTextStopList
+			or Statement.CreateSearchPropertyList or Statement.AlterSearchPropertyList or Statement.DropSearchPropertyList
+			or Statement.DropSensitivityClassification;
 	}
 }
 

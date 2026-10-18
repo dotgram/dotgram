@@ -36,7 +36,7 @@ public sealed class DeepTreeHandOffTests
 
 		var (written, thrown) = OnStack(() =>
 		{
-			var transact = SqlWriter.Write(TransactSqlParser.ParseStatement(chain));
+			var transact = DotGram.Sql.Ast.TransactSqlWriter.Write(TransactSqlParser.ParseStatement(chain));
 			var standard = DotGram.Sql.Ast.Sql2023Writer.Write(SqlStandardParser.ParseStatement(from));
 			var sql92    = DotGram.Sql.Ast.Sql2023Writer.Write(Sql92Parser.ParseSelect(from));
 

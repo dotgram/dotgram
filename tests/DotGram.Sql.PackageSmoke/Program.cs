@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-using DotGram.Sql;
 using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
 
 var select = TransactSqlParser.ParseSelect("select name from Users where id > @id");
-if (select is not Statement.Select { Of: Query.Specification })
+if (select is not DotGram.Sql.Ast.Statement.Select { Query: DotGram.Sql.Ast.Query.Select })
 	throw new Exception("Expected a T-SQL select.");
-var written = SqlWriter.Write(select);
-if (SqlWriter.Write(TransactSqlParser.ParseSelect(written)) != written)
+var written = DotGram.Sql.Ast.TransactSqlWriter.Write(select);
+if (DotGram.Sql.Ast.TransactSqlWriter.Write(TransactSqlParser.ParseSelect(written)) != written)
 	throw new Exception("T-SQL did not survive a writer round trip.");
 var standard = SqlStandardParser.ParseStatement("SELECT a FROM t WHERE a > 1");
 var standardText = DotGram.Sql.Ast.Sql2023Writer.Write(standard);

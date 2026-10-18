@@ -13,6 +13,35 @@ namespace DotGram.Sql.Ast;
 // commits; a record whose members the inventory left open is declared with the statement that
 // decides them, not before it.
 
+// T-SQL: SQL Server Utilities Statements - GO. `GO` is the client tool's and not the language's, so the batch holds the line
+// that ended it as written rather than as a statement.
+/// <summary>
+/// What a client sends the server in one call: the statements of one batch of a script, and
+/// the <c>GO</c> line that ended it — <c>GO</c>, or <c>GO 5</c> for a batch sent five times —
+/// or null where nothing did, which is the last batch of a file.
+/// </summary>
+/// <remarks>
+/// Not a statement and not a node: a script is a client's idea, and the server never sees the
+/// line a batch ends at. So it is a record of its own, holding the
+/// statements, and it is what <c>ParseScript</c> hands back a list of.
+/// <para>
+/// Two batches are equal when their statements and their <c>GO</c> lines are: <see cref="Source"/>
+/// says where a batch was read from, as a node's span does, and takes no part in equality either,
+/// so two readings of one script give equal batches.
+/// </para>
+/// </remarks>
+public sealed record Batch(SqlList<Statement> Statements, string? Go = null)
+{
+	/// <summary>Where the batch was read from, held where the record's equality does not look.</summary>
+	SqlUncompared<ScriptBatch> _source;
+
+	/// <summary>
+	/// The batch as the script was cut: its text, how many times it is sent, and the way back from
+	/// a position in it to where that was written. Null for a batch made by hand.
+	/// </summary>
+	public ScriptBatch? Source { get => _source.Value; init => _source = new(value); }
+}
+
 /// <summary>
 /// T-SQL: TOP (Transact-SQL). A <c>TOP</c> before a select list or a data change statement's target; <see cref="With"/>
 /// is what its WITH says, null where none was written.

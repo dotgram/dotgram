@@ -170,6 +170,16 @@ dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand --re
 prints one line to stderr and `exit 3`, nothing else — no stack trace, and no run of the stand
 in between.
 
+### A known slowdown: T-SQL read through the bridge (from 2026-10-17)
+
+T-SQL's entries hand back the common tree (`DotGram.Sql.Ast`) while the grammar's rules still build the T-SQL
+tree of `SqlSyntax.cs`: each entry reads that tree and carries it across (`src/DotGram.Sql/TransactSql/Bridge`),
+and a reading without locations that meets a word the old tree drops (an `AS`, a `ROWS` against a `ROW`) reads the
+same text again with locations to find it. So every T-SQL row of the stand is slower and allocates more from the
+commit that switched the entries until the rules that build the T-SQL tree build the common tree themselves, and a
+T-SQL row that moves in that period is held against the carriage's cost before anybody chases it: SLOWDOWN_TABLE.
+The SQL:2023 and SQL-92 rows are not touched by it.
+
 ### A short probe in a cold process overstates its first rows
 
 For about the first 300 ms of a process everything runs several times slower: finance-24 measured a refused media type at 220 ns

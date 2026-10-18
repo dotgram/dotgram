@@ -1,5 +1,7 @@
 ﻿using System;
 
+using Ast = DotGram.Sql.Ast;
+
 namespace DotGram.Sql.TransactSql;
 
 // A script's batches read by this dialect: written by hand over the one-call readings, since what
@@ -23,7 +25,7 @@ public abstract partial class TransactSqlParser
 	/// A <c>GO</c> in a batch is a word like any other, as it is to the server.
 	/// </para>
 	/// </remarks>
-	public static Match<Statement[]> TryParseSql(ScriptBatch batch)
+	public static Match<Ast.Statement[]> TryParseSql(ScriptBatch batch)
 	{
 		return SqlScriptReading.Read(batch, TryParseSql, TryParseSql);
 	}
@@ -37,7 +39,7 @@ public abstract partial class TransactSqlParser
 	/// As <see cref="TryParseSql(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 	/// cost of saying it.
 	/// </remarks>
-	public static bool TryParseSql(ScriptBatch batch, out Statement[] value)
+	public static bool TryParseSql(ScriptBatch batch, out Ast.Statement[] value)
 	{
 		return SqlScriptReading.Reads(batch, TryParseSql, TryParseSql, out value);
 	}
@@ -49,7 +51,7 @@ public abstract partial class TransactSqlParser
 	/// <exception cref="FormatException">
 	/// The batch is not read. <c>TryParseSql(ScriptBatch)</c> answers instead.
 	/// </exception>
-	public static Statement[] ParseSql(ScriptBatch batch)
+	public static Ast.Statement[] ParseSql(ScriptBatch batch)
 	{
 		return SqlScriptReading.Parsed(TryParseSql(batch));
 	}
@@ -59,7 +61,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 	/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-	public static Match<Statement[]> TryParseSql100(ScriptBatch batch)
+	public static Match<Ast.Statement[]> TryParseSql100(ScriptBatch batch)
 	{
 		return SqlScriptReading.Read(batch, TryParseSql100, TryParseSql100);
 	}
@@ -73,7 +75,7 @@ public abstract partial class TransactSqlParser
 	/// As <see cref="TryParseSql100(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 	/// cost of saying it.
 	/// </remarks>
-	public static bool TryParseSql100(ScriptBatch batch, out Statement[] value)
+	public static bool TryParseSql100(ScriptBatch batch, out Ast.Statement[] value)
 	{
 		return SqlScriptReading.Reads(batch, TryParseSql100, TryParseSql100, out value);
 	}
@@ -85,7 +87,7 @@ public abstract partial class TransactSqlParser
 	/// <exception cref="FormatException">
 	/// The batch is not read. <c>TryParseSql100(ScriptBatch)</c> answers instead.
 	/// </exception>
-	public static Statement[] ParseSql100(ScriptBatch batch)
+	public static Ast.Statement[] ParseSql100(ScriptBatch batch)
 	{
 		return SqlScriptReading.Parsed(TryParseSql100(batch));
 	}
@@ -95,7 +97,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 	/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-	public static Match<Statement[]> TryParseSql110(ScriptBatch batch)
+	public static Match<Ast.Statement[]> TryParseSql110(ScriptBatch batch)
 	{
 		return SqlScriptReading.Read(batch, TryParseSql110, TryParseSql110);
 	}
@@ -109,7 +111,7 @@ public abstract partial class TransactSqlParser
 	/// As <see cref="TryParseSql110(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 	/// cost of saying it.
 	/// </remarks>
-	public static bool TryParseSql110(ScriptBatch batch, out Statement[] value)
+	public static bool TryParseSql110(ScriptBatch batch, out Ast.Statement[] value)
 	{
 		return SqlScriptReading.Reads(batch, TryParseSql110, TryParseSql110, out value);
 	}
@@ -121,7 +123,7 @@ public abstract partial class TransactSqlParser
 	/// <exception cref="FormatException">
 	/// The batch is not read. <c>TryParseSql110(ScriptBatch)</c> answers instead.
 	/// </exception>
-	public static Statement[] ParseSql110(ScriptBatch batch)
+	public static Ast.Statement[] ParseSql110(ScriptBatch batch)
 	{
 		return SqlScriptReading.Parsed(TryParseSql110(batch));
 	}
@@ -131,7 +133,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 	/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-	public static Match<Statement[]> TryParseSql120(ScriptBatch batch)
+	public static Match<Ast.Statement[]> TryParseSql120(ScriptBatch batch)
 	{
 		return SqlScriptReading.Read(batch, TryParseSql120, TryParseSql120);
 	}
@@ -145,7 +147,7 @@ public abstract partial class TransactSqlParser
 	/// As <see cref="TryParseSql120(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 	/// cost of saying it.
 	/// </remarks>
-	public static bool TryParseSql120(ScriptBatch batch, out Statement[] value)
+	public static bool TryParseSql120(ScriptBatch batch, out Ast.Statement[] value)
 	{
 		return SqlScriptReading.Reads(batch, TryParseSql120, TryParseSql120, out value);
 	}
@@ -157,7 +159,7 @@ public abstract partial class TransactSqlParser
 	/// <exception cref="FormatException">
 	/// The batch is not read. <c>TryParseSql120(ScriptBatch)</c> answers instead.
 	/// </exception>
-	public static Statement[] ParseSql120(ScriptBatch batch)
+	public static Ast.Statement[] ParseSql120(ScriptBatch batch)
 	{
 		return SqlScriptReading.Parsed(TryParseSql120(batch));
 	}
@@ -167,7 +169,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 	/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-	public static Match<Statement[]> TryParseSql130(ScriptBatch batch)
+	public static Match<Ast.Statement[]> TryParseSql130(ScriptBatch batch)
 	{
 		return SqlScriptReading.Read(batch, TryParseSql130, TryParseSql130);
 	}
@@ -181,7 +183,7 @@ public abstract partial class TransactSqlParser
 	/// As <see cref="TryParseSql130(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 	/// cost of saying it.
 	/// </remarks>
-	public static bool TryParseSql130(ScriptBatch batch, out Statement[] value)
+	public static bool TryParseSql130(ScriptBatch batch, out Ast.Statement[] value)
 	{
 		return SqlScriptReading.Reads(batch, TryParseSql130, TryParseSql130, out value);
 	}
@@ -193,7 +195,7 @@ public abstract partial class TransactSqlParser
 	/// <exception cref="FormatException">
 	/// The batch is not read. <c>TryParseSql130(ScriptBatch)</c> answers instead.
 	/// </exception>
-	public static Statement[] ParseSql130(ScriptBatch batch)
+	public static Ast.Statement[] ParseSql130(ScriptBatch batch)
 	{
 		return SqlScriptReading.Parsed(TryParseSql130(batch));
 	}
@@ -203,7 +205,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 	/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-	public static Match<Statement[]> TryParseSql140(ScriptBatch batch)
+	public static Match<Ast.Statement[]> TryParseSql140(ScriptBatch batch)
 	{
 		return SqlScriptReading.Read(batch, TryParseSql140, TryParseSql140);
 	}
@@ -217,7 +219,7 @@ public abstract partial class TransactSqlParser
 	/// As <see cref="TryParseSql140(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 	/// cost of saying it.
 	/// </remarks>
-	public static bool TryParseSql140(ScriptBatch batch, out Statement[] value)
+	public static bool TryParseSql140(ScriptBatch batch, out Ast.Statement[] value)
 	{
 		return SqlScriptReading.Reads(batch, TryParseSql140, TryParseSql140, out value);
 	}
@@ -229,7 +231,7 @@ public abstract partial class TransactSqlParser
 	/// <exception cref="FormatException">
 	/// The batch is not read. <c>TryParseSql140(ScriptBatch)</c> answers instead.
 	/// </exception>
-	public static Statement[] ParseSql140(ScriptBatch batch)
+	public static Ast.Statement[] ParseSql140(ScriptBatch batch)
 	{
 		return SqlScriptReading.Parsed(TryParseSql140(batch));
 	}
@@ -239,7 +241,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 	/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-	public static Match<Statement[]> TryParseSql150(ScriptBatch batch)
+	public static Match<Ast.Statement[]> TryParseSql150(ScriptBatch batch)
 	{
 		return SqlScriptReading.Read(batch, TryParseSql150, TryParseSql150);
 	}
@@ -253,7 +255,7 @@ public abstract partial class TransactSqlParser
 	/// As <see cref="TryParseSql150(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 	/// cost of saying it.
 	/// </remarks>
-	public static bool TryParseSql150(ScriptBatch batch, out Statement[] value)
+	public static bool TryParseSql150(ScriptBatch batch, out Ast.Statement[] value)
 	{
 		return SqlScriptReading.Reads(batch, TryParseSql150, TryParseSql150, out value);
 	}
@@ -265,7 +267,7 @@ public abstract partial class TransactSqlParser
 	/// <exception cref="FormatException">
 	/// The batch is not read. <c>TryParseSql150(ScriptBatch)</c> answers instead.
 	/// </exception>
-	public static Statement[] ParseSql150(ScriptBatch batch)
+	public static Ast.Statement[] ParseSql150(ScriptBatch batch)
 	{
 		return SqlScriptReading.Parsed(TryParseSql150(batch));
 	}
@@ -275,7 +277,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 	/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-	public static Match<Statement[]> TryParseSql160(ScriptBatch batch)
+	public static Match<Ast.Statement[]> TryParseSql160(ScriptBatch batch)
 	{
 		return SqlScriptReading.Read(batch, TryParseSql160, TryParseSql160);
 	}
@@ -289,7 +291,7 @@ public abstract partial class TransactSqlParser
 	/// As <see cref="TryParseSql160(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 	/// cost of saying it.
 	/// </remarks>
-	public static bool TryParseSql160(ScriptBatch batch, out Statement[] value)
+	public static bool TryParseSql160(ScriptBatch batch, out Ast.Statement[] value)
 	{
 		return SqlScriptReading.Reads(batch, TryParseSql160, TryParseSql160, out value);
 	}
@@ -301,7 +303,7 @@ public abstract partial class TransactSqlParser
 	/// <exception cref="FormatException">
 	/// The batch is not read. <c>TryParseSql160(ScriptBatch)</c> answers instead.
 	/// </exception>
-	public static Statement[] ParseSql160(ScriptBatch batch)
+	public static Ast.Statement[] ParseSql160(ScriptBatch batch)
 	{
 		return SqlScriptReading.Parsed(TryParseSql160(batch));
 	}
@@ -311,7 +313,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 	/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-	public static Match<Statement[]> TryParseSql170(ScriptBatch batch)
+	public static Match<Ast.Statement[]> TryParseSql170(ScriptBatch batch)
 	{
 		return SqlScriptReading.Read(batch, TryParseSql170, TryParseSql170);
 	}
@@ -325,7 +327,7 @@ public abstract partial class TransactSqlParser
 	/// As <see cref="TryParseSql170(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 	/// cost of saying it.
 	/// </remarks>
-	public static bool TryParseSql170(ScriptBatch batch, out Statement[] value)
+	public static bool TryParseSql170(ScriptBatch batch, out Ast.Statement[] value)
 	{
 		return SqlScriptReading.Reads(batch, TryParseSql170, TryParseSql170, out value);
 	}
@@ -337,7 +339,7 @@ public abstract partial class TransactSqlParser
 	/// <exception cref="FormatException">
 	/// The batch is not read. <c>TryParseSql170(ScriptBatch)</c> answers instead.
 	/// </exception>
-	public static Statement[] ParseSql170(ScriptBatch batch)
+	public static Ast.Statement[] ParseSql170(ScriptBatch batch)
 	{
 		return SqlScriptReading.Parsed(TryParseSql170(batch));
 	}
@@ -359,11 +361,11 @@ public abstract partial class TransactSqlParser
 	/// <para>
 	/// Positions are as <see cref="TryParseSql(ScriptBatch)"/> gives them: offsets into the script,
 	/// except in a batch where a variable was substituted, whose own
-	/// <see cref="ScriptBatch.Locate"/> (<see cref="Batch.Source"/>) maps them back. A refusal's
+	/// <see cref="ScriptBatch.Locate"/> (<see cref="Ast.Batch.Source"/>) maps them back. A refusal's
 	/// position is always one in the script.
 	/// </para>
 	/// </remarks>
-	public static Batch[] ParseScript(string input)
+	public static Ast.Batch[] ParseScript(string input)
 	{
 		return SqlScriptReading.Parsed(TryParseScript(input));
 	}
@@ -373,7 +375,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <remarks>As <see cref="ParseScript(string)"/>; a refusal says where in the script and why.</remarks>
-	public static Match<Batch[]> TryParseScript(string input)
+	public static Match<Ast.Batch[]> TryParseScript(string input)
 	{
 		return SqlScriptReading.Script(input, TryParseSql);
 	}
@@ -383,7 +385,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <param name="value">The batches, where it is read.</param>
-	public static bool TryParseScript(string input, out Batch[] value)
+	public static bool TryParseScript(string input, out Ast.Batch[] value)
 	{
 		return SqlScriptReading.Script(input, TryParseSql, TryParseSql, out value);
 	}
@@ -396,7 +398,7 @@ public abstract partial class TransactSqlParser
 	/// The script is not read. <c>TryParseScript100</c> answers instead.
 	/// </exception>
 	/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-	public static Batch[] ParseScript100(string input)
+	public static Ast.Batch[] ParseScript100(string input)
 	{
 		return SqlScriptReading.Parsed(TryParseScript100(input));
 	}
@@ -406,7 +408,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <remarks>As <see cref="ParseScript100(string)"/>; a refusal says where in the script and why.</remarks>
-	public static Match<Batch[]> TryParseScript100(string input)
+	public static Match<Ast.Batch[]> TryParseScript100(string input)
 	{
 		return SqlScriptReading.Script(input, TryParseSql100);
 	}
@@ -416,7 +418,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <param name="value">The batches, where it is read.</param>
-	public static bool TryParseScript100(string input, out Batch[] value)
+	public static bool TryParseScript100(string input, out Ast.Batch[] value)
 	{
 		return SqlScriptReading.Script(input, TryParseSql100, TryParseSql100, out value);
 	}
@@ -429,7 +431,7 @@ public abstract partial class TransactSqlParser
 	/// The script is not read. <c>TryParseScript110</c> answers instead.
 	/// </exception>
 	/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-	public static Batch[] ParseScript110(string input)
+	public static Ast.Batch[] ParseScript110(string input)
 	{
 		return SqlScriptReading.Parsed(TryParseScript110(input));
 	}
@@ -439,7 +441,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <remarks>As <see cref="ParseScript110(string)"/>; a refusal says where in the script and why.</remarks>
-	public static Match<Batch[]> TryParseScript110(string input)
+	public static Match<Ast.Batch[]> TryParseScript110(string input)
 	{
 		return SqlScriptReading.Script(input, TryParseSql110);
 	}
@@ -449,7 +451,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <param name="value">The batches, where it is read.</param>
-	public static bool TryParseScript110(string input, out Batch[] value)
+	public static bool TryParseScript110(string input, out Ast.Batch[] value)
 	{
 		return SqlScriptReading.Script(input, TryParseSql110, TryParseSql110, out value);
 	}
@@ -462,7 +464,7 @@ public abstract partial class TransactSqlParser
 	/// The script is not read. <c>TryParseScript120</c> answers instead.
 	/// </exception>
 	/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-	public static Batch[] ParseScript120(string input)
+	public static Ast.Batch[] ParseScript120(string input)
 	{
 		return SqlScriptReading.Parsed(TryParseScript120(input));
 	}
@@ -472,7 +474,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <remarks>As <see cref="ParseScript120(string)"/>; a refusal says where in the script and why.</remarks>
-	public static Match<Batch[]> TryParseScript120(string input)
+	public static Match<Ast.Batch[]> TryParseScript120(string input)
 	{
 		return SqlScriptReading.Script(input, TryParseSql120);
 	}
@@ -482,7 +484,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <param name="value">The batches, where it is read.</param>
-	public static bool TryParseScript120(string input, out Batch[] value)
+	public static bool TryParseScript120(string input, out Ast.Batch[] value)
 	{
 		return SqlScriptReading.Script(input, TryParseSql120, TryParseSql120, out value);
 	}
@@ -495,7 +497,7 @@ public abstract partial class TransactSqlParser
 	/// The script is not read. <c>TryParseScript130</c> answers instead.
 	/// </exception>
 	/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-	public static Batch[] ParseScript130(string input)
+	public static Ast.Batch[] ParseScript130(string input)
 	{
 		return SqlScriptReading.Parsed(TryParseScript130(input));
 	}
@@ -505,7 +507,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <remarks>As <see cref="ParseScript130(string)"/>; a refusal says where in the script and why.</remarks>
-	public static Match<Batch[]> TryParseScript130(string input)
+	public static Match<Ast.Batch[]> TryParseScript130(string input)
 	{
 		return SqlScriptReading.Script(input, TryParseSql130);
 	}
@@ -515,7 +517,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <param name="value">The batches, where it is read.</param>
-	public static bool TryParseScript130(string input, out Batch[] value)
+	public static bool TryParseScript130(string input, out Ast.Batch[] value)
 	{
 		return SqlScriptReading.Script(input, TryParseSql130, TryParseSql130, out value);
 	}
@@ -528,7 +530,7 @@ public abstract partial class TransactSqlParser
 	/// The script is not read. <c>TryParseScript140</c> answers instead.
 	/// </exception>
 	/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-	public static Batch[] ParseScript140(string input)
+	public static Ast.Batch[] ParseScript140(string input)
 	{
 		return SqlScriptReading.Parsed(TryParseScript140(input));
 	}
@@ -538,7 +540,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <remarks>As <see cref="ParseScript140(string)"/>; a refusal says where in the script and why.</remarks>
-	public static Match<Batch[]> TryParseScript140(string input)
+	public static Match<Ast.Batch[]> TryParseScript140(string input)
 	{
 		return SqlScriptReading.Script(input, TryParseSql140);
 	}
@@ -548,7 +550,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <param name="value">The batches, where it is read.</param>
-	public static bool TryParseScript140(string input, out Batch[] value)
+	public static bool TryParseScript140(string input, out Ast.Batch[] value)
 	{
 		return SqlScriptReading.Script(input, TryParseSql140, TryParseSql140, out value);
 	}
@@ -561,7 +563,7 @@ public abstract partial class TransactSqlParser
 	/// The script is not read. <c>TryParseScript150</c> answers instead.
 	/// </exception>
 	/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-	public static Batch[] ParseScript150(string input)
+	public static Ast.Batch[] ParseScript150(string input)
 	{
 		return SqlScriptReading.Parsed(TryParseScript150(input));
 	}
@@ -571,7 +573,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <remarks>As <see cref="ParseScript150(string)"/>; a refusal says where in the script and why.</remarks>
-	public static Match<Batch[]> TryParseScript150(string input)
+	public static Match<Ast.Batch[]> TryParseScript150(string input)
 	{
 		return SqlScriptReading.Script(input, TryParseSql150);
 	}
@@ -581,7 +583,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <param name="value">The batches, where it is read.</param>
-	public static bool TryParseScript150(string input, out Batch[] value)
+	public static bool TryParseScript150(string input, out Ast.Batch[] value)
 	{
 		return SqlScriptReading.Script(input, TryParseSql150, TryParseSql150, out value);
 	}
@@ -594,7 +596,7 @@ public abstract partial class TransactSqlParser
 	/// The script is not read. <c>TryParseScript160</c> answers instead.
 	/// </exception>
 	/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-	public static Batch[] ParseScript160(string input)
+	public static Ast.Batch[] ParseScript160(string input)
 	{
 		return SqlScriptReading.Parsed(TryParseScript160(input));
 	}
@@ -604,7 +606,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <remarks>As <see cref="ParseScript160(string)"/>; a refusal says where in the script and why.</remarks>
-	public static Match<Batch[]> TryParseScript160(string input)
+	public static Match<Ast.Batch[]> TryParseScript160(string input)
 	{
 		return SqlScriptReading.Script(input, TryParseSql160);
 	}
@@ -614,7 +616,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <param name="value">The batches, where it is read.</param>
-	public static bool TryParseScript160(string input, out Batch[] value)
+	public static bool TryParseScript160(string input, out Ast.Batch[] value)
 	{
 		return SqlScriptReading.Script(input, TryParseSql160, TryParseSql160, out value);
 	}
@@ -627,7 +629,7 @@ public abstract partial class TransactSqlParser
 	/// The script is not read. <c>TryParseScript170</c> answers instead.
 	/// </exception>
 	/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-	public static Batch[] ParseScript170(string input)
+	public static Ast.Batch[] ParseScript170(string input)
 	{
 		return SqlScriptReading.Parsed(TryParseScript170(input));
 	}
@@ -637,7 +639,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <remarks>As <see cref="ParseScript170(string)"/>; a refusal says where in the script and why.</remarks>
-	public static Match<Batch[]> TryParseScript170(string input)
+	public static Match<Ast.Batch[]> TryParseScript170(string input)
 	{
 		return SqlScriptReading.Script(input, TryParseSql170);
 	}
@@ -647,7 +649,7 @@ public abstract partial class TransactSqlParser
 	/// </summary>
 	/// <param name="input">The script.</param>
 	/// <param name="value">The batches, where it is read.</param>
-	public static bool TryParseScript170(string input, out Batch[] value)
+	public static bool TryParseScript170(string input, out Ast.Batch[] value)
 	{
 		return SqlScriptReading.Script(input, TryParseSql170, TryParseSql170, out value);
 	}
@@ -667,10 +669,10 @@ public abstract partial class TransactSqlParser
 		/// it is anything else, or anything this cannot tell, the batch is read again as a text of its own,
 		/// which reads to the end or says why not, and that refusal is the batch's.
 		/// </remarks>
-		public static Match<Statement[]> Read(
+		public static Match<Ast.Statement[]> Read(
 			ScriptBatch batch,
-			Func<string, int, int, Match<Statement[]>> window,
-			Func<string, Match<Statement[]>> whole)
+			Func<string, int, int, Match<Ast.Statement[]>> window,
+			Func<string, Match<Ast.Statement[]>> whole)
 		{
 			if (batch is null)
 				throw new ArgumentNullException(nameof(batch));
@@ -680,7 +682,7 @@ public abstract partial class TransactSqlParser
 			// Spacing and comments and nothing else are a text of no statements, as the server reads
 			// them; a window that holds no token at all is not asked, since it would look for one.
 			if (Trivia(batch.Text, batch.At, end) == end)
-				return Match<Statement[]>.Success([], batch.At, 0, end);
+				return Match<Ast.Statement[]>.Success([], batch.At, 0, end);
 
 			var match = window(batch.Text, batch.At, batch.Length);
 
@@ -697,28 +699,28 @@ public abstract partial class TransactSqlParser
 			if (alone.IsSuccess)
 				return match;
 
-			return alone.Refusal<Statement[]>(alone.Position + batch.At, "Input does not match 'Sql'.");
+			return alone.Refusal<Ast.Statement[]>(alone.Position + batch.At, "Input does not match 'Sql'.");
 		}
 
 		/// <summary>
 		/// Reads a script: sqlcmd's batches, each read whole, and the first refusal in the text — a batch
 		/// that does not read, or a line sqlcmd refuses or a file it cannot include — is the script's.
 		/// </summary>
-		public static Match<Batch[]> Script(string input, Func<ScriptBatch, Match<Statement[]>> read)
+		public static Match<Ast.Batch[]> Script(string input, Func<ScriptBatch, Match<Ast.Statement[]>> read)
 		{
 			if (input is null)
 				throw new ArgumentNullException(nameof(input));
 
 			var script  = SqlScript.Read(input);
-			var batches = new Batch[script.Batches.Count];
-			var refusal = default(Match<Batch[]>?);
+			var batches = new Ast.Batch[script.Batches.Count];
+			var refusal = default(Match<Ast.Batch[]>?);
 
 			foreach (var diagnostic in script.Diagnostics)
 			{
 				if (diagnostic.Severity == ScriptSeverity.Warning)
 					continue;
 
-				refusal = Match<Batch[]>.Failed(Outcome.NoMatch, diagnostic.Message, diagnostic.Location.Span.At, null, null);
+				refusal = Match<Ast.Batch[]>.Failed(Outcome.NoMatch, diagnostic.Message, diagnostic.Location.Span.At, null, null);
 				break;
 			}
 
@@ -738,28 +740,28 @@ public abstract partial class TransactSqlParser
 					if (refusal is { } earlier && earlier.Position <= at)
 						return earlier;
 
-					return match.Refusal<Batch[]>(at, "Input does not match 'Sql'.");
+					return match.Refusal<Ast.Batch[]>(at, "Input does not match 'Sql'.");
 				}
 
-				batches[i] = new Batch(SqlList.Own(match.Value), Go(batch)) { Source = batch };
+				batches[i] = new Ast.Batch(SqlList.Own(match.Value), Go(batch)) { Source = batch };
 			}
 
 			if (refusal is { } last)
 				return last;
 
-			return Match<Batch[]>.Success(batches, 0, input.Length);
+			return Match<Ast.Batch[]>.Success(batches, 0, input.Length);
 		}
 
-		public delegate bool WindowReading(string input, ref int at, int length, out Statement[] value);
+		public delegate bool WindowReading(string input, ref int at, int length, out Ast.Statement[] value);
 
-		public delegate bool WholeReading(string input, out Statement[] value);
+		public delegate bool WholeReading(string input, out Ast.Statement[] value);
 
 		/// <summary>
-		/// Reads a script as <see cref="Script(string, Func{ScriptBatch, Match{Statement[]}})"/> does,
+		/// Reads a script as <see cref="Script(string, Func{ScriptBatch, Match{Ast.Statement[]}})"/> does,
 		/// answering only whether it is read: nothing is spent on saying why not, which on a refusal
 		/// is most of what a refusal costs — the readings' quiet forms are used throughout.
 		/// </summary>
-		public static bool Script(string input, WindowReading window, WholeReading whole, out Batch[] value)
+		public static bool Script(string input, WindowReading window, WholeReading whole, out Ast.Batch[] value)
 		{
 			if (input is null)
 				throw new ArgumentNullException(nameof(input));
@@ -774,7 +776,7 @@ public abstract partial class TransactSqlParser
 					return false;
 			}
 
-			var batches = new Batch[script.Batches.Count];
+			var batches = new Ast.Batch[script.Batches.Count];
 
 			for (var i = 0; i < batches.Length; i++)
 			{
@@ -783,7 +785,7 @@ public abstract partial class TransactSqlParser
 				if (!Reads(batch, window, whole, out var statements))
 					return false;
 
-				batches[i] = new Batch(SqlList.Own(statements), Go(batch)) { Source = batch };
+				batches[i] = new Ast.Batch(SqlList.Own(statements), Go(batch)) { Source = batch };
 			}
 
 			value = batches;
@@ -794,7 +796,7 @@ public abstract partial class TransactSqlParser
 		/// Reads a batch as <see cref="Read"/> does, answering only whether it is read: the readings'
 		/// quiet forms throughout.
 		/// </summary>
-		public static bool Reads(ScriptBatch batch, WindowReading window, WholeReading whole, out Statement[] value)
+		public static bool Reads(ScriptBatch batch, WindowReading window, WholeReading whole, out Ast.Statement[] value)
 		{
 			if (batch is null)
 				throw new ArgumentNullException(nameof(batch));
@@ -836,7 +838,7 @@ public abstract partial class TransactSqlParser
 		}
 
 		/// <summary>
-		/// The line that ended a batch as <see cref="Batch.Go"/> says it: <c>GO</c>, or <c>GO 5</c>.
+		/// The line that ended a batch as <see cref="Ast.Batch.Go"/> says it: <c>GO</c>, or <c>GO 5</c>.
 		/// </summary>
 		static string? Go(ScriptBatch batch)
 		{
@@ -930,6 +932,15 @@ public abstract partial class TransactSqlParser
 		}
 	}
 
+	/// <summary>
+	/// The same parser, asked to say where each value was written: every entry of <see cref="TransactSqlParser"/> again,
+	/// at every level, and a refusal in the same place with the same message.
+	/// </summary>
+	/// <remarks>
+	/// Locations cost a reading something, so they are asked for by name. A statement, a query, an expression and a table
+	/// source of the tree it gives back carry in <c>Span</c> the range of text they were read from, a position in the input
+	/// handed in; a located tree equals the plain one, since a span takes no part in equality.
+	/// </remarks>
 	public static partial class Located
 	{
 		/// <summary>
@@ -948,7 +959,7 @@ public abstract partial class TransactSqlParser
 		/// A <c>GO</c> in a batch is a word like any other, as it is to the server.
 		/// </para>
 		/// </remarks>
-		public static Match<Statement[]> TryParseSql(ScriptBatch batch)
+		public static Match<Ast.Statement[]> TryParseSql(ScriptBatch batch)
 		{
 			return SqlScriptReading.Read(batch, TryParseSql, TryParseSql);
 		}
@@ -962,7 +973,7 @@ public abstract partial class TransactSqlParser
 		/// As <see cref="TryParseSql(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 		/// cost of saying it.
 		/// </remarks>
-		public static bool TryParseSql(ScriptBatch batch, out Statement[] value)
+		public static bool TryParseSql(ScriptBatch batch, out Ast.Statement[] value)
 		{
 			return SqlScriptReading.Reads(batch, TryParseSql, TryParseSql, out value);
 		}
@@ -974,7 +985,7 @@ public abstract partial class TransactSqlParser
 		/// <exception cref="FormatException">
 		/// The batch is not read. <c>TryParseSql(ScriptBatch)</c> answers instead.
 		/// </exception>
-		public static Statement[] ParseSql(ScriptBatch batch)
+		public static Ast.Statement[] ParseSql(ScriptBatch batch)
 		{
 			return SqlScriptReading.Parsed(TryParseSql(batch));
 		}
@@ -984,7 +995,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 		/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-		public static Match<Statement[]> TryParseSql100(ScriptBatch batch)
+		public static Match<Ast.Statement[]> TryParseSql100(ScriptBatch batch)
 		{
 			return SqlScriptReading.Read(batch, TryParseSql100, TryParseSql100);
 		}
@@ -998,7 +1009,7 @@ public abstract partial class TransactSqlParser
 		/// As <see cref="TryParseSql100(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 		/// cost of saying it.
 		/// </remarks>
-		public static bool TryParseSql100(ScriptBatch batch, out Statement[] value)
+		public static bool TryParseSql100(ScriptBatch batch, out Ast.Statement[] value)
 		{
 			return SqlScriptReading.Reads(batch, TryParseSql100, TryParseSql100, out value);
 		}
@@ -1010,7 +1021,7 @@ public abstract partial class TransactSqlParser
 		/// <exception cref="FormatException">
 		/// The batch is not read. <c>TryParseSql100(ScriptBatch)</c> answers instead.
 		/// </exception>
-		public static Statement[] ParseSql100(ScriptBatch batch)
+		public static Ast.Statement[] ParseSql100(ScriptBatch batch)
 		{
 			return SqlScriptReading.Parsed(TryParseSql100(batch));
 		}
@@ -1020,7 +1031,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 		/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-		public static Match<Statement[]> TryParseSql110(ScriptBatch batch)
+		public static Match<Ast.Statement[]> TryParseSql110(ScriptBatch batch)
 		{
 			return SqlScriptReading.Read(batch, TryParseSql110, TryParseSql110);
 		}
@@ -1034,7 +1045,7 @@ public abstract partial class TransactSqlParser
 		/// As <see cref="TryParseSql110(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 		/// cost of saying it.
 		/// </remarks>
-		public static bool TryParseSql110(ScriptBatch batch, out Statement[] value)
+		public static bool TryParseSql110(ScriptBatch batch, out Ast.Statement[] value)
 		{
 			return SqlScriptReading.Reads(batch, TryParseSql110, TryParseSql110, out value);
 		}
@@ -1046,7 +1057,7 @@ public abstract partial class TransactSqlParser
 		/// <exception cref="FormatException">
 		/// The batch is not read. <c>TryParseSql110(ScriptBatch)</c> answers instead.
 		/// </exception>
-		public static Statement[] ParseSql110(ScriptBatch batch)
+		public static Ast.Statement[] ParseSql110(ScriptBatch batch)
 		{
 			return SqlScriptReading.Parsed(TryParseSql110(batch));
 		}
@@ -1056,7 +1067,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 		/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-		public static Match<Statement[]> TryParseSql120(ScriptBatch batch)
+		public static Match<Ast.Statement[]> TryParseSql120(ScriptBatch batch)
 		{
 			return SqlScriptReading.Read(batch, TryParseSql120, TryParseSql120);
 		}
@@ -1070,7 +1081,7 @@ public abstract partial class TransactSqlParser
 		/// As <see cref="TryParseSql120(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 		/// cost of saying it.
 		/// </remarks>
-		public static bool TryParseSql120(ScriptBatch batch, out Statement[] value)
+		public static bool TryParseSql120(ScriptBatch batch, out Ast.Statement[] value)
 		{
 			return SqlScriptReading.Reads(batch, TryParseSql120, TryParseSql120, out value);
 		}
@@ -1082,7 +1093,7 @@ public abstract partial class TransactSqlParser
 		/// <exception cref="FormatException">
 		/// The batch is not read. <c>TryParseSql120(ScriptBatch)</c> answers instead.
 		/// </exception>
-		public static Statement[] ParseSql120(ScriptBatch batch)
+		public static Ast.Statement[] ParseSql120(ScriptBatch batch)
 		{
 			return SqlScriptReading.Parsed(TryParseSql120(batch));
 		}
@@ -1092,7 +1103,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 		/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-		public static Match<Statement[]> TryParseSql130(ScriptBatch batch)
+		public static Match<Ast.Statement[]> TryParseSql130(ScriptBatch batch)
 		{
 			return SqlScriptReading.Read(batch, TryParseSql130, TryParseSql130);
 		}
@@ -1106,7 +1117,7 @@ public abstract partial class TransactSqlParser
 		/// As <see cref="TryParseSql130(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 		/// cost of saying it.
 		/// </remarks>
-		public static bool TryParseSql130(ScriptBatch batch, out Statement[] value)
+		public static bool TryParseSql130(ScriptBatch batch, out Ast.Statement[] value)
 		{
 			return SqlScriptReading.Reads(batch, TryParseSql130, TryParseSql130, out value);
 		}
@@ -1118,7 +1129,7 @@ public abstract partial class TransactSqlParser
 		/// <exception cref="FormatException">
 		/// The batch is not read. <c>TryParseSql130(ScriptBatch)</c> answers instead.
 		/// </exception>
-		public static Statement[] ParseSql130(ScriptBatch batch)
+		public static Ast.Statement[] ParseSql130(ScriptBatch batch)
 		{
 			return SqlScriptReading.Parsed(TryParseSql130(batch));
 		}
@@ -1128,7 +1139,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 		/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-		public static Match<Statement[]> TryParseSql140(ScriptBatch batch)
+		public static Match<Ast.Statement[]> TryParseSql140(ScriptBatch batch)
 		{
 			return SqlScriptReading.Read(batch, TryParseSql140, TryParseSql140);
 		}
@@ -1142,7 +1153,7 @@ public abstract partial class TransactSqlParser
 		/// As <see cref="TryParseSql140(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 		/// cost of saying it.
 		/// </remarks>
-		public static bool TryParseSql140(ScriptBatch batch, out Statement[] value)
+		public static bool TryParseSql140(ScriptBatch batch, out Ast.Statement[] value)
 		{
 			return SqlScriptReading.Reads(batch, TryParseSql140, TryParseSql140, out value);
 		}
@@ -1154,7 +1165,7 @@ public abstract partial class TransactSqlParser
 		/// <exception cref="FormatException">
 		/// The batch is not read. <c>TryParseSql140(ScriptBatch)</c> answers instead.
 		/// </exception>
-		public static Statement[] ParseSql140(ScriptBatch batch)
+		public static Ast.Statement[] ParseSql140(ScriptBatch batch)
 		{
 			return SqlScriptReading.Parsed(TryParseSql140(batch));
 		}
@@ -1164,7 +1175,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 		/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-		public static Match<Statement[]> TryParseSql150(ScriptBatch batch)
+		public static Match<Ast.Statement[]> TryParseSql150(ScriptBatch batch)
 		{
 			return SqlScriptReading.Read(batch, TryParseSql150, TryParseSql150);
 		}
@@ -1178,7 +1189,7 @@ public abstract partial class TransactSqlParser
 		/// As <see cref="TryParseSql150(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 		/// cost of saying it.
 		/// </remarks>
-		public static bool TryParseSql150(ScriptBatch batch, out Statement[] value)
+		public static bool TryParseSql150(ScriptBatch batch, out Ast.Statement[] value)
 		{
 			return SqlScriptReading.Reads(batch, TryParseSql150, TryParseSql150, out value);
 		}
@@ -1190,7 +1201,7 @@ public abstract partial class TransactSqlParser
 		/// <exception cref="FormatException">
 		/// The batch is not read. <c>TryParseSql150(ScriptBatch)</c> answers instead.
 		/// </exception>
-		public static Statement[] ParseSql150(ScriptBatch batch)
+		public static Ast.Statement[] ParseSql150(ScriptBatch batch)
 		{
 			return SqlScriptReading.Parsed(TryParseSql150(batch));
 		}
@@ -1200,7 +1211,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 		/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-		public static Match<Statement[]> TryParseSql160(ScriptBatch batch)
+		public static Match<Ast.Statement[]> TryParseSql160(ScriptBatch batch)
 		{
 			return SqlScriptReading.Read(batch, TryParseSql160, TryParseSql160);
 		}
@@ -1214,7 +1225,7 @@ public abstract partial class TransactSqlParser
 		/// As <see cref="TryParseSql160(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 		/// cost of saying it.
 		/// </remarks>
-		public static bool TryParseSql160(ScriptBatch batch, out Statement[] value)
+		public static bool TryParseSql160(ScriptBatch batch, out Ast.Statement[] value)
 		{
 			return SqlScriptReading.Reads(batch, TryParseSql160, TryParseSql160, out value);
 		}
@@ -1226,7 +1237,7 @@ public abstract partial class TransactSqlParser
 		/// <exception cref="FormatException">
 		/// The batch is not read. <c>TryParseSql160(ScriptBatch)</c> answers instead.
 		/// </exception>
-		public static Statement[] ParseSql160(ScriptBatch batch)
+		public static Ast.Statement[] ParseSql160(ScriptBatch batch)
 		{
 			return SqlScriptReading.Parsed(TryParseSql160(batch));
 		}
@@ -1236,7 +1247,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="batch">A batch of <see cref="SqlScript.Read"/>.</param>
 		/// <remarks>As <see cref="TryParseSql(ScriptBatch)"/>, at one level.</remarks>
-		public static Match<Statement[]> TryParseSql170(ScriptBatch batch)
+		public static Match<Ast.Statement[]> TryParseSql170(ScriptBatch batch)
 		{
 			return SqlScriptReading.Read(batch, TryParseSql170, TryParseSql170);
 		}
@@ -1250,7 +1261,7 @@ public abstract partial class TransactSqlParser
 		/// As <see cref="TryParseSql170(ScriptBatch)"/>; nothing is said about a refusal, which saves the
 		/// cost of saying it.
 		/// </remarks>
-		public static bool TryParseSql170(ScriptBatch batch, out Statement[] value)
+		public static bool TryParseSql170(ScriptBatch batch, out Ast.Statement[] value)
 		{
 			return SqlScriptReading.Reads(batch, TryParseSql170, TryParseSql170, out value);
 		}
@@ -1262,7 +1273,7 @@ public abstract partial class TransactSqlParser
 		/// <exception cref="FormatException">
 		/// The batch is not read. <c>TryParseSql170(ScriptBatch)</c> answers instead.
 		/// </exception>
-		public static Statement[] ParseSql170(ScriptBatch batch)
+		public static Ast.Statement[] ParseSql170(ScriptBatch batch)
 		{
 			return SqlScriptReading.Parsed(TryParseSql170(batch));
 		}
@@ -1284,11 +1295,11 @@ public abstract partial class TransactSqlParser
 		/// <para>
 		/// Positions are as <see cref="TryParseSql(ScriptBatch)"/> gives them: offsets into the script,
 		/// except in a batch where a variable was substituted, whose own
-		/// <see cref="ScriptBatch.Locate"/> (<see cref="Batch.Source"/>) maps them back. A refusal's
+		/// <see cref="ScriptBatch.Locate"/> (<see cref="Ast.Batch.Source"/>) maps them back. A refusal's
 		/// position is always one in the script.
 		/// </para>
 		/// </remarks>
-		public static Batch[] ParseScript(string input)
+		public static Ast.Batch[] ParseScript(string input)
 		{
 			return SqlScriptReading.Parsed(TryParseScript(input));
 		}
@@ -1298,7 +1309,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <remarks>As <see cref="ParseScript(string)"/>; a refusal says where in the script and why.</remarks>
-		public static Match<Batch[]> TryParseScript(string input)
+		public static Match<Ast.Batch[]> TryParseScript(string input)
 		{
 			return SqlScriptReading.Script(input, TryParseSql);
 		}
@@ -1308,7 +1319,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <param name="value">The batches, where it is read.</param>
-		public static bool TryParseScript(string input, out Batch[] value)
+		public static bool TryParseScript(string input, out Ast.Batch[] value)
 		{
 			return SqlScriptReading.Script(input, TryParseSql, TryParseSql, out value);
 		}
@@ -1321,7 +1332,7 @@ public abstract partial class TransactSqlParser
 		/// The script is not read. <c>TryParseScript100</c> answers instead.
 		/// </exception>
 		/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-		public static Batch[] ParseScript100(string input)
+		public static Ast.Batch[] ParseScript100(string input)
 		{
 			return SqlScriptReading.Parsed(TryParseScript100(input));
 		}
@@ -1331,7 +1342,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <remarks>As <see cref="ParseScript100(string)"/>; a refusal says where in the script and why.</remarks>
-		public static Match<Batch[]> TryParseScript100(string input)
+		public static Match<Ast.Batch[]> TryParseScript100(string input)
 		{
 			return SqlScriptReading.Script(input, TryParseSql100);
 		}
@@ -1341,7 +1352,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <param name="value">The batches, where it is read.</param>
-		public static bool TryParseScript100(string input, out Batch[] value)
+		public static bool TryParseScript100(string input, out Ast.Batch[] value)
 		{
 			return SqlScriptReading.Script(input, TryParseSql100, TryParseSql100, out value);
 		}
@@ -1354,7 +1365,7 @@ public abstract partial class TransactSqlParser
 		/// The script is not read. <c>TryParseScript110</c> answers instead.
 		/// </exception>
 		/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-		public static Batch[] ParseScript110(string input)
+		public static Ast.Batch[] ParseScript110(string input)
 		{
 			return SqlScriptReading.Parsed(TryParseScript110(input));
 		}
@@ -1364,7 +1375,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <remarks>As <see cref="ParseScript110(string)"/>; a refusal says where in the script and why.</remarks>
-		public static Match<Batch[]> TryParseScript110(string input)
+		public static Match<Ast.Batch[]> TryParseScript110(string input)
 		{
 			return SqlScriptReading.Script(input, TryParseSql110);
 		}
@@ -1374,7 +1385,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <param name="value">The batches, where it is read.</param>
-		public static bool TryParseScript110(string input, out Batch[] value)
+		public static bool TryParseScript110(string input, out Ast.Batch[] value)
 		{
 			return SqlScriptReading.Script(input, TryParseSql110, TryParseSql110, out value);
 		}
@@ -1387,7 +1398,7 @@ public abstract partial class TransactSqlParser
 		/// The script is not read. <c>TryParseScript120</c> answers instead.
 		/// </exception>
 		/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-		public static Batch[] ParseScript120(string input)
+		public static Ast.Batch[] ParseScript120(string input)
 		{
 			return SqlScriptReading.Parsed(TryParseScript120(input));
 		}
@@ -1397,7 +1408,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <remarks>As <see cref="ParseScript120(string)"/>; a refusal says where in the script and why.</remarks>
-		public static Match<Batch[]> TryParseScript120(string input)
+		public static Match<Ast.Batch[]> TryParseScript120(string input)
 		{
 			return SqlScriptReading.Script(input, TryParseSql120);
 		}
@@ -1407,7 +1418,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <param name="value">The batches, where it is read.</param>
-		public static bool TryParseScript120(string input, out Batch[] value)
+		public static bool TryParseScript120(string input, out Ast.Batch[] value)
 		{
 			return SqlScriptReading.Script(input, TryParseSql120, TryParseSql120, out value);
 		}
@@ -1420,7 +1431,7 @@ public abstract partial class TransactSqlParser
 		/// The script is not read. <c>TryParseScript130</c> answers instead.
 		/// </exception>
 		/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-		public static Batch[] ParseScript130(string input)
+		public static Ast.Batch[] ParseScript130(string input)
 		{
 			return SqlScriptReading.Parsed(TryParseScript130(input));
 		}
@@ -1430,7 +1441,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <remarks>As <see cref="ParseScript130(string)"/>; a refusal says where in the script and why.</remarks>
-		public static Match<Batch[]> TryParseScript130(string input)
+		public static Match<Ast.Batch[]> TryParseScript130(string input)
 		{
 			return SqlScriptReading.Script(input, TryParseSql130);
 		}
@@ -1440,7 +1451,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <param name="value">The batches, where it is read.</param>
-		public static bool TryParseScript130(string input, out Batch[] value)
+		public static bool TryParseScript130(string input, out Ast.Batch[] value)
 		{
 			return SqlScriptReading.Script(input, TryParseSql130, TryParseSql130, out value);
 		}
@@ -1453,7 +1464,7 @@ public abstract partial class TransactSqlParser
 		/// The script is not read. <c>TryParseScript140</c> answers instead.
 		/// </exception>
 		/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-		public static Batch[] ParseScript140(string input)
+		public static Ast.Batch[] ParseScript140(string input)
 		{
 			return SqlScriptReading.Parsed(TryParseScript140(input));
 		}
@@ -1463,7 +1474,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <remarks>As <see cref="ParseScript140(string)"/>; a refusal says where in the script and why.</remarks>
-		public static Match<Batch[]> TryParseScript140(string input)
+		public static Match<Ast.Batch[]> TryParseScript140(string input)
 		{
 			return SqlScriptReading.Script(input, TryParseSql140);
 		}
@@ -1473,7 +1484,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <param name="value">The batches, where it is read.</param>
-		public static bool TryParseScript140(string input, out Batch[] value)
+		public static bool TryParseScript140(string input, out Ast.Batch[] value)
 		{
 			return SqlScriptReading.Script(input, TryParseSql140, TryParseSql140, out value);
 		}
@@ -1486,7 +1497,7 @@ public abstract partial class TransactSqlParser
 		/// The script is not read. <c>TryParseScript150</c> answers instead.
 		/// </exception>
 		/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-		public static Batch[] ParseScript150(string input)
+		public static Ast.Batch[] ParseScript150(string input)
 		{
 			return SqlScriptReading.Parsed(TryParseScript150(input));
 		}
@@ -1496,7 +1507,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <remarks>As <see cref="ParseScript150(string)"/>; a refusal says where in the script and why.</remarks>
-		public static Match<Batch[]> TryParseScript150(string input)
+		public static Match<Ast.Batch[]> TryParseScript150(string input)
 		{
 			return SqlScriptReading.Script(input, TryParseSql150);
 		}
@@ -1506,7 +1517,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <param name="value">The batches, where it is read.</param>
-		public static bool TryParseScript150(string input, out Batch[] value)
+		public static bool TryParseScript150(string input, out Ast.Batch[] value)
 		{
 			return SqlScriptReading.Script(input, TryParseSql150, TryParseSql150, out value);
 		}
@@ -1519,7 +1530,7 @@ public abstract partial class TransactSqlParser
 		/// The script is not read. <c>TryParseScript160</c> answers instead.
 		/// </exception>
 		/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-		public static Batch[] ParseScript160(string input)
+		public static Ast.Batch[] ParseScript160(string input)
 		{
 			return SqlScriptReading.Parsed(TryParseScript160(input));
 		}
@@ -1529,7 +1540,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <remarks>As <see cref="ParseScript160(string)"/>; a refusal says where in the script and why.</remarks>
-		public static Match<Batch[]> TryParseScript160(string input)
+		public static Match<Ast.Batch[]> TryParseScript160(string input)
 		{
 			return SqlScriptReading.Script(input, TryParseSql160);
 		}
@@ -1539,7 +1550,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <param name="value">The batches, where it is read.</param>
-		public static bool TryParseScript160(string input, out Batch[] value)
+		public static bool TryParseScript160(string input, out Ast.Batch[] value)
 		{
 			return SqlScriptReading.Script(input, TryParseSql160, TryParseSql160, out value);
 		}
@@ -1552,7 +1563,7 @@ public abstract partial class TransactSqlParser
 		/// The script is not read. <c>TryParseScript170</c> answers instead.
 		/// </exception>
 		/// <remarks>As <see cref="ParseScript(string)"/>, at one level.</remarks>
-		public static Batch[] ParseScript170(string input)
+		public static Ast.Batch[] ParseScript170(string input)
 		{
 			return SqlScriptReading.Parsed(TryParseScript170(input));
 		}
@@ -1562,7 +1573,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <remarks>As <see cref="ParseScript170(string)"/>; a refusal says where in the script and why.</remarks>
-		public static Match<Batch[]> TryParseScript170(string input)
+		public static Match<Ast.Batch[]> TryParseScript170(string input)
 		{
 			return SqlScriptReading.Script(input, TryParseSql170);
 		}
@@ -1572,7 +1583,7 @@ public abstract partial class TransactSqlParser
 		/// </summary>
 		/// <param name="input">The script.</param>
 		/// <param name="value">The batches, where it is read.</param>
-		public static bool TryParseScript170(string input, out Batch[] value)
+		public static bool TryParseScript170(string input, out Ast.Batch[] value)
 		{
 			return SqlScriptReading.Script(input, TryParseSql170, TryParseSql170, out value);
 		}

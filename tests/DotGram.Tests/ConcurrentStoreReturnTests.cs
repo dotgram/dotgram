@@ -185,7 +185,7 @@ public sealed class ConcurrentStoreReturnTests
 	{
 		var match = TransactSqlParser.TryParseStatement(text);
 
-		return match.IsSuccess ? "OK:" + SqlWriter.Write(match.Value) : Refused(match.Position, match.Error);
+		return match.IsSuccess ? "OK:" + Ast.TransactSqlWriter.Write(match.Value) : Refused(match.Position, match.Error);
 	}
 
 	static string Sql<T>(SqlStandardParser.Match<T> match)

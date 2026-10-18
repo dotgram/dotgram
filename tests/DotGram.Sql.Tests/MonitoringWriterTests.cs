@@ -272,7 +272,7 @@ public sealed class MonitoringWriterTests
 		var tree = (Statement)Texts[which].Tree;
 		var text = TransactSqlWriter.Write(tree);
 
-		Assert.Equal(tree, Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text));
+		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
 	}
 
 	static Statement.CreateEventSession Session(EventSessionPiece piece)

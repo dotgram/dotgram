@@ -121,7 +121,7 @@ static partial class Bridge
 
 			// The elements are the five statements a schema declares in its own breath: read as a script, the text after the owner.
 			var text = tail[tokens[at].At..];
-			var read = TransactSql.TransactSqlParser.Located.TryParseSql(text);
+			var read = TransactSqlParser.Located.TryParseSyntaxSql(text);
 
 			if (!read.IsSuccess || read.Value is not { Length: > 0 } elements)
 				throw BridgeGap.Open(old, "inventory Statement.SchemaDefinition (elements that a script does not read)");
@@ -211,7 +211,7 @@ static partial class Bridge
 		{
 			var tokens = SqlTokens.Of(text);
 			var open   = tokens.FindIndex(static one => one is { Kind: SqlTokens.Kind.Punctuation, Text: "(" });
-			var head   = open < 0 ? tokens : tokens[..open];
+			var head   = open < 0 ? tokens : tokens.GetRange(0, open);
 
 			if (head.Count == 0 || head.Any(static one => one.Kind != SqlTokens.Kind.Word))
 				throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the permission `{text}`)");
@@ -274,7 +274,7 @@ static partial class Bridge
 
 			if (colons >= 0)
 			{
-				var written = string.Join(' ', tokens[..colons].Select(static one => one.Text.ToUpperInvariant()));
+				var written = string.Join(' ', tokens.Take(colons).Select(static one => one.Text.ToUpperInvariant()));
 
 				if (colons + 1 >= tokens.Count || tokens[colons + 1] is not { Kind: SqlTokens.Kind.Punctuation, Text: ":" }
 					|| !ClassWords.Value.TryGetValue(written, out var found))
@@ -285,7 +285,7 @@ static partial class Bridge
 			}
 
 			var open = tokens.FindIndex(from, static one => one is { Kind: SqlTokens.Kind.Punctuation, Text: "(" });
-			var name = Dotted(open < 0 ? tokens[from..] : tokens[from..open]) ?? throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the securable `{on}`)");
+			var name = Dotted(open < 0 ? tokens.GetRange(from, tokens.Count - from) : tokens.GetRange(from, open - from)) ?? throw BridgeGap.Open(old, $"inventory {NameOf(old)} (the securable `{on}`)");
 			SqlList<Ast.Identifier>? columns = open < 0 ? null : Columns(old, tokens, open, on);
 			var qualified = Values.Name(old, name);
 
@@ -463,12 +463,12 @@ static partial class Bridge
 			if (colons < 0)
 				return (null, tokens);
 
-			var written = string.Join(' ', tokens[..colons].Select(static one => one.Text.ToUpperInvariant()));
+			var written = string.Join(' ', tokens.Take(colons).Select(static one => one.Text.ToUpperInvariant()));
 
 			if (!IsPunctuation(tokens, colons + 1, ":") || !ClassWords.Value.TryGetValue(written, out var kind))
 				throw Unread(old, tail);
 
-			return (kind, tokens[(colons + 2)..]);
+			return (kind, tokens.GetRange(colons + 2, tokens.Count - colons - 2));
 		}
 
 		static Ast.Statement AlterSchema(Statement.AlterSchema old)
@@ -479,7 +479,7 @@ static partial class Bridge
 			if (!Is(tokens, 0, "TRANSFER"))
 				throw Unread(old, tail);
 
-			var (kind, rest) = Classed(old, tokens[1..], tail);
+			var (kind, rest) = Classed(old, tokens.GetRange(1, tokens.Count - 1), tail);
 			var name         = Dotted(rest) ?? throw Unread(old, tail);
 
 			return new Ast.Statement.AlterSchema(Values.Part(old, old.Name), Values.Name(old, name)) { Class = kind };
@@ -494,9 +494,9 @@ static partial class Bridge
 			if (!Is(tokens, 0, "ON") || to < 2)
 				throw Unread(old, tail);
 
-			var (kind, rest) = Classed(old, tokens[1..to], tail);
+			var (kind, rest) = Classed(old, tokens.GetRange(1, to - 1), tail);
 			var entity       = Dotted(rest) ?? throw Unread(old, tail);
-			var target       = tokens[(to + 1)..];
+			var target       = tokens.GetRange(to + 1, tokens.Count - to - 1);
 
 			Ast.AuthorizationTo owner = target switch
 			{
@@ -584,7 +584,7 @@ static partial class Bridge
 		static Ast.Option Setting(object old, List<SqlTokens.Token> piece, string tail, bool password)
 		{
 			var equals = piece.FindIndex(static one => one is { Kind: SqlTokens.Kind.Punctuation, Text: "=" });
-			var name   = equals < 0 ? piece : piece[..equals];
+			var name   = equals < 0 ? piece : piece.GetRange(0, equals);
 
 			if (name.Count == 0 || name.Any(static one => one.Kind != SqlTokens.Kind.Word))
 				throw Unread(old, tail);
@@ -599,7 +599,7 @@ static partial class Bridge
 
 				value = SettingValue(old, piece[equals + 1]);
 
-				var rest = piece[(equals + 2)..];
+				var rest = piece.GetRange(equals + 2, piece.Count - equals - 2);
 
 				if (rest.Count > 0)
 				{
@@ -1588,7 +1588,7 @@ static partial class Bridge
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(object owner, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+			return TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a value `{text.Trim()}`)");
 		}

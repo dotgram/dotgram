@@ -437,7 +437,7 @@ public sealed class Sql92TreeTests
 					if (statement.Trim() is { Length: > 0 } one)
 						yield return one;
 
-				var read = TransactSqlParser.TryParseSql(batch);
+				var read = OldTree.TryParseSql(batch);
 
 				if (!read.IsSuccess)
 					continue;

@@ -110,7 +110,7 @@ public sealed class ConcurrentParsingTests
 				Compute = () =>
 				{
 					var match = TransactSqlParser.TryParseSelect("SELECT * FROM t WHERE c = 1 AND d = 2");
-					return Signature(match.IsSuccess, match.Position, match.Error, () => SqlWriter.Write(match.Value));
+					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.TransactSqlWriter.Write(match.Value));
 				},
 			},
 			new Row
@@ -121,7 +121,7 @@ public sealed class ConcurrentParsingTests
 				Compute = () =>
 				{
 					var match = TransactSqlParser.TryParseSelect("SELECT * FROM t WHERE c = 1 AND dbo.f(1)");
-					return Signature(match.IsSuccess, match.Position, match.Error, () => SqlWriter.Write(match.Value));
+					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.TransactSqlWriter.Write(match.Value));
 				},
 			},
 			new Row
@@ -134,7 +134,7 @@ public sealed class ConcurrentParsingTests
 				{
 					var match = TransactSqlParser.Located.TryParseStatement("SELECT * FROM t WHERE c = 1 AND d = 2;");
 					return Signature(match.IsSuccess, match.Position, match.Error,
-						() => SqlWriter.Write(match.Value) + "|" + SpansSignature(match.Value));
+						() => Ast.TransactSqlWriter.Write(match.Value) + "|" + SpansSignature(match.Value));
 				},
 			},
 			new Row

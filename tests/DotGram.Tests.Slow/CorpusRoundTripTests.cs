@@ -131,7 +131,7 @@ public sealed class CorpusRoundTripTests(ITestOutputHelper output)
 
 		Assert.True(read.IsSuccess, $"this grammar refused `{statement}`, which ScriptDom {version} reads.");
 
-		var printed = DotGram.Sql.SqlWriter.Write((DotGram.Sql.Statement)read.Value!);
+		var printed = DotGram.Sql.Ast.TransactSqlWriter.Write(read.Value!);
 
 		Assert.Equal(Theirs(version, statement), Theirs(version, printed));
 	}

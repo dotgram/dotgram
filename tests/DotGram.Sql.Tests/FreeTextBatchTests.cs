@@ -17,7 +17,7 @@ public sealed class FreeTextBatchTests
 {
 	static Statement Old(string text)
 	{
-		return TransactSqlParser.Located.ParseStatement(text);
+		return OldTree.Located.ParseStatement(text);
 	}
 
 	/// <summary>

@@ -95,7 +95,7 @@ static partial class Bridge
 					[_, "CONTAINS", "MEMORY_OPTIMIZED_DATA"] => new Ast.AlterDatabaseAction.AddFileGroup(Values.Part(old, tokens[0].Token.Text), Ast.FileGroupContents.MemoryOptimizedData),
 					_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})"),
 				},
-				Statement.AlterDatabaseModifyFileGroup when tokens.Count >= 2 => new Ast.AlterDatabaseAction.ModifyFileGroup(Values.Part(old, tokens[0].Token.Text), words[1..] switch
+				Statement.AlterDatabaseModifyFileGroup when tokens.Count >= 2 => new Ast.AlterDatabaseAction.ModifyFileGroup(Values.Part(old, tokens[0].Token.Text), words.AsSpan(1) switch
 				{
 					["READONLY"]             => new Ast.FileGroupChange.Updatability(Ast.FileGroupUpdatability.ReadOnly, false),
 					["READ_ONLY"]            => new Ast.FileGroupChange.Updatability(Ast.FileGroupUpdatability.ReadOnly, true),
@@ -162,7 +162,7 @@ static partial class Bridge
 			if (value is null && options.Length == 0 && words.Count >= 2 && upper is not ["QUERY_STORE", "CLEAR", ..])
 			{
 				made  = new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, words[^1])]));
-				words = words[..^1];
+				words = words.GetRange(0, words.Count - 1);
 			}
 			else
 				made = value switch
@@ -191,8 +191,8 @@ static partial class Bridge
 			{
 				["WITH", "ROLLBACK", "IMMEDIATE"] => new Ast.Termination.RollbackImmediate(),
 				["WITH", "NO_WAIT"]               => new Ast.Termination.NoWait(),
-				["WITH", "ROLLBACK", "AFTER", _, .. var rest] when rest is [] or ["SECONDS"]
-					=> new Ast.Termination.RollbackAfter(new Ast.LiteralValue.Numeric(tokens[3].Text, Ast.NumericLiteralKind.DecimalInteger)) { Seconds = rest.Length == 1 },
+				["WITH", "ROLLBACK", "AFTER", _] or ["WITH", "ROLLBACK", "AFTER", _, "SECONDS"]
+					=> new Ast.Termination.RollbackAfter(new Ast.LiteralValue.Numeric(tokens[3].Text, Ast.NumericLiteralKind.DecimalInteger)) { Seconds = tokens.Count == 5 },
 				_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (termination `{text}`)"),
 			};
 		}
@@ -291,7 +291,7 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.CreateDatabase again] }
+			return TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.CreateDatabase again] }
 				&& again.Containment == old.Containment && again.Tail == old.Tail
 				? made
 				: throw BridgeGap.Open(old, "Trees.FreeText (Statement.CreateDatabase.Containment or Tail, written otherwise than the writer prints it)");
@@ -401,14 +401,14 @@ static partial class Bridge
 
 			switch (old)
 			{
-				case Statement.RestoreMasterKey when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
-					return new Ast.Statement.RestoreMasterKey(Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Length == 1 };
+				case Statement.RestoreMasterKey when words.AsSpan() is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
+					return new Ast.Statement.RestoreMasterKey(Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = words.Length == 15 };
 
-				case Statement.RestoreServiceMasterKey when words is ["FROM", "FILE", "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
-					return new Ast.Statement.RestoreServiceMasterKey(Password(old, tokens, 3), Password(old, tokens, 8)) { Force = force.Length == 1 };
+				case Statement.RestoreServiceMasterKey when words.AsSpan() is ["FROM", "FILE", "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
+					return new Ast.Statement.RestoreServiceMasterKey(Password(old, tokens, 3), Password(old, tokens, 8)) { Force = words.Length == 10 };
 
-				case Statement.RestoreSymmetricKey when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
-					return new Ast.Statement.RestoreSymmetricKey(Values.Part(old, old.Name), Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Length == 1 };
+				case Statement.RestoreSymmetricKey when words.AsSpan() is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
+					return new Ast.Statement.RestoreSymmetricKey(Values.Part(old, old.Name), Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = words.Length == 15 };
 
 				case Statement.RestoreMasterKey or Statement.RestoreServiceMasterKey or Statement.RestoreSymmetricKey:
 					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
@@ -469,7 +469,7 @@ static partial class Bridge
 					var close   = Closing(tokens, 0);
 					var collate = tokens.FindIndex(static one => one.Token.Kind == SqlTokens.Kind.Word && one.Token.Text.Equals("COLLATE", StringComparison.OrdinalIgnoreCase));
 					var type    = Slice(text, tokens, 1, collate > 0 && collate < close ? collate : close);
-					var after   = words[(close + 1)..];
+					var after   = words.AsSpan(close + 1);
 					var side    = after switch
 					{
 						["AS", "RANGE", "LEFT", ..]  => Ast.RangeSide.Left,
@@ -490,7 +490,7 @@ static partial class Bridge
 					};
 
 				case Statement.AlterPartitionFunction when words is ["(", ")", "SPLIT" or "MERGE", ..]:
-					Ast.Expression? boundary = words[3..] switch
+					Ast.Expression? boundary = words.AsSpan(3) switch
 					{
 						[] => null,
 						["RANGE", "(", .., ")"] => ValueOf(old, Slice(text, tokens, 5, tokens.Count - 1)),
@@ -499,13 +499,13 @@ static partial class Bridge
 
 					return new Ast.Statement.AlterPartitionFunction(name, words[2] == "SPLIT" ? new Ast.PartitionFunctionAction.Split(boundary) : new Ast.PartitionFunctionAction.Merge(boundary));
 
-				case Statement.PartitionSchemeDefinition when words is ["AS", "PARTITION", _, .. var rest] && rest is ["ALL", "TO", "(", .., ")"] or ["TO", "(", .., ")"]:
-					var all = rest[0] == "ALL";
+				case Statement.PartitionSchemeDefinition when words.AsSpan() is ["AS", "PARTITION", _, .. var rest] && rest is ["ALL", "TO", "(", .., ")"] or ["TO", "(", .., ")"]:
+					var all = words[3] == "ALL";
 
 					return new Ast.Statement.CreatePartitionScheme(name, Values.Part(old, tokens[2].Token.Text), [.. Listed(Slice(text, tokens, all ? 6 : 5, tokens.Count - 1)).Select(one => FileGroupOf(old, one))]) { All = all };
 
-				case Statement.AlterPartitionScheme when words is ["NEXT", "USED", .. var used] && used.Length <= 1:
-					return new Ast.Statement.AlterPartitionScheme(name, used.Length == 0 ? null : FileGroupOf(old, tokens[2].Token.Text));
+				case Statement.AlterPartitionScheme when words is ["NEXT", "USED"] or ["NEXT", "USED", _]:
+					return new Ast.Statement.AlterPartitionScheme(name, words.Length == 2 ? null : FileGroupOf(old, tokens[2].Token.Text));
 
 				case Statement.FullTextCatalogDefinition:
 					var catalog = new Ast.Statement.CreateFullTextCatalog(name);
@@ -555,7 +555,7 @@ static partial class Bridge
 
 				case Statement.FullTextStopListDefinition:
 					var owner = Index(tokens, "AUTHORIZATION");
-					var from  = words[..(owner < 0 ? words.Length : owner)] switch
+					var from  = words.AsSpan(0, owner < 0 ? words.Length : owner) switch
 					{
 						[]                             => null,
 						["FROM", "SYSTEM", "STOPLIST"] => new Ast.StopListSource.SystemStopList(),
@@ -584,7 +584,7 @@ static partial class Bridge
 					if (by >= 0 && by != tokens.Count - 2)
 						throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 
-					return words[..(by < 0 ? words.Length : by)] switch
+					return words.AsSpan(0, by < 0 ? words.Length : by) switch
 					{
 						[]          => list,
 						["FROM", ..] => list with { From = Values.Name(old, Slice(text, tokens, 1, by < 0 ? tokens.Count : by)) },
@@ -660,7 +660,7 @@ static partial class Bridge
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(Statement old, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+			return TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a value `{text.Trim()}`)");
 		}
@@ -790,7 +790,7 @@ static partial class Bridge
 		/// <summary>File specifications kept as text, read again as CREATE DATABASE's data files.</summary>
 		static SqlList<Ast.DatabaseFile> Files(Statement old, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSql("CREATE DATABASE d ON " + text) is { IsSuccess: true, Value: [Statement.CreateDatabase { Files: var files, Log: null }] }
+			return TransactSqlParser.TryParseSyntaxSql("CREATE DATABASE d ON " + text) is { IsSuccess: true, Value: [Statement.CreateDatabase { Files: var files, Log: null }] }
 				&& files.All(static one => one is Clause.DatabaseFile)
 				? Each(files, one => File(old, (Clause.DatabaseFile)one))
 				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (files `{text}`)");
@@ -818,7 +818,7 @@ static partial class Bridge
 				return made;
 			}
 
-			return TransactSql.TransactSqlParser.TryParseSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] } && tail == old.Tail
+			return TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.Definition { Tail: var tail }] } && tail == old.Tail
 				? made
 				: throw BridgeGap.Open(old, $"Trees.FreeText ({NameOf(old)}.Tail, written otherwise than the writer prints it)");
 		}

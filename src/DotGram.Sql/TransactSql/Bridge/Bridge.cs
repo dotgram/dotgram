@@ -44,6 +44,24 @@ static partial class Bridge
 	/// </summary>
 	[ThreadStatic] static List<string>? recovered;
 
+	/// <summary>
+	/// Whether the statement being carried was read without locations, so that no node knows where it was written and
+	/// no word the old tree drops can be read from the text (<see cref="Cuttable"/>).
+	/// </summary>
+	[ThreadStatic] static bool blind;
+
+	/// <summary>
+	/// Whether a carriage read <see cref="blind"/> asked for a word from the text, so that a located reading would have
+	/// answered something it took the commoner spelling for.
+	/// </summary>
+	[ThreadStatic] static bool wanted;
+
+	/// <summary>
+	/// Whether the new nodes take the spans of the old nodes they are made from: a carriage for
+	/// <c>TransactSqlParser.Located</c>.
+	/// </summary>
+	[ThreadStatic] static bool locating;
+
 	delegate bool Converter(object old, [NotNullWhen(true)] out Ast.ISqlNode? made);
 
 	/// <summary>
@@ -224,14 +242,82 @@ static partial class Bridge
 	/// <summary>
 	/// The one dispatcher: the first family that owns the record converts it.
 	/// </summary>
+	/// <remarks>
+	/// Every node that can hold another of its kind passes here, so this is where a deep tree's carriage checks its
+	/// stack: where it runs low, the rest of the carriage goes on with a stack of its own (<see cref="SqlStack"/>), as
+	/// the reader that built the tree did, rather than overflowing it.
+	/// </remarks>
 	static T Convert<T>(object old)
 		where T : Ast.ISqlNode
 	{
+		if (!SqlStack.Enough())
+			return Deeper(old, static node => Convert<T>(node));
+
 		foreach (var family in Families)
 			if (family(old, out var made))
-				return made is T typed ? typed : throw BridgeGap.Open(old, $"converts to {made.GetType().Name}, where a {typeof(T).Name} stands");
+			{
+				if (made is not T typed)
+					throw BridgeGap.Open(old, $"converts to {made.GetType().Name}, where a {typeof(T).Name} stands");
+
+				if (locating && old is ISqlSpan { Span: { Known: true, IsStale: false } span })
+					Place(typed, span);
+
+				return typed;
+			}
 
 		throw BridgeGap.Missing(old, "no family converts it");
+	}
+
+	/// <summary>
+	/// A conversion on a stack of its own, with this thread's carriage: its text, what it read from it, and whether it
+	/// is blind, wants a word or locates, all taken across and what changed brought back. Called where the stack runs
+	/// low, by <see cref="Convert{T}"/> and by a family's conversion that recurses on itself.
+	/// </summary>
+	static T Deeper<T>(object old, Func<object, T> convert)
+	{
+		var carriage = Carriage.Here();
+		var made     = new object?[1];
+
+		SqlStack.Deeper(old, (carriage, convert), made, static (node, state, result) =>
+		{
+			var outer = Carriage.Here();
+
+			state.carriage.Restore();
+
+			try
+			{
+				result[0] = state.convert(node);
+			}
+			finally
+			{
+				state.carriage.Wanted = wanted;
+				outer.Restore();
+			}
+		});
+
+		carriage.Restore();
+
+		return (T)made[0]!;
+	}
+
+	/// <summary>The thread-static state of a carriage, taken from one thread to another.</summary>
+	sealed class Carriage(string? source, List<string>? recovered, bool blind, bool wanted, bool locating)
+	{
+		public bool Wanted { get; set; } = wanted;
+
+		public static Carriage Here()
+		{
+			return new Carriage(Bridge.source, Bridge.recovered, Bridge.blind, Bridge.wanted, Bridge.locating);
+		}
+
+		public void Restore()
+		{
+			Bridge.source    = source;
+			Bridge.recovered = recovered;
+			Bridge.blind     = blind;
+			Bridge.wanted    = Wanted;
+			Bridge.locating  = locating;
+		}
 	}
 
 	/// <summary>
@@ -277,13 +363,29 @@ static partial class Bridge
 	// ── The words the old tree drops ────────────────────────────────────────────
 
 	/// <summary>
+	/// Whether text can be cut at a span: there is a text, and the span says where in it. Where it cannot only
+	/// because the statement was read without locations, the carriage is told it wanted a word (<see cref="wanted"/>).
+	/// </summary>
+	[MemberNotNullWhen(true, nameof(source))]
+	static bool Cuttable(SqlSpan span)
+	{
+		if (source is not null && span.Known && !span.IsStale)
+			return true;
+
+		if (blind)
+			wanted = true;
+
+		return false;
+	}
+
+	/// <summary>
 	/// The text a node was read from, or null where it was not located or no text was handed in.
 	/// </summary>
 	static string? Spelled(ISqlSpan node)
 	{
 		var span = node.Span;
 
-		if (source is null || !span.Known || span.IsStale || span.End > source.Length)
+		if (!Cuttable(span) || span.End > source.Length)
 			return null;
 
 		return source.Substring(span.At, span.Length);
@@ -295,7 +397,7 @@ static partial class Bridge
 	/// </summary>
 	static string? Between(ISqlSpan before, ISqlSpan after)
 	{
-		if (source is null || !before.Span.Known || !after.Span.Known || before.Span.IsStale || after.Span.IsStale)
+		if (!Cuttable(before.Span) || !Cuttable(after.Span))
 			return null;
 
 		var from = before.Span.End;
@@ -328,7 +430,7 @@ static partial class Bridge
 	/// </summary>
 	static string? WordAfter(ISqlSpan node)
 	{
-		if (source is null || !node.Span.Known || node.Span.IsStale || node.Span.End > source.Length)
+		if (!Cuttable(node.Span) || node.Span.End > source.Length)
 			return null;
 
 		return SqlTokens.First(source, node.Span.End) is { } token

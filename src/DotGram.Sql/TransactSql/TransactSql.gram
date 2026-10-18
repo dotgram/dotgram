@@ -1745,24 +1745,25 @@ ForName = '(' & Quoted & ')'
 
 // ── The entry points ────────────────────────────────────────────────────────
 //
-// The six rules a program asks for by name. The four that read a part of a statement are the
-// standard's productions with T-SQL's rules in them; the other two are T-SQL's own.
+// The rules a program asks for by name: the standard's levels — an expression, a search condition, a
+// statement and a text of statements — and a query statement, which only T-SQL publishes. They build the
+// T-SQL tree, and are published to this assembly alone: TransactSqlParser's public entries, of the same
+// names without `Syntax`, carry what these read onto the common tree (TransactSqlParser.Entries.cs) until
+// the rules build the common tree themselves.
 namespace Dialect
 {
-	Select    : @Statement  = q: TSqlDirectSelect    => @(q)
-	Query     : @Query      = q: TSqlQueryExpression => @(q)
-	Condition : @Expression = c: SearchCondition => @(c)
-	Value     : @Expression = v: TSqlValueExpression => @(v)
-	Statement : @Statement = s: TSqlStatement         => @(s)
+	Select    : @Statement   = q: TSqlDirectSelect    => @(q)
+	Condition : @Expression  = c: SearchCondition     => @(c)
+	Value     : @Expression  = v: TSqlValueExpression => @(v)
+	Statement : @Statement   = s: TSqlStatement       => @(s)
 	Sql       : @Statement[] = s: SqlText             => @(s)
 }
 
-parse Dialect.Select    as ParseSelect
-parse Dialect.Query     as ParseQuery
-parse Dialect.Condition as ParseSearchCondition
-parse Dialect.Value     as ParseValueExpression
-parse Dialect.Statement as ParseStatement
-parse Dialect.Sql       as ParseSql
+internal parse Dialect.Select    as ParseSyntaxSelect
+internal parse Dialect.Condition as ParseSyntaxCondition
+internal parse Dialect.Value     as ParseSyntaxExpression
+internal parse Dialect.Statement as ParseSyntaxStatement
+internal parse Dialect.Sql       as ParseSyntaxSql
 
 // ── Which level of the language ─────────────────────────────────────────────
 //
@@ -1785,23 +1786,23 @@ Until100 = "100"
 Until120 = "100" | "110" | "120"
 Until160 = "100" | "110" | "120" | "130" | "140" | "150" | "160"
 
-parse Dialect.Statement with (Version = "100") as ParseStatement100
-parse Dialect.Statement with (Version = "110") as ParseStatement110
-parse Dialect.Statement with (Version = "120") as ParseStatement120
-parse Dialect.Statement with (Version = "130") as ParseStatement130
-parse Dialect.Statement with (Version = "140") as ParseStatement140
-parse Dialect.Statement with (Version = "150") as ParseStatement150
-parse Dialect.Statement with (Version = "160") as ParseStatement160
-parse Dialect.Statement with (Version = "170") as ParseStatement170
+internal parse Dialect.Statement with (Version = "100") as ParseSyntaxStatement100
+internal parse Dialect.Statement with (Version = "110") as ParseSyntaxStatement110
+internal parse Dialect.Statement with (Version = "120") as ParseSyntaxStatement120
+internal parse Dialect.Statement with (Version = "130") as ParseSyntaxStatement130
+internal parse Dialect.Statement with (Version = "140") as ParseSyntaxStatement140
+internal parse Dialect.Statement with (Version = "150") as ParseSyntaxStatement150
+internal parse Dialect.Statement with (Version = "160") as ParseSyntaxStatement160
+internal parse Dialect.Statement with (Version = "170") as ParseSyntaxStatement170
 
-parse Dialect.Sql with (Version = "100") as ParseSql100
-parse Dialect.Sql with (Version = "110") as ParseSql110
-parse Dialect.Sql with (Version = "120") as ParseSql120
-parse Dialect.Sql with (Version = "130") as ParseSql130
-parse Dialect.Sql with (Version = "140") as ParseSql140
-parse Dialect.Sql with (Version = "150") as ParseSql150
-parse Dialect.Sql with (Version = "160") as ParseSql160
-parse Dialect.Sql with (Version = "170") as ParseSql170
+internal parse Dialect.Sql with (Version = "100") as ParseSyntaxSql100
+internal parse Dialect.Sql with (Version = "110") as ParseSyntaxSql110
+internal parse Dialect.Sql with (Version = "120") as ParseSyntaxSql120
+internal parse Dialect.Sql with (Version = "130") as ParseSyntaxSql130
+internal parse Dialect.Sql with (Version = "140") as ParseSyntaxSql140
+internal parse Dialect.Sql with (Version = "150") as ParseSyntaxSql150
+internal parse Dialect.Sql with (Version = "160") as ParseSyntaxSql160
+internal parse Dialect.Sql with (Version = "170") as ParseSyntaxSql170
 
 // ── The graph pattern, which is a language of its own ───────────────────────
 //

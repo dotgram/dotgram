@@ -2186,7 +2186,7 @@ new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, nul
 			Assert.Equal(text, Sql2023Writer.Write(SqlStandardParser.ParseStatement(text)));
 
 		if (transactSql)
-			Assert.Equal(text, TransactSqlWriter.Write(Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text)));
+			Assert.Equal(text, TransactSqlWriter.Write(Bridge.ToAst(OldTree.Located.ParseStatement(text), text)));
 	}
 
 	/// <summary>

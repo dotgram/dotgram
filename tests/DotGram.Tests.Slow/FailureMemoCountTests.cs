@@ -98,7 +98,7 @@ public sealed class FailureMemoCountTests(ITestOutputHelper output)
 			_                                    => throw new ArgumentOutOfRangeException(nameof(shape)),
 		};
 
-		Holds(parser, publication, shape, accepted, depths, text, growth, perLevel);
+		Holds(parser, SqlVariants.Entry(SqlVariants.TransactSql, publication), shape, accepted, depths, text, growth, perLevel);
 	}
 
 	[Theory]
@@ -179,7 +179,7 @@ public sealed class FailureMemoCountTests(ITestOutputHelper output)
 		foreach (var counter in counters)
 			counter.SetValue(null, 0L);
 
-		var read = parser.GetMethod(publication, BindingFlags.Public | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)!;
+		var read = parser.GetMethod(publication, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)!;
 
 		object?    match = null;
 		Exception? error = null;

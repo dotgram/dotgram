@@ -65,8 +65,11 @@ is open until it is built, and `status.md` is what will say when it has been.
   includes the grammar: the oracle asks it, and the tests read a production there and hold the shipped
   levels to it. The fixture is a parser compiled apart — its own kinds, machines and memo — so it tests
   the grammar and the include, and the shipped class is tested through its levels. T-SQL's
-  entries are not renamed yet: `TransactSqlParser.ParseValueExpression` is an expression where
-  `SqlStandardParser.ParseValue` is a literal.
+  entries read at the same levels by the same names, and hand back the same tree (2026-10-17):
+  `ParseExpression` (was `ParseValueExpression`), `ParseSearchCondition`, `ParseStatement` and
+  `ParseSql`, with `ParseSelect`, a query statement alone, which only T-SQL has; `ParseQuery` is gone.
+  `ParseValue` and `ParseDataType` are not published for T-SQL: the two would grow its generated
+  parser by 1.1%, more than the half a per cent they were allowed.
 - **The reshaped tree has requirements of its own** (Igor, 2026-09-15): lossless, one-level
   hierarchies, enums and properties rather than the BNF's structure, validation outside the tree.
   They are in `sql-ast.md`, with the SQL:2023 blank `Ast/SqlAst.cs` they start from and each
