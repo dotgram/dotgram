@@ -1324,15 +1324,16 @@ public sealed class TransactSqlWriterTests
 
 	/// <summary>`ROW (…)` is no list in brackets, even as an argument of a function that reads one; an argument's name and its `=>` go together.</summary>
 	[Theory]
-	[InlineData("a ROW list in CONTAINS")]
+	[InlineData("a ROW list in SEMANTICKEYPHRASETABLE")]
 	[InlineData("a name without =>")]
 	[InlineData("=> without a name")]
 	public void A_row_keyword_and_a_half_named_argument_are_refused(string which)
 	{
-		if (which == "a ROW list in CONTAINS")
+		// CONTAINS holds its columns in a predicate of its own; a semantic-search function still takes them as a list.
+		if (which == "a ROW list in SEMANTICKEYPHRASETABLE")
 		{
 			var listed  = new Expression.Row([Ref(Plain("b")), Ref(Plain("c"))]);
-			var plain   = (ISqlNode)Read("SELECT a FROM t WHERE CONTAINS ((b, c), 'x')");
+			var plain   = (ISqlNode)Read("SELECT * FROM SEMANTICKEYPHRASETABLE (t, (b, c), 1)");
 			var keyword = (ISqlNode)Swap(plain, listed, listed with { RowKeyword = true });
 
 			Assert.Equal(plain, Read(TransactSqlWriter.Write(plain)));
