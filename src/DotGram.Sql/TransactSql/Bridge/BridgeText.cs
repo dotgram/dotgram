@@ -269,6 +269,8 @@ static class BridgeText
 		"CHANGE_TRACKING_CONTEXT", "FILETABLE_NAMESPACE",
 		// The full-text predicates.
 		"CONTAINS", "FREETEXT",
+		// An AI function's model.
+		"PARAMETERS",
 		// A vector's base type.
 		"FLOAT16", "FLOAT32", "VECTOR",
 	};

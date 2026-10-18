@@ -368,6 +368,16 @@ public abstract partial record Expression
 		[Spelling] public bool ColumnsBracketed { get; init; }
 	}
 
+	/// <summary>
+	/// T-SQL: AI_GENERATE_EMBEDDINGS (Transact-SQL). <c>AI_GENERATE_EMBEDDINGS (source USE MODEL m [PARAMETERS p])</c>: what
+	/// is embedded, the model by name, and the model's parameters.
+	/// </summary>
+	public sealed record AiGenerateEmbeddings(Expression Source, QualifiedName Model) : Expression
+	{
+		/// <summary>T-SQL: AI_GENERATE_EMBEDDINGS (Transact-SQL). <c>PARAMETERS p</c>, a value.</summary>
+		public Expression? Parameters { get; init; }
+	}
+
 	public partial record IsDistinct
 	{
 		/// <summary>

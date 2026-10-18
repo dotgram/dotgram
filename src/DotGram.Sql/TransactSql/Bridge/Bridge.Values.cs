@@ -500,6 +500,10 @@ static partial class Bridge
 			var name  = old.Name;
 			var upper = name.ToUpperInvariant();
 
+			// AI_GENERATE_EMBEDDINGS: what is embedded, and the model after USE MODEL, which the old tree keeps as words.
+			if (upper == "AI_GENERATE_EMBEDDINGS" && old is { Word: null, Arguments: [Expression.Hinted(var source, var words)] })
+				return Embeddings(old, source, words);
+
 			// FullTextPredicate: the columns, what is searched for, and LANGUAGE and its value.
 			if (upper is "CONTAINS" or "FREETEXT" && old.Word is null)
 				return FullText(old, upper == "CONTAINS" ? Ast.FullTextPredicateKind.Contains : Ast.FullTextPredicateKind.FreeText);
@@ -624,6 +628,38 @@ static partial class Bridge
 			{
 				Language         = rest is [Expression.Prefixed(_, var language)] ? Of(language) : null,
 				ColumnsBracketed = bracketed,
+			};
+		}
+
+		/// <summary>
+		/// <c>USE MODEL m [PARAMETERS p]</c> after AI_GENERATE_EMBEDDINGS's source: the model's name to PARAMETERS, and the
+		/// value after it read again as a value.
+		/// </summary>
+		static Ast.Expression Embeddings(Expression.RoutineInvocation old, Expression source, string words)
+		{
+			var tokens = SqlTokens.Of(words);
+
+			if (tokens is not [{ Kind: SqlTokens.Kind.Word, Text: var use }, { Kind: SqlTokens.Kind.Word, Text: var model }, _, ..]
+				|| !use.Equals("USE", StringComparison.OrdinalIgnoreCase) || !model.Equals("MODEL", StringComparison.OrdinalIgnoreCase))
+				throw BridgeGap.Open(old, $"inventory Expression.Hinted (`{words}` after AI_GENERATE_EMBEDDINGS)");
+
+			var parameters = tokens.FindIndex(static one => one.Kind == SqlTokens.Kind.Word && one.Text.Equals("PARAMETERS", StringComparison.OrdinalIgnoreCase));
+			var named      = string.Concat(tokens.Skip(2).Take((parameters < 0 ? tokens.Count : parameters) - 2).Select(static one => one.Text));
+			Ast.Expression? given = null;
+
+			if (parameters >= 0)
+			{
+				var at   = words.IndexOf(tokens[parameters].Text, words.IndexOf(tokens[parameters - 1].Text, StringComparison.Ordinal) + tokens[parameters - 1].Text.Length, StringComparison.Ordinal);
+				var read = TransactSql.TransactSqlParser.TryParseSql("SELECT " + words[(at + "PARAMETERS".Length)..]);
+
+				given = read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+					? Of(value)
+					: throw BridgeGap.Open(old, $"inventory Expression.Hinted (`{words}` after AI_GENERATE_EMBEDDINGS)");
+			}
+
+			return new Ast.Expression.AiGenerateEmbeddings(Of(source), Name(old, named))
+			{
+				Parameters = given,
 			};
 		}
 
