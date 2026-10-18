@@ -24,6 +24,12 @@ public sealed partial record WithClause
 	/// common table expressions: <c>WITH XMLNAMESPACES ('uri' AS ns), c AS (…)</c>.
 	/// </summary>
 	public SqlList<XmlNamespace> XmlNamespaces { get; init; } = [];
+
+	/// <summary>
+	/// T-SQL: WITH CHANGE_TRACKING_CONTEXT (Transact-SQL) (no syntax block in syntax.md). <c>WITH CHANGE_TRACKING_CONTEXT
+	/// (0xff), c AS (…)</c>: the context a statement's changes are tracked with, before the common table expressions.
+	/// </summary>
+	public Expression? ChangeTrackingContext { get; init; }
 }
 
 /// <summary>

@@ -506,6 +506,21 @@ public static partial class Sql2023Writer
 					Tight(",");
 			}
 
+			// T-SQL: WITH CHANGE_TRACKING_CONTEXT (Transact-SQL). One of the list, in the namespaces' place.
+			if (with.ChangeTrackingContext is { } context)
+			{
+				if (with.Recursive || with.XmlNamespaces.Count > 0)
+					throw Misplaced(with, "ChangeTrackingContext", "beside RECURSIVE or XMLNAMESPACES, which WithClause reads in its place");
+
+				Word("CHANGE_TRACKING_CONTEXT");
+				Open();
+				PutExpression(context);
+				Close();
+
+				if (with.Items.Count > 0)
+					Tight(",");
+			}
+
 			Each(with.Items, common =>
 			{
 				PutIdentifier(common.Name);

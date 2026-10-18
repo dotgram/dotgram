@@ -91,6 +91,7 @@ public sealed class DdlRemainderWriterTests
 				Options       = [Set("PAD_INDEX", Ref("ON"))],
 			},
 			"ALTER INDEX paths" => new Statement.AlterIndex(Qualified("t"), new IndexAlteration.Paths([new PathAction.Remove(Name("p2")), new PathAction.Add(new PromotedPath(Name("p1"), Str("/a")))])) { Name = Name("sxi") },
+			"WITH CHANGE_TRACKING_CONTEXT" => new Statement.Select { Query = ((Query.Select)Select()) with { With = new WithClause(false, []) { ChangeTrackingContext = new LiteralValue.Binary("FF") { ZeroX = true } } } },
 			"CREATE MATERIALIZED VIEW" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("ROUND_ROBIN")), Set("FOR_APPEND")] },
 			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
@@ -130,6 +131,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE XML INDEX FOR a path", "CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (p)")]
 	[InlineData("CREATE JSON INDEX", "CREATE JSON INDEX ix ON t (j) FOR ('$.a') WITH (OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
 	[InlineData("CREATE MATERIALIZED VIEW", "CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = ROUND_ROBIN, FOR_APPEND) AS SELECT a FROM u")]
+	[InlineData("WITH CHANGE_TRACKING_CONTEXT", "WITH CHANGE_TRACKING_CONTEXT (0xFF) SELECT a FROM u")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -147,6 +149,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE XML INDEX FOR a path")]
 	[InlineData("CREATE JSON INDEX")]
 	[InlineData("CREATE MATERIALIZED VIEW")]
+	[InlineData("WITH CHANGE_TRACKING_CONTEXT")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -190,6 +193,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("JSON an option it does not read")]
 	[InlineData("spatial a grid in brackets that is none")]
 	[InlineData("materialized view a distribution it does not read")]
+	[InlineData("a change tracking context beside namespaces")]
 	[InlineData("JSON a path with an escape")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
@@ -257,6 +261,8 @@ public sealed class DdlRemainderWriterTests
 			"spatial a grid in brackets that is none" => new Statement.CreateSpatialIndex(Qualified("t"), Name("i"), Name("g")) { UsingBracketed = true },
 			// TableOptionSyntax: DISTRIBUTION = HASH (…), ROUND_ROBIN or REPLICATE.
 			"materialized view a distribution it does not read" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("RANDOM"))] },
+			// WithClause: CHANGE_TRACKING_CONTEXT or XMLNAMESPACES first, one of them.
+			"a change tracking context beside namespaces" => new Statement.Select { Query = ((Query.Select)Select()) with { With = new WithClause(false, []) { ChangeTrackingContext = Number("1"), XmlNamespaces = [new XmlNamespace(Text("u"), Name("x"))] } } },
 			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
 			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
 			// JsonIndexPath: a plain or national string.
