@@ -52,6 +52,8 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff), c (a) AS (SELECT a FROM t) DELETE t FROM t", "a change tracking context and a CTE")]
 	[InlineData("with change_tracking_context (@v) update t set a = 1", "a change tracking context alone")]
 	[InlineData("CREATE TABLE t (c XML COLUMN_SET FOR ALL_SPARSE_COLUMNS NULL)", "a column set")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c VARBINARY (MAX) SPARSE FILESTREAM NOT NULL", "an altered column's front and nullability")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c NVARCHAR (10) COLLATE x", "an altered column's collation")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -119,6 +121,8 @@ public sealed class DdlRemainderBridgeTests
 			"a change tracking context and a CTE" => made is Ast.Statement.Delete { With: { ChangeTrackingContext: Ast.LiteralValue.Binary, XmlNamespaces.Count: 0, Items.Count: 1 } },
 			"a change tracking context alone" => made is Ast.Statement.Update { With: { ChangeTrackingContext: Ast.Expression.Variable, Items.Count: 0 } },
 			"a column set" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Options: [Ast.ColumnOption.ColumnSet, Ast.ColumnOption.Null] }] } },
+			"an altered column's front and nullability" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.AlterColumn { Action: Ast.AlterColumnAction.SetDataType { ColumnOptions: [Ast.ColumnOption.Sparse, Ast.ColumnOption.Filestream], Nullability: Ast.ColumnNullability.NotNull } }] },
+			"an altered column's collation" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.AlterColumn { Action: Ast.AlterColumnAction.SetDataType { ColumnOptions: [Ast.ColumnOption.Collation], Nullability: null } }] },
 			_ => false,
 		};
 

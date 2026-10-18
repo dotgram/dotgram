@@ -1053,14 +1053,25 @@ public static partial class Sql2023Writer
 		{
 			if (!type.SetDataTypeOmitted)
 			{
-				if (type.Collation is not null || type.Nullability is not null || type.Options.Count > 0)
-					throw Misplaced(type, "Collation, Nullability or Options", "beside the standard's SET DATA TYPE");
+				if (type.ColumnOptions.Count > 0 || type.Nullability is not null || type.Options.Count > 0)
+					throw Misplaced(type, "ColumnOptions, Nullability or Options", "beside the standard's SET DATA TYPE");
 
 				return false;
 			}
 
+			// Syntax.AlteredColumn: the front of a column's tail and nothing of its free list, in the order Syntax.Tailed
+			// reads, which the column's own check holds.
+			foreach (var option in type.ColumnOptions)
+				if (option is not (ColumnOption.Collation or ColumnOption.GeneratedAlways or ColumnOption.Hidden or ColumnOption.ColumnSet
+					or ColumnOption.Filestream or ColumnOption.Sparse or ColumnOption.Masked or ColumnOption.Encrypted) || option.Name is not null)
+					throw Misplaced(type, "ColumnOptions", "other than a collation, a generation and its HIDDEN, a column set, FILESTREAM, SPARSE, a mask or an encryption, the front of a column an ALTER COLUMN reads (Syntax.AlteredColumn)");
+
+			if (type.ColumnOptions.Count > 0)
+				Tailed(new ColumnDefinition(new Identifier("c"), type.Type, null, [], null) { Options = type.ColumnOptions });
+
 			PutType(type.Type);
-			PutCollate(type.Collation);
+			foreach (var option in type.ColumnOptions)
+				PutColumnOption(option);
 
 			if (type.Nullability is { } nullability)
 				Word(nullability == ColumnNullability.Null ? "NULL" : nullability == ColumnNullability.NotNull ? "NOT NULL" : throw NoText(nullability));

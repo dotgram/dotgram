@@ -564,7 +564,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 			"Add list" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Add { Elements.Count: 2 }] },
 			"Alter column type" => made is Ast.Statement.AlterTable
 			{
-				Actions: [Ast.AlterTableAction.AlterColumn { ColumnKeyword: true, Action: Ast.AlterColumnAction.SetDataType { SetDataTypeOmitted: true, Collation: not null, Nullability: Ast.ColumnNullability.NotNull } }],
+				Actions: [Ast.AlterTableAction.AlterColumn { ColumnKeyword: true, Action: Ast.AlterColumnAction.SetDataType { SetDataTypeOmitted: true, ColumnOptions: [Ast.ColumnOption.Collation], Nullability: Ast.ColumnNullability.NotNull } }],
 			},
 			"Alter column property" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.AlterColumn { Action: Ast.AlterColumnAction.Property { Add: true, Kind: Ast.ColumnPropertyKind.Masked, MaskFunction: Ast.LiteralValue } }] },
 			"Switch" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Switch { Partition: not null, Target.Parts.Count: 2, TargetPartition: not null, Options.Count: 0 }] },

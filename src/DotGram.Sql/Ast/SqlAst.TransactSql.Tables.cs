@@ -374,8 +374,11 @@ public abstract partial record AlterColumnAction
 		/// </summary>
 		[Spelling] public bool SetDataTypeOmitted { get; init; }
 
-		/// <summary>T-SQL: ALTER TABLE (Transact-SQL). <c>COLLATE name</c> after the type.</summary>
-		public CollationName? Collation { get; init; }
+		/// <summary>
+		/// T-SQL: ALTER TABLE (Transact-SQL). What is said of the altered column after its type, in the order written: a
+		/// collation, a generation and its HIDDEN, a column set, or FILESTREAM and SPARSE and a mask or an encryption.
+		/// </summary>
+		public SqlList<ColumnOption> ColumnOptions { get; init; } = [];
 
 		/// <summary>T-SQL: ALTER TABLE (Transact-SQL). <c>NULL</c> or <c>NOT NULL</c> after the type, last.</summary>
 		public ColumnNullability? Nullability { get; init; }
