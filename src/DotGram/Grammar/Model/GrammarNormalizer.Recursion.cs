@@ -207,6 +207,9 @@ public sealed partial class GrammarNormalizer
 			Moving(_argumentOrigins),
 			Moving(_callArguments),
 
+			// Where a repetition was written, for a diagnostic about it.
+			Moving(_repetitionsAt),
+
 			// Keyed by rule rather than by node, and named here all the same: the *values*
 			// name nodes, so a rebuild has to reach into them. That is why the list holds a
 			// move rather than a dictionary.
