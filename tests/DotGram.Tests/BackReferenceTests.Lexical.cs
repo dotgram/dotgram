@@ -365,6 +365,73 @@ public sealed partial class BackReferenceTests
 	}
 
 	/// <summary>
+	/// Two terminals that bind text and begin with the same string are two to measure at one
+	/// place, and only one would be: they must begin apart, as long as well as longer, and the
+	/// split declines; read over characters, both are read.
+	/// </summary>
+	[Fact]
+	public void Two_terminals_that_bind_text_with_one_beginning_decline_the_split()
+	{
+		const string grammar =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				A = { $q: 'a' & 'b' & $q }
+				B = { 'a' & $q: 'b' & $q }
+			}
+			Root : @string = a: Lexical.A => @("A:" + a) | b: Lexical.B => @("B:" + b)
+			parse Root
+			""";
+
+		Assert.Contains("'A' and 'B' both bind text and one's beginning begins the other's", Declined(grammar), StringComparison.Ordinal);
+
+		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
+
+		Assert.Equal("A:aba", EmittedCode.Match(twin, "Grammar", "TryParseRoot", "aba").Value);
+		Assert.Equal("B:abb", EmittedCode.Match(twin, "Grammar", "TryParseRoot", "abb").Value);
+	}
+
+	/// <summary>
+	/// A keyword the position reads again without the terminal ends where the first automaton
+	/// would have gone on into the terminal's beginning, so it is asked about the word boundary
+	/// as any keyword is: `a` cannot stand right before `b`, and the input is refused as over
+	/// characters.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_keyword_read_again_without_the_terminal_keeps_its_word_boundary(bool direct)
+	{
+		BackReferenceEmission.RequireBoth();
+
+		const string grammar =
+			"""
+			trivia = { ' '* }
+			wordboundary = ['a'..'z']
+			namespace Lexical
+			{
+				trivia = none
+				T = { $q: 'a' & ['a'..'z'] & $q }
+				B = 'b'
+			}
+			Root : @string = "a" & b: Lexical.B => @("a " + b) | t: Lexical.T => @("t:" + t)
+			parse Root
+			""";
+
+		var (assembly, _) = Lexical(grammar, direct);
+		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
+
+		foreach (var input in new[] { "ab", "a b", "aab", "aba", "abab", "a" })
+			Same("boundary", input, EmittedCode.Match(twin, "Grammar", "TryParseRoot", input), EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input), direct ? "reader" : "engine");
+
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseRoot", "ab").IsSuccess);
+		Assert.Equal("a b", EmittedCode.Match(assembly, "Grammar", "TryParseRoot", "a b").Value);
+		Assert.Equal("t:aba", EmittedCode.Match(assembly, "Grammar", "TryParseRoot", "aba").Value);
+	}
+
+	/// <summary>
 	/// A terminal that binds text is read as one token only where its body is atomic: over
 	/// characters the same rule could otherwise give a shorter reading back and read on another
 	/// way, where the token's length is settled. Not atomic, the split declines and says so;

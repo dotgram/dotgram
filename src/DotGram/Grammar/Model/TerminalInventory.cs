@@ -1268,7 +1268,7 @@ public sealed class TerminalInventory
 			}
 
 			var (woven, wovenWith, wovenOf) = Unworded(kinds);
-			var asked = Asked(machine, kinds, woven, wovenWith, wovenOf);
+			var asked = Asked(machine, kinds, woven, wovenWith, wovenOf, masked, maskedKinds);
 
 			var (unworded, boundaries, boundaryOf) = Settled(kinds, woven, wovenWith, wovenOf, asked);
 
@@ -1396,7 +1396,9 @@ public sealed class TerminalInventory
 			List<Kind> kinds,
 			List<int> unworded,
 			List<Node.Element> boundaries,
-			List<int> boundaryOf)
+			List<int> boundaryOf,
+			LexicalAutomaton? masked,
+			IReadOnlyList<int> maskedKinds)
 		{
 			if (unworded.Count == 0)
 				return [];
@@ -1421,6 +1423,24 @@ public sealed class TerminalInventory
 				if (StopsBeforeWord(machine, state, words[boundaryOf[number]]))
 					asked.Add(number);
 			}
+
+			// And the states of the machine without the terminals that bind text, which stops
+			// where the first would have gone on into such a terminal's beginning: a keyword it
+			// ends on there can stand right before a character that continues a word.
+			if (masked is not null)
+				for (var state = 0; state < masked.Accepts.Count; state++)
+				{
+					if (masked.Accepts[state] < 0)
+						continue;
+
+					var number = maskedKinds[masked.Accepts[state]];
+
+					if (unworded[number] == number || asked.Contains(number))
+						continue;
+
+					if (StopsBeforeWord(masked, state, words[boundaryOf[number]]))
+						asked.Add(number);
+				}
 
 			return Runs("asked", asked);
 		}
@@ -1933,6 +1953,18 @@ public sealed class TerminalInventory
 			}
 
 			var mine = new HashSet<int>(holding.Select(static kind => kind.Number));
+
+			// A string the beginning shares with another terminal the lexer begins is two
+			// terminals to measure at one place, and only one would be: the two must begin
+			// apart, as long as well as longer.
+			foreach (var kind in holding)
+				foreach (var other in kind.Matched)
+					if (other != pattern && other is Pattern.Class(_, var begun) && Continuation(begun) is not null)
+					{
+						Refuse(Longer(pattern, other));
+
+						return null;
+					}
 
 			// Past the beginning, nothing else may accept: what does could be longer than the
 			// rule's reading of the terminal.
