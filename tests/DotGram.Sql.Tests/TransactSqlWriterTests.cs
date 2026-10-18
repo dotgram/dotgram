@@ -1354,4 +1354,24 @@ public sealed class TransactSqlWriterTests
 		Assert.ThrowsAny<Exception>(() => TransactSqlWriter.Write(tree));
 		Assert.ThrowsAny<Exception>(() => Sql2023Writer.Write(tree));
 	}
+
+	/// <summary>
+	/// An inline function's bracketed query with a WITH is written with the WITH inside the brackets, as it was read,
+	/// and reads back to the same tree. Written in front of the brackets it read as the same tree here, but as another
+	/// bracketing to ScriptDom.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1)")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) SELECT * FROM c)")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE RETURN (WITH XMLNAMESPACES (DEFAULT 'u'), c AS (SELECT 1 AS a) SELECT * FROM c)")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN WITH c AS (SELECT 1 AS a) SELECT * FROM c")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (SELECT 1)")]
+	public void An_inline_query_in_brackets_keeps_its_WITH_inside_them(string text)
+	{
+		var tree    = TransactSqlParser.ParseStatement(text);
+		var written = TransactSqlWriter.Write(tree);
+
+		Assert.Equal(text, written);
+		Assert.Equal(tree, TransactSqlParser.ParseStatement(written));
+	}
 }

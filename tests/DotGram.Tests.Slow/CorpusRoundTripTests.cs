@@ -178,7 +178,6 @@ public sealed class CorpusRoundTripTests(ITestOutputHelper output)
 		("Baselines170/JsonFunctionTests170.sql",         "JSON_OBJECTAGG()",                    "JSON_OBJECTAGG of no pair, where the record holds one"),
 		("TestScripts/RowsetsInSelectTests.sql",          ". 'Something' AS Z",                  "a string as the part of a name after OPENDATASOURCE"),
 		("BaselinesCommon/RowsetsInSelectTests.sql",      ".'Something' AS Z",                   "a string as the part of a name after OPENDATASOURCE"),
-		("TestScripts/CreateFunctionStatementTests90.sql", "RETURN (WITH XMLNAMESPACES",         "a bracketed query with a WITH, printed with the WITH outside the brackets, which ScriptDom reads as another bracketing of the same query"),
 	];
 
 	/// <summary>

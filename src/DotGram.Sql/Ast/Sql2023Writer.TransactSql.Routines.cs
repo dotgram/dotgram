@@ -838,6 +838,18 @@ public static partial class Sql2023Writer
 						throw Misplaced(routine, "Body", "an inline query with OPTION (…), which InlineReturn does not read");
 
 					Word("RETURN");
+
+					// T-SQL: CREATE FUNCTION (Transact-SQL). A bracketed inline query with a WITH is written with the WITH
+					// inside the brackets, `RETURN (WITH … SELECT …)`, as it is read: in front of them it reads as the
+					// same tree, but as another bracketing to every other reader of T-SQL, ScriptDom among them.
+					if (inline.Query.Query is Query.Parenthesized { With: { } with, SetOperations.Count: 0, OrderBy: null, Limit: null, For: null, Locking.Count: 0, Query: { With: null } inner })
+					{
+						Open();
+						PutQuery(inner with { With = with });
+						Close();
+						break;
+					}
+
 					PutStatement(inline.Query);
 					break;
 			}
