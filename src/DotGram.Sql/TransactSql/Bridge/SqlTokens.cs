@@ -56,9 +56,10 @@ static class SqlTokens
 				continue;
 			}
 
+			// A line comment runs to a line feed or a carriage return, as the grammar's does (`Std.LineComment`).
 			if (c == '-' && At(text, at + 1) == '-')
 			{
-				while (at < text.Length && text[at] != '\n')
+				while (at < text.Length && text[at] is not ('\n' or '\r'))
 					at++;
 
 				continue;

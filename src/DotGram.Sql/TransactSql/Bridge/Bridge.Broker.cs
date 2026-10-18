@@ -537,7 +537,7 @@ static partial class Bridge
 					if (char.IsWhiteSpace(text[at]))
 						at++;
 					else if (text[at] == '-' && at + 1 < text.Length && text[at + 1] == '-')
-						at = text.IndexOf('\n', at) is var end && end >= 0 ? end + 1 : text.Length;
+						at = text.IndexOfAny(['\n', '\r'], at) is var end && end >= 0 ? end : text.Length;
 					else if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
 					{
 						var depth = 0;

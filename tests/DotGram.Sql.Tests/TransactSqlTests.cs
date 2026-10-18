@@ -15515,6 +15515,13 @@ public sealed class TransactSqlTests
 		Assert.IsType<Ast.Statement.DropSymmetricKey>(TransactSqlParser.ParseStatement("DROP SYMMETRIC/**/KEY k"));
 		Assert.IsType<Ast.Statement.DropMasterKey>(TransactSqlParser.Located.ParseStatement("DROP MASTER /* */ KEY"));
 		Assert.IsType<Ast.Statement.DropSymmetricKey>(TransactSqlParser.ParseStatement("DROP SYMMETRIC -- the kind\nKEY k"));
+
+		// A line comment ends at a carriage return as at a line feed, as the grammar's does.
+		Assert.IsType<Ast.Statement.DropMasterKey>(TransactSqlParser.ParseStatement("DROP MASTER --x\rKEY"));
+		Assert.IsType<Ast.Statement.DropMasterKey>(TransactSqlParser.Located.ParseStatement("DROP MASTER --x\r\nKEY"));
+		Assert.IsType<Ast.Statement.DropServerAuditSpecification>(TransactSqlParser.ParseStatement("DROP SERVER AUDIT --x\rSPECIFICATION a"));
+		Assert.IsType<Ast.Statement.DropServerAudit>(TransactSqlParser.ParseStatement("DROP SERVER --x\rAUDIT a"));
+		Assert.IsType<Ast.Statement.DropServerAudit>(TransactSqlParser.ParseStatement("DROP SERVER /*x*/ AUDIT a"));
 	}
 
 	/// <summary>
