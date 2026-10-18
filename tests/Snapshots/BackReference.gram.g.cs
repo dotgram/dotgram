@@ -1733,6 +1733,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened0 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);

@@ -454,6 +454,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened0 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -2171,6 +2173,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened6 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -2274,6 +2278,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened7 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -2768,6 +2774,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened5 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -2860,6 +2868,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened2 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -2960,6 +2970,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened4 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -3166,6 +3178,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened3 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);

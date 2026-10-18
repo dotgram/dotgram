@@ -204,6 +204,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened3 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -314,6 +316,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened5 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -397,6 +401,8 @@ namespace DotGram.Snapshots
 
 							closed--;
 						}
+
+						opened4 = openedAt;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
