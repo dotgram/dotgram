@@ -234,6 +234,15 @@ public sealed class LexicalSplit
 					if (published && _valued.Contains(rule))
 						blocked.Add($"{rule.Name} is published and builds a value, which over tokens only its callers read");
 
+					// And that second read builds what the terminal declares. A type the grammar
+					// makes from the terminal's own captures is built from members, which a token
+					// has none of: it was named where the terminal is called and never written
+					// (CS0426), and a capture of it had no place in the syntactic machine at all.
+					if (_valued.Contains(rule) && !graph.Types.ContainsKey(rule))
+						blocked.Add(
+							$"'{rule.Name}' builds its value from its own captures, and over tokens a terminal's " +
+							"value is read again only as a type it declares with ': @T' and builds with '=>'");
+
 					if (_valued.Contains(rule))
 					{
 						rules.Add(rule);

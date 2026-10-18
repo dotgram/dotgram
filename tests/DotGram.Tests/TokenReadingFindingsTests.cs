@@ -94,6 +94,45 @@ public sealed class TokenReadingFindingsTests
 		Assert.Equal(12, EmittedCode.Match(EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseNum", "12").Value);
 	}
 
+	/// <summary>
+	/// A terminal whose value is built from its own captures — a type the grammar makes for it,
+	/// with no <c>: @T</c> and no <c>=&gt;</c> — keeps the grammar over characters (GRAM5004),
+	/// where the parser compiles and reads the value, and the warning names the terminal.
+	/// </summary>
+	/// <remarks>
+	/// Over tokens a terminal that builds is one kind whose value is read again from its token's
+	/// text, and that read is for a type the terminal declares. A type the grammar made from the
+	/// captures was named where the terminal is called and never written (CS0426), and a capture
+	/// of one in a rule that builds had no place in the syntactic machine at all, which failed
+	/// inside the compiler.
+	/// </remarks>
+	[Theory]
+	[InlineData("c: X", "Start = Lex.C & Lex.C & eof", "ab cd", "ab cd")]
+	[InlineData("c: X", "Start : @string = v: Lex.C & Lex.C & eof => @(v.C)", "ab cd", "ab")]
+	[InlineData("c: X", "Item : @string = v: Lex.C => @(v.C)\nStart : @string[] = Item* & eof", "ab cd", "ab,cd")]
+	[InlineData("\"/*\" & c: X", "Start = Lex.C & Lex.C & eof", "/*ab /*cd", "/*ab /*cd")]
+	public void A_terminal_that_builds_from_its_captures_is_read_over_characters(string terminal, string rules, string input, string value)
+	{
+		var grammar =
+			"trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tX = ['a'..'z']+\n\tC = " + terminal + "\n}\n" +
+			rules + "\nparse Start\n";
+
+		foreach (var direct in new[] { false, true })
+		{
+			var result = GramCompiler.Compile(grammar, Options(lexical: true, direct: direct));
+
+			var said = Assert.Single(result.Diagnostics, static one => one.Id == GramCompiler.NotCut);
+
+			Assert.Contains("'C'", said.Message, StringComparison.Ordinal);
+			EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.NotCut));
+
+			var read = EmittedCode.Match(EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
+
+			Assert.True(read.IsSuccess);
+			Assert.Equal(value, read.Value is string[] all ? string.Join(",", all) : read.Value);
+		}
+	}
+
 	// ── Readings from a position over tokens ────────────────────────────────────
 
 	/// <summary>
