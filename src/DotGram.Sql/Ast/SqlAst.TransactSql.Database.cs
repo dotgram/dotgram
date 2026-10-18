@@ -15,6 +15,13 @@ public abstract partial record Statement
 	{
 		/// <summary>T-SQL: ALTER DATABASE (Transact-SQL). <c>CURRENT</c> for the name: the database in use.</summary>
 		public bool Current { get; init; }
+
+		/// <summary>
+		/// T-SQL: ALTER DATABASE SET Options (Transact-SQL), ALTER DATABASE File and Filegroups. <c>WITH ROLLBACK AFTER n
+		/// [SECONDS]</c>, <c>WITH ROLLBACK IMMEDIATE</c> or <c>WITH NO_WAIT</c> after the action, whichever it is: what is done
+		/// with the sessions in the way; null where none is said.
+		/// </summary>
+		public Termination? Termination { get; init; }
 	}
 
 	/// <summary>

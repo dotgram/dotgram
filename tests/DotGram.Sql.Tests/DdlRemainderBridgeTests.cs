@@ -78,6 +78,10 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE TABLE t (c national sys.Char varying)", "national char varying written as a name")]
 	[InlineData("CREATE TABLE t (c char varying (10))", "char varying")]
 	[InlineData("CREATE TABLE t (c XML ([dbo].xsd))", "xml with a bracketed collection")]
+	[InlineData("ALTER DATABASE d MODIFY FILEGROUP g READ_ONLY WITH ROLLBACK AFTER 10 SECONDS", "a filegroup changed with a termination")]
+	[InlineData("ALTER DATABASE d SET SINGLE_USER WITH NO_WAIT", "SET with a termination")]
+	[InlineData("ALTER DATABASE d REBUILD LOG ON (NAME = 'n', FILENAME = 'f')", "REBUILD LOG ON a file")]
+	[InlineData("ALTER DATABASE d ADD LOG FILE (NAME = l) TO FILEGROUP g", "a log file TO FILEGROUP")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -171,6 +175,10 @@ public sealed class DdlRemainderBridgeTests
 			"national char varying written as a name" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Character { Kind: Ast.CharacterTypeKind.NationalCharVarying, WrittenName: [{ Text: "sys" }, { Text: "Char" }] } }] } },
 			"char varying" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Character { Kind: Ast.CharacterTypeKind.CharVarying, WrittenName: null } }] } },
 			"xml with a bracketed collection" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Xml { Schema: [{ Text: "[dbo]" }, _] } }] } },
+			"a filegroup changed with a termination" => made is Ast.Statement.AlterDatabase { Action: Ast.AlterDatabaseAction.ModifyFileGroup, Termination: Ast.Termination.RollbackAfter { Seconds: true } },
+			"SET with a termination" => made is Ast.Statement.AlterDatabase { Action: Ast.AlterDatabaseAction.Set, Termination: Ast.Termination.NoWait },
+			"REBUILD LOG ON a file" => made is Ast.Statement.AlterDatabase { Action: Ast.AlterDatabaseAction.RebuildLog { On.Options.Count: 2 }, Termination: null },
+			"a log file TO FILEGROUP" => made is Ast.Statement.AlterDatabase { Action: Ast.AlterDatabaseAction.AddLogFile { ToFileGroup.Text: "g" } },
 			_ => false,
 		};
 

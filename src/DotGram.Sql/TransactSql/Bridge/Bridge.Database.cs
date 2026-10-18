@@ -39,7 +39,7 @@ static partial class Bridge
 			made = old switch
 			{
 				Statement.AlterDatabaseModify modify => AlterModify(modify),
-				Statement.AlterDatabaseSet set => Target(set, set.Name, new Ast.AlterDatabaseAction.Set(Each(set.Settings, one => Setting(set, one))) { Termination = Termination(set, set.Termination) }),
+				Statement.AlterDatabaseSet set => Target(set, set.Name, new Ast.AlterDatabaseAction.Set(Each(set.Settings, one => Setting(set, one)))) with { Termination = Termination(set, set.Termination) },
 				Statement.AlterDatabaseScopedConfiguration scoped => Scoped(scoped),
 				Statement.CreateDatabase create => Create(create),
 				Statement.PartitionFunctionDefinition or Statement.AlterPartitionFunction or Statement.PartitionSchemeDefinition or Statement.AlterPartitionScheme
@@ -62,17 +62,26 @@ static partial class Bridge
 
 		/// <summary>
 		/// ALTER DATABASE's actions other than SET, which the old tree keeps as a record each and the words after the action
-		/// as text: read again by tokens, and a file specification as CREATE DATABASE's. A termination after one of them
-		/// has no member, and nor has REBUILD LOG's file or a log file's filegroup.
+		/// as text: read again by tokens, and a file specification as CREATE DATABASE's. The termination the grammar reads
+		/// after any of them, which the old tree keeps at the end of the text, is the statement's.
 		/// </summary>
 		static Ast.Statement Alter(Statement.Definition old)
 		{
 			var tail   = old.Tail ?? "";
 			var tokens = Located(tail);
-			var words  = Words(tail);
 
-			if (words is [.., "WITH", "ROLLBACK", "IMMEDIATE"] or [.., "WITH", "NO_WAIT"] || Index(tokens, "ROLLBACK") >= 0)
-				throw BridgeGap.Missing(old, "Statement.AlterDatabase (a termination after an action other than SET)");
+			// DatabaseTermination, the last WITH of the text, followed by ROLLBACK or NO_WAIT.
+			Ast.Termination? termination = null;
+			var with = tokens.FindLastIndex(static one => one.Token.Kind == SqlTokens.Kind.Word && one.Token.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase));
+
+			if (with >= 0 && (Is(tokens, with + 1, "ROLLBACK") || Is(tokens, with + 1, "NO_WAIT")))
+			{
+				termination = Termination(old, tail[tokens[with].At..]);
+				tail        = tail[..tokens[with].At].TrimEnd();
+				tokens      = Located(tail);
+			}
+
+			var words  = Words(tail);
 
 			Ast.AlterDatabaseAction action = old switch
 			{
@@ -82,7 +91,8 @@ static partial class Bridge
 					=> new Ast.AlterDatabaseAction.ModifyBackupStorageRedundancy(Values.String(tokens[1].Token.Text)),
 				Statement.AlterDatabasePerformCutover when tail.Length == 0 => new Ast.AlterDatabaseAction.PerformCutover(),
 				Statement.AlterDatabaseRebuildLog when tail.Length == 0 => new Ast.AlterDatabaseAction.RebuildLog(),
-				Statement.AlterDatabaseRebuildLog => throw BridgeGap.Missing(old, "AlterDatabaseAction.RebuildLog (REBUILD LOG ON a file)"),
+				Statement.AlterDatabaseRebuildLog when Is(tokens, 0, "ON") && tokens.Count > 1
+					=> new Ast.AlterDatabaseAction.RebuildLog { On = Files(old, tail[tokens[1].At..]) is [var log] ? log : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})") },
 				Statement.AlterDatabaseAddFile => AddFile(old, tail, tokens, log: false),
 				Statement.AlterDatabaseAddLogFile => AddFile(old, tail, tokens, log: true),
 				Statement.AlterDatabaseModifyFile => new Ast.AlterDatabaseAction.ModifyFile(Files(old, tail) is [var file] ? file : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})")),
@@ -110,10 +120,16 @@ static partial class Bridge
 				_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})"),
 			};
 
-			return Checked(old, Target(old, old.Name, action));
+			return Checked(old, Target(old, old.Name, action) with { Termination = termination });
 		}
 
-		/// <summary>ADD FILE and ADD LOG FILE: the files, and the filegroup after TO FILEGROUP, which a log file's has no member for.</summary>
+		/// <summary>Whether the token at a place is the word given, whatever its case.</summary>
+		static bool Is(List<(SqlTokens.Token Token, int At)> tokens, int at, string word)
+		{
+			return at >= 0 && at < tokens.Count && tokens[at].Token.Kind == SqlTokens.Kind.Word && tokens[at].Token.Text.Equals(word, StringComparison.OrdinalIgnoreCase);
+		}
+
+		/// <summary>ADD FILE and ADD LOG FILE: the files, and the filegroup after TO FILEGROUP.</summary>
 		static Ast.AlterDatabaseAction AddFile(Statement old, string tail, List<(SqlTokens.Token Token, int At)> tokens, bool log)
 		{
 			var to    = Index(tokens, "TO");
@@ -122,12 +138,12 @@ static partial class Bridge
 			if (to < 0)
 				return log ? new Ast.AlterDatabaseAction.AddLogFile(files) : new Ast.AlterDatabaseAction.AddFile(files, null);
 
-			if (log)
-				throw BridgeGap.Missing(old, "AlterDatabaseAction.AddLogFile (TO FILEGROUP after a log file)");
+			if (Words(Slice(tail, tokens, to, tokens.Count)) is not ["TO", "FILEGROUP", _])
+				throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})");
 
-			return Words(Slice(tail, tokens, to, tokens.Count)) is ["TO", "FILEGROUP", _]
-				? new Ast.AlterDatabaseAction.AddFile(files, Values.Part(old, tokens[^1].Token.Text))
-				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({tail})");
+			var group = Values.Part(old, tokens[^1].Token.Text);
+
+			return log ? new Ast.AlterDatabaseAction.AddLogFile(files) { ToFileGroup = group } : new Ast.AlterDatabaseAction.AddFile(files, group);
 		}
 
 		/// <summary>
