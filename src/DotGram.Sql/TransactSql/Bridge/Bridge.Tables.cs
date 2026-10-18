@@ -85,10 +85,14 @@ static partial class Bridge
 
 					// VariableSource: `@v.f (1)`, a method on a variable, which the old tree keeps as one name; a variable's
 					// name has no dot, so the first one ends it.
+					// The method is the type's own, never the built-in of its name: `@v.DATEPART (yy, x)` reads its arguments
+					// as values.
 					var method = call.Name.StartsWith('@') ? call.Name.IndexOf('.') : -1;
 
-					if (Values.Function(method < 0 ? call : call with { Name = call.Name.Substring(method + 1) }) is not Ast.Expression.Invocation invocation)
-						throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a call that is not a plain invocation)");
+					var invocation = method >= 0
+						? new Ast.Expression.Invocation(new Ast.QualifiedName([Values.Part(old, call.Name.Substring(method + 1))]), Each(call.Arguments, Values.Argument))
+						: Values.Function(call) as Ast.Expression.Invocation
+							?? throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a call that is not a plain invocation)");
 
 					// The method's call is built inside VariableSource and has no place in the text of its own: the source's
 					// whole text is read for the AS instead, outside the brackets.

@@ -651,8 +651,26 @@ static partial class Bridge
 				|| !use.Equals("USE", StringComparison.OrdinalIgnoreCase) || !model.Equals("MODEL", StringComparison.OrdinalIgnoreCase))
 				throw BridgeGap.Open(old, $"inventory Expression.Hinted (`{words}` after AI_GENERATE_EMBEDDINGS)");
 
-			var parameters = tokens.FindIndex(static one => one.Kind == SqlTokens.Kind.Word && one.Text.Equals("PARAMETERS", StringComparison.OrdinalIgnoreCase));
-			var named      = string.Concat(tokens.Skip(2).Take((parameters < 0 ? tokens.Count : parameters) - 2).Select(static one => one.Text));
+			// UseModel: the model's name first, a TSqlQualifiedName whose parts and dots alternate (a part may be left out
+			// between two dots), so `USE MODEL PARAMETERS` names a model PARAMETERS; then PARAMETERS and its value, if any.
+			var end = 2;
+
+			if (tokens[end].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited)
+				end++;
+
+			while (end < tokens.Count && tokens[end].Text == ".")
+			{
+				end++;
+
+				if (end < tokens.Count && tokens[end].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited)
+					end++;
+			}
+
+			if (end < tokens.Count && !(tokens[end].Kind == SqlTokens.Kind.Word && tokens[end].Text.Equals("PARAMETERS", StringComparison.OrdinalIgnoreCase)))
+				throw BridgeGap.Open(old, $"inventory Expression.Hinted (`{words}` after AI_GENERATE_EMBEDDINGS)");
+
+			var parameters = end < tokens.Count ? end : -1;
+			var named      = string.Concat(tokens.Skip(2).Take(end - 2).Select(static one => one.Text));
 			Ast.Expression? given = null;
 
 			if (parameters >= 0)

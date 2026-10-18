@@ -70,6 +70,9 @@ public sealed class ValuesRemainderWriterTests
 			"DATEPART of a date part bracketed" => Dated(new Expression.Reference(new QualifiedName([new Identifier("[yy]", IdentifierStyle.Bracketed)]))),
 			"DATEPART of a date part in brackets" => Dated(new Expression.Parenthesized(Ref("year"))),
 			"DATEPART of a string" => Dated(new LiteralValue.String("'year'", StringLiteralKind.National)),
+			"a variable's method named as a built-in" => From(new TableSource.Function(new Expression.Invocation(Qualified("DATEPART"), [new Argument(Ref("foo")), new Argument(Ref("x"))])) { Variable = Name("@v") }),
+			"embeddings of a model named PARAMETERS" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.AiGenerateEmbeddings(Text("x"), Qualified("PARAMETERS")))] } },
+			"CONTAINS of a property" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Property(Text("Title"))], Text("x"))),
 			"CONTAINS" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b"), Ref("c")], Text("x")) { ColumnsBracketed = true, Language = Number("1033") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
@@ -100,6 +103,11 @@ public sealed class ValuesRemainderWriterTests
 		return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.Invocation(Qualified("DATEPART"), [new Argument(part), new Argument(Ref("x"))]))], From = new FromClause([new TableSource.Named(Qualified("t"))]) } };
 	}
 
+	static Expression Property(Expression name)
+	{
+		return new Expression.Invocation(Qualified("PROPERTY"), [new Argument(Ref("c")), new Argument(name)]);
+	}
+
 	static Statement Where(Expression condition)
 	{
 		return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("a"))], From = new FromClause([new TableSource.Named(Qualified("t"))]), Where = condition } };
@@ -117,6 +125,9 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("DATEPART of a date part bracketed", "SELECT DATEPART([yy], x) FROM t")]
 	[InlineData("DATEPART of a date part in brackets", "SELECT DATEPART((year), x) FROM t")]
 	[InlineData("DATEPART of a string", "SELECT DATEPART(N'year', x) FROM t")]
+	[InlineData("a variable's method named as a built-in", "SELECT c1 FROM @v.DATEPART(foo, x)")]
+	[InlineData("embeddings of a model named PARAMETERS", "SELECT AI_GENERATE_EMBEDDINGS('x' USE MODEL PARAMETERS)")]
+	[InlineData("CONTAINS of a property", "SELECT a FROM t WHERE CONTAINS(PROPERTY(c, 'Title'), 'x')")]
 	[InlineData("AI_GENERATE_CHUNKS", "SELECT * FROM AI_GENERATE_CHUNKS(SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, OVERLAP = 1) AS c")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
@@ -136,6 +147,9 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("DATEPART of a date part bracketed")]
 	[InlineData("DATEPART of a date part in brackets")]
 	[InlineData("DATEPART of a string")]
+	[InlineData("a variable's method named as a built-in")]
+	[InlineData("embeddings of a model named PARAMETERS")]
+	[InlineData("CONTAINS of a property")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -174,6 +188,11 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("DATEPART of a bracketed name that is no date part")]
 	[InlineData("DATEPART of a qualified column")]
 	[InlineData("DATEPART of nothing")]
+	[InlineData("CONTAINS of a property of a number")]
+	[InlineData("CONTAINS of a property of one argument")]
+	[InlineData("CONTAINS of a property with DISTINCT")]
+	[InlineData("CONTAINS of another call")]
+	[InlineData("a variable's method with OVER")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -232,6 +251,13 @@ public sealed class ValuesRemainderWriterTests
 			"DATEPART of a qualified column" => Dated(new Expression.Reference(new QualifiedName([Name("t"), Name("yy")]))),
 			// DatePartCall: '(' & part: DatePart, never empty.
 			"DATEPART of nothing" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.Invocation(Qualified("DATEPART"), []))] } },
+			// FullTextColumns: PROPERTY (TSqlQualifiedName, Quoted), and nothing else of a call.
+			"CONTAINS of a property of a number" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Property(Number("1"))], Text("x"))),
+			"CONTAINS of a property of one argument" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [new Expression.Invocation(Qualified("PROPERTY"), [new Argument(Ref("c"))])], Text("x"))),
+			"CONTAINS of a property with DISTINCT" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [((Expression.Invocation)Property(Text("Title"))) with { Quantifier = SetQuantifier.Distinct }], Text("x"))),
+			"CONTAINS of another call" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [new Expression.Invocation(Qualified("f"), [new Argument(Ref("c")), new Argument(Text("Title"))])], Text("x"))),
+			// VariableSource: '.' & TSqlIdentifier & '(' & Arguments? & ')', nothing after the bracket.
+			"a variable's method with OVER" => From(new TableSource.Function(new Expression.Invocation(Qualified("f"), []) { Over = new WindowReference.NameRef(Name("w")) }) { Variable = Name("@v") }),
 			"a number with no name" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};

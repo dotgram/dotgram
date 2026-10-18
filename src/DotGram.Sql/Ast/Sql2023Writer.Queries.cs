@@ -1210,15 +1210,20 @@ public static partial class Sql2023Writer
 						if (!transactSql)
 							throw Misplaced(function, "Variable", "in the standard, which calls no method on a variable in a FROM");
 
-						if (function.Invocation is not { Name.Count: 1, Quantifier: null })
-							throw Misplaced(function, "Variable", "with a method whose name has more than one part or a quantifier (VariableSource: '.' & TSqlIdentifier)");
+						// The method is the type's own and its arguments values (Arguments), whatever built-in its name shares.
+						if (function.Invocation is not { Name: [var method], Quantifier: null, OrderBy: null, Overflow: null, From: null, Nulls: null, Semantics: null, Filter: null, Over: null, WithinGroup: null, Copartition: null, WithoutParentheses: false, GraphPath: false } called)
+							throw Misplaced(function, "Variable", "with a method whose name has more than one part, or with more than a name and arguments (VariableSource: '.' & TSqlIdentifier & '(' & Arguments? & ')')");
 
 						PutVariableName(function, variable);
 						Tight(".");
 						Hold();
+						PutIdentifier(method);
+						Call();
+						Each(called.Arguments, PutArgument);
+						Close();
 					}
-
-					PutExpression(function.Invocation);
+					else
+						PutExpression(function.Invocation);
 					tableFunction = false;
 					PutAlias(function.Alias);
 					break;

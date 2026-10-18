@@ -44,6 +44,10 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT DATEPART ((year), x) FROM t", "a date part in brackets")]
 	[InlineData("SELECT DATEADD (@p, 1, x) FROM t", "a variable for a date part")]
 	[InlineData("SELECT DATEPART (yy, x) FROM t", "a date part")]
+	[InlineData("SELECT * FROM @v.DATEPART (yy, x) AS t", "a variable's method named as a built-in")]
+	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('x' USE MODEL PARAMETERS)", "embeddings of a model named PARAMETERS")]
+	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('x' USE MODEL PARAMETERS PARAMETERS p)", "embeddings of a model named PARAMETERS with parameters")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (PROPERTY (c, 'Title'), 'x')", "CONTAINS of a property")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -78,6 +82,10 @@ public sealed class ValuesRemainderBridgeTests
 			"a date part in brackets" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.Parenthesized { Value: Ast.Expression.Reference } }, _] } }] } },
 			"a variable for a date part" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.Variable }, _, _] } }] } },
 			"a date part" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.DatePart { Kind: Ast.DatePartKind.Year, Spelling: Ast.DatePartSpelling.Abbreviation } }, _] } }] } },
+			"a variable's method named as a built-in" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Function { Variable.Text: "@v", Invocation: { Name: [{ Text: "DATEPART" }], Arguments: [{ Value: Ast.Expression.Reference { Name: [{ Text: "yy" }] } }, _] } }] } },
+			"embeddings of a model named PARAMETERS" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Model: [{ Text: "PARAMETERS" }], Parameters: null } }] } },
+			"embeddings of a model named PARAMETERS with parameters" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Model: [{ Text: "PARAMETERS" }], Parameters: Ast.Expression.Reference } }] } },
+			"CONTAINS of a property" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.FullTextPredicate { Columns: [Ast.Expression.Invocation { Name: [{ Text: "PROPERTY" }], Arguments.Count: 2 }], ColumnsBracketed: false } } },
 			_ => false,
 		};
 

@@ -296,6 +296,22 @@ public static partial class Sql2023Writer
 		/// or not; PROPERTY (c, 'p') alone and unbracketed; names, more than one only in brackets. FullTextSearch: a string
 		/// or a variable. SearchLanguage: digits, a binary number, a string or a variable.
 		/// </summary>
+		/// <summary>
+		/// T-SQL: CONTAINS (Transact-SQL). FullTextColumns' <c>PROPERTY (column, 'property')</c>: the word PROPERTY plain, a
+		/// qualified name with no empty part and a plain or national string, and nothing else of a call.
+		/// </summary>
+		static bool IsProperty(Expression.Invocation call)
+		{
+			return call is
+				{
+					Name: [{ Style: IdentifierStyle.Regular, UnicodeEscape: null } called],
+					Arguments: [{ Name: null, NamedAssignment: false, Value: Expression.Reference { Name: var column } }, { Name: null, NamedAssignment: false, Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } }],
+					Quantifier: null, OrderBy: null, Overflow: null, From: null, Nulls: null, Semantics: null, Filter: null, Over: null, WithinGroup: null, Copartition: null,
+					WithoutParentheses: false, GraphPath: false,
+				}
+				&& Plain(called, "PROPERTY") && column.Count > 0 && column.Parts.All(static part => part.Text.Length > 0);
+		}
+
 		void PutFullTextPredicate(Expression.FullTextPredicate predicate)
 		{
 			var columns = predicate.Columns;
@@ -312,7 +328,7 @@ public static partial class Sql2023Writer
 				{
 					Expression.Reference { Name: var name } => name.Count > 0 && name.Parts.All(static part => part.Text.Length > 0),
 					Expression.Asterisk or Expression.Wildcard { Kind: WildcardKind.Member } => columns.Count == 1,
-					Expression.Invocation { Name: [var called] } when called.Text.Equals("PROPERTY", StringComparison.OrdinalIgnoreCase) => columns.Count == 1 && !predicate.ColumnsBracketed,
+					Expression.Invocation property => columns.Count == 1 && !predicate.ColumnsBracketed && IsProperty(property),
 					_ => false,
 				};
 
