@@ -236,13 +236,29 @@ public static partial class Sql2023Writer
 
 				// T-SQL: PREDICT (Transact-SQL).
 				case TableSource.Predict predict:
+					// Syntax.Predicts: the model and the data, named, in either order; the data a table or a query, aliased.
+					if (predict.Data is not (TableSource.Named { Alias: not null } or TableSource.Subquery { Alias: not null, Lateral: false }))
+						throw Misplaced(predict, "Data", "other than a table or a query with its alias (DataAlias)");
+
 					Word("PREDICT");
 					Call();
+
+					if (predict.DataFirst)
+					{
+						Word("DATA =");
+						PutSource(predict.Data);
+						Tight(",");
+					}
+
 					Word("MODEL =");
 					PutExpression(predict.Model);
-					Tight(",");
-					Word("DATA =");
-					PutSource(predict.Data);
+
+					if (!predict.DataFirst)
+					{
+						Tight(",");
+						Word("DATA =");
+						PutSource(predict.Data);
+					}
 
 					if (predict.Runtime is { } runtime)
 					{

@@ -86,6 +86,9 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("RESTORE LOG d FROM DISK = 'x' WITH STOPATMARK = 'm' AFTER '2020-01-01'", "STOPATMARK AFTER")]
 	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH STOPBEFOREMARK = 'm' AFTER @t", "STOPBEFOREMARK AFTER")]
 	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH STOPATMARK = 'm'", "STOPATMARK alone")]
+	[InlineData("SELECT * FROM PREDICT (DATA = dbo.t AS d, MODEL = @m) WITH (s FLOAT) AS p", "PREDICT with the data first")]
+	[InlineData("SELECT * FROM PREDICT (MODEL = @m, DATA = dbo.t AS d) WITH (s FLOAT) AS p", "PREDICT with the model first")]
+	[InlineData("SELECT * FROM PREDICT (MODEL = @m, DATA = (SELECT 1 AS x) AS d) WITH (s FLOAT) AS p", "PREDICT over a query")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -187,6 +190,9 @@ public sealed class DdlRemainderBridgeTests
 			"STOPATMARK AFTER" => made is Ast.Statement.RestoreLog { Options: [{ Name.Text: "STOPATMARK", Options: [{ Name.Text: "AFTER", Value: Ast.LiteralValue.String }] }] },
 			"STOPBEFOREMARK AFTER" => made is Ast.Statement.RestoreDatabase { Options: [{ Name.Text: "STOPBEFOREMARK", Options: [{ Name.Text: "AFTER", Value: Ast.Expression.Variable }] }] },
 			"STOPATMARK alone" => made is Ast.Statement.RestoreDatabase { Options: [{ Name.Text: "STOPATMARK", Options.Count: 0 }] },
+			"PREDICT with the data first" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Predict { DataFirst: true, Data: Ast.TableSource.Named }] } },
+			"PREDICT with the model first" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Predict { DataFirst: false }] } },
+			"PREDICT over a query" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Predict { Data: Ast.TableSource.Subquery { Alias.Name.Text: "d" } }] } },
 			_ => false,
 		};
 

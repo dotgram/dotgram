@@ -827,6 +827,9 @@ public sealed class Sql2023WriterCoverageTests
 			["IndexDefinition.OptionsUnbracketed"] = (
 				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])] }),
 				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])], OptionsUnbracketed = true })),
+			["Predict.DataFirst"] = (
+				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.Predict(new Expression.Variable(new Identifier("@m")), new TableSource.Named(T) { Alias = new Alias(new Identifier("d")) }, null, [new ColumnDefinition(new Identifier("s"), new DataType.Numeric(NumericTypeKind.Float), null, [], null)])]) } },
+				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.Predict(new Expression.Variable(new Identifier("@m")), new TableSource.Named(T) { Alias = new Alias(new Identifier("d")) }, null, [new ColumnDefinition(new Identifier("s"), new DataType.Numeric(NumericTypeKind.Float), null, [], null)]) { DataFirst = true }]) } }),
 			["CreateSpatialIndex.UsingBracketed"] = (
 				new Statement.CreateSpatialIndex(T, I, C) { Using = SpatialTessellation.GeographyGrid },
 				new Statement.CreateSpatialIndex(T, I, C) { Using = SpatialTessellation.GeographyGrid, UsingBracketed = true }),

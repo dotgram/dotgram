@@ -158,7 +158,11 @@ public abstract partial record TableSource
 	/// model, the source scored with its alias, the runtime, and the columns the result adds — a name, a type, a
 	/// collation and <c>NOT NULL</c>, as the standard's column definition holds them, with no path.
 	/// </summary>
-	public sealed record Predict(Expression Model, TableSource Data, Identifier? Runtime, SqlList<ColumnDefinition> Schema, Alias? Alias = null) : TableSource;
+	public sealed record Predict(Expression Model, TableSource Data, Identifier? Runtime, SqlList<ColumnDefinition> Schema, Alias? Alias = null) : TableSource
+	{
+		/// <summary>T-SQL: PREDICT (Transact-SQL). <c>PREDICT (DATA = …, MODEL = …)</c>: the data written before the model.</summary>
+		[Spelling] public bool DataFirst { get; init; }
+	}
 }
 
 // The change-tracking and full-text rowset functions, one record each, what they return being what differs.

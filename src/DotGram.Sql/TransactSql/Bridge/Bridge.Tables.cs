@@ -225,14 +225,20 @@ static partial class Bridge
 
 		/// <summary>
 		/// <c>PREDICT (MODEL = m, DATA = t AS d [, RUNTIME = ONNX]) WITH (…)</c>, whose arguments the old tree keeps
-		/// as named ones.
+		/// as named ones: the model and the data in either order, the data a table or a query with its alias.
 		/// </summary>
 		static Ast.TableSource Predict(TableReference.FunctionCall old, Ast.Alias? alias)
 		{
-			if (old.Function.Arguments is not [Expression.NamedArgument(var model, var value), Expression.NamedArgument(var data, Expression.Aliased(Expression.ColumnReference(var source), var named, var written)), .. var rest]
+			var arguments = old.Function.Arguments;
+			var dataFirst = arguments is [Expression.NamedArgument(var leading, _), ..] && leading.Equals("DATA", StringComparison.OrdinalIgnoreCase);
+
+			if (arguments.Length < 2 || arguments[dataFirst ? 1 : 0] is not Expression.NamedArgument(var model, var value) || arguments[dataFirst ? 0 : 1] is not Expression.NamedArgument(var data, Expression.Aliased(var source, var named, var written))
+				|| source is not (Expression.ColumnReference or Expression.Subquery)
 				|| !model.Equals("MODEL", StringComparison.OrdinalIgnoreCase) || !data.Equals("DATA", StringComparison.OrdinalIgnoreCase)
 				|| old.Schema.Length == 0)
 				throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema)");
+
+			var rest = arguments.Skip(2).ToList();
 
 			Ast.Identifier? runtime = rest switch
 			{
@@ -241,9 +247,12 @@ static partial class Bridge
 				_                                                                                                           => throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a PREDICT argument after DATA that is not RUNTIME)"),
 			};
 
-			var scored = new Ast.TableSource.Named(Values.Name(old, source)) { Alias = new Ast.Alias(Values.Part(old, named), null, written) };
+			var called = new Ast.Alias(Values.Part(old, named), null, written);
+			Ast.TableSource scored = source is Expression.ColumnReference(var table)
+				? new Ast.TableSource.Named(Values.Name(old, table)) { Alias = called }
+				: new Ast.TableSource.Subquery(((Ast.Expression.Subquery)Values.Of(source)).Query) { Alias = called };
 
-			return new Ast.TableSource.Predict(Values.Of(value), scored, runtime, Each(old.Schema, PredictColumn), alias);
+			return new Ast.TableSource.Predict(Values.Of(value), scored, runtime, Each(old.Schema, PredictColumn), alias) { DataFirst = dataFirst };
 		}
 
 		/// <summary>
