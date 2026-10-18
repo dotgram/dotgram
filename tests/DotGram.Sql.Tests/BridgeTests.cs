@@ -291,7 +291,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 	/// <summary>
 	/// Every one of T-SQL's system types, bracketed, is the type its bare word is: a standard spelling of one word the
-	/// standard's record written as a name, and the rest <c>DataType.Named</c>.
+	/// standard's record written as a name, <c>vector</c> its own record written so, and the rest <c>DataType.Named</c>.
 	/// </summary>
 	[Theory]
 	[InlineData("bigint")] [InlineData("binary")] [InlineData("bit")] [InlineData("char")] [InlineData("cursor")]
@@ -311,7 +311,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 		var written = new Ast.QualifiedName([new Ast.Identifier("[" + name + "]", Ast.IdentifierStyle.Bracketed)]);
 		var type    = Bridge.Values.Type(new object(), "[" + name + "]");
 
-		if (Bridge.Values.StandardWords.Contains(name))
+		if (Bridge.Values.StandardWords.Contains(name) || name == "vector")
 			Assert.Equal(Bridge.Values.Type(new object(), name) with { WrittenName = written }, type);
 		else
 			Assert.Equal(new Ast.DataType.Named(written, []), type);

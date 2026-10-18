@@ -116,6 +116,46 @@ public static partial class Sql2023Writer
 
 					return true;
 
+				// T-SQL: Vector Data Type. VectorLength: whole dimensions and perhaps a base type, or MAX alone.
+				case DataType.Vector vector:
+					if (vector.Max && (vector.Dimensions is not null || vector.BaseType is not null))
+						throw Misplaced(vector, "Max", "beside Dimensions or BaseType, where VectorLength reads MAX alone");
+
+					if (vector.BaseType is not null && vector.Dimensions is null)
+						throw Misplaced(vector, "BaseType", "without Dimensions, which it is written after");
+
+					if (vector.Dimensions is < 0)
+						throw Misplaced(vector, "Dimensions", "below zero, which Lexical.Digits does not write");
+
+					PutTypeName(vector, "VECTOR");
+
+					if (vector.Max)
+					{
+						Call();
+						Word("MAX");
+						Close();
+					}
+					else if (vector.Dimensions is { } dimensions)
+					{
+						Call();
+						Word(dimensions.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+						if (vector.BaseType is { } baseType)
+						{
+							Tight(",");
+							Word(baseType switch
+							{
+								VectorBaseType.Float32 => "FLOAT32",
+								VectorBaseType.Float16 => "FLOAT16",
+								_                      => throw NoText(baseType),
+							});
+						}
+
+						Close();
+					}
+
+					return true;
+
 				case DataType.Xml xml:
 					PutTypeName(xml, "XML");
 
@@ -206,6 +246,9 @@ public static partial class Sql2023Writer
 
 			if (last.Equals("xml", StringComparison.OrdinalIgnoreCase))
 				throw Misplaced(named, "Name", "xml, which reads back as the xml type");
+
+			if (last.Equals("vector", StringComparison.OrdinalIgnoreCase))
+				throw Misplaced(named, "Name", "vector, which reads back as the vector type");
 
 			if (named.Arguments.Count > 2 || named.Arguments.Any(static one => one is not LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger }))
 				throw Misplaced(named, "Arguments", "other than one or two whole numbers");

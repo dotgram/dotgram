@@ -97,6 +97,7 @@ public sealed class DdlRemainderWriterTests
 			"ADD a default WITH VALUES" => new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.Add([new TableElement.Column(Column(new DataType.Numeric(NumericTypeKind.Int)) with { Options = [new ColumnOption.Default(Number("1")) { WithValues = true }] }), new TableElement.TableConstraint(new Constraint.Default(Number("2"), Name("d")) { WithValues = true })])] },
 			"DROP PERIOD" => new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.DropPeriod(PeriodKind.SystemTime, null, null)] },
 			"CREATE TABLE a DECIMAL (MAX)" => Table(Column(Max("DECIMAL"))),
+			"CAST AS VECTOR" => Cast(new DataType.Vector(3) { BaseType = VectorBaseType.Float16 }),
 			"CREATE MATERIALIZED VIEW" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("ROUND_ROBIN")), Set("FOR_APPEND")] },
 			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
@@ -167,6 +168,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("ADD a default WITH VALUES", "ALTER TABLE t ADD c INT DEFAULT 1 WITH VALUES, DEFAULT 2 FOR d WITH VALUES")]
 	[InlineData("DROP PERIOD", "ALTER TABLE t DROP PERIOD FOR SYSTEM_TIME")]
 	[InlineData("CREATE TABLE a DECIMAL (MAX)", "CREATE TABLE t (c DECIMAL(MAX))")]
+	[InlineData("CAST AS VECTOR", "SELECT CAST(a AS VECTOR(3, FLOAT16))")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -190,6 +192,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("ADD a default WITH VALUES")]
 	[InlineData("DROP PERIOD")]
 	[InlineData("CREATE TABLE a DECIMAL (MAX)")]
+	[InlineData("CAST AS VECTOR")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -256,6 +259,9 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CHAR (MAX)")]
 	[InlineData("VARCHAR as Named with MAX")]
 	[InlineData("MAX beside arguments")]
+	[InlineData("a vector of MAX and dimensions")]
+	[InlineData("a vector's base type without dimensions")]
+	[InlineData("a vector as a named type")]
 	[InlineData("ALTER COLUMN a collation after SPARSE")]
 	[InlineData("JSON a path with an escape")]
 	public void A_tree_with_no_text_is_refused(string which)
@@ -353,6 +359,12 @@ public sealed class DdlRemainderWriterTests
 			"VARCHAR as Named with MAX" => Cast(Max("varchar")),
 			// AnyLength: MAX alone in the brackets.
 			"MAX beside arguments" => Cast(new DataType.Named(Qualified("int"), [Number("10")]) { Max = true }),
+			// VectorLength: MAX alone in the brackets.
+			"a vector of MAX and dimensions" => Cast(new DataType.Vector(3) { Max = true }),
+			// VectorLength: the base type after the dimensions.
+			"a vector's base type without dimensions" => Cast(new DataType.Vector(null) { BaseType = VectorBaseType.Float32 }),
+			// TSqlDataType: VECTOR reads back as the vector type.
+			"a vector as a named type" => Cast(new DataType.Named(Qualified("VECTOR"), [Number("3")])),
 			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
 			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
 			// JsonIndexPath: a plain or national string.

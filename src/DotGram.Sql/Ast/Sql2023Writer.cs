@@ -499,7 +499,7 @@ public static partial class Sql2023Writer
 		static readonly HashSet<string> NamedKeyWords = new(StringComparer.OrdinalIgnoreCase)
 		{
 			"INT", "INTEGER", "SMALLINT", "BIGINT", "DEC", "DECIMAL", "NUMERIC", "FLOAT", "REAL", "CHAR", "CHARACTER",
-			"VARCHAR", "NCHAR", "NVARCHAR", "BINARY", "VARBINARY", "DATE", "TIME", "JSON", "XML",
+			"VARCHAR", "NCHAR", "NVARCHAR", "BINARY", "VARBINARY", "DATE", "TIME", "JSON", "XML", "VECTOR",
 		};
 
 		/// <summary>
@@ -569,7 +569,7 @@ public static partial class Sql2023Writer
 			}
 
 			// T-SQL: the name of a type written as an identifier is only the name of a type the key word names.
-			if (type.WrittenName is not null && type is not (DataType.Character or DataType.Binary or DataType.Numeric or DataType.DateTime or DataType.Json or DataType.Xml))
+			if (type.WrittenName is not null && type is not (DataType.Character or DataType.Binary or DataType.Numeric or DataType.DateTime or DataType.Json or DataType.Xml or DataType.Vector))
 				throw Misplaced(type, "WrittenName", "on a type that is not written by a key word of one word");
 
 			switch (type)
