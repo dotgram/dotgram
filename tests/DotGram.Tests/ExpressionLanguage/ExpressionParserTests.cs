@@ -2580,6 +2580,9 @@ public sealed class ExpressionParserTests
 	[InlineData("\"\" + \"\"\"b\"c\"\"\" + \"\"",                  "b\"c")]
 	[InlineData("\"\"\"a\"\"\"+\"\"+\"\"\"\"b\"\"\"\"",           "ab")]
 	[InlineData("\"x\\\"y\" + \"\"\"x\\\"\"\"",                    "x\"yx\\")]
+	// A plain string with escaped quotes and a backslash before its end is one token read whole,
+	// as long as the automaton reads it, and its text is the escapes' values.
+	[InlineData("\"a\\\\\" + \"b\\\"c\\\"d\" + \"\\\"\"",          "a\\b\"c\"d\"")]
 	[InlineData("\"\"\"\"\"\"a\"\"\"\"\"\" + \"\"\"b\"\"\"",       "ab")]
 	[InlineData("\"\"\"\"\"\"\"a\"\"\"\"\"\"\" + \"b\"",           "ab")]
 	public void A_plain_string_stands_beside_a_raw_one(string text, string expected)

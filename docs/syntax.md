@@ -446,6 +446,15 @@ what to write: `{ }` around the body, a competitor kept from continuing the begi
 both forms in one terminal as alternatives (§7.1). A terminal that begins with nothing an
 automaton reads — a lookahead, say — is refused by name.
 
+Where such a terminal is a choice of forms of which some bind no text — a raw string beside
+a plain one — a token none of the binding forms could have been is not read again: the
+lexer tells, from what each binding form necessarily begins with, that none of them stands
+at the token's start, and the automaton's reading of the plain form stands. That token is
+the plain form's longest match, as every regular token's is; its own rule, read again, would
+give the form's first reading, and the two differ only where that form can stop short of
+its longest reading — the ordinary contract of a token, and the one reason a plain form is
+written so that it cannot.
+
 A publication over a `TextReader` or a stream (§6.3) reads bindings as the string form does,
 bytes included. A reference compares the items where they stand in the buffer, so the buffer
 keeps a binding's text until the rule that bound it is done with it: a binding holds the
