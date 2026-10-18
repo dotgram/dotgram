@@ -2062,7 +2062,6 @@ namespace DotGram.Snapshots
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
-			const Ways? ways = null;
 			internal int unbuilt;
 
 			internal Reader_DotGram_LongString(global::System.ReadOnlySpan<char> text)
@@ -2291,7 +2290,6 @@ namespace DotGram.Snapshots
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
-			const Ways? ways = null;
 			internal int unbuilt;
 
 			internal Reader_DotGram_DollarQuoted(global::System.ReadOnlySpan<char> text)
@@ -2575,7 +2573,6 @@ namespace DotGram.Snapshots
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
-			const Ways? ways = null;
 			internal int unbuilt;
 
 			internal Reader_DotGram_Quoted(global::System.ReadOnlySpan<char> text)
@@ -3850,7 +3847,6 @@ namespace DotGram.Snapshots
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
-			const Ways? ways = null;
 			internal string last0;
 			internal int unbuilt;
 
