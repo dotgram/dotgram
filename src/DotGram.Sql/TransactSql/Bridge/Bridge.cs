@@ -45,18 +45,6 @@ static partial class Bridge
 	[ThreadStatic] static List<string>? recovered;
 
 	/// <summary>
-	/// Whether the statement being carried was read without locations, so that no node knows where it was written and
-	/// no word the old tree drops can be read from the text (<see cref="Cuttable"/>).
-	/// </summary>
-	[ThreadStatic] static bool blind;
-
-	/// <summary>
-	/// Whether a carriage read <see cref="blind"/> asked for a word from the text, so that a located reading would have
-	/// answered something it took the commoner spelling for.
-	/// </summary>
-	[ThreadStatic] static bool wanted;
-
-	/// <summary>
 	/// Whether the new nodes take the spans of the old nodes they are made from: a carriage for
 	/// <c>TransactSqlParser.Located</c>.
 	/// </summary>
@@ -269,9 +257,9 @@ static partial class Bridge
 	}
 
 	/// <summary>
-	/// A conversion on a stack of its own, with this thread's carriage: its text, what it read from it, and whether it
-	/// is blind, wants a word or locates, all taken across and what changed brought back. Called where the stack runs
-	/// low, by <see cref="Convert{T}"/> and by a family's conversion that recurses on itself.
+	/// A conversion on a stack of its own, with this thread's carriage — its text, what it read from it and whether it
+	/// locates — taken across. Called where the stack runs low, by <see cref="Convert{T}"/> and by a family's conversion
+	/// that recurses on itself.
 	/// </summary>
 	static T Deeper<T>(object old, Func<object, T> convert)
 	{
@@ -290,7 +278,6 @@ static partial class Bridge
 			}
 			finally
 			{
-				state.carriage.Wanted = wanted;
 				outer.Restore();
 			}
 		});
@@ -301,21 +288,17 @@ static partial class Bridge
 	}
 
 	/// <summary>The thread-static state of a carriage, taken from one thread to another.</summary>
-	sealed class Carriage(string? source, List<string>? recovered, bool blind, bool wanted, bool locating)
+	sealed class Carriage(string? source, List<string>? recovered, bool locating)
 	{
-		public bool Wanted { get; set; } = wanted;
-
 		public static Carriage Here()
 		{
-			return new Carriage(Bridge.source, Bridge.recovered, Bridge.blind, Bridge.wanted, Bridge.locating);
+			return new Carriage(Bridge.source, Bridge.recovered, Bridge.locating);
 		}
 
 		public void Restore()
 		{
 			Bridge.source    = source;
 			Bridge.recovered = recovered;
-			Bridge.blind     = blind;
-			Bridge.wanted    = Wanted;
 			Bridge.locating  = locating;
 		}
 	}
@@ -362,20 +345,11 @@ static partial class Bridge
 
 	// ── The words the old tree drops ────────────────────────────────────────────
 
-	/// <summary>
-	/// Whether text can be cut at a span: there is a text, and the span says where in it. Where it cannot only
-	/// because the statement was read without locations, the carriage is told it wanted a word (<see cref="wanted"/>).
-	/// </summary>
+	/// <summary>Whether text can be cut at a span: there is a text, and the span says where in it.</summary>
 	[MemberNotNullWhen(true, nameof(source))]
 	static bool Cuttable(SqlSpan span)
 	{
-		if (source is not null && span.Known && !span.IsStale)
-			return true;
-
-		if (blind)
-			wanted = true;
-
-		return false;
+		return source is not null && span.Known && !span.IsStale;
 	}
 
 	/// <summary>

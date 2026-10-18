@@ -145,8 +145,8 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// A word the T-SQL tree does not keep is read from the text through either door: the plain door reads the text
-	/// again with locations for it, so <c>SELECT a b</c> keeps its alias without <c>AS</c>.
+	/// A word the T-SQL tree does not keep is read from the text through either door: both read with locations, at
+	/// which the bridge reads the text, so <c>SELECT a b</c> keeps its alias without <c>AS</c>.
 	/// </summary>
 	[Theory]
 	[InlineData("SELECT a b FROM t", false)]
