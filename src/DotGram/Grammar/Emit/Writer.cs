@@ -114,6 +114,37 @@ sealed class Writer(int depth)
 		return false;
 	}
 
+	/// <summary>
+	/// Whether the text written names <paramref name="name"/> as a word of its own: not as a
+	/// part of a longer identifier. Without materializing a copy of the buffer.
+	/// </summary>
+	public bool Names(string name)
+	{
+		for (var at = 0; at <= _text.Length - name.Length; at++)
+		{
+			var length = 0;
+
+			while (length < name.Length && _text[at + length] == name[length])
+				length++;
+
+			if (length < name.Length)
+				continue;
+
+			var before = at == 0 || !Continues(_text[at - 1]);
+			var after  = at + length == _text.Length || !Continues(_text[at + length]);
+
+			if (before && after)
+				return true;
+		}
+
+		return false;
+
+		static bool Continues(char c)
+		{
+			return char.IsLetterOrDigit(c) || c == '_';
+		}
+	}
+
 	/// <summary>A line written exactly as given, at no indent at all.</summary>
 	/// <remarks>
 	/// For the two things whose column is the point rather than an accident: a `#line`
