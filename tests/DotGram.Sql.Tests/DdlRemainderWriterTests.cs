@@ -92,11 +92,22 @@ public sealed class DdlRemainderWriterTests
 			},
 			"ALTER INDEX paths" => new Statement.AlterIndex(Qualified("t"), new IndexAlteration.Paths([new PathAction.Remove(Name("p2")), new PathAction.Add(new PromotedPath(Name("p1"), Str("/a")))])) { Name = Name("sxi") },
 			"WITH CHANGE_TRACKING_CONTEXT" => new Statement.Select { Query = ((Query.Select)Select()) with { With = new WithClause(false, []) { ChangeTrackingContext = new LiteralValue.Binary("FF") { ZeroX = true } } } },
+			"CREATE TABLE a column set" => Table(Column(new DataType.Xml()) with { Options = [new ColumnOption.Collation(new CollationName(Qualified("x"))), new ColumnOption.ColumnSet()] }),
 			"CREATE MATERIALIZED VIEW" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("ROUND_ROBIN")), Set("FOR_APPEND")] },
 			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
+	}
+
+	static ColumnDefinition Column(DataType type)
+	{
+		return new ColumnDefinition(Name("c"), type, null, [], null);
+	}
+
+	static Statement Table(ColumnDefinition column)
+	{
+		return new Statement.CreateTable { Name = Qualified("t"), Contents = new TableContents.Elements([new TableElement.Column(column)]) };
 	}
 
 	static LiteralValue.String Str(string text)
@@ -132,6 +143,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE JSON INDEX", "CREATE JSON INDEX ix ON t (j) FOR ('$.a') WITH (OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
 	[InlineData("CREATE MATERIALIZED VIEW", "CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = ROUND_ROBIN, FOR_APPEND) AS SELECT a FROM u")]
 	[InlineData("WITH CHANGE_TRACKING_CONTEXT", "WITH CHANGE_TRACKING_CONTEXT (0xFF) SELECT a FROM u")]
+	[InlineData("CREATE TABLE a column set", "CREATE TABLE t (c XML COLLATE x COLUMN_SET FOR ALL_SPARSE_COLUMNS)")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -150,6 +162,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE JSON INDEX")]
 	[InlineData("CREATE MATERIALIZED VIEW")]
 	[InlineData("WITH CHANGE_TRACKING_CONTEXT")]
+	[InlineData("CREATE TABLE a column set")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -194,6 +207,9 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("spatial a grid in brackets that is none")]
 	[InlineData("materialized view a distribution it does not read")]
 	[InlineData("a change tracking context beside namespaces")]
+	[InlineData("a column set after a type with brackets")]
+	[InlineData("a column set after SPARSE")]
+	[InlineData("a column set in the free list")]
 	[InlineData("JSON a path with an escape")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
@@ -263,6 +279,12 @@ public sealed class DdlRemainderWriterTests
 			"materialized view a distribution it does not read" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("RANDOM"))] },
 			// WithClause: CHANGE_TRACKING_CONTEXT or XMLNAMESPACES first, one of them.
 			"a change tracking context beside namespaces" => new Statement.Select { Query = ((Query.Select)Select()) with { With = new WithClause(false, []) { ChangeTrackingContext = Number("1"), XmlNamespaces = [new XmlNamespace(Text("u"), Name("x"))] } } },
+			// Syntax.Tailed: a column set follows a type written with no brackets (VARCHAR (10) takes none).
+			"a column set after a type with brackets" => Table(Column(new DataType.Character(CharacterTypeKind.Varchar, 10)) with { Options = [new ColumnOption.ColumnSet()] }),
+			// Syntax.Tailed: a column set is one of the front's three, never beside SPARSE.
+			"a column set after SPARSE" => Table(Column(new DataType.Xml()) with { Options = [new ColumnOption.Sparse(), new ColumnOption.ColumnSet()] }),
+			// Syntax.Tailed: the front after the free list is Msg 102.
+			"a column set in the free list" => Table(Column(new DataType.Xml()) with { Options = [new ColumnOption.Null(), new ColumnOption.ColumnSet()] }),
 			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
 			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
 			// JsonIndexPath: a plain or national string.
