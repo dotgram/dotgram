@@ -2521,6 +2521,24 @@ public static partial class Sql2023Writer
 			if (name is { Name: not null, Variable: not null })
 				throw Both(name, nameof(name.Name), nameof(name.Variable));
 
+			// T-SQL: TranName's third form, '-'? & Lexical.Digits & ':' & two names: set together, and alone.
+			if (name.Number is not null || name.Qualified is not null)
+			{
+				if (name.Number is not { Kind: NumericLiteralKind.DecimalInteger, Text: var number } || number.TrimStart('-').Length is 0 || number.Length - number.TrimStart('-').Length > 1 || !number.TrimStart('-').All(char.IsDigit))
+					throw Misplaced(name, nameof(name.Number), "other than a whole number with a minus sign or none (TranName)");
+
+				if (name.Qualified is not { Count: 2 } qualified || qualified.Parts.Any(static part => part.Text.Length == 0))
+					throw Misplaced(name, nameof(name.Qualified), "other than a name of two parts, none empty (TranName)");
+
+				if (name.Name is not null || name.Variable is not null)
+					throw Misplaced(name, "Number and Qualified", "beside a Name or a Variable");
+
+				Word(number);
+				Word(":");
+				PutName(qualified);
+				return;
+			}
+
 			if (name.Name is { } named)
 				PutIdentifier(named);
 			else if (name.Variable is { } variable)

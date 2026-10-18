@@ -176,6 +176,8 @@ static class BridgeText
 		// A selective XML index's paths and namespaces, which ALTER INDEX keeps as written.
 		"Statement.AlterIndex.Paths",
 		"Statement.AlterIndex.Namespaces",
+		// A transaction's name of the numbered form, whose blanks the old tree keeps; Placed folds no word of it.
+		"Statement.Transaction.Name",
 	};
 
 	/// <summary>
@@ -346,6 +348,10 @@ static class BridgeText
 
 			case "Expression.WindowFunction.Within":
 				return Text(at - 1) is not ("BY" or ",") || Text(at) == "GRAPH";
+
+			// A transaction's name is a name: its blanks are spelling, its words never key words.
+			case "Statement.Transaction.Name":
+				return false;
 
 			case "Clause.Option.Name" when Text(0) == "ORDER":
 				return Text(at - 1) is not ("," or "(");
