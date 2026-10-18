@@ -1796,7 +1796,12 @@ sealed partial class Machine
 			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
 			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 		{
-			file.Line("object? recognized;");
+			// What a wrapper that does not materialize reads of the engine is the extent alone, so
+			// it declares nothing to be written and not read.
+			var recognized = materialize ? "recognized" : "_";
+
+			if (materialize)
+				file.Line("object? recognized;");
 
 			// The trivia where the reading begins, and then the rule past it: what comes back says
 			// where the value began (§6.3), and the trivia refusing is the trivia reading nothing.
@@ -1804,7 +1809,7 @@ sealed partial class Machine
 			{
 				file.Line(
 					$"var began = {engine}(text, pos, {leadEntry}, -1{enginePower}, " +
-					$"false, true{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out recognized);");
+					$"false, true{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out {recognized});");
 				file.Line();
 				file.Line("if (began < 0) began = pos;");
 				file.Line();
@@ -1819,7 +1824,7 @@ sealed partial class Machine
 
 			file.Line(
 				$"var end = {engine}(text, {(lead is null ? "pos" : "began")}, {entry}, {ValueRule(root)}{enginePower}, " +
-				$"{(whole ? "true" : "false")}, {(materialize ? "true" : "false")}{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, {(materialize ? "true" : "false")}{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out {recognized});");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
