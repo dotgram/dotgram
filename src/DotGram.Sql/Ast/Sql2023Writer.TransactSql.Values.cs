@@ -110,6 +110,11 @@ public static partial class Sql2023Writer
 
 				// T-SQL: DATEADD (Transact-SQL). The word of the table for the part and the spelling.
 				case Expression.DatePart part:
+					// DatePartCall: anywhere else in T-SQL, a variable's method among them, the word reads back as a column.
+					if (transactSql && !datePartArgument)
+						throw Misplaced(part, "DatePart", "other than as the first argument of DATEPART or its kin, where alone the word reads back as a date part (DatePartCall)");
+
+					datePartArgument = false;
 					Word(DatePartWord(part.Kind, part.Spelling) ?? throw Misplaced(part, "Spelling", $"{part.Spelling} on {part.Kind}, which has no such word"));
 					return true;
 
@@ -298,18 +303,19 @@ public static partial class Sql2023Writer
 		/// </summary>
 		/// <summary>
 		/// T-SQL: CONTAINS (Transact-SQL). FullTextColumns' <c>PROPERTY (column, 'property')</c>: the word PROPERTY plain, a
-		/// qualified name with no empty part and a plain or national string, and nothing else of a call.
+		/// TSqlQualifiedName, whose parts may be left out but its last (<c>db..t.c</c>), and a plain or national string, and
+		/// nothing else of a call.
 		/// </summary>
 		static bool IsProperty(Expression.Invocation call)
 		{
 			return call is
 				{
 					Name: [{ Style: IdentifierStyle.Regular, UnicodeEscape: null } called],
-					Arguments: [{ Name: null, NamedAssignment: false, Value: Expression.Reference { Name: var column } }, { Name: null, NamedAssignment: false, Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } }],
+					Arguments: [{ Name: null, NamedAssignment: false, Value: Expression.Reference { Name: [.., { Text.Length: > 0 }] } }, { Name: null, NamedAssignment: false, Value: LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } }],
 					Quantifier: null, OrderBy: null, Overflow: null, From: null, Nulls: null, Semantics: null, Filter: null, Over: null, WithinGroup: null, Copartition: null,
 					WithoutParentheses: false, GraphPath: false,
 				}
-				&& Plain(called, "PROPERTY") && column.Count > 0 && column.Parts.All(static part => part.Text.Length > 0);
+				&& Plain(called, "PROPERTY");
 		}
 
 		void PutFullTextPredicate(Expression.FullTextPredicate predicate)

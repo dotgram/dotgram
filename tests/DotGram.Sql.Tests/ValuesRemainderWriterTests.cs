@@ -72,6 +72,7 @@ public sealed class ValuesRemainderWriterTests
 			"DATEPART of a string" => Dated(new LiteralValue.String("'year'", StringLiteralKind.National)),
 			"a variable's method named as a built-in" => From(new TableSource.Function(new Expression.Invocation(Qualified("DATEPART"), [new Argument(Ref("foo")), new Argument(Ref("x"))])) { Variable = Name("@v") }),
 			"embeddings of a model named PARAMETERS" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.AiGenerateEmbeddings(Text("x"), Qualified("PARAMETERS")))] } },
+			"FREETEXT of a property with a part left out" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("a"))], From = new FromClause([new TableSource.Named(Qualified("t"))]), Where = new Expression.FullTextPredicate(FullTextPredicateKind.FreeText, [new Expression.Invocation(Qualified("PROPERTY"), [new Argument(new Expression.Reference(new QualifiedName([Name("db"), Name(""), Name("t"), Name("c")]))), new Argument(Text("Title"))])], Text("x")) } },
 			"CONTAINS of a property" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Property(Text("Title"))], Text("x"))),
 			"CONTAINS" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b"), Ref("c")], Text("x")) { ColumnsBracketed = true, Language = Number("1033") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
@@ -128,6 +129,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("a variable's method named as a built-in", "SELECT c1 FROM @v.DATEPART(foo, x)")]
 	[InlineData("embeddings of a model named PARAMETERS", "SELECT AI_GENERATE_EMBEDDINGS('x' USE MODEL PARAMETERS)")]
 	[InlineData("CONTAINS of a property", "SELECT a FROM t WHERE CONTAINS(PROPERTY(c, 'Title'), 'x')")]
+	[InlineData("FREETEXT of a property with a part left out", "SELECT a FROM t WHERE FREETEXT(PROPERTY(db..t.c, 'Title'), 'x')")]
 	[InlineData("AI_GENERATE_CHUNKS", "SELECT * FROM AI_GENERATE_CHUNKS(SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, OVERLAP = 1) AS c")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
@@ -150,6 +152,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("a variable's method named as a built-in")]
 	[InlineData("embeddings of a model named PARAMETERS")]
 	[InlineData("CONTAINS of a property")]
+	[InlineData("FREETEXT of a property with a part left out")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -193,6 +196,9 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("CONTAINS of a property with DISTINCT")]
 	[InlineData("CONTAINS of another call")]
 	[InlineData("a variable's method with OVER")]
+	[InlineData("a variable's method of a date part")]
+	[InlineData("a date part outside a call")]
+	[InlineData("CONTAINS of a property whose last part is left out")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -258,6 +264,11 @@ public sealed class ValuesRemainderWriterTests
 			"CONTAINS of another call" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [new Expression.Invocation(Qualified("f"), [new Argument(Ref("c")), new Argument(Text("Title"))])], Text("x"))),
 			// VariableSource: '.' & TSqlIdentifier & '(' & Arguments? & ')', nothing after the bracket.
 			"a variable's method with OVER" => From(new TableSource.Function(new Expression.Invocation(Qualified("f"), []) { Over = new WindowReference.NameRef(Name("w")) }) { Variable = Name("@v") }),
+			// DatePartCall: a date part's word reads back as one only first in DATEPART or its kin; a method's argument is a value.
+			"a variable's method of a date part" => From(new TableSource.Function(new Expression.Invocation(Qualified("DATEPART"), [new Argument(new Expression.DatePart(DatePartKind.Year)), new Argument(Ref("x"))])) { Variable = Name("@v") }),
+			"a date part outside a call" => Where(new Expression.Comparison(new Expression.DatePart(DatePartKind.Year), ComparisonOperator.Equal, Number("1"))),
+			// TSqlQualifiedName: a part may be left out, its last never.
+			"CONTAINS of a property whose last part is left out" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [new Expression.Invocation(Qualified("PROPERTY"), [new Argument(new Expression.Reference(new QualifiedName([Name("t"), Name("")]))), new Argument(Text("Title"))])], Text("x"))),
 			"a number with no name" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};

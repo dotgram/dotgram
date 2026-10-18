@@ -645,7 +645,8 @@ static partial class Bridge
 		/// </summary>
 		static Ast.Expression Embeddings(Expression.RoutineInvocation old, Expression source, string words)
 		{
-			var tokens = SqlTokens.Of(words);
+			var located = SqlTokens.Located(words);
+			var tokens  = located.ConvertAll(static one => one.Token);
 
 			if (tokens is not [{ Kind: SqlTokens.Kind.Word, Text: var use }, { Kind: SqlTokens.Kind.Word, Text: var model }, _, ..]
 				|| !use.Equals("USE", StringComparison.OrdinalIgnoreCase) || !model.Equals("MODEL", StringComparison.OrdinalIgnoreCase))
@@ -675,7 +676,8 @@ static partial class Bridge
 
 			if (parameters >= 0)
 			{
-				var at   = words.IndexOf(tokens[parameters].Text, words.IndexOf(tokens[parameters - 1].Text, StringComparison.Ordinal) + tokens[parameters - 1].Text.Length, StringComparison.Ordinal);
+				// The keyword's own place in the text, not the first token spelled as it is (`PARAMETERS.PARAMETERS`).
+				var at   = located[parameters].At;
 				var read = TransactSql.TransactSqlParser.TryParseSql("SELECT " + words[(at + "PARAMETERS".Length)..]);
 
 				given = read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }

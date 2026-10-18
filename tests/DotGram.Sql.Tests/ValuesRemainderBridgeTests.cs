@@ -48,6 +48,8 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('x' USE MODEL PARAMETERS)", "embeddings of a model named PARAMETERS")]
 	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('x' USE MODEL PARAMETERS PARAMETERS p)", "embeddings of a model named PARAMETERS with parameters")]
 	[InlineData("SELECT a FROM t WHERE CONTAINS (PROPERTY (c, 'Title'), 'x')", "CONTAINS of a property")]
+	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('x' USE MODEL PARAMETERS.PARAMETERS PARAMETERS (1))", "embeddings of a model PARAMETERS.PARAMETERS with parameters")]
+	[InlineData("SELECT a FROM t WHERE FREETEXT (PROPERTY (db..t.c, 'Title'), 'x')", "FREETEXT of a property with a part left out")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -86,6 +88,8 @@ public sealed class ValuesRemainderBridgeTests
 			"embeddings of a model named PARAMETERS" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Model: [{ Text: "PARAMETERS" }], Parameters: null } }] } },
 			"embeddings of a model named PARAMETERS with parameters" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Model: [{ Text: "PARAMETERS" }], Parameters: Ast.Expression.Reference } }] } },
 			"CONTAINS of a property" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.FullTextPredicate { Columns: [Ast.Expression.Invocation { Name: [{ Text: "PROPERTY" }], Arguments.Count: 2 }], ColumnsBracketed: false } } },
+			"embeddings of a model PARAMETERS.PARAMETERS with parameters" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Model: [{ Text: "PARAMETERS" }, { Text: "PARAMETERS" }], Parameters: Ast.Expression.Parenthesized { Value: Ast.LiteralValue.Numeric } } }] } },
+			"FREETEXT of a property with a part left out" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.FullTextPredicate { Kind: Ast.FullTextPredicateKind.FreeText, Columns: [Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.Reference { Name: [{ Text: "db" }, { Text: "" }, { Text: "t" }, { Text: "c" }] } }, _] }] } } },
 			_ => false,
 		};
 

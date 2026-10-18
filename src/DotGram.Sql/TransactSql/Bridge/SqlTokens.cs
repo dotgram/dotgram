@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DotGram.Sql.TransactSql;
 
@@ -17,6 +18,12 @@ static class SqlTokens
 
 	public static List<Token> Of(string text)
 	{
+		return [.. Scan(text, 0).Select(static one => one.Token)];
+	}
+
+	/// <summary>The tokens of a text, each with where it starts in the text.</summary>
+	public static List<(Token Token, int At)> Located(string text)
+	{
 		return [.. Scan(text, 0)];
 	}
 
@@ -26,13 +33,13 @@ static class SqlTokens
 	/// </summary>
 	public static Token? First(string text, int from)
 	{
-		foreach (var token in Scan(text, from))
+		foreach (var (token, _) in Scan(text, from))
 			return token;
 
 		return null;
 	}
 
-	static IEnumerable<Token> Scan(string text, int at)
+	static IEnumerable<(Token Token, int At)> Scan(string text, int at)
 	{
 		while (at < text.Length)
 		{
@@ -65,7 +72,7 @@ static class SqlTokens
 			if (c is '[' or '"')
 			{
 				at = Closed(text, at, c == '[' ? ']' : '"');
-				yield return new Token(Kind.Delimited, text[start..at]);
+				yield return (new Token(Kind.Delimited, text[start..at]), start);
 
 				continue;
 			}
@@ -74,7 +81,7 @@ static class SqlTokens
 			if (c == '\'' || c is 'N' or 'n' && At(text, at + 1) == '\'')
 			{
 				at = Closed(text, c == '\'' ? at : at + 1, '\'');
-				yield return new Token(Kind.String, text[start..at]);
+				yield return (new Token(Kind.String, text[start..at]), start);
 
 				continue;
 			}
@@ -84,7 +91,7 @@ static class SqlTokens
 				while (at < text.Length && (char.IsLetterOrDigit(text[at]) || text[at] == '.'))
 					at++;
 
-				yield return new Token(Kind.Number, text[start..at]);
+				yield return (new Token(Kind.Number, text[start..at]), start);
 
 				continue;
 			}
@@ -94,12 +101,12 @@ static class SqlTokens
 				while (at < text.Length && (char.IsLetterOrDigit(text[at]) || text[at] is '_' or '@' or '#' or '$'))
 					at++;
 
-				yield return new Token(Kind.Word, text[start..at]);
+				yield return (new Token(Kind.Word, text[start..at]), start);
 
 				continue;
 			}
 
-			yield return new Token(Kind.Punctuation, c.ToString());
+			yield return (new Token(Kind.Punctuation, c.ToString()), start);
 			at++;
 		}
 

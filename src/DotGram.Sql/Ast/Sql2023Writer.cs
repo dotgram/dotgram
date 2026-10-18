@@ -75,6 +75,12 @@ public static partial class Sql2023Writer
 		/// </summary>
 		bool adding;
 
+		/// <summary>
+		/// Whether the expression written is the first argument of DATEPART or its kin, the one place a date part's word
+		/// reads back as Expression.DatePart.
+		/// </summary>
+		bool datePartArgument;
+
 		/// <summary>Whether the select list written is a SELECT … INTO's, the one list IDENTITY (…) stands in.</summary>
 		bool into;
 
@@ -2459,7 +2465,9 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutInvocation(Expression.Invocation invocation, bool anyWord)
 		{
-			if (transactSql && !invocation.WithoutParentheses && invocation.Name is [{ Style: IdentifierStyle.Regular, UnicodeEscape: null } dated] && Syntax.IsDatePartFunction(dated.Text))
+			var dates = transactSql && !invocation.WithoutParentheses && invocation.Name is [{ Style: IdentifierStyle.Regular, UnicodeEscape: null } dated] && Syntax.IsDatePartFunction(dated.Text);
+
+			if (dates)
 				CheckDatePart(invocation);
 
 			PutSemantics(invocation.Semantics);
@@ -2481,6 +2489,8 @@ public static partial class Sql2023Writer
 					condition = iif && transactSql;
 					iif = false;
 					listArgument = lists;
+					datePartArgument = dates && argument.Value is Expression.DatePart;
+					dates = false;
 					PutArgument(argument);
 				});
 
