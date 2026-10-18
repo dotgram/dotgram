@@ -280,4 +280,70 @@ public sealed class GeneratedShapeTests
 			EmittedCode.Compile(text);
 		}
 	}
+
+	/// <summary>
+	/// A reader that keeps no tape of ways back declares the constant that stands in for one
+	/// only where it names it. A number joined with <c>~</c> leaves nothing to give back, and
+	/// its reader carried the constant with nothing reading it (IDE0051).
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Ways))]
+	public void A_reader_with_no_tape_declares_none_it_does_not_name(CarrierKind carrier, bool direct)
+	{
+		foreach (var grammar in new[]
+		{
+			"Start = ['0'..'9']+ ~ ('.' & ['0'..'9']+)?\nparse Start",
+			// The JSON example's shape: values in lists, and a number joined with `~`.
+			"""
+			namespace Lexical
+			{
+				trivia = none
+
+				Digits   = ['0'..'9']+
+				Fraction = '.' & Digits
+				Body     = [^ '"']*
+			}
+
+			trivia = [' ' | '\n']*
+
+			List(item, sep) : item[] = item & (sep & item)*
+
+			Json   : @object = value: Value & eof => @(value)
+			Value  : @object = value: Object => @(value)
+			                 | value: Array  => @(value)
+			                 | text:  Text   => @(text)
+			                 | value: Number => @(value)
+			                 | "null"        => @(null!)
+			Object : @object = '{' & members: List(Member, ',') & '}' => @(members)
+			                 | '{' & '}'                              => @(null!)
+			Array  : @object = '[' & items: List(Value, ',') & ']'    => @(items)
+			                 | '[' & ']'                              => @(null!)
+			Member : @object = name: Text & ':' & value: Value => @(value)
+			Text   : @object = '"' ~ body: Lexical.Body ~ '"' => @(body)
+			Number : @object = digits: Lexical.Digits ~ fraction: Lexical.Fraction? => @(digits + fraction)
+
+			parse Json
+			""",
+		})
+		{
+			var result = GramCompiler.Compile(
+				grammar,
+				new GramCompilerOptions
+				{
+					ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Carrier = carrier, Direct = direct,
+				});
+
+			EmittedCode.Quiet(result.Diagnostics);
+
+			var text = result.Sources[0].Text;
+
+			foreach (Match reader in Regex.Matches(text, @"ref struct Reader_DotGram\w*\r?\n(\t*)\{(?s:.*?)\n\1\}"))
+				if (reader.Value.Contains("ways = null;", StringComparison.Ordinal))
+					Assert.True(
+						Regex.Matches(reader.Value, @"\bways\b").Count > 1,
+						$"The reader declares a constant for a tape it never names:\n\n{reader.Value}");
+
+			EmittedCode.Compile(text);
+		}
+	}
 }

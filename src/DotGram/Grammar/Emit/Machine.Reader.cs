@@ -1392,7 +1392,13 @@ sealed partial class Machine
 				}
 			}
 
-			header.Line(_readerWays ? $"readonly {WaysType} ways;" : $"const {WaysType}? ways = null;");
+			// Where the reader keeps no tape, a constant stands in for it on the paths that ask
+			// whether there is one — written once the rest is, and only where something asks: a
+			// reader that never names it carried a member nothing read (IDE0051).
+			var waysAt = header.Length;
+
+			if (_readerWays)
+				header.Line($"readonly {WaysType} ways;");
 
 			if (Memoises)
 				MemoFields(header);
@@ -1466,6 +1472,9 @@ sealed partial class Machine
 			header.Line();
 			if (Carrier.ReaderMethods is { Length: > 0 } methods)
 				header.Write(methods);
+
+			if (!_readerWays && (file.Names("ways") || header.Names("ways")))
+				header.InsertLine(waysAt, $"const {WaysType}? ways = null;");
 		}
 
 		file.Prepend(header);
