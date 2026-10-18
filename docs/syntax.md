@@ -1042,9 +1042,11 @@ specialization is made before anything runs, and a captured value exists only wh
 does. Pass a literal, or capture the thing and hand it to the `=>`.
 
 A recognizer parameter never becomes a delegate — specialization means calling it
-costs exactly what calling the rule directly costs. A recursive parameterized call
-that would spawn an unbounded number of specializations is rejected when the grammar
-is built.
+costs exactly what calling the rule directly costs. For the same reason a parameterized
+rule's name alone is no rule: `Std.Nested` without its arguments is refused where it is
+written (`GRAM4013`), as a call with the wrong number of them is. A recursive
+parameterized call that would spawn an unbounded number of specializations is rejected
+when the grammar is built.
 
 ### 4.3 Precedence and associativity
 

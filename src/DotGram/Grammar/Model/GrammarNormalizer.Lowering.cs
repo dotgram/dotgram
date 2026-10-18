@@ -238,6 +238,20 @@ public sealed partial class GrammarNormalizer
 			return Node.Empty.Instance;
 		}
 
+		// §4.2: a parameterized rule is a rule only once a call gives it its arguments, and its
+		// name alone is no call. Left alone it went on as a call to the template, which has no
+		// body, and the compiler failed with an exception rather than telling the grammar.
+		if (symbol is RuleSymbol { Declaration.Params.Count: > 0 and var count })
+		{
+			Report(
+				UnbuiltCall,
+				$"'{name}' takes {count} {(count == 1 ? "parameter" : "parameters")} and is named here " +
+				$"without arguments. Call it with them, '{name}(...)' (docs/syntax.md §4.2).",
+				expression.At);
+
+			return Node.Empty.Instance;
+		}
+
 		if (symbol is RuleSymbol rule)
 			return CallTo(rule.IsBuiltIn && rule.Name == "word" ? WordFor(ns, expression) : rule, []);
 
@@ -547,7 +561,7 @@ public sealed partial class GrammarNormalizer
 		if (rule.Declaration is not { Params.Count: > 0 })
 			return CallTo(rule, [.. arguments.Select(argument => Lower(argument, ns))]);
 
-		var call = Specialize(rule, arguments, ns);
+		var call = Specialize(rule, arguments, ns, at);
 
 		// Std.Nested is read with a counter wherever a scanner or a lexer reads it, and a
 		// counter needs to know which delimiter stands where it stops (NestedPair). Said where
@@ -639,7 +653,7 @@ public sealed partial class GrammarNormalizer
 	/// recognizer, and the machine's own recursion check sees a cycle where there is one.
 	/// </para>
 	/// </remarks>
-	Node Specialize(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarNamespace ns)
+	Node Specialize(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarNamespace ns, Location at)
 	{
 		var declaration = rule.Declaration!;
 
@@ -668,7 +682,7 @@ public sealed partial class GrammarNormalizer
 				$"'{rule.Name}' takes {declaration.Params.Count} " +
 				$"{(declaration.Params.Count == 1 ? "parameter" : "parameters")} and is given " +
 				$"{arguments.Count}.",
-				declaration.At);
+				at);
 
 			return Node.Empty.Instance;
 		}
