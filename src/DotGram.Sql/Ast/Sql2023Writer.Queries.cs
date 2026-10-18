@@ -1071,6 +1071,8 @@ public static partial class Sql2023Writer
 
 						Word(join.Kind == JoinKind.CrossApply ? "CROSS APPLY" : "OUTER APPLY");
 					}
+					else if (join.Kind == JoinKind.Union)
+						PutUnionJoin(join);
 					else
 					{
 						// T-SQL: Join hints (Transact-SQL). A hint stands inside a join type, and without one would be

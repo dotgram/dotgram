@@ -359,6 +359,23 @@ public sealed class TransactSqlTests
 		Assert.False(TransactSqlParser.TryParseSelect(input).IsSuccess, input);
 	}
 
+	/// <summary>The T-SQL forms that look like the refused standard ones are read.</summary>
+	[Theory]
+	[InlineData("SELECT CURRENT_DATE")]
+	[InlineData("SELECT CURRENT_TIMESTAMP")]
+	[InlineData("SELECT TRANSLATE('abc', 'a', 'b')")]
+	[InlineData("SELECT CONVERT(varchar(10), a) FROM t")]
+	[InlineData("SELECT CONVERT(varchar(10), a, 101) FROM t")]
+	[InlineData("SELECT SUBSTRING('abcdef', 2, 3)")]
+	// Inside an ODBC escape the engine reads the standard's EXTRACT and a bare CURRENT_TIME.
+	[InlineData("SELECT {fn EXTRACT(HOUR FROM GETDATE())}")]
+	[InlineData("SELECT {fn CURRENT_TIME}")]
+	[InlineData("SELECT {fn CURRENT_TIME(3)}")]
+	public void The_tsql_look_alikes_of_refused_standard_forms_are_read(string input)
+	{
+		Assert.True(TransactSqlParser.TryParseSelect(input).IsSuccess, input);
+	}
+
 	/// <summary>What the engine refuses, this refuses too.</summary>
 	/// <remarks>
 	/// <para>
@@ -394,6 +411,18 @@ public sealed class TransactSqlTests
 	// A list of columns standing as one grouping is read inside ROLLUP, CUBE and GROUPING SETS
 	// and nowhere else: at the top of the clause the server answers Msg 102 at the comma.
 	[InlineData("SELECT c1 FROM t1 GROUP BY (c1, c2)")]
+	// The standard's own spellings of functions T-SQL has under other shapes: the engine answers
+	// Msg 195 for EXTRACT, 156 for SUBSTRING ... FOR, and 102 for the rest, at every compatibility level.
+	[InlineData("SELECT EXTRACT(YEAR FROM d) FROM t")]
+	[InlineData("SELECT POSITION('a' IN 'cat')")]
+	[InlineData("SELECT SUBSTRING('abcdef' FROM 2 FOR 3)")]
+	[InlineData("SELECT CONVERT('abc' USING utf8)")]
+	[InlineData("SELECT TRANSLATE('abc' USING utf8)")]
+	[InlineData("SELECT CURRENT_TIME")]
+	[InlineData("SELECT CURRENT_TIME(3)")]
+	[InlineData("SELECT CURRENT_TIMESTAMP(3)")]
+	[InlineData("SELECT {fn POSITION('a' IN 'cat')}")]
+	[InlineData("SELECT {fn SUBSTRING('abcdef' FROM 2 FOR 3)}")]
 	public void What_the_engine_refuses_this_refuses_too(string input)
 	{
 		Assert.False(TransactSqlParser.TryParseSelect(input).IsSuccess, input);

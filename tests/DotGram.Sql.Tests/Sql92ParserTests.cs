@@ -1,11 +1,19 @@
 ﻿using System;
 
-using DotGram.Sql;
+using System.Linq;
+
+using DotGram.Sql.Ast;
 using DotGram.Sql.Standard;
 
 using Xunit;
 
 namespace DotGram.Sql.Tests;
+
+// Inside the namespace, where they are asked before DotGram.Sql's own Expression, Query and Statement: the
+// tree of DotGram.Sql.Ast is the one this parser builds.
+using Expression = DotGram.Sql.Ast.Expression;
+using Query = DotGram.Sql.Ast.Query;
+using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
 /// The SQL-92 expression parser, read.
@@ -17,10 +25,11 @@ namespace DotGram.Sql.Tests;
 /// only that it compiled. A parser that nothing reads with is a parser nothing knows about.
 /// </para>
 /// <para>
-/// Verdicts and not values — the grammar builds none, and what it is for is answering
-/// whether a string is a <c>&lt;search condition&gt;</c>. The inputs are the corpus the
-/// split was measured against, so the two say the same thing about the same strings and
-/// this one says it where CI can hear.
+/// Verdicts first: the inputs are the corpus the split was measured against, so the two say
+/// the same thing about the same strings and this one says it where CI can hear. What a
+/// reading builds is the tree of DotGram.Sql.Ast, the one <see cref="SqlStandardParser"/>
+/// builds, and <see cref="Sql92TreeTests"/> holds the two to each other; the theories below
+/// that look at a tree ask what SQL-92 alone has to say about it.
 /// </para>
 /// </remarks>
 public sealed class Sql92ParserTests
@@ -76,7 +85,7 @@ public sealed class Sql92ParserTests
 	[InlineData("TABLE t")]
 	[InlineData("(SELECT a FROM t)")]
 	// §6.11 <character factor>: a collate clause says how a value is compared rather than
-	// what it is, so it is read and dropped. Found by ScriptDom's corpus (`--corpus`).
+	// what it is, and is kept on the value it follows. Found by ScriptDom's corpus (`--corpus`).
 	[InlineData("SELECT a COLLATE SQL_Latin1_General_CP1_CI_AS FROM t")]
 	[InlineData("SELECT a FROM t WHERE b COLLATE X = c")]
 	public void A_query_reads(string input)
@@ -90,14 +99,18 @@ public sealed class Sql92ParserTests
 	{
 		var query = Selected("SELECT DISTINCT a, t.* FROM u AS t WHERE a > 1");
 
-		Assert.Equal("DISTINCT", query.Quantifier);
+		Assert.Equal(SetQuantifier.Distinct, query.Quantifier);
 		Assert.Equal(2, query.Columns.Length);
-		Assert.Equal("t", Assert.IsType<Clause.QualifiedAsterisk>(query.Columns[1]).Qualifier);
 
-		var source = Assert.IsType<TableReference.Named>(Assert.Single(query.From));
+		var all = Assert.IsType<SelectColumn.QualifiedAll>(query.Columns[1]);
 
-		Assert.Equal("u", source.Table);
-		Assert.Equal("t", source.Name);
+		Assert.Equal("t", Assert.Single(Assert.IsType<Expression.Reference>(all.Qualifier).Name.Parts).Text);
+
+		var source = Assert.IsType<TableSource.Named>(Assert.Single(query.From!.Sources));
+
+		Assert.Equal("u", Assert.Single(source.Name.Parts).Text);
+		Assert.Equal("t", source.Alias!.Name.Text);
+		Assert.True(source.Alias.AsKeyword);
 		Assert.NotNull(query.Where);
 		Assert.Null(query.GroupBy);
 		Assert.Null(query.Having);
@@ -105,7 +118,7 @@ public sealed class Sql92ParserTests
 
 	/// <summary>A join says which it is and what it joins on.</summary>
 	/// <remarks>
-	/// A bare <c>JOIN</c> is <see cref="SqlJoin.Unspecified"/> and not <c>Inner</c>: it
+	/// A bare <c>JOIN</c> has no <see cref="TableSource.Join.Kind"/> and not <c>Inner</c>: it
 	/// means an inner join, and meaning it is not the parser's to say.
 	/// </remarks>
 	[Theory]
@@ -120,40 +133,48 @@ public sealed class Sql92ParserTests
 		string input, string kind, bool natural, bool on, bool over)
 	{
 		var query = Selected(input);
-		var join  = Assert.IsType<TableReference.Joined>(Assert.Single(query.From));
+		var join  = Assert.IsType<TableSource.Join>(Assert.Single(query.From!.Sources));
 
-		Assert.Equal(kind, join.Kind.ToString());
+		Assert.Equal(kind, join.Kind?.ToString() ?? "Unspecified");
 		Assert.Equal(natural, join.Natural);
-		Assert.Equal(on, join.On is not null);
-		Assert.Equal(over, join.Using is not null);
+		Assert.Equal(on, join.Specification is JoinSpecification.On);
+		Assert.Equal(over, join.Specification is JoinSpecification.Using);
 	}
 
 	/// <summary>
 	/// And the set operators group as §7.10 says: <c>INTERSECT</c> tighter than the two
 	/// beside it, and all three to the left.
 	/// </summary>
+	/// <remarks>
+	/// A query keeps the operations after it as a list, read from the left, so a run of one
+	/// strength is one list; an operand that binds tighter is a query with a list of its own,
+	/// written in brackets here.
+	/// </remarks>
 	[Theory]
-	[InlineData("SELECT a FROM t UNION SELECT b FROM u INTERSECT SELECT c FROM v", "Union", "Intersect")]
-	[InlineData("SELECT a FROM t INTERSECT SELECT b FROM u UNION SELECT c FROM v", "Union", "Intersect")]
-	[InlineData("SELECT a FROM t UNION SELECT b FROM u EXCEPT SELECT c FROM v",    "Except", "Union")]
-	public void Set_operators_group_as_the_standard_says(string input, string outer, string inner)
+	[InlineData("SELECT a FROM t UNION SELECT b FROM u INTERSECT SELECT c FROM v", "t Union (u Intersect v)")]
+	[InlineData("SELECT a FROM t INTERSECT SELECT b FROM u UNION SELECT c FROM v", "t Intersect u Union v")]
+	[InlineData("SELECT a FROM t UNION SELECT b FROM u EXCEPT SELECT c FROM v",    "t Union u Except v")]
+	public void Set_operators_group_as_the_standard_says(string input, string shape)
 	{
 		var read = Sql92Parser.TryParseQuery(input).Value!;
 
-		Assert.Equal(outer, read.GetType().Name);
-		Assert.Contains(inner, Sides(read).Select(static one => one.GetType().Name));
+		Assert.Equal(shape, Operands(read));
 	}
 
-	/// <summary>The two operands of a set operator, and nothing for anything else.</summary>
-	static Query[] Sides(Query query)
+	/// <summary>A query's table and the operations after it, an operand with operations of its own in brackets.</summary>
+	static string Operands(Query query)
 	{
-		return query switch
+		var select = Assert.IsType<Query.Select>(query);
+		var shape  = Assert.Single(Assert.IsType<TableSource.Named>(Assert.Single(select.From!.Sources)).Name.Parts).Text;
+
+		foreach (var operation in query.SetOperations)
 		{
-			Query.Union(var left, var right, _) => [left, right],
-			Query.Except(var left, var right, _) => [left, right],
-			Query.Intersect(var left, var right, _) => [left, right],
-			_ => [],
-		};
+			var operand = Operands(operation.Query);
+
+			shape += $" {operation.Operator} " + (operation.Query.SetOperations.Count > 0 ? $"({operand})" : operand);
+		}
+
+		return shape;
 	}
 
 	/// <summary>A subquery is a query now, and no longer the text between brackets.</summary>
@@ -161,21 +182,21 @@ public sealed class Sql92ParserTests
 	public void A_subquery_is_read_rather_than_kept()
 	{
 		var query  = Selected("SELECT a FROM (SELECT b FROM u) AS d (c)");
-		var source = Assert.IsType<TableReference.Derived>(Assert.Single(query.From));
+		var source = Assert.IsType<TableSource.Subquery>(Assert.Single(query.From!.Sources));
 
-		Assert.Equal("d", source.Name);
-		Assert.Equal(new[] { "c" }, source.Columns);
+		Assert.Equal("d", source.Alias!.Name.Text);
+		Assert.Equal(new[] { "c" }, source.Alias.Columns!.Value.Select(static one => one.Text));
 
-		var inner = Assert.IsType<Query.Specification>(source.Query);
+		var inner = Assert.IsType<Query.Select>(source.Query);
 
-		Assert.Equal("u", Assert.IsType<TableReference.Named>(Assert.Single(inner.From)).Table);
+		Assert.Equal("u", Assert.Single(Assert.IsType<TableSource.Named>(Assert.Single(inner.From!.Sources)).Name.Parts).Text);
 	}
 
 	/// <summary>What the standard read, where it was a query specification.</summary>
-	static Query.Specification Selected(string input)
+	static Query.Select Selected(string input)
 	{
-		return Assert.IsType<Query.Specification>(
-			Assert.IsType<Statement.Select>(Sql92Parser.TryParseSelect(input).Value).Of);
+		return Assert.IsType<Query.Select>(
+			Assert.IsType<Statement.Select>(Sql92Parser.TryParseSelect(input).Value).Query);
 	}
 
 	/// <summary>
@@ -210,18 +231,14 @@ public sealed class Sql92ParserTests
 	{
 		return node switch
 		{
-			Expression.Add(var left, var right) => $"({Shape(left)} Add {Shape(right)})",
-			Expression.Subtract(var left, var right) => $"({Shape(left)} Subtract {Shape(right)})",
-			Expression.Multiply(var left, var right) => $"({Shape(left)} Multiply {Shape(right)})",
-			Expression.Divide(var left, var right) => $"({Shape(left)} Divide {Shape(right)})",
-			Expression.Concatenate(var left, var right) => $"({Shape(left)} Concatenate {Shape(right)})",
-			Expression.Negate(var operand) => $"(Negate {Shape(operand)})",
-			Expression.Plus(var operand) => $"(Identity {Shape(operand)})",
+			Expression.Binary(var left, var op, var right) => $"({Shape(left)} {op} {Shape(right)})",
+			Expression.Unary(UnaryOperator.Minus, var operand) => $"(Negate {Shape(operand)})",
+			Expression.Unary(UnaryOperator.Plus, var operand) => $"(Identity {Shape(operand)})",
 			// The brackets somebody wrote are looked through: this test is about how the
 			// operators group, and a bracket that changed the grouping is already a node.
 			Expression.Parenthesized(var inner) => Shape(inner),
-			Expression.ColumnReference(var text) => text,
-			Expression.Literal(_, var text) => text,
+			Expression.Reference(var name) => string.Join(".", name.Parts.Select(static one => one.Text)),
+			LiteralValue.Numeric(var text, _) => text,
 			_ => node.GetType().Name,
 		};
 	}
@@ -231,14 +248,16 @@ public sealed class Sql92ParserTests
 	/// </summary>
 	/// <remarks>
 	/// §5.2 is a list of what an identifier may <em>not</em> be, and everything outside it is
-	/// fair game — <c>zone</c> is a word of SQL-92, from <c>WITH TIME ZONE</c>, and a column
-	/// may be called it. This is the case that the split got wrong first: over tokens the
-	/// word arrives as its own kind and never reaches the identifier rule unless the kind
-	/// says it is one too.
+	/// fair game: <c>name</c> is a name, where <c>names</c> is a reserved word of the statement
+	/// level. <c>zone</c>, <c>year</c> and <c>month</c> are reserved too, though a column was once
+	/// let be called them here — the case the split got wrong first, over tokens, where the word
+	/// arrives as its own kind.
 	/// </remarks>
 	[Theory]
-	[InlineData("zone = 1",       true)]
-	[InlineData("year > month",   true)]
+	[InlineData("name = 1",       true)]
+	[InlineData("names = 1",      false)]
+	[InlineData("zone = 1",       false)]
+	[InlineData("year > month",   false)]
 	[InlineData("having = 1",     false)]
 	[InlineData("select = 1",     false)]
 	[InlineData("\"select\" = 1", true)]

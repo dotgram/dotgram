@@ -39,31 +39,39 @@ namespace DotGram.Sql.Standard;
 /// here, which is what every implementation does.
 /// </para>
 /// <para>
-/// What it reads it builds as the expressions of the one tree in <c>SqlSyntax.cs</c> —
-/// <c>Expression.Or</c>, <c>Expression.And</c> and the rest — which is what T-SQL, including
-/// this grammar, builds its statements on (docs/ast.md).
+/// <b>What it reads it builds as the tree of <c>DotGram.Sql.Ast</c></b>, the one
+/// <see cref="SqlStandardParser"/> builds, and in the shape that parser gives the same text: the same
+/// records, members, list order, identifier styles, folds and brackets, so a text both read is one
+/// tree, and <c>Sql2023Writer</c> prints it back. <c>ParseSelect</c> gives a <c>Statement.Select</c>,
+/// <c>ParseQuery</c> a <c>Query</c>, and <c>ParseSearchCondition</c> and <c>ParseValueExpression</c> an
+/// <c>Expression</c>. What SQL-92 has and SQL:2003 took out — a bit string literal, <c>BIT</c> and
+/// <c>BIT VARYING</c>, a union join — is SQL-92's own in that tree (<c>Ast/SqlAst.Sql92.cs</c>). An interval
+/// qualifier is read as §10.1 writes it, and a length, precision or scale the tree holds as an <c>int</c> is
+/// no larger than one (a <c>CURRENT_TIME</c> precision is a literal, and keeps its digits): what SQL-92 does
+/// not say is refused, and nothing it reads is left without a record. Its reserved words are §5.2's, all
+/// of them, so a field's word after a value is an interval primary (§6.15) and never a name.
 /// </para>
 /// <para>
 /// <b>Temporary.</b> The standard's parser is <c>SqlStandardParser</c>, written from SQL:2023 down
-/// through the earlier editions (docs/design/sql-parsers.md). This one stays while T-SQL still
-/// includes it and the benchmarks hold it against a hand-written recognizer, and goes when neither does.
+/// through the earlier editions (docs/design/sql-parsers.md). This one stays while the benchmarks
+/// hold it against a hand-written recognizer, and goes when they do not; T-SQL no longer includes it.
 /// </para>
 /// <para>
 /// <b>It is carried immediately, by name.</b> A node is built the moment its rule has been read, and
-/// nothing is recorded on a tape and replayed once the parse is accepted. Left to choose, the
-/// generator would keep this grammar on the tape: forty-five of its forty-nine building rules are
-/// read for derivations the parse may give up — an ordered choice tries the longer alternative
+/// nothing is recorded on a tape and replayed once the parse is accepted. Most of its building rules
+/// are read for derivations the parse may give up — an ordered choice tries the longer alternative
 /// first — and that is what the request costs: a construction runs for a reading that is then
-/// abandoned, and an exception thrown there would escape the publication. Here none can. The
-/// factories of <c>Expression</c>, <c>Query</c> and <c>Statement</c> in <c>SqlSyntax.cs</c> build
-/// records from what they are given and read no host state, so a derivation given up leaves nothing
-/// a later one could read. Held to the tape by an agreement run over the ScriptDom corpus, each
-/// statement whole and cut, every string of the tests, every accepted text cut at each word boundary
-/// and given a stray token, through all four entries in every form: the same trees, the same
-/// messages, nothing thrown; the benchmarks compile the same grammar on the tape (<c>TapeSql</c>) and
-/// hold the two carriers to each other. What it buys is the time the tape spent recording and
-/// replaying, for more bytes allocated where a reading is abandoned part-way — and, on a text
-/// refused late, after a long accepted prefix, the time those constructions took.
+/// abandoned, and an exception thrown there would escape the publication. None is: the records'
+/// constructors and the helpers of <c>Nodes</c> it calls build from what they are given, throw on
+/// nothing the grammar hands them and read no host state, so a derivation given up leaves nothing a
+/// later one could read. Held to
+/// the tape by an agreement run over the ScriptDom corpus, each statement whole and cut, every string
+/// of the tests, every accepted text cut at each word boundary and given a stray token, through all
+/// four entries: the same trees, the same messages, nothing thrown; the benchmarks compile the same
+/// grammar on the tape (<c>TapeSql</c>) and hold the two carriers to each other. What it buys is the
+/// time the tape spent recording and replaying, for more bytes allocated where a reading is abandoned
+/// part-way — and, on a text refused late, after a long accepted prefix, the time those constructions
+/// took.
 /// </para>
 /// </remarks>
 [Gram("SqlStandard92.gram", Lexical = true, Carrier = GramCarrier.Immediate)]

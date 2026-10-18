@@ -1010,7 +1010,7 @@ public static partial class Sql2023Writer
 			/// <summary>KeyDecryptor: <c>DECRYPTION BY</c> of OPEN SYMMETRIC KEY: a name of one part, and a password with a certificate or an asymmetric key.</summary>
 			Open,
 
-			/// <summary>ServerEncryption: a server's certificate or asymmetric key.</summary>
+			/// <summary>ServerEncryption: a server's certificate or asymmetric key, written with SERVER, which the place says.</summary>
 			Server,
 		}
 
@@ -1023,15 +1023,15 @@ public static partial class Sql2023Writer
 					break;
 
 				case KeyEncryptor.Certificate certificate when place is EncryptorPlace.Symmetric or EncryptorPlace.Open or EncryptorPlace.Server:
-					CheckEncryptor(certificate, certificate.Name, certificate.WithPassword, certificate.Server, place, where);
-					Word(certificate.Server ? "SERVER CERTIFICATE" : "CERTIFICATE");
+					CheckEncryptor(certificate, certificate.Name, certificate.WithPassword, place, where);
+					Word(place == EncryptorPlace.Server ? "SERVER CERTIFICATE" : "CERTIFICATE");
 					PutName(certificate.Name);
 					PutWithPassword(owner, certificate.WithPassword, where);
 					break;
 
 				case KeyEncryptor.AsymmetricKey key when place is EncryptorPlace.Symmetric or EncryptorPlace.Open or EncryptorPlace.Server:
-					CheckEncryptor(key, key.Name, key.WithPassword, key.Server, place, where);
-					Word(key.Server ? "SERVER ASYMMETRIC KEY" : "ASYMMETRIC KEY");
+					CheckEncryptor(key, key.Name, key.WithPassword, place, where);
+					Word(place == EncryptorPlace.Server ? "SERVER ASYMMETRIC KEY" : "ASYMMETRIC KEY");
 					PutName(key.Name);
 					PutWithPassword(owner, key.WithPassword, where);
 					break;
@@ -1054,14 +1054,12 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// What a certificate or an asymmetric key may carry where it stands: the server's word only for the database encryption key
-		/// and always there, a password only where a key is opened, a name of one part where the grammar reads an Identifier.
+		/// What a certificate or an asymmetric key may carry where it stands: a password only where a key is opened, a name of one part
+		/// where the grammar reads an Identifier. The server's word is the place's, not the encryptor's: the database encryption key
+		/// writes it, and nothing else does.
 		/// </summary>
-		void CheckEncryptor(KeyEncryptor encryptor, QualifiedName name, LiteralValue.String? withPassword, bool server, EncryptorPlace place, string where)
+		void CheckEncryptor(KeyEncryptor encryptor, QualifiedName name, LiteralValue.String? withPassword, EncryptorPlace place, string where)
 		{
-			if (server != (place == EncryptorPlace.Server))
-				throw Misplaced(encryptor, "Server", $"{(server ? "outside" : "missing in")} {where}, whose ServerEncryption wants SERVER and which reads it nowhere else");
-
 			if (withPassword is not null && place != EncryptorPlace.Open)
 				throw Misplaced(encryptor, "WithPassword", $"in {where}, which reads WITH PASSWORD only where a key is opened (KeyDecryptor)");
 

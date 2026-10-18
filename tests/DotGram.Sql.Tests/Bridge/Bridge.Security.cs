@@ -983,32 +983,34 @@ static partial class Bridge
 				return new Ast.KeyEncryptor.Password(String());
 			}
 
-			/// <summary>One of the family: a password, a certificate or an asymmetric key (each perhaps with a password, or the server's), a symmetric key, or the service master key.</summary>
+			/// <summary>
+			/// One of the family: a password, a certificate or an asymmetric key (each perhaps with a password), a symmetric key, or the
+			/// service master key. The server's certificate or asymmetric key is the database encryption key's, read by
+			/// <c>ServerEncryption</c>.
+			/// </summary>
 			public Ast.KeyEncryptor Encryptor()
 			{
 				if (Is("PASSWORD"))
 					return PasswordEncryptor();
 
-				var server = Take("SERVER");
-
 				if (Take("CERTIFICATE"))
 				{
 					var name = Qualified();
 
-					return new Ast.KeyEncryptor.Certificate(name) { Server = server, WithPassword = WithPassword() };
+					return new Ast.KeyEncryptor.Certificate(name) { WithPassword = WithPassword() };
 				}
 
 				if (Take("ASYMMETRIC", "KEY"))
 				{
 					var name = Qualified();
 
-					return new Ast.KeyEncryptor.AsymmetricKey(name) { Server = server, WithPassword = WithPassword() };
+					return new Ast.KeyEncryptor.AsymmetricKey(name) { WithPassword = WithPassword() };
 				}
 
-				if (!server && Take("SYMMETRIC", "KEY"))
+				if (Take("SYMMETRIC", "KEY"))
 					return new Ast.KeyEncryptor.SymmetricKey(Qualified());
 
-				if (!server && Take("SERVICE", "MASTER", "KEY"))
+				if (Take("SERVICE", "MASTER", "KEY"))
 					return new Ast.KeyEncryptor.ServiceMasterKey();
 
 				throw Unread();
@@ -1330,11 +1332,11 @@ static partial class Bridge
 			reader.Expect("ENCRYPTION", "BY", "SERVER");
 
 			if (reader.Take("CERTIFICATE"))
-				return new Ast.KeyEncryptor.Certificate(reader.Qualified()) { Server = true };
+				return new Ast.KeyEncryptor.Certificate(reader.Qualified());
 
 			reader.Expect("ASYMMETRIC", "KEY");
 
-			return new Ast.KeyEncryptor.AsymmetricKey(reader.Qualified()) { Server = true };
+			return new Ast.KeyEncryptor.AsymmetricKey(reader.Qualified());
 		}
 
 		static Ast.Statement CreateDatabaseEncryptionKey(Statement.DatabaseEncryptionKeyDefinition old)

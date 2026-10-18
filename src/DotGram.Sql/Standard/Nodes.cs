@@ -337,7 +337,26 @@ static class Nodes
 	/// <summary>A comparison's tail with the operator written: the node waits for the left side.</summary>
 	public static Towers.Tail Compared(Towers.Tail tail, string op)
 	{
-		var compared = op switch
+		return tail with { Operator = ComparisonOf(op) };
+	}
+
+	/// <summary>
+	/// A comparison, or a quantified one where a quantifier was written, built once with its operands
+	/// and its operator (SqlStandard92.gram's <c>Predicate</c>).
+	/// </summary>
+	public static Expression Compared(Expression left, string op, string? some, Query? sub, Expression? right)
+	{
+		var compared = ComparisonOf(op);
+
+		return some is null
+			? new Expression.Comparison(left, compared, right!)
+			: new Expression.QuantifiedComparison(left, compared, Quantified(some), sub!);
+	}
+
+	/// <summary>The operator of a comparison, from the longer spellings to the single characters.</summary>
+	static ComparisonOperator ComparisonOf(string op)
+	{
+		return op switch
 		{
 			"<>" => ComparisonOperator.NotEqual,
 			"<=" => ComparisonOperator.LessOrEqual,
@@ -346,8 +365,6 @@ static class Nodes
 			"<"  => ComparisonOperator.Less,
 			_    => ComparisonOperator.Greater,
 		};
-
-		return tail with { Operator = compared };
 	}
 
 	public static Ast.Quantifier Quantified(string word)
@@ -1854,5 +1871,239 @@ static class Nodes
 			(word.Length > 4 ? DateTimeTypeKind.Timestamp : DateTimeTypeKind.Time),
 			Integer(precision),
 			zone is null ? null : (zone.Length > 4 ? TimeZoneMode.Without : TimeZoneMode.With));
+	}
+
+	// ── SQL-92 (SqlStandard92.gram) ────────────────────────────────────────────
+	//
+	// What Sql92Parser's grammar is written differently from this one for, brought to the shape this
+	// grammar builds: the same text is the same tree whichever of the two read it. None of these throws: what
+	// the tree cannot hold, the grammar refuses before it gets here.
+
+	/// <summary>`+`, `-`, `||`, `*` or `/` between two values.</summary>
+	public static Expression Arithmetic(Expression left, string op, Expression right)
+	{
+		var binary = op switch
+		{
+			"+"  => BinaryOperator.Add,
+			"-"  => BinaryOperator.Subtract,
+			"*"  => BinaryOperator.Multiply,
+			"/"  => BinaryOperator.Divide,
+			_    => BinaryOperator.Concatenate,
+		};
+
+		return new Expression.Binary(left, binary, right);
+	}
+
+	/// <summary>
+	/// A value in brackets. Brackets around nothing but a subquery are the subquery's own, around its
+	/// query: <c>((SELECT a FROM t))</c> is a subquery of a bracketed query, as <see cref="WrapsQuery"/>
+	/// has it read here.
+	/// </summary>
+	public static Expression Parenthesized(Expression value)
+	{
+		return value is Expression.Subquery subquery
+			? new Expression.Subquery(new Query.Parenthesized(subquery.Query))
+			: new Expression.Parenthesized(value);
+	}
+
+	/// <summary>
+	/// A predicate read as a tail, its left operand left empty, with the row it follows put in: SQL-92's
+	/// predicates other than the comparisons, which <c>Predicate</c> builds whole (<see cref="Compared(Expression, string, string?, Query?, Expression?)"/>).
+	/// </summary>
+	public static Expression Predicated(Expression left, Expression tail)
+	{
+		return tail switch
+		{
+			Expression.Between b  => b with { Value = left },
+			Expression.In i       => i with { Value = left },
+			Expression.Like l     => l with { Value = left },
+			Expression.IsNull n   => n with { Value = left },
+			Expression.Match m    => m with { Value = left },
+			Expression.Overlaps o => o with { Left = left },
+			_ => throw new ArgumentOutOfRangeException(nameof(tail), tail, "A predicate this method cannot complete."),
+		};
+	}
+
+	/// <summary>A SQL-92 predicate with `NOT` in it, where it was written: BETWEEN, IN and LIKE take one.</summary>
+	public static Expression Negated(Expression predicate, bool not)
+	{
+		return !not ? predicate : predicate switch
+		{
+			Expression.Between b => b with { Not = true },
+			Expression.In i      => i with { Not = true },
+			Expression.Like l    => l with { Not = true },
+			_ => throw new ArgumentOutOfRangeException(nameof(predicate), predicate, "A predicate that takes no NOT."),
+		};
+	}
+
+	/// <summary>
+	/// A qualified name from the text it was read from: its parts, each a regular name or a delimited one with
+	/// its quotes, and the periods between them, with whatever spacing and comments the grammar's trivia let
+	/// stand there skipped.
+	/// </summary>
+	/// <remarks>
+	/// For a text the grammar read as <c>NameWord &amp; ('.' &amp; NameWord)*</c>, so every part is there and well
+	/// formed; on any other text it still answers, with what it found, rather than throw.
+	/// </remarks>
+	public static QualifiedName NameOf(string text)
+	{
+		var parts = new List<Identifier>(2);
+		var at    = 0;
+
+		while (at < text.Length)
+		{
+			var c = text[at];
+
+			if (c == '-' && at + 1 < text.Length && text[at + 1] == '-')
+			{
+				var end = text.IndexOfAny(['\r', '\n'], at);
+
+				at = end < 0 ? text.Length : end;
+			}
+			else if (c == '/' && at + 1 < text.Length && text[at + 1] == '*')
+			{
+				var end = text.IndexOf("*/", at + 2, StringComparison.Ordinal);
+
+				at = end < 0 ? text.Length : end + 2;
+			}
+			else if (c == '"')
+			{
+				var end = at + 1;
+
+				while (end < text.Length && (text[end] != '"' || end + 1 < text.Length && text[end + 1] == '"'))
+					end += text[end] == '"' ? 2 : 1;
+
+				end = Math.Min(end + 1, text.Length);
+				parts.Add(new Identifier(text.Substring(at, end - at), IdentifierStyle.Delimited));
+				at = end;
+			}
+			else if (char.IsLetterOrDigit(c) || c == '_' || char.IsSurrogate(c))
+			{
+				var end = at + 1;
+
+				while (end < text.Length && (char.IsLetterOrDigit(text[end]) || text[end] == '_' || char.IsSurrogate(text[end])))
+					end++;
+
+				parts.Add(new Identifier(text.Substring(at, end - at)));
+				at = end;
+			}
+			else
+				at++;
+		}
+
+		return parts.Count == 1 ? new QualifiedName(parts[0]) : new QualifiedName(parts[0], parts.GetRange(1, parts.Count - 1).ToArray());
+	}
+
+	/// <summary>A select sublist's expression with no name after it.</summary>
+	public static readonly Fields Unnamed = new(null, false, null);
+
+	/// <summary>
+	/// Whether a name was written with `AS` before it: the text read for the two is longer than the name.
+	/// </summary>
+	/// <remarks>
+	/// Read off the text rather than captured as the key word: captured on its own, the optional `AS` is
+	/// named among what was expected where a reading after the name is refused, and the refusals of this
+	/// grammar are held to what they were.
+	/// </remarks>
+	public static bool Worded(string text, Identifier name)
+	{
+		return text.Length > name.Text.Length;
+	}
+
+	/// <summary>What a typed literal holds after its key word: its string, from the first quote on.</summary>
+	public static string Quoted(string token)
+	{
+		return token.Substring(token.IndexOf('\''));
+	}
+
+	/// <summary>
+	/// Whether digits name a number the tree holds as an <see cref="int"/>: a length, a precision or a scale. Asked
+	/// by a guard, which may ask before the capture is bound; nothing bound fits.
+	/// </summary>
+	public static bool FitsInt(string? digits)
+	{
+		return digits is not null && int.TryParse(digits, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _);
+	}
+
+	/// <summary>A character string type from the words written for it, and its length.</summary>
+	public static DataType CharacterType(string words, string? length)
+	{
+		return Character(Words(words), length is null ? null : LengthOf(length, null));
+	}
+
+	/// <summary>
+	/// The words of a text read as one capture, a space between each: what stood between them, comments
+	/// included, taken out.
+	/// </summary>
+	/// <remarks>
+	/// A type's words are captured as one text rather than one by one: an optional word captured on its
+	/// own, such as `VARYING`, is named among what was expected where a reading after it is refused, and
+	/// the refusals of this grammar are held to what they were. A comment is `--` to the end of the line —
+	/// a carriage return or a line feed — or `/*` to the first `*/`, as the grammar's trivia has them.
+	/// </remarks>
+	public static string Words(string text)
+	{
+		var words = new System.Text.StringBuilder(text.Length);
+		var at    = 0;
+
+		while (at < text.Length)
+		{
+			if (text[at] == '-' && at + 1 < text.Length && text[at + 1] == '-')
+			{
+				var end = text.IndexOfAny(['\r', '\n'], at);
+
+				at = end < 0 ? text.Length : end;
+				words.Append(' ');
+			}
+			else if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
+			{
+				var end = text.IndexOf("*/", at + 2, StringComparison.Ordinal);
+
+				at = end < 0 ? text.Length : end + 2;
+				words.Append(' ');
+			}
+			else
+			{
+				words.Append(text[at]);
+				at++;
+			}
+		}
+
+		return string.Join(" ", words.ToString().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+	}
+
+	/// <summary>
+	/// The sign a text read as one capture begins with, where it begins with one: captured on its own, an
+	/// optional sign is named among what was expected, as an optional word is (<see cref="Words"/>).
+	/// </summary>
+	public static UnaryOperator? LeadingSign(string text)
+	{
+		return text.Length > 0 ? SignOf(text.Substring(0, 1)) : null;
+	}
+
+	/// <summary>`BIT` or `BIT VARYING` from the words written for it, and its length (SQL-92's own type).</summary>
+	public static DataType BitString(string words, string? length)
+	{
+		var kind = Words(words).EndsWith("VARYING", StringComparison.OrdinalIgnoreCase) ? BitStringTypeKind.BitVarying : BitStringTypeKind.Bit;
+
+		return new DataType.BitString(kind, Integer(length));
+	}
+
+	/// <summary>A qualified or natural join: its type's words, whether it is natural, and its condition or its columns.</summary>
+	public static TableSource Joined(TableSource left, string? type, bool natural, TableSource right, Expression? on, SqlList<Identifier>? columns)
+	{
+		JoinSpecification? specification = on is not null ? new JoinSpecification.On(on) : columns is { } named ? new JoinSpecification.Using(named) : null;
+
+		var step = Step(type, natural, right, specification, null);
+
+		return new TableSource.Join
+		{
+			Left          = left,
+			Right         = step.Right,
+			Kind          = step.Kind,
+			Natural       = step.Natural,
+			OuterKeyword  = step.Outer,
+			Specification = step.Specification,
+		};
 	}
 }
