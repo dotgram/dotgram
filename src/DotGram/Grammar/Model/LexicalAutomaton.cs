@@ -259,6 +259,12 @@ public sealed class LexicalAutomaton
 				case Node.Capture(_, var held):          return Gather(held, inside);
 				case Node.Construct(var made, _):        return Gather(made, inside);
 
+				// A binding records what its body read, and the body is a regular language
+				// where it is one; recording is the business of the machine that reads the
+				// reference, which is never this one — a reference is refused below with the
+				// rest of what no automaton reads.
+				case Node.Bind(_, var bound, _):         return Gather(bound, inside);
+
 				default:
 					return Refuse($"a shape a pattern cannot have: {node.GetType().Name}");
 			}
@@ -432,6 +438,7 @@ public sealed class LexicalAutomaton
 				case Node.Marked(var kept, _):    return Build(kept, inside);
 				case Node.Capture(_, var held):   return Build(held, inside);
 				case Node.Construct(var made, _): return Build(made, inside);
+				case Node.Bind(_, var bound, _):  return Build(bound, inside);
 
 				default:
 					return null;

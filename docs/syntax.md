@@ -429,10 +429,18 @@ fix is to bind the whole run, `$q: (X & ',')*`.
 what it read, so there would be nothing to bind. A binding or a reference over kinds is
 refused too; there a guard does the job: `close: Name & when @(close == open)`.
 Case-insensitive references, references across rules and arithmetic in counts are out of
-scope (§11). Two places are not yet supported and are refused with a message saying so:
-anything that holds a recovery point (§8.2) — a recovery point inside a binding, or a
-`recover` on a repetition that holds one; and a rule the lexer reads once a grammar is cut
-in two (§4).
+scope (§11). Not yet supported, and refused with a message saying so: anything that holds a
+recovery point (§8.2) — a recovery point inside a binding, or a `recover` on a repetition
+that holds one — and a binding in what `trivia` is made of once a grammar is cut in two (§4),
+which a scanner skips between tokens.
+
+In a grammar cut into a lexer and a syntactic half (§4), a terminal that binds text is a
+terminal the lexer begins (§7.1): the lexer reads as much of it as an automaton can — the
+opening bracket and its `=` run, the quotes, `<<` and the tag and the end of its line — to
+tell that the terminal stands there, and the terminal's own rule then reads the whole token
+from its start, binding, body and reference. A terminal that begins with nothing an
+automaton reads — a lookahead, say — is refused by name. What that beginning competes with,
+it competes with by longest match, as every token does (§4).
 
 A publication over a `TextReader` or a stream (§6.3) reads bindings as the string form does,
 bytes included. A reference compares the items where they stand in the buffer, so the buffer
@@ -3100,6 +3108,29 @@ one: its `open` is the beginning, and the rest is read by its counter, so a pair
 ends inside of is cut short as the rule over characters would say.
 A terminal written this way may build a value like any other, and its value is read over
 the whole token.
+
+A terminal that binds text (§3.5.1) is begun the same way without being written as one,
+and its rest is read differently: the binding stands in the beginning, so a rest measured
+from where the beginning ended would have no text to compare with. The automaton reads the
+longest beginning it can — the leading operands up to the first that is not regular, a
+binding read as its body, a choice as either alternative's beginning — and the terminal's
+own rule then reads the whole token again from its start:
+
+```dotgram
+namespace Lexical
+{
+    trivia = none
+
+    LongString = '[' & $eq: '='* & '[' & { (?!(']' & $eq & ']') & any)* } & ']' & $eq & ']'
+    Heredoc    = "<<" & $tag: Name & eol & { (?!($tag & EndLine) & Line)* } & $tag & ?=EndLine
+}
+```
+
+`LongString` begins with `'[' & '='* & '['` and `Heredoc` with `"<<" & Name & eol`; where
+either stands, its rule decides the token, and where the rule refuses, no token stands
+there. The beginning read twice costs its few characters. A terminal that begins with
+nothing an automaton reads — a lookahead, a host recognizer, a rule that reaches itself
+first — is refused by name (`GRAM4034`).
 
 The beginning has to be the terminal's alone. One that can be empty, or that is also a
 token of its own, is refused (`GRAM5004`): the lexer would have a string it cannot give

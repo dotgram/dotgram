@@ -271,6 +271,20 @@ public sealed class TerminalInventory
 		/// </summary>
 		internal NestedPair.Delimiters? Counted { get; init; }
 
+		/// <summary>
+		/// Whether the rest is measured by the terminal's own rule read again from the token's
+		/// start, rather than by <see cref="Tail"/> from where the beginning ended.
+		/// </summary>
+		/// <remarks>
+		/// A terminal that binds text (<c>$q: X</c>) and reads it again: the binding stands in
+		/// the beginning and the reference in the rest, and a rest measured from where the
+		/// beginning ended would have no text to compare with. So the automaton reads only what
+		/// it can of such a terminal — enough to say that one stands here — and the rule reads
+		/// the whole token from its start, binding and all. <see cref="Tail"/> is then a call to
+		/// the terminal itself, and costs the beginning's few characters read twice.
+		/// </remarks>
+		public bool FromStart { get; init; }
+
 		/// <summary>The beginning, where it is one fixed spelling; what a longer token is asked to start with.</summary>
 		public string? Beginning { get; init; }
 
@@ -448,11 +462,12 @@ public sealed class TerminalInventory
 	/// who asked for one is told plainly why there is none.
 	/// </para>
 	/// <para>
-	/// Two answers. A rule with trivia is read over token kinds, where a binding would bind kinds
-	/// and not text, and is never right; a guard comparing two captures says what was meant. A rule
-	/// the lexer reads — a terminal, or what it or trivia calls — reads characters, and a binding
-	/// there is only not built yet: the lexer would have to read a token's remainder again from the
-	/// token's start.
+	/// Three answers. A rule with trivia is read over token kinds, where a binding would bind kinds
+	/// and not text, and is never right; a guard comparing two captures says what was meant. A
+	/// terminal that binds text is read by the lexer as far as an automaton can read it and then
+	/// whole by its own rule (<see cref="Continuation.FromStart"/>), which needs a beginning the
+	/// automaton can read; one with none is refused, naming the terminal. And what trivia is made
+	/// of is skipped between tokens by a scanner, which does not read a binding yet.
 	/// </para>
 	/// </remarks>
 	public static IReadOnlyList<GramDiagnostic> BoundTextRefusals(RecognitionGraph graph)
@@ -466,28 +481,57 @@ public sealed class TerminalInventory
 		if (!walker.Applies)
 			return refusals;
 
+		// Which rules are terminals is what the walk over the syntax finds, as the inventory
+		// finds them: a binding is judged by the terminal it stands in.
+		foreach (var rule in graph.Rules)
+			if (walker.IsSyntactic(rule) && graph.Bodies.TryGetValue(rule, out var body))
+				walker.Walk(body, rule);
+
 		foreach (var rule in graph.Rules)
 		{
 			if (!graph.Bodies.TryGetValue(rule, out var body) || !GrammarNormalizer.HoldsBoundText(body))
 				continue;
 
-			var syntactic = walker.IsSyntactic(rule);
+			var reasons = new List<string>();
+
+			if (walker.IsSyntactic(rule))
+			{
+				reasons.Add(
+					$"is in '{rule.Name}', which carries trivia and is read over tokens once the grammar is " +
+					"cut in two (Lexical = true): there it would bind token kinds, not text. Compare two " +
+					"captures with a guard instead — 'close: Name & when @(close == open)' — or read the " +
+					"rule over characters (docs/syntax.md §3.5.1).");
+			}
+			else
+			{
+				if (walker.InTrivia(rule))
+					reasons.Add(
+						$"is in '{rule.Name}', which is skipped between tokens once the grammar is cut in two " +
+						"(Lexical = true), and the scanner that skips trivia does not read a binding yet. " +
+						"Read this grammar over characters: leave Lexical off.");
+
+				foreach (var terminal in walker.Classes)
+					if (graph.Reaches(terminal).Contains(rule) && !walker.Begins(terminal))
+						reasons.Add(
+							(terminal == rule
+								? $"is in '{rule.Name}', which the lexer reads once the grammar is cut in two (Lexical = true). "
+								: $"is in '{rule.Name}', which the lexer reads as part of '{terminal.Name}' once the grammar is cut in two (Lexical = true). ") +
+							"The lexer begins a terminal that binds text with what it can read of it and the terminal's own rule " +
+							$"reads the rest from the token's start, and nothing the lexer can read begins '{terminal.Name}': " +
+							"start it with a literal or a class, or read this grammar over characters (leave Lexical off).");
+			}
+
+			if (reasons.Count == 0)
+				continue;
+
+			var id = walker.IsSyntactic(rule) ? GrammarNormalizer.BindingOverKinds : GrammarNormalizer.BindingNotSupported;
 
 			foreach (var node in NodeWalk.Descendants(body))
 				foreach (var (binding, at) in GrammarNormalizer.BoundTextAt(node))
-					refusals.Add(syntactic
-						? new GramDiagnostic(
-							GrammarNormalizer.BindingOverKinds,
-							$"'${binding.Name}' is in '{rule.Name}', which carries trivia and is read over tokens " +
-							"once the grammar is cut in two (Lexical = true): there it would bind token kinds, not " +
-							"text. Compare two captures with a guard instead — 'close: Name & when @(close == open)' " +
-							"— or read the rule over characters (docs/syntax.md §3.5.1).",
-							Math.Max(at, 0), at < 0 ? 0 : binding.Name.Length + 1, GramSeverity.Error)
-						: new GramDiagnostic(
-							GrammarNormalizer.BindingNotSupported,
-							$"'${binding.Name}' is in '{rule.Name}', which the lexer reads once the grammar is cut " +
-							"in two (Lexical = true), and a binding in what the lexer reads is not supported yet. " +
-							"Read this grammar over characters: leave Lexical off.",
+					foreach (var reason in reasons)
+						refusals.Add(new GramDiagnostic(
+							id,
+							$"'${binding.Name}' {reason}",
 							Math.Max(at, 0), at < 0 ? 0 : binding.Name.Length + 1, GramSeverity.Error));
 		}
 
@@ -578,6 +622,24 @@ public sealed class TerminalInventory
 		public bool IsSyntactic(RuleSymbol rule)
 		{
 			return graph.Trivia.ContainsKey(rule) && !_lexical.Contains(rule);
+		}
+
+		/// <summary>Whether a rule is part of what trivia or the word boundary is made of.</summary>
+		public bool InTrivia(RuleSymbol rule)
+		{
+			return _lexical.Contains(rule);
+		}
+
+		/// <summary>The terminals the syntax walked so far crosses into, in the order it named them.</summary>
+		public IReadOnlyList<RuleSymbol> Classes => _classes;
+
+		/// <summary>
+		/// Whether a terminal that binds text has a beginning the lexer can read it by
+		/// (<see cref="Continuation.FromStart"/>).
+		/// </summary>
+		public bool Begins(RuleSymbol terminal)
+		{
+			return !graph.ReachesBoundText(terminal) || Continuation(terminal) is not null;
 		}
 
 		public void Walk(Node node, RuleSymbol owner)
@@ -1046,7 +1108,7 @@ public sealed class TerminalInventory
 
 			foreach (var pattern in patterns.OfType<Pattern.Class>())
 			{
-				if (Continuation(pattern.Rule) is not var (prefix, tail, pair))
+				if (Continuation(pattern.Rule) is not var (prefix, tail, pair, fromStart))
 					continue;
 
 				if (Language.Shortest(graph, prefix) is { Length: 0 })
@@ -1080,7 +1142,10 @@ public sealed class TerminalInventory
 					.Where(kind => !kinds[kind - 1].Matched.Any(one => one is Pattern.Class begun && Continuation(begun.Rule) is not null))
 					.ToList();
 
-				if (extended.Count > 0 && prefix is not Node.Literal { Text.Length: > 0 })
+				// A bound literal, `$q: "ab"`, is the one fixed spelling its literal is.
+				var spelled = prefix is Node.Bind(_, var bound, _) ? bound : prefix;
+
+				if (extended.Count > 0 && spelled is not Node.Literal { Text.Length: > 0 })
 				{
 					Refuse($"what begins {pattern.Rule.Name} begins longer tokens too, and only a beginning of one fixed spelling can be looked for under them: {prefix}");
 
@@ -1090,8 +1155,9 @@ public sealed class TerminalInventory
 				continued.Add(new Continuation(pattern, holding[0].Number, tail)
 				{
 					Counted   = pair,
-					Beginning = (prefix as Node.Literal)?.Text,
-					BeginningFolds = prefix is Node.Literal { IgnoreCase: true },
+					FromStart = fromStart,
+					Beginning = (spelled as Node.Literal)?.Text,
+					BeginningFolds = spelled is Node.Literal { IgnoreCase: true },
 					Extended  = [.. extended.Select(static one => (one, 0))],
 				});
 			}
@@ -1522,7 +1588,7 @@ public sealed class TerminalInventory
 			{
 				Pattern.Word(_, var word, var fold) => new Node.Literal(word) { IgnoreCase = fold },
 				Pattern.Mark(_, var mark, var fold) => new Node.Literal(mark) { IgnoreCase = fold },
-				Pattern.Class(_, var rule) => Continuation(rule) is var (prefix, _, _)
+				Pattern.Class(_, var rule) => Continuation(rule) is var (prefix, _, _, _)
 					? prefix
 					: graph.Bodies.TryGetValue(rule, out var body) ? body : null,
 				_ => null,
@@ -1544,14 +1610,29 @@ public sealed class TerminalInventory
 		/// '&lt;' &amp; b: Inner =&gt; …</c> is still where the lexer stops and something else
 		/// goes on, and its value is read afterwards over the whole token as any terminal's is.
 		/// </para>
+		/// <para>
+		/// A terminal that binds text is split differently, wherever the binding stands: the
+		/// beginning is what the automaton can read of it (<see cref="Beginning"/>), and the
+		/// rest is the terminal itself, read from the token's start
+		/// (<see cref="Continuation.FromStart"/>). Null where nothing regular begins it.
+		/// </para>
 		/// </remarks>
-		(Node Prefix, Node Tail, NestedPair.Delimiters? Counted)? Continuation(RuleSymbol rule)
+		(Node Prefix, Node Tail, NestedPair.Delimiters? Counted, bool FromStart)? Continuation(RuleSymbol rule)
 		{
 			if (_tails.TryGetValue(rule, out var known))
 				return known;
 
 			if (!graph.Bodies.TryGetValue(rule, out var body))
 				return null;
+
+			if (graph.ReachesBoundText(rule))
+			{
+				var begun = Beginning(body, []);
+
+				_tails[rule] = begun is Node.Empty ? null : (begun, new Node.Call(rule, []), null, true);
+
+				return _tails[rule];
+			}
 
 			// Std.Nested as the terminal itself: read as a call to it, which is what the branch
 			// below knows how to split.
@@ -1568,7 +1649,7 @@ public sealed class TerminalInventory
 					break;
 			}
 
-			(Node Prefix, Node Tail, NestedPair.Delimiters? Counted)? found = null;
+			(Node Prefix, Node Tail, NestedPair.Delimiters? Counted, bool FromStart)? found = null;
 
 			// Std.Nested, last or alone: its `open` is a beginning like any other, and the rest
 			// is read by a counter (NestedPair) rather than by the rule's machine over
@@ -1580,13 +1661,13 @@ public sealed class TerminalInventory
 			{
 				var open = new Node.Literal(pair.Open) { IgnoreCase = pair.OpenFolds };
 
-				found = (Before(body is Node.Sequence({ Count: >= 2 } before) ? before.Take(before.Count - 1) : [], open), last, pair);
+				found = (Before(body is Node.Sequence({ Count: >= 2 } before) ? before.Take(before.Count - 1) : [], open), last, pair, false);
 			}
 			else if (body is Node.Sequence(var parts) && parts.Count >= 2 &&
 				(parts[parts.Count - 1] is Node.Capture(_, var held) ? held : parts[parts.Count - 1]) is var tail &&
 				Unread(tail))
 			{
-				found = (parts.Count == 2 ? parts[0] : new Node.Sequence([.. parts.Take(parts.Count - 1)]), tail, null);
+				found = (parts.Count == 2 ? parts[0] : new Node.Sequence([.. parts.Take(parts.Count - 1)]), tail, null, false);
 			}
 
 			_tails[rule] = found;
@@ -1594,7 +1675,117 @@ public sealed class TerminalInventory
 			return found;
 		}
 
-		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail, NestedPair.Delimiters? Counted)?> _tails = [];
+		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail, NestedPair.Delimiters? Counted, bool FromStart)?> _tails = [];
+
+		/// <summary>
+		/// What the automaton can read of a terminal that binds text, from its start: the longest
+		/// prefix of its body that is a regular language, or <see cref="Node.Empty"/> where nothing is.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// Such a terminal is not a regular language, and no automaton reads it whole: a reference
+		/// matches text the automaton would have to remember. What it can read is a beginning —
+		/// the leading operands up to the first that is not regular, and into that one as far as
+		/// its own leading operands go — and that is all the lexer needs to say that the terminal
+		/// stands here, since the rule itself then reads the whole token from its start. The
+		/// beginning is every string the terminal can begin with, which is what makes it a safe
+		/// place to stop the automaton: where it does not stand, neither does the terminal. Taken
+		/// as far as it goes rather than only through the binding, because a longer beginning
+		/// tells the terminal from the other tokens better — a heredoc's <c>"&lt;&lt;" &amp; Word
+		/// &amp; eol</c> is not the operator <c>&lt;&lt;</c> where no line ends.
+		/// </para>
+		/// <para>
+		/// A binding is read as its body; a choice begins as each alternative does, so a heredoc
+		/// written as two alternatives begins with either, and nothing where one of them begins
+		/// with nothing; a repetition of at least one turn begins as its body does, and one of none
+		/// with nothing; a call is followed into the rule where the automaton cannot read the call
+		/// itself. A reference, a count by a length, a lookahead and a host recognizer begin with
+		/// nothing the automaton reads.
+		/// </para>
+		/// </remarks>
+		Node Beginning(Node node, HashSet<RuleSymbol> inside)
+		{
+			if (Regular(node))
+				return node;
+
+			switch (node)
+			{
+				case Node.Sequence(var parts):
+				{
+					var leading = new List<Node>();
+
+					foreach (var part in parts)
+					{
+						if (Regular(part))
+						{
+							leading.Add(part);
+
+							continue;
+						}
+
+						if (Beginning(part, inside) is var begun && begun is not Node.Empty)
+							leading.Add(begun);
+
+						break;
+					}
+
+					return leading.Count switch
+					{
+						0 => Node.Empty.Instance,
+						1 => leading[0],
+						_ => new Node.Sequence(leading),
+					};
+				}
+
+				case Node.Choice { Selection: not null }:
+					return Node.Empty.Instance;
+
+				case Node.Choice(var alternatives):
+				{
+					var begun = new List<Node>(alternatives.Count);
+
+					foreach (var alternative in alternatives)
+					{
+						if (Beginning(alternative, inside) is var one && one is Node.Empty)
+							return Node.Empty.Instance;
+						else
+							begun.Add(one);
+					}
+
+					return new Node.Choice(begun);
+				}
+
+				case Node.Repeat(var turns, var min, _):
+					return min > 0 ? Beginning(turns, inside) : Node.Empty.Instance;
+
+				case Node.Bind(_, var bound, _):  return Beginning(bound, inside);
+				case Node.Atomic(var kept):       return Beginning(kept, inside);
+				case Node.Marked(var kept, _):    return Beginning(kept, inside);
+				case Node.Capture(_, var held):   return Beginning(held, inside);
+				case Node.Construct(var made, _): return Beginning(made, inside);
+
+				case Node.Call(var called, _):
+				{
+					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
+						return Node.Empty.Instance;
+
+					var begun = Beginning(body, inside);
+
+					inside.Remove(called);
+
+					return begun;
+				}
+
+				default:
+					return Node.Empty.Instance;
+			}
+		}
+
+		/// <summary>Whether the automaton can read a node on its own.</summary>
+		bool Regular(Node node)
+		{
+			return LexicalAutomaton.Of(graph, [node], []) is not null;
+		}
 
 		/// <summary>
 		/// What stands before Std.Nested's <c>open</c>, and the <c>open</c>: one literal where a

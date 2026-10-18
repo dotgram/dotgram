@@ -272,24 +272,6 @@ public sealed partial class BackReferenceTests
 	}
 
 	[Fact]
-	public void A_binding_in_a_terminal_of_a_grammar_cut_in_two_is_not_supported_yet()
-	{
-		const string grammar =
-			"""
-			trivia = { ' '* }
-			namespace Lexical
-			{
-				trivia = none
-				Quoted = $q: '"'+ & ['a'..'z']* & $q
-				Word   = ['a'..'z']+
-			}
-			R = Lexical.Quoted & Lexical.Word
-			""";
-
-		Refused(GrammarNormalizer.BindingNotSupported, grammar, "$q", "leave Lexical off", lexical: true);
-	}
-
-	[Fact]
 	public void A_binding_over_kinds_is_refused_with_a_guard_to_write_instead()
 	{
 		const string grammar =

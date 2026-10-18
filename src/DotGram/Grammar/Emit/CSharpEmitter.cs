@@ -3124,7 +3124,9 @@ file.Line("return spare;");
 				// A terminal the lexer only begins goes on from where its beginning ended, and
 				// is measured there by the host or by its rule's machine over characters. Asked
 				// only when the automaton stopped on that beginning, so it costs a comparison
-				// on every other token; a refusal is a character nothing reads.
+				// on every other token; a refusal is a character nothing reads. One that binds
+				// text is measured by its own rule from the token's start instead, the binding
+				// standing in the beginning (TerminalInventory.Continuation.FromStart).
 				var continued = 0;
 
 				// Where a keyword is taken back below, the shorter token found instead may be one
@@ -3158,12 +3160,13 @@ file.Line("return spare;");
 						else if (MeasuredBy(lexical, continuation.Tail) is { } rule)
 						{
 							var output = valuing!.Results.QualifiedOf(rule) is null ? "" : ", out _";
+							var from   = continuation.FromStart ? "p" : "end";
 
 							file.Line($"var failure  = new {FailureType} {{ Quiet = true }};");
 							// The whole input where a construction in that machine asks for it: a
 							// terminal's value may be a piece of the text it has to read again later.
 							file.Line(
-								$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, end, ref failure{output}" +
+								$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref failure{output}" +
 								$"{(valuing!.UsesInput ? ", input" : "")});");
 							file.Line();
 
@@ -3176,7 +3179,7 @@ file.Line("return spare;");
 								file.Line($"var again = new {FailureType}();");
 								file.Line();
 								file.Line(
-									$"Measure_{IdentifierOf(rule)}_DotGram(text, end, ref again{output}" +
+									$"Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref again{output}" +
 									$"{(valuing!.UsesInput ? ", input" : "")});");
 								file.Line();
 								file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
@@ -3213,7 +3216,7 @@ file.Line("return spare;");
 
 						using (file.Block($"else if (kind == {longer} && {begins})"))
 						{
-							var from = $"p + {beginning.Length}";
+							var from = continuation.FromStart ? "p" : $"p + {beginning.Length}";
 
 							if (continuation.Counted is { } pair)
 							{

@@ -256,40 +256,6 @@ public sealed partial class BackReferenceTests
 		}
 	}
 
-	/// <summary>
-	/// A terminal of a grammar cut in two is still refused where it holds a binding: the lexer
-	/// measures what follows the regular beginning of a terminal from where that beginning ended,
-	/// and a reference there reads back into it. Lifting the refusal over a buffer leaves this one.
-	/// </summary>
-	[Fact]
-	public void A_binding_in_a_terminal_of_a_grammar_cut_in_two_is_refused_over_a_buffer_too()
-	{
-		const string grammar =
-			"""
-			trivia = { ' '* }
-			namespace Lexical
-			{
-				trivia = none
-				Quoted = $q: '"'+ & ['a'..'z']* & $q
-				Word   = ['a'..'z']+
-			}
-			R = Lexical.Quoted & Lexical.Word
-			parse R stream
-			""";
-
-		var told = GramCompiler.Compile(
-			grammar,
-			new GramCompilerOptions { ClassName = "Grammar", Lexical = true, BufferedInput = true, BufferedBytes = true }).Diagnostics;
-
-		var refused = told.Where(static one => one.Id == GrammarNormalizer.BindingNotSupported).ToArray();
-
-		// Each of the binding and the reference, said for the lexer and not for the buffer.
-		Assert.Equal(
-			[grammar.IndexOf("$q", StringComparison.Ordinal), grammar.LastIndexOf("$q", StringComparison.Ordinal)],
-			refused.Select(static one => one.Position));
-		Assert.All(refused, static one => Assert.Contains("leave Lexical off", one.Message, StringComparison.Ordinal));
-	}
-
 	// ── Helpers ─────────────────────────────────────────────────────────────────
 
 	/// <summary>

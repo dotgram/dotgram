@@ -601,9 +601,10 @@ public sealed class LexicalSplit
 					return new Node.Construct(Rewrite(built, owner, blocked), how);
 
 				// A binding compares text, and over kinds there is none to compare: rewritten
-				// through, a reference would compare kind numbers. Bindings are refused in a
-				// grammar that is split before it gets here; this keeps the split from going
-				// ahead should one ever arrive.
+				// through, a reference would compare kind numbers. A binding in a rule read over
+				// kinds is refused before a grammar is split (TerminalInventory.BoundTextRefusals),
+				// and one in a terminal stays on the lexer's side, where the terminal's own rule
+				// reads it; this keeps the split from going ahead should one ever arrive here.
 				case Node.Bind or Node.Same or Node.Counted:
 					return Refuse(node, owner, blocked);
 

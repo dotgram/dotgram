@@ -190,9 +190,12 @@ reads `""` after zero turns.
 RawString = { $q: '"'{3,} } & { (?!$q & any)* } & $q & ?!'"'
 ```
 
-It works over characters only; over tokens use a guard. A binding inside a lookahead
-is refused. Not yet supported, and refused with a message saying so: a binding over a
-recovery point, or in a terminal the lexer reads. Streamed publications read them. Counts
+It works over characters only; over tokens use a guard. A terminal of a grammar cut in two
+(`Lexical = true`) may bind text: the lexer begins it with what an automaton can read and
+its own rule reads the whole token from its start, so start it with a literal or a class.
+A binding inside a lookahead is refused. Not yet supported, and refused with a message
+saying so: a binding over a recovery point, or in what `trivia` is made of once the grammar
+is cut in two. Streamed publications read them. Counts
 `{n,#q}`, `{#q,m}` and `{#q,#r}` fail at run time when the lower bound exceeds the upper.
 `?!'}'{#d}` is `(?!'}'){#d}`; write `?!('}'{#d})` to look ahead for the whole count.
 

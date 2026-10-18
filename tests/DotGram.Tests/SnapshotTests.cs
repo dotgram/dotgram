@@ -343,6 +343,23 @@ public sealed class SnapshotTests
 				break;
 			}
 
+			// Read over kinds, with terminals that bind text: the lexer begins each and its
+			// own rule measures the token from its start, which only this file shows.
+			case "Begun":
+			{
+				var begun = Options();
+
+				begun.Lexical = true;
+
+				// The tape, named: the syntax rereads an item's first token across its
+				// alternatives, which the generator would otherwise say a word about.
+				begun.Carrier = CarrierKind.Tape;
+
+				yield return (begun, null);
+
+				break;
+			}
+
 			default:
 				yield return (Options(), null);
 
