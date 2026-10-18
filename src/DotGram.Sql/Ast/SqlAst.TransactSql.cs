@@ -454,6 +454,18 @@ public abstract partial record DataType
 		public bool Max { get; init; }
 	}
 
+	public partial record UserDefined
+	{
+		/// <summary>
+		/// T-SQL: Data types (Transact-SQL). <c>dbo.mytype (10, 2)</c>: the numbers a type of the user's is written with,
+		/// which the grammar reads after any name and the engine weighs later.
+		/// </summary>
+		public SqlList<Expression> Arguments { get; init; } = [];
+
+		/// <summary>T-SQL: Data types (Transact-SQL). <c>dbo.mytype (MAX)</c>; <see cref="Arguments"/> is empty then.</summary>
+		public bool Max { get; init; }
+	}
+
 	/// <summary>
 	/// T-SQL: Vector Data Type. <c>VECTOR (dimensions [, base_type])</c> or <c>VECTOR (MAX)</c>: the dimensions, null where
 	/// none were written, and the base type the elements are stored as, null where the default is left to stand.
