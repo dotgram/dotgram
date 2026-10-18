@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 using DotGram.Generation;
@@ -375,6 +376,58 @@ public sealed class GeneratedShapeTests
 
 			Assert.True(read.IsSuccess, input + ": " + read.Error);
 			Assert.Equal(value, read.Value);
+		}
+	}
+
+	/// <summary>
+	/// A capture kept in the arena closes at a cost that does not grow with what it holds. A
+	/// close searched back over every record inside the capture for its opening, and a
+	/// repetition inside it, given back a turn at a time, closed it once per turn: quadratic in
+	/// the turns. Counted, not timed (D144): the records searched, at a size and at four times
+	/// it, on every carrier of the engine.
+	/// </summary>
+	[Theory]
+	[InlineData(CarrierKind.Auto)]
+	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Immediate)]
+	public void A_capture_kept_in_the_arena_closes_in_constant_time(CarrierKind carrier)
+	{
+		const string grammar =
+			"""
+			Item : @string = t: "aa"+ => @(t)
+			Root : @string = i: Item & "aa" & eof => @(i)
+			parse Root
+			""";
+
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions
+			{
+				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Carrier = carrier, Direct = false,
+				CountRules = true,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text, symbols: ["DOTGRAM_COUNTS"]);
+		var searched = assembly.GetType("Grammar")!.GetField(
+			"Searched_DotGram", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)!;
+
+		long Searched(string input, bool read)
+		{
+			searched.SetValue(null, 0L);
+
+			Assert.Equal(read, EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input).IsSuccess);
+
+			return (long)searched.GetValue(null)!;
+		}
+
+		foreach (var (tail, read) in new[] { ("c", false), ("", true) })
+		{
+			var small = Searched(string.Concat(Enumerable.Repeat("aa", 64)) + tail, read);
+			var large = Searched(string.Concat(Enumerable.Repeat("aa", 256)) + tail, read);
+
+			Assert.True(large <= 4 * small + 64, $"searched {small} records at 64 turns and {large} at 256");
 		}
 	}
 }

@@ -270,9 +270,11 @@ public static partial class CSharpEmitter
 			while (tag.Length > 0 && !tags.Add(tag))
 				tag += "_";
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
+			// Compiled later where it counts, so that what it writes for the count is written: the
+			// count is told after construction, and a machine compiled in it would never hear.
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1, quiets: quiets,
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1 || countRules, quiets: quiets,
 				tracing: tracing, expectedSets: expectedSets)
 			{
 				Reporting   = carriers is not null,
