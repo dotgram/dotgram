@@ -29,6 +29,10 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("ALTER FULLTEXT INDEX ON t ADD (c)", "columns added")]
 	[InlineData("CREATE TABLE t WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = ROUND_ROBIN) AS SELECT a FROM u", "a name of three words")]
 	[InlineData("CREATE TABLE t WITH (CLUSTERED INDEX (a), DISTRIBUTION = HASH (a)) AS SELECT a FROM u", "a name of two words and its list")]
+	[InlineData("CREATE SPATIAL INDEX i ON t (g) WITH (BOUNDING_BOX = (-1.5, 0, 5e2, 200))", "a bracket by position")]
+	[InlineData("CREATE SPATIAL INDEX i ON t (g) WITH (BOUNDING_BOX = (xmin = -1, ymin = 0, xmax = 3, ymax = 4))", "a bracket by name")]
+	[InlineData("CREATE SPATIAL INDEX i ON t (g) WITH (GRIDS = (LOW))", "a bracket of one")]
+	[InlineData("CREATE SPATIAL INDEX i ON t (g) WITH (CELLS_PER_OBJECT = 16)", "a value alone")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -49,6 +53,10 @@ public sealed class DdlRemainderBridgeTests
 			"columns added" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.AddColumns { Options.Count: 0 } },
 			"a name of three words" => made is Ast.Statement.CreateTable { Options: [{ Name.Text: "CLUSTERED", Words: [{ Text: "COLUMNSTORE" }, { Text: "INDEX" }], Value: null }, { Name.Text: "DISTRIBUTION" }] },
 			"a name of two words and its list" => made is Ast.Statement.CreateTable { Options: [{ Name.Text: "CLUSTERED", Words: [{ Text: "INDEX" }], Value: null, Options: [{ Name.Text: "a" }] }, _] },
+			"a bracket by position" => made is Ast.Statement.CreateSpatialIndex { Options: [{ Value: Ast.Expression.Row { RowKeyword: false, Items: [Ast.LiteralValue.Numeric { Text: "-1.5" }, _, _, _] }, Options.Count: 0 }] },
+			"a bracket by name" => made is Ast.Statement.CreateSpatialIndex { Options: [{ Value: null, EqualsOmitted: false, Options: [{ Name.Text: "xmin", Value: Ast.LiteralValue.Numeric { Text: "-1" } }, _, _, _] }] },
+			"a bracket of one" => made is Ast.Statement.CreateSpatialIndex { Options: [{ Value: Ast.Expression.Row { Items: [Ast.Expression.Reference] } }] },
+			"a value alone" => made is Ast.Statement.CreateSpatialIndex { Options: [{ Value: Ast.LiteralValue.Numeric, Options.Count: 0 }] },
 			_ => false,
 		};
 

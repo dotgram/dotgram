@@ -1750,7 +1750,8 @@ public sealed class Sql2023WriterCoverageTests
 			"USING XML INDEX without FOR" => new Statement.CreateXmlIndex(T, I, C) { Using = new Identifier("p") },
 			"FOR without USING XML INDEX" => new Statement.CreateXmlIndex(T, I, C) { For = XmlIndexFor.Value },
 			"a spatial index on a partition scheme" => new Statement.CreateSpatialIndex(T, I, C) { Placements = [new Placement(PlacementKind.On, new Identifier("ps"), [C])] },
-			"a spatial option with options of its own" => new Statement.CreateSpatialIndex(T, I, C) { Options = [new Option(new Identifier("BOUNDING_BOX"), null, [new Option(new Identifier("XMIN"), Two, [])])] },
+			// SpatialSetting: a name and a SpatialItem, never a bracket of its own.
+			"a spatial option with options of its own" => new Statement.CreateSpatialIndex(T, I, C) { Options = [new Option(new Identifier("BOUNDING_BOX"), null, [new Option(new Identifier("XMIN"), null, [new Option(new Identifier("A"), Two, [])])])] },
 			"ALTER INDEX of ALL and a name" => new Statement.AlterIndex(T, new IndexAlteration.Disable()) { Name = I, All = true },
 			"ALTER INDEX of neither ALL nor a name" => new Statement.AlterIndex(T, new IndexAlteration.Disable()),
 			"ALTER INDEX of a plain ALL name" => new Statement.AlterIndex(T, new IndexAlteration.Disable()) { Name = new Identifier("all") },

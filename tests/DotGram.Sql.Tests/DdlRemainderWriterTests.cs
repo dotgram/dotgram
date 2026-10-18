@@ -78,8 +78,16 @@ public sealed class DdlRemainderWriterTests
 				Contents = new TableContents.AsQuery([], Select(), null),
 				Options  = [new Option(Name("CLUSTERED"), null, []) { Words = [Name("COLUMNSTORE"), Name("INDEX")] }],
 			},
+			"CREATE SPATIAL INDEX brackets" => Spatial(
+				Set("BOUNDING_BOX", new Expression.Row([new LiteralValue.Numeric("-1.5", NumericLiteralKind.Decimal), Number("0"), Number("500"), Number("200")])),
+				new Option(Name("GRIDS"), null, [Set("LEVEL_1", Ref("HIGH")), Set("LEVEL_2", Ref("LOW"))])),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
+	}
+
+	static Statement Spatial(params Option[] options)
+	{
+		return new Statement.CreateSpatialIndex(Qualified("t"), Name("i"), Name("g")) { Options = [.. options] };
 	}
 
 	static Option NoPopulation()
@@ -98,6 +106,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE FULLTEXT INDEX every option", "CREATE FULLTEXT INDEX ON t KEY INDEX k WITH (CHANGE_TRACKING MANUAL, NO POPULATION, STOPLIST = SYSTEM, SEARCH PROPERTY LIST p)")]
 	[InlineData("ALTER FULLTEXT INDEX DROP with no population", "ALTER FULLTEXT INDEX ON t DROP (c) WITH NO POPULATION")]
 	[InlineData("CTAS a name of three words", "CREATE TABLE t WITH (CLUSTERED COLUMNSTORE INDEX) AS SELECT a FROM u")]
+	[InlineData("CREATE SPATIAL INDEX brackets", "CREATE SPATIAL INDEX i ON t (g) WITH (BOUNDING_BOX = (-1.5, 0, 500, 200), GRIDS = (LEVEL_1 = HIGH, LEVEL_2 = LOW))")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -109,6 +118,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE FULLTEXT INDEX every option")]
 	[InlineData("ALTER FULLTEXT INDEX DROP with no population")]
 	[InlineData("CTAS a name of three words")]
+	[InlineData("CREATE SPATIAL INDEX brackets")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -132,6 +142,13 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("ALTER NO POPULATION after ENABLE")]
 	[InlineData("ALTER an option other than NO POPULATION")]
 	[InlineData("CTAS a name whose words hold ON")]
+	[InlineData("spatial an empty bracket")]
+	[InlineData("spatial a switch in a bracket")]
+	[InlineData("spatial a bracket in a bracket")]
+	[InlineData("spatial a row with ROW")]
+	[InlineData("spatial a setting with words")]
+	[InlineData("spatial a value and settings")]
+	[InlineData("spatial FILLFACTOR as a bracket")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -163,6 +180,20 @@ public sealed class DdlRemainderWriterTests
 			"ALTER an option other than NO POPULATION" => new Statement.AlterFullTextIndex(Qualified("t"), new FullTextAlteration.DropColumns([Name("c")]) { Options = [Set("ONLINE", Ref("ON"))] }),
 			// OptionName: a run of words ends at ON or OFF.
 			"CTAS a name whose words hold ON" => new Statement.CreateTable { Name = Qualified("t"), Contents = new TableContents.AsQuery([], Select(), null), Options = [new Option(Name("CLUSTERED"), null, []) { Words = [Name("ON")] }] },
+			// SpatialSet: one SpatialItem at least in a bracket.
+			"spatial an empty bracket" => Spatial(Set("GRIDS", new Expression.Row([]))),
+			// SpatialValue: `FOO = (ON)` is Msg 156.
+			"spatial a switch in a bracket" => Spatial(Set("FOO", new Expression.Row([Ref("ON")]))),
+			// SpatialItem: never a bracket.
+			"spatial a bracket in a bracket" => Spatial(Set("FOO", new Expression.Row([new Expression.Row([Number("1")])]))),
+			// SpatialSet: a bracket, never the word ROW.
+			"spatial a row with ROW" => Spatial(Set("FOO", new Expression.Row([Number("1")], RowKeyword: true))),
+			// SpatialSetting: a name of one word.
+			"spatial a setting with words" => Spatial(new Option(Name("GRIDS"), null, [new Option(Name("LEVEL"), Ref("LOW"), []) { Words = [Name("ONE")] }])),
+			// SpatialSet: a value, or a bracket, never both.
+			"spatial a value and settings" => Spatial(new Option(Name("GRIDS"), Ref("LOW"), [Set("LEVEL_1", Ref("HIGH"))])),
+			// Syntax.Spatial: FILLFACTOR is a number from 1 to 100.
+			"spatial FILLFACTOR as a bracket" => Spatial(Set("FILLFACTOR", new Expression.Row([Number("80")]))),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 
