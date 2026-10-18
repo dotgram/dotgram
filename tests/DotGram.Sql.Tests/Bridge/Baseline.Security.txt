@@ -43,5 +43,5 @@ Statement.OpenMasterKey = 4/0/0/0/0/0/0
 Statement.OpenSymmetricKey = 22/0/0/0/0/0/0
 Statement.Revoke = 36/0/0/0/0/0/0
 Statement.SchemaDefinition = 27/0/0/0/0/0/0
-Statement.SecurityPolicyDefinition = 37/0/0/0/0/0/0
+Statement.SecurityPolicyDefinition = 38/0/0/0/0/0/0
 Statement.SymmetricKeyDefinition = 27/0/0/0/0/0/0

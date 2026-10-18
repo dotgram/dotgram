@@ -847,7 +847,7 @@ static partial class Bridge
 				case ["(", .., ")"]:
 					var body = string.Join(' ', set.Skip(1).Take(set.Count - 2).Select(static one => one.Text));
 
-					return TransactSql.TransactSqlParser.TryParseSyntaxSql("CREATE TABLE t (" + body + ")") is { IsSuccess: true, Value: [Statement.Built table] }
+					return Reread("CREATE TABLE t (" + body + ")") is { IsSuccess: true, Value: [Statement.Built table] }
 						&& StatementOf(table) is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var elements) }
 						? new Ast.ResultSet.Columns(elements)
 						: throw BridgeGap.Open(old, $"inventory Statement.Execute (a result set `{body}`)");

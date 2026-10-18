@@ -57,7 +57,7 @@ static partial class Bridge
 
 		try
 		{
-			return TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: var statements } ? statements : null;
+			return Reread(text) is { IsSuccess: true, Value: var statements } ? statements : null;
 		}
 		finally
 		{
@@ -287,25 +287,52 @@ static partial class Bridge
 	/// </summary>
 	internal static Prior Over(string text, bool locate, bool count = false)
 	{
-		var outer = new Prior(source, recovered, locating);
+		var outer = new Prior(source, recovered, locating, unlocated);
 
 		source    = text;
 		recovered = count ? [] : null;
 		locating  = locate;
+		unlocated = false;
 
 		return outer;
 	}
 
 	/// <summary>The carriage that stood before a reading, put back when it ends; a value, so that a reading allocates none.</summary>
-	internal readonly struct Prior(string? source, List<string>? recovered, bool locating) : IDisposable
+	internal readonly struct Prior(string? source, List<string>? recovered, bool locating, bool unlocated) : IDisposable
 	{
 		public void Dispose()
 		{
 			Bridge.source    = source;
 			Bridge.recovered = recovered;
 			Bridge.locating  = locating;
+			Bridge.unlocated = unlocated;
 		}
 	}
+
+	/// <summary>
+	/// A text the bridge writes, or cuts out of a statement's, to read a part of it again, read through an internal entry:
+	/// the plain one, which tells its records no span, or the located one. A builder that tells a record its rule's extent
+	/// (<see cref="Tables.Sourced"/>) tells it only where the reading locates: in a plain one, as before the rules built
+	/// the common tree, no record has a span to cut the text by, and none of the checks that read it is made.
+	/// </summary>
+	internal static TransactSqlParser.Match<Statement[]> Reread(string text, bool located = false)
+	{
+		var outer = unlocated;
+
+		unlocated = !located;
+
+		try
+		{
+			return located ? TransactSqlParser.Located.TryParseSyntaxSql(text) : TransactSqlParser.TryParseSyntaxSql(text);
+		}
+		finally
+		{
+			unlocated = outer;
+		}
+	}
+
+	/// <summary>Whether the reading under way is a plain one the bridge made (<see cref="Reread"/>), whose records have no span.</summary>
+	[ThreadStatic] static bool unlocated;
 
 	/// <summary>The statements whose rules built them on the common tree: each carried as what it holds.</summary>
 	internal static class Built

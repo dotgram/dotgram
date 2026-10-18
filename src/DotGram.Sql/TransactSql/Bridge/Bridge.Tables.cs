@@ -60,7 +60,10 @@ static partial class Bridge
 			if (read is TableReference.Built)
 				return read;
 
-			read.Locate(at.At, at.Length);
+			// Only where the reading locates: a plain reading's records have no span, and its checks that read the text by one
+			// are not made (Reread).
+			if (!unlocated)
+				read.Locate(at.At, at.Length);
 
 			Building(read, static read => Of(read), out var made, out var gap, out var taken);
 
@@ -2088,7 +2091,7 @@ static partial class Bridge
 				case ["AS", "TABLE", "(", ..]:
 					// The body read as a table's, its parts carried with the text it is read from.
 					var body = "CREATE TABLE t " + tail[(tail.IndexOf('('))..];
-					var read = Inside(body, () => TransactSql.TransactSqlParser.Located.TryParseSyntaxSql(body));
+					var read = Inside(body, () => Reread(body, located: true));
 
 					if (read is not { IsSuccess: true, Value: [Statement.Built table] }
 						|| StatementOf(table) is not Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var elements), Kind: null, Placements.Count: 0 } made)

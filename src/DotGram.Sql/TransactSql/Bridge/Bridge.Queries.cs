@@ -223,7 +223,7 @@ static partial class Bridge
 		/// </summary>
 		internal static Selecting? Selected(string text)
 		{
-			return TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.Built { Given: Selecting selecting }] } ? selecting : null;
+			return Reread(text) is { IsSuccess: true, Value: [Statement.Built { Given: Selecting selecting }] } ? selecting : null;
 		}
 
 		/// <summary>The same, where it reads as one specification: the specification, as its rule read it.</summary>

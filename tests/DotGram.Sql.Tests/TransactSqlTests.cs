@@ -15505,6 +15505,28 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
+	/// A part the bridge reads again from a text of its own — a value as `SELECT value`, a condition as `SELECT 1 WHERE`,
+	/// an order as `SELECT 1 ORDER BY` — holding a source whose conversion checks the source's own text (a hint written
+	/// against its sample): read without locations, as it always was, so that the check, which needs a span, is not made
+	/// and the statement is read as before, through either door, alone and in a text of statements.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE STATISTICS s ON t(c) WHERE EXISTS (SELECT 1 FROM u a TABLESAMPLE (10 ROWS) (NOLOCK))")]
+	[InlineData("ALTER TABLE t MERGE RANGE ((SELECT 1 FROM u a TABLESAMPLE (10 ROWS) (NOLOCK)))")]
+	[InlineData("CREATE SERVER AUDIT a TO SECURITY_LOG WHERE a IN (SELECT 1 FROM u a TABLESAMPLE (10 ROWS) (NOLOCK))")]
+	[InlineData("ALTER SECURITY POLICY p ADD FILTER PREDICATE dbo.f((SELECT 1 FROM u a TABLESAMPLE (10 ROWS) (NOLOCK))) ON dbo.t")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY (SELECT 1 FROM u a TABLESAMPLE (10 ROWS) (NOLOCK))) FROM users")]
+	[InlineData("ALTER EXTERNAL LANGUAGE Java AUTHORIZATION dbo SET (CONTENT = (SELECT 1 FROM u a TABLESAMPLE (10 ROWS) (NOLOCK)), FILE_NAME = 'x', PLATFORM = LINUX)")]
+	[InlineData("WITH CHANGE_TRACKING_CONTEXT ((SELECT 1 FROM u a TABLESAMPLE (10 ROWS) (NOLOCK))), c (a) AS (SELECT a FROM t) INSERT INTO u (a) SELECT a FROM c")]
+	public void A_part_read_again_from_a_text_of_its_own_reads_as_before(string input)
+	{
+		Assert.IsNotType<Ast.Statement.Extension>(TransactSqlParser.ParseStatement(input));
+		Assert.IsNotType<Ast.Statement.Extension>(TransactSqlParser.Located.ParseStatement(input));
+		Assert.IsNotType<Ast.Statement.Extension>(Assert.Single(TransactSqlParser.ParseSql(input)));
+		Assert.IsNotType<Ast.Statement.Extension>(Assert.Single(TransactSqlParser.Located.ParseSql(input)));
+	}
+
+	/// <summary>
 	/// The statements whose conversion reads their whole text up to its end, `;` among it: read ended or not, once or
 	/// twice. A constraint added with a `FOR` after it, which the T-SQL tree does not keep, ended: its text reaches the `;`,
 	/// and the check that sees the `FOR` as the last words of the statement does not, so it is carried without the `FOR`,

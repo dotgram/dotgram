@@ -6,7 +6,7 @@
 
 Statement.ExternalDataSourceDefinition = 85/7/0/0/0/0/0
 Statement.ExternalFileFormatDefinition = 97/4/0/0/0/0/0
-Statement.ExternalLanguageDefinition = 41/0/0/0/0/0/0
+Statement.ExternalLanguageDefinition = 42/0/0/0/0/0/0
 Statement.ExternalLibraryDefinition = 59/0/0/0/0/0/0
 Statement.ExternalModelDefinition = 34/0/0/0/0/0/0
 Statement.ExternalResourcePoolDefinition = 79/0/0/0/0/0/0

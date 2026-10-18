@@ -74,7 +74,7 @@ static partial class Bridge
 			// The elements are the five statements a schema declares in its own breath: read as a script, the text after the owner.
 			var text = tail[tokens[at].At..];
 			// Read with that text as the one its rules carry their parts with, as the elements are carried below.
-			var read = Inside(text, () => TransactSql.TransactSqlParser.Located.TryParseSyntaxSql(text));
+			var read = Inside(text, () => Reread(text, located: true));
 
 			if (!read.IsSuccess || read.Value is not { Length: > 0 } elements)
 				throw BridgeGap.Open(old, "inventory Statement.SchemaDefinition (elements that a script does not read)");

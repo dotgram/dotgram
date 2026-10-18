@@ -402,16 +402,16 @@ under it is in neither of the last two.
 
 | Old record | Family | Category | Counted | Gaps | Occurrences |
 | --- | --- | --- | --- | --- | ---: |
-| `Statement.Select` | Queries | B | converted 2533 | — | 2561 |
+| `Statement.Select` | Queries | B | converted 2534 | — | 2562 |
 | `Statement.TableDefinition` | Tables | B | converted 1807 | — | 1829 |
-| `Statement.AlterTable` | Tables | B | converted 647, gap 1 | 1: needs decision: inventory Statement.AlterTable (a constraint added with a FOR the old tree drops) (1) | 648 |
+| `Statement.AlterTable` | Tables | B | converted 648, gap 1 | 1: needs decision: inventory Statement.AlterTable (a constraint added with a FOR the old tree drops) (1) | 649 |
 | `Statement.CreateIndex` | Tables | C | converted 493, gap 2 | 2: needs decision: inventory Statement.CreateIndex (a spatial index USING FOO) (2) | 495 |
 | `Statement.EventSessionDefinition` | Monitoring | C | converted 321, gap 2 | 2: not kept by the old tree: a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank (2) | 323 |
 | `Statement.Declare` | Procedural | C | converted 292 | — | 300 |
 | `Statement.CreateProcedure` | Routines | B | converted 288, gap 1 | 1: needs decision: inventory DataType (a type `double precision(max)` of several words) (1) | 289 |
 | `Statement.EndpointDefinition` | Server | C | converted 251, gap 1 | 1: needs decision: inventory Statement.EndpointDefinition (`CREATE ENDPOINT e AS TCP (LISTENER_PORT = 4022) FOR SERVICE_BROKER (AUTHENTICATION = WINDOWS) ; ;` after the name) (1) | 252 |
 | `Statement.AlterDatabaseSet` | Database | C | converted 218 | — | 218 |
-| `Statement.Insert` | Dml | A | converted 196, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 204 |
+| `Statement.Insert` | Dml | A | converted 197, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 205 |
 | `Statement.CreateFunction` | Routines | B | converted 184 | — | 184 |
 | `Statement.TypeDefinition` | Tables | B | converted 173, gap 1 | 1: needs decision: inventory DataType (a type `double precision(max)` of several words) (1) | 174 |
 | `Statement.WorkloadGroupDefinition` | Server | C | converted 155 | — | 155 |
@@ -419,7 +419,7 @@ under it is in neither of the last two.
 | `Statement.SetStatement` | Procedural | C | converted 154 | — | 154 |
 | `Statement.AlterIndex` | Tables | C | converted 148 | — | 148 |
 | `Statement.Execute` | Routines | B | converted 138, shape 1 | — | 138 |
-| `Statement.ServerAuditDefinition` | Monitoring | C | converted 116, gap 2 | 2: not kept by the old tree: a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank (2) | 118 |
+| `Statement.ServerAuditDefinition` | Monitoring | C | converted 117, gap 2 | 2: not kept by the old tree: a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank (2) | 119 |
 | `Statement.Update` | Dml | A | converted 116 | — | 116 |
 | `Statement.Transaction` | Procedural | B | converted 115 | — | 115 |
 | `Statement.Grant` | Security | B | converted 108 | — | 108 |
@@ -449,15 +449,15 @@ under it is in neither of the last two.
 | `Statement.AlterFullTextStopList` | Database | C | converted 46 | — | 46 |
 | `Statement.AuditSpecificationDefinition` | Monitoring | C | converted 45 | — | 45 |
 | `Statement.AssemblyDefinition` | Routines | C | converted 44 | — | 44 |
+| `Statement.StatisticsDefinition` | Tables | C | converted 44 | — | 44 |
 | `Statement.TriggerSwitch` | Routines | C | converted 44 | — | 44 |
 | `Statement.AsymmetricKeyDefinition` | Security | C | converted 43 | — | 43 |
-| `Statement.StatisticsDefinition` | Tables | C | converted 43 | — | 43 |
-| `Statement.ExternalLanguageDefinition` | External | C | converted 41 | — | 41 |
+| `Statement.ExternalLanguageDefinition` | External | C | converted 42 | — | 42 |
 | `Statement.UpdateStatistics` | Tables | C | converted 41 | — | 41 |
 | `Statement.BackupDatabase` | Database | C | converted 38 | — | 38 |
 | `Statement.Print` | Procedural | C | converted 38 | — | 38 |
+| `Statement.SecurityPolicyDefinition` | Security | C | converted 38 | — | 38 |
 | `Statement.CreateUser` | Security | C | converted 37 | — | 37 |
-| `Statement.SecurityPolicyDefinition` | Security | C | converted 37 | — | 37 |
 | `Statement.Revoke` | Security | B | converted 36 | — | 36 |
 | `Statement.WriteText` | Dml | C | converted 35 | — | 35 |
 | `Statement.Deny` | Security | C | converted 34 | — | 34 |
