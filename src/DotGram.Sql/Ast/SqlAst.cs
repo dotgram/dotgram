@@ -1327,7 +1327,9 @@ public abstract partial record AlterTableAction : ISqlNode
 	// T-SQL: ALTER TABLE (Transact-SQL) writes no behavior, so it is null there; the standard's parser always sets it.
 	public partial record DropConstraint(QualifiedName Name, DropBehavior? Behavior) : AlterTableAction;
 	public record AddPeriod(PeriodDefinition Period, SqlList<AddColumn> AddedColumns) : AlterTableAction;
-	public record DropPeriod(PeriodKind Kind, Identifier? ApplicationName, DropBehavior Behavior) : AlterTableAction;
+	// T-SQL: ALTER TABLE (Transact-SQL). `DROP PERIOD FOR SYSTEM_TIME` writes no behavior, which the standard demands: the
+	// behavior is null there, and each writer refuses the form its own grammar does not read.
+	public record DropPeriod(PeriodKind Kind, Identifier? ApplicationName, DropBehavior? Behavior) : AlterTableAction;
 	public record AddSystemVersioning : AlterTableAction;
 	public record DropSystemVersioning(DropBehavior Behavior) : AlterTableAction;
 	public record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : AlterTableAction;

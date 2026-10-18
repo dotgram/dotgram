@@ -63,6 +63,8 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("ALTER TABLE t MERGE RANGE (NULL)", "MERGE RANGE")]
 	[InlineData("ALTER TABLE t ENABLE FILETABLE_NAMESPACE", "ENABLE FILETABLE_NAMESPACE")]
 	[InlineData("alter table t disable filetable_namespace", "DISABLE FILETABLE_NAMESPACE")]
+	[InlineData("ALTER TABLE t DROP PERIOD FOR SYSTEM_TIME", "a period dropped")]
+	[InlineData("ALTER TABLE t DROP PERIOD FOR SYSTEM_TIME, COLUMN a", "a period dropped in a list")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -141,6 +143,8 @@ public sealed class DdlRemainderBridgeTests
 			"MERGE RANGE" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.MergeRange { Boundary: Ast.LiteralValue.Null }] },
 			"ENABLE FILETABLE_NAMESPACE" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.FileTableNamespace { Enable: true }] },
 			"DISABLE FILETABLE_NAMESPACE" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.FileTableNamespace { Enable: false }] },
+			"a period dropped" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.DropPeriod { Kind: Ast.PeriodKind.SystemTime, Behavior: null }] },
+			"a period dropped in a list" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Drop { Items: [Ast.AlterTableAction.DropPeriod, Ast.AlterTableAction.DropColumn] }] },
 			_ => false,
 		};
 

@@ -1215,6 +1215,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case AlterTableAction.DropPeriod drop:
+					// T-SQL reads SYSTEM_TIME and no behavior (DropTarget); the standard demands a behavior.
+					if (transactSql ? drop.Behavior is not null || drop.Kind != PeriodKind.SystemTime : drop.Behavior is null)
+						throw Misplaced(drop, "Behavior or Kind", transactSql ? "a behavior or an application time, which T-SQL's DROP PERIOD does not read (DropTarget)" : "no behavior, which the standard's DROP PERIOD demands");
+
 					Word("DROP PERIOD FOR");
 
 					switch (drop.Kind)
@@ -1235,7 +1239,9 @@ public static partial class Sql2023Writer
 							throw NoText(drop.Kind);
 					}
 
-					PutBehavior(drop.Behavior);
+					if (drop.Behavior is { } behavior)
+						PutBehavior(behavior);
+
 					break;
 
 				case AlterTableAction.AddSystemVersioning:

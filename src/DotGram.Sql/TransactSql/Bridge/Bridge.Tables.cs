@@ -1243,8 +1243,15 @@ static partial class Bridge
 
 			foreach (var element in old.Elements)
 			{
+				// `PERIOD FOR SYSTEM_TIME`, with no behavior, which T-SQL does not write.
+				if (element is Clause.Dropped("PERIOD FOR SYSTEM_TIME", null, false, null))
+				{
+					items.Add(new Ast.AlterTableAction.DropPeriod(Ast.PeriodKind.SystemTime, null, null));
+					continue;
+				}
+
 				if (element is not Clause.Dropped(var kind, { } name, var exists, var tail))
-					throw BridgeGap.Open(element, "inventory Clause.Dropped (a period or an index, which no action holds)");
+					throw BridgeGap.Open(element, "inventory Clause.Dropped (an index in a list, which no action holds)");
 
 				var column = kind == "COLUMN" || kind == "" && items.Count > 0 && items[^1] is Ast.AlterTableAction.DropColumn;
 
