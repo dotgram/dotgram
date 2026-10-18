@@ -59,6 +59,10 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("ALTER TABLE t ADD CONSTRAINT d DEFAULT 1 FOR c WITH VALUES", "a default constraint WITH VALUES")]
 	[InlineData("CREATE TABLE t (i INT NOT NULL PRIMARY KEY NONCLUSTERED HASH WITH (BUCKET_COUNT = 8)) WITH (MEMORY_OPTIMIZED = ON)", "a hash key")]
 	[InlineData("CREATE TABLE t (i INT NOT NULL PRIMARY KEY NONCLUSTERED)", "a key")]
+	[InlineData("ALTER TABLE t SPLIT RANGE ('2004-01-01')", "SPLIT RANGE")]
+	[InlineData("ALTER TABLE t MERGE RANGE (NULL)", "MERGE RANGE")]
+	[InlineData("ALTER TABLE t ENABLE FILETABLE_NAMESPACE", "ENABLE FILETABLE_NAMESPACE")]
+	[InlineData("alter table t disable filetable_namespace", "DISABLE FILETABLE_NAMESPACE")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -133,6 +137,10 @@ public sealed class DdlRemainderBridgeTests
 			"a default constraint WITH VALUES" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.AddConstraint { Constraint: Ast.Constraint.Default { WithValues: true, Column.Text: "c" } }] },
 			"a hash key" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Options: [_, Ast.ColumnOption.Constraint { Value: Ast.Constraint.Unique { Storage: Ast.IndexStorage.Hash, Clustering: Ast.IndexClustering.Nonclustered, Options.Count: 1 } }] }] } },
 			"a key" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Options: [_, Ast.ColumnOption.Constraint { Value: Ast.Constraint.Unique { Storage: null } }] }] } },
+			"SPLIT RANGE" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.SplitRange { Boundary: Ast.LiteralValue.String }] },
+			"MERGE RANGE" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.MergeRange { Boundary: Ast.LiteralValue.Null }] },
+			"ENABLE FILETABLE_NAMESPACE" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.FileTableNamespace { Enable: true }] },
+			"DISABLE FILETABLE_NAMESPACE" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.FileTableNamespace { Enable: false }] },
 			_ => false,
 		};
 

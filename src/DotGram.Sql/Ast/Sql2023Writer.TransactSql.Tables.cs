@@ -129,6 +129,28 @@ public static partial class Sql2023Writer
 					PutOptions(tracking.Options);
 					return true;
 
+				// T-SQL: ALTER TABLE (Transact-SQL), the Synapse block. RANGE (SetValue): NULL or a value, never DEFAULT.
+				case AlterTableAction.SplitRange { Boundary: Expression.Default } or AlterTableAction.MergeRange { Boundary: Expression.Default }:
+					throw Misplaced(node, "Boundary", "DEFAULT, which RANGE (SetValue) does not read");
+
+				case AlterTableAction.SplitRange split:
+					Word("SPLIT RANGE");
+					Open();
+					PutExpression(split.Boundary);
+					Close();
+					return true;
+
+				case AlterTableAction.MergeRange merge:
+					Word("MERGE RANGE");
+					Open();
+					PutExpression(merge.Boundary);
+					Close();
+					return true;
+
+				case AlterTableAction.FileTableNamespace space:
+					Word(space.Enable ? "ENABLE FILETABLE_NAMESPACE" : "DISABLE FILETABLE_NAMESPACE");
+					return true;
+
 				// T-SQL: ALTER TABLE (Transact-SQL). `ADD MASKED WITH (FUNCTION = 'f()')` alone takes a function.
 				case AlterColumnAction.Property property:
 					if ((property.MaskFunction is not null) != (property.Add && property.Kind == ColumnPropertyKind.Masked))
