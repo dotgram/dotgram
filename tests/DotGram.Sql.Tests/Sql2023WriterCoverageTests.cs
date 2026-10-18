@@ -1740,7 +1740,7 @@ public sealed class Sql2023WriterCoverageTests
 			"an unbracketed FILLFACTOR with no value" => Tabled(null, new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [Flag("FILLFACTOR")], OptionsUnbracketed = true })),
 			"an unbracketed option twice" => Tabled(null, new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(A)], Options = [Flag("SORTED_DATA"), Flag("sorted_data")], OptionsUnbracketed = true })),
 			"ON DEFAULT with columns" => new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([IntColumn()]), Placements = [new Placement(PlacementKind.On, new Identifier("DEFAULT"), [new Identifier("a")])] },
-			"a collation beside SET DATA TYPE" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.SetDataType(new DataType.Numeric(NumericTypeKind.Int)) { Collation = new CollationName(T) }, true)),
+			"a collation beside SET DATA TYPE" => Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.SetDataType(new DataType.Numeric(NumericTypeKind.Int)) { ColumnOptions = [new ColumnOption.Collation(new CollationName(T))] }, true)),
 			"ONLY on an INSERT's target"            => new Statement.Insert { Target = new TableSource.Named(T) { Only = true } },
 			"a relational index with no column" => new Statement.CreateIndex(T, new IndexDefinition(I)),
 			"an ORDER on a relational index" => Created(new IndexDefinition(I) { Order = [C] }),

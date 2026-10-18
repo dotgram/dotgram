@@ -1156,30 +1156,20 @@ static partial class Bridge
 				return new Ast.AlterTableAction.AlterColumn(Values.Part(old, column.Name), Property(old, flag, options), true);
 			}
 
-			Ast.CollationName? collation = null;
+			// Syntax.AlteredColumn: the front of a column's tail, in the order written, and one nullability last.
 			Ast.ColumnNullability? nullability = null;
+			IEnumerable<Clause> front = column.Options;
 
-			for (var at = 0; at < column.Options.Length; at++)
+			if (column.Options.Length > 0 && column.Options[column.Options.Length - 1] is Clause.ColumnOption { Kind: "NULL" or "NOT NULL", ConstraintName: null } last)
 			{
-				switch (column.Options[at])
-				{
-					case Clause.ColumnOption { Kind: "COLLATE", Arguments: [Expression.ColumnReference(var name)], ConstraintName: null } when collation is null && nullability is null:
-						collation = new Ast.CollationName(Values.Name(old, name));
-						break;
-
-					case Clause.ColumnOption { Kind: "NULL" or "NOT NULL", ConstraintName: null } option when at == column.Options.Length - 1:
-						nullability = option.Kind == "NULL" ? Ast.ColumnNullability.Null : Ast.ColumnNullability.NotNull;
-						break;
-
-					default:
-						throw BridgeGap.Open(column.Options[at], "inventory Statement.AlterTable (ALTER COLUMN with more than a collation and a nullability)");
-				}
+				nullability = last.Kind == "NULL" ? Ast.ColumnNullability.Null : Ast.ColumnNullability.NotNull;
+				front       = column.Options.Take(column.Options.Length - 1);
 			}
 
 			var type = new Ast.AlterColumnAction.SetDataType(Values.Type(old, column.Type))
 			{
 				SetDataTypeOmitted = true,
-				Collation          = collation,
+				ColumnOptions      = [.. front.SelectMany(ColumnOptions)],
 				Nullability        = nullability,
 				Options            = options,
 			};

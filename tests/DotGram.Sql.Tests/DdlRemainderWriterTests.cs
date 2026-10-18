@@ -93,6 +93,7 @@ public sealed class DdlRemainderWriterTests
 			"ALTER INDEX paths" => new Statement.AlterIndex(Qualified("t"), new IndexAlteration.Paths([new PathAction.Remove(Name("p2")), new PathAction.Add(new PromotedPath(Name("p1"), Str("/a")))])) { Name = Name("sxi") },
 			"WITH CHANGE_TRACKING_CONTEXT" => new Statement.Select { Query = ((Query.Select)Select()) with { With = new WithClause(false, []) { ChangeTrackingContext = new LiteralValue.Binary("FF") { ZeroX = true } } } },
 			"CREATE TABLE a column set" => Table(Column(new DataType.Xml()) with { Options = [new ColumnOption.Collation(new CollationName(Qualified("x"))), new ColumnOption.ColumnSet()] }),
+			"ALTER COLUMN a front" => Altered(new AlterColumnAction.SetDataType(new DataType.Xml()) { SetDataTypeOmitted = true, ColumnOptions = [new ColumnOption.Collation(new CollationName(Qualified("x"))), new ColumnOption.ColumnSet()], Nullability = ColumnNullability.Null }),
 			"CREATE MATERIALIZED VIEW" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("ROUND_ROBIN")), Set("FOR_APPEND")] },
 			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
@@ -103,6 +104,11 @@ public sealed class DdlRemainderWriterTests
 	static ColumnDefinition Column(DataType type)
 	{
 		return new ColumnDefinition(Name("c"), type, null, [], null);
+	}
+
+	static Statement Altered(AlterColumnAction action)
+	{
+		return new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.AlterColumn(Name("c"), action, true)] };
 	}
 
 	static Statement Table(ColumnDefinition column)
@@ -144,6 +150,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE MATERIALIZED VIEW", "CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = ROUND_ROBIN, FOR_APPEND) AS SELECT a FROM u")]
 	[InlineData("WITH CHANGE_TRACKING_CONTEXT", "WITH CHANGE_TRACKING_CONTEXT (0xFF) SELECT a FROM u")]
 	[InlineData("CREATE TABLE a column set", "CREATE TABLE t (c XML COLLATE x COLUMN_SET FOR ALL_SPARSE_COLUMNS)")]
+	[InlineData("ALTER COLUMN a front", "ALTER TABLE t ALTER COLUMN c XML COLLATE x COLUMN_SET FOR ALL_SPARSE_COLUMNS NULL")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -163,6 +170,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE MATERIALIZED VIEW")]
 	[InlineData("WITH CHANGE_TRACKING_CONTEXT")]
 	[InlineData("CREATE TABLE a column set")]
+	[InlineData("ALTER COLUMN a front")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -210,6 +218,8 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("a column set after a type with brackets")]
 	[InlineData("a column set after SPARSE")]
 	[InlineData("a column set in the free list")]
+	[InlineData("ALTER COLUMN a default")]
+	[InlineData("ALTER COLUMN a collation after SPARSE")]
 	[InlineData("JSON a path with an escape")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
@@ -285,6 +295,10 @@ public sealed class DdlRemainderWriterTests
 			"a column set after SPARSE" => Table(Column(new DataType.Xml()) with { Options = [new ColumnOption.Sparse(), new ColumnOption.ColumnSet()] }),
 			// Syntax.Tailed: the front after the free list is Msg 102.
 			"a column set in the free list" => Table(Column(new DataType.Xml()) with { Options = [new ColumnOption.Null(), new ColumnOption.ColumnSet()] }),
+			// Syntax.AlteredColumn: ALTER COLUMN c INT DEFAULT 1 is Msg 156.
+			"ALTER COLUMN a default" => Altered(new AlterColumnAction.SetDataType(new DataType.Numeric(NumericTypeKind.Int)) { SetDataTypeOmitted = true, ColumnOptions = [new ColumnOption.Default(Number("1"))] }),
+			// Syntax.Tailed: a collation after the front is Msg 156.
+			"ALTER COLUMN a collation after SPARSE" => Altered(new AlterColumnAction.SetDataType(new DataType.Numeric(NumericTypeKind.Int)) { SetDataTypeOmitted = true, ColumnOptions = [new ColumnOption.Sparse(), new ColumnOption.Collation(new CollationName(Qualified("x")))] }),
 			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
 			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
 			// JsonIndexPath: a plain or national string.
