@@ -26,7 +26,6 @@ namespace DotGram.Snapshots
 				string[]? expected = null;
 				var turn0 = 0;
 				var completedCall = -1;
-				var capture15 = 0;
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
@@ -1148,7 +1147,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					capture15 = p;
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 15, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -1187,7 +1186,32 @@ namespace DotGram.Snapshots
 
 				S105:
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 15, capture15, call, atomic, repeat, lookahead, p));
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
+					{
+						var opened = entries[openedAt];
+
+						if (opened.State != 15) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
+							continue;
+
+						if (closed == 0)
+							break;
+
+						closed--;
+					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 15, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 				}
 
 				{

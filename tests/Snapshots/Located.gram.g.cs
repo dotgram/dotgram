@@ -271,8 +271,6 @@ namespace DotGram.Snapshots
 				string[]? expected = null;
 				var turn0 = 0;
 				var completedCall = -1;
-				var capture6 = 0;
-				var capture7 = 0;
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
@@ -381,7 +379,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					capture7 = p;
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 7, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -420,7 +418,32 @@ namespace DotGram.Snapshots
 
 				S15:
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 7, capture7, call, atomic, repeat, lookahead, p));
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
+					{
+						var opened = entries[openedAt];
+
+						if (opened.State != 7) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
+							continue;
+
+						if (closed == 0)
+							break;
+
+						closed--;
+					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 7, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 					goto Return;
 				}
 
@@ -457,7 +480,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					capture6 = p;
+					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 6, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -479,7 +502,32 @@ namespace DotGram.Snapshots
 
 				S22:
 				{
-					entries.Add(new ParserEntry(ParserEntry.Capture, 6, capture6, call, atomic, repeat, lookahead, p));
+					var closed  = 0;
+					var openedAt = entries.Count - 1;
+
+					for (; openedAt >= 0; openedAt--)
+					{
+						var opened = entries[openedAt];
+
+						if (opened.State != 6) continue;
+
+						if (opened.Kind == ParserEntry.Capture)
+						{
+							closed++;
+							continue;
+						}
+
+						if (opened.Kind != ParserEntry.CaptureOpen)
+							continue;
+
+						if (closed == 0)
+							break;
+
+						closed--;
+					}
+
+					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
+					entries.Add(new ParserEntry(ParserEntry.Capture, 6, entries[openedAt].Position, call, atomic, repeat, lookahead, p));
 				}
 
 				{
