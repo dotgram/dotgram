@@ -73,7 +73,10 @@ internal static class CorpusRoundTrip
 	/// <param name="Theirs">ScriptDom's printing of its own reading, where both printed.</param>
 	/// <param name="Ours">ScriptDom's printing of what this grammar read, where both printed.</param>
 	/// <param name="File">The file's key, as <see cref="Key"/> gives it.</param>
-	internal sealed record Trouble(string Kind, string Original, string? Why, string? Theirs, string? Ours, string File);
+	/// <param name="Gap">
+	/// Where this grammar's reading was an extension, which the writer refuses: the construct it says it stands for.
+	/// </param>
+	internal sealed record Trouble(string Kind, string Original, string? Why, string? Theirs, string? Ours, string File, string? Gap = null);
 
 	/// <summary>
 	/// The version to read and print one file with, where a <c>Baselines&lt;n&gt;</c> directory names it.
@@ -185,7 +188,8 @@ internal static class CorpusRoundTrip
 					{
 						threw++;
 						tally.Broken++;
-						show?.Invoke(new Trouble(kind, original, "the writer threw: " + failure.GetType().Name, null, null, key));
+						show?.Invoke(new Trouble(kind, original, "the writer threw: " + failure.GetType().Name, null, null, key,
+							made is DotGram.Sql.Ast.Statement.Extension extension ? extension.Kind : null));
 
 						continue;
 					}

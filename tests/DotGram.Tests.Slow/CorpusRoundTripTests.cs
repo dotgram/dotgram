@@ -97,6 +97,13 @@ public sealed class CorpusRoundTripTests(ITestOutputHelper output)
 
 			met.Add(at);
 
+			if (!FailsAsListed(trouble, Known[at].Expected))
+			{
+				faults.Add($"{trouble.File}: `{Known[at].Statement}` is listed as {Known[at].Expected} and failed otherwise: {trouble.Why ?? trouble.Theirs + " | " + trouble.Ours}{(trouble.Gap is { } gap ? ", the gap " + gap : "")}.");
+
+				continue;
+			}
+
 			var (threw, different) = excused.GetValueOrDefault(trouble.File);
 
 			excused[trouble.File] = trouble.Why is null ? (threw, different + 1) : (threw + 1, different);
@@ -150,35 +157,65 @@ public sealed class CorpusRoundTripTests(ITestOutputHelper output)
 
 	/// <summary>
 	/// The statements of the corpus that read and do not come back while the T-SQL entries carry what the grammar
-	/// reads onto the common tree: the file, a piece of the statement's text as the corpus writes it, and why.
+	/// reads onto the common tree: the file, a piece of the statement's text as the corpus writes it, and how it fails.
 	/// </summary>
 	/// <remarks>
 	/// The baseline is the old tree's, which brought every one of them back. Each is excused in its own file only,
-	/// once, and a row that no longer happens fails, so that the list shrinks with the gaps it names and never
-	/// covers a new one. The counts are what the baseline holds the rest of the corpus to.
+	/// once, and only while it fails as its row says: a gap of the reason named, which the writer refuses. A row that
+	/// no longer happens fails, and so does one that fails otherwise — another gap, a writer exception, a printing —
+	/// so that the list shrinks with the gaps it names and never covers a new one. The counts are what the baseline
+	/// holds the rest of the corpus to.
 	/// </remarks>
-	static readonly (string File, string Statement, string Why)[] Known =
+	static readonly (string File, string Statement, Expected Expected)[] Known =
 	[
-		("TestScripts/ScalarDataTypeTests.sql",           "c30 national text not null",          "a type of several words, `national text`, which the tree has no place for"),
-		("TestScripts/CreateTableTests90.sql",            "c2 national sys.text",                "a type of several words with a schema, `national sys.text`"),
-		("TestScripts/ScalarDataTypeTests90.sql",         "c39a Double Precision(max)",          "`DOUBLE PRECISION (MAX)`, which the tree has no place for"),
-		("TestScripts/FromClauseTests90.sql",             "tablesample (1000 rows)(nolock)",     "a table hint written after TABLESAMPLE without WITH, a counted gap"),
-		("TestScripts/FromClauseTests.sql",               "select c1 from t1 with (0)",          "the old `WITH (n)` table hint, a counted gap"),
-		("TestScripts/InsertStatementTests.sql",          "Insert ..t1 (c1, a.b.c.d",            "a qualified column in INSERT's column list, which holds names of one part"),
-		("BaselinesCommon/InsertStatementTests.sql",      "INSERT ..t1 (c1, a.b.c.d",            "a qualified column in INSERT's column list, which holds names of one part"),
-		("TestScripts/InsertStatementTests.sql",          "Insert @v1 (..a1)",                   "a prefixed column in INSERT's column list, which holds names of one part"),
-		("BaselinesCommon/InsertStatementTests.sql",      "INSERT @v1 (..a1)",                   "a prefixed column in INSERT's column list, which holds names of one part"),
-		("TestScripts/BackupStatementTests.sql",          "file = ('f2',@var4)",                 "BACKUP's FILE of a bracketed list"),
-		("BaselinesCommon/BackupStatementTests.sql",      "FILE = ('f2', @var4)",                "BACKUP's FILE of a bracketed list"),
-		("TestScripts/BackupStatementTests.sql",          "filegroup = (@var5, @var6)",          "BACKUP's FILEGROUP of a bracketed list"),
-		("BaselinesCommon/BackupStatementTests.sql",      "FILEGROUP = (@var5, @var6)",          "BACKUP's FILEGROUP of a bracketed list"),
-		("TestScripts/ExpressionTests.sql",               "{fn extract(hour from getdate())}",   "an ODBC function whose argument begins with a word, `hour`"),
-		("BaselinesCommon/ExpressionTests.sql",           "{ FN extract ( hour FROM getdate()) }", "an ODBC function whose argument begins with a word, `hour`"),
-		("TestScripts/JsonFunctionTests170.sql",          "JSON_OBJECTAGG()",                    "JSON_OBJECTAGG of no pair, where the record holds one"),
-		("Baselines170/JsonFunctionTests170.sql",         "JSON_OBJECTAGG()",                    "JSON_OBJECTAGG of no pair, where the record holds one"),
-		("TestScripts/RowsetsInSelectTests.sql",          ". 'Something' AS Z",                  "a string as the part of a name after OPENDATASOURCE"),
-		("BaselinesCommon/RowsetsInSelectTests.sql",      ".'Something' AS Z",                   "a string as the part of a name after OPENDATASOURCE"),
+		("TestScripts/ScalarDataTypeTests.sql",      "c30 national text not null",            Gap("a type `national text` of several words")),
+		("TestScripts/CreateTableTests90.sql",       "c2 national sys.text",                  Gap("a name part `national sys`")),
+		("TestScripts/ScalarDataTypeTests90.sql",    "c39a Double Precision(max)",            Gap("a type `Double Precision(max)` of several words")),
+		("TestScripts/FromClauseTests90.sql",        "tablesample (1000 rows)(nolock)",       Gap("a hint written against the sample")),
+		("TestScripts/FromClauseTests.sql",          "select c1 from t1 with (0)",            Gap("the old WITH (n)")),
+		("TestScripts/InsertStatementTests.sql",     "Insert ..t1 (c1, a.b.c.d",              Gap("a qualified or prefixed column `a.b.c.d`")),
+		("BaselinesCommon/InsertStatementTests.sql", "INSERT ..t1 (c1, a.b.c.d",              Gap("a qualified or prefixed column `a.b.c.d`")),
+		("TestScripts/InsertStatementTests.sql",     "Insert @v1 (..a1)",                     Gap("a qualified or prefixed column `..a1`")),
+		("BaselinesCommon/InsertStatementTests.sql", "INSERT @v1 (..a1)",                     Gap("a qualified or prefixed column `..a1`")),
+		("TestScripts/BackupStatementTests.sql",     "file = ('f2',@var4)",                   Gap("a name `('f2',@var4)`")),
+		("BaselinesCommon/BackupStatementTests.sql", "FILE = ('f2', @var4)",                  Gap("a name `('f2', @var4)`")),
+		("TestScripts/BackupStatementTests.sql",     "filegroup = (@var5, @var6)",            Gap("a name `(@var5, @var6)`")),
+		("BaselinesCommon/BackupStatementTests.sql", "FILEGROUP = (@var5, @var6)",            Gap("a name `(@var5, @var6)`")),
+		("TestScripts/ExpressionTests.sql",          "{fn extract(hour from getdate())}",     Gap("(the word `hour`)")),
+		("BaselinesCommon/ExpressionTests.sql",      "{ FN extract ( hour FROM getdate()) }", Gap("(the word `hour`)")),
+		("TestScripts/JsonFunctionTests170.sql",     "JSON_OBJECTAGG()",                      Gap("JSON_OBJECTAGG of no pair")),
+		("Baselines170/JsonFunctionTests170.sql",    "JSON_OBJECTAGG()",                      Gap("JSON_OBJECTAGG of no pair")),
+		("TestScripts/RowsetsInSelectTests.sql",     ". 'Something' AS Z",                    Gap("a name part `'Something'` that is no name")),
+		("BaselinesCommon/RowsetsInSelectTests.sql", ".'Something' AS Z",                     Gap("a name part `'Something'` that is no name")),
 	];
+
+	/// <summary>How a known difference fails, which it must go on doing to be excused.</summary>
+	/// <param name="How">The bridge's gap, the writer's refusal of a tree, or a printing ScriptDom reads otherwise.</param>
+	/// <param name="Says">
+	/// A piece of the gap's reason, the name of the writer's exception, or a piece of ScriptDom's printing of what this
+	/// grammar read.
+	/// </param>
+	sealed record Expected(Failure How, string Says);
+
+	enum Failure { Gap, Refused, Printed }
+
+	/// <summary>An extension of the bridge's, whose reason says <paramref name="reason"/>, which the writer refuses.</summary>
+	static Expected Gap(string reason)
+	{
+		return new Expected(Failure.Gap, reason);
+	}
+
+	/// <summary>Whether a statement that did not come back failed the way its row says.</summary>
+	static bool FailsAsListed(CorpusRoundTrip.Trouble trouble, Expected expected)
+	{
+		return expected.How switch
+		{
+			Failure.Gap     => trouble.Gap is { } gap && gap.Contains(expected.Says, StringComparison.Ordinal) && trouble.Why == "the writer threw: NotSupportedException",
+			Failure.Refused => trouble.Gap is null && trouble.Why == "the writer threw: " + expected.Says,
+			Failure.Printed => trouble.Why is null && trouble.Ours is { } ours && ours.Contains(expected.Says, StringComparison.Ordinal),
+			_               => false,
+		};
+	}
 
 	/// <summary>
 	/// One statement from each partition of the corpus, round-tripped here rather than through the
