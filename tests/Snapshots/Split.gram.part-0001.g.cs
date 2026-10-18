@@ -26,6 +26,9 @@ namespace DotGram.Snapshots
 				string[]? expected = null;
 				var turn0 = 0;
 				var completedCall = -1;
+				var opened13 = -1;
+				var opened14 = -1;
+				var opened15 = -1;
 
 				entries.Add(new ParserEntry(ParserEntry.Call, 1, pos, -1, -1, -1, -1, 0, rootRule));
 				call = 0;
@@ -227,6 +230,7 @@ namespace DotGram.Snapshots
 
 				S17:
 				{
+					opened13 = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 13, p, call, atomic, repeat, lookahead, 0));
 				}
 
@@ -266,28 +270,32 @@ namespace DotGram.Snapshots
 
 				S20:
 				{
-					var closed  = 0;
-					var openedAt = entries.Count - 1;
+					var openedAt = opened13;
 
-					for (; openedAt >= 0; openedAt--)
+					if ((uint)openedAt >= (uint)entries.Count || entries[openedAt].Kind != ParserEntry.CaptureOpen || entries[openedAt].State != 13 || entries[openedAt].CallIndex != call)
 					{
-						var opened = entries[openedAt];
+						var closed = 0;
 
-						if (opened.State != 13) continue;
-
-						if (opened.Kind == ParserEntry.Capture)
+						for (openedAt = entries.Count - 1; openedAt >= 0; openedAt--)
 						{
-							closed++;
-							continue;
+							var opened = entries[openedAt];
+
+							if (opened.State != 13) continue;
+
+							if (opened.Kind == ParserEntry.Capture)
+							{
+								closed++;
+								continue;
+							}
+
+							if (opened.Kind != ParserEntry.CaptureOpen)
+								continue;
+
+							if (closed == 0)
+								break;
+
+							closed--;
 						}
-
-						if (opened.Kind != ParserEntry.CaptureOpen)
-							continue;
-
-						if (closed == 0)
-							break;
-
-						closed--;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -407,6 +415,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
+					opened14 = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 14, p, call, atomic, repeat, lookahead, 0));
 				}
 
@@ -446,28 +455,32 @@ namespace DotGram.Snapshots
 
 				S36:
 				{
-					var closed  = 0;
-					var openedAt = entries.Count - 1;
+					var openedAt = opened14;
 
-					for (; openedAt >= 0; openedAt--)
+					if ((uint)openedAt >= (uint)entries.Count || entries[openedAt].Kind != ParserEntry.CaptureOpen || entries[openedAt].State != 14 || entries[openedAt].CallIndex != call)
 					{
-						var opened = entries[openedAt];
+						var closed = 0;
 
-						if (opened.State != 14) continue;
-
-						if (opened.Kind == ParserEntry.Capture)
+						for (openedAt = entries.Count - 1; openedAt >= 0; openedAt--)
 						{
-							closed++;
-							continue;
+							var opened = entries[openedAt];
+
+							if (opened.State != 14) continue;
+
+							if (opened.Kind == ParserEntry.Capture)
+							{
+								closed++;
+								continue;
+							}
+
+							if (opened.Kind != ParserEntry.CaptureOpen)
+								continue;
+
+							if (closed == 0)
+								break;
+
+							closed--;
 						}
-
-						if (opened.Kind != ParserEntry.CaptureOpen)
-							continue;
-
-						if (closed == 0)
-							break;
-
-						closed--;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
@@ -1147,6 +1160,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
+					opened15 = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.CaptureOpen, 15, p, call, atomic, repeat, lookahead, 0));
 				}
 
@@ -1186,28 +1200,32 @@ namespace DotGram.Snapshots
 
 				S105:
 				{
-					var closed  = 0;
-					var openedAt = entries.Count - 1;
+					var openedAt = opened15;
 
-					for (; openedAt >= 0; openedAt--)
+					if ((uint)openedAt >= (uint)entries.Count || entries[openedAt].Kind != ParserEntry.CaptureOpen || entries[openedAt].State != 15 || entries[openedAt].CallIndex != call)
 					{
-						var opened = entries[openedAt];
+						var closed = 0;
 
-						if (opened.State != 15) continue;
-
-						if (opened.Kind == ParserEntry.Capture)
+						for (openedAt = entries.Count - 1; openedAt >= 0; openedAt--)
 						{
-							closed++;
-							continue;
+							var opened = entries[openedAt];
+
+							if (opened.State != 15) continue;
+
+							if (opened.Kind == ParserEntry.Capture)
+							{
+								closed++;
+								continue;
+							}
+
+							if (opened.Kind != ParserEntry.CaptureOpen)
+								continue;
+
+							if (closed == 0)
+								break;
+
+							closed--;
 						}
-
-						if (opened.Kind != ParserEntry.CaptureOpen)
-							continue;
-
-						if (closed == 0)
-							break;
-
-						closed--;
 					}
 
 					global::System.Diagnostics.Debug.Assert(openedAt >= 0);
