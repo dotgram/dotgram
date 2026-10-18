@@ -777,6 +777,9 @@ public static partial class Sql2023Writer
 				default:
 					var query = (TableContents.AsQuery)contents;
 
+					if (query.Hints.Count > 0)
+						throw Misplaced(query, "Hints", "on the standard's table made of a query, which reads no OPTION");
+
 					if (query.Columns.Count > 0)
 					{
 						Open();

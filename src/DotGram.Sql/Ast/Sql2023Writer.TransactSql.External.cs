@@ -561,6 +561,7 @@ public static partial class Sql2023Writer
 					PutExternalWith(table, table.Options, ExternalTableSettings, "CREATE EXTERNAL TABLE AS SELECT", always: true);
 					Word("AS");
 					PutQuery(query.Query);
+					PutQueryHints(query.Hints);
 					break;
 
 				default:

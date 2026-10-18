@@ -1212,7 +1212,7 @@ public sealed record IntervalQualifier(DateTimeField Start, int? LeadingPrecisio
 public enum DateTimeField { Year, Month, Day, Hour, Minute, Second }
 
 /// <summary>BNF: table element/column/period/constraint/LIKE/typed-table/as-subquery structures.</summary>
-public abstract record TableContents : ISqlNode
+public abstract partial record TableContents : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -1224,7 +1224,7 @@ public abstract record TableContents : ISqlNode
 	public record Elements(SqlList<TableElement> Items) : TableContents;
 	public record Typed(QualifiedName TypeName, QualifiedName? Under, SqlList<TableElement> Items) : TableContents;
 	// T-SQL: CREATE TABLE AS SELECT (Microsoft Fabric and Azure Synapse Analytics) writes no `WITH [NO] DATA`: Data is null there.
-	public record AsQuery(SqlList<Identifier> Columns, Query Query, WithDataMode? Data) : TableContents;
+	public partial record AsQuery(SqlList<Identifier> Columns, Query Query, WithDataMode? Data) : TableContents;
 }
 public enum WithDataMode { WithData, WithNoData }
 public abstract partial record TableElement : ISqlNode
