@@ -1821,6 +1821,8 @@ static partial class Bridge
 
 			Ast.Identifier? catalog   = null;
 			Ast.Identifier? fileGroup = null;
+			var first     = false;
+			var bracketed = false;
 
 			if (Is(tokens, at, "ON"))
 			{
@@ -1829,20 +1831,23 @@ static partial class Bridge
 					var close  = Closing(tokens, at + 1);
 					var places = Listed(tail[(tokens[at + 1].At + 1)..tokens[close].At]);
 
+					// FullTextPlace, in either order: the filegroup with its word, the catalog alone, each once.
 					foreach (var place in places)
 					{
 						if (Words(place) is ["FILEGROUP", _] && fileGroup is null)
+						{
 							fileGroup = Values.Part(old, SqlTokens.Of(place)[1].Text);
-						else if (Words(place).Count == 1 && catalog is null && fileGroup is null)
+							first     = catalog is null;
+						}
+						else if (Words(place).Count == 1 && catalog is null)
 							catalog = Values.Part(old, place.Trim());
 						else
-							throw BridgeGap.Open(old, "inventory Statement.FullTextIndexDefinition (a catalog after its filegroup, or a place of other words)");
+							throw BridgeGap.Open(old, "inventory Statement.FullTextIndexDefinition (a place of other words, or one said twice)");
 					}
 
-					if (fileGroup is null)
-						throw BridgeGap.Open(old, "inventory Statement.FullTextIndexDefinition (ON (catalog) in brackets without a filegroup)");
-
-					at = close + 1;
+					first     = first && catalog is not null;
+					bracketed = fileGroup is null;
+					at        = close + 1;
 				}
 				else
 				{
@@ -1868,6 +1873,8 @@ static partial class Bridge
 			{
 				Catalog            = catalog,
 				FileGroup          = fileGroup,
+				FileGroupFirst     = first,
+				CatalogBracketed   = bracketed,
 				Options            = options,
 				OptionsUnbracketed = unbracketed,
 			};

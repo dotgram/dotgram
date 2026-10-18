@@ -827,6 +827,12 @@ public sealed class Sql2023WriterCoverageTests
 			["IndexDefinition.OptionsUnbracketed"] = (
 				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])] }),
 				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])], OptionsUnbracketed = true })),
+			["CreateFullTextIndex.FileGroupFirst"] = (
+				new Statement.CreateFullTextIndex(T, [], I) { Catalog = new Identifier("c"), FileGroup = new Identifier("fg") },
+				new Statement.CreateFullTextIndex(T, [], I) { Catalog = new Identifier("c"), FileGroup = new Identifier("fg"), FileGroupFirst = true }),
+			["CreateFullTextIndex.CatalogBracketed"] = (
+				new Statement.CreateFullTextIndex(T, [], I) { Catalog = new Identifier("c") },
+				new Statement.CreateFullTextIndex(T, [], I) { Catalog = new Identifier("c"), CatalogBracketed = true }),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

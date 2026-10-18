@@ -461,6 +461,18 @@ public abstract partial record Statement
 		/// <summary>T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>FILEGROUP fg</c>, in the brackets after <c>ON</c>.</summary>
 		public Identifier? FileGroup { get; init; }
 
+		/// <summary>
+		/// T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>ON (FILEGROUP fg, c)</c>: the filegroup written before the catalog
+		/// in the brackets, which read the two in either order.
+		/// </summary>
+		[Spelling] public bool FileGroupFirst { get; init; }
+
+		/// <summary>
+		/// T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). <c>ON (c)</c>: the catalog alone written in the brackets, against
+		/// <c>ON c</c>.
+		/// </summary>
+		[Spelling] public bool CatalogBracketed { get; init; }
+
 		public SqlList<Option> Options { get; init; } = [];
 
 		/// <summary>

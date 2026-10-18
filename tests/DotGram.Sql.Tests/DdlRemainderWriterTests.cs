@@ -149,6 +149,9 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("spatial a setting with words")]
 	[InlineData("spatial a value and settings")]
 	[InlineData("spatial FILLFACTOR as a bracket")]
+	[InlineData("filegroup first without a catalog")]
+	[InlineData("catalog bracketed beside a filegroup")]
+	[InlineData("catalog bracketed without a catalog")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -194,6 +197,11 @@ public sealed class DdlRemainderWriterTests
 			"spatial a value and settings" => Spatial(new Option(Name("GRIDS"), Ref("LOW"), [Set("LEVEL_1", Ref("HIGH"))])),
 			// Syntax.Spatial: FILLFACTOR is a number from 1 to 100.
 			"spatial FILLFACTOR as a bracket" => Spatial(Set("FILLFACTOR", new Expression.Row([Number("80")]))),
+			// FullTextCatalogOn: an order is said of two places only.
+			"filegroup first without a catalog" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { FileGroup = Name("fg"), FileGroupFirst = true },
+			// FullTextCatalogOn: with a filegroup the brackets are always written.
+			"catalog bracketed beside a filegroup" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { Catalog = Name("c"), FileGroup = Name("fg"), CatalogBracketed = true },
+			"catalog bracketed without a catalog" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { CatalogBracketed = true },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 
