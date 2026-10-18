@@ -11,6 +11,7 @@ using Expression = DotGram.Sql.Ast.Expression;
 using Identifier = DotGram.Sql.Ast.Identifier;
 using LiteralValue = DotGram.Sql.Ast.LiteralValue;
 using QualifiedName = DotGram.Sql.Ast.QualifiedName;
+using Query = DotGram.Sql.Ast.Query;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
@@ -60,13 +61,43 @@ public sealed class DdlRemainderWriterTests
 		{
 			"CREATE INDEX unbracketed" => new Statement.CreateIndex(Qualified("t"), Index(Set("PAD_INDEX"), Set("FILLFACTOR", Number("80"))) with { OptionsUnbracketed = true }),
 			"CREATE INDEX unbracketed one word" => new Statement.CreateIndex(Qualified("t"), Index(Set("SORTED_DATA_REORG")) with { OptionsUnbracketed = true }),
+			"CREATE FULLTEXT INDEX every option" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k"))
+			{
+				Options =
+				[
+					Set("CHANGE_TRACKING", Ref("MANUAL")) with { EqualsOmitted = true },
+					new Option(Name("NO"), null, []) { Words = [Name("POPULATION")] },
+					Set("STOPLIST", Ref("SYSTEM")),
+					new Option(Name("SEARCH"), Ref("p"), []) { Words = [Name("PROPERTY"), Name("LIST")], EqualsOmitted = true },
+				],
+			},
+			"ALTER FULLTEXT INDEX DROP with no population" => new Statement.AlterFullTextIndex(Qualified("t"), new FullTextAlteration.DropColumns([Name("c")]) { Options = [NoPopulation()] }),
+			"CTAS a name of three words" => new Statement.CreateTable
+			{
+				Name     = Qualified("t"),
+				Contents = new TableContents.AsQuery([], Select(), null),
+				Options  = [new Option(Name("CLUSTERED"), null, []) { Words = [Name("COLUMNSTORE"), Name("INDEX")] }],
+			},
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
+	}
+
+	static Option NoPopulation()
+	{
+		return new Option(Name("NO"), null, []) { Words = [Name("POPULATION")] };
+	}
+
+	static Query Select()
+	{
+		return new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("a"))], From = new FromClause([new TableSource.Named(Qualified("u"))]) };
 	}
 
 	[Theory]
 	[InlineData("CREATE INDEX unbracketed", "CREATE INDEX i ON t (a) WITH PAD_INDEX, FILLFACTOR = 80")]
 	[InlineData("CREATE INDEX unbracketed one word", "CREATE INDEX i ON t (a) WITH SORTED_DATA_REORG")]
+	[InlineData("CREATE FULLTEXT INDEX every option", "CREATE FULLTEXT INDEX ON t KEY INDEX k WITH (CHANGE_TRACKING MANUAL, NO POPULATION, STOPLIST = SYSTEM, SEARCH PROPERTY LIST p)")]
+	[InlineData("ALTER FULLTEXT INDEX DROP with no population", "ALTER FULLTEXT INDEX ON t DROP (c) WITH NO POPULATION")]
+	[InlineData("CTAS a name of three words", "CREATE TABLE t WITH (CLUSTERED COLUMNSTORE INDEX) AS SELECT a FROM u")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -75,6 +106,9 @@ public sealed class DdlRemainderWriterTests
 	[Theory]
 	[InlineData("CREATE INDEX unbracketed")]
 	[InlineData("CREATE INDEX unbracketed one word")]
+	[InlineData("CREATE FULLTEXT INDEX every option")]
+	[InlineData("ALTER FULLTEXT INDEX DROP with no population")]
+	[InlineData("CTAS a name of three words")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -90,6 +124,14 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("unbracketed FILLFACTOR without its number")]
 	[InlineData("unbracketed at the table")]
 	[InlineData("unbracketed on a columnstore index")]
+	[InlineData("NO POPULATION first")]
+	[InlineData("NO POPULATION after a stoplist")]
+	[InlineData("a property list of two parts")]
+	[InlineData("CHANGE_TRACKING with words")]
+	[InlineData("NO POPULATION with a value")]
+	[InlineData("ALTER NO POPULATION after ENABLE")]
+	[InlineData("ALTER an option other than NO POPULATION")]
+	[InlineData("CTAS a name whose words hold ON")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -106,6 +148,21 @@ public sealed class DdlRemainderWriterTests
 			"unbracketed at the table" => new Statement.CreateTable { Name = Qualified("t"), Contents = new TableContents.Elements([new TableElement.Index(Index(Set("PAD_INDEX")) with { OptionsUnbracketed = true })]) },
 			// ColumnstoreWith: brackets only (Msg 18054 for the old list).
 			"unbracketed on a columnstore index" => new Statement.CreateIndex(Qualified("t"), Index(Set("PAD_INDEX")) with { OptionsUnbracketed = true, Storage = IndexStorage.Columnstore }),
+			// FullTextOption: NO POPULATION comes after CHANGE_TRACKING and a comma, nowhere else.
+			"NO POPULATION first" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { Options = [NoPopulation()] },
+			"NO POPULATION after a stoplist" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { Options = [Set("STOPLIST", Ref("OFF")), NoPopulation()] },
+			// FullTextPropertyList: OFF or TSqlIdentifier & ?!'.'.
+			"a property list of two parts" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { Options = [new Option(Name("SEARCH"), new Expression.Reference(new QualifiedName([Name("a"), Name("b")])), []) { Words = [Name("PROPERTY"), Name("LIST")] }] },
+			// FullTextOption: CHANGE_TRACKING is one word.
+			"CHANGE_TRACKING with words" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { Options = [new Option(Name("CHANGE_TRACKING"), Ref("AUTO"), []) { Words = [Name("NOW")] }] },
+			// FullTextOption: NO POPULATION takes nothing after it.
+			"NO POPULATION with a value" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { Options = [Set("CHANGE_TRACKING", Ref("OFF")), NoPopulation() with { Value = Ref("ON") }] },
+			// FullTextAction: ENABLE takes no NoPopulation.
+			"ALTER NO POPULATION after ENABLE" => new Statement.AlterFullTextIndex(Qualified("t"), new FullTextAlteration.Enable { Options = [NoPopulation()] }),
+			// NoPopulation: WITH NO POPULATION is the statement's one WITH.
+			"ALTER an option other than NO POPULATION" => new Statement.AlterFullTextIndex(Qualified("t"), new FullTextAlteration.DropColumns([Name("c")]) { Options = [Set("ONLINE", Ref("ON"))] }),
+			// OptionName: a run of words ends at ON or OFF.
+			"CTAS a name whose words hold ON" => new Statement.CreateTable { Name = Qualified("t"), Contents = new TableContents.AsQuery([], Select(), null), Options = [new Option(Name("CLUSTERED"), null, []) { Words = [Name("ON")] }] },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 

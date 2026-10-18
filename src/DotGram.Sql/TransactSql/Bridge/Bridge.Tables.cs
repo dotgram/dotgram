@@ -986,7 +986,13 @@ static partial class Bridge
 				};
 			}
 
-			if (name.Any(char.IsWhiteSpace) || name.Contains('.') || name.Contains('('))
+			if (name.Contains('.') || name.Contains('('))
+				throw BridgeGap.Open(old, $"inventory Clause.Option (a name of several words, `{name}`)");
+
+			// A name of several words (the generic rule's OptionName): the first word is the name, the rest its words.
+			var named = SqlTokens.Of(name);
+
+			if (named.Count == 0 || named.Any(static one => one.Kind != SqlTokens.Kind.Word))
 				throw BridgeGap.Open(old, $"inventory Clause.Option (a name of several words, `{name}`)");
 
 			if (bare && value is not null)
@@ -995,9 +1001,10 @@ static partial class Bridge
 			if (!bare && value is null && options.Length > 0)
 				throw BridgeGap.Open(old, "inventory Clause.Option (a bracketed list after =)");
 
-			return new Ast.Option(Values.Part(old, name), value is null ? null : OptionValue(old, value), Each(options, Option))
+			return new Ast.Option(Values.Part(old, named[0].Text), value is null ? null : OptionValue(old, value), Each(options, Option))
 			{
 				Partitions = partitions is null ? null : Ranges(old, partitions),
+				Words      = [.. named.Skip(1).Select(one => Values.Part(old, one.Text))],
 			};
 		}
 
@@ -1832,7 +1839,7 @@ static partial class Bridge
 				var list = tail[(tokens[at].At + "WITH".Length)..].Trim();
 
 				unbracketed = !(list.StartsWith('(') && Closing(Located(list), 0) == Located(list).Count - 1);
-				options     = OptionsOf(old, unbracketed ? "(" + list + ")" : list);
+				options     = Listed(unbracketed ? list : list.Trim()[1..^1]).Select(one => FullTextOption(old, one)).ToSqlList();
 			}
 			else if (at < tokens.Count)
 				throw BridgeGap.Open(old, $"inventory Statement.FullTextIndexDefinition ({tail})");
@@ -1843,6 +1850,41 @@ static partial class Bridge
 				FileGroup          = fileGroup,
 				Options            = options,
 				OptionsUnbracketed = unbracketed,
+			};
+		}
+
+		/// <summary>
+		/// One option of a full-text index, as the grammar's FullTextOption reads it: <c>CHANGE_TRACKING [=] mode</c>,
+		/// <c>STOPLIST [=] s</c>, <c>SEARCH PROPERTY LIST [=] p</c>, and <c>NO POPULATION</c>. A name of several words keeps
+		/// its first word as the name and the rest as its words; the value is the word or name after them; and the equals
+		/// sign, which the place reads or not for each name, is kept as <c>EqualsOmitted</c>.
+		/// </summary>
+		static Ast.Option FullTextOption(object owner, string text)
+		{
+			var tokens = SqlTokens.Of(text);
+			var words  = tokens.Select(static one => one.Kind == SqlTokens.Kind.Word ? one.Text.ToUpperInvariant() : one.Text).ToList();
+
+			Ast.Option Valued(int named)
+			{
+				var omitted = words[named] != "=";
+				var at      = omitted ? named : named + 1;
+
+				if (at != tokens.Count - 1 || tokens[at].Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited))
+					throw BridgeGap.Open(owner, $"inventory Statement.FullTextIndexDefinition (an option `{text.Trim()}`)");
+
+				return new Ast.Option(Values.Part(owner, tokens[0].Text), new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(owner, tokens[at].Text)])), [])
+				{
+					Words         = [.. tokens.Take(named).Skip(1).Select(one => Values.Part(owner, one.Text))],
+					EqualsOmitted = omitted,
+				};
+			}
+
+			return words switch
+			{
+				["NO", "POPULATION"]                                          => new Ast.Option(Values.Part(owner, tokens[0].Text), null, []) { Words = [Values.Part(owner, tokens[1].Text)] },
+				["CHANGE_TRACKING" or "STOPLIST", _, ..] when tokens.Count <= 3 => Valued(1),
+				["SEARCH", "PROPERTY", "LIST", _, ..] when tokens.Count <= 5     => Valued(3),
+				_ => throw BridgeGap.Open(owner, $"inventory Statement.FullTextIndexDefinition (an option `{text.Trim()}`)"),
 			};
 		}
 
@@ -1881,8 +1923,8 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// ALTER FULLTEXT INDEX, which the old tree keeps as text after the table: one action. <c>WITH NO
-		/// POPULATION</c>, which no option of one name says, is a gap.
+		/// ALTER FULLTEXT INDEX, which the old tree keeps as text after the table: one action, and <c>WITH NO
+		/// POPULATION</c> after it as the action's one option, the name <c>NO</c> with the word <c>POPULATION</c>.
 		/// </summary>
 		static Ast.Statement AlterFullTextIndex(Statement.AlterFullTextIndex old)
 		{
@@ -1890,8 +1932,15 @@ static partial class Bridge
 			var tokens = Located(tail);
 			var words  = Words(tail);
 
+			SqlList<Ast.Option> population = [];
+
 			if (words is [.., "WITH", "NO", "POPULATION"])
-				throw BridgeGap.Open(old, "inventory Statement.AlterFullTextIndex (WITH NO POPULATION, which no Option of one name says)");
+			{
+				population = [new Ast.Option(Values.Part(old, tokens[^2].Token.Text), null, []) { Words = [Values.Part(old, tokens[^1].Token.Text)] }];
+				tail       = tail[..tokens[^3].At].TrimEnd();
+				tokens     = Located(tail);
+				words      = Words(tail);
+			}
 
 			Ast.Identifier Name(int at)
 			{
@@ -1923,7 +1972,7 @@ static partial class Bridge
 				_                        => throw BridgeGap.Open(old, $"inventory Statement.AlterFullTextIndex ({tail})"),
 			};
 
-			return new Ast.Statement.AlterFullTextIndex(Values.Name(old, old.Name), action);
+			return new Ast.Statement.AlterFullTextIndex(Values.Name(old, old.Name), action with { Options = population });
 		}
 
 		static Ast.FullTextAlteration StopList(object owner, List<(SqlTokens.Token Token, int At)> tokens, int at, bool omitted)

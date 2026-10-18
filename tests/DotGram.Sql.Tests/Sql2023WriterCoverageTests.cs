@@ -823,6 +823,10 @@ public sealed class Sql2023WriterCoverageTests
 			["Compare.Exclamation"] = (
 				new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.NotEqual, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) }]),
 				new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.NotEqual, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) { Exclamation = true } }])),
+			// The remainder of the DDL statements.
+			["IndexDefinition.OptionsUnbracketed"] = (
+				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])] }),
+				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])], OptionsUnbracketed = true })),
 		};
 
 		var marked = typeof(Statement).Assembly.GetTypes()

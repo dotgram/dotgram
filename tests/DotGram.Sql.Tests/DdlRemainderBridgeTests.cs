@@ -19,6 +19,16 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE INDEX i ON t (a) WITH (PAD_INDEX = ON, FILLFACTOR = 80)", "bracketed")]
 	[InlineData("CREATE INDEX i ON t (a) WITH SORTED_DATA", "a word alone")]
 	[InlineData("CREATE INDEX i ON t (a) WITH PAD_INDEX ON [PRIMARY]", "a word and a placement")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k WITH CHANGE_TRACKING AUTO", "tracking with no =")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k WITH CHANGE_TRACKING = AUTO", "tracking with =")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k WITH (SEARCH PROPERTY LIST = p)", "a property list")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k WITH (CHANGE_TRACKING OFF, NO POPULATION)", "no population")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k WITH STOPLIST system", "the system stoplist")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k WITH STOPLIST [system]", "a stoplist called system")]
+	[InlineData("ALTER FULLTEXT INDEX ON t ADD (c) WITH NO POPULATION", "columns added with no population")]
+	[InlineData("ALTER FULLTEXT INDEX ON t ADD (c)", "columns added")]
+	[InlineData("CREATE TABLE t WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = ROUND_ROBIN) AS SELECT a FROM u", "a name of three words")]
+	[InlineData("CREATE TABLE t WITH (CLUSTERED INDEX (a), DISTRIBUTION = HASH (a)) AS SELECT a FROM u", "a name of two words and its list")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -29,6 +39,16 @@ public sealed class DdlRemainderBridgeTests
 			"bracketed" => made is Ast.Statement.CreateIndex { Index: { OptionsUnbracketed: false, Options.Count: 2 } },
 			"a word alone" => made is Ast.Statement.CreateIndex { Index: { OptionsUnbracketed: true, Options: [{ Name.Text: "SORTED_DATA", Value: null }] } },
 			"a word and a placement" => made is Ast.Statement.CreateIndex { Index: { OptionsUnbracketed: true, Options: [{ Name.Text: "PAD_INDEX", Value: null }], Placements: [{ Kind: Ast.PlacementKind.On }] } },
+			"tracking with no =" => made is Ast.Statement.CreateFullTextIndex { OptionsUnbracketed: true, Options: [{ Name.Text: "CHANGE_TRACKING", Words.Count: 0, EqualsOmitted: true, Value: Ast.Expression.Reference { Name: [{ Text: "AUTO" }] } }] },
+			"tracking with =" => made is Ast.Statement.CreateFullTextIndex { Options: [{ Name.Text: "CHANGE_TRACKING", EqualsOmitted: false, Value: Ast.Expression.Reference }] },
+			"a property list" => made is Ast.Statement.CreateFullTextIndex { OptionsUnbracketed: false, Options: [{ Name.Text: "SEARCH", Words: [{ Text: "PROPERTY" }, { Text: "LIST" }], EqualsOmitted: false, Value: Ast.Expression.Reference { Name: [{ Text: "p" }] } }] },
+			"no population" => made is Ast.Statement.CreateFullTextIndex { Options: [{ Name.Text: "CHANGE_TRACKING", EqualsOmitted: true }, { Name.Text: "NO", Words: [{ Text: "POPULATION" }], Value: null, EqualsOmitted: false }] },
+			"the system stoplist" => made is Ast.Statement.CreateFullTextIndex { Options: [{ Name.Text: "STOPLIST", EqualsOmitted: true, Value: Ast.Expression.Reference { Name: [{ Text: "system", Style: Ast.IdentifierStyle.Regular }] } }] },
+			"a stoplist called system" => made is Ast.Statement.CreateFullTextIndex { Options: [{ Name.Text: "STOPLIST", EqualsOmitted: true, Value: Ast.Expression.Reference { Name: [{ Text: "[system]", Style: Ast.IdentifierStyle.Bracketed }] } }] },
+			"columns added with no population" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.AddColumns { Options: [{ Name.Text: "NO", Words: [{ Text: "POPULATION" }] }] } },
+			"columns added" => made is Ast.Statement.AlterFullTextIndex { Action: Ast.FullTextAlteration.AddColumns { Options.Count: 0 } },
+			"a name of three words" => made is Ast.Statement.CreateTable { Options: [{ Name.Text: "CLUSTERED", Words: [{ Text: "COLUMNSTORE" }, { Text: "INDEX" }], Value: null }, { Name.Text: "DISTRIBUTION" }] },
+			"a name of two words and its list" => made is Ast.Statement.CreateTable { Options: [{ Name.Text: "CLUSTERED", Words: [{ Text: "INDEX" }], Value: null, Options: [{ Name.Text: "a" }] }, _] },
 			_ => false,
 		};
 

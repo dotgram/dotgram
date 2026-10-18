@@ -404,8 +404,9 @@ public static partial class Sql2023Writer
 						Close();
 					}
 
+					// OptionsWith, the generic rule: a name may be a run of words (CLUSTERED COLUMNSTORE INDEX).
 					CheckTableOptions(table, table.Options, set: false);
-					PutOptions(table.Options);
+					PutOptions(table.Options, multiWord: true);
 					Word("AS");
 					PutQuery(query.Query);
 					return true;
@@ -940,12 +941,21 @@ public static partial class Sql2023Writer
 		/// <summary>The <c>WITH (…)</c> of a T-SQL statement or clause, where it has options.</summary>
 		void PutOptions(SqlList<Option> options)
 		{
+			PutOptions(options, multiWord: false);
+		}
+
+		/// <summary>
+		/// <c>WITH (…)</c>, where <paramref name="multiWord"/> says the place reads names of several words, as the generic
+		/// OptionSetting does.
+		/// </summary>
+		void PutOptions(SqlList<Option> options, bool multiWord)
+		{
 			if (options.Count == 0)
 				return;
 
 			Word("WITH");
 			Open();
-			Each(options, PutOption);
+			Each(options, one => PutOption(one, multiWord));
 			Close();
 		}
 
@@ -985,6 +995,10 @@ public static partial class Sql2023Writer
 
 			if (!multiWord)
 				CheckSingleWord(option);
+
+			// OptionName: a run of words ends at ON, OFF or WITH, which are the value or the next clause.
+			if (option.Words.Any(static word => word.Style != IdentifierStyle.Regular || Plain(word, "ON", "OFF", "WITH")))
+				throw Misplaced(option, "Words", "with a word that is quoted, or ON, OFF or WITH, where a name of several words ends (OptionName)");
 
 			PutOptionWord(option.Name);
 
@@ -1352,29 +1366,40 @@ public static partial class Sql2023Writer
 				PutIdentifier(catalog);
 			}
 
-			if (index.OptionsUnbracketed)
+			if (index.Options.Count > 0)
 			{
 				Word("WITH");
-				Each(index.Options, PutOption);
+
+				if (!index.OptionsUnbracketed)
+					Open();
+
+				Each(index.Options, one => PutOption(one, multiWord: true));
+
+				if (!index.OptionsUnbracketed)
+					Close();
 			}
-			else
-				PutOptions(index.Options);
 		}
 
 		/// <summary>
 		/// T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). The grammar's FullTextOptions: CHANGE_TRACKING with MANUAL, AUTO or
-		/// OFF, and STOPLIST with OFF, SYSTEM or a name of one part, each at most once and each with its value.
+		/// OFF; STOPLIST with OFF, SYSTEM or a name of one part; SEARCH PROPERTY LIST with OFF or a name of one part, each
+		/// with its <c>=</c> or without it, and each at most once; and NO POPULATION, which stands right after a
+		/// CHANGE_TRACKING and nowhere else.
 		/// </summary>
 		static void CheckFullTextOptions(Statement.CreateFullTextIndex index)
 		{
-			foreach (var option in index.Options)
+			for (var at = 0; at < index.Options.Count; at++)
 			{
-				var read = option.Options.Count == 0 && option.Order is null && option.Place is null && option.Partitions is null && option.Words.Count == 0 && !option.EqualsOmitted
-					&& (Plain(option.Name, "CHANGE_TRACKING") && IsWord(option.Value, "MANUAL", "AUTO", "OFF")
-						|| Plain(option.Name, "STOPLIST") && IsName(option.Value));
+				var option = index.Options[at];
+				var plain  = option.Options.Count == 0 && option.Order is null && option.Place is null && option.Partitions is null;
+				var read   = plain && (Plain(option.Name, "CHANGE_TRACKING") && option.Words.Count == 0 && IsWord(option.Value, "MANUAL", "AUTO", "OFF")
+					|| Plain(option.Name, "STOPLIST") && option.Words.Count == 0 && IsName(option.Value)
+					|| Plain(option.Name, "SEARCH") && option.Words is [var property, var list] && Plain(property, "PROPERTY") && Plain(list, "LIST") && IsName(option.Value)
+					|| Plain(option.Name, "NO") && option.Words is [var population] && Plain(population, "POPULATION") && option.Value is null && !option.EqualsOmitted
+						&& at > 0 && Plain(index.Options[at - 1].Name, "CHANGE_TRACKING"));
 
 				if (!read)
-					throw Misplaced(index, "Options", "other than CHANGE_TRACKING = MANUAL, AUTO or OFF, and STOPLIST = OFF, SYSTEM or a name of one part, the only ones the statement reads");
+					throw Misplaced(index, "Options", "other than CHANGE_TRACKING MANUAL, AUTO or OFF, STOPLIST OFF, SYSTEM or a name of one part, SEARCH PROPERTY LIST OFF or a name of one part, and NO POPULATION right after CHANGE_TRACKING, the only ones the statement reads (FullTextOption)");
 			}
 
 			if (index.Options.Select(static one => one.Name.Text.ToUpperInvariant()).Distinct().Count() < index.Options.Count)
@@ -1648,14 +1673,32 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). One action. The only <c>WITH</c> the statement reads is
-		/// <c>WITH NO POPULATION</c>, which no <see cref="Option"/> of one name says, so an action with options is refused.
+		/// T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). One action, and the one <c>WITH</c> the statement reads after it,
+		/// <c>WITH NO POPULATION</c>: an option named <c>NO</c> with the word <c>POPULATION</c>, after a stoplist or a
+		/// search property list set, or columns added, altered or dropped (FullTextAction's NoPopulation).
 		/// </summary>
 		void PutFullTextAlteration(FullTextAlteration action)
 		{
-			if (action.Options.Count > 0)
-				throw Misplaced(action, "Options", "where ALTER FULLTEXT INDEX reads only WITH NO POPULATION");
+			var population = action.Options.Count > 0;
 
+			if (population && (action.Options is not [{ Value: null, Options.Count: 0, Order: null, Place: null, Partitions: null, EqualsOmitted: false, Words: [var word] } no]
+				|| !Plain(no.Name, "NO") || !Plain(word, "POPULATION")))
+				throw Misplaced(action, "Options", "other than one NO POPULATION, the only WITH ALTER FULLTEXT INDEX reads (NoPopulation)");
+
+			if (population && action is not (FullTextAlteration.SetStopList or FullTextAlteration.SetSearchPropertyList or FullTextAlteration.AddColumns or FullTextAlteration.AlterColumn or FullTextAlteration.DropColumns))
+				throw Misplaced(action, "Options", "after an action FullTextAction reads no WITH NO POPULATION after (ENABLE, DISABLE, SET CHANGE_TRACKING, a population)");
+
+			PutFullTextAction(action);
+
+			if (population)
+			{
+				Word("WITH");
+				PutOption(action.Options[0], multiWord: true);
+			}
+		}
+
+		void PutFullTextAction(FullTextAlteration action)
+		{
 			switch (action)
 			{
 				case FullTextAlteration.Enable:
