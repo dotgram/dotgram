@@ -210,18 +210,36 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// A transaction's name: an identifier, or a variable. The grammar's third form, a number and a name of two parts
-		/// (<c>-5:a.b</c>), has no member.
+		/// A transaction's name: an identifier, a variable, or the grammar's third form, a whole number, its sign kept in
+		/// its text, and a name of two parts (<c>-5:a.b</c>).
 		/// </summary>
 		static Ast.TransactionName? TransactionName(Statement.Transaction old)
 		{
 			return old.Name switch
 			{
 				null                         => null,
-				var name when name.Contains(':') => throw BridgeGap.Missing(old, "TransactionName (a number and a name of two parts, `-5:a.b`)"),
+				var name when name.Contains(':') => Numbered(old, name),
 				var name when name.StartsWith('@') => new Ast.TransactionName(null, new Ast.Expression.Variable(new Ast.Identifier(name))),
 				var name                     => new Ast.TransactionName(Values.Part(old, name)),
 			};
+		}
+
+		/// <summary><c>-5:a.b</c>: the number with its sign, and the name of two parts after the colon.</summary>
+		static Ast.TransactionName Numbered(Statement.Transaction old, string text)
+		{
+			var colon  = text.IndexOf(':');
+			var number = string.Concat(text[..colon].Where(static one => !char.IsWhiteSpace(one)));
+			var name   = Values.Name(old, string.Join(".", Split(text[(colon + 1)..])));
+
+			return number.TrimStart('-') is { Length: > 0 } digits && digits.All(char.IsDigit) && name.Count == 2
+				? new Ast.TransactionName(null) { Number = new Ast.LiteralValue.Numeric(number, Ast.NumericLiteralKind.DecimalInteger), Qualified = name }
+				: throw BridgeGap.Open(old, $"inventory Statement.Transaction (a name `{text}`)");
+
+			// The two parts as tokens, the blanks around the dot dropped and a delimited part's own kept.
+			static IEnumerable<string> Split(string parts)
+			{
+				return SqlTokens.Of(parts).Where(static one => one.Text != ".").Select(static one => one.Text);
+			}
 		}
 
 		/// <summary>

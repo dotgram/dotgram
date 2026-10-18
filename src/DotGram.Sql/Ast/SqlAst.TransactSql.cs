@@ -817,6 +817,15 @@ public sealed record TransactionName(Identifier? Name, Expression? Variable = nu
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
+
+	/// <summary>
+	/// T-SQL: SAVE TRANSACTION (Transact-SQL) and its siblings (the form is not published). <c>-5:a.b</c>: a whole number,
+	/// its sign in its text, set with <see cref="Qualified"/> in place of <see cref="Name"/> and <see cref="Variable"/>.
+	/// </summary>
+	public LiteralValue.Numeric? Number { get; init; }
+
+	/// <summary>T-SQL: SAVE TRANSACTION (Transact-SQL) and its siblings. The name of two parts after <see cref="Number"/>.</summary>
+	public QualifiedName? Qualified { get; init; }
 }
 
 /// <summary>
