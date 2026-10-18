@@ -1891,11 +1891,23 @@ public static partial class Sql2023Writer
 					break;
 
 				case Expression.IsDistinct distinct:
+					// T-SQL: DistinctTail, a quantifier and a subquery; the standard reads none.
+					if (distinct.Quantifier is not null && (!transactSql || distinct.Right is not Expression.Subquery))
+						throw Misplaced(distinct, "Quantifier", transactSql ? "before other than a subquery (DistinctTail)" : "on the standard's IS DISTINCT FROM, which reads none");
+
 					PutOperand(distinct.Left, Tightness.Additive);
 					Word("IS");
 					PutNot(distinct.Not);
 					Word("DISTINCT FROM");
-					PutOperand(distinct.Right, Tightness.Additive);
+
+					if (distinct.Quantifier is { } quantifier)
+					{
+						Word(quantifier switch { Quantifier.All => "ALL", Quantifier.Some => "SOME", Quantifier.Any => "ANY", _ => throw NoText(quantifier) });
+						PutSubquery(((Expression.Subquery)distinct.Right).Query);
+					}
+					else
+						PutOperand(distinct.Right, Tightness.Additive);
+
 					break;
 
 				case Expression.IsNormalized normalized:

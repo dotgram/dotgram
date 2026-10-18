@@ -61,6 +61,7 @@ public sealed class ValuesRemainderWriterTests
 		{
 			"SAVE TRANSACTION numbered" => new Statement.SaveTransaction(new TransactionName(null) { Number = new LiteralValue.Numeric("-5", NumericLiteralKind.DecimalInteger), Qualified = new QualifiedName([Name("a"), Name("b")]) }),
 			"COMMIT numbered" => new Statement.Commit { Keyword = TransactionKeyword.Tran, Name = new TransactionName(null) { Number = (LiteralValue.Numeric)Number("1"), Qualified = new QualifiedName([Name("x"), Name("y")]) } },
+			"IS DISTINCT FROM SOME" => Where(new Expression.IsDistinct(Ref("a"), false, new Expression.Subquery(new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("b"))], From = new FromClause([new TableSource.Named(Qualified("u"))]) })) { Quantifier = Quantifier.Some }),
 			"CONTAINS" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b"), Ref("c")], Text("x")) { ColumnsBracketed = true, Language = Number("1033") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
@@ -75,6 +76,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("SAVE TRANSACTION numbered", "SAVE TRANSACTION -5 : a.b")]
 	[InlineData("COMMIT numbered", "COMMIT TRAN 1 : x.y")]
 	[InlineData("CONTAINS", "SELECT a FROM t WHERE CONTAINS((b, c), 'x', LANGUAGE 1033)")]
+	[InlineData("IS DISTINCT FROM SOME", "SELECT a FROM t WHERE a IS DISTINCT FROM SOME (SELECT b FROM u)")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -84,6 +86,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("SAVE TRANSACTION numbered")]
 	[InlineData("COMMIT numbered")]
 	[InlineData("CONTAINS")]
+	[InlineData("IS DISTINCT FROM SOME")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -102,6 +105,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("CONTAINS searching a number")]
 	[InlineData("CONTAINS in a language of a name")]
 	[InlineData("CONTAINS where a value stands")]
+	[InlineData("IS DISTINCT FROM ALL a value")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -122,6 +126,8 @@ public sealed class ValuesRemainderWriterTests
 			"CONTAINS in a language of a name" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b")], Text("x")) { Language = Ref("English") }),
 			// TSqlPredicate: a condition, never a value (a select list's column).
 			"CONTAINS where a value stands" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b")], Text("x")))] } },
+			// DistinctTail: Quantifier & TableSubquery.
+			"IS DISTINCT FROM ALL a value" => Where(new Expression.IsDistinct(Ref("a"), false, Number("1")) { Quantifier = Quantifier.All }),
 			"a number with no name" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};

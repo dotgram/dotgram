@@ -950,7 +950,7 @@ public abstract partial record Expression : ISqlNode
 	// BNF: <overlaps predicate>, whose two sides are rows.
 	public record Overlaps(Expression Left, Expression Right) : Expression;
 
-	public record IsDistinct(Expression Left, bool Not, Expression Right) : Expression;
+	public partial record IsDistinct(Expression Left, bool Not, Expression Right) : Expression;
 	public record IsNormalized(Expression Value, bool Not, NormalForm? Form) : Expression;
 	public record MemberOf(Expression Value, bool Not, bool OfKeyword, Expression Collection) : Expression;
 	public record SubmultisetOf(Expression Value, bool Not, bool OfKeyword, Expression Collection) : Expression;

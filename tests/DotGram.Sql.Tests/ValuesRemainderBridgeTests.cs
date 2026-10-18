@@ -24,6 +24,8 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT a FROM t WHERE FREETEXT (b, N'x')", "FREETEXT of one column")]
 	[InlineData("SELECT a FROM t WHERE FREETEXT ((b), N'x')", "FREETEXT of one column in brackets")]
 	[InlineData("SELECT a FROM t WHERE CONTAINS ((*), 'x')", "CONTAINS of every column")]
+	[InlineData("SELECT a FROM t WHERE a IS NOT DISTINCT FROM ANY (SELECT b FROM u)", "IS NOT DISTINCT FROM ANY")]
+	[InlineData("SELECT a FROM t WHERE a IS DISTINCT FROM (SELECT b FROM u)", "IS DISTINCT FROM a subquery")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -38,6 +40,8 @@ public sealed class ValuesRemainderBridgeTests
 			"FREETEXT of one column" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.FullTextPredicate { Kind: Ast.FullTextPredicateKind.FreeText, ColumnsBracketed: false, Language: null } } },
 			"FREETEXT of one column in brackets" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.FullTextPredicate { ColumnsBracketed: true, Columns.Count: 1 } } },
 			"CONTAINS of every column" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.FullTextPredicate { Columns: [Ast.Expression.Asterisk], ColumnsBracketed: true } } },
+			"IS NOT DISTINCT FROM ANY" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.IsDistinct { Not: true, Quantifier: Ast.Quantifier.Any, Right: Ast.Expression.Subquery } } },
+			"IS DISTINCT FROM a subquery" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.IsDistinct { Quantifier: null } } },
 			_ => false,
 		};
 
