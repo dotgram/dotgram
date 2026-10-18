@@ -25951,3 +25951,46 @@ What it moved, measured on the commit before and after:
   statements now (`select1`, `select20`, `values`, `comment`, `refused-late`, and `create` as
   `statement-create`), with a `;`; they are new rows, as are `value1` and `script`, and `column` is
   gone.
+
+## T-SQL's entries hand back the common tree
+
+`TransactSqlParser`'s public entries return `DotGram.Sql.Ast`, the tree the other two parsers build, through
+every form, at every level, plain and located. The grammar's rules still build the T-SQL tree: they are
+published to the assembly alone as `ParseSyntax…`, and the public entries (`TransactSqlParser.Entries.cs`) read
+through them and carry what they read across with the bridge, which moved from the tests into
+`src/DotGram.Sql/TransactSql/Bridge`. A refusal is the grammar's own, at the same place with the same message.
+
+- **Why not in the rule's action.** The first try made each entry rule build the new tree in its action, with
+  `parserInput` handed to the bridge for the words the old tree drops. The generator refuses it (`GRAM5005`): a
+  machine where a guard is handed a value cannot also have a factory that asks for the input, and T-SQL's
+  guards are handed values everywhere; a value carrying the input into a guard of the entry's own is refused
+  the same way. So the carriage is outside the generated code, over internal publications, and the public
+  forms are written out by hand: seven forms of twenty-one entries through two doors.
+- **Both doors read with locations.** The bridge reads `AS`, `ROWS` and the other words the old tree drops from
+  the text, at the old nodes' spans, which only the located reading has. The first cut read the plain door
+  without them and, where the carriage asked for such a word, read the same window again with the located door:
+  two readings for most statements with an alias. Reading every entry with locations, and telling the plain
+  door's tree no span, halves select-join, update-subquery and select-long against that, for +3..6% on a row with
+  no such word and +5% on a refusal. Both doors give the same tree.
+- **Deep trees.** The bridge recursed a level a node and overflowed the stack on ten thousand nested `CASE`. The
+  dispatcher, and the two families that recurse on themselves, go on with a stack of their own where the stack
+  runs low (`SqlStack`), carrying the bridge's thread-static state across.
+- **What has no place yet.** 481 of the corpus's 6,701 statements (and 560 of the tests' 6,150) are gaps of the
+  bridge: records that need a decision, a target or an arm. The entries hand each back as `Statement.Extension`
+  (or `Expression.Extension`), `Dialect` "T-SQL" and the gap as its `Kind`, which the writers refuse. A refusal
+  would have said that legal T-SQL does not read; a throw would have escaped a `TryParse`.
+- **Names.** `ParseValueExpression` is `ParseExpression`; `ParseQuery` is gone; `ParseSelect` stays. `ParseValue`
+  and `ParseDataType` were measured and left out: two more publications take the generated parser from 9,259,127
+  to 9,360,615 bytes, +1.1%, over the half per cent they were allowed. Removing `ParseQuery`'s publication takes
+  it to 9,153,567.
+- **The corpus round trip** falls from 7,716 of 7,716 statements the same to 7,050: 534 are the extensions, which
+  the writer refuses, and 132 read back with a word in another case than ScriptDom keeps — `trim`, `all
+  privileges`, a date part's `wk` — which the new tree holds as a meaning and the writer prints in capitals.
+  `DotGram.MessageDiff` over the corpus, against the old tree carried by the bridge on the parent: 32,562 of
+  33,213 lines the same, 534 where the bridge has a gap on both, and 117 where `TransactSqlWriter` now ends a
+  `MERGE` or a full-text stop list with the semicolon SQL Server needs; no refusal changed.
+- **The stand** (directional, shared window, the parent's A/A within 5%): an accepted T-SQL reading takes two to
+  three times as long and three to five times the bytes — select-join 3,038 to 7,988 ns and 2,984 to 13,640 B,
+  select-long 11,795 to 35,879 ns, conditions1000 +145% — and a refusal +5..7%, what locating costs it. The
+  benchmarks' README keeps the table, so that a T-SQL row that moves before the rules build the common tree is
+  held against it first.

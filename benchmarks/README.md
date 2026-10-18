@@ -177,8 +177,25 @@ tree of `SqlSyntax.cs`: each entry reads that tree and carries it across (`src/D
 and a reading without locations that meets a word the old tree drops (an `AS`, a `ROWS` against a `ROW`) reads the
 same text again with locations to find it. So every T-SQL row of the stand is slower and allocates more from the
 commit that switched the entries until the rules that build the T-SQL tree build the common tree themselves, and a
-T-SQL row that moves in that period is held against the carriage's cost before anybody chases it: SLOWDOWN_TABLE.
-The SQL:2023 and SQL-92 rows are not touched by it.
+T-SQL row that moves in that period is held against the carriage's cost before anybody chases it. Measured when the
+entries switched (`--stand-paired`, the parent against the switch, T-SQL rows, five runs in a shared window, the
+parent's A/A within 5%):
+
+| row | before ns | after ns | change | before B | after B |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| tsql/select-join | 3,038 | 7,988 | +163% | 2,984 | 13,640 |
+| tsql/select-long | 11,795 | 35,879 | +204% | 11,504 | 54,464 |
+| tsql/update-subquery | 2,365 | 7,708 | +226% | 2,360 | 12,424 |
+| tsql/insert-values | 1,664 | 4,204 | +153% | 1,984 | 6,528 |
+| tsql/create-table | 3,125 | 8,364 | +168% | 4,728 | 15,040 |
+| tsql/conditions1000 | 208,344 | 510,503 | +145% | 344,384 | 905,040 |
+| tsql/columns1000 | 148,200 | 289,966 | +96% | 232,480 | 681,828 |
+| tsql/script400 | 305,166 | 837,500 | +174% | 400,000 | 1,494,433 |
+| tsql/refused-late | 2,668 | 2,854 | +7% | 2,488 | 2,488 |
+
+A refusal costs only what locating costs it (every entry reads with locations, which the bridge needs); an
+accepted reading costs two to three times as long and three to five times the bytes. The SQL:2023 and SQL-92 rows
+are not touched by it.
 
 ### A short probe in a cold process overstates its first rows
 
