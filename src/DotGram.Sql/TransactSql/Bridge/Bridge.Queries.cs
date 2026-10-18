@@ -62,21 +62,37 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// A WITH: its common table expressions, and T-SQL's <c>XMLNAMESPACES (…)</c>, which the old tree keeps as
-		/// an option whose name is the text and which stands first.
+		/// A WITH: its common table expressions, and T-SQL's <c>XMLNAMESPACES (…)</c> or <c>CHANGE_TRACKING_CONTEXT (…)</c>,
+		/// which the old tree keeps as an option whose name is the text and which stands first.
 		/// </summary>
 		public static Ast.WithClause With(SqlList<Clause> with)
 		{
 			var namespaces = with is [Clause.Option { Name: var text } first, ..] && Words(text) is ["XMLNAMESPACES", ..]
 				? XmlNamespaces(first, text)
 				: [];
+			var context    = with is [Clause.Option { Name: var said } leading, ..] && Words(said) is ["CHANGE_TRACKING_CONTEXT", "(", ..]
+				? Context(leading, said)
+				: null;
 
-			return new Ast.WithClause(false, Each(namespaces.Count > 0 ? with[1..] : with, static one => one is Clause.CommonTableExpression common
+			return new Ast.WithClause(false, Each(namespaces.Count > 0 || context is not null ? with[1..] : with, static one => one is Clause.CommonTableExpression common
 				? Common(common)
 				: throw BridgeGap.Open(one, $"inventory {NameOf(one)} (in a WITH)")))
 			{
-				XmlNamespaces = namespaces,
+				XmlNamespaces         = namespaces,
+				ChangeTrackingContext = context,
 			};
+		}
+
+		/// <summary><c>CHANGE_TRACKING_CONTEXT (value)</c>, read from the old option's text: the value read again as a value.</summary>
+		static Ast.Expression Context(Clause old, string text)
+		{
+			var open  = text.IndexOf('(');
+			var close = text.LastIndexOf(')');
+			var read  = close > open ? TransactSql.TransactSqlParser.TryParseSql("SELECT " + text.Substring(open + 1, close - open - 1)) : default;
+
+			return close > open && read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+				? Values.Of(value)
+				: throw BridgeGap.Open(old, $"inventory Clause.Option (a CHANGE_TRACKING_CONTEXT `{text}` that does not read)");
 		}
 
 		/// <summary>

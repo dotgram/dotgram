@@ -49,6 +49,8 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE SPATIAL INDEX i ON t (g) USING GEOMETRY_GRID", "a grid")]
 	[InlineData("CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = HASH (a), FOR_APPEND) AS SELECT a, COUNT_BIG (*) AS n FROM t GROUP BY a", "a materialized view")]
 	[InlineData("CREATE VIEW v AS SELECT a FROM t", "a view")]
+	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff), c (a) AS (SELECT a FROM t) DELETE t FROM t", "a change tracking context and a CTE")]
+	[InlineData("with change_tracking_context (@v) update t set a = 1", "a change tracking context alone")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -113,6 +115,8 @@ public sealed class DdlRemainderBridgeTests
 			"a grid" => made is Ast.Statement.CreateSpatialIndex { Using: Ast.SpatialTessellation.GeometryGrid, UsingBracketed: false },
 			"a materialized view" => made is Ast.Statement.CreateMaterializedView { Name: [{ Text: "v" }], Options: [{ Name.Text: "DISTRIBUTION" }, { Name.Text: "FOR_APPEND", Value: null }] },
 			"a view" => made is Ast.Statement.CreateView,
+			"a change tracking context and a CTE" => made is Ast.Statement.Delete { With: { ChangeTrackingContext: Ast.LiteralValue.Binary, XmlNamespaces.Count: 0, Items.Count: 1 } },
+			"a change tracking context alone" => made is Ast.Statement.Update { With: { ChangeTrackingContext: Ast.Expression.Variable, Items.Count: 0 } },
 			_ => false,
 		};
 
