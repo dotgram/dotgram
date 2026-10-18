@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
+using DotGram.Sql.TransactSql;
+
 using Ast = DotGram.Sql.Ast;
 
 namespace DotGram.Sql.Tests;
@@ -16,6 +18,15 @@ namespace DotGram.Sql.Tests;
 static class Inventory
 {
 	public sealed record Row(string Name, string Category, string Target);
+
+	/// <summary>
+	/// Every gap the bridge throws for a record it has no arm for, in this assembly, says what the inventory says.
+	/// </summary>
+	[ModuleInitializer]
+	internal static void Explain()
+	{
+		Bridge.Explained = Unconverted;
+	}
 
 	static readonly Lazy<Dictionary<string, Row>> Rows = new(Read);
 

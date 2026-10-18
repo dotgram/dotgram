@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -53,7 +53,7 @@ static partial class Bridge
 					=> Checked(definition, Restore(definition)),
 				Statement.Definition definition when definition.GetType().Name.StartsWith("AlterDatabase", StringComparison.Ordinal)
 					=> Alter(definition),
-				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old) => throw Unconverted(old),
 				_ => null,
 			};
 

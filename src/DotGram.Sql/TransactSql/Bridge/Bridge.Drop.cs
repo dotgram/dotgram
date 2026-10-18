@@ -6,7 +6,7 @@ using System.Text;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -98,7 +98,7 @@ static partial class Bridge
 				Statement.DropIndex drop                 => Index(drop),
 				Statement.DropSignature signature        => Signature(signature),
 
-				_ => throw Inventory.Unconverted(old),
+				_ => throw Unconverted(old),
 			};
 
 			return true;
@@ -327,7 +327,7 @@ static partial class Bridge
 				}
 			}
 
-			Written(old, Trees.DropIndexName, text, $"{name.Text} ON {table}" + (with < 0 ? "" : $" WITH ({string.Join(", ", written)})"));
+			Written(old, BridgeText.DropIndexName, text, $"{name.Text} ON {table}" + (with < 0 ? "" : $" WITH ({string.Join(", ", written)})"));
 
 			return new Ast.DroppedIndex.Named(Values.Part(old, name.Text), Values.Name(old, table), options.ToSqlList());
 		}

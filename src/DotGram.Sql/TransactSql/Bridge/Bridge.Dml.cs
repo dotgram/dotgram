@@ -4,7 +4,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -42,7 +42,7 @@ static partial class Bridge
 					update.Timestamp is null ? null : Values.Of(update.Timestamp)),
 				TableReference.Changed changed => Changed(changed),
 				Query.DefaultValues         => throw BridgeGap.Open(old, "inventory Query.DefaultValues (outside an INSERT)"),
-				_ when Owned(Owns, old)     => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old)     => throw Unconverted(old),
 				_                           => null,
 			};
 

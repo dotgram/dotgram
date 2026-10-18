@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -42,7 +42,7 @@ static partial class Bridge
 				Statement.WorkloadGroupDefinition w    => Workload(w),
 				Statement.AvailabilityGroupDefinition a => Availability(a),
 				Statement.EndpointDefinition endpoint  => Endpoint(endpoint),
-				_ when Owned(Owns, old)                => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old)                => throw Unconverted(old),
 				_                                      => null,
 			};
 
