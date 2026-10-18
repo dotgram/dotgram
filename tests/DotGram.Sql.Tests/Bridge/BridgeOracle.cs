@@ -363,8 +363,9 @@ static class BridgeOracle
 	/// standard: an <c>AssignmentTarget</c> whose name has more than one part.</item>
 	/// <item><c>GLOBAL c</c> names a cursor of the connection in T-SQL, and is an extended name in the standard: a
 	/// <c>CursorReference</c> that is <c>Global</c>.</item>
-	/// <item><c>FREETEXT ((c), …)</c> and <c>CONTAINS ((c), …)</c> take a column list in T-SQL, and a value in
-	/// brackets in the standard: the first argument of an invocation of either.</item>
+	/// <item><c>FREETEXT ((c), …)</c> and <c>CONTAINS ((c), …)</c> are T-SQL's full-text predicate, its columns a list,
+	/// and a call with a value in brackets in the standard: the predicate, where the call has the same search and
+	/// nothing else.</item>
 	/// <item><c>DATEADD (day, …)</c> takes a date part in T-SQL, and a column in the standard: the first argument of
 	/// a date part function, against a column of one part whose text is the part's word.</item>
 	/// <item><c>CAST (a AS money)</c> names one of T-SQL's system types, and a user-defined type in the standard: a
@@ -421,7 +422,7 @@ static class BridgeOracle
 	public const string Top      = "TOP (n) a: a row count in T-SQL, a call to TOP in the standard";
 	public const string SetTc    = "SET t.c: a qualified column in T-SQL, a mutated set clause in the standard";
 	public const string Global   = "GLOBAL c: a cursor of the connection in T-SQL, an extended name in the standard";
-	public const string FullText = "FREETEXT ((c), ...): a column list in T-SQL, a value in brackets in the standard";
+	public const string FullText = "FREETEXT ((c), ...): T-SQL's full-text predicate, a call with a value in brackets in the standard";
 	public const string DatePart = "DATEADD (day, ...): a date part in T-SQL, a column in the standard";
 	public const string TypeName = "CAST (a AS money): a type of T-SQL's own in T-SQL, a user-defined type in the standard";
 
@@ -459,6 +460,14 @@ static class BridgeOracle
 		// prepared statement of that name with nothing else.
 		if (difference.Path is [] && Called(difference.Left, difference.Right) is { } call)
 			return (Execute, call);
+
+		// CONTAINS and FREETEXT: T-SQL's predicate where the standard reads a call of the same name.
+		// Only the columns differ: the standard's call has the same search and nothing else.
+		if (difference.Left is Ast.Expression.FullTextPredicate { Language: null } predicate && difference.Right is Ast.Expression.Invocation { Name.Parts: [var called], Arguments: [_, var searched] } fullTextCall
+			&& called.Text.Equals(predicate.Kind == Ast.FullTextPredicateKind.Contains ? "CONTAINS" : "FREETEXT", StringComparison.OrdinalIgnoreCase)
+			&& searched is { Name: null, NamedAssignment: false } && searched.Value.Equals(predicate.Search)
+			&& fullTextCall is { Quantifier: null, OrderBy: null, Filter: null, Over: null, WithinGroup: null })
+			return (FullText, predicate);
 
 		// Two patterns are of one node each, which differs from the standard's in a known way and in no other.
 		if (TypeNamed(difference) || DateParted(difference))
@@ -514,9 +523,6 @@ static class BridgeOracle
 				case Ast.Statement.Delete { Target: { } changed } when step.Member == "Target" && CalledOnly(changed):
 					return (Only, changed);
 
-				case Ast.Expression.Invocation { Name.Parts: [var name] } when step.Member == "Arguments" && step.Index == 0
-					&& (name.Text.Equals("FREETEXT", StringComparison.OrdinalIgnoreCase) || name.Text.Equals("CONTAINS", StringComparison.OrdinalIgnoreCase)):
-					return (FullText, step.Node);
 
 			}
 		}

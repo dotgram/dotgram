@@ -206,7 +206,7 @@ public static partial class Sql2023Writer
 			return expression switch
 			{
 				Expression.Comparison or Expression.Between or Expression.Like or Expression.In or Expression.IsNull or Expression.IsDistinct
-					or Expression.QuantifiedComparison or Expression.Exists or Expression.Unique or Expression.GraphMatch => true,
+					or Expression.QuantifiedComparison or Expression.Exists or Expression.Unique or Expression.GraphMatch or Expression.FullTextPredicate => true,
 				Expression.Invocation { Name: [{ Style: IdentifierStyle.Regular } name] } => Plain(name, "CONTAINS", "FREETEXT", "TSEQUAL", "UPDATE", "REGEXP_LIKE"),
 				Expression.Binary { Operator: BinaryOperator.And or BinaryOperator.Or } => true,
 				Expression.Unary { Operator: UnaryOperator.Not } => true,

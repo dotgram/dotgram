@@ -61,13 +61,20 @@ public sealed class ValuesRemainderWriterTests
 		{
 			"SAVE TRANSACTION numbered" => new Statement.SaveTransaction(new TransactionName(null) { Number = new LiteralValue.Numeric("-5", NumericLiteralKind.DecimalInteger), Qualified = new QualifiedName([Name("a"), Name("b")]) }),
 			"COMMIT numbered" => new Statement.Commit { Keyword = TransactionKeyword.Tran, Name = new TransactionName(null) { Number = (LiteralValue.Numeric)Number("1"), Qualified = new QualifiedName([Name("x"), Name("y")]) } },
+			"CONTAINS" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b"), Ref("c")], Text("x")) { ColumnsBracketed = true, Language = Number("1033") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
+	}
+
+	static Statement Where(Expression condition)
+	{
+		return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("a"))], From = new FromClause([new TableSource.Named(Qualified("t"))]), Where = condition } };
 	}
 
 	[Theory]
 	[InlineData("SAVE TRANSACTION numbered", "SAVE TRANSACTION -5 : a.b")]
 	[InlineData("COMMIT numbered", "COMMIT TRAN 1 : x.y")]
+	[InlineData("CONTAINS", "SELECT a FROM t WHERE CONTAINS((b, c), 'x', LANGUAGE 1033)")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -76,6 +83,7 @@ public sealed class ValuesRemainderWriterTests
 	[Theory]
 	[InlineData("SAVE TRANSACTION numbered")]
 	[InlineData("COMMIT numbered")]
+	[InlineData("CONTAINS")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -89,6 +97,11 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("a numbered name of one part")]
 	[InlineData("a numbered name beside a name")]
 	[InlineData("a number with no name")]
+	[InlineData("CONTAINS of two columns unbracketed")]
+	[InlineData("CONTAINS of * beside a column")]
+	[InlineData("CONTAINS searching a number")]
+	[InlineData("CONTAINS in a language of a name")]
+	[InlineData("CONTAINS where a value stands")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -99,6 +112,16 @@ public sealed class ValuesRemainderWriterTests
 			"a numbered name of one part" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5"), Qualified = Qualified("a") }),
 			// TranName: one of the three forms.
 			"a numbered name beside a name" => new Statement.SaveTransaction(new TransactionName(Name("t")) { Number = (LiteralValue.Numeric)Number("5"), Qualified = new QualifiedName([Name("a"), Name("b")]) }),
+			// FullTextColumns: two columns or more in brackets.
+			"CONTAINS of two columns unbracketed" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b"), Ref("c")], Text("x"))),
+			// FullTextAll: * alone.
+			"CONTAINS of * beside a column" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [new Expression.Asterisk(), Ref("c")], Text("x")) { ColumnsBracketed = true }),
+			// FullTextSearch: a string or a variable.
+			"CONTAINS searching a number" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b")], Number("1"))),
+			// SearchLanguage: digits, a binary number, a string or a variable.
+			"CONTAINS in a language of a name" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b")], Text("x")) { Language = Ref("English") }),
+			// TSqlPredicate: a condition, never a value (a select list's column).
+			"CONTAINS where a value stands" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b")], Text("x")))] } },
 			"a number with no name" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};

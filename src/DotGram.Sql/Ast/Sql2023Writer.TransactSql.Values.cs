@@ -16,6 +16,11 @@ public static partial class Sql2023Writer
 		{
 			switch (node)
 			{
+				// T-SQL: CONTAINS (Transact-SQL), FREETEXT (Transact-SQL). FullTextPredicate.
+				case Expression.FullTextPredicate predicate:
+					PutFullTextPredicate(predicate);
+					return true;
+
 				// The name holds its `@` or `@@`; any other name would be a column.
 				case Expression.Variable variable:
 					PutVariableName(variable, variable.Name);
@@ -236,6 +241,76 @@ public static partial class Sql2023Writer
 		/// does not take, with whole numbers for its arguments; any other name reads as a user-defined type, <c>int</c> as the standard's
 		/// integer, and <c>xml</c> as the xml type.
 		/// </summary>
+		/// <summary>
+		/// T-SQL: CONTAINS (Transact-SQL), FREETEXT (Transact-SQL). FullTextColumns: <c>*</c> or <c>t.*</c> alone, bracketed
+		/// or not; PROPERTY (c, 'p') alone and unbracketed; names, more than one only in brackets. FullTextSearch: a string
+		/// or a variable. SearchLanguage: digits, a binary number, a string or a variable.
+		/// </summary>
+		void PutFullTextPredicate(Expression.FullTextPredicate predicate)
+		{
+			var columns = predicate.Columns;
+
+			if (columns.Count == 0)
+				throw Empty(predicate, "Columns");
+
+			if (columns.Count > 1 && !predicate.ColumnsBracketed)
+				throw Misplaced(predicate, "ColumnsBracketed", "false with more than one column");
+
+			foreach (var column in columns)
+			{
+				var read = column switch
+				{
+					Expression.Reference { Name: var name } => name.Count > 0 && name.Parts.All(static part => part.Text.Length > 0),
+					Expression.Asterisk or Expression.Wildcard { Kind: WildcardKind.Member } => columns.Count == 1,
+					Expression.Invocation { Name: [var called] } when called.Text.Equals("PROPERTY", StringComparison.OrdinalIgnoreCase) => columns.Count == 1 && !predicate.ColumnsBracketed,
+					_ => false,
+				};
+
+				if (!read)
+					throw Misplaced(predicate, "Columns", "with a column other than a name, * or t.* alone, or PROPERTY (…) alone and unbracketed (FullTextColumns)");
+			}
+
+			if (predicate.Search is not (LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } or Expression.Variable))
+				throw Misplaced(predicate, "Search", "other than a string or a variable (FullTextSearch)");
+
+			if (predicate.Language is not (null or LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null } or Expression.Variable or LiteralValue.Binary { ZeroX: true }
+				or LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger, Text: [>= '0' and <= '9', ..] }))
+				throw Misplaced(predicate, "Language", "other than digits, a binary number, a string or a variable (SearchLanguage)");
+
+			Word(predicate.Kind switch
+			{
+				FullTextPredicateKind.Contains => "CONTAINS",
+				FullTextPredicateKind.FreeText => "FREETEXT",
+				_                              => throw NoText(predicate.Kind),
+			});
+			Call();
+
+			if (predicate.ColumnsBracketed)
+				Open();
+
+			// FullTextAll: `*` and `t.*` stand in a full-text column list.
+			Each(columns, column =>
+			{
+				star = true;
+				PutExpression(column);
+			});
+
+			if (predicate.ColumnsBracketed)
+				Close();
+
+			Tight(",");
+			PutExpression(predicate.Search);
+
+			if (predicate.Language is { } language)
+			{
+				Tight(",");
+				Word("LANGUAGE");
+				PutExpression(language);
+			}
+
+			Close();
+		}
+
 		void CheckNamedType(DataType.Named named)
 		{
 			if (!transactSql)
