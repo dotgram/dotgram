@@ -1008,6 +1008,26 @@ static partial class Bridge
 			};
 		}
 
+		/// <summary>
+		/// One option of a spatial index, as SpatialSet reads it: a value, a bracket of values by position, which is the
+		/// option's value as a row (<c>BOUNDING_BOX = (0, 0, 500, 200)</c>), or a bracket of settings by name, which are the
+		/// option's own options (<c>GRIDS = (LEVEL_1 = HIGH)</c>), always after an equals sign.
+		/// </summary>
+		static Ast.Option SpatialOption(Clause old)
+		{
+			switch (old)
+			{
+				case Clause.Option(var name, Expression.RoutineInvocation { Name: "", Arguments: var items }, [], null, false):
+					return new Ast.Option(Values.Part(old, name), new Ast.Expression.Row(Each(items, Values.Of)), []);
+
+				case Clause.Option(var name, null, { Length: > 0 } settings, null, false):
+					return new Ast.Option(Values.Part(old, name), null, Each(settings, Option));
+
+				default:
+					return Option(old);
+			}
+		}
+
 		static Ast.Expression OptionValue(Clause owner, Expression value)
 		{
 			switch (value)
@@ -1465,7 +1485,7 @@ static partial class Bridge
 							["USING", "GEOGRAPHY_AUTO_GRID"] => Ast.SpatialTessellation.GeographyAutoGrid,
 							_                                => throw BridgeGap.Open(old, $"inventory Statement.CreateIndex (a spatial index {old.Using})"),
 						},
-						Options    = Each(index.Options ?? [], Option),
+						Options    = Each(index.Options ?? [], SpatialOption),
 						Placements = Each(index.Placements ?? [], Placement),
 					};
 

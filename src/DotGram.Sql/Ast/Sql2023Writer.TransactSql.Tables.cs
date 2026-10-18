@@ -242,10 +242,25 @@ public static partial class Sql2023Writer
 							PutOptionWord(option.Name);
 							Word("=");
 
-							if (option.Value is LiteralValue.Numeric or Expression.Unary)
-								PutSignedNumber(option, option.Value);
+							if (option.Value is Expression.Row row)
+							{
+								Open();
+								Each(row.Items, item => PutSpatialItem(option, item));
+								Close();
+							}
+							else if (option.Value is { } value)
+								PutSpatialItem(option, value);
 							else
-								PutOptionValue(option.Value!);
+							{
+								Open();
+								Each(option.Options, setting =>
+								{
+									PutOptionWord(setting.Name);
+									Word("=");
+									PutSpatialItem(setting, setting.Value!);
+								});
+								Close();
+							}
 						});
 						Close();
 					}
@@ -1407,15 +1422,27 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
-		/// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). The grammar's SpatialValue: a number, a string, a binary string,
-		/// NULL, ON, OFF or a name of one part, set to a name with an equals sign; nothing of an expression.
+		/// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). The grammar's SpatialSet, after a name and an equals sign: a
+		/// SpatialValue (a number, a string, a binary string, NULL, ON, OFF or a name of one part; nothing of an expression),
+		/// a bracket of SpatialItems by position (the value a row of them), or a bracket of settings by name, each a name, an
+		/// equals sign and a SpatialItem (the option's own options); never an empty bracket, a bracket in a bracket, or a
+		/// switch in a bracket (Msg 156).
 		/// </summary>
 		static void CheckSpatialOptions(Statement.CreateSpatialIndex index)
 		{
 			foreach (var option in index.Options)
 			{
-				if (option.Options.Count > 0 || option.Order is not null || option.Place is not null || option.Partitions is not null || option.Words.Count > 0 || option.EqualsOmitted || !SpatialAtom(option.Value))
-					throw Misplaced(index, "Options", "set to other than a number, a string, a binary string, NULL, ON, OFF or a name of one part, the values a spatial option reads");
+				var read = option.Order is null && option.Place is null && option.Partitions is null && option.Words.Count == 0 && !option.EqualsOmitted
+					&& option switch
+					{
+						{ Value: Expression.Row { RowKeyword: false, Items: { Count: > 0 } items }, Options.Count: 0 } => items.All(SpatialItem),
+						{ Value: null, Options: { Count: > 0 } settings } => settings.All(static one => one is { Options.Count: 0, Order: null, Place: null, Partitions: null, Words.Count: 0, EqualsOmitted: false, Name.Style: IdentifierStyle.Regular } && SpatialItem(one.Value)),
+						{ Options.Count: 0 } => SpatialAtom(option.Value),
+						_ => false,
+					};
+
+				if (!read)
+					throw Misplaced(index, "Options", "set to other than a number, a string, a binary string, NULL, ON, OFF or a name of one part, a bracket of such values by position, or a bracket of settings by name, the values a spatial option reads (SpatialSet)");
 
 				if (!Syntax.Spatial(option.Name.Text, SpatialRead(option)))
 					throw Misplaced(index, "Options", "that say a word the engine refuses of their name (Syntax.Spatial), such as a FILLFACTOR outside 1 to 100, a MAXDOP that is not a whole number or ONLINE = ON");
@@ -1429,6 +1456,10 @@ public static partial class Sql2023Writer
 		/// </summary>
 		static Clause.Option SpatialRead(Option option)
 		{
+			// A bracket is no number and no switch, which is all Syntax.Spatial asks of a value.
+			if (option.Value is null or Expression.Row)
+				return new Clause.Option(option.Name.Text, null, Clause.None);
+
 			DotGram.Sql.Expression value = option.Value switch
 			{
 				LiteralValue.Numeric number => new DotGram.Sql.Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(number.Text)),
@@ -1482,6 +1513,21 @@ public static partial class Sql2023Writer
 				if (!read)
 					throw Misplaced(index, "Options", "other than the ones an XML index reads: PAD_INDEX, SORT_IN_TEMPDB, DROP_EXISTING, ALLOW_ROW_LOCKS, ALLOW_PAGE_LOCKS, STATISTICS_NORECOMPUTE and XML_COMPRESSION set to ON or OFF, IGNORE_DUP_KEY and ONLINE set to OFF, FILLFACTOR and MAXDOP set to a number");
 			}
+		}
+
+		/// <summary>The grammar's SpatialItem: a SpatialValue, but never a switch, which stands only where a whole value does.</summary>
+		static bool SpatialItem(Expression? value)
+		{
+			return SpatialAtom(value) && !IsWord(value, "ON", "OFF");
+		}
+
+		/// <summary>A SpatialItem: a number with its sign kept in one token, as SpatialItem reads it; any other as a value.</summary>
+		void PutSpatialItem(ISqlNode owner, Expression value)
+		{
+			if (value is LiteralValue.Numeric or Expression.Unary)
+				PutSignedNumber(owner, value);
+			else
+				PutOptionValue(value);
 		}
 
 		static bool SpatialAtom(Expression? value)
