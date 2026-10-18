@@ -575,6 +575,10 @@ public static partial class Sql2023Writer
 
 			switch (element)
 			{
+				// T-SQL: TSqlGroupingColumn's WITH (DISTRIBUTED_AGG), after a column and never after a list in brackets.
+				case GroupingElement.Ordinary { DistributedAggregation: true } hinted when !transactSql || hinted.Parenthesized:
+					throw Misplaced(hinted, "DistributedAggregation", transactSql ? "on a list in brackets, which takes no WITH (TSqlGroupingColumn)" : "in the standard, which reads none");
+
 				case GroupingElement.Ordinary ordinary when ordinary.Parenthesized:
 					Open();
 					Each(ordinary.Expressions, PutExpression);
@@ -583,6 +587,15 @@ public static partial class Sql2023Writer
 
 				case GroupingElement.Ordinary ordinary:
 					PutExpression(ordinary.Expressions[0]);
+
+					if (ordinary.DistributedAggregation)
+					{
+						Word("WITH");
+						Open();
+						Word("DISTRIBUTED_AGG");
+						Close();
+					}
+
 					break;
 
 				case GroupingElement.Rollup rollup:

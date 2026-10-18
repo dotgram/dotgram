@@ -903,6 +903,11 @@ static partial class Bridge
 			{
 				Expression.RowValueConstructor { Values.Length: 0 } => new Ast.GroupingElement.Empty(),
 				Expression.RowValueConstructor(var items)           => new Ast.GroupingElement.Ordinary(Each(items, Values.Of), true),
+
+				// TSqlGroupingColumn's WITH (DISTRIBUTED_AGG), which the old tree keeps as words after the column.
+				Expression.Hinted(var column, var words) when Words(words) is ["WITH", "(", "DISTRIBUTED_AGG", ")"]
+					=> new Ast.GroupingElement.Ordinary([Values.Of(column)]) { DistributedAggregation = true },
+
 				_                                                   => new Ast.GroupingElement.Ordinary([Values.Of(old)]),
 			};
 		}

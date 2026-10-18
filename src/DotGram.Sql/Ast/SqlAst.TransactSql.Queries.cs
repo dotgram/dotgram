@@ -55,6 +55,18 @@ public sealed partial record GroupByClause
 	public GroupByWith? With { get; init; }
 }
 
+public abstract partial record GroupingElement
+{
+	public partial record Ordinary
+	{
+		/// <summary>
+		/// T-SQL: GROUP BY (Transact-SQL), Azure Synapse's. <c>GROUP BY c WITH (DISTRIBUTED_AGG)</c>: the grouping column's
+		/// rows are moved to be aggregated together, said after a column and not after a list in brackets.
+		/// </summary>
+		public bool DistributedAggregation { get; init; }
+	}
+}
+
 /// <summary>T-SQL: GROUP BY (Transact-SQL). What the list's <c>WITH</c> adds.</summary>
 public enum GroupByWith { Cube, Rollup }
 
