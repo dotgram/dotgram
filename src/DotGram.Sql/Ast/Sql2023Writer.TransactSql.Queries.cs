@@ -235,6 +235,47 @@ public static partial class Sql2023Writer
 					return true;
 
 				// T-SQL: PREDICT (Transact-SQL).
+				// T-SQL: AI_GENERATE_CHUNKS (Transact-SQL). ChunksFunction: the five by name in order, the type the bare
+				// word FIXED, ENABLE_CHUNK_SET_ID only after OVERLAP, and an alias without columns.
+				case TableSource.AiGenerateChunks chunks:
+					if (chunks.ChunkType is not { Style: IdentifierStyle.Regular } chunkType || !chunkType.Text.Equals("FIXED", StringComparison.OrdinalIgnoreCase))
+						throw Misplaced(chunks, "ChunkType", "other than the bare word FIXED (ChunksType)");
+
+					if (chunks.EnableChunkSetId is not null && chunks.Overlap is null)
+						throw Misplaced(chunks, "EnableChunkSetId", "without Overlap, which it is written after (ChunksFunction)");
+
+					if (chunks.Alias is { Columns: not null })
+						throw Misplaced(chunks, "Alias", "with a column list (Msg 102)");
+
+					Word("AI_GENERATE_CHUNKS");
+					Call();
+					Word("SOURCE =");
+					PutExpression(chunks.Source);
+					Tight(",");
+					Word("CHUNK_TYPE =");
+					PutKeyWord(chunkType);
+					Tight(",");
+					Word("CHUNK_SIZE =");
+					PutExpression(chunks.ChunkSize);
+
+					if (chunks.Overlap is { } overlap)
+					{
+						Tight(",");
+						Word("OVERLAP =");
+						PutExpression(overlap);
+					}
+
+					if (chunks.EnableChunkSetId is { } set)
+					{
+						Tight(",");
+						Word("ENABLE_CHUNK_SET_ID =");
+						PutExpression(set);
+					}
+
+					Close();
+					PutAlias(chunks.Alias);
+					return true;
+
 				case TableSource.Predict predict:
 					// Syntax.Predicts: the model and the data, named, in either order; the data a table or a query, aliased.
 					if (predict.Data is not (TableSource.Named { Alias: not null } or TableSource.Subquery { Alias: not null, Lateral: false }))

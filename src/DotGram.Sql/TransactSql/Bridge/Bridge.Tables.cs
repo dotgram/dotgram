@@ -79,7 +79,8 @@ static partial class Bridge
 					return new Ast.TableSource.Subquery(QueryOf(query)) { Alias = Alias(old, query, name, columns), ForPath = forPath };
 
 				case TableReference.FunctionCall(var call, var name, var columns, var schema):
-					if (schema.Length > 0 || Rowsets.Contains(call.Name))
+					// AI_GENERATE_CHUNKS from level 170 names its arguments; below, it is a function of the user's.
+					if (schema.Length > 0 || Rowsets.Contains(call.Name) || call is { Name: var chunks, Arguments: [Expression.NamedArgument, ..] } && chunks.Equals("AI_GENERATE_CHUNKS", StringComparison.OrdinalIgnoreCase))
 						return Rowset((TableReference.FunctionCall)old);
 
 					if (Values.Function(call) is not Ast.Expression.Invocation invocation)
@@ -195,6 +196,9 @@ static partial class Bridge
 				case "PREDICT":
 					return Predict(old, alias);
 
+				case "AI_GENERATE_CHUNKS" when old.Schema.Length == 0 && old.Columns is null:
+					return Chunks(old, alias);
+
 				case "CHANGETABLE" when old.Schema.Length == 0:
 					return ChangeTable(old, alias);
 
@@ -220,6 +224,32 @@ static partial class Bridge
 					Order = new Ast.RowOrder(Queries.Order(new Clause.OrderBy(by, null, null)).Items, unique),
 				},
 				_                                                             => throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (an OPENROWSET BULK option that is not a word or a value)"),
+			};
+		}
+
+		/// <summary>
+		/// <c>AI_GENERATE_CHUNKS (SOURCE = v, CHUNK_TYPE = FIXED, CHUNK_SIZE = v [, OVERLAP = v [, ENABLE_CHUNK_SET_ID = v]])</c>,
+		/// whose arguments the old tree keeps as named ones, in the order ChunksFunction reads them.
+		/// </summary>
+		static Ast.TableSource Chunks(TableReference.FunctionCall old, Ast.Alias? alias)
+		{
+			string[] names = ["SOURCE", "CHUNK_TYPE", "CHUNK_SIZE", "OVERLAP", "ENABLE_CHUNK_SET_ID"];
+			var arguments  = old.Function.Arguments;
+
+			if (arguments.Length is < 3 or > 5 || arguments[1] is not Expression.NamedArgument(_, Expression.ColumnReference(var type))
+				|| Enumerable.Range(0, arguments.Length).Any(at => arguments[at] is not Expression.NamedArgument(var name, _) || !name.Equals(names[at], StringComparison.OrdinalIgnoreCase)))
+				throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (AI_GENERATE_CHUNKS with these arguments)");
+
+			Ast.Expression Value(int at)
+			{
+				return Values.Of(((Expression.NamedArgument)arguments[at]).Value);
+			}
+
+			return new Ast.TableSource.AiGenerateChunks(Value(0), Values.Part(old, type), Value(2))
+			{
+				Overlap          = arguments.Length > 3 ? Value(3) : null,
+				EnableChunkSetId = arguments.Length > 4 ? Value(4) : null,
+				Alias            = alias,
 			};
 		}
 
