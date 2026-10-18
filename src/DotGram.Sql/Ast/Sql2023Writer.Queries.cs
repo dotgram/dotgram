@@ -294,15 +294,19 @@ public static partial class Sql2023Writer
 			Word("SELECT");
 			PutQuantifier(query.Quantifier);
 			PutTop(query.Top);
-			Each(query.Columns, PutColumn);
 
-			if (query.Into is { } into)
+			var outer = into;
+			into = query.IntoTable is not null;
+			Each(query.Columns, PutColumn);
+			into = outer;
+
+			if (query.Into is { } targets)
 			{
 				if (query.IntoTable is not null)
 					throw Both(query, "Into", "IntoTable");
 
 				Word("INTO");
-				Each(into.Targets, PutExpression);
+				Each(targets.Targets, PutExpression);
 			}
 
 			// T-SQL: INTO Clause (Transact-SQL).
@@ -449,10 +453,12 @@ public static partial class Sql2023Writer
 
 					PutColumnAlias(named);
 					Word("=");
+					identityItem = into && first.Expression is Expression.Identity;
 					PutExpression(first.Expression);
 					break;
 
 				case SelectColumn.ExpressionItem expression:
+					identityItem = into && expression.Alias is not null && expression.Expression is Expression.Identity;
 					PutExpression(expression.Expression);
 
 					if (expression.Alias is { } alias)

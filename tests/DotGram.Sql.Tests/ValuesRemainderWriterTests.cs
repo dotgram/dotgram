@@ -64,9 +64,26 @@ public sealed class ValuesRemainderWriterTests
 			"IS DISTINCT FROM SOME" => Where(new Expression.IsDistinct(Ref("a"), false, new Expression.Subquery(new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("b"))], From = new FromClause([new TableSource.Named(Qualified("u"))]) })) { Quantifier = Quantifier.Some }),
 			"AI_GENERATE_EMBEDDINGS" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.AiGenerateEmbeddings(Text("x"), new QualifiedName([Name("dbo"), Name("m")])) { Parameters = Ref("p") })] } },
 			"AI_GENERATE_CHUNKS" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.AiGenerateChunks(Text("x"), Name("fixed"), Number("5")) { Overlap = Number("1"), Alias = new Alias(Name("c"), null, true) }]) } },
+			"IDENTITY" => Into(new SelectColumn.ExpressionItem(Identity(Number("1"), new LiteralValue.Numeric("-1.5", NumericLiteralKind.Decimal)), Name("id"), true)),
+			"IDENTITY named first" => Into(new SelectColumn.ExpressionItem(new Expression.Identity(new DataType.Numeric(NumericTypeKind.Int)), Name("id")) { AliasFirst = true }),
 			"CONTAINS" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b"), Ref("c")], Text("x")) { ColumnsBracketed = true, Language = Number("1033") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
+	}
+
+	static Expression.Identity Identity(Expression seed, LiteralValue.Numeric increment)
+	{
+		return new Expression.Identity(new DataType.Numeric(NumericTypeKind.Int)) { Seed = (LiteralValue.Numeric)seed, Increment = increment };
+	}
+
+	static Statement Into(SelectColumn column, bool into = true)
+	{
+		return new Statement.Select { Query = new Query.Select { Columns = [column], IntoTable = into ? new SelectIntoTable(Qualified("#t"), null) : null, From = new FromClause([new TableSource.Named(Qualified("t"))]) } };
+	}
+
+	static LiteralValue.Numeric Num(string text)
+	{
+		return new LiteralValue.Numeric(text, NumericLiteralKind.DecimalInteger);
 	}
 
 	static Statement Where(Expression condition)
@@ -80,6 +97,8 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("CONTAINS", "SELECT a FROM t WHERE CONTAINS((b, c), 'x', LANGUAGE 1033)")]
 	[InlineData("IS DISTINCT FROM SOME", "SELECT a FROM t WHERE a IS DISTINCT FROM SOME (SELECT b FROM u)")]
 	[InlineData("AI_GENERATE_EMBEDDINGS", "SELECT AI_GENERATE_EMBEDDINGS('x' USE MODEL dbo.m PARAMETERS p)")]
+	[InlineData("IDENTITY", "SELECT IDENTITY(INT, 1, -1.5) AS id INTO #t FROM t")]
+	[InlineData("IDENTITY named first", "SELECT id = IDENTITY(INT) INTO #t FROM t")]
 	[InlineData("AI_GENERATE_CHUNKS", "SELECT * FROM AI_GENERATE_CHUNKS(SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, OVERLAP = 1) AS c")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
@@ -93,6 +112,8 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("IS DISTINCT FROM SOME")]
 	[InlineData("AI_GENERATE_EMBEDDINGS")]
 	[InlineData("AI_GENERATE_CHUNKS")]
+	[InlineData("IDENTITY")]
+	[InlineData("IDENTITY named first")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -117,6 +138,12 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("chunks of another type")]
 	[InlineData("chunks with a set id and no overlap")]
 	[InlineData("chunks with an alias's columns")]
+	[InlineData("IDENTITY with no INTO")]
+	[InlineData("IDENTITY unnamed")]
+	[InlineData("IDENTITY inside a value")]
+	[InlineData("IDENTITY in a WHERE")]
+	[InlineData("IDENTITY with a seed and no increment")]
+	[InlineData("IDENTITY seeded by a hex number")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -149,6 +176,17 @@ public sealed class ValuesRemainderWriterTests
 			"chunks with a set id and no overlap" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.AiGenerateChunks(Text("x"), Name("fixed"), Number("5")) { EnableChunkSetId = Number("1") }]) } },
 			// After the call, AS c (a, b) is Msg 102.
 			"chunks with an alias's columns" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.AiGenerateChunks(Text("x"), Name("fixed"), Number("5")) { Alias = new Alias(Name("c"), [Name("a")]) }]) } },
+			// IdentityFunction: only with an INTO (Msg 177).
+			"IDENTITY with no INTO" => Into(new SelectColumn.ExpressionItem(Identity(Number("1"), Num("1")), Name("id"), true), into: false),
+			// TSqlSelectSublist: an IdentityFunction is always named.
+			"IDENTITY unnamed" => Into(new SelectColumn.ExpressionItem(Identity(Number("1"), Num("1")))),
+			// IdentityFunction: a whole item of the list and never part of a value.
+			"IDENTITY inside a value" => Into(new SelectColumn.ExpressionItem(new Expression.Binary(Identity(Number("1"), Num("1")), BinaryOperator.Add, Number("1")), Name("id"), true)),
+			"IDENTITY in a WHERE" => Where(new Expression.Comparison(Identity(Number("1"), Num("1")), ComparisonOperator.Equal, Number("1"))),
+			// IdentityFunction: a seed and a step, both or neither.
+			"IDENTITY with a seed and no increment" => Into(new SelectColumn.ExpressionItem(new Expression.Identity(new DataType.Numeric(NumericTypeKind.Int)) { Seed = Num("1") }, Name("id"), true)),
+			// IdentityNumber: Lexical.UnsignedNumericLiteral, which reads no hexadecimal number.
+			"IDENTITY seeded by a hex number" => Into(new SelectColumn.ExpressionItem(Identity(new LiteralValue.Numeric("0x1", NumericLiteralKind.HexInteger), Num("1")), Name("id"), true)),
 			"a number with no name" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};

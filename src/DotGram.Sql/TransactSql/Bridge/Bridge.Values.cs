@@ -500,6 +500,14 @@ static partial class Bridge
 			var name  = old.Name;
 			var upper = name.ToUpperInvariant();
 
+			// IdentityFunction: the type the old tree keeps as the call's word, and the seed and the step.
+			if (upper == "IDENTITY" && old.Word is { } typed && old.Arguments.Length is 0 or 2)
+				return new Ast.Expression.Identity(Type(old, typed))
+				{
+					Seed      = old.Arguments.Length == 2 ? (Ast.LiteralValue.Numeric)Of(old.Arguments[0]) : null,
+					Increment = old.Arguments.Length == 2 ? (Ast.LiteralValue.Numeric)Of(old.Arguments[1]) : null,
+				};
+
 			// AI_GENERATE_EMBEDDINGS: what is embedded, and the model after USE MODEL, which the old tree keeps as words.
 			if (upper == "AI_GENERATE_EMBEDDINGS" && old is { Word: null, Arguments: [Expression.Hinted(var source, var words)] })
 				return Embeddings(old, source, words);
