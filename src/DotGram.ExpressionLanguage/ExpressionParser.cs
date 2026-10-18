@@ -416,11 +416,13 @@ namespace DotGram.ExpressionLanguage;
 		// the automaton takes the longest text holding no closing run, which a quote just before the
 		// closing ones would have passed, and C# refuses that.
 		//
-		// One character a turn, or a run of quotes shorter than the closing one and then a
-		// character: the two cannot both read the same text, so an unclosed raw string has one
-		// reading and is refused at once, quotes in it or not (D57).
+		// A run of characters that are no quote, or a run of quotes shorter than the closing one and
+		// then a character: the two cannot both read the same text, so an unclosed raw string has
+		// one reading and is refused at once, quotes in it or not (D57). The first is atomic, as the
+		// text of the other strings is, and for the same reason: it stops only at a quote, which
+		// nothing else can read, and a turn per character cost the rule much of its speed.
 		RawText : @string
-			= $q: '"'{3,} & [^ '"'] & ([^ '"'] | ?!$q & '"'+ & [^ '"'])* & $q
+			= $q: '"'{3,} & [^ '"'] & ({ [^ '"']+ } | ?!$q & '"'+ & [^ '"'])* & $q
 			=> @(ExpressionParser.Raw(parserText))
 
 		// A string, plain or raw, is one token: a plain string's `""` is the beginning of a raw one
