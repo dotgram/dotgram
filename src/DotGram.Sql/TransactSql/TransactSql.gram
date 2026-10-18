@@ -6568,64 +6568,64 @@ DropStatement : @Statement
 DropBody : @Statement
 	// A key names one part and may say its provider's key goes with it.
 	= what: DropKeyKind & name: DropOnePart & tail: ("REMOVE"i & "PROVIDER"i & "KEY"i)?
-		=> @(Statement.Dropped(what, [name], tail))
+		=> @(Bridge.Drop.Dropped(what, [name], tail))
 	| "ASSEMBLY"i & exists: IfExists? & names: DropNames
 	  & tail: ("WITH"i & "NO"i & "DEPENDENTS"i)?
-		=> @(Statement.Dropped("ASSEMBLY", SqlList.OwnOrNull(names), tail, exists))
+		=> @(Bridge.Drop.Dropped("ASSEMBLY", SqlList.OwnOrNull(names), tail, exists))
 	| "EXTERNAL"i & "LIBRARY"i & name: DropOnePart & tail: ("AUTHORIZATION"i & TSqlIdentifier)?
-		=> @(Statement.Dropped("EXTERNAL LIBRARY", [name], tail))
+		=> @(Bridge.Drop.Dropped("EXTERNAL LIBRARY", [name], tail))
 	| "EXTERNAL"i & "LANGUAGE"i & name: DropOnePart & tail: ("AUTHORIZATION"i & TSqlIdentifier)?
-		=> @(Statement.Dropped("EXTERNAL LANGUAGE", [name], tail))
+		=> @(Bridge.Drop.Dropped("EXTERNAL LANGUAGE", [name], tail))
 	| "EVENT"i & "SESSION"i & name: DropOnePart & tail: ("ON"i & ("SERVER"i | "DATABASE"i))
-		=> @(Statement.Dropped("EVENT SESSION", [name], tail))
+		=> @(Bridge.Drop.Dropped("EVENT SESSION", [name], tail))
 	| "EVENT"i & "NOTIFICATION"i & names: DropOneParts & tail: ("ON"i & ("SERVER"i | "DATABASE"i | "QUEUE"i & TSqlQualifiedName))
-		=> @(Statement.Dropped("EVENT NOTIFICATION", SqlList.OwnOrNull(names), tail))
+		=> @(Bridge.Drop.Dropped("EVENT NOTIFICATION", SqlList.OwnOrNull(names), tail))
 
 	// An index is named twice — once for itself and once for what it is on — and the older
 	// spelling puts both in one qualified name.
 	| "FULLTEXT"i & "INDEX"i & "ON"i & on: DropName
-		=> @(Statement.Dropped("FULLTEXT INDEX", [on]))
+		=> @(Bridge.Drop.Dropped("FULLTEXT INDEX", [on]))
 	| "INDEX"i & exists: IfExists? & first: DropIndexName & (',' & rest: DropIndexName)*
-		=> @(Statement.Dropped("INDEX", SqlList.OwnOrNull(Syntax.Listed(first, rest)), null, exists))
+		=> @(Bridge.Drop.Dropped("INDEX", SqlList.OwnOrNull(Syntax.Listed(first, rest)), null, exists))
 
 	// A signature is dropped off a module rather than by its own name, and a sensitivity
 	// classification off a column.
 	| counter: "COUNTER"i? & "SIGNATURE"i & "FROM"i & module: SignedModule & "BY"i
 	  & first: SignatureCrypto & (',' & rest: SignatureCrypto)*
-		=> @(new Statement.DropSignature(SqlList.Own(Syntax.Listed(first, rest)), module, counter is not null))
+		=> @(Bridge.Drop.Signature(SqlList.Own(Syntax.Listed(first, rest)), module, counter is not null))
 	| "SENSITIVITY"i & "CLASSIFICATION"i & from: "FROM"i & names: DropNames
-		=> @(Statement.Dropped("SENSITIVITY CLASSIFICATION", SqlList.OwnOrNull(names)))
+		=> @(Bridge.Drop.Dropped("SENSITIVITY CLASSIFICATION", SqlList.OwnOrNull(names)))
 
 	// A trigger says which of the kinds it is by what it is on: a database's or every server's,
 	// and nothing for a table's. `ON SERVER` and `ON QUEUE q` are `Msg 102`.
 	| "TRIGGER"i & exists: IfExists? & names: DropNames & tail: ("ON"i & ("DATABASE"i | "ALL"i & "SERVER"i))?
-		=> @(Statement.Dropped("TRIGGER", SqlList.OwnOrNull(names), tail, exists))
+		=> @(Bridge.Drop.Dropped("TRIGGER", SqlList.OwnOrNull(names), tail, exists))
 
 	// The two that name nothing: there is one of each per database.
 	| what: DropOnlyKind
-		=> @(Statement.Dropped(what, []))
+		=> @(Bridge.Drop.Dropped(what, []))
 
 	// Statistics are named by their table and themselves, in a list; one part the engine reads
 	// and objects to (`Msg 1053`, "you must provide both the object name and the statistics name").
 	| "STATISTICS"i & names: DropNames
-		=> @(Statement.Dropped("STATISTICS", SqlList.OwnOrNull(names)))
+		=> @(Bridge.Drop.Dropped("STATISTICS", SqlList.OwnOrNull(names)))
 	| what: DropListedKind & exists: IfExists? & names: DropNames
-		=> @(Statement.Dropped(what, SqlList.OwnOrNull(names), null, exists))
+		=> @(Bridge.Drop.Dropped(what, SqlList.OwnOrNull(names), null, exists))
 	| what: DropSingleKind & exists: IfExists? & name: DropOnePart
-		=> @(Statement.Dropped(what, [name], null, exists))
+		=> @(Bridge.Drop.Dropped(what, [name], null, exists))
 	| "TYPE"i & exists: IfExists? & name: DropLedName
-		=> @(Statement.Dropped("TYPE", [name], null, exists))
+		=> @(Bridge.Drop.Dropped("TYPE", [name], null, exists))
 	| what: DropQualifiedKind & name: DropName
-		=> @(Statement.Dropped(what, [name]))
+		=> @(Bridge.Drop.Dropped(what, [name]))
 	| "XML"i & "SCHEMA"i & "COLLECTION"i & name: DropLedName
-		=> @(Statement.Dropped("XML SCHEMA COLLECTION", [name]))
+		=> @(Bridge.Drop.Dropped("XML SCHEMA COLLECTION", [name]))
 	| "WORKLOAD"i & "CLASSIFIER"i & names: DropLedNames
-		=> @(Statement.Dropped("WORKLOAD CLASSIFIER", SqlList.OwnOrNull(names)))
+		=> @(Bridge.Drop.Dropped("WORKLOAD CLASSIFIER", SqlList.OwnOrNull(names)))
 	| what: DropNamedKind & name: DropOnePart
-		=> @(Statement.Dropped(what, [name]))
+		=> @(Bridge.Drop.Dropped(what, [name]))
 	// After the kinds that begin with its word.
 	| "DATABASE"i & exists: IfExists? & names: DropOneParts
-		=> @(Statement.Dropped("DATABASE", SqlList.OwnOrNull(names), null, exists))
+		=> @(Bridge.Drop.Dropped("DATABASE", SqlList.OwnOrNull(names), null, exists))
 
 DropNames : @Expression[]
 	= first: DropName & (',' & rest: DropName)* => @(Syntax.Listed(first, rest))

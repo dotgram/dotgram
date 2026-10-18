@@ -403,6 +403,33 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 		public string? Verb { get; init; }
 	}
 
+	/// <summary>
+	/// A statement whose rule builds the common tree (<see cref="DotGram.Sql.Ast.Statement"/>) already, standing
+	/// where a statement of this tree is held: in a text of statements, a block, a body. The bridge carries it
+	/// across as what it holds.
+	/// </summary>
+	/// <param name="Made">The statement on the common tree, or null where building it found a gap.</param>
+	/// <param name="Gap">What the common tree has no place for yet, which carrying the statement throws.</param>
+	/// <param name="Recovered">The members building it read from the text, which carrying it counts again.</param>
+	/// <param name="Record">The record of this tree the rule built before, which the statement is counted under.</param>
+	internal sealed record Built(DotGram.Sql.Ast.Statement? Made, TransactSql.BridgeGap? Gap, string[]? Recovered, string Record) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => Made is { } made ? DotGram.Sql.Ast.StatementCategories.Category(made) : StatementCategory.Ddl;
+
+		/// <summary>Equal where both hold equal statements, or gaps that say the same.</summary>
+		public bool Equals(Built? other)
+		{
+			return other is not null && Equals(Made, other.Made) && Gap?.Message == other.Gap?.Message;
+		}
+
+		/// <inheritdoc/>
+		public override int GetHashCode()
+		{
+			return HashCode.Combine(Made, Gap?.Message);
+		}
+	}
+
 	/// <param name="Tail">What the action was given, where the tree keeps it as written.</param>
 	public sealed record AlterTable(
 		string Name, string Action, SqlList<Clause> Elements, SqlList<Clause>? Options = null, string? Tail = null) : Statement

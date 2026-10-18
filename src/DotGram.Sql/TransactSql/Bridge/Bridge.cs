@@ -57,6 +57,7 @@ static partial class Bridge
 	/// </summary>
 	static readonly Converter[] Families =
 	[
+		Built.TryConvert,
 		Values.TryConvert,
 		Queries.TryConvert,
 		Dml.TryConvert,
@@ -69,7 +70,6 @@ static partial class Bridge
 		Broker.TryConvert,
 		Monitoring.TryConvert,
 		External.TryConvert,
-		Drop.TryConvert,
 	];
 
 	/// <summary>
@@ -77,6 +77,7 @@ static partial class Bridge
 	/// </summary>
 	public static readonly IReadOnlyList<(string Family, string[] Owns)> Ownership =
 	[
+		("Built",      Built.Owns),
 		("Values",     Values.Owns),
 		("Queries",    Queries.Owns),
 		("Dml",        Dml.Owns),
@@ -156,7 +157,6 @@ static partial class Bridge
 		"WindowReference.NameRef against (name)",
 		"Expression.Invocation without brackets",
 		"Expression.Trim.FromKeyword",
-		"Statement.DropRoutine.Proc",
 		"Statement.SetTransaction.Tran",
 		"Statement.Delete.FromOmitted",
 		"ReferencesSpecification.DeleteRuleFirst",
@@ -288,7 +288,7 @@ static partial class Bridge
 	}
 
 	/// <summary>The thread-static state of a carriage, taken from one thread to another.</summary>
-	sealed class Carriage(string? source, List<string>? recovered, bool locating)
+	internal sealed class Carriage(string? source, List<string>? recovered, bool locating) : IDisposable
 	{
 		public static Carriage Here()
 		{
@@ -301,6 +301,12 @@ static partial class Bridge
 			Bridge.recovered = recovered;
 			Bridge.locating  = locating;
 		}
+
+		/// <summary>The carriage that stood before, put back.</summary>
+		public void Dispose()
+		{
+			Restore();
+		}
 	}
 
 	/// <summary>
@@ -308,7 +314,12 @@ static partial class Bridge
 	/// </summary>
 	public static string NameOf(object old)
 	{
-		return NameOf(old.GetType());
+		return old switch
+		{
+			Given given          => given.Record,
+			Statement.Built made => made.Record,
+			_                    => NameOf(old.GetType()),
+		};
 	}
 
 	public static string NameOf(Type type)

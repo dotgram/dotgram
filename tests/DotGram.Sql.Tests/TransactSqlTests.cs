@@ -16097,7 +16097,7 @@ public sealed class TransactSqlTests
 
 			Assert.True(match.IsSuccess, input);
 
-			var made = Assert.IsAssignableFrom<Statement>(match.Value).GetType().Name;
+			var made = Record(Assert.IsAssignableFrom<Statement>(match.Value));
 
 			Assert.StartsWith("Drop", made, StringComparison.Ordinal);
 
@@ -16219,7 +16219,16 @@ public sealed class TransactSqlTests
 		var match = OldTree.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
-		Assert.Equal(node, match.Value!.GetType().Name);
+		Assert.Equal(node, Record(match.Value!));
+	}
+
+	/// <summary>
+	/// The record a statement is: its own type's name, or for one whose rule builds the common tree already, the name of
+	/// the record the rule built before, which it is counted under (<c>Statement.Built</c>).
+	/// </summary>
+	static string Record(Statement statement)
+	{
+		return statement is Statement.Built built ? built.Record.Substring("Statement.".Length) : statement.GetType().Name;
 	}
 
 	/// <summary>The full-text catalogue, and copying a database out and back.</summary>

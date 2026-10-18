@@ -100,6 +100,11 @@ public static class SqlWriter
 
 		switch (statement)
 		{
+			// A statement whose rule builds the common tree already: that tree's writer prints it, as T-SQL reads it.
+			case Statement.Built { Made: { } made }:
+				text.Append(Ast.Sql2023Writer.Write(made, transactSql: true));
+				break;
+
 			case Statement.Select(var with, var of, var by, var shape, var options):
 				if (with.Length > 0)
 				{

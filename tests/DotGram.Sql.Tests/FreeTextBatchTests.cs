@@ -31,20 +31,33 @@ public sealed class FreeTextBatchTests
 	[InlineData("SET STATISTICS io ON",                                    "SetExpression.Statistics.Report.Kind")]
 	[InlineData("RAISERROR ('x', 1, 1) with nowait",                       "Statement.RaiseError.Tail")]
 	[InlineData("EXEC p with recompile",                                   "Statement.Execute.Tail")]
-	[InlineData("DROP SYMMETRIC KEY k remove provider key",                "Statement.DropSymmetricKey.Tail")]
-	[InlineData("DROP ASSEMBLY a with no dependents",                      "Statement.DropAssembly.Tail")]
-	[InlineData("DROP TRIGGER r on database",                              "Statement.DropTrigger.Tail")]
-	[InlineData("DROP EVENT SESSION s on server",                          "Statement.DropEventSession.Tail")]
-	[InlineData("DROP SIGNATURE FROM object::p BY CERTIFICATE c",          "Statement.DropSignature.From")]
-	[InlineData("DROP SIGNATURE FROM p BY certificate c",                  Trees.SignerName)]
-	[InlineData("DROP INDEX i on t",                                       Trees.DropIndexName)]
-	[InlineData("DROP INDEX i ON t with (ONLINE = ON)",                    Trees.DropIndexName)]
 	public void A_text_of_the_batch_converts_by_case(string text, string member)
 	{
 		var outcome = BridgeOracle.Run(Old(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
 		Assert.Contains(member, outcome.ByCase!);
+	}
+
+	/// <summary>
+	/// The same texts of the statements whose rules build the common tree: the words are the tree's own, written in its
+	/// capitals, and the statement converts with nothing aside.
+	/// </summary>
+	[Theory]
+	[InlineData("DROP SYMMETRIC KEY k remove provider key")]
+	[InlineData("DROP ASSEMBLY a with no dependents")]
+	[InlineData("DROP TRIGGER r on database")]
+	[InlineData("DROP EVENT SESSION s on server")]
+	[InlineData("DROP SIGNATURE FROM object::p BY CERTIFICATE c")]
+	[InlineData("DROP SIGNATURE FROM p BY certificate c")]
+	[InlineData("DROP INDEX i on t")]
+	[InlineData("DROP INDEX i ON t with (ONLINE = ON)")]
+	public void A_text_of_a_rule_that_builds_the_common_tree_converts_with_nothing_aside(string text)
+	{
+		var outcome = BridgeOracle.Run(Old(text), text);
+
+		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		Assert.Empty(outcome.ByCase!);
 	}
 
 	/// <summary>
@@ -62,10 +75,11 @@ public sealed class FreeTextBatchTests
 		Assert.NotNull(Trees.Difference(Old("SELECT a FROM t ORDER BY date"), Old("SELECT a FROM t ORDER BY DATE")));
 		Assert.NotNull(Trees.Difference(Old("DROP TABLE date"), Old("DROP TABLE DATE")));
 
+		// DROP INDEX builds the common tree, whose words are its own: the two are one tree, nothing aside.
 		var byCase = new List<string>();
 
 		Assert.Null(Trees.Difference(Old("DROP INDEX i on t"), Old("DROP INDEX i ON t"), byCase: byCase));
-		Assert.Equal([Trees.DropIndexName], byCase);
+		Assert.Empty(byCase);
 
 		// A name inside the index's text is a name: its case is kept.
 		Assert.NotNull(Trees.Difference(Old("DROP INDEX i ON t"), Old("DROP INDEX I ON t")));
