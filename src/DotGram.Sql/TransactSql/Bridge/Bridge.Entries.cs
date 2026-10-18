@@ -22,14 +22,14 @@ static partial class Bridge
 	/// <param name="locate">Whether the new nodes take the old nodes' spans: the located door's tree, and not the plain one's.</param>
 	internal static Ast.Statement Carried(Statement old, string input, bool locate)
 	{
-		return Carry(old, input, locate, out var gap) as Ast.Statement ?? Unplaced(old, gap);
+		return Carry(old, input, locate, out var gap) as Ast.Statement ?? Unplaced(old, gap, locate);
 	}
 
 	/// <summary>An expression an entry read, on the common tree, or an <see cref="Ast.Expression.Extension"/>.</summary>
 	internal static Ast.Expression Carried(Expression old, string input, bool locate)
 	{
 		return Carry(old, input, locate, out var gap) as Ast.Expression
-			?? new Ast.Expression.Extension(Dialect, gap?.Message ?? NameOf(old), []);
+			?? Placed(new Ast.Expression.Extension(Dialect, gap?.Message ?? NameOf(old), []), old, locate);
 	}
 
 	/// <summary>The statements an entry read, on the common tree, each the bridge has no place for an extension.</summary>
@@ -41,9 +41,22 @@ static partial class Bridge
 	/// <summary>What an extension of the common tree carried across from T-SQL says it is.</summary>
 	const string Dialect = "T-SQL";
 
-	static Ast.Statement Unplaced(Statement old, BridgeGap? gap)
+	/// <summary>
+	/// The extension a statement the bridge has no place for stands as: located where the grammar located the statement,
+	/// in the located door's tree, as what it replaces would have been.
+	/// </summary>
+	static Ast.Statement Unplaced(Statement old, BridgeGap? gap, bool locate)
 	{
-		return new Ast.Statement.Extension { Dialect = Dialect, Kind = gap?.Message ?? NameOf(old) };
+		return Placed(new Ast.Statement.Extension { Dialect = Dialect, Kind = gap?.Message ?? NameOf(old) }, old, locate);
+	}
+
+	/// <summary>A node made in place of an old one, given the old one's span where the carriage locates.</summary>
+	static T Placed<T>(T made, ISqlSpan old, bool locate) where T : class
+	{
+		if (locate && old.Span is { Known: true, IsStale: false } span)
+			Place(made, span);
+
+		return made;
 	}
 
 	/// <summary>
@@ -89,7 +102,7 @@ static partial class Bridge
 					}
 					catch (BridgeGap gap)
 					{
-						made[i] = Unplaced(statements[i], gap);
+						made[i] = Unplaced(statements[i], gap, locating);
 					}
 				}
 

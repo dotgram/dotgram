@@ -204,6 +204,34 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 		Assert.ThrowsAny<NotSupportedException>(() => Ast.TransactSqlWriter.Write(extension));
 	}
 
+	/// <summary>
+	/// What stands for a construct the bridge has no place for is located where the grammar located the construct: a
+	/// statement alone and among others, and an expression, through the located door; through the plain door nowhere.
+	/// </summary>
+	[Fact]
+	public void An_extension_is_located_where_the_grammar_located_what_it_replaces()
+	{
+		const string statement = "SELECT c1 FROM t1 WITH (0)";
+		const string script    = "SELECT 1;\n  SELECT c1 FROM t1 WITH (0)";
+		const string value     = "JSON_OBJECTAGG()";
+
+		var alone = Assert.IsType<Ast.Statement.Extension>(TransactSqlParser.Located.ParseStatement(statement));
+
+		Assert.True(alone.Span.Known);
+		Assert.Equal(statement, statement.Substring(alone.Span.At, alone.Span.Length));
+		Assert.False(TransactSqlParser.ParseStatement(statement).Span.Known);
+
+		var among = Assert.IsType<Ast.Statement.Extension>(TransactSqlParser.Located.ParseSql(script)[1]);
+
+		Assert.Equal(statement, script.Substring(among.Span.At, among.Span.Length));
+		Assert.False(TransactSqlParser.ParseSql(script)[1].Span.Known);
+
+		var expression = Assert.IsType<Ast.Expression.Extension>(TransactSqlParser.Located.ParseExpression(value));
+
+		Assert.Equal(value, value.Substring(expression.Span.At, expression.Span.Length));
+		Assert.False(TransactSqlParser.ParseExpression(value).Span.Known);
+	}
+
 	/// <summary>The first statement of the tests the bridge has no place for.</summary>
 	static string Unplaced()
 	{
