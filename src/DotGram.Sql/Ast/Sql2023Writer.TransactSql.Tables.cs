@@ -30,6 +30,7 @@ public static partial class Sql2023Writer
 					PutExpression(@default.Value);
 					Word("FOR");
 					PutIdentifier(@default.Column);
+					PutWithValues(@default, @default.WithValues);
 					return true;
 
 				// T-SQL: CREATE TABLE (SQL Graph). The pairs, then the one action the tree holds.
@@ -58,7 +59,9 @@ public static partial class Sql2023Writer
 						throw Misplaced(add, "Elements", "fewer than two and not one index, which the standard's AddColumn or AddConstraint holds");
 
 					Word("ADD");
+					adding = true;
 					Each(add.Elements, PutElement);
+					adding = false;
 					return true;
 
 				case AlterTableAction.Drop drop:
@@ -703,6 +706,7 @@ public static partial class Sql2023Writer
 			{
 				case ColumnOption.Default @default:
 					PutDefault(@default.Value);
+					PutWithValues(@default, @default.WithValues);
 					break;
 
 				case ColumnOption.Identity identity:
@@ -806,6 +810,21 @@ public static partial class Sql2023Writer
 				default:
 					throw Unwritten(option);
 			}
+		}
+
+		/// <summary>
+		/// T-SQL: ALTER TABLE (Transact-SQL). <c>WITH VALUES</c> after a default, which AddedDefaultTail reads where a column
+		/// or a constraint is added and nowhere else (Msg 156).
+		/// </summary>
+		void PutWithValues(ISqlNode owner, bool withValues)
+		{
+			if (!withValues)
+				return;
+
+			if (!adding)
+				throw Misplaced(owner, "WithValues", "where no column or constraint is added, which alone reads WITH VALUES (AddedDefaultTail)");
+
+			Word("WITH VALUES");
 		}
 
 		/// <summary>T-SQL: column_definition (Transact-SQL). <c>WITH (FUNCTION = 'f()')</c>: a mask is a function named in a string.</summary>
