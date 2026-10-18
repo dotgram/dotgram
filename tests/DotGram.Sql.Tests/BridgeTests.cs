@@ -154,11 +154,11 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 	/// <summary>
 	/// A name part that is none is a gap, never a name in the new tree: a number as the schema collection of an
-	/// <c>xml</c>, a type word after a delimited name, and a string as the name after OPENDATASOURCE.
+	/// <c>xml</c> and a string as the name after OPENDATASOURCE. (A type word after a delimited name, <c>[sys]."Char"
+	/// varying</c>, is the standard's spelling written with that name.)
 	/// </summary>
 	[Theory]
 	[InlineData("CREATE TABLE t1 (c1 xml(10))")]
-	[InlineData("CREATE TABLE t1 (c5 [sys].\"Char\" varying)")]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something'")]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something' AS Z")]
 	public void A_name_part_that_is_none_is_a_gap(string text)
