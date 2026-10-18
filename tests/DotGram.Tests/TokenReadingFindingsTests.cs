@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -131,6 +132,26 @@ public sealed class TokenReadingFindingsTests
 			Assert.True(read.IsSuccess);
 			Assert.Equal(value, read.Value is string[] all ? string.Join(",", all) : read.Value);
 		}
+	}
+
+	/// <summary>
+	/// A terminal that binds text and builds from its own captures is told once, for the reason
+	/// that keeps it over characters first: the binding, whose message names its fix. The
+	/// capture's reason is asked only of a grammar whose terminals can all be read together.
+	/// </summary>
+	[Fact]
+	public void A_terminal_that_binds_and_builds_from_its_captures_is_told_once()
+	{
+		var grammar =
+			"trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tX = ['a'..'z']+\n\tC = $q: X & c: ':' & $q\n}\n" +
+			"Start = Lex.C & Lex.C & eof\nparse Start\n";
+
+		var result = GramCompiler.Compile(grammar, Options(lexical: true, direct: true));
+		var said   = Assert.Single(result.Diagnostics, static one => one.Id == GramCompiler.NotCut);
+
+		Assert.Contains("binds text", said.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain("own captures", said.Message, StringComparison.Ordinal);
+		Assert.Single(Regex.Matches(said.Message, "'C'"));
 	}
 
 	// ── Readings from a position over tokens ────────────────────────────────────
