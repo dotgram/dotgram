@@ -383,8 +383,10 @@ public sealed class GeneratedShapeTests
 	/// A capture kept in the arena closes at a cost that does not grow with what it holds. A
 	/// close searched back over every record inside the capture for its opening, and a
 	/// repetition inside it, given back a turn at a time, closed it once per turn: quadratic in
-	/// the turns. Counted, not timed (D144): the records searched, at a size and at four times
-	/// it, on every carrier of the engine.
+	/// the turns. And where a later turn of a loop around the capture had opened it again, the
+	/// close given back into an earlier turn found its opening by searching and kept searching
+	/// at every turn after. Counted, not timed (D144): the records searched, at a size and at
+	/// four times it, on every carrier of the engine.
 	/// </summary>
 	[Theory]
 	[InlineData(CarrierKind.Auto)]
@@ -392,42 +394,56 @@ public sealed class GeneratedShapeTests
 	[InlineData(CarrierKind.Immediate)]
 	public void A_capture_kept_in_the_arena_closes_in_constant_time(CarrierKind carrier)
 	{
-		const string grammar =
-			"""
-			Item : @string = t: "aa"+ => @(t)
-			Root : @string = i: Item & "aa" & eof => @(i)
-			parse Root
-			""";
+		foreach (var (grammar, tails) in new[]
+		{
+			(
+				"""
+				Item : @string = t: "aa"+ => @(t)
+				Root : @string = i: Item & "aa" & eof => @(i)
+				parse Root
+				""",
+				new[] { ("c", false), ("", true) }
+			),
+			(
+				"""
+				Item : @string = t: "aa"+ => @(t)
+				Root = (Item & "aa" & "b")* & "z" & eof
+				parse Root
+				""",
+				new[] { ("baaaac", false), ("bz", true) }
+			),
+		})
+		{
+			var result = GramCompiler.Compile(
+				grammar,
+				new GramCompilerOptions
+				{
+					ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Carrier = carrier, Direct = false,
+					CountRules = true,
+				});
 
-		var result = GramCompiler.Compile(
-			grammar,
-			new GramCompilerOptions
+			EmittedCode.Quiet(result.Diagnostics);
+
+			var assembly = EmittedCode.Compile(result.Sources[0].Text, symbols: ["DOTGRAM_COUNTS"]);
+			var searched = assembly.GetType("Grammar")!.GetField(
+				"Searched_DotGram", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)!;
+
+			long Searched(string input, bool read)
 			{
-				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Carrier = carrier, Direct = false,
-				CountRules = true,
-			});
+				searched.SetValue(null, 0L);
 
-		EmittedCode.Quiet(result.Diagnostics);
+				Assert.Equal(read, EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input).IsSuccess);
 
-		var assembly = EmittedCode.Compile(result.Sources[0].Text, symbols: ["DOTGRAM_COUNTS"]);
-		var searched = assembly.GetType("Grammar")!.GetField(
-			"Searched_DotGram", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)!;
+				return (long)searched.GetValue(null)!;
+			}
 
-		long Searched(string input, bool read)
-		{
-			searched.SetValue(null, 0L);
+			foreach (var (tail, read) in tails)
+			{
+				var small = Searched(string.Concat(Enumerable.Repeat("aa", 64)) + tail, read);
+				var large = Searched(string.Concat(Enumerable.Repeat("aa", 256)) + tail, read);
 
-			Assert.Equal(read, EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input).IsSuccess);
-
-			return (long)searched.GetValue(null)!;
-		}
-
-		foreach (var (tail, read) in new[] { ("c", false), ("", true) })
-		{
-			var small = Searched(string.Concat(Enumerable.Repeat("aa", 64)) + tail, read);
-			var large = Searched(string.Concat(Enumerable.Repeat("aa", 256)) + tail, read);
-
-			Assert.True(large <= 4 * small + 64, $"searched {small} records at 64 turns and {large} at 256");
+				Assert.True(large <= 4 * small + 64, $"searched {small} records at 64 turns and {large} at 256 ({tail})");
+			}
 		}
 	}
 }

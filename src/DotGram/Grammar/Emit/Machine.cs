@@ -4140,7 +4140,11 @@ sealed partial class Machine
 	/// <para>
 	/// Where the local does not hold, the opening is found by counting openings against
 	/// closes, the way brackets are counted: an inner call's close, or one reached again after
-	/// a later opening was given back.
+	/// a later opening was given back. What is found goes back into the local, where a close
+	/// reached again inside the same capture finds it: no other opening of the capture in this
+	/// call can stand after it, as the capture cannot open again in one call before it closes.
+	/// So a capture given back a turn at a time is searched for once, over its own records, and
+	/// not once per turn.
 	/// </para>
 	/// </remarks>
 	/// <summary>
@@ -4192,6 +4196,11 @@ sealed partial class Machine
 				atClose.Line();
 				atClose.Line("closed--;");
 			}
+
+			// What was found is the hint from here on: a turn given back into this capture
+			// closes it again, and searched once per turn the search is quadratic again.
+			atClose.Line();
+			atClose.Line($"opened{slot} = openedAt;");
 		}
 
 		atClose.Line();
