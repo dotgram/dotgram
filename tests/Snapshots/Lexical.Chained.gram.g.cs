@@ -1890,22 +1890,6 @@ namespace DotGram.Snapshots
 				return false;
 			}
 
-			static int Reach_DotGram(
-				global::System.ReadOnlySpan<char> text, int pos, global::System.ReadOnlySpan<char> want)
-			{
-				var room = text.Length - pos;
-
-				if (want.Length < room)
-					room = want.Length;
-
-				var at = 0;
-
-				while (at < room && text[pos + at] == want[at])
-					at++;
-
-				return pos + at;
-			}
-
 			sealed class ImmediateValues
 			{
 				internal string[] Stack1 = new string[8];
