@@ -1016,7 +1016,18 @@ static partial class Bridge
 			if (text.StartsWith('@'))
 				throw BridgeGap.Missing(owner, "a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements");
 
-			return new Ast.QualifiedName([.. Split(text).Select(part => Part(owner, part, split: false))]);
+			// A name of one part, which nearly every name is: no list of its parts to cut it into.
+			if (text.IndexOf('.') < 0)
+				return new Ast.QualifiedName(Part(owner, text, split: false));
+
+			var parts = Split(text);
+			var first = Part(owner, parts[0], split: false);
+			var rest  = new Ast.Identifier[parts.Count - 1];
+
+			for (var at = 0; at < rest.Length; at++)
+				rest[at] = Part(owner, parts[at + 1], split: false);
+
+			return new Ast.QualifiedName(first, rest);
 		}
 
 		/// <summary>A name's text cut at its dots, a dot inside a delimited part not among them.</summary>
@@ -1081,13 +1092,13 @@ static partial class Bridge
 
 		static Ast.Identifier Part(object owner, string text, bool split)
 		{
-			if (split && text.Length > 0 && text[0] != '@' && Split(text).Count > 1)
+			if (split && text.Length > 0 && text[0] != '@' && text.IndexOf('.') >= 0 && Split(text).Count > 1)
 				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a qualified name `{text}` where one name stands)");
 
 			if (text.StartsWith('@'))
 				throw BridgeGap.Missing(owner, "a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements");
 
-			if (text.Any(char.IsWhiteSpace) && text.Length > 0 && text[0] is not '[' and not '"')
+			if (Blank(text) && text.Length > 0 && text[0] is not '[' and not '"')
 				throw BridgeGap.Open(owner, $"inventory cross-cutting gaps, identifier styles (a name part `{text}`)");
 
 			// A part that is none: a string or a number where a name stands (`OPENDATASOURCE (…).'t'`, `xml(10)`), or a
@@ -1101,6 +1112,16 @@ static partial class Bridge
 			return text.Length > 0 && text[0] == '[' ? new Ast.Identifier(text, Ast.IdentifierStyle.Bracketed)
 				: text.Length > 0 && text[0] == '"' ? new Ast.Identifier(text, Ast.IdentifierStyle.Delimited)
 				: new Ast.Identifier(text);
+		}
+
+		/// <summary>Whether a text holds a blank anywhere.</summary>
+		static bool Blank(string text)
+		{
+			foreach (var c in text)
+				if (char.IsWhiteSpace(c))
+					return true;
+
+			return false;
 		}
 
 		/// <summary>Whether a text is one delimited name, from its opening delimiter to its closing one, which is its last character.</summary>

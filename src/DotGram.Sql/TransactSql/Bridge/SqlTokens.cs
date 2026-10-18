@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace DotGram.Sql.TransactSql;
 
@@ -18,7 +17,12 @@ static class SqlTokens
 
 	public static List<Token> Of(string text)
 	{
-		return [.. Scan(text, 0).Select(static one => one.Token)];
+		var tokens = new List<Token>();
+
+		foreach (var (token, _) in Scan(text, 0))
+			tokens.Add(token);
+
+		return tokens;
 	}
 
 	/// <summary>The tokens of a text, each with where it starts in the text.</summary>
