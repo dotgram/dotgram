@@ -247,7 +247,7 @@ namespace DotGram.Compatibility
 		"namespace Token\n" +
 		"{\n" +
 		"\ttrivia = none\n" +
-		"\tRaw  = $q: '\"'{3,} & (?!$q & any)* & $q\n" +
+		"\tRaw  = { $q: '\"'{3,} & (?!$q & any)* & $q }\n" +
 		"\tName = ['a'..'z']+\n" +
 		"}\n" +
 		"Item  : @string   = r: Token.Raw => @(r) | n: Token.Name => @(n)\n" +

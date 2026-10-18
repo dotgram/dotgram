@@ -191,8 +191,12 @@ RawString = { $q: '"'{3,} } & { (?!$q & any)* } & $q & ?!'"'
 ```
 
 It works over characters only; over tokens use a guard. A terminal of a grammar cut in two
-(`Lexical = true`) may bind text: the lexer begins it with what an automaton can read and
-its own rule reads the whole token from its start, so start it with a literal or a class.
+(`Lexical = true`) may bind text when its body is atomic (`{ … }`) and no other token, nor
+trivia, can match a longer text that begins like it: the lexer begins it with what an
+automaton can read, its own rule reads the whole token from its start, and where that rule
+refuses the position is lexed again without it. Start it with a literal or a class; put
+competing forms (a raw string and a plain one) in one terminal as alternatives, else
+`GRAM5004` names the token in the way and the part is read over characters.
 A binding inside a lookahead is refused. Not yet supported, and refused with a message
 saying so: a binding over a recovery point, or in what `trivia` is made of once the grammar
 is cut in two. Streamed publications read them. Counts

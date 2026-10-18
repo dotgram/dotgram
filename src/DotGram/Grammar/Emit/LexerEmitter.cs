@@ -63,10 +63,17 @@ public static class LexerEmitter
 	/// <param name="machine">What to write.</param>
 	/// <param name="tag">What to hang on the emitted names, so two may live together.</param>
 	/// <param name="utf8">Whether the consumer's C# is 11 or later, so that the cells may be a UTF-8 literal.</param>
-	public static string Emit(LexicalAutomaton machine, string tag = "", bool utf8 = false)
+	/// <param name="kinds">
+	/// By accepting set, the kind the scanner answers with; null where a set's kind is its number
+	/// plus one, as the first machine's are. A second machine over fewer patterns answers in the
+	/// first one's kinds.
+	/// </param>
+	public static string Emit(LexicalAutomaton machine, string tag = "", bool utf8 = false, IReadOnlyList<int>? kinds = null)
 	{
 		if (machine is null)
 			throw new ArgumentNullException(nameof(machine));
+
+		Kinds = kinds;
 
 		Tag  = tag;
 		Utf8 = utf8;
@@ -464,6 +471,9 @@ public static class LexerEmitter
 	/// </para>
 	/// </remarks>
 	[ThreadStatic] static bool Utf8;
+
+	/// <summary>By accepting set, the kind written for it; null where it is the set's number plus one.</summary>
+	[ThreadStatic] static IReadOnlyList<int>? Kinds;
 
 	/// <summary>
 	/// The cells as one UTF-8 string literal, each the cell plus one in groups of
@@ -897,7 +907,9 @@ public static class LexerEmitter
 
 			for (var state = 0; state < machine.Next.Count; state++)
 			{
-				row.Append(machine.Accepts[state] + 1).Append(", ");
+				var accepts = machine.Accepts[state];
+
+				row.Append(accepts < 0 ? 0 : Kinds is null ? accepts + 1 : Kinds[accepts]).Append(", ");
 
 				if (row.Length < 92)
 					continue;

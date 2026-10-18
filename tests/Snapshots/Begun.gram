@@ -4,8 +4,9 @@
 // `<<` and the tag and the end of its line — and the terminal's own rule then reads the
 // whole token again from its start, so that the binding has a span and the reference has
 // text to compare with. This is the one snapshot where `Tokenize_DotGram` calls a
-// `Measure_…` with the token's start rather than with where the beginning ended, and where
-// a terminal measured so is also a longer token's kind (`Twice` under `+-+-`).
+// `Measure_…` with the token's start rather than with where the beginning ended, and holds
+// `Scan_Unbound`, the machine without these terminals that reads a position again where one
+// of them was begun and its rule refused.
 
 trivia = { (' ' | '\n' | "--" & [^ '\n']*)* }
 
@@ -13,21 +14,20 @@ namespace Token
 {
 	trivia = none
 
-	// Begun by `'"'{3,}`: a plain string's two quotes are a shorter token, read as one.
-	Raw     = { $q: '"'{3,} } & { (?!$q & any)* } & $q & ?!'"'
+	// Begun by `'"'{3,}`: a plain string's two quotes are a shorter token, read as one; four
+	// quotes and no closing are read again as two of them.
+	Raw     = { $q: '"'{3,} & (?!$q & any)* & $q & ?!'"' }
 	Str     = '"' & [^ '"']* & '"'
 
 	// Begun by `'[' & '='* & '['`; a bracket alone is a mark of the syntax.
-	Long    = '[' & $eq: '='* & '[' & { (?!(']' & $eq & ']') & any)* } & ']' & $eq & ']'
+	Long    = { '[' & $eq: '='* & '[' & (?!(']' & $eq & ']') & any)* & ']' & $eq & ']' }
 
-	// Begun by either alternative's `"<<" & Name & eol`; `<<` alone is the operator. Builds
-	// its value, so the token is read a third time, whole, for the body.
+	// Begun by either alternative's `"<<" & Name & eol`; `<<` alone is the operator, and so is
+	// an opening with no closing line. Builds its value, so the token is read a third time,
+	// whole, for the body.
 	Heredoc : @string
-		= "<<"  & $tag: Name & eol & body: { (?!($tag & EndLine) & Line)* } & $tag & ?=EndLine         => @(body)
-		| "<<-" & $tag: Name & eol & body: { (?!('\t'* & $tag & EndLine) & Line)* } & '\t'* & $tag & ?=EndLine => @(body)
-
-	// Begun by a bound literal, which is also how two longer marks start.
-	Twice   = $q: "+-" & $q
+		= { "<<"  & $tag: Name & eol & body: (?!($tag & EndLine) & Line)* & $tag & ?=EndLine
+		  | "<<-" & $tag: Name & eol & body: (?!('\t'* & $tag & EndLine) & Line)* & '\t'* & $tag & ?=EndLine } => @(body)
 
 	Name    = ['a'..'z']+
 	Line    = [^ '\r' | '\n']+ & EndLine | eol
@@ -39,9 +39,6 @@ Item : @string
 	| s: Token.Str                                 => @("str:" + s)
 	| l: Token.Long                                => @("long:" + l)
 	| h: Token.Heredoc                             => @("doc:" + h)
-	| "+-+-" & '!'                                 => @("twice!")
-	| t: Token.Twice                               => @("twice:" + t)
-	| "+-?"                                        => @("+-?")
 	| a: Token.Name & "<<" & b: Token.Name         => @("shift:" + a + "," + b)
 	| n: Token.Name                                => @("name:" + n)
 	| '[' & i: Token.Name & ']'                    => @("index:" + i)

@@ -16,6 +16,9 @@ namespace DotGram.Tests;
 /// Bindings in a terminal the lexer reads (<c>Lexical = true</c>): the lexer begins such a
 /// terminal with what an automaton can read of it, and the terminal's own rule reads the whole
 /// token from its start — so the binding has a span and the reference has text to compare with.
+/// The split is taken only where it cannot change the answer: the body is atomic, and no other
+/// token, nor trivia, can match a longer text that begins like the terminal; where the rule
+/// refuses what the beginning began, the position is lexed again without the terminal.
 /// </summary>
 /// <remarks>
 /// A grammar cut in two reads from memory and has no reader or stream form of its own (GRAM4026,
@@ -43,11 +46,19 @@ public sealed partial class BackReferenceTests
 	static readonly HashSet<string> Unbegun = ["BindingReadInItsOwnTurn", "RuleThatBindsCalledInALoop"];
 
 	/// <summary>
-	/// The rows whose terminal begins with something the automaton reads that can be nothing — a
-	/// count by a length, which may be zero turns, right after an optional run — and which the
-	/// split declines as it declines any such beginning, with a word and the parser over characters.
+	/// The rows the split declines with a word, read over characters: a beginning that can be
+	/// nothing (a count by a length right after an optional run), and one the trivia between tokens
+	/// can begin — a title, a fence or an item that may start with a space.
 	/// </summary>
-	static readonly HashSet<string> Fallback = ["CountOfARepeatedBinding"];
+	static readonly Dictionary<string, string> Fallback = new(StringComparer.Ordinal)
+	{
+		["CountOfARepeatedBinding"]        = "can be nothing",
+		["MarkdownFence"]                  = "trivia can begin",
+		["MarkdownFenceOfEitherCharacter"] = "trivia can begin",
+		["RestructuredTextHeading"]        = "trivia can begin",
+		["SurrogatePairs"]                 = "trivia can begin",
+		["AnyItemIsACodeUnit"]             = "trivia can begin",
+	};
 
 	/// <summary>The rows whose scannerless twin is also read through a buffer, to hold all four forms to one answer.</summary>
 	static readonly HashSet<string> BufferedTwins =
@@ -62,14 +73,14 @@ public sealed partial class BackReferenceTests
 		var row  = Named(name);
 		var twin = Twin(row.Grammar, row.Rule);
 
-		if (Unbegun.Contains(name) || Fallback.Contains(name))
+		if (Unbegun.Contains(name) || Fallback.ContainsKey(name))
 		{
 			var told = GramCompiler.Compile(twin, new GramCompilerOptions { Lexical = true, CSharpScanner = RoslynCSharpScanner.Instance }).Diagnostics;
 
 			if (Unbegun.Contains(name))
 				Assert.Contains(told, static one => one.Id == GrammarNormalizer.BindingNotSupported && one.Message.Contains("nothing the lexer can read begins", StringComparison.Ordinal));
 			else
-				Assert.Contains(told, static one => one.Id == GramCompiler.NotCut && one.Message.Contains("can be nothing", StringComparison.Ordinal));
+				Assert.Contains(told, one => one.Id == GramCompiler.NotCut && one.Message.Contains(Fallback[name], StringComparison.Ordinal));
 
 			return;
 		}
@@ -91,19 +102,7 @@ public sealed partial class BackReferenceTests
 					$"{name}, over characters: \"{Escaped(input)}\" is {(over.IsSuccess ? "read" : "refused")}");
 
 			foreach (var (how, answer) in new[] { ("reader over tokens", read), ("engine over tokens", run) })
-			{
-				// The value too, except where the input begins with trivia: a whole parse over
-				// characters keeps the leading trivia in a text value and one over tokens does not,
-				// binding or none (LeadingTriviaInAValue).
-				var valued = !input.StartsWith(' ');
-
-				Assert.True(
-					(over.IsSuccess, valued ? Spelled(over.Value) : null) == (answer.IsSuccess, valued ? Spelled(answer.Value) : null),
-					$"{name}: \"{Escaped(input)}\"\n  over characters: {over}\n  {how}: {answer}");
-
-				if (over.IsSuccess)
-					Assert.Equal(over.Position, answer.Position);
-			}
+				Same(name, input, over, answer, how);
 		}
 
 		if (!BufferedTwins.Contains(name))
@@ -117,9 +116,10 @@ public sealed partial class BackReferenceTests
 
 	/// <summary>
 	/// The automaton reads the beginning of a terminal that binds text together with every other
-	/// token, and longest match decides between them as it decides everything the lexer begins:
-	/// a raw string's quotes beside a plain string's, a heredoc's opening beside the operator it
-	/// starts with, a long bracket beside a bracket.
+	/// token, and longest match decides between the beginnings as it decides every token: a raw
+	/// string's three quotes beside a plain string's, a heredoc's opening beside the operator it
+	/// starts with, a long bracket beside a bracket. Where a beginning won and the rule refused,
+	/// the position is lexed again without the terminal, and the plain string or the bracket stands.
 	/// </summary>
 	[Theory]
 	[InlineData(true)]
@@ -134,10 +134,10 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia  = none
-				Raw     = { $q: '"'{3,} } & { (?!$q & any)* } & $q & ?!'"'
+				Raw     = { $q: '"'{3,} & (?!$q & any)* & $q & ?!'"' }
 				Str     = '"' & [^ '"']* & '"'
-				Heredoc = "<<" & $tag: Name & eol & { (?!($tag & EndLine) & Line)* } & $tag & ?=EndLine
-				Long    = '[' & $eq: '='* & '[' & { (?!(']' & $eq & ']') & any)* } & ']' & $eq & ']'
+				Heredoc = { "<<" & $tag: Name & eol & (?!($tag & EndLine) & Line)* & $tag & ?=EndLine }
+				Long    = { '[' & $eq: '='* & '[' & (?!(']' & $eq & ']') & any)* & ']' & $eq & ']' }
 				Name    = ['a'..'z']+
 				Line    = [^ '\r' | '\n']+ & EndLine | eol
 				EndLine = eol | eof
@@ -154,13 +154,18 @@ public sealed partial class BackReferenceTests
 			parse Items
 			""";
 
-		var (assembly, _) = Lexical(grammar, direct);
+		var (assembly, source) = Lexical(grammar, direct);
+		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
+
+		Assert.Contains("Scan_Unbound(", source, StringComparison.Ordinal);
 
 		string Read(string input)
 		{
-			var (isSuccess, value, error, position) = EmittedCode.Match(assembly, "Grammar", "TryParseItems", input);
+			var answer = EmittedCode.Match(assembly, "Grammar", "TryParseItems", input);
 
-			return isSuccess ? (string)value! : $"refused: {error} at {position}";
+			Same("competitors", input, EmittedCode.Match(twin, "Grammar", "TryParseItems", input), answer, direct ? "reader" : "engine");
+
+			return answer.IsSuccess ? (string)answer.Value! : $"refused: {answer.Error} at {answer.Position}";
 		}
 
 		// Three quotes begin a raw string, two a plain one, each read to its own end.
@@ -176,10 +181,11 @@ public sealed partial class BackReferenceTests
 		// A long bracket begins with two brackets and a bracket with one.
 		Assert.Equal("long:[==[a]]b]=]c]==]|index:x|long:[[]]", Read("[==[a]]b]=]c]==] [x] [[]]"));
 
-		// Where the beginning stands and the rule refuses, no token stands there: the beginning
-		// decided, as it does for any terminal the lexer begins. Four quotes are a raw string's
-		// opening to the automaton, and two empty strings only over characters.
-		Assert.StartsWith("refused", Read("\"\"\"\""), StringComparison.Ordinal);
+		// Four quotes begin a raw string to the automaton and the rule refuses them; read again
+		// without it, they are two empty strings, as over characters. An unclosed heredoc is the
+		// operator and the names, and an unclosed long bracket a bracket and then nothing.
+		Assert.Equal("str:\"\"|str:\"\"", Read("\"\"\"\""));
+		Assert.Equal("shift:a,end|name:body", Read("a <<end\nbody"));
 		Assert.StartsWith("refused", Read("[==[a]=]"), StringComparison.Ordinal);
 	}
 
@@ -201,7 +207,7 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia = none
-				Quoted = $q: '"'+ & ['a'..'z']* & $q
+				Quoted = { $q: '"'+ & ['a'..'z']* & $q }
 			}
 			Item  : @string   = q: Lexical.Quoted => @(q)
 			Items : @string[] = items: Item* => @(items)
@@ -229,13 +235,41 @@ public sealed partial class BackReferenceTests
 	}
 
 	/// <summary>
-	/// A beginning of one fixed spelling that a longer token also starts with: the automaton stops
-	/// on the longer token, and the terminal is measured there too, from the token's start.
+	/// A token that can match a longer text than the beginning begins is a competitor the rule's
+	/// reading could be cut below, and the split declines, naming it and the fix.
+	/// </summary>
+	[Fact]
+	public void A_longer_token_that_starts_with_the_beginning_declines_the_split()
+	{
+		const string grammar =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Twice = { $q: "ab" & $q }
+			}
+			Item : @string = t: Lexical.Twice => @("twice:" + t) | "abc" => @("abc") | "abab" & 'x' => @("ababx")
+			Items : @string = items: Item* => @(string.Join("|", items))
+			parse Items
+			""";
+
+		var why = Declined(grammar);
+
+		Assert.Contains("'Twice' binds text and '\"abc\"' can match a longer text that begins like 'Twice'", why, StringComparison.Ordinal);
+		Assert.Contains("put both in one terminal as alternatives; this part is read over characters", why, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A competitor that matches the beginning's string, as long: the kind is both, and the rule
+	/// decides. Longer than the string, the token is the terminal; refused, the other token stands,
+	/// found by reading the position again; as long, the syntax asks for the one it wants, here the
+	/// mark declared first.
 	/// </summary>
 	[Theory]
 	[InlineData(true)]
 	[InlineData(false)]
-	public void A_longer_token_that_starts_with_the_beginning_is_measured_from_the_start(bool direct)
+	public void A_token_as_long_as_the_beginning_shares_its_kind_and_the_rule_decides(bool direct)
 	{
 		BackReferenceEmission.RequireBoth();
 
@@ -245,31 +279,269 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia = none
-				Twice = $q: "ab" & $q
+				Mark = "go"
+				T    = { $q: ['g'..'o']+ & ('-' & $q | ?!'-') }
 			}
-			Item : @string = "abab" & 'x' => @("ababx") | t: Lexical.Twice => @("twice:" + t) | "abc" => @("abc")
+			Item : @string = m: Lexical.Mark => @("kw") | t: Lexical.T => @("t:" + t) | '-' => @("-") | 'x' => @("x")
+			Items : @string = items: Item* => @(string.Join("|", items))
+			parse Items
+			""";
+
+		var (assembly, _) = Lexical(grammar, direct);
+		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
+
+		string Read(string input, bool held)
+		{
+			var answer = EmittedCode.Match(assembly, "Grammar", "TryParseItems", input);
+
+			if (held)
+				Same("tie", input, EmittedCode.Match(twin, "Grammar", "TryParseItems", input), answer, direct ? "reader" : "engine");
+
+			return answer.IsSuccess ? (string)answer.Value! : "refused";
+		}
+
+		// Longer than the shared string: the terminal.
+		Assert.Equal("t:go-go", Read("go-go", held: false));
+		Assert.Equal("t:gog", Read("gog", held: false));
+
+		// Refused past it: the mark, and what follows.
+		Assert.Equal("kw|-|x", Read("go-x", held: true));
+
+		// As long: both, and the mark is asked for first.
+		Assert.Equal("kw", Read("go", held: true));
+		Assert.Equal("kw|x|kw", Read("go x go", held: true));
+
+		// Over characters the choice is ordered and `go-go` is the mark, a dash and the mark, and
+		// `gog` the mark and a terminal of one letter: the one difference a regular token in the
+		// terminal's place would make as well, longest match against the first alternative.
+		Assert.Equal("kw|-|kw", (string)EmittedCode.Match(twin, "Grammar", "TryParseItems", "go-go").Value!);
+		Assert.Equal("kw|t:g", (string)EmittedCode.Match(twin, "Grammar", "TryParseItems", "gog").Value!);
+	}
+
+	/// <summary>
+	/// Two terminals that bind text and begin each other's beginnings: whichever won, the other
+	/// could read longer, and the split declines. Beginnings neither of which begins the other's
+	/// are split together.
+	/// </summary>
+	[Fact]
+	public void Two_terminals_that_bind_text_must_begin_apart()
+	{
+		const string comparable =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				A = { $q: 'a' & $q & "aabbb" }
+				B = { $r: "aa" & $r }
+			}
+			Item : @string = a: Lexical.A => @("A:" + a) | b: Lexical.B => @("B:" + b)
+			Items : @string = items: Item* => @(string.Join("|", items))
+			parse Items
+			""";
+
+		Assert.Contains("'A' and 'B' both bind text and one's beginning begins the other's; this part is read over characters", Declined(comparable), StringComparison.Ordinal);
+
+		// Read over characters, the grammar is the one it would have been: `aaaabbb` is `A` alone.
+		Assert.Equal("A:aaaabbb", (string)EmittedCode.Match(Compiled(comparable, CarrierKind.Auto, direct: true), "Grammar", "TryParseItems", "aaaabbb").Value!);
+
+		const string apart =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Raw  = { $q: '"'{3,} & (?!$q & any)* & $q }
+				Long = { '[' & $eq: '='* & '[' & (?!(']' & $eq & ']') & any)* & ']' & $eq & ']' }
+			}
+			Item : @string = r: Lexical.Raw => @("raw:" + r) | l: Lexical.Long => @("long:" + l)
+			Items : @string = items: Item* => @(string.Join("|", items))
+			parse Items
+			""";
+
+		var (assembly, _) = Lexical(apart, direct: true);
+
+		Assert.Equal("raw:\"\"\"a\"\"\"|long:[=[b]=]", EmittedCode.Match(assembly, "Grammar", "TryParseItems", "\"\"\"a\"\"\" [=[b]=]").Value);
+	}
+
+	/// <summary>
+	/// A terminal that binds text is read as one token only where its body is atomic: over
+	/// characters the same rule could otherwise give a shorter reading back and read on another
+	/// way, where the token's length is settled. Not atomic, the split declines and says so;
+	/// atomic, both forms agree, the second alternative never tried after the first read.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_terminal_that_binds_text_is_one_token_only_where_it_is_atomic(bool direct)
+	{
+		BackReferenceEmission.RequireBoth();
+
+		const string open =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				T = $q: ('a' & 'b')+ & ($q & ':')* & $q | 'a'+ & ['a'..'b']*
+			}
+			Item : @string = t: Lexical.T => @("t:" + t)
+			Items : @string = items: Item* => @(string.Join("|", items))
+			parse Items
+			""";
+
+		Assert.Contains("'T' binds text, so write `{ }` around its body to read it as one token; this part is read over characters", Declined(open), StringComparison.Ordinal);
+
+		const string atomic =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				T = { $q: ('a' & 'b')+ & ($q & ':')* & $q | 'a'+ & ['a'..'b']* }
+			}
+			Item : @string = t: Lexical.T => @("t:" + t)
+			Items : @string = items: Item* => @(string.Join("|", items))
+			parse Items
+			""";
+
+		var (assembly, _) = Lexical(atomic, direct);
+		var twin = Compiled(atomic, CarrierKind.Auto, direct: true);
+
+		foreach (var input in new[] { "ababb", "abab", "abab:abab", "aab", "ab ab" })
+			Same("atomic", input, EmittedCode.Match(twin, "Grammar", "TryParseItems", input), EmittedCode.Match(assembly, "Grammar", "TryParseItems", input), direct ? "reader" : "engine");
+	}
+
+	/// <summary>
+	/// A terminal whose beginning spells other tokens — an identifier and a mark — is begun where
+	/// they would stand, and where its rule refuses the position is read again without it: the
+	/// identifier and the mark, as over characters. Whole, from a position, and inside a window.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void Where_the_rule_refuses_the_position_is_read_again_without_the_terminal(bool direct)
+	{
+		BackReferenceEmission.RequireBoth();
+
+		const string grammar =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				T  = { $q: ['a'..'z']+ & ':' & $q }
+				Id = ['a'..'z']+
+			}
+			Item : @string = t: Lexical.T => @("t:" + t) | i: Lexical.Id => @("id:" + i) | ':' => @(":")
+			Root : @string = items: Item* => @(string.Join("|", items))
+			parse Root
+			""";
+
+		var (assembly, _) = Lexical(grammar, direct);
+		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
+		var how  = direct ? "reader" : "engine";
+
+		foreach (var input in new[] { "ab:ab", "ab:ac", "ab:", "a:b", ":ab", "ab:ab ab:", "ab: ab:ab" })
+		{
+			Same("relex", input, EmittedCode.Match(twin, "Grammar", "TryParseRoot", input), EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input), how);
+
+			// Inside a window, at the start of a longer text and after a copy of itself: no end is
+			// demanded, so a reading stops where the items stop, and both forms stop alike. (A
+			// reading from a position alone is cut into tokens from the text's start over kinds,
+			// binding or none: <see cref="AReadingFromAPositionOverKinds"/>.)
+			var doubled = input + input;
+
+			Assert.Equal(EmittedCode.Answered(twin, "Grammar", "TryParseRoot", doubled, input.Length, input.Length), EmittedCode.Answered(assembly, "Grammar", "TryParseRoot", doubled, input.Length, input.Length));
+			Assert.Equal(EmittedCode.Answered(twin, "Grammar", "TryParseRoot", doubled, 0, input.Length), EmittedCode.Answered(assembly, "Grammar", "TryParseRoot", doubled, 0, input.Length));
+		}
+
+		Assert.Equal("id:ab|:|id:ac", EmittedCode.Match(assembly, "Grammar", "TryParseRoot", "ab:ac").Value);
+	}
+
+	/// <summary>
+	/// The forms the section is written for, each beside the token its beginning starts like — a
+	/// long bracket beside an index, a heredoc beside a shift, a Rust and a C++ raw string beside
+	/// names — are all split, and an unclosed one is read again as those tokens, as over characters.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void The_forms_of_the_section_are_split_beside_the_tokens_they_start_like(bool direct)
+	{
+		BackReferenceEmission.RequireBoth();
+
+		const string grammar =
+			"""
+			trivia = { (' ' | '\n')* }
+			namespace Lexical
+			{
+				trivia  = none
+				Long    = { '[' & $eq: '='* & '[' & (?!(']' & $eq & ']') & any)* & ']' & $eq & ']' }
+				Heredoc = { "<<" & $tag: Name & eol & (?!($tag & EndLine) & Line)* & $tag & ?=EndLine }
+				Rust    = { 'r' & $h: '#'* & '"' & (?!('"' & $h) & any)* & '"' & $h }
+				Cpp     = { 'R' & '"' & $d: [^ '(' | ')' | ' ' | '\\' | '"' | '\n']{0,16} & '(' & (?!(')' & $d & '"') & any)* & ')' & $d & '"' }
+				Name    = ['a'..'z' | 'A'..'Z' | '_']+
+				Line    = [^ '\r' | '\n']+ & EndLine | eol
+				EndLine = eol | eof
+			}
+			Item : @string
+				= l: Lexical.Long                          => @("long:" + l)
+				| h: Lexical.Heredoc                       => @("doc:" + h)
+				| r: Lexical.Rust                          => @("rust:" + r)
+				| c: Lexical.Cpp                           => @("cpp:" + c)
+				| '[' & i: Lexical.Name & ']'              => @("index:" + i)
+				| a: Lexical.Name & "<<" & b: Lexical.Name => @("shift:" + a + "," + b)
+				| n: Lexical.Name                          => @("name:" + n)
+				| '#'                                      => @("#")
+				| '"'                                      => @("quote")
 			Items : @string = items: Item* => @(string.Join("|", items))
 			parse Items
 			""";
 
 		var (assembly, source) = Lexical(grammar, direct);
+		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
 
-		Assert.Contains("Measure_Lexical_Twice_DotGram(text, p, ref failure", source, StringComparison.Ordinal);
+		Assert.Contains("Scan_Unbound(", source, StringComparison.Ordinal);
 
-		string Read(string input)
+		foreach (var input in new[]
 		{
-			var (isSuccess, value, error, position) = EmittedCode.Match(assembly, "Grammar", "TryParseItems", input);
+			"[==[a]]b]=]c]==] [x] [[]]", "[==[abc", "[=[a]==]",
+			"<<eof\nbody\neof\nx", "a <<b c", "a <<end\nbody", "<<-end\nx",
+			"r\"a\" r#\"a\"b\"# r", "r#\"abc", "r# r",
+			"R\"d(a)b)d\" R\"(x)\"", "R\"d(abc", "R\"",
+			"[[x]] <<t\nx\nt\nr\"\" R\"()\"",
+		})
+			Same("forms", input, EmittedCode.Match(twin, "Grammar", "TryParseItems", input), EmittedCode.Match(assembly, "Grammar", "TryParseItems", input), direct ? "reader" : "engine");
 
-			return isSuccess ? (string)value! : $"refused: {error} at {position}";
-		}
+		// An unclosed Rust raw string is a name, a mark, a quote and names: the position was read
+		// again without the terminal, for both.
+		Assert.Equal("index:x|name:r|#|quote|name:abc|quote|name:x", EmittedCode.Match(assembly, "Grammar", "TryParseItems", "[x] r#\"abc\" x").Value);
+	}
 
-		Assert.Equal("twice:abab|abc", Read("abab abc"));
-		Assert.Equal("abc|twice:abab", Read("abc abab"));
+	/// <summary>
+	/// Trivia is skipped before every token, so it may neither begin where a terminal that binds
+	/// text begins nor read on past its beginning: a comment to the end of the line beside a form
+	/// that opens with the same character declines the split.
+	/// </summary>
+	[Fact]
+	public void Trivia_that_can_begin_where_the_terminal_begins_declines_the_split()
+	{
+		const string grammar =
+			"""
+			trivia = { (' ' | '#' & [^ '\n']*)* }
+			namespace Lexical
+			{
+				trivia = none
+				Hashed = { '#' & $q: '"'+ & (?!$q & any)* & $q & '#' }
+				Name   = ['a'..'z']+
+			}
+			Item : @string = h: Lexical.Hashed => @("h:" + h) | n: Lexical.Name => @("n:" + n)
+			Items : @string = items: Item* => @(string.Join("|", items))
+			parse Items
+			""";
 
-		// `abab` is a token of its own and the terminal, both as long: the kind is both, and
-		// the syntax reads whichever it asked for.
-		Assert.Equal("ababx", Read("ababx"));
-		Assert.Equal("twice:abab", Read("abab"));
+		Assert.Contains("'Hashed' binds text and trivia can begin where 'Hashed' begins", Declined(grammar), StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -290,7 +562,7 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia  = none
-				Heredoc : @string = "<<" & $tag: Name & eol & body: { (?!($tag & EndLine) & Line)* } & $tag & ?=EndLine => @(body)
+				Heredoc : @string = { "<<" & $tag: Name & eol & body: (?!($tag & EndLine) & Line)* & $tag & ?=EndLine } => @(body)
 				Name    = ['a'..'z']+
 				Line    = [^ '\r' | '\n']+ & EndLine | eol
 				EndLine = eol | eof
@@ -310,15 +582,14 @@ public sealed partial class BackReferenceTests
 	/// <summary>
 	/// A repetition over tokens that recovers resynchronizes on a kind, and a terminal that binds
 	/// is one of the kinds it reads: a broken element is skipped to the next separator, and the
-	/// elements around it are read. The engine alone: over kinds a recovery is not read by
-	/// methods (GRAM5005), binding or none.
+	/// elements around it are read — also where the terminal's beginning won and its rule refused,
+	/// the position then read again as the identifier and the mark. The engine alone: over kinds
+	/// a recovery is not read by methods (GRAM5005), binding or none.
 	/// </summary>
 	[Fact]
 	public void A_recovering_repetition_over_tokens_reads_a_terminal_that_binds()
 	{
 		BackReferenceEmission.RequireBoth();
-
-		const bool direct = false;
 
 		const string grammar =
 			"""
@@ -326,18 +597,22 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia = none
-				Quoted = $q: '"'+ & ['a'..'z']* & $q
-				Name   = ['a'..'z']+
+				T  = { $q: ['a'..'z']+ & ':' & $q }
+				Id = ['a'..'z']+
 			}
-			Item  : @string = n: Lexical.Name & '=' & q: Lexical.Quoted & ';' => @(n + "=" + q)
+			Item  : @string = t: Lexical.T & ';' => @(t) | i: Lexical.Id & ';' => @("id:" + i) | ':' & ';' => @(":")
 			Items : @string = items: Item* recover ';' & eof => @(string.Join(",", items))
 			parse Items
 			""";
 
-		var (assembly, _) = Lexical(grammar, direct);
+		var (assembly, _) = Lexical(grammar, direct: false);
+		var twin = Compiled(grammar, CarrierKind.Auto, direct: false);
 
-		Assert.Equal("a=\"x\",b=\"\"y\"\"", EmittedCode.Match(assembly, "Grammar", "TryParseItems", "a = \"x\"; b = \"\"y\"\";").Value);
-		Assert.Equal("a=\"x\",c=\"\"\"\"\"\"", EmittedCode.Match(assembly, "Grammar", "TryParseItems", "a = \"x\"; b = = \"y\"; c = \"\"\"\"\"\";").Value);
+		foreach (var input in new[] { "ab:ab; cd:cd;", "ab:ab; cd:; ef:ef;", "ab:; x;", "ab:ab; cd : cd; ef:ef;" })
+			Same("recover", input, EmittedCode.Match(twin, "Grammar", "TryParseItems", input), EmittedCode.Match(assembly, "Grammar", "TryParseItems", input), "engine");
+
+		Assert.Equal("ab:ab,ef:ef", EmittedCode.Match(assembly, "Grammar", "TryParseItems", "ab:ab; cd:; ef:ef;").Value);
+		Assert.Equal("ab:ab,id:cd,ef:ef", EmittedCode.Match(assembly, "Grammar", "TryParseItems", "ab:ab; cd; ef:ef;").Value);
 	}
 
 	/// <summary>
@@ -357,9 +632,9 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia = none
-				Str    = '"' & Body & '"'
+				Str    = { '"' & Body & '"' }
 				Body   = $q: ['a'..'z']+ & '-' & $q
-				Pair   = '<' & $a: Name & '>' & $a | '{' & $b: Name & '}' & $b
+				Pair   = { '<' & $a: Name & '>' & $a | '{' & $b: Name & '}' & $b }
 				Name   = ['a'..'z']+
 			}
 			Item  : @string   = s: Lexical.Str => @(s) | p: Lexical.Pair => @(p)
@@ -391,7 +666,7 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia = none
-				Looked = ?!'x' & $q: ['a'..'z']+ & '-' & $q
+				Looked = { ?!'x' & $q: ['a'..'z']+ & '-' & $q }
 				Word   = ['a'..'z']+
 			}
 			R = Lexical.Looked & Lexical.Word
@@ -414,7 +689,7 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia = none
-				Outer  = Inner & '!'
+				Outer  = { Inner & '!' }
 				Inner  = ?='a' & $q: ['a'..'z']+ & '-' & $q
 			}
 			R = Lexical.Outer
@@ -463,7 +738,7 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia = none
-				Quoted = $q: '"'+ & ['a'..'z']* & $q
+				Quoted = { $q: '"'+ & ['a'..'z']* & $q }
 			}
 			R = Lexical.Quoted
 			parse R
@@ -492,7 +767,7 @@ public sealed partial class BackReferenceTests
 			namespace Lexical
 			{
 				trivia = none
-				Quoted = $q: '"'+ & ['a'..'z']* & $q
+				Quoted = { $q: '"'+ & ['a'..'z']* & $q }
 				Word   = ['a'..'z']+
 			}
 			R = Lexical.Quoted & Lexical.Word
@@ -535,15 +810,117 @@ public sealed partial class BackReferenceTests
 		Assert.Equal("ab", read.Value);
 	}
 
+	/// <summary>
+	/// Why the readings from a position above are taken inside a window: over kinds a reading from
+	/// a position alone cuts the whole text into tokens first, and a position inside a token is no
+	/// token's start — a name that spans it is not read from its middle, as it is over characters,
+	/// and the reading is refused. The same with no binding anywhere, so it is not the bindings' to
+	/// answer.
+	/// </summary>
+	[Fact]
+	public void AReadingFromAPositionOverKinds()
+	{
+		const string grammar =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Word = ['a'..'z']+
+			}
+			Item : @string = w: Lexical.Word => @(w)
+			Root : @string = items: Item* => @(string.Join("|", items))
+			parse Root
+			""";
+
+		var over = EmittedCode.Answered(Compiled(grammar, CarrierKind.Auto, direct: true), "Grammar", "TryParseRoot", "abab", 2);
+		var read = EmittedCode.Answered(Lexical(grammar, direct: true).Assembly, "Grammar", "TryParseRoot", "abab", 2);
+
+		Assert.Equal((true, "ab"), (over.Read, (string?)over.Value));
+		Assert.Equal((false, null), (read.Read, (string?)read.Value));
+	}
+
+	/// <summary>
+	/// A diamond of rules that bind — each a choice of two that call the next — is cut in time
+	/// linear in its depth: the beginning of a rule is remembered, and a choice of two alternatives
+	/// that begin as one rule does begins as that rule does once. Set the environment variable to
+	/// have the times written beside the test's temporary files.
+	/// </summary>
+	[Fact]
+	public void A_diamond_of_rules_that_bind_is_cut_in_bounded_time()
+	{
+		static string Diamond(int depth)
+		{
+			var rules = new System.Text.StringBuilder();
+
+			for (var k = 0; k < depth; k++)
+			{
+				rules.Append(k == 0 ? $"\tR{k} = {{ $q{k}: (A{k + 1} | B{k + 1}) & $q{k} }}\n" : $"\tR{k} = $q{k}: (A{k + 1} | B{k + 1}) & $q{k}\n");
+				rules.Append($"\tA{k + 1} = R{k + 1} & 'a'\n");
+				rules.Append($"\tB{k + 1} = R{k + 1} & 'b'\n");
+			}
+
+			rules.Append($"\tR{depth} = 'x' | 'y'\n");
+
+			return "trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n" + rules +
+				"}\nItem : @string = t: Lexical.R0 => @(t)\nRoot : @string = items: Item* => @(string.Join(\"|\", items))\nparse Root\n";
+		}
+
+		var told = new System.Text.StringBuilder();
+
+		foreach (var depth in new[] { 18, 24 })
+		{
+			var clock = System.Diagnostics.Stopwatch.StartNew();
+			var cut   = GramCompiler.Compile(Diamond(depth), new GramCompilerOptions { Lexical = true, CSharpScanner = RoslynCSharpScanner.Instance });
+			var took  = clock.ElapsedMilliseconds;
+
+			Assert.Contains("Tokenize_DotGram(", cut.Sources[0].Text, StringComparison.Ordinal);
+			Assert.True(depth > 18 || took < 1000, $"a diamond of {depth} took {took} ms to cut");
+
+			told.AppendLine($"diamond {depth}: {took} ms");
+		}
+
+		if (Environment.GetEnvironmentVariable("DOTGRAM_LEXTIMING") is { } where)
+			System.IO.File.WriteAllText(where, told.ToString());
+	}
+
 	// ── Helpers ─────────────────────────────────────────────────────────────────
 
-	/// <summary>A row's grammar as the one terminal of a lexical namespace, published through a spaced root.</summary>
+	/// <summary>
+	/// A row's grammar as the one terminal of a lexical namespace, atomic as a token has to be,
+	/// published through a spaced root.
+	/// </summary>
 	static string Twin(string grammar, string rule)
 	{
 		return
 			"trivia = { ' '* }\n" +
-			"namespace Lexical\n{\n\ttrivia = none\n" + grammar + "\n}\n" +
-			$"Root = Lexical.{rule}\nparse Root\n";
+			"namespace Lexical\n{\n\ttrivia = none\n" + grammar + $"\n\tToken = {{ {rule} }}\n}}\n" +
+			"Root = Lexical.Token\nparse Root\n";
+	}
+
+	/// <summary>
+	/// Two readings of one input said the same: the answer and the value, and where it was read,
+	/// the position. The words of a refusal name kinds over tokens and characters over characters,
+	/// so where both refused, a difference in them or in the place is written out, not asserted;
+	/// the value is compared only where the input begins with no trivia (<see cref="LeadingTriviaInAValue"/>).
+	/// </summary>
+	static void Same(
+		string name,
+		string input,
+		(bool IsSuccess, object? Value, string? Error, long Position) over,
+		(bool IsSuccess, object? Value, string? Error, long Position) answer,
+		string how)
+	{
+		var valued = !input.StartsWith(' ');
+
+		Assert.True(
+			(over.IsSuccess, valued ? Spelled(over.Value) : null) == (answer.IsSuccess, valued ? Spelled(answer.Value) : null),
+			$"{name}: \"{Escaped(input)}\"\n  over characters: {over}\n  {how}: {answer}");
+
+		if (over.IsSuccess)
+			Assert.Equal(over.Position, answer.Position);
+		else if (over.Position != answer.Position || over.Error != answer.Error)
+			TestContext.Current.TestOutputHelper?.WriteLine($"{name}: \"{Escaped(input)}\" refused apart\n  over characters: {over}\n  {how}: {answer}");
 	}
 
 	/// <summary>The grammar cut in two, read by the reader or the engine over the kinds; and its source.</summary>
@@ -564,6 +941,20 @@ public sealed partial class BackReferenceTests
 		Assert.Contains("Tokenize_DotGram(", source, StringComparison.Ordinal);
 
 		return (EmittedCode.Compile(source, sourceParts: result.Sources.Skip(1).Select(static one => one.Text)), source);
+	}
+
+	/// <summary>Why a grammar asked to be cut in two was read over characters instead, as GRAM5004 says it.</summary>
+	static string Declined(string grammar)
+	{
+		var told = GramCompiler.Compile(grammar, new GramCompilerOptions { Lexical = true, CSharpScanner = RoslynCSharpScanner.Instance }).Diagnostics;
+
+		Assert.DoesNotContain(told, static one => one.Severity == GramSeverity.Error);
+
+		var declined = told.FirstOrDefault(static one => one.Id == GramCompiler.NotCut);
+
+		Assert.True(declined is not null, "The grammar was cut in two.");
+
+		return declined!.Message;
 	}
 
 	/// <summary>The binding refusals of a grammar asked to be cut in two, in the order told.</summary>

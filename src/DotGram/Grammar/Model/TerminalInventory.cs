@@ -176,6 +176,23 @@ public sealed class TerminalInventory
 	/// </remarks>
 	public LexicalAutomaton? Machine { get; private init; }
 
+	/// <summary>
+	/// The same machine without the terminals that bind text, for the position where one of
+	/// them was begun and its rule refused: read again as if the terminal were not there, which
+	/// is the answer an ordinary token in its place would have given. Null where no terminal
+	/// binds text.
+	/// </summary>
+	/// <remarks>
+	/// Its accepting states are numbered by <see cref="MaskedKinds"/> into the kinds of
+	/// <see cref="Machine"/>: what it accepts, the first machine accepts too, with the bound
+	/// terminal beside it at most — and a string the two machines accept alike is one kind.
+	/// Where the first machine never accepted such a set alone, the set is a kind appended for it.
+	/// </remarks>
+	public LexicalAutomaton? Masked { get; private init; }
+
+	/// <summary>By accepting set of <see cref="Masked"/>, the kind it is; empty where there is no such machine.</summary>
+	public IReadOnlyList<int> MaskedKinds { get; private init; } = [];
+
 	/// <summary>The kinds whose set holds this pattern — what a syntactic position tests.</summary>
 	public IReadOnlyList<Group> KindsOf(Pattern pattern)
 	{
@@ -284,6 +301,15 @@ public sealed class TerminalInventory
 		/// the terminal itself, and costs the beginning's few characters read twice.
 		/// </remarks>
 		public bool FromStart { get; init; }
+
+		/// <summary>
+		/// The kinds that hold this terminal's beginning together with another token's string
+		/// as long — empty but for a terminal that binds text, whose own rule then says which
+		/// of the two stands: longer than the string, the terminal; refused, the other token,
+		/// found by reading the position again without the terminal; as long, both, and the
+		/// syntax asks for the one it wants.
+		/// </summary>
+		public IReadOnlyList<int> Shared { get; init; } = [];
 
 		/// <summary>The beginning, where it is one fixed spelling; what a longer token is asked to start with.</summary>
 		public string? Beginning { get; init; }
@@ -1120,6 +1146,17 @@ public sealed class TerminalInventory
 
 				var holding = kinds.Where(kind => kind.Matched.Contains(pattern)).ToList();
 
+				// A terminal that binds text is held to more than a beginning of its own, and to
+				// less: its beginning may be another token's string, as long, since its own rule
+				// then says which of the two stands.
+				if (fromStart)
+				{
+					if (Bound(pattern, prefix, tail, holding, kinds, machine, patterns) is { } begun)
+						continued.Add(begun);
+
+					continue;
+				}
+
 				if (holding.Count != 1 || holding[0].Matched.Count != 1)
 				{
 					Refuse($"what begins {pattern.Rule.Name} is also " +
@@ -1198,6 +1235,38 @@ public sealed class TerminalInventory
 				continued[i] = continued[i] with { Extended = unions };
 			}
 
+			// And the machine without the terminals that bind text, for the position where one
+			// was begun and its rule refused. Its sets are the first machine's kinds, less the
+			// bound terminal; a set the first machine never accepted on its own — the string was
+			// always the terminal's beginning as well — is a kind appended here.
+			LexicalAutomaton? masked      = null;
+			var                maskedKinds = new List<int>();
+
+			if (continued.Any(static one => one.FromStart))
+			{
+				var hidden = new HashSet<int>(continued.Where(static one => one.FromStart).Select(static one => one.Pattern.Index));
+
+				masked = LexicalAutomaton.Of(
+					graph,
+					[.. shapes.Select((shape, index) => hidden.Contains(index) ? Nothing : shape!)],
+					_reasons);
+
+				if (masked is null)
+					return new TerminalInventory(true, patterns, [], [], _reasons);
+
+				foreach (var set in masked.Sets)
+				{
+					var members = set.Select(one => patterns[one]).ToList();
+					var same    = kinds.FirstOrDefault(kind =>
+						kind.Matched.Count == members.Count && members.All(kind.Matched.Contains));
+
+					if (same is null)
+						kinds.Add(same = new Kind(kinds.Count + 1, members));
+
+					maskedKinds.Add(same.Number);
+				}
+			}
+
 			var (woven, wovenWith, wovenOf) = Unworded(kinds);
 			var asked = Asked(machine, kinds, woven, wovenWith, wovenOf);
 
@@ -1221,6 +1290,8 @@ public sealed class TerminalInventory
 			return new TerminalInventory(true, patterns, kinds, named, _reasons)
 			{
 				Machine        = machine,
+				Masked         = masked,
+				MaskedKinds    = maskedKinds,
 				WordKinds      = wordly,
 				Continued      = continued,
 				Unworded       = unworded,
@@ -1748,11 +1819,16 @@ public sealed class TerminalInventory
 					{
 						if (Beginning(alternative, inside) is var one && one is Node.Empty)
 							return Node.Empty.Instance;
-						else
+
+						// Two alternatives that begin as one rule does begin alike, and the
+						// beginning is that rule's once: a diamond of such rules, each a choice of
+						// two that call the next, would otherwise unfold into a tree exponential in
+						// its depth for every machine built over it.
+						if (!begun.Any(known => ReferenceEquals(known, one)))
 							begun.Add(one);
 					}
 
-					return new Node.Choice(begun);
+					return begun.Count == 1 ? begun[0] : new Node.Choice(begun);
 				}
 
 				case Node.Repeat(var turns, var min, _):
@@ -1766,12 +1842,20 @@ public sealed class TerminalInventory
 
 				case Node.Call(var called, _):
 				{
+					if (_beginnings.TryGetValue(called, out var known))
+						return known;
+
 					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
 						return Node.Empty.Instance;
 
 					var begun = Beginning(body, inside);
 
 					inside.Remove(called);
+
+					// Remembered even where a rule reached again inside it was cut short to
+					// nothing: a shorter beginning is a safe one, which only begins the terminal
+					// at more places than it stands.
+					_beginnings[called] = begun;
 
 					return begun;
 				}
@@ -1782,9 +1866,257 @@ public sealed class TerminalInventory
 		}
 
 		/// <summary>Whether the automaton can read a node on its own.</summary>
+		/// <remarks>
+		/// Remembered by node, as <see cref="Beginning"/> is by rule: a beginning is asked of every
+		/// operand on every path, and a diamond of rules — each a choice of two that call the same
+		/// next one — has paths exponential in its depth, where the nodes and rules are linear.
+		/// </remarks>
 		bool Regular(Node node)
 		{
-			return LexicalAutomaton.Of(graph, [node], []) is not null;
+			if (!_regular.TryGetValue(node, out var regular))
+				_regular[node] = regular = LexicalAutomaton.Of(graph, [node], []) is not null;
+
+			return regular;
+		}
+
+		readonly Dictionary<Node, bool>       _regular    = new(NodeIdentity.Instance);
+		readonly Dictionary<RuleSymbol, Node> _beginnings = [];
+
+		/// <summary>A node that reads nothing: what a terminal held back from a machine is replaced by.</summary>
+		static readonly Node Nothing = new Node.Element(false, [], [], []);
+
+		/// <summary>Any text at all, <c>any*</c>: what a shape no automaton reads is widened to.</summary>
+		static readonly Node Anything = new Node.Repeat(new Node.Element(true, [], [], []), 0, null);
+
+		/// <summary>
+		/// A terminal that binds text, told whether the lexer may begin it, and how; null where
+		/// it may not, the reason refused.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// The lexer begins such a terminal on its beginning and lets its rule read the whole
+		/// token from the start, so the token is that rule's first reading and not a longest
+		/// match. Over characters the same rule gives the same reading only where nothing can
+		/// take it back: the body is atomic, and no other token — nor the trivia skipped before
+		/// every token — matches a longer text that one of the beginning's strings begins. Both
+		/// are asked here, the second of the machine that reads every pattern together: from a
+		/// state where the beginning has accepted, no further state may accept another kind.
+		/// What the lexer begins and measures elsewhere is asked both ways, since how far its
+		/// rule reads is not in the machine: its beginning and this one may not begin each other.
+		/// The trivia is asked both ways too, as what the machine reads of it, widened where a
+		/// part of it is no pattern.
+		/// </para>
+		/// <para>
+		/// A string the beginning shares with another token, as long, is allowed: the rule then
+		/// decides. Longer than the string, the token is the terminal; refused, the position is
+		/// read again without the terminal and the other token stands; as long, the kind is both,
+		/// and the syntax asks for the one it wants. So the terminal has a kind of its own even
+		/// where the machine never accepted it alone, appended here.
+		/// </para>
+		/// </remarks>
+		Continuation? Bound(
+			Pattern.Class pattern,
+			Node prefix,
+			Node tail,
+			List<Kind> holding,
+			List<Kind> kinds,
+			LexicalAutomaton machine,
+			List<Pattern> patterns)
+		{
+			var name = pattern.Rule.Name;
+
+			if (!graph.Bodies.TryGetValue(pattern.Rule, out var body) || !IsAtomic(body))
+			{
+				Refuse($"'{name}' binds text, so write `{{ }}` around its body to read it as one token; this part is read over characters");
+
+				return null;
+			}
+
+			var mine = new HashSet<int>(holding.Select(static kind => kind.Number));
+
+			// Past the beginning, nothing else may accept: what does could be longer than the
+			// rule's reading of the terminal.
+			foreach (var kind in holding)
+				foreach (var further in Beyond(machine, kind.Number - 1))
+					if (!mine.Contains(further))
+					{
+						foreach (var other in kinds[further - 1].Matched)
+							if (other != pattern)
+								Refuse(Longer(pattern, other));
+
+						return null;
+					}
+
+			// And the beginning may not go on past another terminal the lexer begins and
+			// measures elsewhere, since how far that one reads is not in the machine.
+			foreach (var other in patterns.OfType<Pattern.Class>())
+			{
+				if (other == pattern || Continuation(other.Rule) is null)
+					continue;
+
+				foreach (var kind in kinds.Where(kind => kind.Matched.Contains(other)))
+					if (Beyond(machine, kind.Number - 1).Any(mine.Contains))
+					{
+						Refuse(Longer(pattern, other));
+
+						return null;
+					}
+			}
+
+			// The trivia is skipped before the automaton runs, so it may neither begin where the
+			// terminal begins nor read on past its beginning; asked of what a machine can read of
+			// it, widened where a part of it is no pattern.
+			foreach (var seam in graph.Trivia.Values.OfType<Node.Call>().Select(static call => call.Rule).Distinct())
+			{
+				if (!graph.Bodies.TryGetValue(seam, out var skipped))
+					continue;
+
+				var together = LexicalAutomaton.Of(graph, [prefix, Over(skipped, [])], []);
+
+				if (together is null || Comparable(together, 0, 1))
+				{
+					Refuse($"'{name}' binds text and trivia can begin where '{name}' begins: keep the trivia from starting as '{name}' does, or from reading on past its beginning; this part is read over characters");
+
+					return null;
+				}
+			}
+
+			var alone  = holding.FirstOrDefault(static kind => kind.Matched.Count == 1);
+			var shared = holding.Where(static kind => kind.Matched.Count > 1).Select(static kind => kind.Number).ToList();
+
+			if (alone is null)
+				kinds.Add(alone = new Kind(kinds.Count + 1, [pattern]));
+
+			var spelled = prefix is Node.Bind(_, var bound, _) ? bound : prefix;
+
+			return new Continuation(pattern, alone.Number, tail)
+			{
+				FromStart      = true,
+				Shared         = shared,
+				Beginning      = (spelled as Node.Literal)?.Text,
+				BeginningFolds = spelled is Node.Literal { IgnoreCase: true },
+			};
+		}
+
+		/// <summary>Why a terminal that binds text is not begun, where another token can read on past its beginning.</summary>
+		string Longer(Pattern.Class terminal, Pattern other)
+		{
+			return other is Pattern.Class(_, var rule) && Continuation(rule) is { FromStart: true }
+				? $"'{terminal.Rule.Name}' and '{rule.Name}' both bind text and one's beginning begins the other's; this part is read over characters"
+				: $"'{terminal.Rule.Name}' binds text and '{other}' can match a longer text that begins like '{terminal.Rule.Name}': " +
+					$"make '{other}' unable to continue the beginning of '{terminal.Rule.Name}', or put both in one terminal as alternatives; " +
+					"this part is read over characters";
+		}
+
+		/// <summary>Whether a body is one atomic group, under whatever names or builds it.</summary>
+		static bool IsAtomic(Node body)
+		{
+			while (true)
+			{
+				switch (body)
+				{
+					case Node.Atomic:               return true;
+					case Node.Construct(var built, _): body = built; break;
+					case Node.Marked(var noted, _):    body = noted; break;
+					case Node.Capture(_, var held):    body = held;  break;
+					default:                        return false;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Whether, in a machine over two patterns, some non-empty string one of them accepts is
+		/// also accepted by the other, or begins a string the other accepts.
+		/// </summary>
+		static bool Comparable(LexicalAutomaton machine, int a, int b)
+		{
+			bool Holds(int state, int which)
+			{
+				return machine.Accepts[state] >= 0 && machine.Sets[machine.Accepts[state]].Contains(which);
+			}
+
+			// State 0 is where the machine starts, before any character: a pattern accepting
+			// there accepts the empty string, which begins nothing.
+			for (var state = 1; state < machine.Accepts.Count; state++)
+			{
+				if (Holds(state, a) && (Holds(state, b) || Onward(machine, state).Any(next => Holds(next, b))))
+					return true;
+
+				if (Holds(state, b) && Onward(machine, state).Any(next => Holds(next, a)))
+					return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>Every state some non-empty string leads to from one.</summary>
+		static IEnumerable<int> Onward(LexicalAutomaton machine, int from)
+		{
+			var seen    = new HashSet<int>();
+			var pending = new Stack<int>();
+
+			pending.Push(from);
+
+			while (pending.Count > 0)
+			{
+				var state = pending.Pop();
+
+				foreach (var next in machine.Next[state])
+				{
+					if (next < 0 || !seen.Add(next))
+						continue;
+
+					yield return next;
+
+					pending.Push(next);
+				}
+			}
+		}
+
+		/// <summary>
+		/// A node widened to a regular language that holds everything it reads: itself where an
+		/// automaton reads it, and otherwise its parts widened, what no automaton reads at all
+		/// standing for any text.
+		/// </summary>
+		/// <remarks>
+		/// For the trivia, which is compared with a beginning and need not be a pattern: a
+		/// nested comment inside it is read by a counter, and here stands for its opening and
+		/// anything after. A lookahead reads nothing and is dropped, which widens too.
+		/// </remarks>
+		Node Over(Node node, HashSet<RuleSymbol> inside)
+		{
+			if (Regular(node))
+				return node;
+
+			switch (node)
+			{
+				case Node.Sequence(var parts):         return new Node.Sequence([.. parts.Select(part => Over(part, inside))]);
+				case Node.Choice { Selection: not null }: return Anything;
+				case Node.Choice(var alternatives):    return new Node.Choice([.. alternatives.Select(one => Over(one, inside))]);
+				case Node.Repeat(var turns, var min, var max): return new Node.Repeat(Over(turns, inside), min, max);
+				case Node.Bind(_, var bound, _):       return Over(bound, inside);
+				case Node.Atomic(var kept):            return Over(kept, inside);
+				case Node.Marked(var kept, _):         return Over(kept, inside);
+				case Node.Capture(_, var held):        return Over(held, inside);
+				case Node.Construct(var made, _):      return Over(made, inside);
+				case Node.Lookahead or Node.Behind or Node.Guard or Node.Reading or Node.Glue or Node.Empty:
+					return Node.Empty.Instance;
+
+				case Node.Call(var called, _):
+				{
+					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
+						return Anything;
+
+					var over = Over(body, inside);
+
+					inside.Remove(called);
+
+					return over;
+				}
+
+				default:
+					return Anything;
+			}
 		}
 
 		/// <summary>

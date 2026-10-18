@@ -139,7 +139,8 @@ then quietly mean nothing.
 | a count by the length of a binding, `X{#q}` `{#q,}` `{n,#q}` §3.5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a binding read where it may not have happened, `($q: X)?` then `$q`, refused with the fix §3.5.1 | ✓ | ✓ | ✓ | — | — |
 | a binding inside a lookahead, or over a recovery point, refused §3.5.1 | ✓ | ✓ | ✓ | — | — |
-| a binding and its back-reference in a terminal the lexer reads: begun by the lexer, read whole by its rule §3.5.1/§7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a binding and its back-reference in an atomic terminal the lexer reads: begun by the lexer, read whole by its rule, lexed again without it where the rule refuses §3.5.1/§7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same beside a token or trivia that can read on past its beginning, or not atomic: read over characters, `GRAM5004` naming the fix §7.1 | ✓ | ✓ | ✓ | — | — |
 | a binding in what `trivia` is made of once the grammar is cut in two, refused, not yet supported §3.5.1 | ✓ | ✓ | ✓ | — | — |
 | a binding and its back-reference read through a `TextReader` or a stream, bytes included §3.5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 
@@ -510,10 +511,12 @@ What it does not do is refused at build time with a diagnostic that says where:
 - A binding inside a lookahead is refused (`GRAM4033`); a reference inside one is fine.
 - Not yet supported (`GRAM4034`): a binding in a repetition that recovers, or in what such
   a repetition skips to; and in what `trivia` is made of once a grammar is cut into a lexer
-  and a syntactic half. A terminal that binds text in such a grammar is begun by the lexer
-  and read whole by its own rule from the token's start (§7.1); one that begins with nothing
-  an automaton reads is refused by name. A publication over a `TextReader` or a stream reads
-  bindings as the string form does.
+  and a syntactic half. An atomic terminal that binds text in such a grammar is begun by the
+  lexer and read whole by its own rule from the token's start, and where that rule refuses
+  the position is lexed again without it (§7.1); beside a token or trivia that can read on
+  past its beginning, or not atomic, the part is read over characters with a `GRAM5004` that
+  names the fix; one that begins with nothing an automaton reads is refused by name. A
+  publication over a `TextReader` or a stream reads bindings as the string form does.
 - Over kinds neither a binding nor a reference is accepted (`GRAM4035`); a guard compares
   two captures there.
 

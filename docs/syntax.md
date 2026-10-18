@@ -434,13 +434,17 @@ recovery point (§8.2) — a recovery point inside a binding, or a `recover` on 
 that holds one — and a binding in what `trivia` is made of once a grammar is cut in two (§4),
 which a scanner skips between tokens.
 
-In a grammar cut into a lexer and a syntactic half (§4), a terminal that binds text is a
-terminal the lexer begins (§7.1): the lexer reads as much of it as an automaton can — the
-opening bracket and its `=` run, the quotes, `<<` and the tag and the end of its line — to
-tell that the terminal stands there, and the terminal's own rule then reads the whole token
-from its start, binding, body and reference. A terminal that begins with nothing an
-automaton reads — a lookahead, say — is refused by name. What that beginning competes with,
-it competes with by longest match, as every token does (§4).
+In a grammar cut into a lexer and a syntactic half (§4), a terminal that binds text is one
+token when its body is atomic (`{ … }`) and no other token, nor trivia, can match a longer
+text that begins like it. The lexer starts it on its regular beginning — the opening bracket
+and its `=` run, the quotes, `<<` and the tag and the end of its line, as much as an
+automaton reads — and measures it with its own rule, read from the token's start: its length
+is that reading, not a longest match. Where that reading fails, the position is lexed again
+as if the terminal were not there, the same answer a regular token would give. Otherwise
+that part is read over characters, and `GRAM5004` says which token stood in the way and
+what to write: `{ }` around the body, a competitor kept from continuing the beginning, or
+both forms in one terminal as alternatives (§7.1). A terminal that begins with nothing an
+automaton reads — a lookahead, say — is refused by name.
 
 A publication over a `TextReader` or a stream (§6.3) reads bindings as the string form does,
 bytes included. A reference compares the items where they stand in the buffer, so the buffer
@@ -3121,14 +3125,34 @@ namespace Lexical
 {
     trivia = none
 
-    LongString = '[' & $eq: '='* & '[' & { (?!(']' & $eq & ']') & any)* } & ']' & $eq & ']'
-    Heredoc    = "<<" & $tag: Name & eol & { (?!($tag & EndLine) & Line)* } & $tag & ?=EndLine
+    LongString = { '[' & $eq: '='* & '[' & (?!(']' & $eq & ']') & any)* & ']' & $eq & ']' }
+    Heredoc    = { "<<" & $tag: Name & eol & (?!($tag & EndLine) & Line)* & $tag & ?=EndLine }
+    Name       = ['a'..'z']+
 }
+
+Index = '[' & Lexical.Name & ']'
+Shift = Lexical.Name & "<<" & Lexical.Name
 ```
 
 `LongString` begins with `'[' & '='* & '['` and `Heredoc` with `"<<" & Name & eol`; where
-either stands, its rule decides the token, and where the rule refuses, no token stands
-there. The beginning read twice costs its few characters. A terminal that begins with
+either stands, its rule decides the token, and its length is that reading. Where the rule
+refuses — `[==[` with no closing bracket, `<<end` with no closing line — the position is
+lexed again as if the terminal were not there, and the bracket or the operator stands, as
+it would over characters. The beginning read twice costs its few characters.
+
+Such a terminal is one token only where that cannot change the answer. Its body is atomic:
+read over characters, the same rule could otherwise give part of its reading back and read
+on another way, where the token's length is settled. And no other token, nor trivia, can
+match a longer text that begins like it — a mark `"abc"` beside `{ $q: "ab" & $q }`, a
+comment `'#' & [^ '\n']*` in the trivia beside `{ '#' & $q: '"'+ & … }`, or two such
+terminals of which one's beginning begins the other's — since the token would then be
+shorter than what longest match gives a regular token in its place. A token as long as the
+beginning's string is no competitor: the kind is both, the rule decides, and the syntax
+asks for the one it wants. Anywhere else that part is read over characters, with a
+`GRAM5004` that names the token in the way and the fix: write `{ }` around the body, keep
+the competitor from continuing the beginning, or put both forms in one terminal as
+alternatives — `Str = { $q: '"'{3,} & … & $q | '"' & … & '"' }`, where the terminal's own
+ordered reading tells them apart, the same in both forms. A terminal that begins with
 nothing an automaton reads — a lookahead, a host recognizer, a rule that reaches itself
 first — is refused by name (`GRAM4034`).
 
