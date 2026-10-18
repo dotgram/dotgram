@@ -11,7 +11,7 @@ ByCase Clause.For.Kind = 20
 ByCase Clause.For.Options = 44
 ByCase Clause.GroupBy.With = 2
 ByCase Clause.Hint.Text = 33
-ByCase Clause.JsonColumn.Type = 54
+ByCase Clause.JsonColumn.Type = 71
 ByCase Clause.Option.Name = 9
 ByCase Clause.Option.Partitions = 3
 ByCase Clause.ParameterDeclaration.Type = 137
@@ -160,7 +160,7 @@ Meaning c t DEFAULT v COLLATE x: the default's collation in T-SQL, the column's 
 Projected a T-SQL column's options as the standard's members = 234
 Projected a key's T-SQL columns as the standard's names = 6
 Recovered Alias.AsKeyword of MERGE's target = 19
-Recovered Alias.AsKeyword of a table source = 954
+Recovered Alias.AsKeyword of a table source = 977
 Recovered Clause.DerivedColumn alias = expression = 432
 Recovered Expression.Invocation without brackets = 45
 Recovered Expression.Trim.FromKeyword = 0

@@ -1,4 +1,4 @@
-@using System;
+﻿@using System;
 @using DotGram.Sql;
 
 // T-SQL, written out in full. This file stands alone: every rule a T-SQL statement reaches is
@@ -1933,10 +1933,19 @@ RowsetArgument : @Expression
 	| name: TSqlIdentifier & '=' & v: RowsetValue & alias: DataAlias?
 	  & when @(alias is null || string.Equals(name, "DATA", System.StringComparison.OrdinalIgnoreCase))
 		=> @(new Expression.NamedArgument(name, alias is null ? v : (Expression)(alias with { Value = v })))
-	| word: TSqlIdentifier & v: RowsetValue          => @(new Expression.Prefixed(word, v))
+	| word: TSqlIdentifier & ValueNotGoingOn & v: RowsetValue => @(new Expression.Prefixed(word, v))
 	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')'
 		=> @(new Expression.RowValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
 	| v: RowsetValue                             => @(v)
+
+// What tells a word with a value after it (`CHANGES t`) from a value that begins with a name:
+// a value goes on after its first name with a dot, a bracket or an operator — `t1.value`,
+// `db1.s1.t1`, `f(c)`, `a + b` — and a word is followed by its value with none of them between.
+// Without it `OPENJSON (a + b)` read as the word `a` and the value `+b`, and `db1.s1.t1` as
+// `db1` and `.s1.t1`. Only the four that can also begin a value need saying: after `a * b` or
+// `a::m` no value begins, so the word and its value are never read there. One lookahead a
+// character: together they would be a character class, which is no token.
+ValueNotGoingOn = ?!'.' & ?!'(' & ?!'+' & ?!'-'
 
 // `ORDER ( c1 ASC, c2 DESC ) [ UNIQUE ]` says a bulk source is already sorted.
 RowsetOrder : @Expression
