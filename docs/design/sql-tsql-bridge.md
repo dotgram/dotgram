@@ -199,7 +199,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Clause.For.Options | 44 |
 | ByCase Clause.GroupBy.With | 2 |
 | ByCase Clause.Hint.Text | 33 |
-| ByCase Clause.JsonColumn.Type | 54 |
+| ByCase Clause.JsonColumn.Type | 71 |
 | ByCase Clause.Option.Name | 9 |
 | ByCase Clause.Option.Partitions | 3 |
 | ByCase Clause.ParameterDeclaration.Type | 137 |
@@ -348,7 +348,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Projected a T-SQL column's options as the standard's members | 234 |
 | Projected a key's T-SQL columns as the standard's names | 6 |
 | Recovered Alias.AsKeyword of MERGE's target | 19 |
-| Recovered Alias.AsKeyword of a table source | 954 |
+| Recovered Alias.AsKeyword of a table source | 977 |
 | Recovered Clause.DerivedColumn alias = expression | 432 |
 | Recovered Expression.Invocation without brackets | 45 |
 | Recovered Expression.Trim.FromKeyword | 0 |
@@ -380,15 +380,15 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | Old record | Family | Category | Counted | Gaps | Occurrences |
 | --- | --- | --- | --- | --- | ---: |
 | `Expression.Literal` | Values | B | — | — | 9361 |
-| `Expression.ColumnReference` | Values | B | — | 282: needs decision: inventory cross-cutting gaps, identifier styles (a name part `2` that is no name) (76); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'pw1'` that is no name) (9) | 9237 |
+| `Expression.ColumnReference` | Values | B | — | 282: needs decision: inventory cross-cutting gaps, identifier styles (a name part `2` that is no name) (76); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'pw1'` that is no name) (9) | 9239 |
 | `Clause.Option` | Tables | C | gap 12 | 12: needs decision: inventory Clause.Option (in a WITH) (12) | 6517 |
 | `Clause.ColumnDefinition` | Tables | B | gap 118 | 118: needs decision: inventory DataType (`decimal(max)`: a word in the brackets of a type) (24); needs decision: inventory Clause.ConstraintDefinition (a default added WITH VALUES) (11) | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3369 |
 | `Clause.ColumnOption` | Tables | B | gap 107 | 107: needs decision: inventory Statement.AlterTable (ALTER COLUMN with more than a collation and a nullability) (64); needs decision: inventory Clause.ColumnOption (COLUMN_SET FOR ALL_SPARSE_COLUMNS) (43) | 2995 |
-| `Statement.Select` | Queries | B | converted 2368 | — | 2987 |
+| `Statement.Select` | Queries | B | converted 2393 | — | 2987 |
 | `Clause.DerivedColumn` | Queries | A | — | — | 2978 |
 | `TableReference.Named` | Tables | A | gap 8 | 8: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'Something'` that is no name) (3) | 2944 |
-| `Expression.RoutineInvocation` | Values | B | gap 56 | 71: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); needs decision: inventory Expression.RoutineInvocation (the word `INT`) (8) | 2310 |
+| `Expression.RoutineInvocation` | Values | B | gap 56 | 71: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); needs decision: inventory Expression.RoutineInvocation (the word `INT`) (8) | 2312 |
 | `Statement.TableDefinition` | Tables | B | converted 1687 | — | 1906 |
 | `Clause.ConstraintDefinition` | Tables | B | gap 11 | 11: needs decision: inventory Clause.ConstraintDefinition (PRIMARY KEY with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter) (7); needs decision: inventory Clause.ConstraintDefinition (UNIQUE with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter) (2) | 1841 |
 | `Clause.SortSpecification` | Queries | A | — | — | 1303 |
@@ -399,7 +399,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.NamedArgument` | Values | A | gap 43 | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
 | `Statement.CreateIndex` | Tables | C | converted 438, gap 57 | 57: needs decision: inventory Statement.CreateIndex (SELECTIVE XML INDEX, which no record holds) (31); needs decision: inventory Statement.CreateIndex (a secondary XML index FOR a selective index's path) (13) | 495 |
 | `TableReference.FunctionCall` | Tables | A | gap 6 | 6: needs decision: inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema) (6) | 487 |
-| `Expression.Parenthesized` | Values | A | — | — | 438 |
+| `Expression.Parenthesized` | Values | A | — | — | 436 |
 | `TableReference.Joined` | Tables | A | — | — | 382 |
 | `Clause.VariableDeclaration` | Procedural | C | gap 31 | 31: needs decision: inventory DataType (`VECTOR(2, FLOAT32)`: a word in the brackets of a type) (2); needs decision: inventory DataType (`VECTOR(2, float16)`: a word in the brackets of a type) (2) | 357 |
 | `Statement.Declare` | Procedural | C | converted 263 | — | 347 |
@@ -413,12 +413,11 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.Insert` | Dml | A | converted 192, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
 | `Expression.Measured` | Values | C | — | 190: target exists, no writer arm: Expression.Measured (190) | 234 |
 | `Statement.AlterDatabaseSet` | Database | C | converted 218 | — | 218 |
-| `Expression.Add` | Values | A | — | — | 198 |
+| `Expression.Add` | Values | A | — | — | 200 |
 | `Expression.RowValueConstructor` | Values | A | — | — | 186 |
 | `Expression.WindowFunction` | Values | B | gap 4 | 4: needs decision: inventory Expression.WindowFunction (a window over something that is not a call) (3); needs decision: inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for) (1) | 184 |
 | `Statement.CreateFunction` | Routines | B | converted 176, gap 2 | 2: needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1); needs decision: inventory DataType (`int(max)`: a word in the brackets of a type) (1) | 182 |
 | `Clause.Window` | Values | A | — | — | 181 |
-| `Expression.Prefixed` | Values | C | gap 51 | 181: no target record: a typed T-SQL rowset table source (proposal 7) (181) | 181 |
 | `Clause.OrderBy` | Queries | B | — | — | 177 |
 | `Clause.Placement` | Tables | C | — | — | 177 |
 | `Statement.TypeDefinition` | Tables | B | converted 150, gap 19 | 19: needs decision: inventory DataType (`VECTOR(3, float32)`: a word in the brackets of a type) (1); needs decision: inventory DataType (`bit(max)`: a word in the brackets of a type) (1) | 174 |
@@ -426,6 +425,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.SetStatement` | Procedural | C | converted 154 | — | 165 |
 | `TableReference.Parenthesized` | Tables | A | — | — | 162 |
 | `Clause.GroupBy` | Queries | B | — | — | 158 |
+| `Expression.Prefixed` | Values | C | gap 26 | 156: no target record: a typed T-SQL rowset table source (proposal 7) (156) | 156 |
 | `Clause.JsonColumn` | Tables | C | gap 1 | 1: no target record: RowsetColumn.Ordinal is a number, and keeps no spelling of it such as `00` (1) | 155 |
 | `Statement.WorkloadGroupDefinition` | Server | C | converted 155 | — | 155 |
 | `Statement.CreateDatabase` | Database | C | converted 154 | — | 154 |
@@ -565,7 +565,6 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DropAssembly` | Drop | C | converted 18 | — | 18 |
 | `Statement.MessageTypeDefinition` | Broker | C | converted 18 | — | 18 |
 | `Statement.ServiceDefinition` | Broker | C | converted 18 | — | 18 |
-| `Expression.Plus` | Values | A | — | — | 17 |
 | `Statement.AlterPartitionFunction` | Database | C | converted 17 | — | 17 |
 | `Statement.BackupCertificate` | Database | C | converted 17 | — | 17 |
 | `Statement.Classification` | Security | C | converted 17 | — | 17 |
@@ -578,6 +577,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.DefaultDefinition` | Routines | C | converted 16 | — | 16 |
 | `Statement.DropFunction` | Drop | B | converted 16 | — | 16 |
 | `Clause.PartitionRange` | Dml | C | — | — | 15 |
+| `Expression.Plus` | Values | A | — | — | 15 |
 | `Statement.BackupTransactionLog` | Database | C | converted 15 | — | 15 |
 | `Statement.DropAggregate` | Drop | C | converted 15 | — | 15 |
 | `Statement.DropView` | Drop | B | converted 15 | — | 15 |

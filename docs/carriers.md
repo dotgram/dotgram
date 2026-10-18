@@ -13,16 +13,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-17 17:48 |
-| DotGram.Examples | 2026-10-17 17:46 |
-| DotGram.ExpressionLanguage | 2026-10-17 17:46 |
-| DotGram.ExpressionLanguage.Tape | 2026-10-17 17:46 |
-| DotGram.Finance | 2026-10-17 17:46 |
-| DotGram.Finance.Fix44 | 2026-10-17 17:47 |
-| DotGram.Sql | 2026-10-17 17:47 |
-| DotGram.Sql.Productions | 2026-10-17 17:47 |
-| DotGram.Tests | 2026-10-17 17:48 |
-| DotGram.Web | 2026-10-17 17:46 |
+| DotGram.Benchmarks | 2026-10-18 03:08 |
+| DotGram.Examples | 2026-10-18 03:05 |
+| DotGram.ExpressionLanguage | 2026-10-18 03:05 |
+| DotGram.ExpressionLanguage.Tape | 2026-10-18 03:05 |
+| DotGram.Finance | 2026-10-18 03:05 |
+| DotGram.Finance.Fix44 | 2026-10-18 03:08 |
+| DotGram.Sql | 2026-10-18 03:05 |
+| DotGram.Sql.Productions | 2026-10-18 03:07 |
+| DotGram.Tests | 2026-10-18 03:08 |
+| DotGram.Web | 2026-10-18 03:07 |
 
 **Carrier** is what a grammar left to the generator is read with — `immediate`, or `tape` where the
 immediate carrier refused a machine — or the author's own choice. **Gate** is what the tape would

@@ -43,6 +43,9 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE TRIGGER tr ON dbo.t FOR CREATE_TABLE AS PRINT 1", "event names on a table")]
 	[InlineData("CREATE TRIGGER tr ON dbo.t FOR INSERT AS PRINT 1", "statements on a table")]
 	[InlineData("alter database d1 modify filegroup fg1 readonly", "READONLY in lower case")]
+	[InlineData("SELECT * FROM OPENJSON (a + b, N'$')", "a sum, not a word and a value")]
+	[InlineData("SELECT * FROM OPENJSON (t.c)", "a qualified column, not a word and a value")]
+	[InlineData("SELECT * FROM CHANGETABLE (CHANGES t, 0) AS c", "a word and its value")]
 	[InlineData("restore labelonly from disk = 'd:'", "a tail in lower case")]
 	[InlineData("create proc p1 @a int with execute as caller as print 'hi'", "EXECUTE AS caller")]
 	[InlineData("CREATE PROCEDURE p1 @a INT WITH EXECUTE AS 'caller' AS PRINT 'hi'", "EXECUTE AS a user called caller")]
@@ -83,6 +86,9 @@ public sealed class DdlRemainderBridgeTests
 			"a tail in lower case" => made is Ast.Statement.RestoreLabelOnly { From: [Ast.BackupDevice.Physical { Kind: Ast.DeviceKind.Disk }] },
 			"EXECUTE AS caller" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.ExecuteAs { Context: { Kind: Ast.ExecutionContextKind.Caller, Name: null } }] },
 			"EXECUTE AS a user called caller" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.ExecuteAs { Context: { Kind: Ast.ExecutionContextKind.User, Name: not null } }] },
+			"a sum, not a word and a value" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.OpenJson { Json: Ast.Expression.Binary }] } },
+			"a qualified column, not a word and a value" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.OpenJson { Json: Ast.Expression.Reference { Name.Count: 2 } }] } },
+			"a word and its value" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.ChangeTableChanges] } },
 			_ => false,
 		};
 
