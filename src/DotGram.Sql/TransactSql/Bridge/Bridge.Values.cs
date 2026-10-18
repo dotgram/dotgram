@@ -1085,6 +1085,25 @@ static partial class Bridge
 			if (system && StandardWords.Contains(last) && Standard(last.ToUpperInvariant(), arguments) is { } standard)
 				return bare ? standard : standard with { WrittenName = name };
 
+			// A vector's dimensions or MAX, and its base type, one of the page's two words; any other word is a gap.
+			if (system && last.Equals("vector", StringComparison.OrdinalIgnoreCase))
+			{
+				var vector = arguments switch
+				{
+					[] => new Ast.DataType.Vector(null),
+					[var max] when max.Equals("MAX", StringComparison.OrdinalIgnoreCase) => new Ast.DataType.Vector(null) { Max = true },
+					[var size] when int.TryParse(size, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var dimensions) => new Ast.DataType.Vector(dimensions),
+					[var size, var word] when int.TryParse(size, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var dimensions)
+						&& word.ToUpperInvariant() is "FLOAT32" or "FLOAT16" => new Ast.DataType.Vector(dimensions)
+						{
+							BaseType = word.Equals("FLOAT32", StringComparison.OrdinalIgnoreCase) ? Ast.VectorBaseType.Float32 : Ast.VectorBaseType.Float16,
+						},
+					_ => throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a vector of other than dimensions, MAX and a base type of the page's)"),
+				};
+
+				return bare ? vector : vector with { WrittenName = name };
+			}
+
 			// MAX after a type with no MAX of its own (AnyLength, ExactMax): the type's name and the word.
 			if (system && arguments is [var only] && only.Equals("MAX", StringComparison.OrdinalIgnoreCase)
 				&& SystemTypes.Contains(last) && !last.Equals("xml", StringComparison.OrdinalIgnoreCase) && !last.Equals("vector", StringComparison.OrdinalIgnoreCase))

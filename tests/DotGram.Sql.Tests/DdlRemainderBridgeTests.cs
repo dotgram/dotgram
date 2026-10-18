@@ -68,6 +68,10 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE TABLE t (c DECIMAL (MAX))", "DECIMAL (MAX) in a column")]
 	[InlineData("CREATE TABLE t (c DECIMAL (10))", "DECIMAL (10) in a column")]
 	[InlineData("SELECT CAST (a AS int(max))", "int(max) in a cast")]
+	[InlineData("DECLARE @v VECTOR (3, Float32)", "a vector of float32 in another case")]
+	[InlineData("CREATE TABLE t (c VECTOR(1, FLOAT16))", "a vector of float16")]
+	[InlineData("DECLARE @v VECTOR (3)", "a vector of three")]
+	[InlineData("DECLARE @v vector(max)", "a vector of MAX")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -151,6 +155,10 @@ public sealed class DdlRemainderBridgeTests
 			"DECIMAL (MAX) in a column" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Named { Max: true, Arguments.Count: 0, Name: [{ Text: "DECIMAL" }] } }] } },
 			"DECIMAL (10) in a column" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Numeric }] } },
 			"int(max) in a cast" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Cast { Target: Ast.DataType.Named { Max: true } } }] } },
+			"a vector of float32 in another case" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { Type: Ast.DataType.Vector { Dimensions: 3, BaseType: Ast.VectorBaseType.Float32, Max: false } }] },
+			"a vector of float16" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Vector { Dimensions: 1, BaseType: Ast.VectorBaseType.Float16 } }] } },
+			"a vector of three" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { Type: Ast.DataType.Vector { Dimensions: 3, BaseType: null, Max: false } }] },
+			"a vector of MAX" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { Type: Ast.DataType.Vector { Dimensions: null, Max: true } }] },
 			_ => false,
 		};
 

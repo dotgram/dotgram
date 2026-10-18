@@ -417,6 +417,9 @@ public abstract partial record Expression
 	}
 }
 
+/// <summary>T-SQL: Vector Data Type. The base type a vector's elements are stored as, the page's two words.</summary>
+public enum VectorBaseType { Float32, Float16 }
+
 /// <summary>T-SQL's own data types, in the standard's family (proposal 14).</summary>
 public abstract partial record DataType
 {
@@ -448,6 +451,19 @@ public abstract partial record DataType
 		/// type that has no MAX of its own, which the grammar reads after any type (and an exact numeric's only where a
 		/// column is declared); <see cref="Arguments"/> is empty then.
 		/// </summary>
+		public bool Max { get; init; }
+	}
+
+	/// <summary>
+	/// T-SQL: Vector Data Type. <c>VECTOR (dimensions [, base_type])</c> or <c>VECTOR (MAX)</c>: the dimensions, null where
+	/// none were written, and the base type the elements are stored as, null where the default is left to stand.
+	/// </summary>
+	public sealed record Vector(int? Dimensions) : DataType
+	{
+		/// <summary>T-SQL: Vector Data Type - Half Precision Float. <c>FLOAT32</c> or <c>FLOAT16</c>, after the dimensions.</summary>
+		public VectorBaseType? BaseType { get; init; }
+
+		/// <summary>T-SQL: Vector Data Type. <c>VECTOR (MAX)</c>, in place of the dimensions.</summary>
 		public bool Max { get; init; }
 	}
 
