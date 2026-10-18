@@ -33,7 +33,9 @@ All three build one tree, the standard's, laid out in
 [`SqlAst.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/SqlAst.cs) in `DotGram.Sql.Ast`, with T-SQL's own
 constructs in the standard's families and beside them, and printed back by
 [`Sql2023Writer`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/Sql2023Writer.cs), or by `TransactSqlWriter` as T-SQL
-reads it. Its records are named for the standard's constructs. A text two parsers read is the same tree, in the shape
+reads it. Its records are named for the standard's constructs. The writers print key words and date
+parts in capitals, whatever case they were read in: the tree holds what a key word means, not how it
+was spelled. A text two parsers read is the same tree, in the shape
 `SqlStandardParser` gives it. `Sql92Parser`'s `ParseSelect` gives an `Ast.Statement`, `ParseQuery` an `Ast.Query`, and
 `ParseSearchCondition` and `ParseValueExpression` an `Ast.Expression`.
 
@@ -44,9 +46,10 @@ statement of any kind, its `;` optional; a query is the `Statement.Select` among
 (statements, each ended by a `;` or by the end of the text, where an empty statement is refused).
 A production below them is read through the level that holds it, and a statement's kind is the type
 of its node. `TransactSqlParser` reads at four of them, with the same names and the same tree:
-`ParseExpression`, `ParseSearchCondition`, `ParseStatement` and `ParseSql`; and besides them
-`ParseSelect`, a query statement and nothing else, which refuses any other statement where it
-begins, and `ParseScript`. Each has two `TryParse…`: one giving a `Match<T>` with the refusal's
+`ParseExpression`, `ParseSearchCondition`, `ParseStatement` and `ParseSql`, with the per-version
+entries; and besides them `ParseSelect`, a query statement and nothing else, which refuses any
+other statement where it begins, and `ParseScript`. `ParseValue` and `ParseDataType` can be added
+to T-SQL later. Each has two `TryParse…`: one giving a `Match<T>` with the refusal's
 message and position, and a `bool TryParse…(string input, out T value)` for where only the answer
 is wanted.
 

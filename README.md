@@ -805,6 +805,10 @@ query.From!.Sources[0];  // TableSource.Named { Name = Users }
 | [`Sql92Parser`](src/DotGram.Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
 | [`TransactSqlParser`](src/DotGram.Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
 
+`TransactSqlParser` reads at four of the standard's levels — `ParseExpression`, `ParseSearchCondition`,
+`ParseStatement` and `ParseSql`, with the per-version entries and `ParseSelect` — and `SqlStandardParser`
+at six, `ParseValue` and `ParseDataType` besides, which can be added to T-SQL later. The writers print
+key words and date parts in capitals.
 [`src/DotGram.Sql/README.md`](src/DotGram.Sql/README.md) has what each one parses and what it
 hands back.
 
