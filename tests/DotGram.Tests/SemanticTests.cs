@@ -1767,6 +1767,28 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.LateWith, LateInstance);
 	}
 
+	/// <summary>
+	/// The same refusal wherever such an instance is made: without a namespace, by a
+	/// publication's <c>with</c>, one call further in, inside an instance that reaches itself,
+	/// and for a <c>with</c> on a <c>with</c> — each at the place it is written, none dropped.
+	/// </summary>
+	[Theory]
+	[InlineData("F(x) = (Z with (Z = Y)) & x\nE(x) = B & x\nG = E(B)\nR = G with (E = F)\nparse R", 1)]
+	[InlineData("F(x) = (Z with (Z = Y)) & x\nE(x) = B & x\nG = E(B)\nparse G\nparse G with (E = F) as Swapped", 1)]
+	[InlineData("H(x) = (Z with (Z = Y)) & x\nF(x) = H(x) & '!'\nE(x) = B & x\nG = E(B)\nR = G with (E = F)\nparse R", 1)]
+	[InlineData("F(x) = (Z with (Z = Y)) & x & ('.' & F(x))?\nE(x) = B & x\nG = E(B)\nR = G with (E = F)\nparse R", 1)]
+	[InlineData("F(x) = ((Z with (Z = Y)) with (Y = W)) & x\nE(x) = B & x\nG = E(B)\nR = G with (E = F)\nparse R", 2)]
+	public void A_with_inside_an_instance_made_during_specialization_is_refused_however_it_is_made(string rules, int count)
+	{
+		const string names = "B = 'b'\nZ = 'z'\nY = 'y'\nW = 'w'\n";
+
+		var grammar = names + rules + "\n";
+		var refused = Compile(grammar).Diagnostics.Where(one => one.Id == GrammarNormalizer.LateWith).ToArray();
+
+		Assert.Equal(count, refused.Length);
+		Assert.All(refused, one => Assert.StartsWith("Z with", grammar.Substring(one.Position).TrimStart('('), StringComparison.Ordinal));
+	}
+
 	const string LateInstance =
 		"""
 		using Ns;
