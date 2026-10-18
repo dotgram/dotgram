@@ -1022,8 +1022,13 @@ public static partial class Sql2023Writer
 						PutDroppedConstraint(constraint);
 						break;
 
+					// DropTarget: PERIOD FOR SYSTEM_TIME, with no behavior.
+					case AlterTableAction.DropPeriod { Kind: PeriodKind.SystemTime, ApplicationName: null, Behavior: null }:
+						Word("PERIOD FOR SYSTEM_TIME");
+						break;
+
 					default:
-						throw Misplaced(item, "Items", "holding other than a dropped column or constraint");
+						throw Misplaced(item, "Items", "holding other than a dropped column, constraint or system-time period");
 				}
 
 				before = item;
