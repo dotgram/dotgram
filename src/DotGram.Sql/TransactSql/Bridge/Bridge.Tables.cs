@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -54,7 +54,7 @@ static partial class Bridge
 				Statement.TypeDefinition type                => CreateType(type),
 				Statement.SynonymDefinition synonym          => Synonym(synonym),
 				Statement.SequenceDefinition sequence        => Sequence(sequence),
-				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old) => throw Unconverted(old),
 				_                       => null,
 			};
 
@@ -106,7 +106,7 @@ static partial class Bridge
 					return new Ast.TableSource.OdbcJoin(Source(inner));
 
 				default:
-					throw Inventory.Unconverted(old);
+					throw Unconverted(old);
 			}
 		}
 
@@ -365,8 +365,8 @@ static partial class Bridge
 				// A word AS, not a name `"as"` or `[as]`, and not the AS of FOR SYSTEM_TIME AS OF.
 				var words = Words(text);
 
-				for (var at = 0; at < words.Length; at++)
-					if (words[at] == "AS" && (at + 1 >= words.Length || words[at + 1] != "OF"))
+				for (var at = 0; at < words.Count; at++)
+					if (words[at] == "AS" && (at + 1 >= words.Count || words[at + 1] != "OF"))
 						return true;
 
 				return false;
@@ -1312,7 +1312,7 @@ static partial class Bridge
 				all = true;
 			else if (words is ["PARTITION", "=", ..])
 				partition = ValueOf(old, head[(head.IndexOf('=') + 1)..]);
-			else if (words.Length > 0)
+			else if (words.Count > 0)
 				throw BridgeGap.Open(old, $"inventory Statement.AlterTable (REBUILD {tail})");
 
 			return new Ast.AlterTableAction.Rebuild(partition, all, with < 0 ? [] : OptionsOf(old, tail[(with + "WITH".Length)..]));
@@ -1619,7 +1619,7 @@ static partial class Bridge
 
 			if (Words(head) is ["WHERE", ..])
 				where = Condition(old, head[(head.IndexOf("WHERE", StringComparison.OrdinalIgnoreCase) + "WHERE".Length)..]);
-			else if (Words(head).Length > 0)
+			else if (Words(head).Count > 0)
 				throw BridgeGap.Open(old, $"inventory Statement.StatisticsDefinition ({tail})");
 
 			return new Ast.Statement.CreateStatistics(table, Values.Part(old, old.Name), columns)
@@ -1808,7 +1808,7 @@ static partial class Bridge
 					{
 						if (Words(place) is ["FILEGROUP", _] && fileGroup is null)
 							fileGroup = Values.Part(old, SqlTokens.Of(place)[1].Text);
-						else if (Words(place).Length == 1 && catalog is null && fileGroup is null)
+						else if (Words(place).Count == 1 && catalog is null && fileGroup is null)
 							catalog = Values.Part(old, place.Trim());
 						else
 							throw BridgeGap.Open(old, "inventory Statement.FullTextIndexDefinition (a catalog after its filegroup, or a place of other words)");
@@ -2056,10 +2056,10 @@ static partial class Bridge
 				bool no;
 
 				// Find the option's own word in the text, and whether NO stood before it.
-				while (at < words.Length && words[at] != word)
+				while (at < words.Count && words[at] != word)
 					at++;
 
-				if (at >= words.Length)
+				if (at >= words.Count)
 					throw BridgeGap.Lost(old, $"the sequence option {name} is not where the text has it");
 
 				no = at > 0 && words[at - 1] == "NO";

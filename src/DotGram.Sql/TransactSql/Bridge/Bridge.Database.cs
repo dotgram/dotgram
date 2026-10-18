@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -53,7 +53,7 @@ static partial class Bridge
 					=> Checked(definition, Restore(definition)),
 				Statement.Definition definition when definition.GetType().Name.StartsWith("AlterDatabase", StringComparison.Ordinal)
 					=> Alter(definition),
-				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old) => throw Unconverted(old),
 				_ => null,
 			};
 
@@ -192,7 +192,7 @@ static partial class Bridge
 				["WITH", "ROLLBACK", "IMMEDIATE"] => new Ast.Termination.RollbackImmediate(),
 				["WITH", "NO_WAIT"]               => new Ast.Termination.NoWait(),
 				["WITH", "ROLLBACK", "AFTER", _, .. var rest] when rest is [] or ["SECONDS"]
-					=> new Ast.Termination.RollbackAfter(new Ast.LiteralValue.Numeric(tokens[3].Text, Ast.NumericLiteralKind.DecimalInteger)) { Seconds = rest.Length == 1 },
+					=> new Ast.Termination.RollbackAfter(new Ast.LiteralValue.Numeric(tokens[3].Text, Ast.NumericLiteralKind.DecimalInteger)) { Seconds = rest.Count == 1 },
 				_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (termination `{text}`)"),
 			};
 		}
@@ -330,7 +330,7 @@ static partial class Bridge
 						at = 9;
 					}
 
-					return words.Length > at + 3 && words[4] == "WITH" && words[at] == "PRIVATE" && words[at + 1] == "KEY" && words[at + 2] == "(" && words[^1] == ")"
+					return words.Count > at + 3 && words[4] == "WITH" && words[at] == "PRIVATE" && words[at + 1] == "KEY" && words[at + 2] == "(" && words[^1] == ")"
 						? certificate with { PrivateKey = Options(old, text[(tokens[at + 2].At + 1)..tokens[^1].At]) }
 						: throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 
@@ -365,7 +365,7 @@ static partial class Bridge
 
 			for (var one = 0; one < marks.Count; one++)
 			{
-				if (words.Length <= marks[one] + 1 || words[marks[one] + 1] != "TO")
+				if (words.Count <= marks[one] + 1 || words[marks[one] + 1] != "TO")
 					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 
 				mirrors.Add(new Ast.BackupMirror(Devices(old, Slice(text, tokens, marks[one] + 2, one + 1 < marks.Count ? marks[one + 1] : end))));
@@ -402,13 +402,13 @@ static partial class Bridge
 			switch (old)
 			{
 				case Statement.RestoreMasterKey when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
-					return new Ast.Statement.RestoreMasterKey(Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Length == 1 };
+					return new Ast.Statement.RestoreMasterKey(Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Count == 1 };
 
 				case Statement.RestoreServiceMasterKey when words is ["FROM", "FILE", "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
-					return new Ast.Statement.RestoreServiceMasterKey(Password(old, tokens, 3), Password(old, tokens, 8)) { Force = force.Length == 1 };
+					return new Ast.Statement.RestoreServiceMasterKey(Password(old, tokens, 3), Password(old, tokens, 8)) { Force = force.Count == 1 };
 
 				case Statement.RestoreSymmetricKey when words is ["FROM", _, "=", _, "DECRYPTION", "BY", "PASSWORD", "=", _, "ENCRYPTION", "BY", "PASSWORD", "=", _, .. var force] && force is [] or ["FORCE"]:
-					return new Ast.Statement.RestoreSymmetricKey(Values.Part(old, old.Name), Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Length == 1 };
+					return new Ast.Statement.RestoreSymmetricKey(Values.Part(old, old.Name), Place(old, tokens, 1), Password(old, tokens, 8), Password(old, tokens, 13)) { Force = force.Count == 1 };
 
 				case Statement.RestoreMasterKey or Statement.RestoreServiceMasterKey or Statement.RestoreSymmetricKey:
 					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
@@ -422,7 +422,7 @@ static partial class Bridge
 			SqlList<Ast.BackupDevice> devices = [];
 			Ast.Expression? snapshot = null;
 
-			if (from >= 0 && words.Length > from + 1 && words[from + 1] == "DATABASE_SNAPSHOT")
+			if (from >= 0 && words.Count > from + 1 && words[from + 1] == "DATABASE_SNAPSHOT")
 				snapshot = end == from + 4 && words[from + 2] == "=" ? Value(old, tokens[from + 3].Token) : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 			else if (from >= 0)
 				devices = Devices(old, Slice(text, tokens, from + 1, end));
@@ -478,7 +478,7 @@ static partial class Bridge
 					};
 					var values = close + (side is null ? 6 : 7);
 
-					if (after is not ["AS", "RANGE", ..] || words.Length <= values || words[values - 2] != "VALUES" || words[values - 3] != "FOR" || words[values - 1] != "(" || words[^1] != ")")
+					if (after is not ["AS", "RANGE", ..] || words.Count <= values || words[values - 2] != "VALUES" || words[values - 3] != "FOR" || words[values - 1] != "(" || words[^1] != ")")
 						throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 
 					var inside = Slice(text, tokens, values, tokens.Count - 1);
@@ -504,8 +504,8 @@ static partial class Bridge
 
 					return new Ast.Statement.CreatePartitionScheme(name, Values.Part(old, tokens[2].Token.Text), [.. Listed(Slice(text, tokens, all ? 6 : 5, tokens.Count - 1)).Select(one => FileGroupOf(old, one))]) { All = all };
 
-				case Statement.AlterPartitionScheme when words is ["NEXT", "USED", .. var used] && used.Length <= 1:
-					return new Ast.Statement.AlterPartitionScheme(name, used.Length == 0 ? null : FileGroupOf(old, tokens[2].Token.Text));
+				case Statement.AlterPartitionScheme when words is ["NEXT", "USED", .. var used] && used.Count <= 1:
+					return new Ast.Statement.AlterPartitionScheme(name, used.Count == 0 ? null : FileGroupOf(old, tokens[2].Token.Text));
 
 				case Statement.FullTextCatalogDefinition:
 					var catalog = new Ast.Statement.CreateFullTextCatalog(name);
@@ -517,7 +517,7 @@ static partial class Bridge
 						at = 3;
 					}
 
-					if (words.Length > at + 2 && words[at] == "IN" && words[at + 1] == "PATH")
+					if (words.Count > at + 2 && words[at] == "IN" && words[at + 1] == "PATH")
 					{
 						catalog = catalog with { Path = Value(old, tokens[at + 2].Token) };
 						at += 3;
@@ -529,25 +529,25 @@ static partial class Bridge
 						at += 4;
 					}
 
-					if (words.Length > at + 1 && words[at] == "AS" && words[at + 1] == "DEFAULT")
+					if (words.Count > at + 1 && words[at] == "AS" && words[at + 1] == "DEFAULT")
 					{
 						catalog = catalog with { Default = true };
 						at += 2;
 					}
 
-					if (words.Length == at + 2 && words[at] == "AUTHORIZATION")
+					if (words.Count == at + 2 && words[at] == "AUTHORIZATION")
 					{
 						catalog = catalog with { Authorization = Values.Part(old, tokens[at + 1].Token.Text) };
 						at += 2;
 					}
 
-					return at == words.Length ? catalog : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+					return at == words.Count ? catalog : throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 
 				case Statement.AlterFullTextCatalog:
 					return new Ast.Statement.AlterFullTextCatalog(name, words switch
 					{
 						["REBUILD"]                     => new Ast.FullTextCatalogAction.Rebuild(null),
-						["REBUILD", ..] when Sensitivity(words, 1) is { } rebuilt && words.Length == 5 => new Ast.FullTextCatalogAction.Rebuild(rebuilt),
+						["REBUILD", ..] when Sensitivity(words, 1) is { } rebuilt && words.Count == 5 => new Ast.FullTextCatalogAction.Rebuild(rebuilt),
 						["REORGANIZE"]                  => new Ast.FullTextCatalogAction.Reorganize(),
 						["AS", "DEFAULT"]               => new Ast.FullTextCatalogAction.AsDefault(),
 						_                               => throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})"),
@@ -555,7 +555,7 @@ static partial class Bridge
 
 				case Statement.FullTextStopListDefinition:
 					var owner = Index(tokens, "AUTHORIZATION");
-					var from  = words[..(owner < 0 ? words.Length : owner)] switch
+					var from  = words[..(owner < 0 ? words.Count : owner)] switch
 					{
 						[]                             => null,
 						["FROM", "SYSTEM", "STOPLIST"] => new Ast.StopListSource.SystemStopList(),
@@ -584,7 +584,7 @@ static partial class Bridge
 					if (by >= 0 && by != tokens.Count - 2)
 						throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
 
-					return words[..(by < 0 ? words.Length : by)] switch
+					return words[..(by < 0 ? words.Count : by)] switch
 					{
 						[]          => list,
 						["FROM", ..] => list with { From = Values.Name(old, Slice(text, tokens, 1, by < 0 ? tokens.Count : by)) },
@@ -624,9 +624,9 @@ static partial class Bridge
 		}
 
 		/// <summary><c>WITH ACCENT_SENSITIVITY = ON | OFF</c> at a word, or null.</summary>
-		static bool? Sensitivity(string[] words, int at)
+		static bool? Sensitivity(List<string> words, int at)
 		{
-			return words.Length > at + 3 && words[at] == "WITH" && words[at + 1] == "ACCENT_SENSITIVITY" && words[at + 2] == "=" && words[at + 3] is "ON" or "OFF"
+			return words.Count > at + 3 && words[at] == "WITH" && words[at + 1] == "ACCENT_SENSITIVITY" && words[at + 2] == "=" && words[at + 3] is "ON" or "OFF"
 				? words[at + 3] == "ON"
 				: null;
 		}

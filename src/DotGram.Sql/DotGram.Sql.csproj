@@ -116,7 +116,7 @@ Fixed: SqlStandardParser read a string literal through a simple comment: `'a' --
 	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<!-- `required` members, which the SQL:2023 tree's records declare, need two more, and
 		     SqlList<T>'s collection expressions need CollectionBuilderAttribute. -->
-		<MeziantouPolyfill_IncludedPolyfills>T:System.Runtime.CompilerServices.IsExternalInit;T:System.Runtime.CompilerServices.RequiredMemberAttribute;T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute;T:System.Runtime.CompilerServices.CollectionBuilderAttribute;T:System.Index;T:System.Range;T:System.Diagnostics.CodeAnalysis</MeziantouPolyfill_IncludedPolyfills>
+		<MeziantouPolyfill_IncludedPolyfills>T:System.Runtime.CompilerServices.IsExternalInit;T:System.Runtime.CompilerServices.RequiredMemberAttribute;T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute;T:System.Runtime.CompilerServices.CollectionBuilderAttribute;T:System.Index;T:System.Range;T:System.Diagnostics.CodeAnalysis;M:System.Enum.GetValues;M:System.Collections.Generic.List`1.Slice(System.Int32,System.Int32);M:System.String.StartsWith(System.Char;M:System.String.EndsWith(System.Char;M:System.String.Contains(System.Char);M:System.String.Split(System.Char;M:System.String.Join(System.Char;M:System.String.Join``1(System.Char;M:System.String.Replace(System.String,System.String,System.StringComparison)</MeziantouPolyfill_IncludedPolyfills>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -147,6 +147,10 @@ Fixed: SqlStandardParser read a string literal through a simple comment: `'a' --
 		<!-- For the test fixture that includes SqlStandard.gram and publishes its productions one by one
 		     (tests/DotGram.Sql.Productions): the included rules call Nodes and Towers. -->
 		<InternalsVisibleTo Include="DotGram.Sql.Productions" />
+
+		<!-- For the tests that hold the bridge from the old T-SQL tree to the new one by its round trip; the bridge is
+		     internal and goes when the grammar builds the new tree itself. -->
+		<InternalsVisibleTo Include="DotGram.Sql.Tests" />
 	</ItemGroup>
 
 </Project>

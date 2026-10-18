@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 /// <summary>
 /// The old T-SQL tree (<c>SqlSyntax.cs</c>, <c>DotGram.Sql</c>) carried onto the new one
@@ -253,6 +253,20 @@ static partial class Bridge
 	}
 
 	/// <summary>
+	/// What says the gap for an old record a family owns and has no arm for, where something says more than the
+	/// record's name: the tests set it to name the row of the tree's inventory that the record waits on.
+	/// </summary>
+	internal static Func<object, BridgeGap>? Explained { get; set; }
+
+	/// <summary>
+	/// The gap for an old record a family owns and has no arm for.
+	/// </summary>
+	static BridgeGap Unconverted(object old)
+	{
+		return Explained is { } explain ? explain(old) : BridgeGap.Unbridged(old, "the bridge has no arm for it");
+	}
+
+	/// <summary>
 	/// Whether a name is one of the old records a family lists.
 	/// </summary>
 	static bool Owned(string[] owns, object old)
@@ -292,18 +306,18 @@ static partial class Bridge
 
 	/// <summary>
 	/// Whether a text the old tree keeps as written reads back as the text the writer prints, as the oracle compares the
-	/// two: exactly, or token by token (Trees.SameTokens) where the member is free text (Trees.Free).
+	/// two: exactly, or token by token (BridgeText.SameTokens) where the member is free text (BridgeText.Free).
 	/// </summary>
 	static bool Same(object old, string member, string written, string text)
 	{
-		return written == text || Trees.Free(member) && Trees.SameTokens(old, member, text, written);
+		return written == text || BridgeText.Free(member) && BridgeText.SameTokens(old, member, text, written);
 	}
 
 	/// <summary>
 	/// The tokens of a stretch of text, comments apart: a word upper-cased, and a name in brackets or quotes, a
 	/// string or a number as written — so that `"as"` is never the word AS.
 	/// </summary>
-	static string[] Words(string text)
+	static List<string> Words(string text)
 	{
 		return [.. SqlTokens.Of(text).Select(static one => one.Kind == SqlTokens.Kind.Word ? one.Text.ToUpperInvariant() : one.Text)];
 	}

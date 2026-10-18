@@ -6,7 +6,7 @@ using System.Text;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -840,7 +840,7 @@ static partial class Bridge
 
 			string? Next()
 			{
-				return at < words.Length ? words[at++] : null;
+				return at < words.Count ? words[at++] : null;
 			}
 
 			Ast.WindowFrameBound Bound()
@@ -877,7 +877,7 @@ static partial class Bridge
 
 			Ast.WindowFrameExtent extent;
 
-			if (at < words.Length && words[at] == "BETWEEN")
+			if (at < words.Count && words[at] == "BETWEEN")
 			{
 				at++;
 
@@ -891,7 +891,7 @@ static partial class Bridge
 			else
 				extent = new Ast.WindowFrameExtent.Single(Bound());
 
-			if (at != words.Length)
+			if (at != words.Count)
 				throw BridgeGap.Open(window, $"inventory Clause.Window (a frame `{text}`)");
 
 			return new Ast.WindowFrame(unit, extent, null, null);
@@ -1074,7 +1074,7 @@ static partial class Bridge
 				throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a name in the brackets of a type)");
 
 			// Several words unbracketed: only the standard's spellings of several words.
-			if (head.Length == 0 || Words(head).Length != 1 && !head.Contains('.'))
+			if (head.Length == 0 || Words(head).Count != 1 && !head.Contains('.'))
 				return Standard(words, arguments) ?? throw BridgeGap.Open(owner, $"inventory DataType (a type `{text}` of several words)");
 
 			var name   = Name(owner, head);

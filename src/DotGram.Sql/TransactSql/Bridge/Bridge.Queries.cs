@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -112,9 +112,9 @@ static partial class Bridge
 		/// <summary>
 		/// Tokens cut at the commas that stand outside brackets.
 		/// </summary>
-		public static List<SqlTokens.Token[]> Split(IReadOnlyList<SqlTokens.Token> tokens)
+		public static List<List<SqlTokens.Token>> Split(IReadOnlyList<SqlTokens.Token> tokens)
 		{
-			var items = new List<SqlTokens.Token[]>();
+			var items = new List<List<SqlTokens.Token>>();
 			var item  = new List<SqlTokens.Token>();
 			var depth = 0;
 
@@ -390,7 +390,7 @@ static partial class Bridge
 
 		static Ast.ForDirective Directive(Clause old, string text)
 		{
-			SqlTokens.Token[] tokens = [.. SqlTokens.Of(text)];
+			List<SqlTokens.Token> tokens = [.. SqlTokens.Of(text)];
 
 			// A string in brackets after the words: ROOT's or XMLSCHEMA's name.
 			Ast.Expression? name = null;
@@ -476,7 +476,7 @@ static partial class Bridge
 							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), null, false),
 						[{ Kind: SqlTokens.Kind.Word } variable, { Kind: SqlTokens.Kind.Word } unknown] when variable.Text.StartsWith('@') && unknown.Text.Equals("UNKNOWN", StringComparison.OrdinalIgnoreCase) =>
 							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), null, true),
-						[{ Kind: SqlTokens.Kind.Word } variable, { Text: "=" }, .. var value] when variable.Text.StartsWith('@') && value.Length > 0 =>
+						[{ Kind: SqlTokens.Kind.Word } variable, { Text: "=" }, .. var value] when variable.Text.StartsWith('@') && value.Count > 0 =>
 							new Ast.OptimizeForVariable(new Ast.Identifier(variable.Text), HintValue(old, value), false),
 						_ => throw Unread(old),
 					})]);
@@ -488,7 +488,7 @@ static partial class Bridge
 				{
 					var items = Split(tokens.Skip(3).Take(tokens.Count - 4).ToList());
 
-					if (items[0].Length == 0 || items[0].Any(static one => one.Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited) && one.Text != "."))
+					if (items[0].Count == 0 || items[0].Any(static one => one.Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited) && one.Text != "."))
 						throw Unread(old);
 
 					return new Ast.QueryHint.ForTable(
@@ -513,12 +513,12 @@ static partial class Bridge
 				: throw BridgeGap.Open(old, "inventory Clause.Hint");
 		}
 
-		static Ast.TableHint TableHintOf(Clause old, SqlTokens.Token[] tokens)
+		static Ast.TableHint TableHintOf(Clause old, List<SqlTokens.Token> tokens)
 		{
 			if (tokens is [{ Kind: SqlTokens.Kind.Word } seek, { Text: "(" }, var index, { Text: "(" }, .., { Text: ")" }, { Text: ")" }]
 				&& seek.Text.Equals("FORCESEEK", StringComparison.OrdinalIgnoreCase))
 			{
-				var columns = Split(tokens.Skip(4).Take(tokens.Length - 6).ToList());
+				var columns = Split(tokens.Skip(4).Take(tokens.Count - 6).ToList());
 
 				return new Ast.TableHint.ForceSeek(
 					HintValue(old, [index]),
@@ -534,7 +534,7 @@ static partial class Bridge
 		/// A hint of one word and its values: none, in brackets (<c>INDEX (ix, 2)</c>), after it (<c>MAXDOP 2</c>), or
 		/// after <c>=</c> (<c>LABEL = 'x'</c>).
 		/// </summary>
-		static (Ast.Identifier Name, SqlList<Ast.Expression> Arguments, Ast.HintArgumentForm Form) NamedHint(Clause old, SqlTokens.Token[] tokens)
+		static (Ast.Identifier Name, SqlList<Ast.Expression> Arguments, Ast.HintArgumentForm Form) NamedHint(Clause old, List<SqlTokens.Token> tokens)
 		{
 			if (tokens is not [{ Kind: SqlTokens.Kind.Word } name, ..] || name.Text[0] is '@' or '#' or '$')
 				throw Unread(old);
@@ -545,7 +545,7 @@ static partial class Bridge
 			{
 				[_]                                   => (hint, [], Ast.HintArgumentForm.Brackets),
 				[_, { Text: "=" }, .. var value]      => (hint, [HintValue(old, value)], Ast.HintArgumentForm.Assigned),
-				[_, { Text: "(" }, .., { Text: ")" }] => (hint, [.. Split(tokens.Skip(2).Take(tokens.Length - 3).ToList()).Select(item => HintValue(old, item))], Ast.HintArgumentForm.Brackets),
+				[_, { Text: "(" }, .., { Text: ")" }] => (hint, [.. Split(tokens.Skip(2).Take(tokens.Count - 3).ToList()).Select(item => HintValue(old, item))], Ast.HintArgumentForm.Brackets),
 				[_, .. var value]                     => (hint, [HintValue(old, value)], Ast.HintArgumentForm.Bare),
 				_                                     => throw Unread(old),
 			};

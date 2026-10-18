@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -62,7 +62,7 @@ static partial class Bridge
 				Statement.CursorAction acted => Cursor(acted),
 				Statement.Fetch fetch        => Fetch(fetch),
 				Statement.SetStatement set   => Set(set),
-				_ when Owned(Owns, old)      => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old)      => throw Unconverted(old),
 				_                            => null,
 			};
 
@@ -200,7 +200,7 @@ static partial class Bridge
 				SetExpression.Miscellaneous.ContextInfo(var value)             => Valued("CONTEXT_INFO", value),
 				SetExpression.Miscellaneous.ErrorLevel(var value)              => Valued("ERRLVL", value),
 
-				_ => throw Inventory.Unconverted(option),
+				_ => throw Unconverted(option),
 			};
 
 			static Ast.SetOption Valued(string name, Expression value)
@@ -345,7 +345,7 @@ static partial class Bridge
 			{
 				var words = Words(tail);
 
-				for (var at = 1; at < words.Length; at += 2)
+				for (var at = 1; at < words.Count; at += 2)
 					options.Add(words[at] switch
 					{
 						"LOG"      => Ast.RaiseErrorOption.Log,
@@ -563,7 +563,7 @@ static partial class Bridge
 				return new Ast.AtomicOption.Isolation(level) { Tran = words[0] == "TRAN" };
 			}
 
-			if (words.Length != 1)
+			if (words.Count != 1)
 				throw BridgeGap.Open(old, $"inventory Statement.Compound (the atomic option `{name}`)");
 
 			return new Ast.AtomicOption.Setting(new Ast.Option(new Ast.Identifier(name), Values.Of(value), []));

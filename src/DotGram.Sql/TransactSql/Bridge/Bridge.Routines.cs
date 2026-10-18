@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -42,7 +42,7 @@ static partial class Bridge
 				Statement.AlterXmlSchemaCollection collection => SchemaCollection(collection, alter: true),
 				Statement.TriggerSwitch(var enable, var names, var on) => Switch(old, enable, names, on),
 				Query.FromExecute         => throw BridgeGap.Open(old, "inventory Query.FromExecute (outside an INSERT)"),
-				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old) => throw Unconverted(old),
 				_                       => null,
 			};
 
@@ -217,7 +217,7 @@ static partial class Bridge
 			{
 				var all = Words(text);
 
-				for (var at = all.Length - 2; at > 0; at--)
+				for (var at = all.Count - 2; at > 0; at--)
 				{
 					if (all[at] == "EXTERNAL" && all[at + 1] == "NAME")
 						return all[at - 1] == "AS";
@@ -230,7 +230,7 @@ static partial class Bridge
 			if (body is Ast.RoutineBody.Inline)
 			{
 				var all = Words(text);
-				var at  = Array.IndexOf(all, "RETURN");
+				var at  = all.IndexOf("RETURN");
 
 				return at <= 0 || all[at - 1] == "AS";
 			}

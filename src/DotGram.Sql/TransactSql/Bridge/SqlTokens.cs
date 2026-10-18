@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 /// <summary>
 /// T-SQL text cut into tokens, as far as the bridge and its oracle need it: a name in brackets or quotes and
