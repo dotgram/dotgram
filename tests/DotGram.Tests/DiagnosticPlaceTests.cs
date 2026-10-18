@@ -102,4 +102,45 @@ public sealed class DiagnosticPlaceTests
 
 		Assert.Single(run.Diagnostics, static one => one.Id == "GRAM4042");
 	}
+
+	/// <summary>
+	/// Two mistakes at two places of a grammar the attribute names by a constant are two
+	/// diagnostics, with a second reading too. Such a grammar cannot be placed inside the
+	/// attribute, so both are placed on the whole of it, and saying a diagnostic once per place
+	/// merged them into one.
+	/// </summary>
+	[Theory]
+	[InlineData("")]
+	[InlineData("[DotGram.GramOptions(Carrier = DotGram.GramCarrier.Tape, Suffix = \"Tape\")]")]
+	public void Two_mistakes_in_a_grammar_named_by_a_constant_are_two_diagnostics(string reading)
+	{
+		var parse = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var token = TestContext.Current.CancellationToken;
+
+		var host = CSharpSyntaxTree.ParseText(
+			$$"""
+			namespace N;
+
+			[DotGram.Gram(Reader.G)]
+			{{reading}}
+			public partial class Reader
+			{
+				public const string G = "P(x) = x\nStart = P & P & eof\nparse Start";
+			}
+			""",
+			parse, "Grammar.cs", cancellationToken: token);
+
+		var compilation = CSharpCompilation.Create(
+			"DotGram.Tests.DiagnosticPlace",
+			[host],
+			EmittedCode.References,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		var run = CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parse)
+			.RunGenerators(compilation, token)
+			.GetRunResult();
+
+		Assert.Equal(2, run.Diagnostics.Count(static one => one.Id == "GRAM4013"));
+	}
 }
