@@ -515,13 +515,27 @@ public static partial class Sql2023Writer
 				return;
 			}
 
-			if (!NamedKeyWords.Contains(keyword)
+			// T-SQL: DottedType, `national sys.char varying`: NATIONAL before the name and VARYING after it, the name the
+			// one word between, which Syntax.Dotted reads for CHAR, CHARACTER, NCHAR and BINARY alone.
+			var words    = keyword.Split(' ');
+			var national = words.Length > 1 && words[0] == "NATIONAL";
+			var varying  = words.Length > 1 && words[words.Length - 1] == "VARYING";
+			var word     = words.Length == 1 ? keyword : words.Length == 2 + (national && varying ? 1 : 0) ? words[national ? 1 : 0] : null;
+
+			if (word is null || !NamedKeyWords.Contains(word)
+				|| words.Length > 1 && !(national ? word is "CHAR" or "CHARACTER" : varying && word is "CHAR" or "CHARACTER" or "NCHAR" or "BINARY")
 				|| written.Count is 0 or > 2
 				|| written.Count == 2 && !Unquoted(written[0].Text).Equals("SYS", StringComparison.OrdinalIgnoreCase)
-				|| !Unquoted(written[written.Count - 1].Text).TrimEnd().Equals(keyword, StringComparison.OrdinalIgnoreCase))
+				|| !Unquoted(written[written.Count - 1].Text).TrimEnd().Equals(word, StringComparison.OrdinalIgnoreCase))
 				throw Misplaced(type, "WrittenName", $"that is not {keyword} written as a name, bare or qualified by sys");
 
+			if (national)
+				Word("NATIONAL");
+
 			PutName(written);
+
+			if (varying)
+				Word("VARYING");
 		}
 
 		/// <summary>

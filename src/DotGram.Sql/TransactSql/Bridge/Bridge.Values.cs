@@ -1070,8 +1070,14 @@ static partial class Bridge
 			var inside    = tail.Length > 0 ? tail[1..^1].Trim() : "";
 			var arguments = tail.Length > 0 ? inside.Split(',').Select(static one => one.Trim()).ToArray() : [];
 
-			if (arguments.Any(static one => one.StartsWith('[') || one.StartsWith('"')))
+			// A name in the brackets is xml's schema collection alone.
+			if (arguments.Any(static one => one.StartsWith('[') || one.StartsWith('"')) && !Unquoted(head.Split('.')[^1].Trim()).Equals("xml", StringComparison.OrdinalIgnoreCase))
 				throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a name in the brackets of a type)");
+
+			// DottedType: NATIONAL before a name and VARYING after it, the name quoted or qualified by sys: the standard's
+			// spelling of several words, written with that name.
+			if (SpelledType(owner, head, arguments) is { } spelled)
+				return spelled;
 
 			// Several words unbracketed: only the standard's spellings of several words.
 			if (head.Length == 0 || Words(head).Count != 1 && !head.Contains('.'))
@@ -1127,6 +1133,44 @@ static partial class Bridge
 					=> new Ast.DataType.UserDefined(name) { Arguments = [.. arguments.Select(static one => Value(new Ast.LiteralValue.Numeric(one, Ast.NumericLiteralKind.DecimalInteger)))] },
 				_ => throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a user-defined type with arguments)"),
 			};
+		}
+
+		/// <summary>
+		/// <c>national sys.char varying</c>, <c>[sys].[char] varying</c>, <c>national [sys].[char]</c>: NATIONAL, a name of
+		/// one part or <c>sys</c> and one, quoted or qualified, and VARYING, NATIONAL or VARYING written, which make with the
+		/// name's word one of the standard's spellings of several words. The standard's record with the name as written;
+		/// null where the head is no such thing.
+		/// </summary>
+		static Ast.DataType? SpelledType(object owner, string head, string[] arguments)
+		{
+			var tokens   = SqlTokens.Of(head);
+			var national = tokens is [{ Kind: SqlTokens.Kind.Word, Text: var first }, ..] && first.Equals("NATIONAL", StringComparison.OrdinalIgnoreCase);
+			var varying  = tokens.Count > 1 && tokens[^1] is { Kind: SqlTokens.Kind.Word, Text: var last } && last.Equals("VARYING", StringComparison.OrdinalIgnoreCase);
+			var from     = national ? 1 : 0;
+			var count    = tokens.Count - from - (varying ? 1 : 0);
+
+			if (!national && !varying || count is not (1 or 3))
+				return null;
+
+			var part = tokens[from];
+
+			if (count == 3 && (tokens[from + 1].Text != "." || !Unquoted(part.Text).Equals("sys", StringComparison.OrdinalIgnoreCase)))
+				return null;
+
+			var named = tokens[from + count - 1];
+
+			if (named.Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited) || part.Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited))
+				return null;
+
+			// Bare and unqualified, the words are the standard's spelling already, which the caller reads.
+			if (count == 1 && named.Kind == SqlTokens.Kind.Word)
+				return null;
+
+			var spelling = (national ? "NATIONAL " : "") + Unquoted(named.Text).ToUpperInvariant() + (varying ? " VARYING" : "");
+
+			return Standard(spelling, arguments) is { } standard
+				? standard with { WrittenName = Name(owner, head.Substring(head.IndexOf(part.Text, StringComparison.Ordinal), head.LastIndexOf(named.Text, StringComparison.Ordinal) + named.Text.Length - head.IndexOf(part.Text, StringComparison.Ordinal))) }
+				: null;
 		}
 
 		/// <summary>A name part's text without its delimiters, a doubled closing one undoubled.</summary>

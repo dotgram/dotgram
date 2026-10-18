@@ -74,6 +74,10 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("DECLARE @v vector(max)", "a vector of MAX")]
 	[InlineData("CREATE TABLE t (c dbo.mytype (10, 20))", "a user's type with two numbers")]
 	[InlineData("CREATE TABLE t (c dbo.mytype)", "a user's type")]
+	[InlineData("CREATE TABLE t (c [sys].[char] varying (10))", "char varying written as a name")]
+	[InlineData("CREATE TABLE t (c national sys.Char varying)", "national char varying written as a name")]
+	[InlineData("CREATE TABLE t (c char varying (10))", "char varying")]
+	[InlineData("CREATE TABLE t (c XML ([dbo].xsd))", "xml with a bracketed collection")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -163,6 +167,10 @@ public sealed class DdlRemainderBridgeTests
 			"a vector of MAX" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { Type: Ast.DataType.Vector { Dimensions: null, Max: true } }] },
 			"a user's type with two numbers" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.UserDefined { Arguments.Count: 2, Max: false } }] } },
 			"a user's type" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.UserDefined { Arguments.Count: 0, Max: false } }] } },
+			"char varying written as a name" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Character { Kind: Ast.CharacterTypeKind.CharVarying, Length: 10, WrittenName: [{ Text: "[sys]" }, { Text: "[char]" }] } }] } },
+			"national char varying written as a name" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Character { Kind: Ast.CharacterTypeKind.NationalCharVarying, WrittenName: [{ Text: "sys" }, { Text: "Char" }] } }] } },
+			"char varying" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Character { Kind: Ast.CharacterTypeKind.CharVarying, WrittenName: null } }] } },
+			"xml with a bracketed collection" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Xml { Schema: [{ Text: "[dbo]" }, _] } }] } },
 			_ => false,
 		};
 

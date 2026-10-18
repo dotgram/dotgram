@@ -267,6 +267,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("a vector's base type without dimensions")]
 	[InlineData("a vector as a named type")]
 	[InlineData("a user's type of three numbers")]
+	[InlineData("NATIONAL before nchar written as a name")]
 	[InlineData("a user's type of a signed number")]
 	[InlineData("ALTER COLUMN a collation after SPARSE")]
 	[InlineData("JSON a path with an escape")]
@@ -371,6 +372,8 @@ public sealed class DdlRemainderWriterTests
 			"a vector's base type without dimensions" => Cast(new DataType.Vector(null) { BaseType = VectorBaseType.Float32 }),
 			// TSqlDataType: VECTOR reads back as the vector type.
 			"a vector as a named type" => Cast(new DataType.Named(Qualified("VECTOR"), [Number("3")])),
+			// Syntax.Dotted: NATIONAL stands before char, character and text alone (national sys.nchar is Msg 102).
+			"NATIONAL before nchar written as a name" => Cast(new DataType.Character(CharacterTypeKind.NationalChar) { WrittenName = new QualifiedName([Name("sys"), Name("nchar")]) }),
 			// DottedTail: one or two whole numbers.
 			"a user's type of three numbers" => Cast(new DataType.UserDefined(Qualified("t")) { Arguments = [Number("1"), Number("2"), Number("3")] }),
 			"a user's type of a signed number" => Cast(new DataType.UserDefined(Qualified("t")) { Arguments = [Number("-1")] }),
