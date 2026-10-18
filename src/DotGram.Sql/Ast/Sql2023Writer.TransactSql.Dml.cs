@@ -403,12 +403,12 @@ public static partial class Sql2023Writer
 					throw Misplaced(target, "Target", "that is a function, which OUTPUT INTO does not read");
 
 				case TableSource.OpenQuery { Alias: null, Sample: null }:
-				case TableSource.Function { Alias: null, Sample: null }:
+				case TableSource.Function { Alias: null, Sample: null, Variable: null }:
 					PutSource(target);
 					break;
 
 				default:
-					throw Misplaced(target, "Target", "that is not a name, a variable, OPENQUERY or a function, or with an alias or a sample");
+					throw Misplaced(target, "Target", "that is not a name, a variable, OPENQUERY or a function, or with an alias, a sample or a variable's method");
 			}
 		}
 

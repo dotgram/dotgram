@@ -66,6 +66,7 @@ public sealed class ValuesRemainderWriterTests
 			"AI_GENERATE_CHUNKS" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.AiGenerateChunks(Text("x"), Name("fixed"), Number("5")) { Overlap = Number("1"), Alias = new Alias(Name("c"), null, true) }]) } },
 			"IDENTITY" => Into(new SelectColumn.ExpressionItem(Identity(Number("1"), new LiteralValue.Numeric("-1.5", NumericLiteralKind.Decimal)), Name("id"), true)),
 			"IDENTITY named first" => Into(new SelectColumn.ExpressionItem(new Expression.Identity(new DataType.Numeric(NumericTypeKind.Int)), Name("id")) { AliasFirst = true }),
+			"a variable's method" => From(new TableSource.Function(new Expression.Invocation(Qualified("f"), [new Argument(Number("1"))]), new Alias(Name("t"), [Name("c")], true)) { Variable = Name("@v") }),
 			"CONTAINS" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b"), Ref("c")], Text("x")) { ColumnsBracketed = true, Language = Number("1033") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
@@ -86,6 +87,11 @@ public sealed class ValuesRemainderWriterTests
 		return new LiteralValue.Numeric(text, NumericLiteralKind.DecimalInteger);
 	}
 
+	static Statement From(TableSource source)
+	{
+		return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("c1"))], From = new FromClause([source]) } };
+	}
+
 	static Statement Where(Expression condition)
 	{
 		return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("a"))], From = new FromClause([new TableSource.Named(Qualified("t"))]), Where = condition } };
@@ -99,6 +105,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("AI_GENERATE_EMBEDDINGS", "SELECT AI_GENERATE_EMBEDDINGS('x' USE MODEL dbo.m PARAMETERS p)")]
 	[InlineData("IDENTITY", "SELECT IDENTITY(INT, 1, -1.5) AS id INTO #t FROM t")]
 	[InlineData("IDENTITY named first", "SELECT id = IDENTITY(INT) INTO #t FROM t")]
+	[InlineData("a variable's method", "SELECT c1 FROM @v.f(1) AS t (c)")]
 	[InlineData("AI_GENERATE_CHUNKS", "SELECT * FROM AI_GENERATE_CHUNKS(SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, OVERLAP = 1) AS c")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
@@ -114,6 +121,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("AI_GENERATE_CHUNKS")]
 	[InlineData("IDENTITY")]
 	[InlineData("IDENTITY named first")]
+	[InlineData("a variable's method")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -144,6 +152,9 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("IDENTITY in a WHERE")]
 	[InlineData("IDENTITY with a seed and no increment")]
 	[InlineData("IDENTITY seeded by a hex number")]
+	[InlineData("a variable's method of two parts")]
+	[InlineData("a variable's method with no @")]
+	[InlineData("a variable's method as an INSERT's target")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -187,6 +198,12 @@ public sealed class ValuesRemainderWriterTests
 			"IDENTITY with a seed and no increment" => Into(new SelectColumn.ExpressionItem(new Expression.Identity(new DataType.Numeric(NumericTypeKind.Int)) { Seed = Num("1") }, Name("id"), true)),
 			// IdentityNumber: Lexical.UnsignedNumericLiteral, which reads no hexadecimal number.
 			"IDENTITY seeded by a hex number" => Into(new SelectColumn.ExpressionItem(Identity(new LiteralValue.Numeric("0x1", NumericLiteralKind.HexInteger), Num("1")), Name("id"), true)),
+			// VariableSource: '.' & TSqlIdentifier, a method's name of one part.
+			"a variable's method of two parts" => From(new TableSource.Function(new Expression.Invocation(new QualifiedName([Name("s"), Name("f")]), [])) { Variable = Name("@v") }),
+			// TSql.Variable: '@' first.
+			"a variable's method with no @" => From(new TableSource.Function(new Expression.Invocation(Qualified("f"), [])) { Variable = Name("v") }),
+			// TSqlDmlTarget: a function's call, never a variable's method.
+			"a variable's method as an INSERT's target" => new Statement.Insert { Target = new TableSource.Function(new Expression.Invocation(Qualified("f"), [])) { Variable = Name("@v") } },
 			"a number with no name" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};

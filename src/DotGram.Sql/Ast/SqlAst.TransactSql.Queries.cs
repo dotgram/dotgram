@@ -282,6 +282,18 @@ public abstract partial record TableSource
 		/// <summary>T-SQL: Table Hints (Transact-SQL).</summary>
 		public SqlList<TableHint> Hints { get; init; } = [];
 	}
+
+	public partial record Function
+	{
+		/// <summary>
+		/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (Transact-SQL). <c>FROM @v.f (1) AS t (c)</c>: the variable of a
+		/// user-defined type whose table-valued method the invocation calls, the identifier keeping its <c>@</c>; the
+		/// invocation's name is the method's, of one part.
+		/// </summary>
+		// `new`: TableSource.Variable, the table variable as a source, is another node, which this name hides inside
+		// Function.
+		public new Identifier? Variable { get; init; }
+	}
 }
 
 public abstract partial record SelectColumn

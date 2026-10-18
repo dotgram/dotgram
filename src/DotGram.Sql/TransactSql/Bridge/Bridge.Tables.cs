@@ -83,10 +83,19 @@ static partial class Bridge
 					if (schema.Length > 0 || Rowsets.Contains(call.Name) || call is { Name: var chunks, Arguments: [Expression.NamedArgument, ..] } && chunks.Equals("AI_GENERATE_CHUNKS", StringComparison.OrdinalIgnoreCase))
 						return Rowset((TableReference.FunctionCall)old);
 
-					if (Values.Function(call) is not Ast.Expression.Invocation invocation)
+					// VariableSource: `@v.f (1)`, a method on a variable, which the old tree keeps as one name; a variable's
+					// name has no dot, so the first one ends it.
+					var method = call.Name.StartsWith('@') ? call.Name.IndexOf('.') : -1;
+
+					if (Values.Function(method < 0 ? call : call with { Name = call.Name.Substring(method + 1) }) is not Ast.Expression.Invocation invocation)
 						throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a call that is not a plain invocation)");
 
-					return new Ast.TableSource.Function(invocation, Alias(old, call, name, columns));
+					// The method's call is built inside VariableSource and has no place in the text of its own: the source's
+					// whole text is read for the AS instead, outside the brackets.
+					return new Ast.TableSource.Function(invocation, Alias(old, method < 0 ? call : null, name, columns))
+					{
+						Variable = method < 0 ? null : new Ast.Identifier(call.Name.Substring(0, method)),
+					};
 
 				case TableReference.Joined joined:
 					return Joined(joined);
@@ -401,12 +410,18 @@ static partial class Bridge
 
 			var said = Recover("Alias.AsKeyword of a table source", before is null ? Spelled(old) : WordsAfter(before, old), static text =>
 			{
-				// A word AS, not a name `"as"` or `[as]`, and not the AS of FOR SYSTEM_TIME AS OF.
+				// A word AS, not a name `"as"` or `[as]`, not the AS of FOR SYSTEM_TIME AS OF, and not one inside
+				// brackets, a method's arguments (`@v.f (CAST (1 AS INT))`).
 				var words = Words(text);
+				var depth = 0;
 
 				for (var at = 0; at < words.Count; at++)
-					if (words[at] == "AS" && (at + 1 >= words.Count || words[at + 1] != "OF"))
+				{
+					depth += words[at] switch { "(" => 1, ")" => -1, _ => 0 };
+
+					if (depth == 0 && words[at] == "AS" && (at + 1 >= words.Count || words[at + 1] != "OF"))
 						return true;
+				}
 
 				return false;
 			}, false);

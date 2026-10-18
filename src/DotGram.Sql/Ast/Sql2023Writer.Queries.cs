@@ -1202,6 +1202,22 @@ public static partial class Sql2023Writer
 
 				case TableSource.Function function:
 					tableFunction = transactSql;
+
+					// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (Transact-SQL). VariableSource: the variable, a dot and the
+					// method's name of one part, against each other.
+					if (function.Variable is { } variable)
+					{
+						if (!transactSql)
+							throw Misplaced(function, "Variable", "in the standard, which calls no method on a variable in a FROM");
+
+						if (function.Invocation is not { Name.Count: 1, Quantifier: null })
+							throw Misplaced(function, "Variable", "with a method whose name has more than one part or a quantifier (VariableSource: '.' & TSqlIdentifier)");
+
+						PutVariableName(function, variable);
+						Tight(".");
+						Hold();
+					}
+
 					PutExpression(function.Invocation);
 					tableFunction = false;
 					PutAlias(function.Alias);

@@ -737,7 +737,7 @@ public abstract partial record TableSource : ISqlNode
 	}
 
 	public record Unnest(SqlList<Expression> Expressions, bool WithOrdinality, Alias? Alias) : TableSource;
-	public record Function(Expression.Invocation Invocation, Alias? Alias = null) : TableSource;
+	public partial record Function(Expression.Invocation Invocation, Alias? Alias = null) : TableSource;
 
 	// BNF: <table function derived table>, `TABLE (f (a))`.
 	public record TableFunction(Expression Value, Alias? Alias = null) : TableSource;

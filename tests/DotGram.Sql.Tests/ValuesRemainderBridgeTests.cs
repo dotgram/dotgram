@@ -36,6 +36,10 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT IDENTITY (INT, 1, 1) AS id INTO #t FROM t", "an identity")]
 	[InlineData("SELECT id = IDENTITY (DECIMAL (10, 0), 1.5, +1) INTO t2 FROM t", "an identity named first with signed numbers")]
 	[InlineData("SELECT IDENTITY (INT) c INTO t2 FROM t", "an identity of a type alone")]
+	[InlineData("SELECT c1 FROM @v.f (1) AS t (c)", "a variable's method")]
+	[InlineData("SELECT c1 FROM @v.[f.g] () t", "a variable's method of a bracketed name")]
+	[InlineData("SELECT c1 FROM @v.f (CAST (1 AS INT)) t", "a variable's method with an AS in its arguments")]
+	[InlineData("SELECT c1 FROM dbo.f (1) AS t", "a function")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -62,6 +66,10 @@ public sealed class ValuesRemainderBridgeTests
 			"an identity" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Identity { Type: Ast.DataType.Numeric { Kind: Ast.NumericTypeKind.Int }, Seed.Text: "1", Increment.Text: "1" } }], IntoTable: not null } },
 			"an identity named first with signed numbers" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { AliasFirst: true, Expression: Ast.Expression.Identity { Type: Ast.DataType.Numeric { Precision: 10, Scale: 0 }, Seed: { Text: "1.5", Kind: Ast.NumericLiteralKind.Decimal }, Increment.Text: "+1" } }] } },
 			"an identity of a type alone" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Identity { Seed: null, Increment: null } }] } },
+			"a variable's method" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Function { Variable.Text: "@v", Invocation: { Name: [{ Text: "f" }], Arguments.Count: 1 }, Alias: { AsKeyword: true, Columns.Count: 1 } }] } },
+			"a variable's method with an AS in its arguments" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Function { Variable.Text: "@v", Alias.AsKeyword: false }] } },
+			"a variable's method of a bracketed name" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Function { Variable.Text: "@v", Invocation: { Name: [{ Text: "[f.g]", Style: Ast.IdentifierStyle.Bracketed }], Arguments.Count: 0 } }] } },
+			"a function" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Function { Variable: null, Invocation.Name.Count: 2 }] } },
 			_ => false,
 		};
 
