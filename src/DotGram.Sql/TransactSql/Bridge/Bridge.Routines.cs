@@ -187,7 +187,7 @@ static partial class Bridge
 			else if (type.Equals("TABLE", StringComparison.OrdinalIgnoreCase))
 			{
 				returns = new Ast.ReturnsDefinition(null, null) { TableKeyword = true };
-				body    = old.Body is [Statement.Select select] && StatementOf(select) is Ast.Statement.Select query
+				body    = old.Body is [Statement.Built { Given: Queries.Selecting } select] && StatementOf(select) is Ast.Statement.Select query
 					? new Ast.RoutineBody.Inline(query)
 					: throw BridgeGap.Open(old, "inventory Statement.CreateFunction (an inline body that is not one query)");
 			}
@@ -557,7 +557,7 @@ static partial class Bridge
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(object owner, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+			return Queries.Specified("SELECT " + text.Trim()) is { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a value `{text.Trim()}`)");
 		}
@@ -565,7 +565,7 @@ static partial class Bridge
 		/// <summary>A search condition kept as text, read again as a query's WHERE.</summary>
 		static Ast.Expression ConditionOf(object owner, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT 1 WHERE " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
+			return Queries.Specified("SELECT 1 WHERE " + text.Trim()) is { Where: { } where }
 				? Values.Of(where)
 				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a condition `{text.Trim()}`)");
 		}

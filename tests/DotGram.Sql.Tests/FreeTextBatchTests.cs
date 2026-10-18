@@ -21,24 +21,12 @@ public sealed class FreeTextBatchTests
 	}
 
 	/// <summary>
-	/// A text of the batch written otherwise than the writer prints it, but for the case of its key words and its blanks:
-	/// the bridge carries it, the writer prints it its own way, and the oracle counts the statement converted, by case.
+	/// A text of the batch written otherwise than the writer prints it, but for the case of its key words and its blanks, in
+	/// a statement whose rule builds the common tree — which every statement's rule now does: the words are the tree's own,
+	/// written in its capitals, and the statement converts with nothing aside.
 	/// </summary>
 	[Theory]
-	[InlineData("SELECT DATEADD(wk, 1, d)",                                Trees.DatePartWord)]
-	public void A_text_of_the_batch_converts_by_case(string text, string member)
-	{
-		var outcome = BridgeOracle.Run(Old(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
-		Assert.Contains(member, outcome.ByCase!);
-	}
-
-	/// <summary>
-	/// The same texts of the statements whose rules build the common tree: the words are the tree's own, written in its
-	/// capitals, and the statement converts with nothing aside.
-	/// </summary>
-	[Theory]
+	[InlineData("SELECT DATEADD(wk, 1, d)")]
 	[InlineData("DECLARE @a int")]
 	[InlineData("SET STATISTICS io ON")]
 	[InlineData("RAISERROR ('x', 1, 1) with nowait")]

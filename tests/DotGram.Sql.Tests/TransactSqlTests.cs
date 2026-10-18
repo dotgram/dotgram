@@ -14115,19 +14115,19 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void An_ordered_query_keeps_its_order()
 	{
-		var select = Assert.IsType<Statement.Select>(
-			OldTree.TryParseStatement("SELECT * FROM (SELECT TOP 1 a FROM t UNION SELECT b FROM u ORDER BY 1) AS x").Value);
-		var outer  = Assert.IsType<Query.Specification>(select.Of);
-		var derived = Assert.IsType<TableReference.Derived>(Assert.Single(outer.From));
-		var ordered = Assert.IsType<Query.Ordered>(derived.Query);
+		var select  = Assert.IsType<Ast.Statement.Select>(
+			TransactSqlParser.ParseStatement("SELECT * FROM (SELECT TOP 1 a FROM t UNION SELECT b FROM u ORDER BY 1) AS x"));
+		var outer   = Assert.IsType<Ast.Query.Select>(select.Query);
+		var derived = Assert.IsType<Ast.TableSource.Subquery>(Assert.Single(outer.From!.Sources));
+		var ordered = Assert.IsType<Ast.Query.Select>(derived.Query);
 
-		Assert.IsType<Query.Union>(ordered.Query);
-		Assert.NotNull(ordered.By);
+		Assert.Equal(Ast.SetOperator.Union, Assert.Single(ordered.SetOperations).Operator);
+		Assert.NotNull(ordered.OrderBy);
 		Assert.Null(ordered.For);
 
 		var insert = Assert.IsType<Statement.Insert>(OldTree.Record(OldTree.TryParseStatement("INSERT INTO x SELECT y FROM z").Value!));
 
-		Assert.IsType<Query.Specification>(insert.Rows);
+		Assert.Equal("Query.Specification", Assert.IsType<Query.Built>(insert.Rows).Record);
 	}
 
 	/// <summary>A subquery as the count of a `TOP`, whose brackets are the subquery's own.</summary>
@@ -15310,9 +15310,11 @@ public sealed class TransactSqlTests
 
 		Assert.Equal(new[] { "a" }, written.Columns);
 
-		var query = Assert.IsType<Query.Specification>(written.Rows);
+		var query = Assert.IsType<Query.Built>(written.Rows);
+		var made  = Assert.IsType<Ast.Query.Select>(query.Made);
 
-		Assert.Equal("u", Assert.IsType<TableReference.Named>(Assert.Single(query.From)).Table);
+		Assert.Equal("Query.Specification", query.Record);
+		Assert.Equal("u", Assert.IsType<Ast.TableSource.Named>(Assert.Single(made.From!.Sources)).Name.Last.Text);
 		Assert.NotNull(query.Where);
 
 		var merged = Assert.IsType<Statement.Merge>(
@@ -16459,13 +16461,12 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_count_and_a_window_say_what_was_written()
 	{
-		var topped = Selected("SELECT TOP 10 PERCENT a FROM t");
-		var top    = Assert.IsType<Clause.Top>(topped.Top);
+		var top = Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Statement.Select>(TransactSqlParser.ParseSelect("SELECT TOP 10 PERCENT a FROM t")).Query).Top!;
 
 		Assert.True(top.Percent);
 		Assert.Null(top.With);
-		Assert.Equal("10", Assert.IsType<Expression.Literal>(top.Value).Text);
-		Assert.Null(Selected("SELECT a FROM t").Top);
+		Assert.Equal("10", Assert.IsType<Ast.LiteralValue.Numeric>(top.Value).Text);
+		Assert.Null(Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Statement.Select>(TransactSqlParser.ParseSelect("SELECT a FROM t")).Query).Top);
 
 		var over = Assert.IsType<Expression.WindowFunction>(
 			Assert.IsType<Clause.DerivedColumn>(
@@ -16482,27 +16483,31 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_select_keeps_the_clauses_written_around_it()
 	{
-		var read = Assert.IsType<Statement.Select>(
-			OldTree.TryParseStatement(
-				"WITH c AS (SELECT a FROM u) SELECT a INTO #t FROM c ORDER BY a " +
-				"OFFSET 5 ROWS FETCH NEXT 2 ROWS ONLY FOR XML AUTO OPTION (MAXDOP 2)").Value);
+		const string text =
+			"WITH c AS (SELECT a FROM u) SELECT a INTO #t FROM c ORDER BY a " +
+			"OFFSET 5 ROWS FETCH NEXT 2 ROWS ONLY FOR XML AUTO OPTION (MAXDOP 2)";
 
+		var read  = OldTree.Selecting(OldTree.TryParseStatement(text).Value!);
 		var named = Assert.IsType<Clause.CommonTableExpression>(Assert.Single(read.With));
-		var by    = Assert.IsType<Clause.OrderBy>(read.OrderBy);
+		var by    = Assert.IsType<Clause.OrderBy>(read.By);
+		var made  = Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Statement.Select>(TransactSqlParser.ParseStatement(text)).Query);
 
 		Assert.Equal("c", named.Name);
-		Assert.Equal("#t", Assert.IsType<Clause.Into>(Assert.IsType<Query.Specification>(read.Of).Into).Table);
+		Assert.Equal("#t", made.IntoTable!.Table.Last.Text);
 		Assert.Equal("5", Assert.IsType<Expression.Literal>(by.Offset).Text);
 		Assert.Equal("2", Assert.IsType<Expression.Literal>(by.Fetch).Text);
-		Assert.Equal("XML", Assert.IsType<Clause.For>(Assert.Single(read.For)).Kind);
+		Assert.Equal("XML", Assert.IsType<Clause.For>(read.Shape).Kind);
 		Assert.Equal("MAXDOP 2", Assert.IsType<Clause.Hint>(Assert.Single(read.Options)).Text);
 	}
 
-	/// <summary>What the dialect read, where it was a query.</summary>
-	static Query.Specification Selected(string input)
+	/// <summary>What the dialect read, where it was a query: the specification as its rule built it, which keeps its select list.</summary>
+	static Query.Built Selected(string input)
 	{
-		return Assert.IsType<Query.Specification>(
-			Assert.IsType<Statement.Select>(OldTree.TryParseSelect(input).Value).Of);
+		var query = OldTree.QueryOf(OldTree.TryParseSelect(input).Value!);
+
+		Assert.Equal("Query.Specification", query.Record);
+
+		return query;
 	}
 
 	/// <summary>A bracketed name may be a reserved word, which is what brackets are for.</summary>
@@ -16527,11 +16532,11 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_table_variable_is_a_source()
 	{
-		var query  = Selected("SELECT a FROM @rows AS r");
-		var source = Assert.IsType<TableReference.Named>(Assert.Single(query.From));
+		var query  = Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Statement.Select>(TransactSqlParser.ParseSelect("SELECT a FROM @rows AS r")).Query);
+		var source = Assert.IsType<Ast.TableSource.Variable>(Assert.Single(query.From!.Sources));
 
-		Assert.Equal("@rows", source.Table);
-		Assert.Equal("r", source.Name);
+		Assert.Equal("@rows", source.Name.Text);
+		Assert.Equal("r", source.Alias!.Name.Text);
 	}
 
 	// ── And the other three publications came across ─────────────────────────────

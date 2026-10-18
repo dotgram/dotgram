@@ -47,10 +47,19 @@ static class BridgeReport
 		The bridge is `src/DotGram.Sql/TransactSql/Bridge`, internal: the parser's public entries carry what they read
 		across with it, and a statement it has no place for is handed back as an extension of the new tree.
 
-		Every statement rule but a query's now builds the new tree in its action, its parts still carried by the
-		bridge: such a statement is read into the old tree as a `Statement.Built`, which holds what was built (or the
-		gap found) and is counted under the record the rule built before. Its round trip is the new tree's own: the
-		statement is written, read back, and the two new trees are held to each other.
+		Every statement rule now builds the new tree in its action, its parts still carried by the bridge: such a
+		statement is read into the old tree as a `Statement.Built`, which holds what was built (or the gap found) and
+		is counted under the record the rule built before. Its round trip is the new tree's own: the statement is
+		written, read back, and the two new trees are held to each other. A query statement is built where it is
+		carried, since the WITH in front of it is read by the rule around it; until then it holds what its rule
+		read, and its round trip holds that too: its order, FOR, hints and WITH, which are still the old tree's
+		records, compared as the old tree's are.
+
+		The query and table source rules build the new tree in their actions as well, a query's and a source's parts
+		still carried by the bridge: such a query or source stands where the old tree holds one as a `Query.Built` or a
+		`TableReference.Built`, which holds what was built (or the gap found), what the rules that hold one ask of it,
+		and a specification's select list and condition as they were read; it is carried as what it holds, and counted
+		under the record its rule built before.
 
 		Each statement is **converted** (the same tree came back), a **gap**, **refused** by the writer (it said no:
 		`NotSupportedException`, a rejected argument or operation), **crashed** (anything else the writer threw),
@@ -263,6 +272,8 @@ static class BridgeReport
 		Line("under the record — those whose first gap it is, or whose root it is. Gaps are every gap the record has, a");
 		Line("statement counted once for each record and reason it holds, with the commonest reasons. Occurrences are how");
 		Line("many nodes of the record the statements hold, at any depth. All three are over the corpus and the tests' inputs.");
+		Line("A statement, a query or a source whose rule builds the new tree holds no node of the old tree, and what was read");
+		Line("under it is in neither of the last two.");
 		Line();
 		Line("| Old record | Family | Category | Counted | Gaps | Occurrences |");
 		Line("| --- | --- | --- | --- | --- | ---: |");

@@ -5,6 +5,8 @@ using DotGram.Sql.TransactSql;
 
 using Xunit;
 
+using Ast = DotGram.Sql.Ast;
+
 namespace DotGram.Sql.Tests;
 
 /// <summary>
@@ -171,7 +173,7 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT a COLLATE x AT TIME ZONE b AT TIME ZONE - c FROM T", "SELECT a COLLATE x AT TIME ZONE b AT TIME ZONE -c FROM T")]
 	[InlineData("WAITFOR TIME '10:00'", "WAITFOR TIME '10:00'")]
 	[InlineData("INSERT INTO t (a) VALUES (DEFAULT), (NULL), (1)", "INSERT INTO t (a) VALUES (DEFAULT), (NULL), (1)")]
-	[InlineData("SELECT DATEADD(w, 1, x), DATEPART([yy], x) FROM t", "SELECT DATEADD(w, 1, x), DATEPART([yy], x) FROM t")]
+	[InlineData("SELECT DATEADD(w, 1, x), DATEPART([yy], x) FROM t", "SELECT DATEADD(W, 1, x), DATEPART([yy], x) FROM t")]
 	[InlineData("EXEC ('SELECT 1') AS user = N'u' AT DATA_SOURCE ds", "EXEC ('SELECT 1') AS USER = N'u' AT DATA_SOURCE ds")]
 	[InlineData("EXEC ('SELECT ?', 1) AS LOGIN = 'x' AT srv", "EXEC ('SELECT ?', 1) AS LOGIN = 'x' AT srv")]
 	[InlineData("SELECT * FROM (SELECT TOP 1 a FROM t ORDER BY a DESC) AS x", "SELECT * FROM (SELECT TOP 1 a FROM t ORDER BY a DESC) AS x")]
@@ -181,7 +183,7 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT IDENTITY(INT, -1, 2) AS id, IDENTITY(BIGINT) AS b INTO #t FROM t", "SELECT IDENTITY(INT, -1, 2) AS id, IDENTITY(BIGINT) AS b INTO #t FROM t")]
 	[InlineData("SELECT a % b & ~c | d ^ e FROM t", "SELECT a % b & ~c | d ^ e FROM t")]
 	[InlineData("SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)", "SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)")]
-	[InlineData("SELECT - ~1, ~~1, ~2 * 3", "SELECT -~1, ~ ~1, ~2 * 3")]
+	[InlineData("SELECT - ~1, ~~1, ~2 * 3", "SELECT -~1, ~~1, ~2 * 3")]
 	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1", "CREATE FUNCTION f1 () RETURNS TABLE AS RETURN WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1")]
 	[InlineData("create json index ix on dbo.t (c) for ('$.a', N'$.b') with (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)", "CREATE JSON INDEX ix ON dbo.t (c) FOR ('$.a', N'$.b') WITH (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
 	[InlineData("shutdown with nowait", "SHUTDOWN WITH NOWAIT")]
@@ -281,7 +283,7 @@ public sealed class SqlWriterTests
 		Assert.True(match.IsSuccess, input);
 
 		var read  = Assert.IsAssignableFrom<Statement>(match.Value);
-		var query = Assert.IsType<Query.Specification>(Assert.IsType<Statement.Select>(read).Of);
+		var query = OldTree.QueryOf(read);
 
 		// And the reading that was not asked for locations keeps none, which is the whole
 		// point of there being two.
@@ -294,7 +296,10 @@ public sealed class SqlWriterTests
 
 		Assert.Equal("a + 1", Cut(input, column.Span));
 		Assert.Equal("a + 1", Cut(input, column.Value.Span));
-		Assert.Equal("t",     Cut(input, Assert.Single(query.From).Span));
+		// A source its rule builds on the common tree, which keeps it there, told its span.
+		var made = Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Statement.Select>(TransactSqlParser.Located.ParseStatement(input)).Query);
+
+		Assert.Equal("t", Cut(input, Assert.Single(made.From!.Sources).Span));
 
 		// A rule that only hands back a value another rule made offers it nothing, and
 		// `WhereClause` is `"WHERE"i & c: SearchCondition => @(c)`: the keyword stays outside

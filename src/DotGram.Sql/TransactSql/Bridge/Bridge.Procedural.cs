@@ -485,7 +485,7 @@ static partial class Bridge
 		/// <summary>The query a cursor is over, as a SELECT statement with its hints, and FOR READ ONLY or FOR UPDATE.</summary>
 		static Ast.CursorSource CursorSource(Statement old, Clause.CursorDefinition cursor)
 		{
-			if (StatementOf(new Statement.Select(cursor.With, cursor.Query, null, [], cursor.Hints)) is not Ast.Statement.Select select)
+			if (Queries.Statemented(new Queries.Selecting(cursor.Query, null, null, cursor.Hints) { With = cursor.With }) is not Ast.Statement.Select select)
 				throw BridgeGap.Open(old, "inventory Clause.CursorDefinition (a query)");
 
 			var updatability = cursor.Access switch

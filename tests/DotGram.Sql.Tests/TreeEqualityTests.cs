@@ -188,7 +188,7 @@ public sealed class TreeEqualityTests
 
 				foreach (var statement in first.Value)
 				{
-					if (statement is not Statement.Select)
+					if (statement is not Statement.Built { Given: Bridge.Queries.Selecting })
 						continue;
 
 					string candidate;
@@ -261,7 +261,7 @@ public sealed class TreeEqualityTests
 
 				foreach (var statement in first.Value)
 				{
-					if (statement is not Statement.Select)
+					if (statement is not Statement.Built { Given: Bridge.Queries.Selecting })
 						continue;
 
 					string candidate;
@@ -479,9 +479,10 @@ public sealed class TreeEqualityTests
 	[Fact]
 	public void A_copy_changed_and_changed_back_is_equal_again()
 	{
-		var located = (Query.Specification)((Statement.Select)OldTree.Located.ParseStatement("SELECT a, b FROM t WHERE a = 1")).Of;
-		var changed = located with { Columns = [.. located.Columns.Skip(1)] };
-		var back    = changed with { Columns = located.Columns };
+		// A record its rules read: a query statement's rule builds the common tree, and keeps no record of this one.
+		var located = (Statement.Update)OldTree.Record(OldTree.Located.ParseStatement("UPDATE t SET a = 1, b = 2 WHERE a = 1"));
+		var changed = located with { Set = [.. located.Set.Skip(1)] };
+		var back    = changed with { Set = located.Set };
 
 		Assert.NotEqual(located, changed);
 		Assert.Equal(located, back);

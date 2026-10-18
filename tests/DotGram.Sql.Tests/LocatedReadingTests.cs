@@ -11,6 +11,8 @@ using DotGram.Sql.TransactSql;
 
 using Xunit;
 
+using Ast = DotGram.Sql.Ast;
+
 namespace DotGram.Sql.Tests;
 
 /// <summary>
@@ -146,10 +148,8 @@ public sealed class LocatedReadingTests
 	/// <summary>Every clause that hands back what it reads leaves its keyword outside the value's span.</summary>
 	[Theory]
 	[InlineData("SELECT a FROM t WHERE a = 1", "a = 1")]
-	[InlineData("SELECT a FROM t GROUP BY a HAVING COUNT(*) > 1", "COUNT(*) > 1")]
 	[InlineData("UPDATE t SET a = 1 WHERE b = 2", "b = 2")]
 	[InlineData("DELETE FROM t WHERE b = 2", "b = 2")]
-	[InlineData("SELECT a FROM t JOIN u ON t.a = u.a", "t.a = u.a")]
 	[InlineData("IF 1 = 1 SELECT 1 ELSE SELECT 2", "SELECT 2")]
 	public void A_condition_is_spanned_without_its_keyword(string text, string condition)
 	{
@@ -158,6 +158,22 @@ public sealed class LocatedReadingTests
 
 		Assert.Contains(Nodes(statement), node => node.Span.At == at && node.Span.Length == condition.Length);
 		Assert.DoesNotContain(Nodes(statement), node => node is Expression or Statement && node.Span.End == text.Length && node.Span.At < at && node.Span.At > 0);
+	}
+
+	/// <summary>
+	/// The same of the clauses of a query its rule builds on the common tree, which keeps none of them in this tree: the
+	/// common tree's node is told the span its rule's value was offered.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT a FROM t GROUP BY a HAVING COUNT(*) > 1", "COUNT(*) > 1")]
+	[InlineData("SELECT a FROM t JOIN u ON t.a = u.a", "t.a = u.a")]
+	public void A_condition_of_a_query_is_spanned_without_its_keyword(string text, string condition)
+	{
+		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var at        = text.LastIndexOf(condition, StringComparison.Ordinal);
+
+		Assert.Contains(Nodes(statement), node => node.Span.At == at && node.Span.Length == condition.Length);
+		Assert.DoesNotContain(Nodes(statement), node => node is Ast.Expression && node.Span.End == text.Length && node.Span.At < at && node.Span.At > 0);
 	}
 
 	/// <summary>
@@ -256,8 +272,10 @@ public sealed class LocatedReadingTests
 
 		var text      = batch.Text;
 		var statement = Assert.Single(match.Value);
-		var table     = Nodes(statement).OfType<TableReference.Named>().Single();
 		var condition = Nodes(statement).OfType<Expression.Comparison>().Single();
+
+		// A source its rule builds on the common tree, which keeps it there: the common tree's node, told its span.
+		var table     = Nodes(Assert.Single(TransactSqlParser.Located.TryParseSql(batch).Value!)).OfType<Ast.TableSource.Named>().Single();
 
 		Assert.Equal("Orders", text.Substring(table.Span.At, table.Span.Length));
 		Assert.Equal("b = 1", text.Substring(condition.Span.At, condition.Span.Length));
@@ -626,7 +644,7 @@ public sealed class LocatedReadingTests
 		var count = 0;
 		var seen  = new HashSet<ISqlSpan>(ReferenceEqualityComparer.Instance);
 
-		SqlWalker.Walk(statement, node =>
+		OldTree.Walk(statement, node =>
 		{
 			// A node of the common tree, held by a statement whose rule builds that tree: the bridge tells it where it was
 			// written, as it tells every node of that tree (TransactSqlEntryTests).
@@ -658,7 +676,7 @@ public sealed class LocatedReadingTests
 	{
 		var shape = new System.Text.StringBuilder();
 
-		SqlWalker.Walk(statement, node =>
+		OldTree.Walk(statement, node =>
 		{
 			shape.Append(node.GetType().FullName).Append('{');
 
@@ -726,18 +744,13 @@ public sealed class LocatedReadingTests
 		return (int)typeof(Unsafe).GetMethod(nameof(Unsafe.SizeOf))!.MakeGenericMethod(type).Invoke(null, null)!;
 	}
 
+	/// <summary>
+	/// Every node of this tree under the root, and what a query statement or a query whose rule builds the common tree
+	/// keeps of the parts its rules read (<see cref="OldTree.Walk"/>).
+	/// </summary>
 	static List<ISqlSpan> Nodes(ISqlSpan root)
 	{
-		var nodes = new List<ISqlSpan>();
-
-		SqlWalker.Walk(root, node =>
-		{
-			nodes.Add(node);
-
-			return true;
-		});
-
-		return nodes;
+		return OldTree.Nodes(root);
 	}
 
 	static string Here([System.Runtime.CompilerServices.CallerFilePath] string here = "")

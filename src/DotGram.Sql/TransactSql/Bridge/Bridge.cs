@@ -306,9 +306,11 @@ static partial class Bridge
 	{
 		return old switch
 		{
-			Given given          => given.Record,
-			Statement.Built made => made.Record,
-			_                    => NameOf(old.GetType()),
+			Given given               => given.Record,
+			Statement.Built made      => made.Record,
+			Query.Built query         => query.Record,
+			TableReference.Built from => from.Record,
+			_                         => NameOf(old.GetType()),
 		};
 	}
 

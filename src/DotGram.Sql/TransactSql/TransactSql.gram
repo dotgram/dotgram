@@ -278,8 +278,8 @@ Quantifier = "ALL"i | "SOME"i | "ANY"i
 QueryPrimary : @Query
     = q: TSqlQuerySpecification            => @(q)
     | v: TSqlTableValueConstructor         => @(v)
-    | "TABLE"i & name: TSqlQualifiedName   => @(new Query.ExplicitTable(name))
-    | '(' & q: TSqlQueryExpression & ')'   => @(new Query.Parenthesized(q))
+    | "TABLE"i & name: TSqlQualifiedName   => @(Bridge.Queries.Table(name))
+    | '(' & q: TSqlQueryExpression & ')'   => @(Bridge.Queries.Parenthesized(q))
 
 Result            : @Expression = v: TSqlValueExpression => @(v) | "NULL"i => @(Expression.NullValue)
 
@@ -434,11 +434,11 @@ TSqlSimpleWhen : @Clause.When
 // operands to ask; measured with the variable declared.
 TSqlQueryExpression : @Query
 	= left: TSqlQueryExpression & "UNION"i & all: "ALL"i? & right: TSqlQueryExpression  << 1
-		=> @(Query.Combined("UNION", all, left, right))
+		=> @(Bridge.Queries.Combined("UNION", all, left, right))
 	| left: TSqlQueryExpression & "EXCEPT"i & right: TSqlQueryExpression                << 1
-		=> @(Query.Combined("EXCEPT", null, left, right))
+		=> @(Bridge.Queries.Combined("EXCEPT", null, left, right))
 	| left: TSqlQueryExpression & "INTERSECT"i & right: TSqlQueryExpression             << 2
-		=> @(Query.Combined("INTERSECT", null, left, right))
+		=> @(Bridge.Queries.Combined("INTERSECT", null, left, right))
 	| q: QueryPrimary => @(q)
 
 // ── §6.4's qualified name, widened ─────────────────────────────────────────
@@ -1144,7 +1144,7 @@ TSqlQuerySpecification : @Query
 	  & when @(into is not null || !Syntax.HasIdentity(columns))
 	  & from: FromClause? & where: WhereClause? & group: TSqlGroupByClause? & having: HavingClause?
 	  & windows: Window?
-		=> @(new Query.Specification(
+		=> @(Bridge.Queries.Specification(
 				 Syntax.Distinctly(quantifier), top, SqlList.Own(columns), into,
 				 SqlList.Own(from), where, group, having, SqlList.OwnOrNull(windows)))
 
@@ -1314,14 +1314,14 @@ GroupingSetItem : @Expression
 // is not a join.
 TSqlTableReference : @TableReference
 	= left: TSqlTableReference & "CROSS"i & "JOIN"i & right: TSqlTablePrimary
-		=> @(new TableReference.Joined(SqlJoin.Cross, false, false, left, right))
+		=> @(Bridge.Tables.Sourced(new TableReference.Joined(SqlJoin.Cross, false, false, left, right), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| left: TSqlTableReference & "CROSS"i & "APPLY"i & right: TSqlTablePrimary
-		=> @(new TableReference.Joined(SqlJoin.CrossApply, false, false, left, right))
+		=> @(Bridge.Tables.Sourced(new TableReference.Joined(SqlJoin.CrossApply, false, false, left, right), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| left: TSqlTableReference & "OUTER"i & "APPLY"i & right: TSqlTablePrimary
-		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, false, left, right))
+		=> @(Bridge.Tables.Sourced(new TableReference.Joined(SqlJoin.OuterApply, false, false, left, right), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| left: TSqlTableReference & kind: TSqlJoinType? & hint: JoinHint? & "JOIN"i & right: JoinedRight
 	  & "ON"i & on: SearchCondition & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(TableReference.Joining(kind, null, left, right, on, null, hint), pivot))
+		=> @(Bridge.Tables.Sourced(Syntax.Pivoted(TableReference.Joining(kind, null, left, right, on, null, hint), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| t: TSqlTablePrimary => @(t)
 
 // What may stand on the right of a join: a primary, and the joins hanging off it — `JOIN t10
@@ -1334,7 +1334,7 @@ TSqlTableReference : @TableReference
 // two alternatives from reading it twice. Each tail is built with its left side null and the
 // source put in afterwards, the way a pivot's suffix is.
 JoinedRight : @TableReference
-	= t: TSqlTablePrimary & tails: JoinedTail* => @(Syntax.Hanging(t, tails))
+	= t: TSqlTablePrimary & tails: JoinedTail* => @(Bridge.Tables.Sourced(Syntax.Hanging(t, tails), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
 // A qualified join's pivots follow its condition, as they do outside.
 JoinedTail : @TableReference
@@ -1363,19 +1363,19 @@ TSqlTablePrimary : @TableReference
 	= f: JsonFunction & schema: JsonSchema?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(
-				 new TableReference.FunctionCall(f, alias, SqlList.OwnOrNull(columns), SqlList.Own(schema)), pivot))
+		=> @(Bridge.Tables.Sourced(Syntax.Pivoted(
+				 new TableReference.FunctionCall(f, alias, SqlList.OwnOrNull(columns), SqlList.Own(schema)), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| f: PredictCall & schema: PredictSchema & ("AS"i? & alias: CorrelationName)?
-		=> @(new TableReference.FunctionCall(f, alias, null, SqlList.Own(schema)))
+		=> @(Bridge.Tables.Sourced(new TableReference.FunctionCall(f, alias, null, SqlList.Own(schema)), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| f: ChunksFunction & ("AS"i? & alias: CorrelationName)? & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(new TableReference.FunctionCall(f, alias, null, Clause.None), pivot))
+		=> @(Bridge.Tables.Sourced(Syntax.Pivoted(new TableReference.FunctionCall(f, alias, null, Clause.None), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| f: RowsetFunction & schema: RowsetSchema? & when @(Syntax.Schemas(f, schema))
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(
-				 new TableReference.FunctionCall(f, alias, SqlList.OwnOrNull(columns), SqlList.Own(schema)), pivot))
+		=> @(Bridge.Tables.Sourced(Syntax.Pivoted(
+				 new TableReference.FunctionCall(f, alias, SqlList.OwnOrNull(columns), SqlList.Own(schema)), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| server: AdHocServer & named: AdHocObject & ("AS"i? & alias: CorrelationName)? & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(new TableReference.Named(named, null, false, alias, null, null, Clause.None, server), pivot))
+		=> @(Bridge.Tables.Sourced(Syntax.Pivoted(new TableReference.Named(named, null, false, alias, null, null, Clause.None, server), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	// A table takes hints and a table-valued function does not: `dbo.f() WITH (NOLOCK)` is
 	// refused. The name is `SourceName` for one word's sake: from 170 the plain
 	// `AI_GENERATE_CHUNKS` with a bracket after it is the rowset's and not a function's.
@@ -1385,21 +1385,21 @@ TSqlTablePrimary : @TableReference
 	  & when @((call is null || (hints is null && close is null && path is null))
 			   && (close is null || (alias is not null && hints is null)))
 	  & pivot: PivotSuffix?
-		=> @(Syntax.Sourced(name, version, path is not null, call, SqlList.OwnOrNull(args), alias, SqlList.OwnOrNull(columns), sample, SqlList.OwnOrNull(hints ?? close), pivot))
-	| t: TSql.Variable & s: VariableSource & pivot: PivotSuffix? => @(Syntax.Pivoted(Syntax.OfVariable(t, s), pivot))
+		=> @(Bridge.Tables.Sourced(Syntax.Sourced(name, version, path is not null, call, SqlList.OwnOrNull(args), alias, SqlList.OwnOrNull(columns), sample, SqlList.OwnOrNull(hints ?? close), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
+	| t: TSql.Variable & s: VariableSource & pivot: PivotSuffix? => @(Bridge.Tables.Sourced(Syntax.Pivoted(Syntax.OfVariable(t, s), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| derived: TableSubquery & path: GraphPath? & "AS"i? & alias: CorrelationName
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(new TableReference.Derived(derived, path is not null, alias, SqlList.OwnOrNull(columns)), pivot))
+		=> @(Bridge.Tables.Sourced(Syntax.Pivoted(new TableReference.Derived(derived, path is not null, alias, SqlList.OwnOrNull(columns)), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	// A join in brackets, and never one source alone, nor a join its pivot ends
 	// (`Syntax.Bracketable`). Pivots may follow the brackets; a sample or hints may not (`Msg
 	// 156`, `Msg 319`), and neither may a name (`Msg 102`).
 	| '(' & j: TSqlTableReference & ')' & when @(Syntax.Bracketable(j)) & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(new TableReference.Parenthesized(j), pivot))
+		=> @(Bridge.Tables.Sourced(Syntax.Pivoted(new TableReference.Parenthesized(j), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	// ODBC's braces hold a join a pivot does not end — `{ OJ t1 LEFT JOIN t2 ON … PIVOT (…) p }`
 	// is `Msg 102` — and pivots may follow them.
-	| '{' & "OJ"i & j: TSqlTableReference & when @(j is not (TableReference.Pivot or TableReference.Unpivot)) & '}'
+	| '{' & "OJ"i & j: TSqlTableReference & when @(!Syntax.Pivots(j)) & '}'
 	  & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(new TableReference.OdbcJoin(j), pivot))
+		=> @(Bridge.Tables.Sourced(Syntax.Pivoted(new TableReference.OdbcJoin(j), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
 // What a variable may be as a table: the table variable itself, or a table-valued method
 // on a variable of a user-defined type — `FROM @v.f(1) AS t(c)`. Left-factored because
@@ -1620,7 +1620,7 @@ TableRepeatable : @Expression = "REPEATABLE"i & '(' & v: TSqlValueExpression & '
 // refuses (`Msg 1033`); an `OPTION` there it refuses as syntax, since that is a statement's.
 TSqlSubquery : @Query
 	= '(' & q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch? & shape: ForClause? & ')'
-		=> @(Syntax.Ordered(q, Clause.Ordered(SqlList.OwnOrNull(by), window), shape))
+		=> @(Bridge.Queries.Ordered(q, SqlList.OwnOrNull(by), window, shape))
 
 // §7.3's table value constructor, narrowed: T-SQL writes every row in brackets — `VALUES 1,
 // 2` is refused — and the brackets hold values and never a query: `VALUES (SELECT a FROM u)`
@@ -1628,7 +1628,7 @@ TSqlSubquery : @Query
 // as `(1)`, which the standard's rule, reading a row of one without its brackets, refused.
 TSqlTableValueConstructor : @Query
 	= "VALUES"i & first: TSqlRow & (',' & rest: TSqlRow)*
-		=> @(new Query.TableValueConstructor(SqlList.Own(Syntax.Listed(first, rest))))
+		=> @(Bridge.Queries.Constructed(SqlList.Own(Syntax.Listed(first, rest))))
 
 TSqlRow : @Expression
 	= '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)* & ')'
@@ -1646,10 +1646,8 @@ TSqlDirectSelect : @Statement
 	= with: WithClause? & q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch?
 	  & shape: ForClause? & options: QueryHints?
 	  & when @((by is null || !Syntax.AssignsFromNothing(q)) && !Syntax.AssignsCombined(q))
-		=> @(new Statement.Select(
-				 SqlList.Own(with), q, Clause.Ordered(SqlList.OwnOrNull(by), window),
-				 shape is null ? Clause.None : [shape],
-				 SqlList.Own(options)))
+		=> @(Bridge.Queries.Select(
+				 SqlList.Own(with), q, Clause.Ordered(SqlList.OwnOrNull(by), window), shape, SqlList.Own(options)))
 
 // §7's `WITH <common_table_expression>`: a query given a name in front of the statement
 // that uses it. Kept as one clause per definition — `Clause.CommonTableExpression`, name,
@@ -1688,7 +1686,7 @@ TSqlSortKey : @Expression = v: TSqlValueExpression => @(v)
 // and a statement printed without it is not the one that came in.
 CteBody : @Query
 	= q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch?
-		=> @(Syntax.Ordered(q, Clause.Ordered(SqlList.OwnOrNull(by), window), null))
+		=> @(Bridge.Queries.Ordered(q, SqlList.OwnOrNull(by), window, null))
 
 // `FETCH` without `OFFSET` in front of it is not a clause: the engine answers
 // `Incorrect syntax`, though ScriptDom reads it. The corpus statement that asked for it was
@@ -2203,7 +2201,7 @@ InsertRows : @Query
 	| e: ExecuteStatement       => @(new Query.FromExecute(e))
 	| q: ChangedSource          => @(q)
 	| q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch? & shape: ForClause?
-		=> @(Syntax.Ordered(q, Clause.Ordered(SqlList.OwnOrNull(by), window), shape))
+		=> @(Bridge.Queries.Ordered(q, SqlList.OwnOrNull(by), window, shape))
 
 // The rows a statement returns, read as the rows to insert: `SELECT … FROM (MERGE … OUTPUT …)
 // AS c WHERE …`, which the published block calls `<dml_table_source>`. Put to the engine some
@@ -2217,7 +2215,7 @@ InsertRows : @Query
 ChangedSource : @Query
 	= "SELECT"i & columns: TSqlSelectList & when @(!Syntax.HasIdentity(columns))
 	  & "FROM"i & source: ChangedTable & where: WhereClause?
-		=> @(new Query.Specification(null, null, SqlList.Own(columns), null, [source], where, null, null))
+		=> @(Bridge.Queries.Specification(null, null, SqlList.Own(columns), null, [source], where, null, null, null))
 
 ChangedTable : @TableReference
 	= '(' & s: ChangedStatement & ')' & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
@@ -3491,7 +3489,7 @@ CursorQuery : @Clause.CursorDefinition
 
 CursorSelect : @Query
 	= q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch? & when @(Syntax.Cursorable(q))
-		=> @(Syntax.Ordered(q, Clause.Ordered(SqlList.OwnOrNull(by), window), null))
+		=> @(Bridge.Queries.Ordered(q, SqlList.OwnOrNull(by), window, null))
 
 CursorFor : @Clause
 	= "FOR"i & "READ"i & "ONLY"i => @(new Clause.CursorFor(false))
@@ -4878,9 +4876,9 @@ FunctionReturns : @Statement.CreateFunction
 // brackets, and the writer puts the `WITH` and the order back inside them.
 InlineReturn : @Statement[]
 	= with: WithClause? & q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch?
-		=> @(new Statement[] { new Statement.Select(SqlList.Own(with), q, Clause.Ordered(SqlList.OwnOrNull(by), window), Clause.None, Clause.None) })
+		=> @(new Statement[] { Bridge.Queries.Select(SqlList.Own(with), q, Clause.Ordered(SqlList.OwnOrNull(by), window), null, Clause.None) })
 	| '(' & with: WithClause? & q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch? & ')'
-		=> @(new Statement[] { new Statement.Select(SqlList.Own(with), new Query.Parenthesized(q), Clause.Ordered(SqlList.OwnOrNull(by), window), Clause.None, Clause.None) })
+		=> @(new Statement[] { Bridge.Queries.Select(SqlList.Own(with), Bridge.Queries.Parenthesized(q), Clause.Ordered(SqlList.OwnOrNull(by), window), null, Clause.None) })
 
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
 TriggerStatement : @Statement

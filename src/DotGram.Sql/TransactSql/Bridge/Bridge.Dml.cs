@@ -46,6 +46,10 @@ static partial class Bridge
 		/// </summary>
 		internal static Statement Preceded(SqlList<Clause>? with, Statement statement, SqlSpan at)
 		{
+			// A query statement, built where it is carried: the WITH is its own.
+			if (statement is Statement.Built { Given: Queries.Selecting selecting } selected)
+				return with is { Length: > 0 } list ? Queries.Select(selected, selecting, list) : statement;
+
 			// A statement held for the extent it ends with: this is it.
 			if (statement is Statement.Built { Pending: not null } held)
 				return Finish(held, at);
@@ -144,7 +148,7 @@ static partial class Bridge
 			{
 				var inside = name[(name.IndexOf('(') + 1)..name.LastIndexOf(')')];
 
-				if (value is not null || TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT 1 ORDER BY " + inside) is not { IsSuccess: true, Value: [Statement.Select { OrderBy: Clause.OrderBy by }] })
+				if (value is not null || Queries.Selected("SELECT 1 ORDER BY " + inside) is not { By: Clause.OrderBy by })
 					throw BridgeGap.Open(old, "inventory Clause.Option (an ORDER that is not a sort list)");
 
 				return new Ast.Option(new Ast.Identifier("ORDER"), null, []) { Order = new Ast.RowOrder(Queries.Order(by).Items, false) };
@@ -243,7 +247,7 @@ static partial class Bridge
 			Ast.InsertSource rows = old.Rows switch
 			{
 				Query.DefaultValues                => new Ast.InsertSource.DefaultValues(),
-				Query.TableValueConstructor(var r) => new Ast.InsertSource.Values(Each(r, Queries.Row)),
+				Query.Built { Record: "Query.TableValueConstructor" } values => new Ast.InsertSource.Values(Rows(values)),
 				Query.FromExecute execute          => Routines.InsertSource(execute),
 				_                                  => new Ast.InsertSource.Subquery(QueryOf(old.Rows)),
 			};
@@ -433,13 +437,22 @@ static partial class Bridge
 			return condition is null ? made : made with { Condition = Values.Of(condition) };
 		}
 
+		/// <summary>The rows of a table value constructor its rule built, carried as the query it stands for would be.</summary>
+		static SqlList<Ast.RowValue> Rows(Query.Built values)
+		{
+			if (values.Recovered is { } read)
+				recovered?.AddRange(read);
+
+			return values.Values ?? throw values.Gap!;
+		}
+
 		static Ast.MergeInsertAction Inserted(Statement.Insert old)
 		{
 			return old.Rows switch
 			{
-				Query.TableValueConstructor { Rows: [Expression.RowValueConstructor(var items)] } =>
+				Query.Built { Record: "Query.TableValueConstructor", Rows: [Expression.RowValueConstructor(var items)] } =>
 					new Ast.MergeInsertAction(Values.Parts(old, old.Columns), null, Each(items, Values.Of)),
-				Query.TableValueConstructor { Rows: [Expression.Parenthesized(var one)] } =>
+				Query.Built { Record: "Query.TableValueConstructor", Rows: [Expression.Parenthesized(var one)] } =>
 					new Ast.MergeInsertAction(Values.Parts(old, old.Columns), null, [Values.Of(one)]),
 				Query.DefaultValues when old.Columns is null => new Ast.MergeInsertAction([], null, []) { DefaultValues = true },
 				_                   => throw BridgeGap.Open(old, "inventory Clause.MergeWhen (an INSERT that is not one row)"),

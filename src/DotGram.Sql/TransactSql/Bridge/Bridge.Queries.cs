@@ -29,8 +29,6 @@ static partial class Bridge
 		{
 			made = old switch
 			{
-				Statement.Select select                            => Select(select),
-				Query query when Owned(Owns, query)                => Of(query),
 				Clause.DerivedColumn or Clause.QualifiedAsterisk
 					or Clause.VariableAssignment                   => Column((Clause)old),
 				Clause.CommonTableExpression common                => Common(common),
@@ -42,23 +40,196 @@ static partial class Bridge
 			return made is not null;
 		}
 
-		static Ast.Statement Select(Statement.Select old)
+		// ── The query rules' builders ─────────────────────────────────────────────
+		//
+		// Each query rule hands what it read to one of these, which builds the query of the common tree at once, its
+		// parts that are still the T-SQL tree's carried across as the bridge carries them: a query it holds was built by
+		// its own rule, and is carried as what it holds. The query stands where the T-SQL tree holds one as a
+		// Query.Built, with what the rules that hold a query ask of it.
+
+		/// <summary>SELECT and the clauses under it, on the common tree.</summary>
+		internal static Query Specification(
+			string? quantifier, Clause? top, SqlList<Clause> columns, Clause? into, SqlList<TableReference> from, Expression? where,
+			Clause? group, Expression? having, SqlList<Clause>? windows)
 		{
-			if (old.For.Length > 1)
-				throw BridgeGap.Open(old.For[1], "inventory Clause.For (a second FOR on one statement)");
+			var assigns = columns.Exists(static one => one is Clause.VariableAssignment);
+			var facts   = (assigns ? Query.Built.Facts.Assigns : Query.Built.Facts.None)
+				| (assigns && from.IsEmpty ? Query.Built.Facts.AssignsFromNothing : Query.Built.Facts.None)
+				| (into is null ? Query.Built.Facts.Cursorable : Query.Built.Facts.None);
 
-			var query = Of(old.Of);
+			Building((quantifier, top, columns, into, from, where, group, having, windows), static parts => (Ast.Query)new Ast.Query.Select
+			{
+				Top        = Top(parts.top),
+				IntoTable  = parts.into is null ? null : IntoTable(parts.into),
+				Quantifier = Quantifier(SpecificationName, parts.quantifier),
+				Columns    = Each(parts.columns, Column),
+				From       = parts.from.Length > 0 ? new Ast.FromClause(Each(parts.from, Source)) : null,
+				Where      = parts.where is null ? null : Values.Of(parts.where),
+				GroupBy    = parts.group is null ? null : Group(parts.group),
+				Having     = parts.having is null ? null : Values.Of(parts.having),
+				Window     = parts.windows is { Length: > 0 } list ? new Ast.WindowClause(Each(list, Window)) : null,
+			}, out var made, out var gap, out var taken);
 
-			if (old.OrderBy is { } by)
+			return new Query.Built(made, gap, taken, SpecificationName.Record, facts) { Columns = columns, Where = where };
+		}
+
+		/// <summary>VALUES (…), (…): the rows, on the common tree; the query of them is made when it is asked for.</summary>
+		internal static Query Constructed(SqlList<Expression> rows)
+		{
+			Building(rows, static rows => Each(rows, Row), out SqlList<Ast.RowValue> made, out var gap, out var taken);
+
+			return new Query.Built(null, gap, taken, "Query.TableValueConstructor", Query.Built.Facts.None)
+			{
+				Rows   = rows,
+				Values = gap is null ? made : null,
+			};
+		}
+
+		/// <summary>TABLE t, which is every column and every row of one table.</summary>
+		internal static Query Table(string name)
+		{
+			Building(name, static name => (Ast.Query)new Ast.Query.Select
+			{
+				Columns = [new Ast.SelectColumn.All()],
+				From    = new Ast.FromClause([new Ast.TableSource.Named(Values.Name(TableName, name))]),
+				Table   = true,
+			}, out var made, out var gap, out var taken);
+
+			return new Query.Built(made, gap, taken, TableName.Record, Query.Built.Facts.Cursorable);
+		}
+
+		/// <summary>A query in brackets.</summary>
+		internal static Query Parenthesized(Query query)
+		{
+			Building(query, static query => (Ast.Query)new Ast.Query.Parenthesized(QueryOf(query)), out var made, out var gap, out var taken);
+
+			// The brackets hide nothing a rule asks about the query in them.
+			var facts = (Syntax.Assigns(query) ? Query.Built.Facts.Assigns : Query.Built.Facts.None)
+				| (Syntax.Cursorable(query) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None)
+				| (Syntax.AssignsCombined(query) ? Query.Built.Facts.AssignsCombined : Query.Built.Facts.None);
+
+			return new Query.Built(made, gap, taken, "Query.Parenthesized", facts);
+		}
+
+		/// <summary>
+		/// A query given an order, an OFFSET … FETCH or a FOR of its own, where no statement holds them: in brackets, a named
+		/// query, an INSERT's or a cursor's. The query itself where none was written.
+		/// </summary>
+		internal static Query Ordered(Query query, SqlList<Clause>? by, Clause.OrderBy? window, Clause? shape)
+		{
+			var order = Clause.Ordered(by, window);
+
+			if (order is null && shape is null)
+				return query;
+
+			Building((query, order, shape), static parts =>
+			{
+				var ordered = parts.order is null ? QueryOf(parts.query) : Ordered(QueryOf(parts.query), parts.order);
+
+				return parts.shape is null ? ordered : ordered with { For = For(parts.shape) };
+			}, out var made, out var gap, out var taken);
+
+			return new Query.Built(made, gap, taken, "Query.Ordered", Syntax.Cursorable(query) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None);
+		}
+
+		/// <summary>
+		/// <c>UNION</c>, <c>EXCEPT</c> or <c>INTERSECT</c>, by the operator's word, and whether <c>ALL</c> was written: the
+		/// new tree's left fold, one more operation on the left side's list with the right side as its operand. The right
+		/// side keeps its own list, which is what binds tighter there — <c>A UNION B INTERSECT C</c> is
+		/// <c>A [UNION B [INTERSECT C]]</c>.
+		/// </summary>
+		internal static Query Combined(string operatorText, string? all, Query left, Query right)
+		{
+			var (record, op) = (operatorText[0] | 0x20) switch
+			{
+				'u' => ("Query.Union", all is null ? Ast.SetOperator.Union : Ast.SetOperator.UnionAll),
+				'e' => ("Query.Except", all is null ? Ast.SetOperator.Except : Ast.SetOperator.ExceptAll),
+				_   => ("Query.Intersect", all is null ? Ast.SetOperator.Intersect : Ast.SetOperator.IntersectAll),
+			};
+
+			Building((left, op, right), static parts =>
+			{
+				var first = QueryOf(parts.left);
+
+				if (first.OrderBy is not null || first.Limit is not null || first.For is not null)
+					throw BridgeGap.Open(parts.left, "inventory Query.Union (a left operand with an order of its own and no brackets)");
+
+				return first with { SetOperations = [.. first.SetOperations, new Ast.SetOperation(parts.op, QueryOf(parts.right))] };
+			}, out var made, out var gap, out var taken);
+
+			var facts = (Syntax.Cursorable(left) && Syntax.Cursorable(right) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None)
+				| (Syntax.Assigns(left) || Syntax.Assigns(right) || Syntax.AssignsCombined(left) || Syntax.AssignsCombined(right)
+					? Query.Built.Facts.AssignsCombined
+					: Query.Built.Facts.None);
+
+			return new Query.Built(made, gap, taken, record, facts);
+		}
+
+		/// <summary>What the builders of a specification and of TABLE t say a gap of theirs under: the record they replace.</summary>
+		static readonly Naming SpecificationName = new("Query.Specification");
+
+		static readonly Naming TableName = new("Query.ExplicitTable");
+
+		/// <summary>A name to say a gap under, where a builder has no record of the T-SQL tree to say it of.</summary>
+		sealed record Naming(string Record) : Given(Record);
+
+		/// <summary>
+		/// What the rule of a query statement hands its builder: the query, its order and its OFFSET … FETCH, its FOR and
+		/// its hints, and the WITH in front of it, which the rule that reads a statement with its WITH adds.
+		/// </summary>
+		internal sealed record Selecting(Query Query, Clause? By, Clause? Shape, SqlList<Clause> Options) : Given("Statement.Select")
+		{
+			/// <summary>The common table expressions and namespaces in front of the statement.</summary>
+			public SqlList<Clause> With { get; init; }
+		}
+
+		/// <summary>
+		/// A query statement, built where it is carried: its query is built already, and the WITH in front of it is read
+		/// by the rule around it (<see cref="Dml.Preceded"/>), which hands it over.
+		/// </summary>
+		internal static Statement Select(SqlList<Clause> with, Query query, Clause? by, Clause? shape, SqlList<Clause> options)
+		{
+			return new Statement.Built(null, null, null, new Selecting(query, by, shape, options) { With = with }) { Pending = BuildSelect };
+		}
+
+		/// <summary>A query statement held, given the WITH in front of it.</summary>
+		internal static Statement Select(Statement.Built held, Selecting selecting, SqlList<Clause> with)
+		{
+			return new Statement.Built(null, null, null, selecting with { With = with }) { Pending = held.Pending };
+		}
+
+		static readonly Func<object, Ast.Statement> BuildSelect = static one => Statemented((Selecting)one);
+
+		/// <summary>A query statement on the common tree: its query, order, FOR, WITH and hints, in that order.</summary>
+		internal static Ast.Statement Statemented(Selecting old)
+		{
+			var query = QueryOf(old.Query);
+
+			if (old.By is { } by)
 				query = Ordered(query, by);
 
-			if (old.For is [var shape])
+			if (old.Shape is { } shape)
 				query = query with { For = For(shape) };
 
 			if (old.With.Length > 0)
 				query = query with { With = With(old.With) };
 
 			return new Ast.Statement.Select { Query = query, Hints = Each(old.Options, QueryHint) };
+		}
+
+		/// <summary>
+		/// The query statement a text the bridge writes to read a part again reads as, as its rule handed it over; null
+		/// where the text does not read as one query statement.
+		/// </summary>
+		internal static Selecting? Selected(string text)
+		{
+			return TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: [Statement.Built { Given: Selecting selecting }] } ? selecting : null;
+		}
+
+		/// <summary>The same, where it reads as one specification: the specification, as its rule read it.</summary>
+		internal static Query.Built? Specified(string text)
+		{
+			return Selected(text) is { Query: Query.Built { Record: "Query.Specification" } specified } ? specified : null;
 		}
 
 		/// <summary>
@@ -88,9 +259,9 @@ static partial class Bridge
 		{
 			var open  = text.IndexOf('(');
 			var close = text.LastIndexOf(')');
-			var read  = close > open ? TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Substring(open + 1, close - open - 1)) : default;
+			var read  = close > open ? Specified("SELECT " + text.Substring(open + 1, close - open - 1)) : null;
 
-			return close > open && read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+			return read is { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(old, $"inventory Clause.Option (a CHANGE_TRACKING_CONTEXT `{text}` that does not read)");
 		}
@@ -574,9 +745,7 @@ static partial class Bridge
 				return value;
 
 			var text = string.Join(" ", tokens.Select(static one => one.Text));
-			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text);
-
-			return read.IsSuccess && read.Value is [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn(var expression, null)] } }]
+			return Specified("SELECT " + text) is { Columns: [Clause.DerivedColumn(var expression, null)] }
 				? Values.Of(expression)
 				: throw Unread(old);
 		}
@@ -605,94 +774,6 @@ static partial class Bridge
 		static Ast.CommonTableExpression Common(Clause.CommonTableExpression old)
 		{
 			return new Ast.CommonTableExpression(Values.Part(old, old.Name), Values.Parts(old, old.Columns), QueryOf(old.Query));
-		}
-
-		public static Ast.Query Of(Query old)
-		{
-			if (!SqlStack.Enough())
-				return Deeper(old, static node => Of((Query)node));
-
-			var made = Converted(old);
-
-			// The family recurses on itself rather than through the dispatcher, so it places its own nodes.
-			if (locating && old.Span is { Known: true, IsStale: false } span)
-				Place(made, span);
-
-			return made;
-		}
-
-		static Ast.Query Converted(Query old)
-		{
-			switch (old)
-			{
-				case Query.Specification specification:
-					return Specification(specification);
-
-				case Query.TableValueConstructor(var rows):
-					return new Ast.Query.Select { Values = Each(rows, Row) };
-
-				case Query.ExplicitTable(var name):
-					return new Ast.Query.Select
-					{
-						Columns = [new Ast.SelectColumn.All()],
-						From    = new Ast.FromClause([new Ast.TableSource.Named(Values.Name(old, name))]),
-						Table   = true,
-					};
-
-				case Query.Parenthesized(var inner):
-					return new Ast.Query.Parenthesized(Of(inner));
-
-				// A bracketed query's own ORDER BY, OFFSET … FETCH and FOR, which are the query's as a statement's are.
-				case Query.Ordered(var inner, var by, var shape):
-				{
-					var ordered = by is null ? Of(inner) : Ordered(Of(inner), by);
-
-					return shape is null ? ordered : ordered with { For = For(shape) };
-				}
-
-				case Query.Union(var left, var right, var all):
-					return Combined(left, all ? Ast.SetOperator.UnionAll : Ast.SetOperator.Union, right);
-
-				case Query.Except(var left, var right, var all):
-					return Combined(left, all ? Ast.SetOperator.ExceptAll : Ast.SetOperator.Except, right);
-
-				case Query.Intersect(var left, var right, var all):
-					return Combined(left, all ? Ast.SetOperator.IntersectAll : Ast.SetOperator.Intersect, right);
-
-				default:
-					return QueryOf(old);
-			}
-		}
-
-		/// <summary>
-		/// The old binary tree of set operations as the new left fold: the left side's list, and one more
-		/// operation with the right side as its operand. The right side keeps its own list, which is what
-		/// binds tighter there — <c>A UNION B INTERSECT C</c> is <c>A [UNION B [INTERSECT C]]</c>.
-		/// </summary>
-		static Ast.Query Combined(Query left, Ast.SetOperator op, Query right)
-		{
-			var first = Of(left);
-
-			if (first.OrderBy is not null || first.Limit is not null || first.For is not null)
-				throw BridgeGap.Open(left, "inventory Query.Union (a left operand with an order of its own and no brackets)");
-
-			return first with { SetOperations = [.. first.SetOperations, new Ast.SetOperation(op, Of(right))] };
-		}
-
-		static Ast.Query Specification(Query.Specification old)
-		{
-			return new Ast.Query.Select
-			{
-				Top        = Top(old.Top),
-				IntoTable  = old.Into is null ? null : IntoTable(old.Into),
-				Quantifier = Quantifier(old, old.Quantifier),
-				Columns    = Each(old.Columns, Column),
-				From       = old.From.Length > 0 ? new Ast.FromClause(Each(old.From, Source)) : null,
-				Where      = old.Where is null ? null : Values.Of(old.Where),
-				GroupBy    = old.GroupBy is null ? null : Group(old.GroupBy),
-				Having     = old.Having is null ? null : Values.Of(old.Having),
-				Window     = old.Windows is { Length: > 0 } windows ? new Ast.WindowClause(Each(windows, Window)) : null,
-			};
 		}
 
 		static Ast.SelectIntoTable IntoTable(Clause old)

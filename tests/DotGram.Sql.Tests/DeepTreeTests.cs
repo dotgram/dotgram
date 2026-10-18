@@ -147,11 +147,12 @@ public sealed class DeepTreeTests
 	[Fact]
 	public void A_deep_tree_is_walked_and_hashed_without_a_crash()
 	{
-		var text = Nested("SELECT ", "CASE WHEN 1 = 1 THEN 1 ELSE ", "1", " END", "", Depth);
+		// A value, which is this tree's: a query statement's rule builds the common tree, and keeps no node of this one.
+		var text = Nested("", "CASE WHEN 1 = 1 THEN 1 ELSE ", "1", " END", "", Depth);
 
 		var (nodes, thrown) = OnStack(() =>
 		{
-			var tree  = OldTree.ParseStatement(text);
+			var tree  = OldTree.ParseValueExpression(text);
 			var count = 0;
 
 			SqlWalker.Walk(tree, _ =>

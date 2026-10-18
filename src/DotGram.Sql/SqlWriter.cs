@@ -105,6 +105,11 @@ public static class SqlWriter
 				text.Append(Ast.Sql2023Writer.Write(made, transactSql: true));
 				break;
 
+			// One held until it is carried, a query statement: carried, and printed so.
+			case Statement.Built { Pending: not null } held:
+				text.Append(Ast.Sql2023Writer.Write(TransactSql.Bridge.StatementOf(held), transactSql: true));
+				break;
+
 			case Statement.Select(var with, var of, var by, var shape, var options):
 				if (with.Length > 0)
 				{
@@ -1630,6 +1635,14 @@ public static class SqlWriter
 			return;
 		}
 
+		// A query whose rule builds the common tree already: that tree's writer prints it.
+		if (query is Query.Built { Made: { } made })
+		{
+			text.Append(Ast.Sql2023Writer.Write(made, transactSql: true));
+
+			return;
+		}
+
 		var binds = query switch
 		{
 			Query.Union or Query.Except => 1,
@@ -1801,6 +1814,11 @@ public static class SqlWriter
 
 		switch (source)
 		{
+			// A source whose rule builds the common tree already: that tree's writer prints it.
+			case TableReference.Built { Made: { } made }:
+				text.Append(Ast.Sql2023Writer.Write(made, transactSql: true));
+				break;
+
 			case TableReference.Named(
 					var table, var version, var path, var name, var columns, var sample, var hints, var server):
 				if (server is not null)

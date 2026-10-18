@@ -310,14 +310,14 @@ static partial class Bridge
 	/// <summary>The statements whose rules built them on the common tree: each carried as what it holds.</summary>
 	internal static class Built
 	{
-		public static readonly string[] Owns = ["Statement.Built"];
+		public static readonly string[] Owns = ["Statement.Built", "Query.Built", "TableReference.Built"];
 
 		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
 		{
 			made = null;
 
 			if (old is not Statement.Built built)
-				return false;
+				return Carried(old, out made);
 
 			// Held for an extent no rule gave it: built with its rule's own.
 			if (built.Pending is { } build)
@@ -332,6 +332,65 @@ static partial class Bridge
 			made = built.Made!;
 
 			return true;
+		}
+
+		/// <summary>A query or a source its rule built: what building it read from the text counted again, and its gap thrown.</summary>
+		static bool Carried(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
+		{
+			switch (old)
+			{
+				case Query.Built query:
+					if (query.Recovered is { } read)
+						recovered?.AddRange(read);
+
+					made = query.Made ?? throw query.Gap!;
+
+					return true;
+
+				case TableReference.Built source:
+					if (source.Recovered is { } taken)
+						recovered?.AddRange(taken);
+
+					made = source.Made ?? throw source.Gap!;
+
+					return true;
+
+				default:
+					made = null;
+
+					return false;
+			}
+		}
+	}
+
+	/// <summary>
+	/// What a builder makes of what it is handed, built the moment its rule is read: the node, or the gap it found; with
+	/// what it read from the text taken off the reading's count, to be counted again where the node is carried. A
+	/// skimmed reading builds nothing.
+	/// </summary>
+	/// <param name="state">What the rule read, handed back to the builder, so that it captures nothing.</param>
+	static void Building<T, TState>(TState state, Func<TState, T> build, out T? made, out BridgeGap? gap, out string[]? taken)
+	{
+		made  = default;
+		gap   = null;
+		taken = null;
+
+		if (skimming)
+			return;
+
+		var mark = recovered?.Count ?? 0;
+
+		try
+		{
+			made = build(state);
+		}
+		catch (BridgeGap found)
+		{
+			gap = found;
+		}
+		finally
+		{
+			taken = Taken(mark);
 		}
 	}
 }

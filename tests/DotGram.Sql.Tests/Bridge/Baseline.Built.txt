@@ -4,4 +4,6 @@
 # where `converted` falls or any of the last five rises, and prints a gain; this file is rewritten
 # deliberately, by a run with DOTGRAM_RECORD_BRIDGE_BASELINE=1, and never by a passing one.
 
+Query.Built = 0/0/0/0/0/0/0
 Statement.Built = 0/0/0/0/0/0/0
+TableReference.Built = 0/0/0/0/0/0/0

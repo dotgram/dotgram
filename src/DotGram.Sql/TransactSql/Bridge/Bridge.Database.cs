@@ -786,7 +786,7 @@ static partial class Bridge
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(ISqlSpan old, string text)
 		{
-			return TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim()) is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+			return Queries.Specified("SELECT " + text.Trim()) is { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a value `{text.Trim()}`)");
 		}

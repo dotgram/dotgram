@@ -692,9 +692,9 @@ static partial class Bridge
 			{
 				// The keyword's own place in the text, not the first token spelled as it is (`PARAMETERS.PARAMETERS`).
 				var at   = located[parameters].At;
-				var read = TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + words[(at + "PARAMETERS".Length)..]);
+				var read = Queries.Specified("SELECT " + words[(at + "PARAMETERS".Length)..]);
 
-				given = read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+				given = read is { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] }
 					? Of(value)
 					: throw BridgeGap.Open(old, $"inventory Expression.Hinted (`{words}` after AI_GENERATE_EMBEDDINGS)");
 			}
@@ -894,9 +894,7 @@ static partial class Bridge
 		/// </summary>
 		static Ast.OrderByClause Ordering(object owner, string text)
 		{
-			var read = DotGram.Sql.TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT 1 " + text);
-
-			if (read.IsSuccess && read.Value is [Statement.Select { OrderBy: Clause.OrderBy { Offset: null, Fetch: null } by }])
+			if (Queries.Selected("SELECT 1 " + text) is { By: Clause.OrderBy { Offset: null, Fetch: null } by })
 				return Queries.Order(by);
 
 			throw BridgeGap.Open(owner, $"inventory Expression.WindowFunction (an order `{text}` that does not read)");

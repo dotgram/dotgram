@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 using DotGram.Sql.TransactSql;
 
@@ -136,6 +137,91 @@ static class OldTree
 		return statement is Statement.Built { Given: Statement read } ? read : statement;
 	}
 
+	/// <summary>
+	/// What a query statement's rule handed its builder: the query, its clauses and the WITH in front of it, as the rules
+	/// read them.
+	/// </summary>
+	public static Bridge.Queries.Selecting Selecting(Statement statement)
+	{
+		return (Bridge.Queries.Selecting)((Statement.Built)statement).Given;
+	}
+
+	/// <summary>The query a query statement holds, as its rule built it: a specification's keeps its select list and condition.</summary>
+	public static DotGram.Sql.Query.Built QueryOf(Statement statement)
+	{
+		return (DotGram.Sql.Query.Built)Selecting(statement).Query;
+	}
+
+	/// <summary>
+	/// Hands every node under <paramref name="root"/> to <paramref name="visit"/>, as <see cref="SqlWalker"/> does, and
+	/// with them what a query statement or a query whose rule builds the common tree keeps of the parts its rules read: the
+	/// statement's query and clauses, a specification's select list and condition, a table value constructor's rows.
+	/// </summary>
+	public static bool Walk(ISqlSpan root, Func<ISqlSpan, bool> visit)
+	{
+		return SqlWalker.Walk(root, node =>
+		{
+			if (!visit(node))
+				return false;
+
+			foreach (var part in Kept(node))
+				if (!Walk(part, visit))
+					return false;
+
+			return true;
+		});
+	}
+
+	/// <summary>Every node <see cref="Walk"/> hands out, in its order.</summary>
+	public static List<ISqlSpan> Nodes(ISqlSpan root)
+	{
+		var nodes = new List<ISqlSpan>();
+
+		Walk(root, node =>
+		{
+			nodes.Add(node);
+
+			return true;
+		});
+
+		return nodes;
+	}
+
+	static IEnumerable<ISqlSpan> Kept(ISqlSpan node)
+	{
+		switch (node)
+		{
+			case Statement.Built { Given: Bridge.Queries.Selecting selecting }:
+				foreach (var one in selecting.With)
+					yield return one;
+
+				yield return selecting.Query;
+
+				if (selecting.By is { } by)
+					yield return by;
+
+				if (selecting.Shape is { } shape)
+					yield return shape;
+
+				foreach (var one in selecting.Options)
+					yield return one;
+
+				break;
+
+			case DotGram.Sql.Query.Built query:
+				foreach (var one in query.Columns)
+					yield return one;
+
+				if (query.Where is { } where)
+					yield return where;
+
+				foreach (var one in query.Rows)
+					yield return one;
+
+				break;
+		}
+	}
+
 	static TransactSqlParser.Match<Statement[]> Whole(ScriptBatch batch, TransactSqlParser.Match<Statement[]> read)
 	{
 		return !read.IsSuccess || read.ReadingEnd == batch.At + batch.Length
@@ -149,7 +235,7 @@ static class OldTree
 		if (!read.IsSuccess)
 			return read.Refusal<Query>(read.Position, "Input does not match 'Query'.");
 
-		return read.Value is Statement.Select { Of: var query }
+		return read.Value is Statement.Built { Given: Bridge.Queries.Selecting { Query: var query } }
 			? TransactSqlParser.Match<Query>.Success(query, read.Position, read.Length, read.ReadingEnd)
 			: TransactSqlParser.Match<Query>.Failed(TransactSqlParser.Outcome.NoMatch, "Input does not match 'Query'.", read.Position, null, null);
 	}

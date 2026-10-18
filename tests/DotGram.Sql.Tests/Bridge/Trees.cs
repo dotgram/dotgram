@@ -114,15 +114,32 @@ static class Trees
 		if (left is not ISqlSpan)
 			return;
 
-		// A statement whose rule builds the common tree: what it holds, compared as the common tree is.
+		// A statement whose rule builds the common tree: what it holds, compared as the common tree is; one held until it
+		// is carried, a query statement, by what its rule handed over.
 		if (left is Statement.Built built)
 		{
 			var other = (Statement.Built)right;
 
 			if (built.Gap?.Message != other.Gap?.Message)
 				found.Add(new Diff([.. path], $"gap {built.Gap?.Message} against {other.Gap?.Message}", left, right));
+			else if (built.Pending is not null && other.Pending is not null)
+				Compare(built.Given, other.Given, [.. path, new Step(left, nameof(built.Given), null)], old, byCase, found);
 			else
 				Compare(built.Made, other.Made, [.. path, new Step(left, nameof(built.Made), null)], false, byCase, found);
+
+			return;
+		}
+
+		// A query or a source whose rule builds the common tree: what it holds, compared as the common tree is.
+		if (left is Query.Built or TableReference.Built)
+		{
+			var (made, gap)           = Held(left);
+			var (otherMade, otherGap) = Held(right);
+
+			if (gap != otherGap)
+				found.Add(new Diff([.. path], $"gap {gap} against {otherGap}", left, right));
+			else
+				Compare(made, otherMade, [.. path, new Step(left, "Made", null)], false, byCase, found);
 
 			return;
 		}
@@ -239,6 +256,17 @@ static class Trees
 	/// <summary>
 	/// A record's members that say what was written: not its span, nor what it derives.
 	/// </summary>
+	/// <summary>What a query or a source its rule built holds: the node of the common tree, or the gap's message.</summary>
+	static (object? Made, string? Gap) Held(object built)
+	{
+		return built switch
+		{
+			Query.Built query           => (query.Made, query.Gap?.Message),
+			TableReference.Built source => (source.Made, source.Gap?.Message),
+			_                           => (null, null),
+		};
+	}
+
 	static PropertyInfo[] Properties(Type type)
 	{
 		lock (Known)

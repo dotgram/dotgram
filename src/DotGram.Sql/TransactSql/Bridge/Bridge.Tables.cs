@@ -48,6 +48,35 @@ static partial class Bridge
 			return made is not null;
 		}
 
+		/// <summary>
+		/// A source a rule read whole, on the common tree, built at once and held as a <c>TableReference.Built</c>: the
+		/// record its parts were gathered into — a pivot hung on the source it turns, the joins after a source hung on it
+		/// — carried across as the bridge carries one. The record is told the rule's extent first, as it was told when the
+		/// rule handed it back, since its conversion reads the source's own text.
+		/// </summary>
+		internal static TableReference Sourced(TableReference read, SqlSpan at)
+		{
+			// The joins after a source, where none were: the source itself, built by its own rule.
+			if (read is TableReference.Built)
+				return read;
+
+			read.Locate(at.At, at.Length);
+
+			Building(read, static read => Of(read), out var made, out var gap, out var taken);
+
+			var shape = read switch
+			{
+				TableReference.Joined        => TableReference.Built.Kind.Joined,
+				TableReference.Parenthesized => TableReference.Built.Kind.Parenthesized,
+				TableReference.OdbcJoin      => TableReference.Built.Kind.OdbcJoin,
+				TableReference.Pivot         => TableReference.Built.Kind.Pivot,
+				TableReference.Unpivot       => TableReference.Built.Kind.Unpivot,
+				_                            => TableReference.Built.Kind.Other,
+			};
+
+			return new TableReference.Built(made, gap, taken, NameOf(read), shape, Syntax.Bracketable(read));
+		}
+
 		static Ast.TableSource Of(TableReference old)
 		{
 			switch (old)
@@ -1516,9 +1545,7 @@ static partial class Bridge
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(object owner, string text)
 		{
-			var read = TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT " + text.Trim());
-
-			return read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] } }] }
+			return Queries.Specified("SELECT " + text.Trim()) is { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] }
 				? Values.Of(value)
 				: throw BridgeGap.Open(owner, $"inventory Statement.AlterTable (a value `{text.Trim()}`)");
 		}
@@ -2018,9 +2045,7 @@ static partial class Bridge
 		/// <summary>A search condition kept as text, read again as a query's WHERE.</summary>
 		static Ast.Expression Condition(object owner, string text)
 		{
-			var read = TransactSql.TransactSqlParser.TryParseSyntaxSql("SELECT 1 WHERE " + text.Trim());
-
-			return read is { IsSuccess: true, Value: [Statement.Select { Of: Query.Specification { Where: { } where } }] }
+			return Queries.Specified("SELECT 1 WHERE " + text.Trim()) is { Where: { } where }
 				? Values.Of(where)
 				: throw BridgeGap.Open(owner, $"inventory {NameOf(owner)} (a condition `{text.Trim()}`)");
 		}
