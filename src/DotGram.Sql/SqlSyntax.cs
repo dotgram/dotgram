@@ -3974,24 +3974,40 @@ public static class Syntax
 	/// character for character.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// A literal is not a run of words. <c>'a  b'</c> is one value with two spaces in it and
 	/// <c>'default()'</c> is not a keyword to be raised, so neither the spacing nor the case of
 	/// anything between quotes is this function's to change — which is what <c>MASKED WITH
-	/// (FUNCTION = 'default()')</c> came back from as <c>'DEFAULT()'</c>.
+	/// (FUNCTION = 'default()')</c> came back from as <c>'DEFAULT()'</c>. A closing quote written twice is
+	/// one inside the quotes, as T-SQL reads <c>[a]]  b]</c>, <c>"a""  b"</c> and <c>'a''  b'</c>.
+	/// </para>
+	/// <para>
+	/// A line comment ends where its line does, so the line end after one stays a line end: made one
+	/// space, <c>--x</c> and the line under it would be one comment, which swallows what the line under
+	/// it says. A space is what the grammar's spacing is (<see cref="TransactSql.TransactSqlParser.Spacing"/>).
+	/// </para>
 	/// </remarks>
 	static string Run(string words, bool raised)
 	{
 		var made  = new System.Text.StringBuilder(words.Length);
 		var until = '\0';
 
-		foreach (var c in words)
+		for (var at = 0; at < words.Length; at++)
 		{
+			var c = words[at];
+
 			if (until != '\0')
 			{
 				made.Append(c);
 
 				if (c == until)
-					until = '\0';
+				{
+					// `]]`, `""` and `''`: the quote written twice, and still inside.
+					if (at + 1 < words.Length && words[at + 1] == until)
+						made.Append(words[++at]);
+					else
+						until = '\0';
+				}
 
 				continue;
 			}
@@ -4005,9 +4021,21 @@ public static class Syntax
 				continue;
 			}
 
-			if (char.IsWhiteSpace(c))
+			// A line comment, to the end of its line, and that end as one line end.
+			if (c == '-' && at + 1 < words.Length && words[at + 1] == '-')
 			{
-				if (made.Length > 0 && made[made.Length - 1] != ' ')
+				for (; at < words.Length && words[at] is not ('\r' or '\n'); at++)
+					made.Append(raised ? char.ToUpperInvariant(words[at]) : words[at]);
+
+				if (at < words.Length)
+					made.Append('\n');
+
+				continue;
+			}
+
+			if (TransactSql.TransactSqlParser.Spacing(c))
+			{
+				if (made.Length > 0 && made[made.Length - 1] is not (' ' or '\n'))
 					made.Append(' ');
 			}
 			else
@@ -4850,22 +4878,47 @@ public static class Syntax
 	/// <summary>An option's name as the engine matches it: its words, in capitals, and <c>TRAN</c> as <c>TRANSACTION</c>.</summary>
 	static string AtomicKey(string name)
 	{
-		// A comment between the words is none of them: `TRANSACTION  ISOLATION /**/ LEVEL` is read.
-		var text = name;
+		// A comment between the words is none of them: `TRANSACTION  ISOLATION /**/ LEVEL` is read, and so is one
+		// that holds others, `/* a /* b */ c */`, which is one comment as the grammar reads it. What parts the words
+		// is the grammar's spacing.
+		var text = new System.Text.StringBuilder(name.Length);
 
-		for (int open; (open = text.IndexOf("/*", StringComparison.Ordinal)) >= 0;)
+		for (var at = 0; at < name.Length; at++)
 		{
-			var close = text.IndexOf("*/", open + 2, StringComparison.Ordinal);
-			text = text.Substring(0, open) + " " + (close < 0 ? "" : text.Substring(close + 2));
+			if (name[at] == '-' && at + 1 < name.Length && name[at + 1] == '-')
+			{
+				while (at < name.Length && name[at] is not ('\r' or '\n'))
+					at++;
+
+				text.Append(' ');
+			}
+			else if (name[at] == '/' && at + 1 < name.Length && name[at + 1] == '*')
+			{
+				var depth = 0;
+
+				for (; at < name.Length; at++)
+				{
+					if (name[at] == '/' && at + 1 < name.Length && name[at + 1] == '*')
+					{
+						depth++;
+						at++;
+					}
+					else if (name[at] == '*' && at + 1 < name.Length && name[at + 1] == '/')
+					{
+						at++;
+
+						if (--depth == 0)
+							break;
+					}
+				}
+
+				text.Append(' ');
+			}
+			else
+				text.Append(TransactSql.TransactSqlParser.Spacing(name[at]) ? ' ' : name[at]);
 		}
 
-		for (int open; (open = text.IndexOf("--", StringComparison.Ordinal)) >= 0;)
-		{
-			var end = text.IndexOfAny(['\r', '\n'], open);
-			text = text.Substring(0, open) + " " + (end < 0 ? "" : text.Substring(end));
-		}
-
-		var words = text.ToUpperInvariant().Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+		var words = text.ToString().ToUpperInvariant().Split([' '], StringSplitOptions.RemoveEmptyEntries);
 
 		if (words is ["TRAN", ..])
 			words[0] = "TRANSACTION";

@@ -325,55 +325,9 @@ static partial class Bridge
 		/// </summary>
 		static List<(SqlTokens.Token Token, int At)> Located(string text)
 		{
-			var located = new List<(SqlTokens.Token, int)>();
-			var at      = 0;
-
-			foreach (var token in SqlTokens.Of(text))
-			{
-				at = SkipBlanks(text, at);
-				located.Add((token, at));
-				at += token.Text.Length;
-			}
-
-			return located;
+			return SqlTokens.Located(text);
 		}
 
-		static int SkipBlanks(string text, int at)
-		{
-			while (at < text.Length)
-			{
-				if (char.IsWhiteSpace(text[at]))
-					at++;
-				else if (text[at] == '-' && at + 1 < text.Length && text[at + 1] == '-')
-					at = text.IndexOfAny(['\n', '\r'], at) is var end && end >= 0 ? end : text.Length;
-				else if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
-				{
-					var depth = 0;
-
-					while (at < text.Length)
-					{
-						if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
-						{
-							depth++;
-							at += 2;
-						}
-						else if (text[at] == '*' && at + 1 < text.Length && text[at + 1] == '/')
-						{
-							at += 2;
-
-							if (--depth == 0)
-								break;
-						}
-						else
-							at++;
-					}
-				}
-				else
-					break;
-			}
-
-			return at;
-		}
 
 		static bool Is(List<SqlTokens.Token> tokens, int at, string word)
 		{

@@ -257,8 +257,8 @@ static partial class Bridge
 		/// <summary><c>CHANGE_TRACKING_CONTEXT (value)</c>, read from the old option's text: the value read again as a value.</summary>
 		static Ast.Expression Context(Clause old, string text)
 		{
-			var open  = text.IndexOf('(');
-			var close = text.LastIndexOf(')');
+			var open  = SqlTokens.Find(text, "(");
+			var close = SqlTokens.FindLast(text, ")");
 			var read  = close > open ? Specified("SELECT " + text.Substring(open + 1, close - open - 1)) : null;
 
 			return read is { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] }

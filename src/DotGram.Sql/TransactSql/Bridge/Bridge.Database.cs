@@ -970,18 +970,7 @@ static partial class Bridge
 		/// <summary>The tokens of a text and where each begins.</summary>
 		static List<(SqlTokens.Token Token, int At)> Located(string text)
 		{
-			var located = new List<(SqlTokens.Token, int)>();
-			var at      = 0;
-
-			foreach (var token in SqlTokens.Of(text))
-			{
-				var found = text.IndexOf(token.Text, at, StringComparison.Ordinal);
-
-				located.Add((token, found));
-				at = found + token.Text.Length;
-			}
-
-			return located;
+			return SqlTokens.Located(text);
 		}
 
 		/// <summary>The first word outside brackets that is <paramref name="word"/>, or -1.</summary>

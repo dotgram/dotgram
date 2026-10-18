@@ -852,7 +852,7 @@ static partial class Bridge
 						break;
 
 					case ["WITHIN", "GROUP", "(", "ORDER", "BY", .., ")"]:
-						within = new Ast.WithinGroupClause(Ordering(old, text[(text.IndexOf('(') + 1)..text.LastIndexOf(')')]));
+						within = new Ast.WithinGroupClause(Ordering(old, text[(SqlTokens.Find(text, "(") + 1)..SqlTokens.FindLast(text, ")")]));
 						break;
 
 					default:
@@ -869,23 +869,12 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// The tokens of a stretch of text with where each begins in it, found in order so that a token is never
-		/// found again inside one before it.
+		/// The tokens of a stretch of text with where each begins in it, as the scan found them, so that a token is never
+		/// found again inside a comment or another token before it.
 		/// </summary>
 		static List<(SqlTokens.Token Token, int At)> Placed(string text)
 		{
-			var placed = new List<(SqlTokens.Token, int)>();
-			var from   = 0;
-
-			foreach (var token in SqlTokens.Of(text))
-			{
-				var at = text.IndexOf(token.Text, from, StringComparison.Ordinal);
-
-				placed.Add((token, at));
-				from = at + token.Text.Length;
-			}
-
-			return placed;
+			return SqlTokens.Located(text);
 		}
 
 		/// <summary>
@@ -1116,7 +1105,7 @@ static partial class Bridge
 		static bool Blank(string text)
 		{
 			foreach (var c in text)
-				if (char.IsWhiteSpace(c))
+				if (TransactSqlParser.Spacing(c))
 					return true;
 
 			return false;
@@ -1186,9 +1175,9 @@ static partial class Bridge
 		/// </summary>
 		public static Ast.DataType Type(object owner, string text)
 		{
-			var open  = text.IndexOf('(');
+			var open  = SqlTokens.Find(text, "(");
 			var head  = (open < 0 ? text : text[..open]).Trim();
-			var words = string.Join(' ', head.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
+			var words = string.Join(' ', Spaced(head).Split([' '], StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
 			var tail  = open < 0 ? "" : text[open..].Trim();
 
 			if (tail.Length > 0 && (!tail.EndsWith(')') || tail.IndexOf(')') != tail.Length - 1))
@@ -1270,7 +1259,8 @@ static partial class Bridge
 		/// </summary>
 		static Ast.DataType? SpelledType(object owner, string head, string[] arguments)
 		{
-			var tokens   = SqlTokens.Of(head);
+			var located  = SqlTokens.Located(head);
+			var tokens   = located.ConvertAll(static one => one.Token);
 			var national = tokens is [{ Kind: SqlTokens.Kind.Word, Text: var first }, ..] && first.Equals("NATIONAL", StringComparison.OrdinalIgnoreCase);
 			var varying  = tokens.Count > 1 && tokens[^1] is { Kind: SqlTokens.Kind.Word, Text: var last } && last.Equals("VARYING", StringComparison.OrdinalIgnoreCase);
 			var from     = national ? 1 : 0;
@@ -1296,8 +1286,20 @@ static partial class Bridge
 			var spelling = (national ? "NATIONAL " : "") + Unquoted(named.Text).ToUpperInvariant() + (varying ? " VARYING" : "");
 
 			return Standard(spelling, arguments) is { } standard
-				? standard with { WrittenName = Name(owner, head.Substring(head.IndexOf(part.Text, StringComparison.Ordinal), head.LastIndexOf(named.Text, StringComparison.Ordinal) + named.Text.Length - head.IndexOf(part.Text, StringComparison.Ordinal))) }
+				? standard with { WrittenName = Name(owner, head[located[from].At..(located[from + count - 1].At + named.Text.Length)]) }
 				: null;
+		}
+
+		/// <summary>A text with each character of the grammar's spacing made a space.</summary>
+		static string Spaced(string text)
+		{
+			var made = text.ToCharArray();
+
+			for (var at = 0; at < made.Length; at++)
+				if (TransactSqlParser.Spacing(made[at]))
+					made[at] = ' ';
+
+			return new string(made);
 		}
 
 		/// <summary>A name part's text without its delimiters, a doubled closing one undoubled.</summary>

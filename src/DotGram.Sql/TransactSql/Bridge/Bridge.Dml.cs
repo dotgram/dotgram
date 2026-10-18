@@ -146,7 +146,7 @@ static partial class Bridge
 
 			if (Words(name) is ["ORDER", "(", ..] && name.TrimEnd().EndsWith(')'))
 			{
-				var inside = name[(name.IndexOf('(') + 1)..name.LastIndexOf(')')];
+				var inside = name[(SqlTokens.Find(name, "(") + 1)..SqlTokens.FindLast(name, ")")];
 
 				if (value is not null || Queries.Selected("SELECT 1 ORDER BY " + inside) is not { By: Clause.OrderBy by })
 					throw BridgeGap.Open(old, "inventory Clause.Option (an ORDER that is not a sort list)");

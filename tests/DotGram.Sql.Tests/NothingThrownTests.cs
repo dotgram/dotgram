@@ -7,6 +7,8 @@ using DotGram.Sql.TransactSql;
 
 using Xunit;
 
+using Ast = DotGram.Sql.Ast;
+
 namespace DotGram.Sql.Tests;
 
 /// <summary>
@@ -43,6 +45,13 @@ public sealed class NothingThrownTests
 	[InlineData("CREATE SEARCH PROPERTY LIST p AUTHORIZATION --c\na")]
 	[InlineData("CREATE FULLTEXT INDEX ON t (a, --c\nb) KEY INDEX ix")]
 	[InlineData("CREATE FULLTEXT INDEX ON t (a) KEY INDEX ix ON (cat, --c\nFILEGROUP fg)")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (/*a)*/a) KEY INDEX ix")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (a /*)]*/, b --)]\n) KEY INDEX ix")]
+	[InlineData("DROP MASTER\u200BKEY")]
+	[InlineData("DROP MASTER\u0001KEY")]
+	[InlineData("DROP\u00A0SERVER\u3000AUDIT\u0085a")]
+	[InlineData("CREATE STATISTICS s ON t ([a]]  b], \"c\"\"  d\")")]
+	[InlineData("DROP MASTER /* a /* b */ c */ KEY")]
 	public void A_shape_that_once_threw_is_read_carried_or_refused(string input)
 	{
 		foreach (var (entry, read) in Entries())
@@ -51,6 +60,50 @@ public sealed class NothingThrownTests
 
 			Assert.True(thrown is null, $"{entry} threw {thrown?.GetType().Name}: {thrown?.Message}");
 		}
+	}
+
+	/// <summary>
+	/// Text a statement keeps as words and reads again outside the grammar is read the way the grammar reads it: a
+	/// bracket inside a comment is no bracket, the grammar's spacing parts two words, a line comment ends at its line,
+	/// a closing quote written twice stays inside the name, and a comment holding another is one comment.
+	/// </summary>
+	[Theory]
+	[InlineData(0)]
+	[InlineData(1)]
+	[InlineData(2)]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	public void Text_read_again_is_read_as_the_grammar_reads_it(int row)
+	{
+		var table = new Ast.QualifiedName(new Ast.Identifier("t"));
+		var key   = new Ast.Identifier("ix");
+
+		var (text, expected) = row switch
+		{
+			0 => ("CREATE FULLTEXT INDEX ON t (/*a)*/a) KEY INDEX ix",
+				(Ast.Statement)new Ast.Statement.CreateFullTextIndex(table, [new Ast.FullTextIndexColumn(new Ast.Identifier("a"))], key)),
+			1 => ("DROP MASTER\u200BKEY", new Ast.Statement.DropMasterKey()),
+			2 => ("DROP MASTER\u0001KEY", new Ast.Statement.DropMasterKey()),
+			3 => ("CREATE FULLTEXT INDEX ON t (a, --x\rb) KEY INDEX ix",
+				new Ast.Statement.CreateFullTextIndex(table,
+					[new Ast.FullTextIndexColumn(new Ast.Identifier("a")), new Ast.FullTextIndexColumn(new Ast.Identifier("b"))], key)),
+			6 => ("CREATE FULLTEXT INDEX ON t (a, --x\nb) KEY INDEX ix",
+				new Ast.Statement.CreateFullTextIndex(table,
+					[new Ast.FullTextIndexColumn(new Ast.Identifier("a")), new Ast.FullTextIndexColumn(new Ast.Identifier("b"))], key)),
+			4 => ("CREATE FULLTEXT INDEX ON t ([a]]  b]) KEY INDEX ix",
+				new Ast.Statement.CreateFullTextIndex(table, [new Ast.FullTextIndexColumn(new Ast.Identifier("[a]]  b]", Ast.IdentifierStyle.Bracketed))], key)),
+			_ => ("CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION /* a /* b */ c */ LEVEL = SNAPSHOT, LANGUAGE = N'us_english') SELECT 1 END",
+				TransactSqlParser.ParseStatement("CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english') SELECT 1 END")),
+		};
+
+		Assert.Equal(expected, TransactSqlParser.ParseStatement(text));
+		Assert.Equal(expected, TransactSqlParser.Located.ParseStatement(text));
+		Assert.Equal([expected], TransactSqlParser.ParseSql(text));
+
+		if (row == 5)
+			Assert.IsType<Ast.AtomicOption.Isolation>(((Ast.RoutineBody.Statements)((Ast.Statement.CreateRoutine)expected).Definition.Body).List[0] is Ast.Statement.Compound { Atomic: [var first, ..] } ? first : null);
 	}
 
 	/// <summary>Every batch of the corpus, through the script entry of both doors.</summary>

@@ -15528,7 +15528,8 @@ public sealed class TransactSqlTests
 	/// Forms the common tree has no place for yet, which the bridge reports as a gap — the statement an extension that says
 	/// why — where it threw: a result set of more than columns each with its type, read as a table's body is; a type with
 	/// a comment inside, which the writer cannot print to compare
-	/// with what was written; a line comment among the words a statement keeps as one line of text.
+	/// with what was written; a line comment among the words a statement keeps as text, which the writer does not print
+	/// back as written.
 	/// </summary>
 	[Theory]
 	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, CHECK (a > 0)))", "with more than columns each with its type")]
@@ -15537,8 +15538,7 @@ public sealed class TransactSqlTests
 	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, b AS a + 1))", "with more than columns each with its type")]
 	[InlineData("CREATE PROCEDURE p1 @lastname NVARCHAR/**/ (100) AS SELECT 1", "Clause.ParameterDeclaration.Type, which the writer refuses")]
 	[InlineData("DECLARE @b NVARCHAR/**/ (50)", "Clause.VariableDeclaration.Type, which the writer refuses")]
-	[InlineData("CREATE SEARCH PROPERTY LIST p AUTHORIZATION --c\na", "inventory Statement.SearchPropertyListDefinition")]
-	[InlineData("CREATE FULLTEXT INDEX ON t (a, --c\nb) KEY INDEX ix", "inventory Statement.FullTextIndexDefinition")]
+	[InlineData("CREATE SEARCH PROPERTY LIST p AUTHORIZATION --c\na", "Statement.SearchPropertyListDefinition.Tail, written otherwise")]
 	public void A_form_with_no_place_yet_is_a_gap_and_nothing_is_thrown(string input, string gap)
 	{
 		Assert.Contains(gap, Assert.IsType<Ast.Statement.Extension>(TransactSqlParser.ParseStatement(input)).Kind, StringComparison.Ordinal);

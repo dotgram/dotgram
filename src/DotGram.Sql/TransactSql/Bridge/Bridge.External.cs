@@ -320,55 +320,9 @@ static partial class Bridge
 		/// <summary>The position each token of a text starts at, comments and blanks skipped as the tokens skip them.</summary>
 		static List<int> Starts(string text)
 		{
-			var starts = new List<int>();
-			var at     = 0;
-
-			foreach (var token in SqlTokens.Of(text))
-			{
-				at = SkipBlanks(text, at);
-				starts.Add(at);
-				at += token.Text.Length;
-			}
-
-			return starts;
+			return SqlTokens.Located(text).ConvertAll(static one => one.At);
 		}
 
-		static int SkipBlanks(string text, int at)
-		{
-			while (at < text.Length)
-			{
-				if (char.IsWhiteSpace(text[at]))
-					at++;
-				else if (text[at] == '-' && at + 1 < text.Length && text[at + 1] == '-')
-					at = text.IndexOfAny(['\n', '\r'], at) is var end && end >= 0 ? end : text.Length;
-				else if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
-				{
-					var depth = 0;
-
-					while (at < text.Length)
-					{
-						if (text[at] == '/' && at + 1 < text.Length && text[at + 1] == '*')
-						{
-							depth++;
-							at += 2;
-						}
-						else if (text[at] == '*' && at + 1 < text.Length && text[at + 1] == '/')
-						{
-							at += 2;
-
-							if (--depth == 0)
-								break;
-						}
-						else
-							at++;
-					}
-				}
-				else
-					break;
-			}
-
-			return at;
-		}
 
 		/// <summary>
 		/// What follows a definition's name, read from left to right: each step is checked, and a text that is not read to its

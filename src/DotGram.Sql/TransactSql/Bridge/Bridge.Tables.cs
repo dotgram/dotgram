@@ -1417,7 +1417,7 @@ static partial class Bridge
 				return new Ast.AlterTableAction.FileTableNamespace(enable);
 
 			if (words is ["CHANGE_TRACKING", "WITH", "(", ..])
-				return new Ast.AlterTableAction.ChangeTracking(enable, OptionsOf(old, tail[(tail.IndexOf("WITH", StringComparison.OrdinalIgnoreCase) + "WITH".Length)..]));
+				return new Ast.AlterTableAction.ChangeTracking(enable, OptionsOf(old, tail[(SqlTokens.Find(tail, "WITH") + "WITH".Length)..]));
 
 			throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action} {words[0]})");
 		}
@@ -1426,8 +1426,8 @@ static partial class Bridge
 		static Ast.AlterTableAction Ranged(Statement.AlterTable old, bool split)
 		{
 			var tail  = Tail(old);
-			var open  = tail.IndexOf('(');
-			var close = tail.LastIndexOf(')');
+			var open  = SqlTokens.Find(tail, "(");
+			var close = SqlTokens.FindLast(tail, ")");
 
 			if (Words(tail) is not ["RANGE", "(", .., ")"] || close <= open)
 				throw BridgeGap.Open(old, $"inventory Statement.AlterTable ({old.Action} {tail})");
@@ -1475,7 +1475,7 @@ static partial class Bridge
 			if (words is ["PARTITION", "=", "ALL"])
 				all = true;
 			else if (words is ["PARTITION", "=", ..])
-				partition = ValueOf(old, head[(head.IndexOf('=') + 1)..]);
+				partition = ValueOf(old, head[(SqlTokens.Find(head, "=") + 1)..]);
 			else if (words.Count > 0)
 				throw BridgeGap.Open(old, $"inventory Statement.AlterTable (REBUILD {tail})");
 
@@ -1524,18 +1524,9 @@ static partial class Bridge
 		/// <summary>Where the word WITH begins a tail's options, or -1.</summary>
 		static int WithAt(string tail)
 		{
-			var words = SqlTokens.Of(tail);
-			var at    = 0;
-
-			foreach (var token in words)
-			{
-				var found = tail.IndexOf(token.Text, at, StringComparison.Ordinal);
-
+			foreach (var (token, at) in SqlTokens.Located(tail))
 				if (token.Kind == SqlTokens.Kind.Word && token.Text.Equals("WITH", StringComparison.OrdinalIgnoreCase))
-					return found;
-
-				at = found + token.Text.Length;
-			}
+					return at;
 
 			return -1;
 		}
@@ -1888,7 +1879,7 @@ static partial class Bridge
 			if (words is not ["ON", "PARTITIONS", "(", ..])
 				throw BridgeGap.Open(owner, $"inventory Clause.Option (partitions `{text}`)");
 
-			var list = text[text.IndexOf('(')..];
+			var list = text[SqlTokens.Find(text, "(")..];
 			return Skim("TRUNCATE TABLE t WITH (PARTITIONS " + list + ")") is [Statement.Built { Given: Statement.Truncate { Partitions: { } partitions } }]
 				? Each(partitions, one => one is Clause.PartitionRange(var from, var to)
 					? new Ast.PartitionRange(Values.Of(from), to is null ? null : Values.Of(to))
@@ -1982,7 +1973,7 @@ static partial class Bridge
 			Ast.Expression? where = null;
 
 			if (Words(head) is ["WHERE", ..])
-				where = Condition(old, head[(head.IndexOf("WHERE", StringComparison.OrdinalIgnoreCase) + "WHERE".Length)..]);
+				where = Condition(old, head[(SqlTokens.Find(head, "WHERE") + "WHERE".Length)..]);
 			else if (Words(head).Count > 0)
 				throw BridgeGap.Open(old, $"inventory Statement.StatisticsDefinition ({tail})");
 
@@ -2039,11 +2030,11 @@ static partial class Bridge
 						return new Ast.Option(new Ast.Identifier(tokens[0].Text), new Ast.Expression.Measured(ValueOf(owner, tokens[1].Text), new Ast.Identifier(tokens[2].Text)), []);
 
 					case ["RESAMPLE", "ON", "PARTITIONS", ..]:
-						return new Ast.Option(new Ast.Identifier(tokens[0].Text), null, []) { Partitions = Ranges(owner, one[one.IndexOf(tokens[1].Text, StringComparison.Ordinal)..]) };
+						return new Ast.Option(new Ast.Identifier(tokens[0].Text), null, []) { Partitions = Ranges(owner, one[SqlTokens.Located(one)[1].At..]) };
 
 					// A key word a value is set to is a one-part reference, as every option's is.
 					case [_, "=", _, ..] when tokens[0].Kind == SqlTokens.Kind.Word:
-						var value = one[(one.IndexOf('=') + 1)..].Trim();
+						var value = one[(SqlTokens.Find(one, "=") + 1)..].Trim();
 
 						return new Ast.Option(new Ast.Identifier(tokens[0].Text), words is [_, _, _] && tokens[2].Kind == SqlTokens.Kind.Word
 							? Values.Of(new Expression.ColumnReference(tokens[2].Text))
@@ -2076,7 +2067,7 @@ static partial class Bridge
 			switch (words)
 			{
 				case ["FROM", ..]:
-					var type        = tail[(tail.IndexOf("FROM", StringComparison.OrdinalIgnoreCase) + "FROM".Length)..].Trim();
+					var type        = tail[(SqlTokens.Find(tail, "FROM") + "FROM".Length)..].Trim();
 					Ast.ColumnNullability? nullability = null;
 
 					if (words is [.., "NOT", "NULL"])
@@ -2094,7 +2085,7 @@ static partial class Bridge
 
 				case ["AS", "TABLE", "(", ..]:
 					// The body read as a table's, its parts carried with the text it is read from.
-					var body = "CREATE TABLE t " + tail[(tail.IndexOf('('))..];
+					var body = "CREATE TABLE t " + tail[SqlTokens.Find(tail, "(")..];
 					var read = Inside(body, () => Reread(body, located: true));
 
 					if (read is not { IsSuccess: true, Value: [Statement.Built table] }
@@ -2127,7 +2118,7 @@ static partial class Bridge
 			if (Words(tail) is not ["FOR", ..])
 				throw BridgeGap.Open(old, $"inventory Statement.SynonymDefinition ({tail})");
 
-			return new Ast.Statement.CreateSynonym(Values.Name(old, old.Name), Values.Name(old, tail[(tail.IndexOf("FOR", StringComparison.OrdinalIgnoreCase) + "FOR".Length)..].Trim()));
+			return new Ast.Statement.CreateSynonym(Values.Name(old, old.Name), Values.Name(old, tail[(SqlTokens.Find(tail, "FOR") + "FOR".Length)..].Trim()));
 		}
 
 		/// <summary>
@@ -2373,18 +2364,7 @@ static partial class Bridge
 		/// <summary>The tokens of a text, each with where it starts in it.</summary>
 		static List<(SqlTokens.Token Token, int At)> Located(string text)
 		{
-			var located = new List<(SqlTokens.Token, int)>();
-			var at      = 0;
-
-			foreach (var token in SqlTokens.Of(text))
-			{
-				var found = text.IndexOf(token.Text, at, StringComparison.Ordinal);
-
-				located.Add((token, found));
-				at = found + token.Text.Length;
-			}
-
-			return located;
+			return SqlTokens.Located(text);
 		}
 
 		/// <summary>Whether the token at a position is the word given.</summary>

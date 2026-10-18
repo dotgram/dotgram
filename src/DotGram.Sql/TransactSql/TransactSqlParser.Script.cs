@@ -915,21 +915,23 @@ public abstract partial class TransactSqlParser
 			return at;
 		}
 
-		/// <summary>
-		/// What T-SQL takes for a space: a control character but the null, U+0085, U+200B, and Unicode's
-		/// spaces and separators.
-		/// </summary>
-		static bool Spacing(char character)
-		{
-			if (character is >= '\u0001' and <= '\u001F' or '\u0085' or '\u200B')
-				return true;
+	}
 
-			var category = char.GetUnicodeCategory(character);
+	/// <summary>
+	/// What T-SQL takes for a space, as the grammar's <c>TSql.Spacing</c> says it: a control character but the null,
+	/// U+0085, U+200B, and Unicode's spaces and separators. Whatever reads T-SQL text again outside the grammar asks
+	/// this, so that it parts words where the grammar parts them.
+	/// </summary>
+	internal static bool Spacing(char character)
+	{
+		if (character is >= '\u0001' and <= '\u001F' or '\u0085' or '\u200B')
+			return true;
 
-			return category is System.Globalization.UnicodeCategory.SpaceSeparator
-				or System.Globalization.UnicodeCategory.LineSeparator
-				or System.Globalization.UnicodeCategory.ParagraphSeparator;
-		}
+		var category = char.GetUnicodeCategory(character);
+
+		return category is System.Globalization.UnicodeCategory.SpaceSeparator
+			or System.Globalization.UnicodeCategory.LineSeparator
+			or System.Globalization.UnicodeCategory.ParagraphSeparator;
 	}
 
 	/// <summary>

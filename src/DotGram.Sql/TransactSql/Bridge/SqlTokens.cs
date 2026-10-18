@@ -7,7 +7,7 @@ namespace DotGram.Sql.TransactSql;
 /// T-SQL text cut into tokens, as far as the bridge and its oracle need it: a name in brackets or quotes and
 /// a string are one token each and keep their text, a word is one token, a number is one, and every other
 /// character that is not blank is one. Comments and blanks are not tokens; a block comment nests, as T-SQL's
-/// does.
+/// does, and a blank is what the grammar's spacing is (<see cref="TransactSqlParser.Spacing"/>).
 /// </summary>
 static class SqlTokens
 {
@@ -25,10 +25,46 @@ static class SqlTokens
 		return tokens;
 	}
 
-	/// <summary>The tokens of a text, each with where it starts in the text.</summary>
+	/// <summary>
+	/// The tokens of a text, each with where it starts in the text: where the scan found it, so that a token is never
+	/// placed at the same text inside a comment or a string before it.
+	/// </summary>
 	public static List<(Token Token, int At)> Located(string text)
 	{
 		return [.. Scan(text, 0)];
+	}
+
+	/// <summary>
+	/// Where the first token spelled as given stands in a text, from a position on — a word in any case, anything else
+	/// as written — or -1: a bracket or a word found where the scan finds it, never inside a comment, a string or a
+	/// delimited name.
+	/// </summary>
+	public static int Find(string text, string spelled, int from = 0)
+	{
+		foreach (var (token, at) in Scan(text, 0))
+			if (at >= from && Spelled(token, spelled))
+				return at;
+
+		return -1;
+	}
+
+	/// <summary>Where the last token spelled as given stands in a text, or -1.</summary>
+	public static int FindLast(string text, string spelled)
+	{
+		var last = -1;
+
+		foreach (var (token, at) in Scan(text, 0))
+			if (Spelled(token, spelled))
+				last = at;
+
+		return last;
+	}
+
+	static bool Spelled(Token token, string spelled)
+	{
+		return token.Kind == Kind.Word
+			? token.Text.Equals(spelled, StringComparison.OrdinalIgnoreCase)
+			: token.Text == spelled;
 	}
 
 	/// <summary>
@@ -49,7 +85,7 @@ static class SqlTokens
 		{
 			var c = text[at];
 
-			if (char.IsWhiteSpace(c))
+			if (TransactSqlParser.Spacing(c))
 			{
 				at++;
 
