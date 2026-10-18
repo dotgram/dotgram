@@ -249,7 +249,7 @@ public sealed partial class GrammarNormalizer
 				$"without arguments. Call it with them, '{name}(...)' (docs/syntax.md §4.2).",
 				expression.At);
 
-			return Node.Empty.Instance;
+			return Refused();
 		}
 
 		if (symbol is RuleSymbol rule)
@@ -684,7 +684,7 @@ public sealed partial class GrammarNormalizer
 				$"{arguments.Count}.",
 				at);
 
-			return Node.Empty.Instance;
+			return Refused();
 		}
 
 		// Lowered in the caller's own substitution, because an argument may name one of
@@ -1100,6 +1100,24 @@ public sealed partial class GrammarNormalizer
 			? rule
 			: Unresolved(name);
 	}
+
+	/// <summary>
+	/// What a refused call stands as: an empty node of its own, so that the checks after it can
+	/// tell it from one the grammar wrote. A repetition over it was told that its body can match
+	/// without consuming input, above the refusal that was the reason; the call is the one
+	/// mistake to tell.
+	/// </summary>
+	Node Refused()
+	{
+		var stand = new Node.Empty();
+
+		_refused.Add(stand);
+
+		return stand;
+	}
+
+	/// <summary>Every node a refused call stands as (<see cref="Refused"/>).</summary>
+	readonly HashSet<Node> _refused = new(NodeIdentity.Instance);
 
 	/// <summary>Binding already reported it; a placeholder keeps lowering going.</summary>
 	static RuleSymbol Unresolved(string name)

@@ -3479,6 +3479,24 @@ public sealed class SemanticTests
 	}
 
 	/// <summary>
+	/// A refused call under a repetition is the one mistake told: what stands in its place reads
+	/// nothing, and the repetition over it is not told again that its body can match nothing.
+	/// </summary>
+	[Theory]
+	[InlineData("P(x) = x & 'b'\nStart = 'a' & P* & eof", "P*")]
+	[InlineData("P(x) = x & 'b'\nStart = 'a' & (v: P)+ & eof", "P)")]
+	[InlineData("P(x) = x & 'b'\nStart = 'a' & P('a', 'c')* & eof", "P(")]
+	public void A_refused_call_under_a_repetition_is_the_one_mistake_told(string grammar, string call)
+	{
+		var told = Assert.Single(
+			Compile(grammar + "\nparse Start").Diagnostics,
+			static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GrammarNormalizer.UnbuiltCall, told.Id);
+		Assert.Equal(grammar.LastIndexOf(call, StringComparison.Ordinal), told.Position);
+	}
+
+	/// <summary>
 	/// A call with the wrong number of arguments is told at the call, which is where the
 	/// mistake is: the declaration it was placed at is the library's own text where the rule
 	/// is the library's, and no place in the grammar at all.

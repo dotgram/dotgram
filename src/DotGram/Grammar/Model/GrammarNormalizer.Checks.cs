@@ -781,7 +781,9 @@ public sealed partial class GrammarNormalizer
 			_                                                => null,
 		};
 
-		if (looped is not null && IsNullable(looped))
+		// Not over a refused call, whose refusal is the mistake told (Refused).
+		if (looped is not null && IsNullable(looped) &&
+			(_refused.Count == 0 || !NodeWalk.Descendants(looped).Any(_refused.Contains)))
 			Report(
 				NullableRepetition,
 				$"The body of a repetition in '{rule.Name}' can match without consuming input, so the repetition would not terminate.",
