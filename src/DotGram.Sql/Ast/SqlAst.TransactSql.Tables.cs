@@ -294,6 +294,18 @@ public sealed record IndexDefinition(Identifier Name) : ISqlNode
 	public SqlList<Placement> Placements { get; init; } = [];
 }
 
+public abstract partial record TableContents
+{
+	public partial record AsQuery
+	{
+		/// <summary>
+		/// T-SQL: CREATE TABLE AS SELECT (Microsoft Fabric and Azure Synapse Analytics). <c>AS SELECT … OPTION (LABEL =
+		/// 'x')</c>: the query's hints, written after it.
+		/// </summary>
+		public SqlList<QueryHint> Hints { get; init; } = [];
+	}
+}
+
 public abstract partial record TableElement
 {
 	/// <summary>T-SQL: CREATE TABLE (Transact-SQL). <c>INDEX i …</c> written at the table.</summary>

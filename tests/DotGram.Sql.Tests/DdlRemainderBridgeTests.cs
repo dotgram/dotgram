@@ -89,6 +89,7 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("SELECT * FROM PREDICT (DATA = dbo.t AS d, MODEL = @m) WITH (s FLOAT) AS p", "PREDICT with the data first")]
 	[InlineData("SELECT * FROM PREDICT (MODEL = @m, DATA = dbo.t AS d) WITH (s FLOAT) AS p", "PREDICT with the model first")]
 	[InlineData("SELECT * FROM PREDICT (MODEL = @m, DATA = (SELECT 1 AS x) AS d) WITH (s FLOAT) AS p", "PREDICT over a query")]
+	[InlineData("CREATE TABLE t (a, b) AS SELECT 1, 2 OPTION (LABEL = 'x')", "a table made of a query with OPTION")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -193,6 +194,7 @@ public sealed class DdlRemainderBridgeTests
 			"PREDICT with the data first" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Predict { DataFirst: true, Data: Ast.TableSource.Named }] } },
 			"PREDICT with the model first" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Predict { DataFirst: false }] } },
 			"PREDICT over a query" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Predict { Data: Ast.TableSource.Subquery { Alias.Name.Text: "d" } }] } },
+			"a table made of a query with OPTION" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.AsQuery { Hints.Count: 1, Columns.Count: 2 } },
 			_ => false,
 		};
 

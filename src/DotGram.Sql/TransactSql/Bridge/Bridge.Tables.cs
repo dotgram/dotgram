@@ -588,21 +588,21 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// A table made of a query, Synapse's: the column names, the options before the AS, and the query, which
-		/// writes no <c>WITH [NO] DATA</c>.
+		/// A table made of a query, Synapse's: the column names, the options before the AS, and the query with its hints,
+		/// which writes no <c>WITH [NO] DATA</c>.
 		/// </summary>
 		static Ast.Statement CreateTableAsSelect(Statement.CreateTableAsSelect old)
 		{
 			if (old.External)
 				return External.TableAsSelect(old);
 
-			if (StatementOf(old.Body) is not Ast.Statement.Select { Hints.Count: 0 } select)
-				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold)");
+			if (StatementOf(old.Body) is not Ast.Statement.Select select)
+				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (a query that is no SELECT)");
 
 			return new Ast.Statement.CreateTable
 			{
 				Name     = Values.Name(old, old.Name),
-				Contents = new Ast.TableContents.AsQuery(Values.Parts(old, old.Columns), select.Query, null),
+				Contents = new Ast.TableContents.AsQuery(Values.Parts(old, old.Columns), select.Query, null) { Hints = select.Hints },
 				Options  = Each(old.Options, Option),
 			};
 		}

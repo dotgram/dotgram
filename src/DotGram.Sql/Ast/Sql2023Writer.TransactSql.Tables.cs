@@ -523,6 +523,7 @@ public static partial class Sql2023Writer
 					PutOptions(table.Options, multiWord: true);
 					Word("AS");
 					PutQuery(query.Query);
+					PutQueryHints(query.Hints);
 					return true;
 
 				// A file table says what it is before its columns, a graph table after them; either may have none.
