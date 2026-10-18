@@ -96,6 +96,7 @@ public sealed class DdlRemainderWriterTests
 			"ALTER COLUMN a front" => Altered(new AlterColumnAction.SetDataType(new DataType.Xml()) { SetDataTypeOmitted = true, ColumnOptions = [new ColumnOption.Collation(new CollationName(Qualified("x"))), new ColumnOption.ColumnSet()], Nullability = ColumnNullability.Null }),
 			"ADD a default WITH VALUES" => new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.Add([new TableElement.Column(Column(new DataType.Numeric(NumericTypeKind.Int)) with { Options = [new ColumnOption.Default(Number("1")) { WithValues = true }] }), new TableElement.TableConstraint(new Constraint.Default(Number("2"), Name("d")) { WithValues = true })])] },
 			"DROP PERIOD" => new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.DropPeriod(PeriodKind.SystemTime, null, null)] },
+			"CREATE TABLE a DECIMAL (MAX)" => Table(Column(Max("DECIMAL"))),
 			"CREATE MATERIALIZED VIEW" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("ROUND_ROBIN")), Set("FOR_APPEND")] },
 			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
@@ -106,6 +107,16 @@ public sealed class DdlRemainderWriterTests
 	static ColumnDefinition Column(DataType type)
 	{
 		return new ColumnDefinition(Name("c"), type, null, [], null);
+	}
+
+	static DataType Max(string name)
+	{
+		return new DataType.Named(Qualified(name), []) { Max = true };
+	}
+
+	static Statement Cast(DataType type)
+	{
+		return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.Cast(Ref("a"), type))] } };
 	}
 
 	static Statement Altered(AlterColumnAction action)
@@ -155,6 +166,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("ALTER COLUMN a front", "ALTER TABLE t ALTER COLUMN c XML COLLATE x COLUMN_SET FOR ALL_SPARSE_COLUMNS NULL")]
 	[InlineData("ADD a default WITH VALUES", "ALTER TABLE t ADD c INT DEFAULT 1 WITH VALUES, DEFAULT 2 FOR d WITH VALUES")]
 	[InlineData("DROP PERIOD", "ALTER TABLE t DROP PERIOD FOR SYSTEM_TIME")]
+	[InlineData("CREATE TABLE a DECIMAL (MAX)", "CREATE TABLE t (c DECIMAL(MAX))")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -177,6 +189,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("ALTER COLUMN a front")]
 	[InlineData("ADD a default WITH VALUES")]
 	[InlineData("DROP PERIOD")]
+	[InlineData("CREATE TABLE a DECIMAL (MAX)")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -239,6 +252,10 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("a columnstore key")]
 	[InlineData("SPLIT RANGE at DEFAULT")]
 	[InlineData("DROP PERIOD with a behavior")]
+	[InlineData("DECIMAL (MAX) in a cast")]
+	[InlineData("CHAR (MAX)")]
+	[InlineData("VARCHAR as Named with MAX")]
+	[InlineData("MAX beside arguments")]
 	[InlineData("ALTER COLUMN a collation after SPARSE")]
 	[InlineData("JSON a path with an escape")]
 	public void A_tree_with_no_text_is_refused(string which)
@@ -328,6 +345,14 @@ public sealed class DdlRemainderWriterTests
 			"SPLIT RANGE at DEFAULT" => new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.SplitRange(new Expression.Default())] },
 			// DropTarget: PERIOD FOR SYSTEM_TIME and nothing after it.
 			"DROP PERIOD with a behavior" => new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.DropPeriod(PeriodKind.SystemTime, null, DropBehavior.Cascade)] },
+			// ExactMax: DECIMAL (MAX) only where a column is declared; a cast's is Msg 156.
+			"DECIMAL (MAX) in a cast" => Cast(Max("DECIMAL")),
+			// TSqlDataType: a fixed-length string is never MAX (Msg 156).
+			"CHAR (MAX)" => Cast(Max("char")),
+			// The standard's record holds VARCHAR (MAX), so Named would read back as it.
+			"VARCHAR as Named with MAX" => Cast(Max("varchar")),
+			// AnyLength: MAX alone in the brackets.
+			"MAX beside arguments" => Cast(new DataType.Named(Qualified("int"), [Number("10")]) { Max = true }),
 			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
 			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
 			// JsonIndexPath: a plain or national string.

@@ -65,6 +65,9 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("alter table t disable filetable_namespace", "DISABLE FILETABLE_NAMESPACE")]
 	[InlineData("ALTER TABLE t DROP PERIOD FOR SYSTEM_TIME", "a period dropped")]
 	[InlineData("ALTER TABLE t DROP PERIOD FOR SYSTEM_TIME, COLUMN a", "a period dropped in a list")]
+	[InlineData("CREATE TABLE t (c DECIMAL (MAX))", "DECIMAL (MAX) in a column")]
+	[InlineData("CREATE TABLE t (c DECIMAL (10))", "DECIMAL (10) in a column")]
+	[InlineData("SELECT CAST (a AS int(max))", "int(max) in a cast")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -145,6 +148,9 @@ public sealed class DdlRemainderBridgeTests
 			"DISABLE FILETABLE_NAMESPACE" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.FileTableNamespace { Enable: false }] },
 			"a period dropped" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.DropPeriod { Kind: Ast.PeriodKind.SystemTime, Behavior: null }] },
 			"a period dropped in a list" => made is Ast.Statement.AlterTable { Actions: [Ast.AlterTableAction.Drop { Items: [Ast.AlterTableAction.DropPeriod, Ast.AlterTableAction.DropColumn] }] },
+			"DECIMAL (MAX) in a column" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Named { Max: true, Arguments.Count: 0, Name: [{ Text: "DECIMAL" }] } }] } },
+			"DECIMAL (10) in a column" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Numeric }] } },
+			"int(max) in a cast" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Cast { Target: Ast.DataType.Named { Max: true } } }] } },
 			_ => false,
 		};
 

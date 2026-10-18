@@ -1085,6 +1085,11 @@ static partial class Bridge
 			if (system && StandardWords.Contains(last) && Standard(last.ToUpperInvariant(), arguments) is { } standard)
 				return bare ? standard : standard with { WrittenName = name };
 
+			// MAX after a type with no MAX of its own (AnyLength, ExactMax): the type's name and the word.
+			if (system && arguments is [var only] && only.Equals("MAX", StringComparison.OrdinalIgnoreCase)
+				&& SystemTypes.Contains(last) && !last.Equals("xml", StringComparison.OrdinalIgnoreCase) && !last.Equals("vector", StringComparison.OrdinalIgnoreCase))
+				return new Ast.DataType.Named(name, []) { Max = true };
+
 			// xml, however written, before the system types, so that `[xml]` is never Named.
 			if (system && last.Equals("xml", StringComparison.OrdinalIgnoreCase))
 				return bare ? Xml(owner, text, inside) : Xml(owner, text, inside) with { WrittenName = name };

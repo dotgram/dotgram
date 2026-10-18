@@ -441,7 +441,15 @@ public abstract partial record DataType
 	/// a name of one part, or <c>sys</c> and a name, however quoted, that is one of T-SQL's system types is
 	/// <see cref="Named"/>, its arguments numbers; and every other name is the standard's <see cref="UserDefined"/>.
 	/// </remarks>
-	public sealed record Named(QualifiedName Name, SqlList<Expression> Arguments) : DataType;
+	public sealed record Named(QualifiedName Name, SqlList<Expression> Arguments) : DataType
+	{
+		/// <summary>
+		/// T-SQL: Data types (Transact-SQL). <c>int (MAX)</c>, <c>DECIMAL (MAX)</c>: the length written as <c>MAX</c> after a
+		/// type that has no MAX of its own, which the grammar reads after any type (and an exact numeric's only where a
+		/// column is declared); <see cref="Arguments"/> is empty then.
+		/// </summary>
+		public bool Max { get; init; }
+	}
 
 	/// <summary>
 	/// T-SQL: xml (Transact-SQL). <c>xml [([CONTENT | DOCUMENT] schema_collection)]</c>. <c>Modifier</c> only with

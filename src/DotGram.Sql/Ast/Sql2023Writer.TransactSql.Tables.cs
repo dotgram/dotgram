@@ -590,7 +590,7 @@ public static partial class Sql2023Writer
 				}
 
 				if (at == 0 && column.Type is { } type)
-					PutType(type);
+					PutColumnType(type);
 
 				PutColumnOption(option);
 			}
@@ -1122,7 +1122,7 @@ public static partial class Sql2023Writer
 			if (type.ColumnOptions.Count > 0)
 				Tailed(new ColumnDefinition(new Identifier("c"), type.Type, null, [], null) { Options = type.ColumnOptions });
 
-			PutType(type.Type);
+			PutColumnType(type.Type);
 			foreach (var option in type.ColumnOptions)
 				PutColumnOption(option);
 
