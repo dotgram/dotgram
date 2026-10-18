@@ -273,6 +273,8 @@ static class BridgeText
 		"PARAMETERS",
 		// A grouping column's hint.
 		"DISTRIBUTED_AGG",
+		// AI_GENERATE_CHUNKS's names and its one type.
+		"SOURCE", "CHUNK_TYPE", "CHUNK_SIZE", "OVERLAP", "ENABLE_CHUNK_SET_ID", "FIXED",
 		// A vector's base type.
 		"FLOAT16", "FLOAT32", "VECTOR",
 	};

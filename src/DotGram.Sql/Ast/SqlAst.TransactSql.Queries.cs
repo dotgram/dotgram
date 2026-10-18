@@ -170,6 +170,23 @@ public abstract partial record TableSource
 	/// model, the source scored with its alias, the runtime, and the columns the result adds — a name, a type, a
 	/// collation and <c>NOT NULL</c>, as the standard's column definition holds them, with no path.
 	/// </summary>
+	/// <summary>
+	/// T-SQL: AI_GENERATE_CHUNKS (Transact-SQL). <c>AI_GENERATE_CHUNKS (SOURCE = v, CHUNK_TYPE = FIXED, CHUNK_SIZE = v [,
+	/// OVERLAP = v [, ENABLE_CHUNK_SET_ID = v]])</c>: the five named in that order, the first three demanded, the type
+	/// the one bare word.
+	/// </summary>
+	public sealed record AiGenerateChunks(Expression Source, Identifier ChunkType, Expression ChunkSize) : TableSource
+	{
+		/// <summary>T-SQL: AI_GENERATE_CHUNKS (Transact-SQL). <c>OVERLAP = v</c>.</summary>
+		public Expression? Overlap { get; init; }
+
+		/// <summary>T-SQL: AI_GENERATE_CHUNKS (Transact-SQL). <c>ENABLE_CHUNK_SET_ID = v</c>, after OVERLAP and only with it.</summary>
+		public Expression? EnableChunkSetId { get; init; }
+
+		/// <summary>T-SQL: AI_GENERATE_CHUNKS (Transact-SQL). The correlation name, without a column list.</summary>
+		public Alias? Alias { get; init; }
+	}
+
 	public sealed record Predict(Expression Model, TableSource Data, Identifier? Runtime, SqlList<ColumnDefinition> Schema, Alias? Alias = null) : TableSource
 	{
 		/// <summary>T-SQL: PREDICT (Transact-SQL). <c>PREDICT (DATA = …, MODEL = …)</c>: the data written before the model.</summary>

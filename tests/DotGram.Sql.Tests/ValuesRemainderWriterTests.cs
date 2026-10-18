@@ -63,6 +63,7 @@ public sealed class ValuesRemainderWriterTests
 			"COMMIT numbered" => new Statement.Commit { Keyword = TransactionKeyword.Tran, Name = new TransactionName(null) { Number = (LiteralValue.Numeric)Number("1"), Qualified = new QualifiedName([Name("x"), Name("y")]) } },
 			"IS DISTINCT FROM SOME" => Where(new Expression.IsDistinct(Ref("a"), false, new Expression.Subquery(new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("b"))], From = new FromClause([new TableSource.Named(Qualified("u"))]) })) { Quantifier = Quantifier.Some }),
 			"AI_GENERATE_EMBEDDINGS" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.AiGenerateEmbeddings(Text("x"), new QualifiedName([Name("dbo"), Name("m")])) { Parameters = Ref("p") })] } },
+			"AI_GENERATE_CHUNKS" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.AiGenerateChunks(Text("x"), Name("fixed"), Number("5")) { Overlap = Number("1"), Alias = new Alias(Name("c"), null, true) }]) } },
 			"CONTAINS" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b"), Ref("c")], Text("x")) { ColumnsBracketed = true, Language = Number("1033") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
@@ -79,6 +80,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("CONTAINS", "SELECT a FROM t WHERE CONTAINS((b, c), 'x', LANGUAGE 1033)")]
 	[InlineData("IS DISTINCT FROM SOME", "SELECT a FROM t WHERE a IS DISTINCT FROM SOME (SELECT b FROM u)")]
 	[InlineData("AI_GENERATE_EMBEDDINGS", "SELECT AI_GENERATE_EMBEDDINGS('x' USE MODEL dbo.m PARAMETERS p)")]
+	[InlineData("AI_GENERATE_CHUNKS", "SELECT * FROM AI_GENERATE_CHUNKS(SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, OVERLAP = 1) AS c")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -90,6 +92,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("CONTAINS")]
 	[InlineData("IS DISTINCT FROM SOME")]
 	[InlineData("AI_GENERATE_EMBEDDINGS")]
+	[InlineData("AI_GENERATE_CHUNKS")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -111,6 +114,9 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("IS DISTINCT FROM ALL a value")]
 	[InlineData("AI_GENERATE_EMBEDDINGS a model with an empty part")]
 	[InlineData("DISTRIBUTED_AGG on a list in brackets")]
+	[InlineData("chunks of another type")]
+	[InlineData("chunks with a set id and no overlap")]
+	[InlineData("chunks with an alias's columns")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -137,6 +143,12 @@ public sealed class ValuesRemainderWriterTests
 			"AI_GENERATE_EMBEDDINGS a model with an empty part" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.AiGenerateEmbeddings(Text("x"), new QualifiedName([Name(""), Name("m")])))] } },
 			// TSqlGroupingColumn: the hint after a column, never after a list in brackets.
 			"DISTRIBUTED_AGG on a list in brackets" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("a"))], From = new FromClause([new TableSource.Named(Qualified("t"))]), GroupBy = new GroupByClause(null, [new GroupingElement.Rollup([new GroupingElement.Ordinary([Ref("a"), Ref("b")], true) { DistributedAggregation = true }])]) } },
+			// ChunksType: the bare word FIXED, '[fixed]' refused.
+			"chunks of another type" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.AiGenerateChunks(Text("x"), new Identifier("[fixed]", IdentifierStyle.Bracketed), Number("5"))]) } },
+			// ChunksFunction: ENABLE_CHUNK_SET_ID after OVERLAP.
+			"chunks with a set id and no overlap" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.AiGenerateChunks(Text("x"), Name("fixed"), Number("5")) { EnableChunkSetId = Number("1") }]) } },
+			// After the call, AS c (a, b) is Msg 102.
+			"chunks with an alias's columns" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.AiGenerateChunks(Text("x"), Name("fixed"), Number("5")) { Alias = new Alias(Name("c"), [Name("a")]) }]) } },
 			"a number with no name" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};

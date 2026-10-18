@@ -31,6 +31,8 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT AI_GENERATE_EMBEDDINGS (@t USE MODEL m)", "embeddings")]
 	[InlineData("SELECT c1 FROM t1 GROUP BY c1 WITH (DISTRIBUTED_AGG), c2", "a grouping column moved to be aggregated")]
 	[InlineData("SELECT c1 FROM t1 GROUP BY c1, c2", "a grouping column")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5) AS c", "chunks")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = FIXED, CHUNK_SIZE = 5, OVERLAP = 50, ENABLE_CHUNK_SET_ID = 1)", "chunks with every argument")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -52,6 +54,8 @@ public sealed class ValuesRemainderBridgeTests
 			"embeddings" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Source: Ast.Expression.Variable, Parameters: null } }] } },
 			"a grouping column moved to be aggregated" => made is Ast.Statement.Select { Query: Ast.Query.Select { GroupBy.Items: [Ast.GroupingElement.Ordinary { DistributedAggregation: true }, Ast.GroupingElement.Ordinary { DistributedAggregation: false }] } },
 			"a grouping column" => made is Ast.Statement.Select { Query: Ast.Query.Select { GroupBy.Items: [Ast.GroupingElement.Ordinary { DistributedAggregation: false }, _] } },
+			"chunks" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.AiGenerateChunks { ChunkType.Text: "fixed", Overlap: null, EnableChunkSetId: null, Alias.Name.Text: "c" }] } },
+			"chunks with every argument" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.AiGenerateChunks { Overlap: not null, EnableChunkSetId: not null, Alias: null }] } },
 			_ => false,
 		};
 
