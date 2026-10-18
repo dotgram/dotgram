@@ -81,6 +81,13 @@ static partial class Bridge
 				Expression.Match match                      => Match(match),
 				Expression.Overlaps(var left, var right)    => new Ast.Expression.Overlaps(Of(left), Of(right)),
 
+				// DistinctTail's quantifier before a subquery, which the old tree keeps as a word in front of it.
+				Expression.IsDistinctFrom(var left, var not, Expression.Prefixed(var word, Expression.Subquery subquery)) when word.ToUpperInvariant() is "ALL" or "ANY" or "SOME" =>
+					new Ast.Expression.IsDistinct(Of(left), not, Of(subquery))
+					{
+						Quantifier = word.ToUpperInvariant() switch { "ALL" => Ast.Quantifier.All, "ANY" => Ast.Quantifier.Any, _ => Ast.Quantifier.Some },
+					},
+
 				Expression.IsDistinctFrom(var left, var not, var right) =>
 					new Ast.Expression.IsDistinct(Of(left), not, Of(right)),
 

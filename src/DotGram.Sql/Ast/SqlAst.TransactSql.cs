@@ -368,6 +368,15 @@ public abstract partial record Expression
 		[Spelling] public bool ColumnsBracketed { get; init; }
 	}
 
+	public partial record IsDistinct
+	{
+		/// <summary>
+		/// T-SQL: IS [NOT] DISTINCT FROM (Transact-SQL) (the quantified form is not published). <c>a IS DISTINCT FROM ALL
+		/// (SELECT …)</c>: the quantifier, which the grammar reads before a subquery, <see cref="Right"/> that subquery.
+		/// </summary>
+		public Quantifier? Quantifier { get; init; }
+	}
+
 	/// <summary>T-SQL: the WITH clause of the CREATE and ALTER statements. A value and the unit it is written in, as in <c>10 MINUTES</c>, <c>50 PERCENT</c> or <c>4 GB</c>.</summary>
 	public sealed record Measured(Expression Value, Identifier Unit) : Expression;
 
