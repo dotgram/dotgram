@@ -92,7 +92,7 @@ public sealed class TreeEqualityTests
 		Assert.True(statements > 6_000, $"{statements} statements");
 		Assert.True(changed > 2_000, $"{changed} statements with a literal");
 		Assert.True(collisions <= Tolerated(changed), $"{collisions} of {changed} changed statements hash as before");
-		Assert.True(distinct.Count > 4_000, $"{distinct.Count} distinct statements");
+		Assert.True(distinct.Count > 3_500, $"{distinct.Count} distinct statements");
 
 		// A statement whose rule builds the common tree hashes as that tree does, whose records hash a member left out as its
 		// default (`CONTAINMENT = NONE` and none at all): the hashes held here are this tree's.

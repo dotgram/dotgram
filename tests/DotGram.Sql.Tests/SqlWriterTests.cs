@@ -186,7 +186,7 @@ public sealed class SqlWriterTests
 	[InlineData("create json index ix on dbo.t (c) for ('$.a', N'$.b') with (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)", "CREATE JSON INDEX ix ON dbo.t (c) FOR ('$.a', N'$.b') WITH (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
 	[InlineData("shutdown with nowait", "SHUTDOWN WITH NOWAIT")]
 	[InlineData("lineno 42", "LINENO 42")]
-	[InlineData("dbcc myDll with stat_header join density_vector, no_infomsgs", "DBCC myDll WITH STAT_HEADER JOIN DENSITY_VECTOR, NO_INFOMSGS")]
+	[InlineData("dbcc myDll with stat_header join density_vector, no_infomsgs", "DBCC myDll WITH stat_header JOIN density_vector, no_infomsgs")]
 	[InlineData("updatetext bulk t1.c1 @var TimeStamp = 0xFFFF null @DeleteLength 'hi'", "UPDATETEXT BULK t1.c1 @var TIMESTAMP = 0xFFFF NULL @DeleteLength 'hi'")]
 	[InlineData("writetext t1.c1 100 TIMESTAMP = 0xFF with log 'hi'", "WRITETEXT t1.c1 100 TIMESTAMP = 0xFF WITH LOG 'hi'")]
 	[InlineData("SELECT 1 << 1 >> 1, (1 + 1) << 1, 1 << (1 + 1), 1 << 1 * 2", "SELECT 1 << 1 >> 1, (1 + 1) << 1, 1 << (1 + 1), 1 << 1 * 2")]

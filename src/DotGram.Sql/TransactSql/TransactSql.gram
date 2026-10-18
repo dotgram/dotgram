@@ -2997,9 +2997,9 @@ PartitionFileGroup = TSqlIdentifier | Quoted
 // server, the block's syntax notwithstanding, and is not read.
 ServerStatement : @Statement
 	= "ALTER"i & "RESOURCE"i & "GOVERNOR"i & tail: (GovernorAction & "RECONFIGURE"i?)
-		=> @(Statement.Defined("ALTER RESOURCE GOVERNOR", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER RESOURCE GOVERNOR", "", Syntax.Tail(tail)))
 	| "ALTER"i & "SERVER"i & "CONFIGURATION"i & tail: ("SET"i & ServerSetting)
-		=> @(Statement.Defined("ALTER SERVER CONFIGURATION", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER SERVER CONFIGURATION", "", Syntax.Tail(tail)))
 
 GovernorAction = "RECONFIGURE"i | "DISABLE"i | "RESET"i & "STATISTICS"i | "WITH"i & '(' & GovernorSetting & ')'
 
@@ -3070,7 +3070,7 @@ SnapshotScope = "GROUP"i & '=' & '(' & TSqlIdentifier & (',' & TSqlIdentifier)* 
 // Kept as every object of this kind is: the name, and the words after it as the tail.
 AvailabilityStatement : @Statement
 	= verb: CreateOrAlter & "AVAILABILITY"i & "GROUP"i & name: TSqlIdentifier & tail: AvailabilityBody
-		=> @(Statement.Defined("AVAILABILITY GROUP", name, Syntax.Tail(tail), verb))
+		=> @(Bridge.Defined("AVAILABILITY GROUP", name, Syntax.Tail(tail), verb))
 
 AvailabilityBody
 	= AvailabilityAction
@@ -3180,47 +3180,47 @@ AvailabilityListenerChange
 // by commas and names each thing once.
 BrokerStatement : @Statement
 	= "CREATE"i & "MESSAGE"i & "TYPE"i & name: TSqlIdentifier & tail: (Authorization? & MessageValidation?)
-		=> @(Statement.Defined("MESSAGE TYPE", name, Syntax.Tail(tail), "CREATE"))
+		=> @(Bridge.Defined("MESSAGE TYPE", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "MESSAGE"i & "TYPE"i & name: TSqlIdentifier & tail: MessageValidation
-		=> @(Statement.Defined("MESSAGE TYPE", name, Syntax.Tail(tail), "ALTER"))
+		=> @(Bridge.Defined("MESSAGE TYPE", name, Syntax.Tail(tail), "ALTER"))
 	| "CREATE"i & "CONTRACT"i & name: TSqlIdentifier
 	  & tail: (Authorization? & '(' & ContractMessage & (',' & ContractMessage)* & ')')
-		=> @(Statement.Defined("CONTRACT", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("CONTRACT", name, Syntax.Tail(tail)))
 	// A queue's filegroup is a name or a string — `ON 'filegroup'`, `ON N'fg'` — and one part:
 	// `ON fg.x` is `Msg 102`. It stands after the options and not before them (`Msg 319`).
 	| "CREATE"i & "QUEUE"i & name: TSqlQualifiedName & tail: (options: QueueWith? & ("ON"i & (TSqlIdentifier | Quoted))?)
 	  & when @(Syntax.NamedOnce(null, options) && Syntax.Activates(options))
-		=> @(Statement.Defined("QUEUE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("QUEUE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "QUEUE"i & name: TSqlQualifiedName & tail: (options: QueueWith | QueueAction)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("QUEUE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("QUEUE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "SERVICE"i & name: TSqlIdentifier
 	  & tail: (Authorization? & "ON"i & "QUEUE"i & TSqlQualifiedName & ('(' & TSqlIdentifier & (',' & TSqlIdentifier)* & ')')?)
-		=> @(Statement.Defined("SERVICE", name, Syntax.Tail(tail), "CREATE"))
+		=> @(Bridge.Defined("SERVICE", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "SERVICE"i & name: TSqlIdentifier
 	  & tail: ("ON"i & "QUEUE"i & TSqlQualifiedName & ServiceChanges? | ServiceChanges)
-		=> @(Statement.Defined("SERVICE", name, Syntax.Tail(tail), "ALTER"))
+		=> @(Bridge.Defined("SERVICE", name, Syntax.Tail(tail), "ALTER"))
 	| "CREATE"i & "ROUTE"i & name: TSqlIdentifier & tail: (Authorization? & "WITH"i & options: RouteOptions)
 	  & when @(Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "ADDRESS"))
-		=> @(Statement.Defined("ROUTE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("ROUTE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "ROUTE"i & name: TSqlIdentifier & tail: ("WITH"i & options: RouteOptions)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("ROUTE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("ROUTE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "REMOTE"i & "SERVICE"i & "BINDING"i & name: TSqlIdentifier
 	  & tail: (Authorization? & "TO"i & "SERVICE"i & BrokerString & "WITH"i & options: BindingOptions)
 	  & when @(Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "USER"))
-		=> @(Statement.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "REMOTE"i & "SERVICE"i & "BINDING"i & name: TSqlIdentifier & tail: ("WITH"i & options: BindingOptions)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "BROKER"i & "PRIORITY"i & name: TSqlIdentifier
 	  & tail: ("FOR"i & "CONVERSATION"i & ("SET"i & '(' & options: PriorityOptions & ')')?)
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "BROKER"i & "PRIORITY"i & name: TSqlIdentifier
 	  & tail: ("FOR"i & "CONVERSATION"i & "SET"i & '(' & options: PriorityOptions & ')')
 	  & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
+		=> @(Bridge.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 
 MessageValidation = "VALIDATION"i & '=' & ("VALID_XML"i & "WITH"i & "SCHEMA"i & "COLLECTION"i & TSqlQualifiedName
 										 | ?!"VALID_XML"i & TSqlIdentifier)
@@ -3314,16 +3314,16 @@ ConversationStatement : @Statement
 	  & "FROM"i & "SERVICE"i & from: TSqlQualifiedName & "TO"i & "SERVICE"i & to: BrokerTarget
 	  & (',' & instance: BrokerTarget)? & ("ON"i & "CONTRACT"i & contract: TSqlQualifiedName)?
 	  & options: DialogWith? & when @(Syntax.DialogAgrees(options))
-		=> @(new Statement.BeginDialog(handle, said is not null, from, to, instance, contract, SqlList.Own(options)))
+		=> @(Bridge.Broker.Dialog(handle, said is not null, from, to, instance, contract, SqlList.Own(options)))
 	| "BEGIN"i & "CONVERSATION"i & "TIMER"i & '(' & h: TSqlValueExpression & ')' & "TIMEOUT"i & '=' & timeout: TSqlValueExpression
-		=> @(new Statement.ConversationTimer(h, timeout))
+		=> @(Bridge.Broker.Timer(h, timeout))
 	| "END"i & "CONVERSATION"i & h: TSqlValueExpression & ending: EndConversationWith?
-		=> @(ending is null ? new Statement.EndConversation(h) : ending with { Handle = h })
+		=> @(Bridge.Broker.End(h, ending))
 	| "MOVE"i & "CONVERSATION"i & h: TSqlValueExpression & "TO"i & group: TSqlValueExpression
-		=> @(new Statement.MoveConversation(h, group))
+		=> @(Bridge.Broker.Move(h, group))
 	| "SEND"i & "ON"i & "CONVERSATION"i & targets: SendTargets & ("MESSAGE"i & "TYPE"i & type: MessageTypeName)?
 	  & ('(' & body: TSqlValueExpression & ')')?
-		=> @(targets with { MessageType = type, Body = body })
+		=> @(Bridge.Broker.Send(targets, type, body))
 	| s: GetConversationGroup => @(s)
 	| s: ReceiveStatement     => @(s)
 
@@ -3357,7 +3357,7 @@ SendTargets : @Statement.Send
 // there may a `TIMEOUT` follow, after a comma: a number, negative or not, or a variable.
 GetConversationGroup : @Statement
 	= "GET"i & "CONVERSATION"i & "GROUP"i & g: TSql.Variable & "FROM"i & q: TSqlQualifiedName
-		=> @(new Statement.GetConversationGroup(g, q))
+		=> @(Bridge.Broker.Group(g, q))
 
 // `TOP` in brackets and nothing after it; columns as a select list has them, but for an alias
 // written in front with `=` and a table's star; a queue named, with no alias or hints; the
@@ -3369,7 +3369,7 @@ ReceiveStatement : @Statement
 	= "RECEIVE"i & top: ReceiveTop? & first: ReceiveColumn & (',' & rest: ReceiveColumn)* & "FROM"i & q: TSqlQualifiedName
 	  & ("INTO"i & into: TSql.Variable)? & ("WHERE"i & where: ReceiveWhere)?
 	  & when @(Syntax.OneWay(first, rest))
-		=> @(new Statement.Receive(top, SqlList.Own(Syntax.Listed(first, rest)), q, into, where))
+		=> @(Bridge.Broker.Receive(top, SqlList.Own(Syntax.Listed(first, rest)), q, into, where))
 
 ReceiveTop : @Clause = "TOP"i & '(' & v: TSqlValueExpression & ')' => @(Clause.Topped(new Expression.Parenthesized(v), null))
 
@@ -3404,7 +3404,7 @@ WaitTimeout : @Expression
 // minutes and `ABORT_AFTER_WAIT` and any word, each named once (`Msg 401`).
 DbccStatement : @Statement
 	= "DBCC"i & name: DbccWord & args: DbccArguments? & options: DbccOptions?
-		=> @(new Statement.Dbcc(name, SqlList.OwnOrNull(args), SqlList.Own(options)))
+		=> @(Bridge.Server.Dbcc(name, SqlList.OwnOrNull(args), SqlList.Own(options)))
 
 DbccWord : @string = t: TSqlIdentifier & when @(Syntax.IsBare(t)) => @(t)
 
@@ -5095,21 +5095,21 @@ AlterIndexAction : @Statement.AlterIndex
 KeyStatement : @Statement
 	= "CREATE"i & "ASYMMETRIC"i & "KEY"i & name: TSqlIdentifier
 	  & tail: (Authorization? & o: AsymmetricBody & ("ENCRYPTION"i & "BY"i & PasswordEncryptor)?)
-		=> @(Statement.Defined("ASYMMETRIC KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
+		=> @(Bridge.Defined("ASYMMETRIC KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: TSqlIdentifier & tail: (o: AsymmetricChange)
-		=> @(Statement.Defined("ALTER ASYMMETRIC KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
+		=> @(Bridge.Defined("ALTER ASYMMETRIC KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 
 	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: SymmetricKeyName & tail: (Authorization? & o: SymmetricBody)
-		=> @(Statement.Defined("SYMMETRIC KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
+		=> @(Bridge.Defined("SYMMETRIC KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 	| "ALTER"i & "SYMMETRIC"i & "KEY"i & name: TSqlIdentifier
 	  & tail: (AddOrDrop & "ENCRYPTION"i & "BY"i & KeyEncryptor & (',' & KeyEncryptor)*)
-		=> @(Statement.Defined("ALTER SYMMETRIC KEY", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER SYMMETRIC KEY", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "CERTIFICATE"i & name: TSqlIdentifier
 	  & tail: (Authorization? & o: CertificateBody & ("ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff)?)
-		=> @(Statement.Defined("CERTIFICATE", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
+		=> @(Bridge.Defined("CERTIFICATE", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 	| "ALTER"i & "CERTIFICATE"i & name: TSqlIdentifier & tail: (o: CertificateChange)
-		=> @(Statement.Defined("ALTER CERTIFICATE", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
+		=> @(Bridge.Defined("ALTER CERTIFICATE", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(o)))
 
 	// Azure SQL Database makes a master key with no password; SQL Server answers that it is
 	// not supported in this version, which is a product's answer and not a syntax's.
@@ -5118,49 +5118,49 @@ KeyStatement : @Statement
 	// key with none, or by a password — a string, never a variable. The master key is opened by its
 	// password alone. One key is closed at a time, or all of them.
 	| "OPEN"i & "SYMMETRIC"i & "KEY"i & name: TSqlIdentifier & tail: ("DECRYPTION"i & "BY"i & KeyDecryptor)
-		=> @(Statement.Defined("OPEN SYMMETRIC KEY", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("OPEN SYMMETRIC KEY", name, Syntax.Tail(tail)))
 	| "OPEN"i & "MASTER"i & "KEY"i & tail: ("DECRYPTION"i & "BY"i & PasswordEncryptor)
-		=> @(Statement.Defined("OPEN MASTER KEY", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("OPEN MASTER KEY", "", Syntax.Tail(tail)))
 	| "CLOSE"i & "SYMMETRIC"i & "KEY"i & name: TSqlIdentifier
-		=> @(Statement.Defined("CLOSE SYMMETRIC KEY", name))
+		=> @(Bridge.Defined("CLOSE SYMMETRIC KEY", name))
 	| "CLOSE"i & "ALL"i & "SYMMETRIC"i & "KEYS"i
-		=> @(Statement.Defined("CLOSE ALL SYMMETRIC KEYS", ""))
+		=> @(Bridge.Defined("CLOSE ALL SYMMETRIC KEYS", ""))
 	| "CLOSE"i & "MASTER"i & "KEY"i
-		=> @(Statement.Defined("CLOSE MASTER KEY", ""))
+		=> @(Bridge.Defined("CLOSE MASTER KEY", ""))
 
 	| "CREATE"i & "MASTER"i & "KEY"i & tail: ("ENCRYPTION"i & "BY"i & PasswordEncryptor)?
-		=> @(Statement.Defined("MASTER KEY", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("MASTER KEY", "", Syntax.Tail(tail)))
 	| "ALTER"i & "MASTER"i & "KEY"i & tail: MasterKeyChange
-		=> @(Statement.Defined("ALTER MASTER KEY", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER MASTER KEY", "", Syntax.Tail(tail)))
 	| "ALTER"i & "SERVICE"i & "MASTER"i & "KEY"i & tail: ServiceKeyChange
-		=> @(Statement.Defined("ALTER SERVICE MASTER KEY", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER SERVICE MASTER KEY", "", Syntax.Tail(tail)))
 
 	| "CREATE"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i
 	  & tail: ("WITH"i & "ALGORITHM"i & '=' & DatabaseKeyAlgorithm & ServerEncryption)
-		=> @(Statement.Defined("DATABASE ENCRYPTION KEY", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("DATABASE ENCRYPTION KEY", "", Syntax.Tail(tail)))
 	| "ALTER"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i
 	  & tail: ("REGENERATE"i & "WITH"i & "ALGORITHM"i & '=' & DatabaseKeyAlgorithm | ServerEncryption)
-		=> @(Statement.Defined("ALTER DATABASE ENCRYPTION KEY", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER DATABASE ENCRYPTION KEY", "", Syntax.Tail(tail)))
 
 	| "CREATE"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: TSqlIdentifier
 	  & tail: ("WITH"i & "VALUES"i & first: ColumnKeyValue & (',' & rest: ColumnKeyValue)*)
-		=> @(Statement.Defined("COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(Syntax.Listed(first, rest))))
+		=> @(Bridge.Defined("COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(Syntax.Listed(first, rest))))
 	| "ALTER"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: TSqlIdentifier
 	  & tail: ("ADD"i & "VALUE"i & added: ColumnKeyValue
 			  | "DROP"i & "VALUE"i & '(' & dropped: ColumnKeySetting & ')')
-		=> @(Statement.Defined("ALTER COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail),
+		=> @(Bridge.Defined("ALTER COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail),
 				 options: SqlList.OwnOrNull(added is not null ? new Clause[] { added } : Statement.Holding("VALUE", [dropped!]))))
 	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: TSqlIdentifier
 	  & tail: ("WITH"i & ?=('(' & MasterKeyLocation & (',' & MasterKeyEnclave)? & ')')
 			   & '(' & first: MasterKeySetting & (',' & rest: MasterKeySetting)* & ')')
-		=> @(Statement.Defined("COLUMN MASTER KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(Syntax.Listed(first, rest))))
+		=> @(Bridge.Defined("COLUMN MASTER KEY", name, Syntax.Tail(tail), options: SqlList.OwnOrNull(Syntax.Listed(first, rest))))
 
 	| verb: CreateOrAlter & "CREDENTIAL"i & name: TSqlIdentifier
 	  & tail: (CredentialWith & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & TSqlIdentifier)?)
-		=> @(Statement.Defined("CREDENTIAL", name, Syntax.Tail(tail), verb))
+		=> @(Bridge.Defined("CREDENTIAL", name, Syntax.Tail(tail), verb))
 	| verb: CreateOrAlter & "DATABASE"i & "SCOPED"i & "CREDENTIAL"i & name: TSqlIdentifier
 	  & tail: CredentialWith
-		=> @(Statement.Defined("DATABASE SCOPED CREDENTIAL", name, Syntax.Tail(tail), verb))
+		=> @(Bridge.Defined("DATABASE SCOPED CREDENTIAL", name, Syntax.Tail(tail), verb))
 
 	// A security policy is a list of predicates rather than a list of settings, and each
 	// predicate names a function, the table it guards, and when it fires.
@@ -5172,10 +5172,10 @@ KeyStatement : @Statement
 	| "CREATE"i & "SECURITY"i & "POLICY"i & name: TSqlQualifiedName
 	  & tail: (PolicyPredicates? & PolicyWith? & NotForReplication?)
 	  & when @(Syntax.WithoutVariable(tail))
-		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "CREATE"))
+		=> @(Bridge.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "SECURITY"i & "POLICY"i & name: TSqlQualifiedName & tail: PolicyAlteration
 	  & when @(Syntax.WithoutVariable(tail))
-		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "ALTER"))
+		=> @(Bridge.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "ALTER"))
 
 KeyDecryptor
 	= "CERTIFICATE"i & TSqlIdentifier & ("WITH"i & PasswordEncryptor)?
@@ -5717,15 +5717,15 @@ AuditStatement : @Statement
 	// reading fits, and over kinds a reading that fits is the one that stands (§4).
 	= verb: CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: TSqlIdentifier
 	  & tail: (("FOR"i & "SERVER"i & "AUDIT"i & TSqlQualifiedName)? & AuditAction* & AuditStateWith?)
-		=> @(Statement.Defined(
+		=> @(Bridge.Defined(
 				 scope == "SERVER" ? "AUDIT SPECIFICATION" : "DATABASE AUDIT SPECIFICATION",
 				 name, Syntax.Tail(tail), verb))
 
 	| said: "CREATE"i & "SERVER"i & "AUDIT"i & name: TSqlIdentifier
 	  & tail: ("TO"i & AuditCreatedTarget & AuditCreatedWith? & AuditWhere?)
-		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
+		=> @(Bridge.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
 	| said: "ALTER"i & "SERVER"i & "AUDIT"i & name: TSqlIdentifier & tail: AlterAuditBody
-		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
+		=> @(Bridge.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
 
 	// An extended-event session made: its events, its targets after them, and what it spends on
 	// them, in that order and each once. Altered: events added or dropped, or targets, one of the
@@ -5733,16 +5733,16 @@ AuditStatement : @Statement
 	// `Msg 102`.
 	| "CREATE"i & "EVENT"i & "SESSION"i & name: TSqlIdentifier & "ON"i & on: ServerOrDatabase
 	  & events: EventAdds & targets: TargetAdds? & options: EventSessionWith?
-		=> @(new Statement.EventSessionDefinition(name, "CREATE", on, SqlList.OwnOrNull(Syntax.Pieces(events, targets)), SqlList.OwnOrNull(options), null))
+		=> @(Bridge.Monitoring.Session(name, "CREATE", on, SqlList.OwnOrNull(Syntax.Pieces(events, targets)), SqlList.OwnOrNull(options), null))
 	| "ALTER"i & "EVENT"i & "SESSION"i & name: TSqlIdentifier & "ON"i & on: ServerOrDatabase
 	  & (pieces: EventAlterations & options: EventSessionWith? | options: EventSessionWith | "STATE"i & '=' & status: EventSessionState)
-		=> @(new Statement.EventSessionDefinition(name, "ALTER", on, SqlList.OwnOrNull(pieces), SqlList.OwnOrNull(options), status))
+		=> @(Bridge.Monitoring.Session(name, "ALTER", on, SqlList.OwnOrNull(pieces), SqlList.OwnOrNull(options), status))
 
 	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: TSqlIdentifier
 	  & tail: ("ON"i & NotificationScope & ("WITH"i & "FAN_IN"i)?
 			   & "FOR"i & ActionWords & (',' & ActionWords)*
 			   & "TO"i & "SERVICE"i & TSqlValueExpression & (',' & TSqlValueExpression)*)
-		=> @(Statement.Defined("EVENT NOTIFICATION", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("EVENT NOTIFICATION", name, Syntax.Tail(tail)))
 
 	// An endpoint says how it is reached and what it speaks, and each is a bracket of
 	// arguments belonging to that protocol rather than to this language. The two come in
@@ -5751,9 +5751,9 @@ AuditStatement : @Statement
 	  & standing: EndpointState? & reached: EndpointAs? & spoken: EndpointFor? & late: EndpointAs?
 	  & when @((owner is null || verb == "CREATE") && (reached is null || late is null)
 			  && Syntax.Created(verb, spoken))
-		=> @(new Statement.EndpointDefinition(name, verb, owner,
+		=> @(Bridge.Server.Endpoint(name, verb, owner,
 				 standing?.Name is "" ? null : standing?.Name, standing?.Options,
-				 (reached ?? late)?.Name, (reached ?? late)?.Options, spoken?.Name, spoken?.Options))
+				 (reached ?? late)?.Name, (reached ?? late)?.Options, spoken?.Name, spoken?.Options, new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
 ServerOrDatabase : @string = "SERVER"i => @("SERVER") | "DATABASE"i => @("DATABASE")
 
@@ -6120,51 +6120,51 @@ EndpointWindowsMode = "NTLM"i | "KERBEROS"i | "NEGOTIATE"i
 ExternalStatement : @Statement
 	= verb: CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: TSqlIdentifier
 	  & tail: (options: DataSourceBody) & when @(Syntax.NamedOnce(null, options))
-		=> @(Statement.Defined("EXTERNAL DATA SOURCE", name, Syntax.Tail(tail), verb))
+		=> @(Bridge.Defined("EXTERNAL DATA SOURCE", name, Syntax.Tail(tail), verb))
 	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: TSqlIdentifier & tail: FileFormatWith
-		=> @(Statement.Defined("EXTERNAL FILE FORMAT", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("EXTERNAL FILE FORMAT", name, Syntax.Tail(tail)))
 
 	// A table of somebody else's rows: the columns as this grammar reads any columns, and
 	// then where they are. Synapse writes the query instead and lets it say the columns.
 	// The columns take a comma before the bracket, as a table's do.
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: TSqlQualifiedName & '(' & body: TableBody & ','? & ')'
 	  & options: ExternalTableWith
-		=> @(new Statement.TableDefinition(name, null, SqlList.Own(body), Clause.None, SqlList.Own(options), true))
+		=> @(Bridge.External.Table(name, SqlList.Own(body), SqlList.Own(options)))
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: TSqlQualifiedName & options: ExternalTableWith
 	  & "AS"i & q: TSqlDirectSelect
-		=> @(new Statement.CreateTableAsSelect(name, null, SqlList.Own(options), q, true))
+		=> @(Bridge.External.TableAsSelect(name, SqlList.Own(options), q))
 
 	| said: "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: TSqlIdentifier
 	  & tail: (("AUTHORIZATION"i & TSqlIdentifier)?
 			   & "FROM"i & LibraryFileMade & (',' & LibraryFileMade)* & LibraryWith)
-		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
+		=> @(Bridge.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
 	| said: "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: TSqlIdentifier
 	  & tail: (("AUTHORIZATION"i & TSqlIdentifier)?
 			   & LibraryChange & LibraryFile & (',' & LibraryFile)* & LibraryWith)
-		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
+		=> @(Bridge.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
 
 	// A pool altered is told something (`ALTER RESOURCE POOL [default]` alone is `Msg 102`); a pool
 	// made need not be.
 	| said: "CREATE"i & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: ExternalPoolWith?
-		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail), said))
+		=> @(Bridge.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail), said))
 	| said: "ALTER"i & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: ExternalPoolWith
-		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail), said))
+		=> @(Bridge.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail), said))
 	| said: "CREATE"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: PoolWith?
-		=> @(Statement.Defined("RESOURCE POOL", pool, Syntax.Tail(tail), said))
+		=> @(Bridge.Defined("RESOURCE POOL", pool, Syntax.Tail(tail), said))
 	| said: "ALTER"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: PoolWith
-		=> @(Statement.Defined("RESOURCE POOL", pool, Syntax.Tail(tail), said))
+		=> @(Bridge.Defined("RESOURCE POOL", pool, Syntax.Tail(tail), said))
 	| verb: CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName
 	  & tail: (WorkloadWith? & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?)
-		=> @(Statement.Defined("WORKLOAD GROUP", pool, Syntax.Tail(tail), verb))
+		=> @(Bridge.Defined("WORKLOAD GROUP", pool, Syntax.Tail(tail), verb))
 
 	// Statistics: a name, what they are on, and how they are gathered. `SAMPLE 50 PERCENT`
 	// is three words where an option is usually a name and a value, and the option list
 	// reads it as one name — which is what a run of words is for (§4.6).
 	| "CREATE"i & "STATISTICS"i & name: TSqlIdentifier
 	  & tail: ("ON"i & TSqlQualifiedName & IndexColumns & ("WHERE"i & SearchCondition)? & CreateStatisticsWith?)
-		=> @(new Statement.StatisticsDefinition(name) { Tail = Syntax.Tail(tail) })
+		=> @(Bridge.Tables.CreateStatistics(name, Syntax.Tail(tail)))
 	| "UPDATE"i & "STATISTICS"i & on: TSqlQualifiedName & tail: (StatisticsTarget? & UpdateStatisticsWith?)
-		=> @(new Statement.UpdateStatistics(on) { Tail = Syntax.Tail(tail) })
+		=> @(Bridge.Tables.UpdateStatistics(on, Syntax.Tail(tail)))
 
 CreateOrAlter : @string = "CREATE"i => @("CREATE") | "ALTER"i => @("ALTER")
 
@@ -6378,46 +6378,46 @@ StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
 // rule of its own in each list.
 PrincipalStatement : @Statement
 	= "CREATE"i & "LOGIN"i & name: TSqlIdentifier & tail: LoginBody
-		=> @(Statement.Defined("CREATE LOGIN", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("CREATE LOGIN", name, Syntax.Tail(tail)))
 	| "ALTER"i & "LOGIN"i & name: TSqlIdentifier & tail: AlterLoginBody
-		=> @(Statement.Defined("ALTER LOGIN", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER LOGIN", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "USER"i & name: TSqlIdentifier & tail: (UserSource? & UserOptions?)
-		=> @(Statement.Defined("CREATE USER", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("CREATE USER", name, Syntax.Tail(tail)))
 	| "ALTER"i & "USER"i & name: TSqlIdentifier & tail: AlterUserBody
-		=> @(Statement.Defined("ALTER USER", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER USER", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & scope: RoleWord & name: TSqlIdentifier & tail: ("AUTHORIZATION"i & TSqlIdentifier)?
-		=> @(Statement.Defined(
+		=> @(Bridge.Defined(
 				 Syntax.Squared(scope) == "ROLE" ? "CREATE ROLE" : "CREATE SERVER ROLE",
 				 name, Syntax.Tail(tail)))
 	| "ALTER"i & scope: RoleWord & name: TSqlIdentifier & tail: RoleAction
-		=> @(Statement.Defined(
+		=> @(Bridge.Defined(
 				 Syntax.Squared(scope) == "ROLE" ? "ALTER ROLE" : "ALTER SERVER ROLE",
 				 name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: TSqlIdentifier & tail: ("WITH"i & CreateRoleOptions)
-		=> @(Statement.Defined("CREATE APPLICATION ROLE", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("CREATE APPLICATION ROLE", name, Syntax.Tail(tail)))
 	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: TSqlIdentifier & tail: ("WITH"i & AlterRoleOptions)
-		=> @(Statement.Defined("ALTER APPLICATION ROLE", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER APPLICATION ROLE", name, Syntax.Tail(tail)))
 
 	// A schema may be declared by its owner alone — `CREATE SCHEMA AUTHORIZATION dbo` — and
 	// what follows it is not a clause but whole statements, which is the one statement in
 	// T-SQL that holds others without a `BEGIN`.
 	| "CREATE"i & "SCHEMA"i & name: TSqlIdentifier
 	  & tail: ("AUTHORIZATION"i & TSqlIdentifier & SchemaElement*)
-		=> @(Statement.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
 	| "CREATE"i & "SCHEMA"i & tail: ("AUTHORIZATION"i & TSqlIdentifier & SchemaElement*)
-		=> @(Statement.Defined("CREATE SCHEMA", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("CREATE SCHEMA", "", Syntax.Tail(tail)))
 	| "CREATE"i & "SCHEMA"i & name: TSqlIdentifier & tail: (SchemaElement*)
-		=> @(Statement.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
 	| "ALTER"i & "SCHEMA"i & name: TSqlIdentifier
 	  & tail: ("TRANSFER"i & SecurableClass? & TSqlQualifiedName)
-		=> @(Statement.Defined("ALTER SCHEMA", name, Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER SCHEMA", name, Syntax.Tail(tail)))
 
 	| "ALTER"i & "AUTHORIZATION"i & tail: ("ON"i & SecurableClass? & TSqlQualifiedName
 										  & "TO"i & AuthorizationTo)
-		=> @(Statement.Defined("ALTER AUTHORIZATION", "", Syntax.Tail(tail)))
+		=> @(Bridge.Defined("ALTER AUTHORIZATION", "", Syntax.Tail(tail)))
 
 RoleWord : @string = t: ("SERVER"i & "ROLE"i | "ROLE"i) => @(Syntax.Squared(t))
 
@@ -7278,15 +7278,15 @@ PermissionStatement : @Statement
 	= "GRANT"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on))
 	  & "TO"i & who: Grantees
 	  & option: ("WITH"i & "GRANT"i & "OPTION"i)? & who2: PermissionAs?
-		=> @(new Statement.Grant(SqlList.Own(what), SqlList.Own(who), on, option is not null, who2))
+		=> @(Bridge.Security.Grant(SqlList.Own(what), SqlList.Own(who), on, option is not null, who2))
 	| "DENY"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on))
 	  & "TO"i & who: Grantees
 	  & cascade: "CASCADE"i? & who2: PermissionAs?
-		=> @(new Statement.Deny(SqlList.Own(what), SqlList.Own(who), on, cascade is not null, who2))
+		=> @(Bridge.Security.Deny(SqlList.Own(what), SqlList.Own(who), on, cascade is not null, who2))
 	| "REVOKE"i & optionFor: ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & on: PermissionOn?
 	  & when @(PermissionCatalogue.Allows(what, on))
 	  & way: ToOrFrom & who: Grantees & cascade: "CASCADE"i? & who2: PermissionAs?
-		=> @(new Statement.Revoke(SqlList.Own(what), SqlList.Own(who), on, optionFor is not null, Syntax.Squared(way) == "FROM", cascade is not null, who2))
+		=> @(Bridge.Security.Revoke(SqlList.Own(what), SqlList.Own(who), on, optionFor is not null, Syntax.Squared(way) == "FROM", cascade is not null, who2))
 
 ToOrFrom      : @string = t: ("TO"i | "FROM"i) => @(t)
 PermissionAs  : @string = "AS"i & t: PrincipalName => @(t)

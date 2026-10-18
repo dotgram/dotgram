@@ -64,12 +64,8 @@ static partial class Bridge
 		Tables.TryConvert,
 		Routines.TryConvert,
 		Procedural.TryConvert,
-		Security.TryConvert,
 		Database.TryConvert,
-		Server.TryConvert,
-		Broker.TryConvert,
 		Monitoring.TryConvert,
-		External.TryConvert,
 	];
 
 	/// <summary>

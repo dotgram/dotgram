@@ -16,6 +16,10 @@ static partial class Bridge
 	/// The old tree keeps what follows the name of a definition as text (<c>Tail</c>), which the arms read token by token as the
 	/// grammar's rules read it; a text the arm does not read to its end is a gap. The external tables are the Tables family's
 	/// records, which call the arms here for the external case.
+	/// <para>
+	/// Their rules build the common tree, so the family carries nothing: it owns the records those rules built before,
+	/// under which their statements are counted.
+	/// </para>
 	/// </remarks>
 	internal static class External
 	{
@@ -25,21 +29,6 @@ static partial class Bridge
 			"Statement.ExternalLanguageDefinition", "Statement.ExternalModelDefinition", "Statement.ExternalResourcePoolDefinition",
 		];
 
-		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
-		{
-			made = old switch
-			{
-				Statement.ExternalDataSourceDefinition source => DataSource(source),
-				Statement.ExternalFileFormatDefinition format => FileFormat(format),
-				Statement.ExternalLibraryDefinition library   => Library(library),
-				Statement.ExternalResourcePoolDefinition pool => Pool(pool),
-				_ when Owned(Owns, old)                       => throw Unconverted(old),
-				_                                             => null,
-			};
-
-			return made is not null;
-		}
-
 		// ── Data sources and file formats ─────────────────────────────────────────
 
 		/// <summary>
@@ -47,7 +36,7 @@ static partial class Bridge
 		/// <c>DataSourceBody</c> reads either body after either verb; the tree has the creating one's brackets and the altering
 		/// one's list, and the other two are gaps.
 		/// </summary>
-		static Ast.Statement DataSource(Statement.ExternalDataSourceDefinition old)
+		internal static Ast.Statement DataSource(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -73,7 +62,7 @@ static partial class Bridge
 			throw BridgeGap.Open(old, $"inventory Statement.ExternalDataSourceDefinition ({old.Verb} with `{old.Tail}`, which the grammar reads and the records do not hold)");
 		}
 
-		static Ast.Statement FileFormat(Statement.ExternalFileFormatDefinition old)
+		internal static Ast.Statement FileFormat(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -93,7 +82,7 @@ static partial class Bridge
 		/// <c>CREATE EXTERNAL LIBRARY n [AUTHORIZATION o] FROM (file), … WITH (LANGUAGE = 'l')</c> and <c>ALTER EXTERNAL LIBRARY n
 		/// [AUTHORIZATION o] { SET | ADD } (file), … WITH (LANGUAGE = 'l')</c>.
 		/// </summary>
-		static Ast.Statement Library(Statement.ExternalLibraryDefinition old)
+		internal static Ast.Statement Library(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -217,7 +206,7 @@ static partial class Bridge
 		/// <c>CREATE EXTERNAL RESOURCE POOL n [WITH (settings)]</c> and <c>ALTER EXTERNAL RESOURCE POOL n WITH (settings)</c>. A
 		/// pool the grammar lets be named by a string has no place in the tree yet.
 		/// </summary>
-		static Ast.Statement Pool(Statement.ExternalResourcePoolDefinition old)
+		internal static Ast.Statement Pool(Defining old)
 		{
 			if (old.Name.StartsWith('\''))
 				throw BridgeGap.Open(old, "inventory Statement.ExternalResourcePoolDefinition (a pool named by a string, `" + old.Name + "`, which the name of a record does not hold)");
@@ -250,7 +239,19 @@ static partial class Bridge
 		/// <c>External</c> set, with the elements it has carried. The old tree keeps the settings as options, which the Tables
 		/// family carries for every <c>WITH (…)</c>.
 		/// </summary>
-		internal static Ast.Statement Table(Statement.TableDefinition old, SqlList<Ast.TableElement> elements)
+		/// <summary>CREATE EXTERNAL TABLE of columns, on the common tree.</summary>
+		internal static Statement Table(string name, SqlList<Clause> elements, SqlList<Clause> options)
+		{
+			return Carry(new Statement.TableDefinition(name, null, elements, Clause.None, options, true), static old => Table(old, Tables.Elements(old.Elements)));
+		}
+
+		/// <summary>CREATE EXTERNAL TABLE made of a query, on the common tree.</summary>
+		internal static Statement TableAsSelect(string name, SqlList<Clause> options, Statement body)
+		{
+			return Carry(new Statement.CreateTableAsSelect(name, null, options, body, true), TableAsSelect);
+		}
+
+		static Ast.Statement Table(Statement.TableDefinition old, SqlList<Ast.TableElement> elements)
 		{
 			if (old.Kind is not null || old.Placements.Length > 0)
 				throw BridgeGap.Open(old, "inventory Statement.TableDefinition (CREATE EXTERNAL TABLE with a kind or a placement, which the grammar does not read)");
@@ -265,7 +266,7 @@ static partial class Bridge
 		/// <c>CREATE EXTERNAL TABLE t WITH (…) AS SELECT …</c>, called by the Tables family for a table made of a query with
 		/// <c>External</c> set: the query alone, with no columns and no <c>WITH [NO] DATA</c>.
 		/// </summary>
-		internal static Ast.Statement TableAsSelect(Statement.CreateTableAsSelect old)
+		static Ast.Statement TableAsSelect(Statement.CreateTableAsSelect old)
 		{
 			if (old.Columns is not null)
 				throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (CREATE EXTERNAL TABLE with columns before AS, which the grammar does not read)");

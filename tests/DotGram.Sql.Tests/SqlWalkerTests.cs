@@ -82,9 +82,11 @@ public sealed class SqlWalkerTests
 	/// how the syntax says it, and is not a repetition.
 	/// </remarks>
 	[Theory]
-	// And where the engine refuses the repetition as syntax: a key's or a certificate's
-	// settings, which the statement keeps as nodes beside its words, and a private key's list
-	// held inside one of them.
+	[InlineData("CREATE INDEX i ON t (a) WITH (SORT_IN_TEMPDB = ON, SORT_IN_TEMPDB = OFF)", "SORT_IN_TEMPDB")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (DATA_COMPRESSION = ROW ON PARTITIONS (1), DATA_COMPRESSION = PAGE ON PARTITIONS (2))", "")]
+	[InlineData("CREATE TABLE t (a INT, INDEX ix (a) WITH (FILLFACTOR = 80, PAD_INDEX = ON, FILLFACTOR = 90))", "FILLFACTOR")]
+
+	// And where the engine refuses the repetition as syntax: a key's or a certificate's settings, and a private key's.
 	[InlineData("CREATE CERTIFICATE c WITH SUBJECT = 's', SUBJECT = 't'", "SUBJECT")]
 	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256, ALGORITHM = AES_128 ENCRYPTION BY CERTIFICATE c", "ALGORITHM")]
 	[InlineData("CREATE CERTIFICATE c FROM FILE = 'f' WITH PRIVATE KEY (FILE = 'k', FILE = 'j')", "FILE")]
@@ -93,46 +95,20 @@ public sealed class SqlWalkerTests
 	{
 		var found = new List<string>();
 
-		SqlWalker.Walk(OldTree.ParseStatement(input), node =>
-		{
-			SqlList<Clause>? options = node switch
-			{
-				Clause.ConstraintDefinition { Options: { } some } => some,
-				Statement.Definition { Options: { } some }        => some,
-				Clause.Option { Options: { Length: > 0 } some }   => some,
-				_                                                 => null,
-			};
-
-			if (options is not null)
-				found.AddRange(
-					from option in options.OfType<Clause.Option>()
-					group option by (Name: option.Name.ToUpperInvariant(), option.Partitions) into same
-					where same.Count() > 1
-					select same.Key.Name);
-
-			return true;
-		});
-
-		Assert.Equal(repeated, string.Join(",", found));
-	}
-
-	/// <summary>
-	/// The same check over the common tree, which the rules of the statements that create an index build: an index's
-	/// options are its own nodes there.
-	/// </summary>
-	[Theory]
-	[InlineData("CREATE INDEX i ON t (a) WITH (SORT_IN_TEMPDB = ON, SORT_IN_TEMPDB = OFF)", "SORT_IN_TEMPDB")]
-	[InlineData("CREATE INDEX i ON t (a) WITH (DATA_COMPRESSION = ROW ON PARTITIONS (1), DATA_COMPRESSION = PAGE ON PARTITIONS (2))", "")]
-	[InlineData("CREATE TABLE t (a INT, INDEX ix (a) WITH (FILLFACTOR = 80, PAD_INDEX = ON, FILLFACTOR = 90))", "FILLFACTOR")]
-	public void A_check_over_the_common_tree_is_a_lambda_too(string input, string repeated)
-	{
-		var found = new List<string>();
-
 		SqlWalker.Walk(TransactSqlParser.ParseStatement(input), node =>
 		{
-			if (node is Ast.IndexDefinition { Options: var options })
+			SqlList<Ast.Option>? options = node switch
+			{
+				Ast.IndexDefinition { Options: var some }                => some,
+				Ast.Statement.CreateCertificate { Options: var some }    => some,
+				Ast.Statement.CreateSymmetricKey { Options: var some }   => some,
+				Ast.CertificateSource.File { PrivateKey: var some }      => some,
+				_                                                        => null,
+			};
+
+			if (options is { } list)
 				found.AddRange(
-					from option in options
+					from option in list
 					group option by (Name: option.Name.Text.ToUpperInvariant(), option.Partitions) into same
 					where same.Count() > 1
 					select same.Key.Name);

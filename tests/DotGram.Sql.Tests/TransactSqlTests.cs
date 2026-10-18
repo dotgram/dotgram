@@ -15641,7 +15641,7 @@ public sealed class TransactSqlTests
 		var match = OldTree.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
-		Assert.Equal(node, match.Value!.GetType().Name);
+		Assert.Equal(node, Record(match.Value!));
 	}
 
 

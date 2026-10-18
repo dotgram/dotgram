@@ -18,6 +18,10 @@ static partial class Bridge
 	/// The old tree keeps what follows the name of an object as text (<c>Tail</c>), which the arms read token by token as the
 	/// grammar's rules read it; a text the arm does not read to its end is a gap. The conversation statements are nodes, carried
 	/// as they stand.
+	/// <para>
+	/// Their rules build the common tree, so the family carries nothing: it owns the records those rules built before,
+	/// under which their statements are counted.
+	/// </para>
 	/// </remarks>
 	internal static class Broker
 	{
@@ -30,33 +34,8 @@ static partial class Bridge
 			"Statement.Receive", "Statement.GetConversationGroup", "Statement.WaitForStatement",
 		];
 
-		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
-		{
-			made = old switch
-			{
-				Statement.MessageTypeDefinition message       => MessageType(message),
-				Statement.ContractDefinition contract         => Contract(contract),
-				Statement.QueueDefinition queue               => Queue(queue),
-				Statement.ServiceDefinition service           => Service(service),
-				Statement.RouteDefinition route               => Route(route),
-				Statement.RemoteServiceBindingDefinition bind => Binding(bind),
-				Statement.BrokerPriorityDefinition priority   => Priority(priority),
-				Statement.BeginDialog dialog                  => Dialog(dialog),
-				Statement.ConversationTimer timer             => new Ast.Statement.BeginConversationTimer(Values.Of(timer.Handle), Values.Of(timer.Timeout)),
-				Statement.EndConversation end                 => End(end),
-				Statement.MoveConversation move               => new Ast.Statement.MoveConversation(Values.Of(move.Handle), Values.Of(move.Group)),
-				Statement.Send send                           => Send(send),
-				Statement.Receive receive                     => Receive(receive),
-				Statement.GetConversationGroup get            => new Ast.Statement.GetConversationGroup(Variable(get, get.Group), Values.Name(get, get.Queue)),
-				_ when Owned(Owns, old)                       => throw Unconverted(old),
-				_                                             => null,
-			};
-
-			return made is not null;
-		}
-
 		/// <summary>The verb a definition opened with: CREATE or ALTER, whatever the case it was written in.</summary>
-		internal static string Verb(Statement.Definition old)
+		internal static string Verb(Defining old)
 		{
 			return old.Verb?.ToUpperInvariant() ?? throw BridgeGap.Open(old, $"inventory {NameOf(old)} (no verb)");
 		}
@@ -69,7 +48,7 @@ static partial class Bridge
 
 		// ── Message types, contracts, services ────────────────────────────────────
 
-		static Ast.Statement MessageType(Statement.MessageTypeDefinition old)
+		internal static Ast.Statement MessageType(Defining old)
 		{
 			var reader = new Tail(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -103,7 +82,7 @@ static partial class Bridge
 			return new Ast.MessageValidation.ValidXml(reader.Qualified());
 		}
 
-		static Ast.Statement Contract(Statement.ContractDefinition old)
+		internal static Ast.Statement Contract(Defining old)
 		{
 			var reader = new Tail(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -133,7 +112,7 @@ static partial class Bridge
 			return new Ast.Statement.CreateContract(name, items.ToSqlList()) { Authorization = owner };
 		}
 
-		static Ast.Statement Service(Statement.ServiceDefinition old)
+		internal static Ast.Statement Service(Defining old)
 		{
 			var reader = new Tail(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -189,7 +168,7 @@ static partial class Bridge
 
 		// ── Queues ────────────────────────────────────────────────────────────────
 
-		static Ast.Statement Queue(Statement.QueueDefinition old)
+		internal static Ast.Statement Queue(Defining old)
 		{
 			var reader = new Tail(old, old.Tail);
 			var name   = Values.Name(old, old.Name);
@@ -307,7 +286,7 @@ static partial class Bridge
 
 		// ── Routes, bindings, priorities ──────────────────────────────────────────
 
-		static Ast.Statement Route(Statement.RouteDefinition old)
+		internal static Ast.Statement Route(Defining old)
 		{
 			var reader = new Tail(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -327,7 +306,7 @@ static partial class Bridge
 			};
 		}
 
-		static Ast.Statement Binding(Statement.RemoteServiceBindingDefinition old)
+		internal static Ast.Statement Binding(Defining old)
 		{
 			var reader = new Tail(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -358,7 +337,7 @@ static partial class Bridge
 			return Verb(old) == "ALTER" ? new Ast.Statement.AlterRemoteServiceBinding(name, altered) : throw reader.Unread();
 		}
 
-		static Ast.Statement Priority(Statement.BrokerPriorityDefinition old)
+		internal static Ast.Statement Priority(Defining old)
 		{
 			var reader = new Tail(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -433,6 +412,48 @@ static partial class Bridge
 		internal static Statement Wait(Statement waited, Expression? timeout)
 		{
 			return Carry(new Statement.WaitForStatement(waited, timeout), Wait);
+		}
+
+		/// <summary>BEGIN DIALOG, on the common tree.</summary>
+		internal static Statement Dialog(string handle, bool conversation, string from, Expression to, Expression? instance, string? contract, SqlList<Clause> options)
+		{
+			return Carry(new Statement.BeginDialog(handle, conversation, from, to, instance, contract, options), Dialog);
+		}
+
+		/// <summary>BEGIN CONVERSATION TIMER, on the common tree.</summary>
+		internal static Statement Timer(Expression handle, Expression timeout)
+		{
+			return Carry(new Statement.ConversationTimer(handle, timeout), static old => new Ast.Statement.BeginConversationTimer(Values.Of(old.Handle), Values.Of(old.Timeout)));
+		}
+
+		/// <summary>END CONVERSATION, on the common tree: the handle, and what its rules read after it.</summary>
+		internal static Statement End(Expression handle, Statement.EndConversation? ending)
+		{
+			return Carry(ending is null ? new Statement.EndConversation(handle) : ending with { Handle = handle }, End);
+		}
+
+		/// <summary>MOVE CONVERSATION, on the common tree.</summary>
+		internal static Statement Move(Expression handle, Expression group)
+		{
+			return Carry(new Statement.MoveConversation(handle, group), static old => new Ast.Statement.MoveConversation(Values.Of(old.Handle), Values.Of(old.Group)));
+		}
+
+		/// <summary>SEND, on the common tree: the conversations its rules read, the message type and the body.</summary>
+		internal static Statement Send(Statement.Send targets, string? messageType, Expression? body)
+		{
+			return Carry(targets with { MessageType = messageType, Body = body }, Send);
+		}
+
+		/// <summary>GET CONVERSATION GROUP, on the common tree.</summary>
+		internal static Statement Group(string group, string queue)
+		{
+			return Carry(new Statement.GetConversationGroup(group, queue), static old => new Ast.Statement.GetConversationGroup(Variable(old, old.Group), Values.Name(old, old.Queue)));
+		}
+
+		/// <summary>RECEIVE, on the common tree.</summary>
+		internal static Statement Receive(Clause? top, SqlList<Clause> columns, string queue, string? into, Expression? where)
+		{
+			return Carry(new Statement.Receive(top, columns, queue, into, where), Receive);
 		}
 
 		static Ast.Statement Wait(Statement.WaitForStatement old)

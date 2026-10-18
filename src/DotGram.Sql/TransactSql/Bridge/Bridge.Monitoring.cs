@@ -31,11 +31,6 @@ static partial class Bridge
 		{
 			made = old switch
 			{
-				Statement.EventNotificationDefinition notification => Notification(notification),
-				Statement.ServerAuditDefinition audit              => Audit(audit),
-				Statement.AuditSpecificationDefinition server      => Specification(server, database: false),
-				Statement.DatabaseAuditSpecificationDefinition db  => Specification(db, database: true),
-				Statement.EventSessionDefinition session           => Session(session),
 				Clause.EventPiece piece                            => Piece(piece),
 				_ when Owned(Owns, old)                            => throw Unconverted(old),
 				_                                                  => null,
@@ -46,7 +41,7 @@ static partial class Bridge
 
 		// ── Event notifications and audits ────────────────────────────────────────
 
-		static Ast.Statement Notification(Statement.EventNotificationDefinition old)
+		internal static Ast.Statement Notification(Defining old)
 		{
 			var reader = new Broker.Tail(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -74,7 +69,7 @@ static partial class Bridge
 			return new Ast.Statement.CreateEventNotification(name, scope, events.ToSqlList(), services) { FanIn = fanIn };
 		}
 
-		static Ast.Statement Audit(Statement.ServerAuditDefinition old)
+		internal static Ast.Statement Audit(Defining old)
 		{
 			var reader = new Broker.Tail(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -137,7 +132,7 @@ static partial class Bridge
 			throw reader.Unread();
 		}
 
-		static Ast.Statement Specification(Statement.Definition old, bool database)
+		internal static Ast.Statement Specification(Defining old, bool database)
 		{
 			var reader  = new Broker.Tail(old, old.Tail);
 			var name    = Values.Part(old, old.Name);
@@ -214,6 +209,12 @@ static partial class Bridge
 		static SqlList<TNew> Listed<TOld, TNew>(SqlList<TOld>? items, Func<TOld, TNew> convert)
 		{
 			return items is { } list ? Each(list, convert) : [];
+		}
+
+		/// <summary>CREATE and ALTER EVENT SESSION, on the common tree.</summary>
+		internal static Statement Session(string name, string verb, string on, SqlList<Clause>? pieces, SqlList<Clause>? options, string? state)
+		{
+			return Carry(new Statement.EventSessionDefinition(name, verb, on, pieces, options, state), Session);
 		}
 
 		static Ast.Statement Session(Statement.EventSessionDefinition old)

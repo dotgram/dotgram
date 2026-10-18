@@ -17,6 +17,10 @@ static partial class Bridge
 	/// the text they were written in (the old tree upper-cases a word it keeps). The old tree keeps what follows the name of the
 	/// other objects as text (<c>Tail</c>), which the arms read token by token as the grammar's rules read it; a text the arm does not
 	/// read to its end is a gap.
+	/// <para>
+	/// Their rules build the common tree, so the family carries nothing: it owns the records those rules built before,
+	/// under which their statements are counted.
+	/// </para>
 	/// </remarks>
 	internal static class Server
 	{
@@ -28,27 +32,9 @@ static partial class Bridge
 			"Statement.Dbcc",
 		];
 
-		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
-		{
-			made = old switch
-			{
-				Statement.Dbcc dbcc                    => Dbcc(dbcc),
-				Statement.AlterServerConfiguration c   => Configuration(c),
-				Statement.AlterResourceGovernor g      => Governor(g),
-				Statement.ResourcePoolDefinition pool  => Pool(pool),
-				Statement.WorkloadGroupDefinition w    => Workload(w),
-				Statement.AvailabilityGroupDefinition a => Availability(a),
-				Statement.EndpointDefinition endpoint  => Endpoint(endpoint),
-				_ when Owned(Owns, old)                => throw Unconverted(old),
-				_                                      => null,
-			};
-
-			return made is not null;
-		}
-
 		// ── ALTER SERVER CONFIGURATION ────────────────────────────────────────────
 
-		static Ast.Statement Configuration(Statement.AlterServerConfiguration old)
+		internal static Ast.Statement Configuration(Defining old)
 		{
 			var reader = new Broker.Tail(old, old.Tail);
 
@@ -241,7 +227,7 @@ static partial class Bridge
 
 		// ── The resource governor, resource pools and workload groups ─────────────
 
-		static Ast.Statement Governor(Statement.AlterResourceGovernor old)
+		internal static Ast.Statement Governor(Defining old)
 		{
 			var reader = new Broker.Tail(old, old.Tail);
 
@@ -296,7 +282,7 @@ static partial class Bridge
 			return name.StartsWith('\'') ? new Ast.Identifier(name[1..^1].Replace("''", "'"), Ast.IdentifierStyle.String) : Values.Part(old, name);
 		}
 
-		static Ast.Statement Pool(Statement.ResourcePoolDefinition old)
+		internal static Ast.Statement Pool(Defining old)
 		{
 			var reader  = new Broker.Tail(old, old.Tail);
 			var name    = PoolName(old, old.Name);
@@ -312,7 +298,7 @@ static partial class Bridge
 			};
 		}
 
-		static Ast.Statement Workload(Statement.WorkloadGroupDefinition old)
+		internal static Ast.Statement Workload(Defining old)
 		{
 			var reader  = new Broker.Tail(old, old.Tail);
 			var name    = PoolName(old, old.Name);
@@ -342,7 +328,7 @@ static partial class Bridge
 
 		// ── Availability groups ───────────────────────────────────────────────────
 
-		static Ast.Statement Availability(Statement.AvailabilityGroupDefinition old)
+		internal static Ast.Statement Availability(Defining old)
 		{
 			var reader = new Broker.Tail(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -872,6 +858,20 @@ static partial class Bridge
 		internal static Statement Shutdown(bool noWait)
 		{
 			return Carry(new Statement.Shutdown(noWait), static old => new Ast.Statement.Shutdown(old.NoWait));
+		}
+
+		/// <summary>DBCC, on the common tree.</summary>
+		internal static Statement Dbcc(string command, SqlList<Expression>? arguments, SqlList<Clause> options)
+		{
+			return Carry(new Statement.Dbcc(command, arguments, options), Dbcc);
+		}
+
+		/// <summary>CREATE and ALTER ENDPOINT, on the common tree, where the rule says it was written: its text is read again.</summary>
+		internal static Statement Endpoint(
+			string name, string verb, string? owner, string? state, SqlList<Clause>? stateOptions, string? protocol, SqlList<Clause>? protocolOptions,
+			string? payload, SqlList<Clause>? payloadOptions, SqlSpan at)
+		{
+			return Carry(new Statement.EndpointDefinition(name, verb, owner, state, stateOptions, protocol, protocolOptions, payload, payloadOptions), at, Endpoint);
 		}
 
 		static Ast.Statement Kill(Statement.Kill old)

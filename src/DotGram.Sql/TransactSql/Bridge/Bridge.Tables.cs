@@ -41,10 +41,6 @@ static partial class Bridge
 			made = old switch
 			{
 				TableReference source when Owned(Owns, old) => Of(source),
-				Statement.TableDefinition { External: true } table       => External.Table(table, Elements(table.Elements)),
-				Statement.CreateTableAsSelect { External: true } query   => External.TableAsSelect(query),
-				Statement.StatisticsDefinition statistics    => CreateStatistics(statistics),
-				Statement.UpdateStatistics statistics        => UpdateStatistics(statistics),
 				_ when Owned(Owns, old) => throw Unconverted(old),
 				_                       => null,
 			};
@@ -1909,7 +1905,23 @@ static partial class Bridge
 		/// CREATE STATISTICS, which the old tree keeps as text after the name: the table, the columns, the filter and
 		/// the options.
 		/// </summary>
-		static Ast.Statement CreateStatistics(Statement.StatisticsDefinition old)
+		/// <summary>CREATE STATISTICS, on the common tree: its name and the words after it.</summary>
+		internal static Statement CreateStatistics(string name, string? tail)
+		{
+			var old = new Defining("Statement.StatisticsDefinition", name) { Tail = tail };
+
+			return Hold(old, () => CreateStatistics(old));
+		}
+
+		/// <summary>UPDATE STATISTICS, on the common tree: the table and the words after it.</summary>
+		internal static Statement UpdateStatistics(string on, string? tail)
+		{
+			var old = new Defining("Statement.UpdateStatistics", on) { Tail = tail };
+
+			return Hold(old, () => UpdateStatistics(old));
+		}
+
+		static Ast.Statement CreateStatistics(Defining old)
 		{
 			var tail   = old.Tail ?? throw BridgeGap.Open(old, "inventory Statement.StatisticsDefinition (nothing after the name)");
 			var tokens = Located(tail);
@@ -1944,7 +1956,7 @@ static partial class Bridge
 		}
 
 		/// <summary>UPDATE STATISTICS, which the old tree keeps as text after the table: the names, and the options.</summary>
-		static Ast.Statement UpdateStatistics(Statement.UpdateStatistics old)
+		static Ast.Statement UpdateStatistics(Defining old)
 		{
 			var tail = old.Tail ?? "";
 			var with = TopLevel(tail, "WITH");

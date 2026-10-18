@@ -18,6 +18,10 @@ static partial class Bridge
 	/// Every record has an arm. The old tree keeps what follows the name of a definition as text (<c>Tail</c>), which the arms read
 	/// token by token as the grammar's rules read it; a text the arm does not read to its end is a gap. A text kept as written
 	/// that the writer would print otherwise is a gap too (<see cref="Written"/>), never a difference.
+	/// <para>
+	/// Their rules build the common tree, so the family carries nothing: it owns the records those rules built before,
+	/// under which their statements are counted.
+	/// </para>
 	/// </remarks>
 	internal static class Security
 	{
@@ -39,61 +43,12 @@ static partial class Bridge
 			"Statement.Classification", "Statement.AddSignature",
 		];
 
-		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
-		{
-			made = old switch
-			{
-				Statement.SchemaDefinition schema => Schema(schema),
-				Statement.CreateRole role         => Role(role),
-				Statement.AlterRole alter         => new Ast.Statement.AlterRole(Values.Part(alter, alter.Name), RoleAction(alter, alter.Tail)),
-				Statement.CreateServerRole create => new Ast.Statement.CreateServerRole(Values.Part(create, create.Name)) { Authorization = Owner(create, create.Tail) },
-				Statement.AlterServerRole alter   => new Ast.Statement.AlterServerRole(Values.Part(alter, alter.Name), RoleAction(alter, alter.Tail)),
-				Statement.CreateApplicationRole create => ApplicationRole(create, create.Tail, create: true),
-				Statement.AlterApplicationRole alter   => ApplicationRole(alter, alter.Tail, create: false),
-				Statement.CreateLogin create      => CreateLogin(create),
-				Statement.AlterLogin alter        => AlterLogin(alter),
-				Statement.CreateUser create       => CreateUser(create),
-				Statement.AlterUser alter         => AlterUser(alter),
-				Statement.AlterSchema alter       => AlterSchema(alter),
-				Statement.AlterAuthorization alter => AlterAuthorization(alter),
-				Statement.AsymmetricKeyDefinition create => CreateAsymmetricKey(create),
-				Statement.AlterAsymmetricKey alter => AlterAsymmetricKey(alter),
-				Statement.SymmetricKeyDefinition create => CreateSymmetricKey(create),
-				Statement.AlterSymmetricKey alter => AlterSymmetricKey(alter),
-				Statement.CertificateDefinition create => CreateCertificate(create),
-				Statement.AlterCertificate alter  => AlterCertificate(alter),
-				Statement.MasterKeyDefinition create => CreateMasterKey(create),
-				Statement.AlterMasterKey alter    => AlterMasterKey(alter),
-				Statement.AlterServiceMasterKey alter => AlterServiceMasterKey(alter),
-				Statement.DatabaseEncryptionKeyDefinition create => CreateDatabaseEncryptionKey(create),
-				Statement.AlterDatabaseEncryptionKey alter => AlterDatabaseEncryptionKey(alter),
-				Statement.ColumnEncryptionKeyDefinition create => CreateColumnEncryptionKey(create),
-				Statement.AlterColumnEncryptionKey alter => AlterColumnEncryptionKey(alter),
-				Statement.ColumnMasterKeyDefinition create => CreateColumnMasterKey(create),
-				Statement.CredentialDefinition credential => Credential(credential),
-				Statement.DatabaseScopedCredentialDefinition credential => DatabaseScopedCredential(credential),
-				Statement.SecurityPolicyDefinition policy => SecurityPolicy(policy),
-				Statement.OpenSymmetricKey open   => OpenSymmetricKey(open),
-				Statement.OpenMasterKey open      => OpenMasterKey(open),
-				Statement.CloseSymmetricKey close => new Ast.Statement.CloseSymmetricKey(Values.Part(close, close.Name)),
-				Statement.CloseAllSymmetricKeys   => new Ast.Statement.CloseAllSymmetricKeys(),
-				Statement.CloseMasterKey          => new Ast.Statement.CloseMasterKey(),
-				Statement.Grant grant             => Grant(grant),
-				Statement.Deny deny               => Deny(deny),
-				Statement.Revoke revoke           => Revoke(revoke),
-				_ when Owned(Owns, old)           => throw Unconverted(old),
-				_                                 => null,
-			};
-
-			return made is not null;
-		}
-
 		/// <summary>
 		/// <c>CREATE SCHEMA [s] [AUTHORIZATION owner] [element …]</c>. The old tree keeps what follows the name as text:
 		/// the owner is read from its tokens, and the elements, which are whole statements, are read again as a script is
 		/// (docs/design/sql-tsql-bridge.md, "Definitions kept as text").
 		/// </summary>
-		static Ast.Statement Schema(Statement.SchemaDefinition old)
+		internal static Ast.Statement Schema(Defining old)
 		{
 			// `CREATE SCHEMA AUTHORIZATION o` names no schema, which the old tree keeps as an empty name.
 			var made = new Ast.Statement.CreateSchema { Name = old.Name.Length > 0 ? Values.Name(old, old.Name) : null };
@@ -128,6 +83,25 @@ static partial class Bridge
 		}
 
 		// ── GRANT, DENY and REVOKE ─────────────────────────────────────────────────
+
+		/// <summary>GRANT, on the common tree.</summary>
+		internal static Statement Grant(SqlList<string> privileges, SqlList<string> principals, string? on, bool grantOption, string? @as)
+		{
+			return Carry(new Statement.Grant(privileges, principals, on, grantOption, @as), Grant);
+		}
+
+		/// <summary>DENY, on the common tree.</summary>
+		internal static Statement Deny(SqlList<string> privileges, SqlList<string> principals, string? on, bool cascade, string? @as)
+		{
+			return Carry(new Statement.Deny(privileges, principals, on, cascade, @as), Deny);
+		}
+
+		/// <summary>REVOKE, on the common tree.</summary>
+		internal static Statement Revoke(
+			SqlList<string> privileges, SqlList<string> principals, string? on, bool grantOptionFor, bool from, bool cascade, string? @as)
+		{
+			return Carry(new Statement.Revoke(privileges, principals, on, grantOptionFor, from, cascade, @as), Revoke);
+		}
 
 		static Ast.Statement Grant(Statement.Grant old)
 		{
@@ -424,7 +398,7 @@ static partial class Bridge
 		/// <summary>
 		/// <c>AUTHORIZATION owner</c> and nothing else after a name, or null where nothing is written.
 		/// </summary>
-		static Ast.Identifier? Owner(object old, string? tail)
+		internal static Ast.Identifier? Owner(object old, string? tail)
 		{
 			if (tail is null)
 				return null;
@@ -434,7 +408,7 @@ static partial class Bridge
 			return Is(tokens, 0, "AUTHORIZATION") && IsName(tokens, 1) && tokens.Count == 2 ? Values.Part(old, tokens[1].Text) : throw Unread(old, tail);
 		}
 
-		static Ast.RoleAction RoleAction(object old, string? tail)
+		internal static Ast.RoleAction RoleAction(object old, string? tail)
 		{
 			var tokens = SqlTokens.Of(tail ?? "");
 
@@ -469,7 +443,7 @@ static partial class Bridge
 			return (kind, tokens[(colons + 2)..]);
 		}
 
-		static Ast.Statement AlterSchema(Statement.AlterSchema old)
+		internal static Ast.Statement AlterSchema(Defining old)
 		{
 			var tail   = old.Tail ?? "";
 			var tokens = SqlTokens.Of(tail);
@@ -483,7 +457,7 @@ static partial class Bridge
 			return new Ast.Statement.AlterSchema(Values.Part(old, old.Name), Values.Name(old, name)) { Class = kind };
 		}
 
-		static Ast.Statement AlterAuthorization(Statement.AlterAuthorization old)
+		internal static Ast.Statement AlterAuthorization(Defining old)
 		{
 			var tail   = old.Tail ?? "";
 			var tokens = SqlTokens.Of(tail);
@@ -627,7 +601,7 @@ static partial class Bridge
 			return new Ast.Option(new Ast.Identifier(name[0].Text), value, options.ToSqlList()) { Words = name.Skip(1).Select(static one => new Ast.Identifier(one.Text)).ToSqlList() };
 		}
 
-		static Ast.Statement ApplicationRole(object old, string? tail, bool create)
+		internal static Ast.Statement ApplicationRole(Defining old, string? tail, bool create)
 		{
 			var tokens = SqlTokens.Of(tail ?? "");
 
@@ -635,12 +609,12 @@ static partial class Bridge
 				throw Unread(old, tail);
 
 			var settings = Settings(old, tokens, 1, tail!);
-			var name     = Values.Part(old, ((Statement.Definition)old).Name);
+			var name     = Values.Part(old, old.Name);
 
 			return create ? new Ast.Statement.CreateApplicationRole(name, settings) : new Ast.Statement.AlterApplicationRole(name, settings);
 		}
 
-		static Ast.Statement CreateLogin(Statement.CreateLogin old)
+		internal static Ast.Statement CreateLogin(Defining old)
 		{
 			var tail   = old.Tail ?? "";
 			var tokens = SqlTokens.Of(tail);
@@ -717,7 +691,7 @@ static partial class Bridge
 			return Is(tokens, at, "WITH") ? Settings(old, tokens, at + 1, tail) : throw Unread(old, tail);
 		}
 
-		static Ast.Statement AlterLogin(Statement.AlterLogin old)
+		internal static Ast.Statement AlterLogin(Defining old)
 		{
 			var tail   = old.Tail ?? "";
 			var tokens = SqlTokens.Of(tail);
@@ -738,7 +712,7 @@ static partial class Bridge
 			return new Ast.Statement.AlterLogin(name, action);
 		}
 
-		static Ast.Statement CreateUser(Statement.CreateUser old)
+		internal static Ast.Statement CreateUser(Defining old)
 		{
 			var tail   = old.Tail;
 			var tokens = SqlTokens.Of(tail ?? "");
@@ -782,7 +756,7 @@ static partial class Bridge
 			return new Ast.Statement.CreateUser(name) { Source = source, Options = WithSettings(old, tokens, at, tail ?? "") };
 		}
 
-		static Ast.Statement AlterUser(Statement.AlterUser old)
+		internal static Ast.Statement AlterUser(Defining old)
 		{
 			var tail   = old.Tail ?? "";
 			var tokens = SqlTokens.Of(tail);
@@ -1046,7 +1020,7 @@ static partial class Bridge
 			}
 		}
 
-		static Ast.Statement CreateAsymmetricKey(Statement.AsymmetricKeyDefinition old)
+		internal static Ast.Statement CreateAsymmetricKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var made   = new Ast.Statement.CreateAsymmetricKey(Values.Part(old, old.Name)) { Authorization = reader.Authorization() };
@@ -1076,7 +1050,7 @@ static partial class Bridge
 			return made;
 		}
 
-		static Ast.Statement AlterAsymmetricKey(Statement.AlterAsymmetricKey old)
+		internal static Ast.Statement AlterAsymmetricKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			Ast.AsymmetricKeyChange change;
@@ -1097,7 +1071,7 @@ static partial class Bridge
 			return new Ast.Statement.AlterAsymmetricKey(Values.Part(old, old.Name), change);
 		}
 
-		static Ast.Statement CreateSymmetricKey(Statement.SymmetricKeyDefinition old)
+		internal static Ast.Statement CreateSymmetricKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var made   = new Ast.Statement.CreateSymmetricKey(Values.Part(old, old.Name)) { Authorization = reader.Authorization() };
@@ -1115,7 +1089,7 @@ static partial class Bridge
 			return made;
 		}
 
-		static Ast.Statement AlterSymmetricKey(Statement.AlterSymmetricKey old)
+		internal static Ast.Statement AlterSymmetricKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var add    = reader.Take("ADD");
@@ -1132,7 +1106,7 @@ static partial class Bridge
 			return new Ast.Statement.AlterSymmetricKey(Values.Part(old, old.Name), add ? new Ast.SymmetricKeyChange.AddEncryption(by) : new Ast.SymmetricKeyChange.DropEncryption(by));
 		}
 
-		static Ast.Statement CreateCertificate(Statement.CertificateDefinition old)
+		internal static Ast.Statement CreateCertificate(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var made   = new Ast.Statement.CreateCertificate(Values.Part(old, old.Name)) { Authorization = reader.Authorization() };
@@ -1204,7 +1178,7 @@ static partial class Bridge
 			return reader.Bracketed();
 		}
 
-		static Ast.Statement AlterCertificate(Statement.AlterCertificate old)
+		internal static Ast.Statement AlterCertificate(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			Ast.CertificateChange change;
@@ -1230,7 +1204,7 @@ static partial class Bridge
 			return new Ast.Statement.AlterCertificate(Values.Part(old, old.Name), change);
 		}
 
-		static Ast.Statement CreateMasterKey(Statement.MasterKeyDefinition old)
+		internal static Ast.Statement CreateMasterKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var made   = new Ast.Statement.CreateMasterKey();
@@ -1243,7 +1217,7 @@ static partial class Bridge
 			return made;
 		}
 
-		static Ast.Statement AlterMasterKey(Statement.AlterMasterKey old)
+		internal static Ast.Statement AlterMasterKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			Ast.MasterKeyChange change;
@@ -1267,7 +1241,7 @@ static partial class Bridge
 			return new Ast.Statement.AlterMasterKey(change);
 		}
 
-		static Ast.Statement AlterServiceMasterKey(Statement.AlterServiceMasterKey old)
+		internal static Ast.Statement AlterServiceMasterKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			Ast.ServiceMasterKeyChange change;
@@ -1337,7 +1311,7 @@ static partial class Bridge
 			return new Ast.KeyEncryptor.AsymmetricKey(reader.Qualified());
 		}
 
-		static Ast.Statement CreateDatabaseEncryptionKey(Statement.DatabaseEncryptionKeyDefinition old)
+		internal static Ast.Statement CreateDatabaseEncryptionKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 
@@ -1351,7 +1325,7 @@ static partial class Bridge
 			return new Ast.Statement.CreateDatabaseEncryptionKey(algorithm, by);
 		}
 
-		static Ast.Statement AlterDatabaseEncryptionKey(Statement.AlterDatabaseEncryptionKey old)
+		internal static Ast.Statement AlterDatabaseEncryptionKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			Ast.DatabaseEncryptionKeyChange change;
@@ -1371,7 +1345,7 @@ static partial class Bridge
 			return new Ast.ColumnKeyValue(reader.Bracketed());
 		}
 
-		static Ast.Statement CreateColumnEncryptionKey(Statement.ColumnEncryptionKeyDefinition old)
+		internal static Ast.Statement CreateColumnEncryptionKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 
@@ -1387,7 +1361,7 @@ static partial class Bridge
 			return new Ast.Statement.CreateColumnEncryptionKey(Values.Part(old, old.Name), values.ToSqlList());
 		}
 
-		static Ast.Statement AlterColumnEncryptionKey(Statement.AlterColumnEncryptionKey old)
+		internal static Ast.Statement AlterColumnEncryptionKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			Ast.ColumnKeyChange change;
@@ -1404,7 +1378,7 @@ static partial class Bridge
 			return new Ast.Statement.AlterColumnEncryptionKey(Values.Part(old, old.Name), change);
 		}
 
-		static Ast.Statement CreateColumnMasterKey(Statement.ColumnMasterKeyDefinition old)
+		internal static Ast.Statement CreateColumnMasterKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 
@@ -1436,7 +1410,7 @@ static partial class Bridge
 			return (identity, secret);
 		}
 
-		static Ast.Statement Credential(Statement.CredentialDefinition old)
+		internal static Ast.Statement Credential(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -1453,7 +1427,7 @@ static partial class Bridge
 			};
 		}
 
-		static Ast.Statement DatabaseScopedCredential(Statement.DatabaseScopedCredentialDefinition old)
+		internal static Ast.Statement DatabaseScopedCredential(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 			var name   = Values.Part(old, old.Name);
@@ -1507,7 +1481,7 @@ static partial class Bridge
 			return new Ast.Statement.AlterCryptographicProvider(name, change);
 		}
 
-		static Ast.Statement OpenSymmetricKey(Statement.OpenSymmetricKey old)
+		internal static Ast.Statement OpenSymmetricKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 
@@ -1520,7 +1494,7 @@ static partial class Bridge
 			return new Ast.Statement.OpenSymmetricKey(Values.Part(old, old.Name), by);
 		}
 
-		static Ast.Statement OpenMasterKey(Statement.OpenMasterKey old)
+		internal static Ast.Statement OpenMasterKey(Defining old)
 		{
 			var reader = new Reader(old, old.Tail);
 
@@ -1538,7 +1512,7 @@ static partial class Bridge
 		/// <summary>
 		/// A policy's function, <c>dbo.f(a, b)</c>: read again as the one value it is, a call of a name with plain arguments.
 		/// </summary>
-		static Ast.PolicyFunction PolicyFunction(Statement old, Reader reader, string tail)
+		static Ast.PolicyFunction PolicyFunction(ISqlSpan old, Reader reader, string tail)
 		{
 			var name = reader.Qualified();
 
@@ -1608,7 +1582,7 @@ static partial class Bridge
 			return null;
 		}
 
-		static Ast.PolicyPredicate PolicyPredicate(Statement old, Reader reader, string tail)
+		static Ast.PolicyPredicate PolicyPredicate(ISqlSpan old, Reader reader, string tail)
 		{
 			var action = reader.Take("ADD") ? "ADD" : reader.Take("ALTER") ? "ALTER" : reader.Take("DROP") ? "DROP" : throw reader.Unread();
 			var filter = reader.Take("FILTER");
@@ -1642,7 +1616,7 @@ static partial class Bridge
 			};
 		}
 
-		static SqlList<Ast.PolicyPredicate> PolicyPredicates(Statement old, Reader reader, string tail)
+		static SqlList<Ast.PolicyPredicate> PolicyPredicates(ISqlSpan old, Reader reader, string tail)
 		{
 			var made = new List<Ast.PolicyPredicate> { PolicyPredicate(old, reader, tail) };
 
@@ -1652,7 +1626,7 @@ static partial class Bridge
 			return made.ToSqlList();
 		}
 
-		static Ast.Statement SecurityPolicy(Statement.SecurityPolicyDefinition old)
+		internal static Ast.Statement SecurityPolicy(Defining old)
 		{
 			var tail   = old.Tail ?? "";
 			var reader = new Reader(old, tail);
@@ -1881,7 +1855,7 @@ static partial class Bridge
 			});
 		}
 
-		static Ast.Statement Role(Statement.CreateRole old)
+		internal static Ast.Statement Role(Defining old)
 		{
 			return new Ast.Statement.CreateRole { Name = Values.Part(old, old.Name), Authorization = Owner(old, old.Tail) };
 		}
