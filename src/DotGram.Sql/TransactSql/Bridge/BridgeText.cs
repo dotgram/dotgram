@@ -267,6 +267,8 @@ static class BridgeText
 		"MAXLENGTH", "SINGLETON", "SQL", "XQUERY",
 		// A statement's WITH.
 		"CHANGE_TRACKING_CONTEXT", "FILETABLE_NAMESPACE",
+		// The full-text predicates.
+		"CONTAINS", "FREETEXT",
 		// A vector's base type.
 		"FLOAT16", "FLOAT32", "VECTOR",
 	};

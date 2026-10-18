@@ -350,6 +350,24 @@ public enum StatisticsKind { Io, Profile, Time, Xml }
 /// <summary>T-SQL's own value expressions, in the standard's family.</summary>
 public abstract partial record Expression
 {
+	/// <summary>
+	/// T-SQL: CONTAINS (Transact-SQL), FREETEXT (Transact-SQL). <c>CONTAINS ((a, b), 'x' [, LANGUAGE 1033])</c>: the
+	/// columns searched, what is searched for, and the language. A column is a name, <c>*</c> an
+	/// <see cref="Asterisk"/>, <c>t.*</c> a <see cref="Wildcard"/>, and <c>PROPERTY (c, 'p')</c> an invocation, written
+	/// alone and never in brackets.
+	/// </summary>
+	public sealed record FullTextPredicate(FullTextPredicateKind Kind, SqlList<Expression> Columns, Expression Search) : Expression
+	{
+		/// <summary>T-SQL: CONTAINS (Transact-SQL). <c>LANGUAGE 1033</c>, a number, a binary number, a string or a variable.</summary>
+		public Expression? Language { get; init; }
+
+		/// <summary>
+		/// T-SQL: CONTAINS (Transact-SQL). <c>(c)</c> and <c>(*)</c> against <c>c</c> and <c>*</c>; always set for two
+		/// columns or more.
+		/// </summary>
+		[Spelling] public bool ColumnsBracketed { get; init; }
+	}
+
 	/// <summary>T-SQL: the WITH clause of the CREATE and ALTER statements. A value and the unit it is written in, as in <c>10 MINUTES</c>, <c>50 PERCENT</c> or <c>4 GB</c>.</summary>
 	public sealed record Measured(Expression Value, Identifier Unit) : Expression;
 
@@ -416,6 +434,9 @@ public abstract partial record Expression
 		public WindowSpecification? Over { get; init; }
 	}
 }
+
+/// <summary>T-SQL: CONTAINS (Transact-SQL), FREETEXT (Transact-SQL). Which full-text predicate.</summary>
+public enum FullTextPredicateKind { Contains, FreeText }
 
 /// <summary>T-SQL: Vector Data Type. The base type a vector's elements are stored as, the page's two words.</summary>
 public enum VectorBaseType { Float32, Float16 }

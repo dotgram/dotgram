@@ -88,8 +88,9 @@ static class BridgeReport
 		  `AssignmentTarget` whose name has more than one part.
 		- `GLOBAL c`: a cursor of the connection in T-SQL, an extended name in the standard. The `CursorReference`
 		  that is `Global`.
-		- `FREETEXT ((c), …)`, `CONTAINS ((c), …)`: a column list in T-SQL, a value in brackets in the standard. The
-		  first argument of an invocation of either.
+		- `FREETEXT ((c), …)`, `CONTAINS ((c), …)`: T-SQL's full-text predicate with a column list, a call with a value
+		  in brackets in the standard. The `FullTextPredicate`, where the standard's call has the same search and nothing
+		  else.
 		- `DATEADD (day, …)`: a date part in T-SQL, a column in the standard. The first argument of a date part
 		  function, a `DatePart`, where the standard has a column of one part whose text is that part's word.
 		- `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A system

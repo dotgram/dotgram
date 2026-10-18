@@ -493,6 +493,10 @@ static partial class Bridge
 			var name  = old.Name;
 			var upper = name.ToUpperInvariant();
 
+			// FullTextPredicate: the columns, what is searched for, and LANGUAGE and its value.
+			if (upper is "CONTAINS" or "FREETEXT" && old.Word is null)
+				return FullText(old, upper == "CONTAINS" ? Ast.FullTextPredicateKind.Contains : Ast.FullTextPredicateKind.FreeText);
+
 			// `CAST (DISTINCT 1)` reads, as any call does, with a quantifier where the type would stand.
 			var type = old.Word is { } word && word.ToUpperInvariant() is not ("DISTINCT" or "ALL" or "*") ? word : null;
 
@@ -596,6 +600,26 @@ static partial class Bridge
 		/// A call whose first argument is a date part, <c>DATEADD (day, 1, d)</c>: the old tree reads the part as
 		/// a column, and the new one as the <see cref="Ast.Expression.DatePart"/> it is.
 		/// </summary>
+		/// <summary>
+		/// CONTAINS or FREETEXT, which the old tree keeps as a call: the columns, a list in brackets or one alone, what is
+		/// searched for, and the language, the word in front of its value.
+		/// </summary>
+		static Ast.Expression FullText(Expression.RoutineInvocation old, Ast.FullTextPredicateKind kind)
+		{
+			if (old.Arguments is not [var searched, var search, .. var rest] || rest.Length > 1
+				|| rest is [var said] && said is not Expression.Prefixed || rest is [Expression.Prefixed(var other, _)] && !other.Equals("LANGUAGE", StringComparison.OrdinalIgnoreCase))
+				throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({old.Name} with these arguments)");
+
+			var bracketed = searched is Expression.RowValueConstructor;
+			SqlList<Expression> items = searched is Expression.RowValueConstructor(var list) ? list : [searched];
+
+			return new Ast.Expression.FullTextPredicate(kind, Each(items, Of), Of(search))
+			{
+				Language         = rest is [Expression.Prefixed(_, var language)] ? Of(language) : null,
+				ColumnsBracketed = bracketed,
+			};
+		}
+
 		static Ast.Expression DatePart(Expression.RoutineInvocation old)
 		{
 			if (old.Arguments is not [Expression.ColumnReference(var part), ..] || part.Contains('.'))
