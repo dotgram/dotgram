@@ -2426,11 +2426,42 @@ public static partial class Sql2023Writer
 		}
 
 		/// <summary>
+		/// T-SQL: DATEADD (Transact-SQL). DatePartCall: the first argument of DATEPART and its kin is a date part, a word of
+		/// the reference's table, which reads back as Expression.DatePart; that word bracketed or quoted, or in brackets of
+		/// its own, as a column; or a value that is no column. A column that is no date part is Msg 155.
+		/// </summary>
+		static void CheckDatePart(Expression.Invocation invocation)
+		{
+			if (invocation.Arguments is not [{ Name: null, NamedAssignment: false, Value: var first }, ..])
+				throw Misplaced(invocation, "Arguments", "with no date part first (DatePartCall)");
+
+			if (first is Expression.DatePart)
+				return;
+
+			if (first is Expression.Reference { Name: [{ Style: IdentifierStyle.Regular }] })
+				throw Misplaced(invocation, "Arguments", "with a column of a plain word first, which reads back as Expression.DatePart or is refused (DatePart)");
+
+			var inner = first;
+
+			while (inner is Expression.Parenthesized bracketed)
+				inner = bracketed.Value;
+
+			if (inner is Expression.DatePart)
+				throw Misplaced(invocation, "Arguments", "with a date part in brackets first, which reads back as a column");
+
+			if (inner is Expression.Reference reference && !(reference.Name is [var only] && Syntax.IsDatePart(only.Text)))
+				throw Misplaced(invocation, "Arguments", "with a column that is no date part first (DatePart, Msg 155)");
+		}
+
+		/// <summary>
 		/// A call. Its name of one part is written through <see cref="PutCallName"/>: a reserved word the grammar reads as a
 		/// function's name, or any word where <paramref name="anyWord"/> says the place reads one (ODBC's name in <c>{fn …}</c>).
 		/// </summary>
 		void PutInvocation(Expression.Invocation invocation, bool anyWord)
 		{
+			if (transactSql && !invocation.WithoutParentheses && invocation.Name is [{ Style: IdentifierStyle.Regular, UnicodeEscape: null } dated] && Syntax.IsDatePartFunction(dated.Text))
+				CheckDatePart(invocation);
+
 			PutSemantics(invocation.Semantics);
 			PutCallName(invocation.Name, anyWord);
 

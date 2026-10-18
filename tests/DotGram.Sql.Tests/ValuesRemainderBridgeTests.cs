@@ -40,6 +40,10 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT c1 FROM @v.[f.g] () t", "a variable's method of a bracketed name")]
 	[InlineData("SELECT c1 FROM @v.f (CAST (1 AS INT)) t", "a variable's method with an AS in its arguments")]
 	[InlineData("SELECT c1 FROM dbo.f (1) AS t", "a function")]
+	[InlineData("SELECT DATEPART ([yy], x) FROM t", "a date part bracketed")]
+	[InlineData("SELECT DATEPART ((year), x) FROM t", "a date part in brackets")]
+	[InlineData("SELECT DATEADD (@p, 1, x) FROM t", "a variable for a date part")]
+	[InlineData("SELECT DATEPART (yy, x) FROM t", "a date part")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -70,6 +74,10 @@ public sealed class ValuesRemainderBridgeTests
 			"a variable's method with an AS in its arguments" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Function { Variable.Text: "@v", Alias.AsKeyword: false }] } },
 			"a variable's method of a bracketed name" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Function { Variable.Text: "@v", Invocation: { Name: [{ Text: "[f.g]", Style: Ast.IdentifierStyle.Bracketed }], Arguments.Count: 0 } }] } },
 			"a function" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.Function { Variable: null, Invocation.Name.Count: 2 }] } },
+			"a date part bracketed" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.Reference { Name: [{ Text: "[yy]", Style: Ast.IdentifierStyle.Bracketed }] } }, _] } }] } },
+			"a date part in brackets" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.Parenthesized { Value: Ast.Expression.Reference } }, _] } }] } },
+			"a variable for a date part" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.Variable }, _, _] } }] } },
+			"a date part" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Invocation { Arguments: [{ Value: Ast.Expression.DatePart { Kind: Ast.DatePartKind.Year, Spelling: Ast.DatePartSpelling.Abbreviation } }, _] } }] } },
 			_ => false,
 		};
 

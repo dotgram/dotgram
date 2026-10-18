@@ -67,6 +67,9 @@ public sealed class ValuesRemainderWriterTests
 			"IDENTITY" => Into(new SelectColumn.ExpressionItem(Identity(Number("1"), new LiteralValue.Numeric("-1.5", NumericLiteralKind.Decimal)), Name("id"), true)),
 			"IDENTITY named first" => Into(new SelectColumn.ExpressionItem(new Expression.Identity(new DataType.Numeric(NumericTypeKind.Int)), Name("id")) { AliasFirst = true }),
 			"a variable's method" => From(new TableSource.Function(new Expression.Invocation(Qualified("f"), [new Argument(Number("1"))]), new Alias(Name("t"), [Name("c")], true)) { Variable = Name("@v") }),
+			"DATEPART of a date part bracketed" => Dated(new Expression.Reference(new QualifiedName([new Identifier("[yy]", IdentifierStyle.Bracketed)]))),
+			"DATEPART of a date part in brackets" => Dated(new Expression.Parenthesized(Ref("year"))),
+			"DATEPART of a string" => Dated(new LiteralValue.String("'year'", StringLiteralKind.National)),
 			"CONTAINS" => Where(new Expression.FullTextPredicate(FullTextPredicateKind.Contains, [Ref("b"), Ref("c")], Text("x")) { ColumnsBracketed = true, Language = Number("1033") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
@@ -92,6 +95,11 @@ public sealed class ValuesRemainderWriterTests
 		return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("c1"))], From = new FromClause([source]) } };
 	}
 
+	static Statement Dated(Expression part)
+	{
+		return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.Invocation(Qualified("DATEPART"), [new Argument(part), new Argument(Ref("x"))]))], From = new FromClause([new TableSource.Named(Qualified("t"))]) } };
+	}
+
 	static Statement Where(Expression condition)
 	{
 		return new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("a"))], From = new FromClause([new TableSource.Named(Qualified("t"))]), Where = condition } };
@@ -106,6 +114,9 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("IDENTITY", "SELECT IDENTITY(INT, 1, -1.5) AS id INTO #t FROM t")]
 	[InlineData("IDENTITY named first", "SELECT id = IDENTITY(INT) INTO #t FROM t")]
 	[InlineData("a variable's method", "SELECT c1 FROM @v.f(1) AS t (c)")]
+	[InlineData("DATEPART of a date part bracketed", "SELECT DATEPART([yy], x) FROM t")]
+	[InlineData("DATEPART of a date part in brackets", "SELECT DATEPART((year), x) FROM t")]
+	[InlineData("DATEPART of a string", "SELECT DATEPART(N'year', x) FROM t")]
 	[InlineData("AI_GENERATE_CHUNKS", "SELECT * FROM AI_GENERATE_CHUNKS(SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, OVERLAP = 1) AS c")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
@@ -122,6 +133,9 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("IDENTITY")]
 	[InlineData("IDENTITY named first")]
 	[InlineData("a variable's method")]
+	[InlineData("DATEPART of a date part bracketed")]
+	[InlineData("DATEPART of a date part in brackets")]
+	[InlineData("DATEPART of a string")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -155,6 +169,11 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("a variable's method of two parts")]
 	[InlineData("a variable's method with no @")]
 	[InlineData("a variable's method as an INSERT's target")]
+	[InlineData("DATEPART of a date part's word as a column")]
+	[InlineData("DATEPART of a date part in brackets")]
+	[InlineData("DATEPART of a bracketed name that is no date part")]
+	[InlineData("DATEPART of a qualified column")]
+	[InlineData("DATEPART of nothing")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -204,6 +223,15 @@ public sealed class ValuesRemainderWriterTests
 			"a variable's method with no @" => From(new TableSource.Function(new Expression.Invocation(Qualified("f"), [])) { Variable = Name("v") }),
 			// TSqlDmlTarget: a function's call, never a variable's method.
 			"a variable's method as an INSERT's target" => new Statement.Insert { Target = new TableSource.Function(new Expression.Invocation(Qualified("f"), [])) { Variable = Name("@v") } },
+			// DatePart: a plain word of the table reads back as Expression.DatePart.
+			"DATEPART of a date part's word as a column" => Dated(Ref("yy")),
+			// DatePart: '(' & DatePart & ')' reads back as a column in brackets, not as Expression.DatePart.
+			"DATEPART of a date part in brackets" => Dated(new Expression.Parenthesized(new Expression.DatePart(DatePartKind.Year))),
+			// DatePart: a name of the closed list only, bracketed or not (Msg 155).
+			"DATEPART of a bracketed name that is no date part" => Dated(new Expression.Reference(new QualifiedName([new Identifier("[foo]", IdentifierStyle.Bracketed)]))),
+			"DATEPART of a qualified column" => Dated(new Expression.Reference(new QualifiedName([Name("t"), Name("yy")]))),
+			// DatePartCall: '(' & part: DatePart, never empty.
+			"DATEPART of nothing" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.Invocation(Qualified("DATEPART"), []))] } },
 			"a number with no name" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
