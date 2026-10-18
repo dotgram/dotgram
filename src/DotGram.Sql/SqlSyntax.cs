@@ -412,13 +412,14 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// <param name="Gap">What the common tree has no place for yet, which carrying the statement throws.</param>
 	/// <param name="Recovered">The members building it read from the text, which carrying it counts again.</param>
 	/// <param name="Given">
-	/// What the rule handed its builder (<c>Bridge.Given</c>), which names the record of this tree the rule built before:
-	/// the statement is counted under it. Held as an object, so that a walk of the tree takes none of it for a node.
+	/// What the rule handed its builder: a <c>Bridge.Given</c>, which names the record of this tree the rule built before,
+	/// or that record itself, where the rule's parts were gathered into one; the statement is counted under it. Held as an
+	/// object, so that a walk of the tree takes none of it for a node.
 	/// </param>
 	internal sealed record Built(DotGram.Sql.Ast.Statement? Made, TransactSql.BridgeGap? Gap, string[]? Recovered, object Given) : Statement
 	{
 		/// <summary>The record of this tree the rule built before.</summary>
-		public string Record => ((TransactSql.Bridge.Given)Given).Record;
+		public string Record => Given is TransactSql.Bridge.Given given ? given.Record : TransactSql.Bridge.NameOf(Given);
 
 		/// <inheritdoc/>
 		public override StatementCategory Category => Made is { } made ? DotGram.Sql.Ast.StatementCategories.Category(made) : StatementCategory.Ddl;

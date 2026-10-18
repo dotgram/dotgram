@@ -40,7 +40,7 @@ static partial class Bridge
 			var what    = Syntax.Squared(kind);
 			var removal = new Dropping(Record(what), some ?? [], Syntax.Tail(tail), ifExists is not null);
 
-			return Hold(removal, () => Made(what, removal));
+			return Hold(removal, what, static (removal, what) => Made(what, removal));
 		}
 
 		static Ast.Statement Made(string what, Dropping removal)
@@ -542,11 +542,11 @@ static partial class Bridge
 		{
 			var old = new Dropping("Statement.DropSignature", names, null, false);
 
-			return Hold(old, () =>
+			return Hold(old, (from, counter), static (old, state) =>
 			{
-				var (kind, module) = Security.SignedModule(old, from, "Statement.DropSignature.From");
+				var (kind, module) = Security.SignedModule(old, state.from, "Statement.DropSignature.From");
 
-				return new Ast.Statement.DropSignature(counter, module, Security.Signers(old, names)) { Class = kind };
+				return new Ast.Statement.DropSignature(state.counter, module, Security.Signers(old, old.Names)) { Class = kind };
 			});
 		}
 	}

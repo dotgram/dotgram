@@ -600,13 +600,13 @@ static partial class Bridge
 		{
 			var old = new Defining("Statement.TableDefinition", name);
 
-			return Hold(old, () => new Ast.Statement.CreateTable
+			return Hold(old, (kind, elements, placements, options), static (old, state) => new Ast.Statement.CreateTable
 			{
-				Name       = Values.Name(old, name),
-				Contents   = new Ast.TableContents.Elements(Elements(elements)),
-				Kind       = Kind(old, kind),
-				Placements = Each(placements, Placement),
-				Options    = Each(options, Option),
+				Name       = Values.Name(old, old.Name),
+				Contents   = new Ast.TableContents.Elements(Elements(state.elements)),
+				Kind       = Kind(old, state.kind),
+				Placements = Each(state.placements, Placement),
+				Options    = Each(state.options, Option),
 			});
 		}
 
@@ -630,16 +630,16 @@ static partial class Bridge
 		{
 			var old = new Defining("Statement.CreateTableAsSelect", name) { Options = options };
 
-			return Hold(old, () =>
+			return Hold(old, (columns, options, body), static (old, state) =>
 			{
-				if (StatementOf(body) is not Ast.Statement.Select select)
+				if (StatementOf(state.body) is not Ast.Statement.Select select)
 					throw BridgeGap.Open(old, "inventory Statement.CreateTableAsSelect (a query that is no SELECT)");
 
 				return new Ast.Statement.CreateTable
 				{
-					Name     = Values.Name(old, name),
-					Contents = new Ast.TableContents.AsQuery(Values.Parts(old, columns), select.Query, null) { Hints = select.Hints },
-					Options  = Each(options, GenericOption),
+					Name     = Values.Name(old, old.Name),
+					Contents = new Ast.TableContents.AsQuery(Values.Parts(old, state.columns), select.Query, null) { Hints = select.Hints },
+					Options  = Each(state.options, GenericOption),
 				};
 			});
 		}
@@ -1142,7 +1142,7 @@ static partial class Bridge
 
 			read.Locate(at.At, at.Length);
 
-			return Hold(new Read<Statement.AlterTable>("Statement.AlterTable", read), () => AlterTable(read));
+			return Hold(read, static read => AlterTable(read));
 		}
 
 		static Ast.Statement AlterTable(Statement.AlterTable old)
@@ -1537,7 +1537,7 @@ static partial class Bridge
 		{
 			var read = new Statement.CreateIndex(on, index, kind, over);
 
-			return Hold(new Read<Statement.CreateIndex>("Statement.CreateIndex", read), () => CreateIndex(read));
+			return Hold(read, static read => CreateIndex(read));
 		}
 
 		static Ast.Statement CreateIndex(Statement.CreateIndex old)
@@ -1779,7 +1779,7 @@ static partial class Bridge
 		{
 			var read = new Statement.AlterIndex(name, on, "FOR", null, options, paths, namespaces);
 
-			return Hold(new Read<Statement.AlterIndex>("Statement.AlterIndex", read), () => AlterIndex(read));
+			return Hold(read, static read => AlterIndex(read));
 		}
 
 		/// <summary>ALTER INDEX, on the common tree: the index or ALL, the table, and the action its rules read.</summary>
@@ -1787,7 +1787,7 @@ static partial class Bridge
 		{
 			var read = action with { Name = name, On = on };
 
-			return Hold(new Read<Statement.AlterIndex>("Statement.AlterIndex", read), () => AlterIndex(read));
+			return Hold(read, static read => AlterIndex(read));
 		}
 
 		static Ast.Statement AlterIndex(Statement.AlterIndex old)
@@ -1851,7 +1851,7 @@ static partial class Bridge
 				throw BridgeGap.Open(owner, $"inventory Clause.Option (partitions `{text}`)");
 
 			var list = text[text.IndexOf('(')..];
-			return Skim("TRUNCATE TABLE t WITH (PARTITIONS " + list + ")") is [Statement.Built { Given: Read<Statement> { Value: Statement.Truncate { Partitions: { } partitions } } }]
+			return Skim("TRUNCATE TABLE t WITH (PARTITIONS " + list + ")") is [Statement.Built { Given: Statement.Truncate { Partitions: { } partitions } }]
 				? Each(partitions, one => one is Clause.PartitionRange(var from, var to)
 					? new Ast.PartitionRange(Values.Of(from), to is null ? null : Values.Of(to))
 					: throw BridgeGap.Open(owner, "inventory Clause.PartitionRange"))
@@ -1910,7 +1910,7 @@ static partial class Bridge
 		{
 			var old = new Defining("Statement.StatisticsDefinition", name) { Tail = tail };
 
-			return Hold(old, () => CreateStatistics(old));
+			return Hold(old, static old => CreateStatistics(old));
 		}
 
 		/// <summary>UPDATE STATISTICS, on the common tree: the table and the words after it.</summary>
@@ -1918,7 +1918,7 @@ static partial class Bridge
 		{
 			var old = new Defining("Statement.UpdateStatistics", on) { Tail = tail };
 
-			return Hold(old, () => UpdateStatistics(old));
+			return Hold(old, static old => UpdateStatistics(old));
 		}
 
 		static Ast.Statement CreateStatistics(Defining old)

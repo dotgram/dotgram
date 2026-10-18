@@ -44,12 +44,6 @@ static partial class Bridge
 		public string? Verb { get; init; }
 	}
 
-	/// <summary>
-	/// What a rule hands its builder where its parts were gathered by other rules into a record of the T-SQL tree, which
-	/// is then no statement of any tree, only what those rules read.
-	/// </summary>
-	internal sealed record Read<T>(string Record, T Value) : Given(Record);
-
 	/// <summary>The statements of a text read again and skimmed (<see cref="Skimmed"/>), or null where it is not read.</summary>
 	static Statement[]? Skim(string text)
 	{
@@ -65,7 +59,7 @@ static partial class Bridge
 		var (record, build) = Definition(what);
 		var old             = new Defining(record, name) { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb), Options = options };
 
-		return Hold(old, () => build(old));
+		return Hold(old, build);
 	}
 
 	/// <summary>The record of the T-SQL tree a definition's words name, and its builder.</summary>
@@ -164,7 +158,9 @@ static partial class Bridge
 	/// What building it read from the text is taken off this reading's count and kept with the statement, which puts it
 	/// back when it is carried: a statement read and then given up leaves nothing counted.
 	/// </remarks>
-	static Statement Hold(Given given, Func<Ast.Statement> build)
+	/// <param name="given">What the rule handed the builder: a <see cref="Given"/>, or the T-SQL tree's record its parts were gathered into.</param>
+	/// <param name="build">The builder, handed <paramref name="given"/> back, so that it captures nothing.</param>
+	static Statement Hold<T>(T given, Func<T, Ast.Statement> build) where T : class
 	{
 		if (skimming)
 			return new Statement.Built(null, null, null, given);
@@ -173,7 +169,27 @@ static partial class Bridge
 
 		try
 		{
-			var made = build();
+			var made = build(given);
+
+			return new Statement.Built(made, null, Taken(mark), given);
+		}
+		catch (BridgeGap gap)
+		{
+			return new Statement.Built(null, gap, Taken(mark), given);
+		}
+	}
+
+	/// <summary>The same, where the builder needs more than what was handed over: that too is handed back.</summary>
+	static Statement Hold<T, TState>(T given, TState state, Func<T, TState, Ast.Statement> build) where T : class
+	{
+		if (skimming)
+			return new Statement.Built(null, null, null, given);
+
+		var mark = recovered?.Count ?? 0;
+
+		try
+		{
+			var made = build(given, state);
 
 			return new Statement.Built(made, null, Taken(mark), given);
 		}
@@ -189,7 +205,7 @@ static partial class Bridge
 	/// </summary>
 	static Statement Carry<T>(T read, Func<T, Ast.Statement> build) where T : Statement
 	{
-		return Hold(new Read<Statement>(NameOf(read), read), () => build(read));
+		return Hold(read, build);
 	}
 
 	/// <summary>
@@ -240,17 +256,29 @@ static partial class Bridge
 
 	/// <summary>
 	/// A reading carried with its text: the text the rules' builders read from, and whether the nodes they carry take
-	/// their spans, for as long as the reading lasts.
+	/// their spans, for as long as the reading lasts; with a count of what they read from it where <paramref name="count"/>
+	/// asks for one (the bridge's own round trip), and none for a public entry, which nothing asks.
 	/// </summary>
-	internal static Carriage Over(string text, bool locate)
+	internal static Prior Over(string text, bool locate, bool count = false)
 	{
-		var outer = Carriage.Here();
+		var outer = new Prior(source, recovered, locating);
 
 		source    = text;
-		recovered = [];
+		recovered = count ? [] : null;
 		locating  = locate;
 
 		return outer;
+	}
+
+	/// <summary>The carriage that stood before a reading, put back when it ends; a value, so that a reading allocates none.</summary>
+	internal readonly struct Prior(string? source, List<string>? recovered, bool locating) : IDisposable
+	{
+		public void Dispose()
+		{
+			Bridge.source    = source;
+			Bridge.recovered = recovered;
+			Bridge.locating  = locating;
+		}
 	}
 
 	/// <summary>The statements whose rules built them on the common tree: each carried as what it holds.</summary>

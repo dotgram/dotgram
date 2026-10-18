@@ -126,7 +126,7 @@ static partial class Bridge
 
 			read.Locate(at.At, at.Length);
 
-			return Hold(new Read<Statement>(NameOf(read), read), () => read switch
+			return Hold(read, static read => read switch
 			{
 				Statement.CreateProcedure procedure => Procedure(procedure),
 				Statement.CreateFunction function   => Function(function),

@@ -284,7 +284,7 @@ static partial class Bridge
 	}
 
 	/// <summary>The thread-static state of a carriage, taken from one thread to another.</summary>
-	internal sealed class Carriage(string? source, List<string>? recovered, bool locating) : IDisposable
+	sealed class Carriage(string? source, List<string>? recovered, bool locating)
 	{
 		public static Carriage Here()
 		{
@@ -296,12 +296,6 @@ static partial class Bridge
 			Bridge.source    = source;
 			Bridge.recovered = recovered;
 			Bridge.locating  = locating;
-		}
-
-		/// <summary>The carriage that stood before, put back.</summary>
-		public void Dispose()
-		{
-			Restore();
 		}
 	}
 

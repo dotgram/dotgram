@@ -62,7 +62,7 @@ static partial class Bridge
 			};
 			var old = new Defining(record, name ?? "") { Tail = tail, Span = at };
 
-			return Hold(old, () => Checked(old, Backup(old)));
+			return Hold(old, static old => Checked(old, Backup(old)));
 		}
 
 		/// <summary>What is restored, likewise.</summary>
@@ -84,7 +84,7 @@ static partial class Bridge
 			};
 			var old = new Defining(record, name ?? "") { Tail = tail, Span = at };
 
-			return Hold(old, () => Checked(old, Restore(old)));
+			return Hold(old, static old => Checked(old, Restore(old)));
 		}
 
 		/// <summary>
@@ -112,7 +112,7 @@ static partial class Bridge
 			};
 			var old = new Defining(record, name) { Tail = Syntax.Tail(tail) };
 
-			return Hold(old, () => Alter(old));
+			return Hold(old, static old => Alter(old));
 		}
 
 		/// <summary>ALTER DATABASE … SET, on the common tree: the database, its settings and how open transactions end.</summary>
@@ -120,7 +120,7 @@ static partial class Bridge
 		{
 			var old = new Defining("Statement.AlterDatabaseSet", name);
 
-			return Hold(old, () => Target(old, name, new Ast.AlterDatabaseAction.Set(Each(settings, one => Setting(old, one)))) with { Termination = Termination(old, termination) });
+			return Hold(old, (settings, termination), static (old, state) => Target(old, old.Name, new Ast.AlterDatabaseAction.Set(Each(state.settings, one => Setting(old, one)))) with { Termination = Termination(old, state.termination) });
 		}
 
 		/// <summary>ALTER DATABASE … MODIFY with edition options, on the common tree.</summary>
@@ -128,15 +128,13 @@ static partial class Bridge
 		{
 			var old = new Defining("Statement.AlterDatabaseModify", name) { Span = at };
 
-			return Hold(old, () => AlterModify(old, options, with));
+			return Hold(old, (options, with), static (old, state) => AlterModify(old, state.options, state.with));
 		}
 
 		/// <summary>ALTER DATABASE SCOPED CONFIGURATION, on the common tree, from what its rules read.</summary>
 		internal static Statement Scoped(Statement.AlterDatabaseScopedConfiguration read)
 		{
-			var old = new Read<Statement.AlterDatabaseScopedConfiguration>("Statement.AlterDatabaseScopedConfiguration", read);
-
-			return Hold(old, () => Scoped(old, read));
+			return Hold(read, static read => Scoped(read, read));
 		}
 
 		/// <summary>Azure's CREATE DATABASE, on the common tree: the name, the collation, the edition options and the WITH.</summary>
@@ -160,9 +158,7 @@ static partial class Bridge
 
 		static Statement Create(Statement.CreateDatabase read)
 		{
-			var old = new Read<Statement.CreateDatabase>("Statement.CreateDatabase", read);
-
-			return Hold(old, () => Create(old, read));
+			return Hold(read, static read => Create(read, read));
 		}
 
 		/// <summary>
@@ -421,7 +417,7 @@ static partial class Bridge
 				return made;
 			}
 
-			return Skim(text) is [Statement.Built { Given: Read<Statement.CreateDatabase> { Value: var again } }]
+			return Skim(text) is [Statement.Built { Given: Statement.CreateDatabase again }]
 				&& Kept(old, "Statement.CreateDatabase.Containment", again.Containment, read.Containment) && Kept(old, "Statement.CreateDatabase.Tail", again.Tail, read.Tail)
 				? made
 				: throw BridgeGap.Open(old, "Trees.FreeText (Statement.CreateDatabase.Containment or Tail, written otherwise than the writer prints it)");
@@ -922,7 +918,7 @@ static partial class Bridge
 		/// <summary>File specifications kept as text, read again as CREATE DATABASE's data files.</summary>
 		static SqlList<Ast.DatabaseFile> Files(ISqlSpan old, string text)
 		{
-			return Skim("CREATE DATABASE d ON " + text) is [Statement.Built { Given: Read<Statement.CreateDatabase> { Value: { Files: var files, Log: null } } }]
+			return Skim("CREATE DATABASE d ON " + text) is [Statement.Built { Given: Statement.CreateDatabase { Files: var files, Log: null } }]
 				&& files.All(static one => one is Clause.DatabaseFile)
 				? Each(files, one => File(old, (Clause.DatabaseFile)one))
 				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (files `{text}`)");

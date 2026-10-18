@@ -1847,11 +1847,11 @@ static partial class Bridge
 		{
 			var old = new Defining("Statement.AddSignature", "");
 
-			return Hold(old, () =>
+			return Hold(old, (by, to, counter), static (old, state) =>
 			{
-				var (kind, module) = SignedModule(old, to, "Statement.AddSignature.To");
+				var (kind, module) = SignedModule(old, state.to, "Statement.AddSignature.To");
 
-				return new Ast.Statement.AddSignature(counter, module, Signers(old, by)) { Class = kind };
+				return new Ast.Statement.AddSignature(state.counter, module, Signers(old, state.by)) { Class = kind };
 			});
 		}
 
