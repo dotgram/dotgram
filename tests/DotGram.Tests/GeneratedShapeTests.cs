@@ -346,4 +346,35 @@ public sealed class GeneratedShapeTests
 			EmittedCode.Compile(text);
 		}
 	}
+
+	// ── The engine after a negative lookahead on a reference ─────────────────
+
+	/// <summary>
+	/// A value built after a negative lookahead on a reference gave its turn back is built on
+	/// every carrier, by the engine as by the reader. The engine over characters threw while it
+	/// built the list (ArgumentOutOfRangeException in its materializer); a grammar that asks to
+	/// be read over tokens and is read over characters instead (GRAM5004) gets that engine too.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Ways))]
+	public void A_value_after_a_negative_lookahead_on_a_reference_is_built(CarrierKind carrier, bool direct)
+	{
+		const string grammar =
+			"""
+			T = $q: ['a'..'b']* & ?!$q & 'a' | "ab"
+			Item : @string = t: T => @(t)
+			Root : @string = items: Item* => @(string.Join("|", items))
+			parse Root
+			""";
+
+		var assembly = Compiled(grammar, carrier, direct);
+
+		foreach (var (input, value) in new[] { ("baab", "ba|ab"), ("ab", "ab"), ("abab", "ab|ab"), ("", "") })
+		{
+			var read = EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input);
+
+			Assert.True(read.IsSuccess, input + ": " + read.Error);
+			Assert.Equal(value, read.Value);
+		}
+	}
 }

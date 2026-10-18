@@ -134,6 +134,8 @@ sealed partial class Machine
 		if (_recoveryPlans.Count > 0)
 			return;
 
+		var doors = Doors.ByRule(_graph.Rules, _graph.Bodies);
+
 		foreach (var rule in _rules)
 		{
 			// A fold's factories are iterations read off Construct entries per completed
@@ -179,15 +181,21 @@ sealed partial class Machine
 				var slots  = new Dictionary<Node, int>(NodeIdentity.Instance);
 				var nested = _graph.Recursive.Contains(rule);
 
+				// Kept in the arena for the same reasons a capture of the rule's own is: a rule that
+				// reaches itself, or a body that leaves a door. Through a door the parse comes back
+				// into an element it had closed, after a later element has opened the same capture
+				// and written its start over the variable; the close then ran again with that later
+				// start, and the materializer sliced backwards (`$q: X* & ?!$q & 'a'` in a site
+				// read as a list).
 				foreach (var captured in NodeWalk.Descendants(_graph.Bodies[called]))
-					if (captured is Node.Capture)
+					if (captured is Node.Capture(_, var inner))
 					{
 						var sited = _captures + layout.SlotOf(captured);
 
 						slots[captured] = sited;
 						_textCaptures.Add(sited);
 
-						if (nested)
+						if (nested || Doors.LeavesOne(inner, doors))
 							_nestedCaptures.Add(sited);
 					}
 
@@ -199,7 +207,7 @@ sealed partial class Machine
 
 					_textCaptures.Add(boundary);
 
-					if (nested)
+					if (nested || Doors.LeavesOne(_graph.Bodies[called], doors))
 						_nestedCaptures.Add(boundary);
 				}
 
