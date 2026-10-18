@@ -695,6 +695,10 @@ public static partial class Sql2023Writer
 		/// </summary>
 		void PutIndexDefinition(IndexDefinition index)
 		{
+			// TableIndexWith reads its options in brackets alone.
+			if (index.OptionsUnbracketed)
+				throw Misplaced(index, "OptionsUnbracketed", "on an index written at the table, whose WITH takes brackets (TableIndexWith)");
+
 			Word("INDEX");
 			PutIdentifier(index.Name);
 
@@ -765,6 +769,29 @@ public static partial class Sql2023Writer
 				PutPlacement(on, PlacementKind.On);
 
 			return true;
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE INDEX (Transact-SQL). The old list without brackets, OldIndexOption: one of seven words alone, or
+		/// FILLFACTOR with its number, side by side with commas; one at least.
+		/// </summary>
+		void PutOldIndexOptions(IndexDefinition index)
+		{
+			if (index.Options.Count == 0)
+				throw Misplaced(index, "OptionsUnbracketed", "without Options");
+
+			foreach (var option in index.Options)
+			{
+				var read = option is { Order: null, Place: null, Partitions: null, Options.Count: 0, Words.Count: 0, EqualsOmitted: false, Name.Style: IdentifierStyle.Regular }
+					&& (Plain(option.Name, "FILLFACTOR") ? IsOptionNumber(option.Value)
+						: option.Value is null && Plain(option.Name, "PAD_INDEX", "SORT_IN_TEMPDB", "IGNORE_DUP_KEY", "STATISTICS_NORECOMPUTE", "DROP_EXISTING", "SORTED_DATA_REORG", "SORTED_DATA"));
+
+				if (!read)
+					throw Misplaced(index, "Options", "without brackets other than PAD_INDEX, SORT_IN_TEMPDB, IGNORE_DUP_KEY, STATISTICS_NORECOMPUTE, DROP_EXISTING, SORTED_DATA or SORTED_DATA_REORG alone and FILLFACTOR = n, the old list (OldIndexOption)");
+			}
+
+			Word("WITH");
+			Each(index.Options, PutOption);
 		}
 
 		/// <summary>T-SQL: table_constraint (Transact-SQL). An option a key may write without brackets.</summary>
@@ -1133,6 +1160,10 @@ public static partial class Sql2023Writer
 					if (index.Unique || index.Include.Count > 0)
 						throw Misplaced(index, "Unique or Include", "on a columnstore index");
 
+					// ColumnstoreWith takes brackets; the old list is CREATE INDEX's alone (Msg 18054).
+					if (index.OptionsUnbracketed)
+						throw Misplaced(index, "OptionsUnbracketed", "on a columnstore index, whose WITH takes brackets (ColumnstoreWith)");
+
 					if (index.Placements.Any(static one => one.Kind == PlacementKind.FilestreamOn))
 						throw Misplaced(index, "Placements", "with FILESTREAM_ON on a columnstore index");
 
@@ -1192,7 +1223,10 @@ public static partial class Sql2023Writer
 				PutCondition(index, where);
 			}
 
-			PutOptions(index.Options);
+			if (index.OptionsUnbracketed)
+				PutOldIndexOptions(index);
+			else
+				PutOptions(index.Options);
 
 			// ON before FILESTREAM_ON, each once, as the grammar reads them.
 			if (index.Placements is not ([] or [{ Kind: PlacementKind.On or PlacementKind.FilestreamOn }] or [{ Kind: PlacementKind.On }, { Kind: PlacementKind.FilestreamOn }]))

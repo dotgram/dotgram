@@ -258,6 +258,12 @@ public sealed record IndexDefinition(Identifier Name) : ISqlNode
 
 	public SqlList<Option> Options { get; init; } = [];
 
+	/// <summary>
+	/// T-SQL: CREATE INDEX (Transact-SQL). The options written without brackets, <c>WITH PAD_INDEX, FILLFACTOR = 80</c>:
+	/// the old list CREATE INDEX still reads, each a word alone or FILLFACTOR with its number.
+	/// </summary>
+	[Spelling] public bool OptionsUnbracketed { get; init; }
+
 	/// <summary>T-SQL: CREATE INDEX (Transact-SQL). <c>ON</c> and <c>FILESTREAM_ON</c>, in the order written.</summary>
 	public SqlList<Placement> Placements { get; init; } = [];
 }
