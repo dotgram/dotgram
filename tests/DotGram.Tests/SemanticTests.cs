@@ -3497,6 +3497,40 @@ public sealed class SemanticTests
 	}
 
 	/// <summary>
+	/// And a repetition whose body matches nothing without the refused call is still told so,
+	/// beside the refusal: <c>'a'?</c> makes the body match nothing on its own.
+	/// </summary>
+	[Fact]
+	public void A_repetition_that_matches_nothing_beside_a_refused_call_is_still_told()
+	{
+		var errors = Compile("P(x) = x\nStart = (P | 'a'?)* & eof\nparse Start").Diagnostics
+			.Where(static one => one.Severity == GramSeverity.Error)
+			.Select(static one => one.Id)
+			.OrderBy(static one => one, StringComparer.Ordinal)
+			.ToArray();
+
+		Assert.Equal([GrammarNormalizer.NullableRepetition, GrammarNormalizer.UnbuiltCall], errors);
+	}
+
+	/// <summary>
+	/// Two repetitions of one rule that match nothing are told each where it is written, so
+	/// that a build saying each diagnostic once still says both.
+	/// </summary>
+	[Fact]
+	public void Two_repetitions_that_match_nothing_are_told_where_each_is()
+	{
+		const string grammar = "Start = ('a'?)* & ('b'?)* & eof";
+
+		var told = Compile(grammar + "\nparse Start").Diagnostics
+			.Where(static one => one.Id == GrammarNormalizer.NullableRepetition)
+			.Select(static one => one.Position)
+			.OrderBy(static one => one)
+			.ToArray();
+
+		Assert.Equal([grammar.IndexOf("('a'", StringComparison.Ordinal), grammar.IndexOf("('b'", StringComparison.Ordinal)], told);
+	}
+
+	/// <summary>
 	/// A call with the wrong number of arguments is told at the call, which is where the
 	/// mistake is: the declaration it was placed at is the library's own text where the rule
 	/// is the library's, and no place in the grammar at all.

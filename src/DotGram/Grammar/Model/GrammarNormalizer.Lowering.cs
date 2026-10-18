@@ -111,16 +111,18 @@ public sealed partial class GrammarNormalizer
 			// A count by the length of a bound text is read while the parser runs, so it is a
 			// node of its own rather than a repetition with numbers for bounds.
 			Expr.Quantified { MinLength: not null } or Expr.Quantified { MaxLength: not null } =>
-				LowerCounted((Expr.Quantified)expression, ns),
+				Placed(LowerCounted((Expr.Quantified)expression, ns), expression.At),
 
 			// §4.2: a count may be a parameter's name, and inside a specialization it stands
 			// for the number the call passed.
 			Expr.Quantified(var operand, var kind, var min, var minName, var max, var maxName) =>
-				Repetition(
-					Lower(operand, ns),
-					Bounds(kind, Counted(min, minName, expression)).Min,
-					Bounds(kind, Counted(max, maxName, expression)).Max,
-					ns),
+				Placed(
+					Repetition(
+						Lower(operand, ns),
+						Bounds(kind, Counted(min, minName, expression)).Min,
+						Bounds(kind, Counted(max, maxName, expression)).Max,
+						ns),
+					expression.At),
 
 			Expr.Sequence(var operands) => LowerSequence(operands, ns),
 			Expr.Glued(var operands) => LowerGlued(operands, ns),
@@ -1099,6 +1101,23 @@ public sealed partial class GrammarNormalizer
 		return _model.Bindings.TryGetValue(expression, out var symbol) && symbol is RuleSymbol rule
 			? rule
 			: Unresolved(name);
+	}
+
+	/// <summary>
+	/// Where each repetition was written, for a diagnostic about it: one rule may hold two, and
+	/// each is told where it is rather than both at the rule.
+	/// </summary>
+	readonly Dictionary<Node, Location> _repetitionsAt = new(NodeIdentity.Instance);
+
+	/// <summary>Records where the repetition <paramref name="lowered"/> holds was written.</summary>
+	Node Placed(Node lowered, Location at)
+	{
+		var repetition = lowered is Node.Bind(_, var bound, _) ? bound : lowered;
+
+		if (repetition is Node.Repeat or Node.Counted)
+			_repetitionsAt[repetition] = at;
+
+		return lowered;
 	}
 
 	/// <summary>

@@ -770,6 +770,26 @@ public sealed partial class GrammarNormalizer
 			CheckCaptures(child, rule, lookings);
 	}
 
+	/// <summary>
+	/// <paramref name="node"/> with every refused call in it standing as something that reads,
+	/// for asking whether the node matches nothing on its own account.
+	/// </summary>
+	Node WithoutRefused(Node node)
+	{
+		return node switch
+		{
+			_ when _refused.Contains(node)          => new Node.Element(false, [], [], []),
+			Node.Sequence(var parts)                => new Node.Sequence([.. parts.Select(WithoutRefused)]),
+			Node.Choice(var alternatives)           => new Node.Choice([.. alternatives.Select(WithoutRefused)]),
+			Node.Repeat(var body, var min, var max) => new Node.Repeat(WithoutRefused(body), min, max),
+			Node.Capture(var name, var body)        => new Node.Capture(name, WithoutRefused(body)),
+			Node.Construct(var body, var how)       => new Node.Construct(WithoutRefused(body), how),
+			Node.Atomic(var body)                   => new Node.Atomic(WithoutRefused(body)),
+			Node.Marked(var body, var text)         => new Node.Marked(WithoutRefused(body), text),
+			_                                       => node,
+		};
+	}
+
 	void CheckRepetitions(Node node, RuleSymbol rule)
 	{
 		// A count by a length is refused over an empty body as a count by numbers is, bounded
@@ -781,13 +801,14 @@ public sealed partial class GrammarNormalizer
 			_                                                => null,
 		};
 
-		// Not over a refused call, whose refusal is the mistake told (Refused).
+		// Not where only a refused call makes the body match nothing: its refusal is the mistake
+		// told (Refused). Where the body matches nothing without it, it is told as ever.
 		if (looped is not null && IsNullable(looped) &&
-			(_refused.Count == 0 || !NodeWalk.Descendants(looped).Any(_refused.Contains)))
+			(_refused.Count == 0 || IsNullable(WithoutRefused(looped))))
 			Report(
 				NullableRepetition,
 				$"The body of a repetition in '{rule.Name}' can match without consuming input, so the repetition would not terminate.",
-				rule.Declaration!.At);
+				_repetitionsAt.TryGetValue(node, out var at) ? at : rule.Declaration!.At);
 
 		foreach (var child in node.Children)
 			CheckRepetitions(child, rule);

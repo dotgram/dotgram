@@ -143,4 +143,37 @@ public sealed class DiagnosticPlaceTests
 
 		Assert.Equal(2, run.Diagnostics.Count(static one => one.Id == "GRAM4013"));
 	}
+
+	/// <summary>
+	/// Two repetitions of one rule that match nothing are two diagnostics in a build, each where
+	/// it is written: told both at the rule, saying each diagnostic once merged them.
+	/// </summary>
+	[Fact]
+	public void Two_repetitions_that_match_nothing_are_two_diagnostics()
+	{
+		var parse = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var token = TestContext.Current.CancellationToken;
+
+		var host = CSharpSyntaxTree.ParseText(
+			"""
+			namespace N;
+
+			[DotGram.Gram("Start = ('a'?)* & ('b'?)* & eof\nparse Start")]
+			public partial class Reader;
+			""",
+			parse, "Grammar.cs", cancellationToken: token);
+
+		var compilation = CSharpCompilation.Create(
+			"DotGram.Tests.DiagnosticPlace",
+			[host],
+			EmittedCode.References,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		var run = CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parse)
+			.RunGenerators(compilation, token)
+			.GetRunResult();
+
+		Assert.Equal(2, run.Diagnostics.Count(static one => one.Id == "GRAM4001"));
+	}
 }
