@@ -378,6 +378,19 @@ public abstract partial record Expression
 		public Expression? Parameters { get; init; }
 	}
 
+	/// <summary>
+	/// T-SQL: IDENTITY (Function) (Transact-SQL). <c>IDENTITY (INT [, seed, increment])</c> in a <c>SELECT … INTO</c>: the
+	/// type of the identity column made, and its seed and increment, both or neither, signed numbers kept whole.
+	/// </summary>
+	public sealed record Identity(DataType Type) : Expression
+	{
+		/// <summary>T-SQL: IDENTITY (Function) (Transact-SQL). The seed, a number with its sign in its text.</summary>
+		public LiteralValue.Numeric? Seed { get; init; }
+
+		/// <summary>T-SQL: IDENTITY (Function) (Transact-SQL). The increment, a number with its sign in its text.</summary>
+		public LiteralValue.Numeric? Increment { get; init; }
+	}
+
 	public partial record IsDistinct
 	{
 		/// <summary>

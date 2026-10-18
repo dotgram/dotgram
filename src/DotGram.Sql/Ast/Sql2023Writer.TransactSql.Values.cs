@@ -37,6 +37,35 @@ public static partial class Sql2023Writer
 					Close();
 					return true;
 
+				// T-SQL: IDENTITY (Function) (Transact-SQL). IdentityFunction: a type, a seed and a step both or neither, each a
+				// number kept whole with its sign; a whole item of a SELECT … INTO's list, named, and nowhere else.
+				case Expression.Identity identity:
+					if (!identityItem)
+						throw Misplaced(identity, "Identity", "other than as a named item of a SELECT … INTO's list, the one place IdentityFunction stands");
+
+					identityItem = false;
+
+					if ((identity.Seed is null) != (identity.Increment is null))
+						throw Misplaced(identity, "Seed or Increment", "without the other (IdentityFunction)");
+
+					if (identity.Seed is { Kind: not (NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate) } || identity.Increment is { Kind: not (NumericLiteralKind.DecimalInteger or NumericLiteralKind.Decimal or NumericLiteralKind.Approximate) })
+						throw Misplaced(identity, "Seed or Increment", "other than a number (IdentityNumber: Lexical.UnsignedNumericLiteral with a sign or none)");
+
+					Word("IDENTITY");
+					Call();
+					PutType(identity.Type);
+
+					if (identity.Seed is { } seed)
+					{
+						Tight(",");
+						PutSignedNumber(identity, seed);
+						Tight(",");
+						PutSignedNumber(identity, identity.Increment!);
+					}
+
+					Close();
+					return true;
+
 				// T-SQL: CONTAINS (Transact-SQL), FREETEXT (Transact-SQL). FullTextPredicate.
 				case Expression.FullTextPredicate predicate:
 					PutFullTextPredicate(predicate);

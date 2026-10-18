@@ -33,6 +33,9 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT c1 FROM t1 GROUP BY c1, c2", "a grouping column")]
 	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5) AS c", "chunks")]
 	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = FIXED, CHUNK_SIZE = 5, OVERLAP = 50, ENABLE_CHUNK_SET_ID = 1)", "chunks with every argument")]
+	[InlineData("SELECT IDENTITY (INT, 1, 1) AS id INTO #t FROM t", "an identity")]
+	[InlineData("SELECT id = IDENTITY (DECIMAL (10, 0), 1.5, +1) INTO t2 FROM t", "an identity named first with signed numbers")]
+	[InlineData("SELECT IDENTITY (INT) c INTO t2 FROM t", "an identity of a type alone")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -56,6 +59,9 @@ public sealed class ValuesRemainderBridgeTests
 			"a grouping column" => made is Ast.Statement.Select { Query: Ast.Query.Select { GroupBy.Items: [Ast.GroupingElement.Ordinary { DistributedAggregation: false }, _] } },
 			"chunks" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.AiGenerateChunks { ChunkType.Text: "fixed", Overlap: null, EnableChunkSetId: null, Alias.Name.Text: "c" }] } },
 			"chunks with every argument" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.AiGenerateChunks { Overlap: not null, EnableChunkSetId: not null, Alias: null }] } },
+			"an identity" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Identity { Type: Ast.DataType.Numeric { Kind: Ast.NumericTypeKind.Int }, Seed.Text: "1", Increment.Text: "1" } }], IntoTable: not null } },
+			"an identity named first with signed numbers" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { AliasFirst: true, Expression: Ast.Expression.Identity { Type: Ast.DataType.Numeric { Precision: 10, Scale: 0 }, Seed: { Text: "1.5", Kind: Ast.NumericLiteralKind.Decimal }, Increment.Text: "+1" } }] } },
+			"an identity of a type alone" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Identity { Seed: null, Increment: null } }] } },
 			_ => false,
 		};
 

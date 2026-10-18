@@ -75,6 +75,12 @@ public static partial class Sql2023Writer
 		/// </summary>
 		bool adding;
 
+		/// <summary>Whether the select list written is a SELECT … INTO's, the one list IDENTITY (…) stands in.</summary>
+		bool into;
+
+		/// <summary>Whether the expression written is a named item of a SELECT … INTO's list, the one place IDENTITY (…) stands.</summary>
+		bool identityItem;
+
 		/// <summary>Whether the type written is a column's, the one place an exact numeric reads MAX.</summary>
 		bool columnType;
 
