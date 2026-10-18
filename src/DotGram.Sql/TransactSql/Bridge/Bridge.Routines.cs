@@ -62,6 +62,15 @@ static partial class Bridge
 			return Carry(read, at, static old => Execute(old));
 		}
 
+		/// <summary>
+		/// A procedure called without the word, on the common tree: it stands where its own rule says, which no rule after it
+		/// widens, and it reads no word of the text.
+		/// </summary>
+		internal static Statement Bare(Statement.Execute read)
+		{
+			return Hold(read, static old => Execute(old));
+		}
+
 		/// <summary>ENABLE and DISABLE TRIGGER, on the common tree.</summary>
 		internal static Statement Switch(bool enable, SqlList<string>? names, string on)
 		{
@@ -124,9 +133,7 @@ static partial class Bridge
 		{
 			var read = Syntax.Verbed(body, verb);
 
-			read.Locate(at.At, at.Length);
-
-			return Hold(read, static read => read switch
+			return Defer(read, at, static read => read switch
 			{
 				Statement.CreateProcedure procedure => Procedure(procedure),
 				Statement.CreateFunction function   => Function(function),

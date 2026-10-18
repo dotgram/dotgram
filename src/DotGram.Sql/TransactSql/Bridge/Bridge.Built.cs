@@ -20,7 +20,7 @@ static partial class Bridge
 	internal abstract record Given(string Record) : ISqlSpan
 	{
 		/// <summary>Where the statement was written, where the rule said so.</summary>
-		public SqlSpan Span { get; init; }
+		public SqlSpan Span { get; set; }
 
 		/// <summary>Nothing locates it: it is no node of any tree.</summary>
 		void ISqlSpan.Locate(int at, int length)
@@ -44,10 +44,25 @@ static partial class Bridge
 		public string? Verb { get; init; }
 	}
 
-	/// <summary>The statements of a text read again and skimmed (<see cref="Skimmed"/>), or null where it is not read.</summary>
+	/// <summary>
+	/// The statements of a text read again only for what its rules hand their builders, which a check compares with what
+	/// the first reading handed them, or null where it is not read: nothing is built, and nothing that building would read
+	/// again is read.
+	/// </summary>
 	static Statement[]? Skim(string text)
 	{
-		return Skimmed(() => TransactSqlParser.TryParseSyntaxSql(text)) is { IsSuccess: true, Value: var statements } ? statements : null;
+		var outer = skimming;
+
+		skimming = true;
+
+		try
+		{
+			return TransactSqlParser.TryParseSyntaxSql(text) is { IsSuccess: true, Value: var statements } ? statements : null;
+		}
+		finally
+		{
+			skimming = outer;
+		}
 	}
 
 	/// <summary>
@@ -214,33 +229,44 @@ static partial class Bridge
 	/// </summary>
 	static Statement Carry<T>(T read, SqlSpan at, Func<T, Ast.Statement> build) where T : Statement
 	{
-		read.Locate(at.At, at.Length);
+		return Defer(read, at, build);
+	}
 
-		return Carry(read, build);
+	/// <summary>
+	/// A statement whose conversion reads the text it was written in, held until the extent it ends with is known: the
+	/// rule that reads the WITH in front of a statement and the `;` after it finishes it there (<see cref="Finish"/>), with
+	/// that rule's extent, as the T-SQL tree's record was told it. <paramref name="at"/>, the rule's own extent, is what it
+	/// is built with where no such rule follows.
+	/// </summary>
+	static Statement Defer<T>(T given, SqlSpan at, Func<T, Ast.Statement> build) where T : class
+	{
+		Situate(given, at);
+
+		if (skimming)
+			return new Statement.Built(null, null, null, given);
+
+		return new Statement.Built(null, null, null, given) { Pending = one => build((T)one) };
+	}
+
+	/// <summary>A held statement built, told the extent it ends with.</summary>
+	internal static Statement Finish(Statement.Built held, SqlSpan at)
+	{
+		Situate(held.Given, at);
+
+		return Hold(held.Given, held.Pending!);
+	}
+
+	/// <summary>What a rule handed its builder, told where the statement stands.</summary>
+	static void Situate(object given, SqlSpan at)
+	{
+		if (given is Given handed)
+			handed.Span = at;
+		else
+			((Statement)given).Locate(at.At, at.Length);
 	}
 
 	/// <summary>Whether the reading under way is skimmed: its statements hold what their rules were handed, and are not built.</summary>
 	[ThreadStatic] static bool skimming;
-
-	/// <summary>
-	/// A text read again only for what its rules hand their builders, which a check compares with what the first reading
-	/// handed them: nothing is built, and nothing that building would read again is read.
-	/// </summary>
-	static T Skimmed<T>(Func<T> read)
-	{
-		var outer = skimming;
-
-		skimming = true;
-
-		try
-		{
-			return read();
-		}
-		finally
-		{
-			skimming = outer;
-		}
-	}
 
 	static string[]? Taken(int mark)
 	{
@@ -292,6 +318,10 @@ static partial class Bridge
 
 			if (old is not Statement.Built built)
 				return false;
+
+			// Held for an extent no rule gave it: built with its rule's own.
+			if (built.Pending is { } build)
+				built = (Statement.Built)Hold(built.Given, build);
 
 			if (built.Recovered is { } read)
 				recovered?.AddRange(read);

@@ -3738,7 +3738,7 @@ ExecuteBody : @Statement.Execute
 // `Msg 102`, where `EXEC @p` reads.
 BareCall : @Statement
 	= ?!TSql.Variable & into: ExecReturn? & target: ExecTarget & args: ExecArguments? & with: ExecWith?
-		=> @(Bridge.Routines.Execute(target with { Into = into, Arguments = SqlList.Own(args), Tail = Syntax.Tail(with), Bare = true }, new SqlSpan(parserSpan.Start, parserSpan.Length)))
+		=> @(Bridge.Routines.Bare(target with { Into = into, Arguments = SqlList.Own(args), Tail = Syntax.Tail(with), Bare = true }))
 
 ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: TSql.Variable & '=' => @(t)

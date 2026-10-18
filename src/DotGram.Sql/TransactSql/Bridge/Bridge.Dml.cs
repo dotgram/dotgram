@@ -46,10 +46,18 @@ static partial class Bridge
 		/// </summary>
 		internal static Statement Preceded(SqlList<Clause>? with, Statement statement, SqlSpan at)
 		{
+			// A statement held for the extent it ends with: this is it.
+			if (statement is Statement.Built { Pending: not null } held)
+				return Finish(held, at);
+
 			if (statement is not (Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge))
 				return Syntax.Preceded(with, statement);
 
-			return Carry(Syntax.Preceded(with, statement), at, static read => read switch
+			var read = Syntax.Preceded(with, statement);
+
+			read.Locate(at.At, at.Length);
+
+			return Carry(read, static read => read switch
 			{
 				Statement.Insert insert => Insert(insert),
 				Statement.Update update => Update(update),

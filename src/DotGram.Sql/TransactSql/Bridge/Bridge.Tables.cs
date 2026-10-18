@@ -1140,9 +1140,7 @@ static partial class Bridge
 		{
 			var read = action with { Name = name };
 
-			read.Locate(at.At, at.Length);
-
-			return Hold(read, static read => AlterTable(read));
+			return Defer(read, at, static read => AlterTable(read));
 		}
 
 		static Ast.Statement AlterTable(Statement.AlterTable old)

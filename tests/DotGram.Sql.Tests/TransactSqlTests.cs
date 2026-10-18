@@ -15463,6 +15463,67 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// A statement whose words are read from the text it was written in reads the same tree ended by a `;` or not, and in a
+	/// branch: what is read is the statement's, never its terminator.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE PROC p AS SELECT 1")]
+	[InlineData("CREATE PROCEDURE p @a INT AS SELECT 1")]
+	[InlineData("CREATE PROCEDURE p (@a INT) AS SELECT 1")]
+	[InlineData("ALTER PROC p AS RETURN")]
+	[InlineData("CREATE FUNCTION f () RETURNS INT BEGIN RETURN 1 END")]
+	[InlineData("CREATE FUNCTION f (@a INT) RETURNS TABLE RETURN SELECT 1 AS a")]
+	[InlineData("EXEC p 1")]
+	[InlineData("EXECUTE p 1")]
+	[InlineData("EXEC ('SELECT 1')")]
+	[InlineData("EXEC AS USER = 'u'")]
+	[InlineData("EXECUTE AS LOGIN = 'l' WITH NO REVERT")]
+	[InlineData("SET TRAN ISOLATION LEVEL SNAPSHOT")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT")]
+	[InlineData("RAISERROR ('x', 1, 1) WITH NOWAIT")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'f'")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'f' WITH NORECOVERY")]
+	[InlineData("ALTER DATABASE d MODIFY (MAXSIZE = 2 GB)")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT c CHECK (a > 0)")]
+	public void A_statement_read_from_its_text_reads_alike_ended_or_not(string input)
+	{
+		var bare  = TransactSqlParser.TryParseSql(input);
+		var ended = TransactSqlParser.TryParseSql(input + ";");
+		var twice = TransactSqlParser.TryParseSql(input + " ;  ;");
+
+		Assert.True(bare.IsSuccess && ended.IsSuccess && twice.IsSuccess, input);
+		Assert.IsNotType<Ast.Statement.Extension>(Assert.Single(bare.Value!));
+		Assert.Equal(Assert.Single(bare.Value!), Assert.Single(ended.Value!));
+		Assert.Equal(Assert.Single(bare.Value!), Assert.Single(twice.Value!));
+
+		var branch = Assert.IsType<Ast.Statement.If>(TransactSqlParser.ParseStatement("IF 1 = 1 " + input + "; ELSE PRINT 1"));
+
+		Assert.Equal(Assert.Single(bare.Value!), branch.Then);
+	}
+
+	/// <summary>
+	/// The statements whose conversion reads their whole text up to its end, `;` among it: read ended or not, once or
+	/// twice. A constraint added with a `FOR` after it, which the T-SQL tree does not keep, ended: its text reaches the `;`,
+	/// and the check that sees the `FOR` as the last words of the statement does not, so it is carried without the `FOR`,
+	/// as it was before the rule built the common tree. A sensitivity classification and an endpoint take one `;` with
+	/// them, and two are a gap.
+	/// </summary>
+	[Theory]
+	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (LABEL = 'x')")]
+	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (LABEL = 'x');")]
+	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (LABEL = 'x') ; ;")]
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 4022) FOR SERVICE_BROKER (AUTHENTICATION = WINDOWS)")]
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 4022) FOR SERVICE_BROKER (AUTHENTICATION = WINDOWS);")]
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 4022) FOR SERVICE_BROKER (AUTHENTICATION = WINDOWS) ; ;")]
+	[InlineData("ALTER TABLE t ADD CHECK (c > 0) FOR c")]
+	[InlineData("ALTER TABLE t ADD CHECK (c > 0) FOR c;")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT k CHECK (c > 0) FOR c ;")]
+	public void A_statement_read_to_its_end_reads(string input)
+	{
+		Assert.True(TransactSqlParser.TryParseSql(input).IsSuccess, input);
+	}
+
 	/// <summary>And a table says what is in it.</summary>
 	[Fact]
 	public void A_created_table_says_its_columns()

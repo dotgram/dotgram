@@ -418,6 +418,13 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 	/// </param>
 	internal sealed record Built(DotGram.Sql.Ast.Statement? Made, TransactSql.BridgeGap? Gap, string[]? Recovered, object Given) : Statement
 	{
+		/// <summary>
+		/// The builder of a statement whose conversion reads the text the statement was written in, waiting for the extent
+		/// the statement ends with: that of the rule that reads the WITH in front of it and the `;` after it, which is
+		/// where it is finished (`Bridge.Dml.Preceded`). Null once it is built.
+		/// </summary>
+		internal Func<object, DotGram.Sql.Ast.Statement>? Pending { get; init; }
+
 		/// <summary>The record of this tree the rule built before.</summary>
 		public string Record => Given is TransactSql.Bridge.Given given ? given.Record : TransactSql.Bridge.NameOf(Given);
 

@@ -60,9 +60,9 @@ static partial class Bridge
 				"SYMMETRIC KEY"      => "Statement.BackupSymmetricKey",
 				_                    => throw Syntax.Unknown(what),
 			};
-			var old = new Defining(record, name ?? "") { Tail = tail, Span = at };
+			var old = new Defining(record, name ?? "") { Tail = tail };
 
-			return Hold(old, static old => Checked(old, Backup(old)));
+			return Defer(old, at, static old => Checked(old, Backup(old)));
 		}
 
 		/// <summary>What is restored, likewise.</summary>
@@ -82,9 +82,9 @@ static partial class Bridge
 				"SYMMETRIC KEY"      => "Statement.RestoreSymmetricKey",
 				_                    => throw Syntax.Unknown(what),
 			};
-			var old = new Defining(record, name ?? "") { Tail = tail, Span = at };
+			var old = new Defining(record, name ?? "") { Tail = tail };
 
-			return Hold(old, static old => Checked(old, Restore(old)));
+			return Defer(old, at, static old => Checked(old, Restore(old)));
 		}
 
 		/// <summary>
@@ -126,9 +126,9 @@ static partial class Bridge
 		/// <summary>ALTER DATABASE … MODIFY with edition options, on the common tree.</summary>
 		internal static Statement Modify(string name, SqlList<Clause>? options, SqlList<Clause>? with, SqlSpan at)
 		{
-			var old = new Defining("Statement.AlterDatabaseModify", name) { Span = at };
+			var old = new Defining("Statement.AlterDatabaseModify", name);
 
-			return Hold(old, (options, with), static (old, state) => AlterModify(old, state.options, state.with));
+			return Defer(old, at, old => AlterModify(old, options, with));
 		}
 
 		/// <summary>ALTER DATABASE SCOPED CONFIGURATION, on the common tree, from what its rules read.</summary>
