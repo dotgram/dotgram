@@ -539,14 +539,15 @@ public sealed class GeneratorDriverTests
 			"[DotGram.Gram(\"using Lexemes;\\nStart = w: Word\\nparse Start\")]\n" +
 			"public partial class Reader : Lexemes { }";
 
-		// Twice: once generating the base, once generating what inherited it. Both are
-		// placed on the same characters, which is the base's own grammar.
+		// Found twice, once generating the base and once generating what inherited it, and
+		// said once: both are placed on the same characters, which is the base's own grammar,
+		// and the same message twice in one place is one mistake told twice.
 		var reported = RunGenerator(source)
 			.Diagnostics
 			.Where(diagnostic => diagnostic.Id == "GRAM3002")
 			.ToArray();
 
-		Assert.Equal(2, reported.Length);
+		Assert.Single(reported);
 
 		// Where it starts, and not how far it runs: a span reaches to the beginning of the
 		// next token rather than to the end of this one — `GramParser.From` — so a
