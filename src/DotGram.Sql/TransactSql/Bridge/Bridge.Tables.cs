@@ -127,10 +127,10 @@ static partial class Bridge
 					if (Values.Of(aggregate) is not Ast.Expression.Invocation summed)
 						throw BridgeGap.Open(old, "inventory TableReference.Pivot (an aggregate that is not a call)");
 
-					return new Ast.TableSource.Pivot(Source(of), summed, Values.Name(old, column), Each(values, v => Values.Name(old, v)), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
+					return new Ast.TableSource.Pivot(Source(of), summed, Values.Name(old, column), Names(old, values), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
 
 				case TableReference.Unpivot(var of, var value, var column, var values, var name):
-					return new Ast.TableSource.Unpivot(Source(of), Values.Name(old, value), Values.Name(old, column), Each(values, v => Values.Name(old, v)), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
+					return new Ast.TableSource.Unpivot(Source(of), Values.Name(old, value), Values.Name(old, column), Names(old, values), Closing(old, name) ?? throw BridgeGap.Open(old, "inventory TableReference.Pivot (without its alias)"));
 
 				case TableReference.OdbcJoin(var inner):
 					return new Ast.TableSource.OdbcJoin(Source(inner));
@@ -138,6 +138,12 @@ static partial class Bridge
 				default:
 					throw Unconverted(old);
 			}
+		}
+
+		/// <summary>A rotation's names, each split into its parts; apart from <see cref="Of"/>, whose every call would make the closure.</summary>
+		static SqlList<Ast.QualifiedName> Names(TableReference old, SqlList<string> names)
+		{
+			return Each(names, one => Values.Name(old, one));
 		}
 
 		static Ast.TableSource Named(TableReference.Named old)

@@ -745,6 +745,7 @@ static partial class Bridge
 				return value;
 
 			var text = string.Join(" ", tokens.Select(static one => one.Text));
+
 			return Specified("SELECT " + text) is { Columns: [Clause.DerivedColumn(var expression, null)] }
 				? Values.Of(expression)
 				: throw Unread(old);
@@ -829,7 +830,8 @@ static partial class Bridge
 
 					// `x = a` and `a AS x` are one old node; where the value starts after the column, the
 					// alias was written in front of it.
-					var first = Recover("Clause.DerivedColumn alias = expression", Spelled(old) is not null && Spelled(value) is not null ? "" : null, _ => value.Span.At > old.Span.At, false);
+					var first = Recover("Clause.DerivedColumn alias = expression", Spelled(old) is not null && Spelled(value) is not null ? "" : null,
+						value.Span.At > old.Span.At ? static _ => true : static _ => false, false);
 
 					return new Ast.SelectColumn.ExpressionItem(Values.Of(value), alias,
 						!first && Recover("SelectColumn.ExpressionItem.AsKeyword", WordAfter(value), static word => word == "AS", false))

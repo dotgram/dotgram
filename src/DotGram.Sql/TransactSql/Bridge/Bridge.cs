@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
@@ -398,7 +397,13 @@ static partial class Bridge
 	/// </summary>
 	static List<string> Words(string text)
 	{
-		return [.. SqlTokens.Of(text).Select(static one => one.Kind == SqlTokens.Kind.Word ? one.Text.ToUpperInvariant() : one.Text)];
+		var tokens = SqlTokens.Of(text);
+		var words  = new List<string>(tokens.Count);
+
+		foreach (var one in tokens)
+			words.Add(one.Kind == SqlTokens.Kind.Word ? one.Text.ToUpperInvariant() : one.Text);
+
+		return words;
 	}
 
 	/// <summary>
@@ -415,8 +420,24 @@ static partial class Bridge
 			: null;
 	}
 
+	/// <summary>Each item carried, in order, into a list of its own: no list for none, and no array for one.</summary>
 	static SqlList<T> Each<TOld, T>(SqlList<TOld> items, Func<TOld, T> convert)
 	{
-		return items.Select(convert).ToSqlList();
+		switch (items.Count)
+		{
+			case 0:
+				return [];
+
+			case 1:
+				return SqlList<T>.Of(convert(items[0]));
+
+			default:
+				var made = new T[items.Count];
+
+				for (var at = 0; at < made.Length; at++)
+					made[at] = convert(items[at]);
+
+				return SqlList.Own(made);
+		}
 	}
 }
