@@ -429,6 +429,18 @@ public abstract partial record Statement
 	}
 
 	/// <summary>
+	/// T-SQL: CREATE JSON INDEX (Transact-SQL). <c>CREATE JSON INDEX i ON t (c) [FOR ('$.a', …)] [WITH (…)]</c>: an index
+	/// over one JSON column, and the paths it covers.
+	/// </summary>
+	public sealed record CreateJsonIndex(QualifiedName Table, Identifier Name, Identifier Column) : Statement
+	{
+		/// <summary>T-SQL: CREATE JSON INDEX (Transact-SQL). <c>FOR ('$.a', …)</c>: the paths, none where FOR is not written.</summary>
+		public SqlList<LiteralValue.String> Paths { get; init; } = [];
+
+		public SqlList<Option> Options { get; init; } = [];
+	}
+
+	/// <summary>
 	/// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). <c>CREATE SELECTIVE XML INDEX i ON t (c) [WITH XMLNAMESPACES
 	/// (…)] FOR (path = 'node path' [AS …] …, …) [WITH (…)]</c>: the paths an XML column's index promotes.
 	/// </summary>

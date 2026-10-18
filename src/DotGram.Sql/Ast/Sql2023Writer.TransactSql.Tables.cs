@@ -220,6 +220,31 @@ public static partial class Sql2023Writer
 					PutOptions(xml.Options);
 					return true;
 
+				// T-SQL: CREATE JSON INDEX (Transact-SQL). One column, the paths it covers, and its five options.
+				case Statement.CreateJsonIndex json:
+					if (json.Paths.Any(static one => one is not { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null }))
+						throw Misplaced(json, "Paths", "other than plain or national strings (JsonIndexPath)");
+
+					CheckJsonIndexOptions(json);
+					Word("CREATE JSON INDEX");
+					PutIdentifier(json.Name);
+					Word("ON");
+					PutName(json.Table);
+					Open();
+					PutIdentifier(json.Column);
+					Close();
+
+					if (json.Paths.Count > 0)
+					{
+						Word("FOR");
+						Open();
+						Each(json.Paths, PutExpression);
+						Close();
+					}
+
+					PutOptions(json.Options);
+					return true;
+
 				// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). The column, the namespaces, the paths, the options.
 				case Statement.CreateSelectiveXmlIndex selective:
 					if (selective.Paths.Count == 0)
@@ -1665,6 +1690,26 @@ public static partial class Sql2023Writer
 		/// unsigned number; IGNORE_DUP_KEY and ONLINE set to OFF alone; XML_COMPRESSION set to ON or OFF, which may say
 		/// ON PARTITIONS. No other name, no option of its own, no option without its value.
 		/// </summary>
+		/// <summary>
+		/// T-SQL: CREATE JSON INDEX (Transact-SQL). JsonIndexOptionSyntax: PAD_INDEX, DROP_EXISTING and
+		/// OPTIMIZE_FOR_ARRAY_SEARCH set to ON or OFF, MAXDOP set to an unsigned number, DATA_COMPRESSION set to NONE, ROW
+		/// or PAGE with its partitions or not; the rest are Msg 153.
+		/// </summary>
+		static void CheckJsonIndexOptions(Statement.CreateJsonIndex index)
+		{
+			foreach (var option in index.Options)
+			{
+				var read = option.Options.Count == 0 && option.Order is null && option.Place is null && option.Words.Count == 0 && !option.EqualsOmitted
+					&& (option.Partitions is null || Plain(option.Name, "DATA_COMPRESSION"))
+					&& (Plain(option.Name, "PAD_INDEX", "DROP_EXISTING", "OPTIMIZE_FOR_ARRAY_SEARCH") && IsWord(option.Value, "ON", "OFF")
+						|| Plain(option.Name, "MAXDOP") && IsOptionNumber(option.Value)
+						|| Plain(option.Name, "DATA_COMPRESSION") && IsWord(option.Value, "NONE", "ROW", "PAGE"));
+
+				if (!read)
+					throw Misplaced(index, "Options", "other than the five a JSON index reads: PAD_INDEX, DROP_EXISTING and OPTIMIZE_FOR_ARRAY_SEARCH set to ON or OFF, MAXDOP set to a number, DATA_COMPRESSION set to NONE, ROW or PAGE (JsonIndexOptionSyntax)");
+			}
+		}
+
 		static void CheckXmlIndexOptions(ISqlNode index, SqlList<Option> options)
 		{
 			foreach (var option in options)

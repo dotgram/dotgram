@@ -91,6 +91,7 @@ public sealed class DdlRemainderWriterTests
 				Options       = [Set("PAD_INDEX", Ref("ON"))],
 			},
 			"ALTER INDEX paths" => new Statement.AlterIndex(Qualified("t"), new IndexAlteration.Paths([new PathAction.Remove(Name("p2")), new PathAction.Add(new PromotedPath(Name("p1"), Str("/a")))])) { Name = Name("sxi") },
+			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
@@ -126,6 +127,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE SELECTIVE XML INDEX", "CREATE SELECTIVE XML INDEX sxi ON t (c) WITH XMLNAMESPACES ('urn:a' AS ns) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR(10)) WITH (PAD_INDEX = ON)")]
 	[InlineData("ALTER INDEX paths", "ALTER INDEX sxi ON t FOR (REMOVE p2, ADD p1 = '/a')")]
 	[InlineData("CREATE XML INDEX FOR a path", "CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (p)")]
+	[InlineData("CREATE JSON INDEX", "CREATE JSON INDEX ix ON t (j) FOR ('$.a') WITH (OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -141,6 +143,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE SELECTIVE XML INDEX")]
 	[InlineData("ALTER INDEX paths")]
 	[InlineData("CREATE XML INDEX FOR a path")]
+	[InlineData("CREATE JSON INDEX")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -181,6 +184,8 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("selective an option it does not read")]
 	[InlineData("XML index FOR a kind and a path")]
 	[InlineData("ALTER INDEX no path changed")]
+	[InlineData("JSON an option it does not read")]
+	[InlineData("JSON a path with an escape")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -243,6 +248,10 @@ public sealed class DdlRemainderWriterTests
 			"selective an option it does not read" => new Statement.CreateSelectiveXmlIndex(Qualified("t"), Name("sxi"), Name("c"), [new PromotedPath(Name("p"), Str("/a"))]) { Options = [Set("ONLINE", Ref("ON"))] },
 			// XmlIndexUsing: FOR a kind or a path, never both.
 			"XML index FOR a kind and a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), For = XmlIndexFor.Path, ForPath = Name("p") },
+			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
+			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
+			// JsonIndexPath: a plain or national string.
+			"JSON a path with an escape" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a") with { UnicodeEscape = '!' }] },
 			// SelectivePaths: one at least.
 			"ALTER INDEX no path changed" => new Statement.AlterIndex(Qualified("t"), new IndexAlteration.Paths([])) { Name = Name("sxi") },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
