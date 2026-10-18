@@ -593,6 +593,11 @@ static partial class Bridge
 			{
 				case { Record: "Statement.PartitionFunctionDefinition" } when words is ["(", ..]:
 					var close   = Closing(tokens, 0);
+
+					// A bracket the words kept do not close: a line comment among them, which the words kept as one line run to their end.
+					if (close < 0)
+						throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
 					var collate = tokens.FindIndex(static one => one.Token.Kind == SqlTokens.Kind.Word && one.Token.Text.Equals("COLLATE", StringComparison.OrdinalIgnoreCase));
 					var type    = Slice(text, tokens, 1, collate > 0 && collate < close ? collate : close);
 					var after   = words[(close + 1)..];
@@ -704,11 +709,13 @@ static partial class Bridge
 					});
 
 				case { Record: "Statement.SearchPropertyListDefinition" }:
-					var by   = Index(tokens, "AUTHORIZATION");
-					var list = new Ast.Statement.CreateSearchPropertyList(name) { Authorization = by < 0 ? null : Values.Part(old, tokens[by + 1].Token.Text) };
+					var by = Index(tokens, "AUTHORIZATION");
 
+					// The owner is the last word; a line comment among the words kept, which run as one line, can leave none.
 					if (by >= 0 && by != tokens.Count - 2)
 						throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
+					var list = new Ast.Statement.CreateSearchPropertyList(name) { Authorization = by < 0 ? null : Values.Part(old, tokens[by + 1].Token.Text) };
 
 					return words[..(by < 0 ? words.Count : by)] switch
 					{

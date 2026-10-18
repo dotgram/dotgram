@@ -678,7 +678,7 @@ static partial class Bridge
 		{
 			var type = Values.Type(old, text);
 
-			return Same(old, member, Ast.TransactSqlWriter.Write(type), text) ? type : throw BridgeGap.Open(old, $"Trees.FreeText ({member}, a type written otherwise than the writer prints it)");
+			return Same(old, member, Written(old, type, member), text) ? type : throw BridgeGap.Open(old, $"Trees.FreeText ({member}, a type written otherwise than the writer prints it)");
 		}
 
 		/// <summary>A returned table's columns, read as CREATE TABLE's body is.</summary>
@@ -819,7 +819,7 @@ static partial class Bridge
 			}
 
 			var made    = options.ToSqlList();
-			var printed = Ast.TransactSqlWriter.Write(new Ast.Statement.ExecuteModule(new Ast.ModuleReference.Named(new Ast.QualifiedName([new Ast.Identifier("p")])), []) { Keyword = Ast.ExecuteKeyword.Exec, Options = made });
+			var printed = Written(old, new Ast.Statement.ExecuteModule(new Ast.ModuleReference.Named(new Ast.QualifiedName([new Ast.Identifier("p")])), []) { Keyword = Ast.ExecuteKeyword.Exec, Options = made }, "Statement.Execute.Tail");
 
 			if (!printed.StartsWith("EXEC p ", StringComparison.Ordinal) || !Same(old, "Statement.Execute.Tail", printed["EXEC p ".Length..], tail))
 				throw BridgeGap.Open(old, "Trees.FreeText (Statement.Execute.Tail, written otherwise than the writer prints it)");
@@ -847,9 +847,13 @@ static partial class Bridge
 				case ["(", .., ")"]:
 					var body = string.Join(' ', set.Skip(1).Take(set.Count - 2).Select(static one => one.Text));
 
+					// Read as a table's body, which may hold what a result set may not: a constraint, an index, a computed
+					// column — a set's columns are each a name and a type, and no more is written there.
 					return Reread("CREATE TABLE t (" + body + ")") is { IsSuccess: true, Value: [Statement.Built table] }
 						&& StatementOf(table) is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var elements) }
-						? new Ast.ResultSet.Columns(elements)
+						? elements.TrueForAll(static one => one is Ast.TableElement.Column { Definition.Type: not null })
+							? new Ast.ResultSet.Columns(elements)
+							: throw BridgeGap.Open(old, $"inventory Statement.Execute (a result set `{body}` with more than columns each with its type)")
 						: throw BridgeGap.Open(old, $"inventory Statement.Execute (a result set `{body}`)");
 
 				default:

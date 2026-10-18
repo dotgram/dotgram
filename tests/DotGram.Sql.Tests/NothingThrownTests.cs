@@ -1,0 +1,91 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+using DotGram.Sql.TransactSql;
+
+using Xunit;
+
+namespace DotGram.Sql.Tests;
+
+/// <summary>
+/// No public <c>Try</c> entry of <see cref="TransactSqlParser"/> throws: a text is read, carried across to the common
+/// tree with a gap where it has no place yet, or refused. Held over the corpus and over the shapes that once reached a
+/// throw out of the bridge: a result set that is more than columns, a statement holding one inside a script that is then
+/// refused, a comment between the words of what is dropped, a comment inside a type the writer cannot print, and a line
+/// comment among the words a statement keeps as text.
+/// </summary>
+public sealed class NothingThrownTests
+{
+	[Theory]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, CHECK (a > 0)))")]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT CHECK (a > 0)))")]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, CONSTRAINT k PRIMARY KEY (a)))")]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT NOT NULL PRIMARY KEY))")]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, INDEX ix (a)))")]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, b AS a + 1))")]
+	[InlineData("EXECUTE (@SQL) WITH RESULT SETS ((Dobidoo BIGINT NOT NULL, CHECK (EXISTS (SELECT 1 FROM u AS a))))")]
+	[InlineData("DECLARE @SQL NVARCHAR(max)\r\nSET @SQL = N'SELECT a FROM t1 WHERE 1 = 1'\r\nexec(@SQL)\r\nwith RESULT SETS((Dobidoo BIGINT NOT NULL, CHECK (EXISTS (SELECT 1 FROM u AS a))))\r\ngo\r\nexecute p1 with result sets none\r\ngo\r\n")]
+	[InlineData("DECLARE @SQL AS NVARCHAR (MAX);\r\n\r\nSET @SQL = N'SELECT a FROM t1 WHERE 1 = 1';\r\n\r\nEXECUTE (@SQL)\r\n    WITH RESULT SETS (\r\n        (Dobidoo BIGINT NOT NULL, CHECK (a IN (SELECT 1 FROM u a TABLESAMPLE (10 ROWS) (NOLOCK))))\r\n                     );\r\n\r\n\r\nGO\r\nEXECUTE p1 WITH RESULT SETS NONE;\r\n")]
+	[InlineData("DROP SERVER /*x*/ AUDIT a")]
+	[InlineData("DROP SYMMETRIC/**/KEY k")]
+	[InlineData("DROP MASTER /* */ KEY")]
+	[InlineData("CREATE PROCEDURE p1 @lastname NVARCHAR/**/ (100) AS SELECT 1")]
+	[InlineData("CREATE AGGREGATE a (@x INT/**/ NULL) RETURNS INT EXTERNAL NAME asm")]
+	[InlineData("DECLARE @b NVARCHAR/**/ (50)")]
+	[InlineData("CREATE SEARCH PROPERTY LIST p AUTHORIZATION --c\na")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (a, --c\nb) KEY INDEX ix")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (a) KEY INDEX ix ON (cat, --c\nFILEGROUP fg)")]
+	public void A_shape_that_once_threw_is_read_carried_or_refused(string input)
+	{
+		foreach (var (entry, read) in Entries())
+		{
+			var thrown = Record.Exception(() => read(input));
+
+			Assert.True(thrown is null, $"{entry} threw {thrown?.GetType().Name}: {thrown?.Message}");
+		}
+	}
+
+	/// <summary>Every batch of the corpus, through the script entry of both doors.</summary>
+	[Fact]
+	public void No_batch_of_the_corpus_throws()
+	{
+		var batches = 0;
+
+		foreach (var file in Directory.GetFiles(Corpus(), "*.sql", SearchOption.AllDirectories).OrderBy(static one => one, StringComparer.Ordinal))
+			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
+			{
+				batches++;
+
+				var plain   = Record.Exception(() => TransactSqlParser.TryParseSql(batch));
+				var located = Record.Exception(() => TransactSqlParser.Located.TryParseSql(batch));
+
+				if ((plain ?? located) is { } thrown)
+					Assert.Fail($"{file}: {thrown.GetType().Name}: {thrown.Message}");
+			}
+
+		Assert.True(batches > 2_000, $"{batches} batches");
+	}
+
+	static string Corpus([System.Runtime.CompilerServices.CallerFilePath] string here = "")
+	{
+		return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "Corpus", "ScriptDom"));
+	}
+
+	static IEnumerable<(string Entry, Action<string> Read)> Entries()
+	{
+		yield return ("TryParseSql", static text => TransactSqlParser.TryParseSql(text));
+		yield return ("TryParseStatement", static text => TransactSqlParser.TryParseStatement(text));
+		yield return ("TryParseSelect", static text => TransactSqlParser.TryParseSelect(text));
+		yield return ("TryParseExpression", static text => TransactSqlParser.TryParseExpression(text));
+		yield return ("TryParseSearchCondition", static text => TransactSqlParser.TryParseSearchCondition(text));
+		yield return ("TryParseScript", static text => TransactSqlParser.TryParseScript(text));
+		yield return ("Located.TryParseSql", static text => TransactSqlParser.Located.TryParseSql(text));
+		yield return ("Located.TryParseStatement", static text => TransactSqlParser.Located.TryParseStatement(text));
+		yield return ("Located.TryParseSelect", static text => TransactSqlParser.Located.TryParseSelect(text));
+		yield return ("Located.TryParseExpression", static text => TransactSqlParser.Located.TryParseExpression(text));
+		yield return ("Located.TryParseSearchCondition", static text => TransactSqlParser.Located.TryParseSearchCondition(text));
+		yield return ("Located.TryParseScript", static text => TransactSqlParser.Located.TryParseScript(text));
+	}
+}

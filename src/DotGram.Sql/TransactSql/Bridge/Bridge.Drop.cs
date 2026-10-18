@@ -37,7 +37,8 @@ static partial class Bridge
 		/// </summary>
 		internal static Statement Dropped(string kind, SqlList<Expression>? some, string? tail = null, string? ifExists = null)
 		{
-			var what    = Syntax.Squared(kind);
+			// The words as tokens: a comment between two of them (`DROP SERVER /*x*/ AUDIT a`) is no part of the kind.
+			var what    = Syntax.Squared(string.Join(" ", SqlTokens.Of(kind).Select(static one => one.Text)));
 			var removal = new Dropping(Record(what), some ?? [], Syntax.Tail(tail), ifExists is not null);
 
 			return Hold(removal, what, static (removal, what) => Made(what, removal));

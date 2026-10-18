@@ -407,8 +407,8 @@ under it is in neither of the last two.
 | `Statement.AlterTable` | Tables | B | converted 648, gap 1 | 1: needs decision: inventory Statement.AlterTable (a constraint added with a FOR the old tree drops) (1) | 649 |
 | `Statement.CreateIndex` | Tables | C | converted 493, gap 2 | 2: needs decision: inventory Statement.CreateIndex (a spatial index USING FOO) (2) | 495 |
 | `Statement.EventSessionDefinition` | Monitoring | C | converted 321, gap 2 | 2: not kept by the old tree: a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank (2) | 323 |
-| `Statement.Declare` | Procedural | C | converted 292 | — | 300 |
-| `Statement.CreateProcedure` | Routines | B | converted 288, gap 1 | 1: needs decision: inventory DataType (a type `double precision(max)` of several words) (1) | 289 |
+| `Statement.Declare` | Procedural | C | converted 292 | — | 301 |
+| `Statement.CreateProcedure` | Routines | B | converted 288, gap 2 | 2: needs decision: inventory DataType (a type `double precision(max)` of several words) (1); target exists, no writer arm: Clause.ParameterDeclaration.Type, which the writer refuses (ArgumentException) (1) | 290 |
 | `Statement.EndpointDefinition` | Server | C | converted 251, gap 1 | 1: needs decision: inventory Statement.EndpointDefinition (`CREATE ENDPOINT e AS TCP (LISTENER_PORT = 4022) FOR SERVICE_BROKER (AUTHENTICATION = WINDOWS) ; ;` after the name) (1) | 252 |
 | `Statement.AlterDatabaseSet` | Database | C | converted 218 | — | 218 |
 | `Statement.Insert` | Dml | A | converted 197, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 205 |
@@ -418,13 +418,13 @@ under it is in neither of the last two.
 | `Statement.CreateDatabase` | Database | C | converted 154 | — | 154 |
 | `Statement.SetStatement` | Procedural | C | converted 154 | — | 154 |
 | `Statement.AlterIndex` | Tables | C | converted 148 | — | 148 |
-| `Statement.Execute` | Routines | B | converted 138, shape 1 | — | 138 |
+| `Statement.Execute` | Routines | B | converted 138, gap 4, shape 1 | 4: needs decision: inventory Statement.Execute (a result set `a INT , CHECK ( a > 0 )` with more than columns each with its type) (1); needs decision: inventory Statement.Execute (a result set `a INT , CONSTRAINT k PRIMARY KEY ( a )` with more than columns each with its type) (1) | 142 |
 | `Statement.ServerAuditDefinition` | Monitoring | C | converted 117, gap 2 | 2: not kept by the old tree: a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank (2) | 119 |
 | `Statement.Update` | Dml | A | converted 116 | — | 116 |
 | `Statement.Transaction` | Procedural | B | converted 115 | — | 115 |
 | `Statement.Grant` | Security | B | converted 108 | — | 108 |
 | `Statement.ExternalFileFormatDefinition` | External | C | converted 97, gap 4 | 4: no target record: a stray comma in a bracketed list of the PolyBase objects, which the tree keeps nothing for (4) | 101 |
-| `Statement.FullTextIndexDefinition` | Tables | C | converted 99 | — | 99 |
+| `Statement.FullTextIndexDefinition` | Tables | C | converted 99, gap 1 | 1: needs decision: inventory Statement.FullTextIndexDefinition ((a, --c b) KEY INDEX ix) (1) | 100 |
 | `Statement.AlterFullTextIndex` | Tables | C | converted 92 | — | 92 |
 | `Statement.ExternalDataSourceDefinition` | External | C | converted 85, gap 7 | 7: no target record: a stray comma in a bracketed list of the PolyBase objects, which the tree keeps nothing for (7) | 92 |
 | `Statement.ResourcePoolDefinition` | Server | C | converted 86 | — | 86 |
@@ -559,6 +559,7 @@ under it is in neither of the last two.
 | `Statement.DropExternalLanguage` | Drop | C | converted 8 | — | 8 |
 | `Statement.DropExternalLibrary` | Drop | C | converted 8 | — | 8 |
 | `Statement.DropRole` | Drop | B | converted 8 | — | 8 |
+| `Statement.SearchPropertyListDefinition` | Database | C | converted 7, gap 1 | 1: needs decision: inventory Statement.SearchPropertyListDefinition (AUTHORIZATION --c a) (1) | 8 |
 | `Statement.AlterDatabaseAddFile` | Database | C | converted 7 | — | 7 |
 | `Statement.AlterServerRole` | Security | C | converted 7 | — | 7 |
 | `Statement.Checkpoint` | Database | C | converted 7 | — | 7 |
@@ -571,7 +572,6 @@ under it is in neither of the last two.
 | `Statement.DropSymmetricKey` | Drop | C | converted 7 | — | 7 |
 | `Statement.RestoreMasterKey` | Database | C | converted 7 | — | 7 |
 | `Statement.RouteDefinition` | Broker | C | converted 7 | — | 7 |
-| `Statement.SearchPropertyListDefinition` | Database | C | converted 7 | — | 7 |
 | `Statement.Throw` | Procedural | C | converted 7 | — | 7 |
 | `Statement.AlterSymmetricKey` | Security | C | converted 6 | — | 6 |
 | `Statement.ColumnEncryptionKeyDefinition` | Security | C | converted 6 | — | 6 |
@@ -680,7 +680,7 @@ under it is in neither of the last two.
 | `Clause.TableSample` | Tables | A | — | — | 0 |
 | `Clause.Top` | Queries | C | — | — | 0 |
 | `Clause.VariableAssignment` | Queries | C | — | — | 0 |
-| `Clause.VariableDeclaration` | Procedural | C | gap 8 | 8: needs decision: inventory DataType (a type `"ncharacter" varying` of several words) (1); needs decision: inventory DataType (a type `[ncharacter] varying` of several words) (1) | 0 |
+| `Clause.VariableDeclaration` | Procedural | C | gap 9 | 9: needs decision: inventory DataType (a type `"ncharacter" varying` of several words) (1); needs decision: inventory DataType (a type `[ncharacter] varying` of several words) (1) | 0 |
 | `Clause.When` | Values | A | — | — | 0 |
 | `Clause.Window` | Values | A | — | — | 0 |
 | `Clause.WindowDefinition` | Values | A | — | — | 0 |

@@ -50,4 +50,4 @@ Statement.RestoreRewindOnly = 4/0/0/0/0/0/0
 Statement.RestoreServiceMasterKey = 6/0/0/0/0/0/0
 Statement.RestoreSymmetricKey = 2/0/0/0/0/0/0
 Statement.RestoreVerifyOnly = 3/0/0/0/0/0/0
-Statement.SearchPropertyListDefinition = 7/0/0/0/0/0/0
+Statement.SearchPropertyListDefinition = 7/1/0/0/0/0/0

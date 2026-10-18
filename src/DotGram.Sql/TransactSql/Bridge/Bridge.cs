@@ -420,6 +420,23 @@ static partial class Bridge
 			: null;
 	}
 
+	/// <summary>
+	/// The writer's text of a node a conversion built from what was written, to compare the two: where the writer refuses
+	/// the node, with its refusals (a rejected argument, an unsupported form), the text has no form the common tree writes
+	/// yet, and that is a gap, as every other form the bridge has no place for is.
+	/// </summary>
+	static string Written(object old, Ast.ISqlNode node, string member)
+	{
+		try
+		{
+			return Ast.TransactSqlWriter.Write(node);
+		}
+		catch (Exception refused) when (refused is ArgumentException or NotSupportedException)
+		{
+			throw BridgeGap.Unwritten(old, $"{member}, which the writer refuses ({refused.GetType().Name})");
+		}
+	}
+
 	/// <summary>Each item carried, in order, into a list of its own: no list for none, and no array for one.</summary>
 	static SqlList<T> Each<TOld, T>(SqlList<TOld> items, Func<TOld, T> convert)
 	{

@@ -15505,6 +15505,40 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
+	/// What is dropped is said by its words, and a comment between them is no part of it: read as the words say, where the
+	/// bridge threw.
+	/// </summary>
+	[Fact]
+	public void A_comment_between_the_words_of_what_is_dropped_is_no_part_of_them()
+	{
+		Assert.IsType<Ast.Statement.DropServerAudit>(TransactSqlParser.ParseStatement("DROP SERVER /*x*/ AUDIT a"));
+		Assert.IsType<Ast.Statement.DropSymmetricKey>(TransactSqlParser.ParseStatement("DROP SYMMETRIC/**/KEY k"));
+		Assert.IsType<Ast.Statement.DropMasterKey>(TransactSqlParser.Located.ParseStatement("DROP MASTER /* */ KEY"));
+		Assert.IsType<Ast.Statement.DropSymmetricKey>(TransactSqlParser.ParseStatement("DROP SYMMETRIC -- the kind\nKEY k"));
+	}
+
+	/// <summary>
+	/// Forms the common tree has no place for yet, which the bridge reports as a gap — the statement an extension that says
+	/// why — where it threw: a result set of more than columns each with its type, read as a table's body is; a type with
+	/// a comment inside, which the writer cannot print to compare
+	/// with what was written; a line comment among the words a statement keeps as one line of text.
+	/// </summary>
+	[Theory]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, CHECK (a > 0)))", "with more than columns each with its type")]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, CONSTRAINT k PRIMARY KEY (a)))", "with more than columns each with its type")]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, INDEX ix (a)))", "with more than columns each with its type")]
+	[InlineData("EXECUTE p WITH RESULT SETS ((a INT, b AS a + 1))", "with more than columns each with its type")]
+	[InlineData("CREATE PROCEDURE p1 @lastname NVARCHAR/**/ (100) AS SELECT 1", "Clause.ParameterDeclaration.Type, which the writer refuses")]
+	[InlineData("DECLARE @b NVARCHAR/**/ (50)", "Clause.VariableDeclaration.Type, which the writer refuses")]
+	[InlineData("CREATE SEARCH PROPERTY LIST p AUTHORIZATION --c\na", "inventory Statement.SearchPropertyListDefinition")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (a, --c\nb) KEY INDEX ix", "inventory Statement.FullTextIndexDefinition")]
+	public void A_form_with_no_place_yet_is_a_gap_and_nothing_is_thrown(string input, string gap)
+	{
+		Assert.Contains(gap, Assert.IsType<Ast.Statement.Extension>(TransactSqlParser.ParseStatement(input)).Kind, StringComparison.Ordinal);
+		Assert.Contains(gap, Assert.IsType<Ast.Statement.Extension>(TransactSqlParser.Located.ParseStatement(input)).Kind, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// A part the bridge reads again from a text of its own — a value as `SELECT value`, a condition as `SELECT 1 WHERE`,
 	/// an order as `SELECT 1 ORDER BY` — holding a source whose conversion checks the source's own text (a hint written
 	/// against its sample): read without locations, as it always was, so that the check, which needs a span, is not made

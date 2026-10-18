@@ -648,7 +648,7 @@ static partial class Bridge
 			// it, but for the case of its key words and its blanks, reads back as itself.
 			var typed = Values.Type(old, type);
 
-			if (!Same(old, "Clause.VariableDeclaration.Type", Ast.TransactSqlWriter.Write(typed), type))
+			if (!Same(old, "Clause.VariableDeclaration.Type", Written(old, typed, "Clause.VariableDeclaration.Type"), type))
 				throw BridgeGap.Open(old, "Trees.FreeText (Clause.VariableDeclaration.Type, a type written otherwise than the writer prints it)");
 
 			return new Ast.VariableDeclaration.Typed(variable, typed, value is null ? null : Values.Of(value)) { AsKeyword = asKeyword };

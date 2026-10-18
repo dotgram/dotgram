@@ -1691,6 +1691,10 @@ static partial class Bridge
 			{
 				var close = Closing(tokens, 2);
 
+				// A bracket the words kept do not close: a line comment among them, which the words kept as one line run to their end.
+				if (close < 0)
+					throw BridgeGap.Open(old, $"inventory {NameOf(old)} ({text})");
+
 				namespaces = Queries.XmlNamespaces(old, text[tokens[1].At..(tokens[close].At + 1)]);
 				at         = close + 1;
 			}
@@ -2143,6 +2147,10 @@ static partial class Bridge
 			{
 				var close = Closing(tokens, 0);
 
+				// A bracket the words kept do not close: a line comment among them, which the words kept as one line run to their end.
+				if (close < 0)
+					throw BridgeGap.Open(old, $"inventory Statement.FullTextIndexDefinition ({tail})");
+
 				columns = Listed(tail[1..tokens[close].At]).Select(one => FullTextColumn(old, one)).ToSqlList();
 				at      = close + 1;
 			}
@@ -2164,6 +2172,11 @@ static partial class Bridge
 				if (at + 1 < tokens.Count && tokens[at + 1].Token.Text == "(")
 				{
 					var close  = Closing(tokens, at + 1);
+
+					// A bracket the words kept do not close: a line comment among them, which the words kept as one line run to their end.
+					if (close < 0)
+						throw BridgeGap.Open(old, $"inventory Statement.FullTextIndexDefinition ({tail})");
+
 					var places = Listed(tail[(tokens[at + 1].At + 1)..tokens[close].At]);
 
 					// FullTextPlace, in either order: the filegroup with its word, the catalog alone, each once.
