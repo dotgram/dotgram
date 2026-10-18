@@ -275,15 +275,23 @@ public static partial class Sql2023Writer
 					PutIdentifier(spatial.Column);
 					Close();
 
+					if (spatial.UsingBracketed && spatial.Using is null)
+						throw Misplaced(spatial, "UsingBracketed", "without Using");
+
 					if (spatial.Using is { } grid)
-						Word(grid switch
+					{
+						var scheme = grid switch
 						{
-							SpatialTessellation.GeometryGrid      => "USING GEOMETRY_GRID",
-							SpatialTessellation.GeographyGrid     => "USING GEOGRAPHY_GRID",
-							SpatialTessellation.GeometryAutoGrid  => "USING GEOMETRY_AUTO_GRID",
-							SpatialTessellation.GeographyAutoGrid => "USING GEOGRAPHY_AUTO_GRID",
+							SpatialTessellation.GeometryGrid      => "GEOMETRY_GRID",
+							SpatialTessellation.GeographyGrid     => "GEOGRAPHY_GRID",
+							SpatialTessellation.GeometryAutoGrid  => "GEOMETRY_AUTO_GRID",
+							SpatialTessellation.GeographyAutoGrid => "GEOGRAPHY_AUTO_GRID",
 							_                                     => throw NoText(grid),
-						});
+						};
+
+						Word("USING");
+						Word(spatial.UsingBracketed ? "[" + scheme + "]" : scheme);
+					}
 
 					CheckSpatialOptions(spatial);
 

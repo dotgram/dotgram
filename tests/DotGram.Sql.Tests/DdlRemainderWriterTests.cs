@@ -185,6 +185,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("XML index FOR a kind and a path")]
 	[InlineData("ALTER INDEX no path changed")]
 	[InlineData("JSON an option it does not read")]
+	[InlineData("spatial a grid in brackets that is none")]
 	[InlineData("JSON a path with an escape")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
@@ -248,6 +249,8 @@ public sealed class DdlRemainderWriterTests
 			"selective an option it does not read" => new Statement.CreateSelectiveXmlIndex(Qualified("t"), Name("sxi"), Name("c"), [new PromotedPath(Name("p"), Str("/a"))]) { Options = [Set("ONLINE", Ref("ON"))] },
 			// XmlIndexUsing: FOR a kind or a path, never both.
 			"XML index FOR a kind and a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), For = XmlIndexFor.Path, ForPath = Name("p") },
+			// SpatialIndex: USING names a grid; brackets around none are no text.
+			"spatial a grid in brackets that is none" => new Statement.CreateSpatialIndex(Qualified("t"), Name("i"), Name("g")) { UsingBracketed = true },
 			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
 			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
 			// JsonIndexPath: a plain or national string.
