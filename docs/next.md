@@ -26051,3 +26051,59 @@ next step's.
   -0.3% (A/A +2.5%), select-long -2.0% (+0.2%), insert-values -1.0% (+0.2%), update-subquery +0.6% (0.0%), script400
   -2.9% (+2.0%), conditions1000 +3.2% (+0.7%), refused-late +2.0% (-0.5%); the bytes the same or up to 192 more a
   row (select-long +0.4%, insert-values.at +1.5%). The carriage's own cost goes with the bridge.
+
+## T-SQL's query and table source rules build the common tree
+
+The query rules of `TransactSql.gram` — a query expression and its set operations, a specification, a table value
+constructor, `TABLE t`, a query in brackets, a query with an order, `OFFSET … FETCH` or `FOR` of its own — and the
+table source rules — a table, a function, a rowset, a derived table, a variable, a join, a source in brackets or in
+ODBC's braces, the pivots after one — now build the query or the source of `DotGram.Sql.Ast` in their own actions,
+and so does the query statement. Their parts — values, names, types, and the clauses the old tree keeps (the select
+list's items, `TOP`, `INTO`, `GROUP BY`, `ORDER BY`, `FOR`, hints, `WITH`) — are still the T-SQL tree's, and the
+bridge carries them across as it did. Every statement rule now builds the common tree; what is left of the old tree
+under a statement is values, names, types and those clauses, which are the next step's.
+
+- **Where such a query stands.** Under a value (a subquery, `EXISTS`, `IN`), in a statement's rows, under a derived
+  table: places the T-SQL tree still holds. A query rule hands back a `Query.Built` and a source rule a
+  `TableReference.Built`, which hold what was built or the gap found, and what building it read from the text, as a
+  `Statement.Built` does; the bridge carries them as themselves.
+- **What a holder asks.** Several rules decide what they read by what a query or a source is: a select that assigns
+  a variable may not be combined, nor ordered where it selects from nothing; a cursor's query may not make a table; a
+  source in brackets must be a join, and one a pivot ends is not. The records those questions were asked of are not
+  what the holders hold any more, so a carrier keeps the answers (`Query.Built.Facts`, `TableReference.Built.Shape`), worked out from
+  what its rule read when it is made. A specification keeps its select list and condition as the rules read them, and
+  a table value constructor its rows, which the bridge's own readings of a value written as `SELECT value` and
+  MERGE's `INSERT` take apart.
+- **A source is still gathered before it is built.** A pivot is read before the source it turns, and the joins after
+  a source before the source they hang on is known, so their pieces are the T-SQL tree's records, hung together as
+  before; the source is built where it is whole. Its conversion reads the source's own text (`AS` before an alias, a
+  hint against a sample), cut by the record's span, which the rule's value is told only once the action is done: the
+  record is told the rule's extent first, which is the same range.
+- **A query statement is built where it is carried.** The `WITH` in front of it is read by the rule around it, and its
+  query is built already; what it waits for is that `WITH`, its order, its `FOR` and its hints. Built in the rule
+  around it, as a statement that reads its own text is, it would have cost a refused reading that statement's frame.
+- **Built at once, and so built for a reading given up.** The check before the switch (each query and source record
+  carried across the moment it was read, and thrown away, counted against what the reading kept): over the ScriptDom
+  corpus's 2,389 batches that read, 2–4% of the specifications, selects, select items and tables were built for a
+  reading the parser then gave up — of the selects mostly the copy a `WITH` made of the select it heads, which a held
+  query statement no longer makes. A refused text is another matter: every construction is given up, and the parser reads a
+  refused text twice, the second time for what was expected where it stopped. While the parts are the T-SQL tree's,
+  such a reading now builds both trees. Bytes a call, the public entry: refused-early 920 to 1,912, refused-late
+  2,488 to 5,368; the same texts cut where they still read (`SELECT a, b`, and the late one before its last `AND`)
+  build that once. When the parts build the common tree themselves, a refused reading builds one tree again, the
+  larger one.
+- **The bridge's own garbage.** Carrying a part allocated far more than the part: a name was cut into a list of its
+  parts, each copied out and cut again to look for a dot, gathered through a projection and a closure into an array
+  the name then copied, and every list went through `Select` and `ToSqlList`. Those went with this step, and the bytes
+  a call fell by a fifth to a half on every row that reads (select-join 14,481 to 10,088, columns1000 681,825 to
+  369,217, conditions1000 905,040 to 624,896).
+- **Speed.** Against main, a paired stand in a shared window, T-SQL rows, five runs each with the parent's A/A
+  (directional): every row that reads 19–28% faster — select-join -21.2% (A/A -0.9%), select-long -24.6% (+1.3%),
+  insert-values -20.1% (+0.1%), create-table -19.2% (-0.1%), update-subquery -24.9% (+0.4%), script400 -25.1%
+  (-4.8%), columns1000 -27.5% (-3.1%), conditions1000 -21.0% (+2.5%) — and the two refused rows slower, refused-early
+  +42.4% (-2.3%) and refused-late +57.4% (-0.3%), which is the second tree built on a refused reading.
+- **Held to the tree before.** Every batch of the corpus and every string of `TransactSqlTests` — as it is, ended by
+  `;` and by ` ;  ;`, inside an `IF` and inside `IF … ELSE` — through the plain and the located door of
+  `TryParseSql` and `TryParseStatement`, and through `TryParseSelect`, `TryParseExpression` and
+  `TryParseSearchCondition`: the same trees, spans and refusals, byte for byte. A table source's record left unlocated
+  before its conversion made 1,876 of those readings differ, which is what the check is for.
