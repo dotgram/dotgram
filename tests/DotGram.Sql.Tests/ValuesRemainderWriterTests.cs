@@ -110,6 +110,7 @@ public sealed class ValuesRemainderWriterTests
 	[InlineData("CONTAINS where a value stands")]
 	[InlineData("IS DISTINCT FROM ALL a value")]
 	[InlineData("AI_GENERATE_EMBEDDINGS a model with an empty part")]
+	[InlineData("DISTRIBUTED_AGG on a list in brackets")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -134,6 +135,8 @@ public sealed class ValuesRemainderWriterTests
 			"IS DISTINCT FROM ALL a value" => Where(new Expression.IsDistinct(Ref("a"), false, Number("1")) { Quantifier = Quantifier.All }),
 			// UseModel: TSqlQualifiedName, no part left out.
 			"AI_GENERATE_EMBEDDINGS a model with an empty part" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.AiGenerateEmbeddings(Text("x"), new QualifiedName([Name(""), Name("m")])))] } },
+			// TSqlGroupingColumn: the hint after a column, never after a list in brackets.
+			"DISTRIBUTED_AGG on a list in brackets" => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(Ref("a"))], From = new FromClause([new TableSource.Named(Qualified("t"))]), GroupBy = new GroupByClause(null, [new GroupingElement.Rollup([new GroupingElement.Ordinary([Ref("a"), Ref("b")], true) { DistributedAggregation = true }])]) } },
 			"a number with no name" => new Statement.SaveTransaction(new TransactionName(null) { Number = (LiteralValue.Numeric)Number("5") }),
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};

@@ -29,6 +29,8 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('x' USE MODEL [dbo.m] PARAMETERS (TRY_CONVERT (JSON, N'{}')))", "embeddings with parameters in brackets")]
 	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('x' USE MODEL dbo.m PARAMETERS TRY_CONVERT (JSON, N'{}'))", "embeddings with parameters")]
 	[InlineData("SELECT AI_GENERATE_EMBEDDINGS (@t USE MODEL m)", "embeddings")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY c1 WITH (DISTRIBUTED_AGG), c2", "a grouping column moved to be aggregated")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY c1, c2", "a grouping column")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -48,6 +50,8 @@ public sealed class ValuesRemainderBridgeTests
 			"embeddings with parameters in brackets" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Model: [{ Style: Ast.IdentifierStyle.Bracketed }], Parameters: Ast.Expression.Parenthesized } }] } },
 			"embeddings with parameters" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Model.Count: 2, Parameters: Ast.Expression.Convert } }] } },
 			"embeddings" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Source: Ast.Expression.Variable, Parameters: null } }] } },
+			"a grouping column moved to be aggregated" => made is Ast.Statement.Select { Query: Ast.Query.Select { GroupBy.Items: [Ast.GroupingElement.Ordinary { DistributedAggregation: true }, Ast.GroupingElement.Ordinary { DistributedAggregation: false }] } },
+			"a grouping column" => made is Ast.Statement.Select { Query: Ast.Query.Select { GroupBy.Items: [Ast.GroupingElement.Ordinary { DistributedAggregation: false }, _] } },
 			_ => false,
 		};
 

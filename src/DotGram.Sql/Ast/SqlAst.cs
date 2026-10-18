@@ -1367,7 +1367,7 @@ public enum TableScope { GlobalTemporary, LocalTemporary }
 public enum TableCommitAction { Preserve, Delete }
 
 /// <summary>BNF: grouping element families.</summary>
-public abstract record GroupingElement : ISqlNode
+public abstract partial record GroupingElement : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -1376,7 +1376,7 @@ public abstract record GroupingElement : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Ordinary(SqlList<Expression> Expressions, bool Parenthesized = false) : GroupingElement;
+	public partial record Ordinary(SqlList<Expression> Expressions, bool Parenthesized = false) : GroupingElement;
 	public record Rollup(SqlList<GroupingElement> Items) : GroupingElement;
 	public record Cube(SqlList<GroupingElement> Items) : GroupingElement;
 	public record Sets(SqlList<GroupingElement> Items) : GroupingElement;
