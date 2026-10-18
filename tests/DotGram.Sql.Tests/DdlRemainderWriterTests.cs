@@ -101,6 +101,11 @@ public sealed class DdlRemainderWriterTests
 			"CAST AS a user's type of MAX" => Cast(new DataType.UserDefined(new QualifiedName([Name("dbo"), Name("t")])) { Max = true }),
 			"ALTER DATABASE REBUILD LOG ON with a termination" => new Statement.AlterDatabase(Name("d"), new AlterDatabaseAction.RebuildLog { On = new DatabaseFile([Set("NAME", Text("n"))]) }) { Termination = new Termination.RollbackImmediate() },
 			"ALTER DATABASE ADD LOG FILE TO FILEGROUP" => new Statement.AlterDatabase(Name("d"), new AlterDatabaseAction.AddLogFile([new DatabaseFile([Set("NAME", Ref("l"))])]) { ToFileGroup = Name("g") }),
+			"RESTORE MOVE and STOPATMARK" => new Statement.RestoreDatabase(Ref("d"))
+			{
+				From    = [new BackupDevice.Physical(DeviceKind.Disk, Text("x"))],
+				Options = [new Option(Name("MOVE"), Text("a"), [Set("TO", Text("b"))]), new Option(Name("STOPATMARK"), Text("m"), [Set("AFTER", Text("t"))])],
+			},
 			"CREATE MATERIALIZED VIEW" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("ROUND_ROBIN")), Set("FOR_APPEND")] },
 			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
@@ -136,6 +141,11 @@ public sealed class DdlRemainderWriterTests
 	static LiteralValue.String Str(string text)
 	{
 		return new LiteralValue.String("'" + text + "'", StringLiteralKind.Character);
+	}
+
+	static Statement Restore(params Option[] options)
+	{
+		return new Statement.RestoreDatabase(Ref("d")) { From = [new BackupDevice.Physical(DeviceKind.Disk, Text("x"))], Options = [.. options] };
 	}
 
 	static Statement Spatial(params Option[] options)
@@ -175,6 +185,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CAST AS a user's type of MAX", "SELECT CAST(a AS dbo.t(MAX))")]
 	[InlineData("ALTER DATABASE REBUILD LOG ON with a termination", "ALTER DATABASE d REBUILD LOG ON (NAME = 'n') WITH ROLLBACK IMMEDIATE")]
 	[InlineData("ALTER DATABASE ADD LOG FILE TO FILEGROUP", "ALTER DATABASE d ADD LOG FILE (NAME = l) TO FILEGROUP g")]
+	[InlineData("RESTORE MOVE and STOPATMARK", "RESTORE DATABASE d FROM DISK = 'x' WITH MOVE 'a' TO 'b', STOPATMARK = 'm' AFTER 't'")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -202,6 +213,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CAST AS a user's type of MAX")]
 	[InlineData("ALTER DATABASE REBUILD LOG ON with a termination")]
 	[InlineData("ALTER DATABASE ADD LOG FILE TO FILEGROUP")]
+	[InlineData("RESTORE MOVE and STOPATMARK")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -274,6 +286,10 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("a vector as a named type")]
 	[InlineData("a user's type of three numbers")]
 	[InlineData("NATIONAL before nchar written as a name")]
+	[InlineData("RESTORE MOVE without TO")]
+	[InlineData("RESTORE MOVE TO a number")]
+	[InlineData("RESTORE STOPAT AFTER")]
+	[InlineData("RESTORE STOPATMARK FROM")]
 	[InlineData("a user's type of a signed number")]
 	[InlineData("ALTER COLUMN a collation after SPARSE")]
 	[InlineData("JSON a path with an escape")]
@@ -380,6 +396,12 @@ public sealed class DdlRemainderWriterTests
 			"a vector as a named type" => Cast(new DataType.Named(Qualified("VECTOR"), [Number("3")])),
 			// Syntax.Dotted: NATIONAL stands before char, character and text alone (national sys.nchar is Msg 102).
 			"NATIONAL before nchar written as a name" => Cast(new DataType.Character(CharacterTypeKind.NationalChar) { WrittenName = new QualifiedName([Name("sys"), Name("nchar")]) }),
+			// RestoreOption: MOVE BackupString TO BackupString.
+			"RESTORE MOVE without TO" => Restore(new Option(Name("MOVE"), Text("a"), [])),
+			"RESTORE MOVE TO a number" => Restore(new Option(Name("MOVE"), Text("a"), [Set("TO", Number("1"))])),
+			// RestoreOption: STOPAT = BackupValue, and AFTER only on STOPATMARK and STOPBEFOREMARK.
+			"RESTORE STOPAT AFTER" => Restore(new Option(Name("STOPAT"), Text("a"), [Set("AFTER", Text("t"))])),
+			"RESTORE STOPATMARK FROM" => Restore(new Option(Name("STOPATMARK"), Text("a"), [Set("FROM", Text("t"))])),
 			// DottedTail: one or two whole numbers.
 			"a user's type of three numbers" => Cast(new DataType.UserDefined(Qualified("t")) { Arguments = [Number("1"), Number("2"), Number("3")] }),
 			"a user's type of a signed number" => Cast(new DataType.UserDefined(Qualified("t")) { Arguments = [Number("-1")] }),

@@ -731,7 +731,7 @@ static partial class Bridge
 
 		/// <summary>
 		/// The options of a WITH or of a bracket: a name of a word or several, then nothing, <c>= value</c> or a bracketed
-		/// list. MOVE's two strings and STOPATMARK's AFTER have no place in an option, and are a gap.
+		/// list; MOVE's second string after TO and STOPATMARK's AFTER and its value, the option's own options.
 		/// </summary>
 		static SqlList<Ast.Option> Options(Statement old, string text)
 		{
@@ -757,8 +757,10 @@ static partial class Bridge
 					[] => option,
 					["=", _] => option with { Value = Value(old, tokens[named + 1].Token) },
 					["(", .., ")"] => option with { Options = Options(old, piece[(tokens[named].At + 1)..tokens[^1].At]) },
-					_ when option.Name.Text.Equals("MOVE", StringComparison.OrdinalIgnoreCase) => throw BridgeGap.Missing(old, "Option (RESTORE … MOVE 'file' TO 'path': two values)"),
-					_ when rest.Contains("AFTER", StringComparer.OrdinalIgnoreCase) => throw BridgeGap.Missing(old, "Option (RESTORE … STOPATMARK = mark AFTER datetime: two values)"),
+					[_, var to, _] when option.Name.Text.Equals("MOVE", StringComparison.OrdinalIgnoreCase) && option.Words.Count == 0 && to.Equals("TO", StringComparison.OrdinalIgnoreCase)
+						=> option with { Value = Value(old, tokens[named].Token), Options = [new Ast.Option(Values.Part(old, tokens[named + 1].Token.Text), Value(old, tokens[named + 2].Token), [])] },
+					["=", _, var after, _] when after.Equals("AFTER", StringComparison.OrdinalIgnoreCase)
+						=> option with { Value = Value(old, tokens[named + 1].Token), Options = [new Ast.Option(Values.Part(old, tokens[named + 2].Token.Text), Value(old, tokens[named + 3].Token), [])] },
 					_ => throw BridgeGap.Open(old, $"inventory {NameOf(old)} (an option `{piece}`)"),
 				};
 			})];
