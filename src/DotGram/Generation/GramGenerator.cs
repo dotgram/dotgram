@@ -212,23 +212,32 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// compilation, which changes on every keystroke. So they are combined HERE and nowhere
 		// earlier: the compile keeps its cached value and only the reporting runs again. The map is
 		// built once per delivery and only where a diagnostic actually asks for a tree.
+		//
+		// Every host at once, so that a diagnostic two of them find is said once: a class with a
+		// second reading compiles the same grammar twice, and each compilation finds the same
+		// warning at the same place. Nothing is lost by collecting: the trees change on every
+		// keystroke, so every host's reports were delivered again on each one anyway.
 		context.RegisterSourceOutput(
-			located.Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
+			located.Collect().Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
 			static (production, input) =>
 			{
 				Dictionary<string, SyntaxTree>? found = null;
 
-				input.Left.Parser.Report(
-					production,
-					input.Left.Site,
-					path =>
-					{
-						found ??= input.Right
-							.GroupBy(static tree => tree.FilePath, StringComparer.Ordinal)
-							.ToDictionary(static one => one.Key, static one => one.First(), StringComparer.Ordinal);
+				var said = new HashSet<(string, DiagnosticSeverity, Location, string)>();
 
-						return found.TryGetValue(path, out var tree) ? tree : null;
-					});
+				foreach (var host in input.Left)
+					host.Parser.Report(
+						production,
+						host.Site,
+						path =>
+						{
+							found ??= input.Right
+								.GroupBy(static tree => tree.FilePath, StringComparer.Ordinal)
+								.ToDictionary(static one => one.Key, static one => one.First(), StringComparer.Ordinal);
+
+							return found.TryGetValue(path, out var tree) ? tree : null;
+						},
+						said);
 			});
 
 	}
@@ -642,12 +651,25 @@ public sealed class GramGenerator : IIncrementalGenerator
 	readonly record struct Parser(string Key, string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null, bool Marked = false)
 	{
 		/// <summary>The diagnostics, which need a tree to point into and so cannot be cached.</summary>
-		public void Report(SourceProductionContext context, Site site, Func<string, SyntaxTree?> treeOf)
+		/// <param name="said">
+		/// What every host reported so far, by identifier, severity, place and message: one
+		/// already there is not said again.
+		/// </param>
+		public void Report(
+			SourceProductionContext context, Site site, Func<string, SyntaxTree?> treeOf,
+			HashSet<(string, DiagnosticSeverity, Location, string)> said)
 		{
 			foreach (var report in Reports.Items)
 				try
 				{
-					context.ReportDiagnostic(report.ToRoslyn(treeOf, site));
+					var diagnostic = report.ToRoslyn(treeOf, site);
+
+					if (said.Add((
+						diagnostic.Id, diagnostic.Severity, diagnostic.Location,
+						diagnostic.GetMessage(CultureInfo.InvariantCulture))))
+					{
+						context.ReportDiagnostic(diagnostic);
+					}
 				}
 				catch (Exception exception) when (Recoverable(exception))
 				{
