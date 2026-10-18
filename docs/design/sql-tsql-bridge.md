@@ -63,8 +63,9 @@ and is exempted (`BridgeOracle.Meaning`); any other difference makes the stateme
   `AssignmentTarget` whose name has more than one part.
 - `GLOBAL c`: a cursor of the connection in T-SQL, an extended name in the standard. The `CursorReference`
   that is `Global`.
-- `FREETEXT ((c), …)`, `CONTAINS ((c), …)`: a column list in T-SQL, a value in brackets in the standard. The
-  first argument of an invocation of either.
+- `FREETEXT ((c), …)`, `CONTAINS ((c), …)`: T-SQL's full-text predicate with a column list, a call with a value
+  in brackets in the standard. The `FullTextPredicate`, where the standard's call has the same search and nothing
+  else.
 - `DATEADD (day, …)`: a date part in T-SQL, a column in the standard. The first argument of a date part
   function, a `DatePart`, where the standard has a column of one part whose text is that part's word.
 - `CAST (a AS money)`: one of T-SQL's system types in T-SQL, a user-defined type in the standard. A system
@@ -192,7 +193,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 
 | Counter | Count |
 | --- | ---: |
-| ByCase Clause.ColumnDefinition.Type | 2052 |
+| ByCase Clause.ColumnDefinition.Type | 2054 |
 | ByCase Clause.Dropped.Tail | 5 |
 | ByCase Clause.EventPiece.Where | 68 |
 | ByCase Clause.For.Kind | 20 |
@@ -202,7 +203,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Clause.JsonColumn.Type | 71 |
 | ByCase Clause.Option.Name | 13 |
 | ByCase Clause.Option.Partitions | 3 |
-| ByCase Clause.ParameterDeclaration.Type | 156 |
+| ByCase Clause.ParameterDeclaration.Type | 158 |
 | ByCase Clause.SystemTime.Kind | 0 |
 | ByCase Clause.TableSample.Unit | 4 |
 | ByCase Clause.Top.With | 0 |
@@ -213,15 +214,15 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Expression.ColumnReference.Text under Statement.DropIndex | 13 |
 | ByCase Expression.ColumnReference.Text under Statement.DropSignature | 5 |
 | ByCase Expression.GraphMatch.Pattern | 114 |
-| ByCase Expression.Hinted.Words | 5 |
+| ByCase Expression.Hinted.Words | 15 |
 | ByCase Expression.Literal.Text | 27 |
 | ByCase Expression.Match.Qualifier | 0 |
-| ByCase Expression.NamedArgument.Name | 0 |
+| ByCase Expression.NamedArgument.Name | 3 |
 | ByCase Expression.OdbcEscape.Kind | 1 |
-| ByCase Expression.Prefixed.Word | 23 |
+| ByCase Expression.Prefixed.Word | 27 |
 | ByCase Expression.Quantified.Quantifier | 0 |
-| ByCase Expression.RoutineInvocation.Name | 120 |
-| ByCase Expression.RoutineInvocation.Word | 165 |
+| ByCase Expression.RoutineInvocation.Name | 134 |
+| ByCase Expression.RoutineInvocation.Word | 170 |
 | ByCase Expression.WindowFunction.Within | 16 |
 | ByCase Query.Specification.Quantifier | 5 |
 | ByCase SetExpression.Statistics.Report.Kind | 2 |
@@ -329,6 +330,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | ByCase Statement.SynonymDefinition.Tail | 18 |
 | ByCase Statement.TableDefinition.Kind | 8 |
 | ByCase Statement.Transaction.Kind | 0 |
+| ByCase Statement.Transaction.Name | 27 |
 | ByCase Statement.Transaction.Tail | 15 |
 | ByCase Statement.Transaction.Word | 0 |
 | ByCase Statement.TypeDefinition.Tail | 156 |
@@ -338,7 +340,7 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Meaning CAST (a AS money): a type of T-SQL's own in T-SQL, a user-defined type in the standard | 43 |
 | Meaning DATEADD (day, ...): a date part in T-SQL, a column in the standard | 6 |
 | Meaning EXECUTE p: a procedure call in T-SQL, a prepared statement in the standard | 0 |
-| Meaning FREETEXT ((c), ...): a column list in T-SQL, a value in brackets in the standard | 7 |
+| Meaning FREETEXT ((c), ...): T-SQL's full-text predicate, a call with a value in brackets in the standard | 12 |
 | Meaning FROM t OPTION (h): a hint in T-SQL, an alias in the standard | 10 |
 | Meaning GLOBAL c: a cursor of the connection in T-SQL, an extended name in the standard | 6 |
 | Meaning GROUP BY ALL a: the empty groups kept in T-SQL, a quantifier in the standard | 7 |
@@ -351,19 +353,19 @@ None. The six this bridge found — FETCH without INTO, DROP … IF EXISTS, DROP
 | Projected a T-SQL column's options as the standard's members | 234 |
 | Projected a key's T-SQL columns as the standard's names | 6 |
 | Recovered Alias.AsKeyword of MERGE's target | 21 |
-| Recovered Alias.AsKeyword of a table source | 999 |
-| Recovered Clause.DerivedColumn alias = expression | 486 |
-| Recovered Expression.Invocation without brackets | 48 |
+| Recovered Alias.AsKeyword of a table source | 1018 |
+| Recovered Clause.DerivedColumn alias = expression | 504 |
+| Recovered Expression.Invocation without brackets | 49 |
 | Recovered Expression.Trim.FromKeyword | 0 |
 | Recovered Limit.FetchRowWord | 23 |
 | Recovered Limit.OffsetRowWord | 28 |
 | Recovered Limit.Position | 23 |
-| Recovered ParameterDefinition.AsKeyword | 295 |
+| Recovered ParameterDefinition.AsKeyword | 297 |
 | Recovered ReferencesSpecification.DeleteRuleFirst | 44 |
-| Recovered RoutineDefinition.AsOmitted | 180 |
-| Recovered RoutineDefinition.Proc | 274 |
-| Recovered RoutineDefinition.Unbracketed | 90 |
-| Recovered SelectColumn.ExpressionItem.AsKeyword | 481 |
+| Recovered RoutineDefinition.AsOmitted | 182 |
+| Recovered RoutineDefinition.Proc | 284 |
+| Recovered RoutineDefinition.Unbracketed | 92 |
+| Recovered SelectColumn.ExpressionItem.AsKeyword | 497 |
 | Recovered Statement.Classification.Options | 17 |
 | Recovered Statement.Delete.FromOmitted | 89 |
 | Recovered Statement.DropRoutine.Proc | 24 |
@@ -388,18 +390,18 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.ColumnDefinition` | Tables | B | gap 22 | 22: needs decision: inventory DataType (a type `national text` of several words) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `national sys`) (4) | 3528 |
 | `Query.Specification` | Queries | B | — | — | 3369 |
 | `Clause.ColumnOption` | Tables | B | — | — | 2995 |
-| `Statement.Select` | Queries | B | converted 2429 | — | 2987 |
+| `Statement.Select` | Queries | B | converted 2533 | — | 2987 |
 | `Clause.DerivedColumn` | Queries | A | — | — | 2978 |
 | `TableReference.Named` | Tables | A | gap 8 | 8: needs decision: inventory Clause.Hint (a hint written against the sample) (4); needs decision: inventory cross-cutting gaps, identifier styles (a name part `'Something'` that is no name) (3) | 2944 |
-| `Expression.RoutineInvocation` | Values | B | gap 24 | 38: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); needs decision: inventory Expression.RoutineInvocation (the word `INT`) (8) | 2312 |
-| `Statement.TableDefinition` | Tables | B | converted 1805 | — | 1906 |
+| `Expression.RoutineInvocation` | Values | B | gap 8 | 24: needs decision: inventory cross-cutting gaps, identifier styles (a name part `GROUPING SETS`) (12); no target record: a variable where a name stands (an assignment, a table source, EXEC); the family's `Variable` member comes with those statements (4) | 2312 |
+| `Statement.TableDefinition` | Tables | B | converted 1807 | — | 1906 |
 | `Clause.ConstraintDefinition` | Tables | B | — | — | 1841 |
 | `Clause.SortSpecification` | Queries | A | — | — | 1303 |
 | `Clause.QualifiedAsterisk` | Queries | A | — | — | 1221 |
 | `Expression.Comparison` | Values | A | — | — | 841 |
 | `Statement.AlterTable` | Tables | B | converted 644 | — | 644 |
 | `Clause.EventPiece` | Monitoring | C | — | — | 514 |
-| `Expression.NamedArgument` | Values | A | gap 43 | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
+| `Expression.NamedArgument` | Values | A | — | 179: needs decision: inventory Expression.NamedArgument (179) | 506 |
 | `Statement.CreateIndex` | Tables | C | converted 493, gap 2 | 2: needs decision: inventory Statement.CreateIndex (a spatial index USING FOO) (2) | 495 |
 | `TableReference.FunctionCall` | Tables | A | gap 2 | 2: needs decision: inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema) (2) | 487 |
 | `Expression.Parenthesized` | Values | A | — | — | 436 |
@@ -410,7 +412,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.EventSessionDefinition` | Monitoring | C | converted 321, gap 2 | 2: not kept by the old tree: a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank (2) | 323 |
 | `Clause.ParameterDeclaration` | Routines | B | — | — | 298 |
 | `Clause.Hint` | Queries | C | gap 5 | 5: needs decision: inventory Clause.Hint (the old WITH (n)) (4); needs decision: inventory Clause.Hint (a hint of a shape the family does not hold) (1) | 294 |
-| `Statement.CreateProcedure` | Routines | B | converted 274, gap 1 | 1: needs decision: inventory DataType (a type `double precision(max)` of several words) (1) | 285 |
+| `Statement.CreateProcedure` | Routines | B | converted 284, gap 1 | 1: needs decision: inventory DataType (a type `double precision(max)` of several words) (1) | 285 |
 | `Clause.Connection` | Tables | C | — | — | 270 |
 | `Statement.EndpointDefinition` | Server | C | converted 249 | — | 249 |
 | `Statement.Insert` | Dml | A | converted 196, gap 9 | 9: needs decision: inventory Statement.Insert (a qualified or prefixed column `..a1`, where the column list holds identifiers) (4); needs decision: inventory Clause.MergeWhen (an INSERT that is not one row) (1) | 242 |
@@ -419,7 +421,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Expression.Add` | Values | A | — | — | 200 |
 | `Expression.RowValueConstructor` | Values | A | — | — | 186 |
 | `Expression.WindowFunction` | Values | B | gap 4 | 4: needs decision: inventory Expression.WindowFunction (a window over something that is not a call) (3); needs decision: inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for) (1) | 184 |
-| `Statement.CreateFunction` | Routines | B | converted 180 | — | 182 |
+| `Statement.CreateFunction` | Routines | B | converted 182 | — | 182 |
 | `Clause.Window` | Values | A | — | — | 181 |
 | `Clause.OrderBy` | Queries | B | — | — | 177 |
 | `Clause.Placement` | Tables | C | — | — | 177 |
@@ -428,7 +430,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.SetStatement` | Procedural | C | converted 154 | — | 165 |
 | `TableReference.Parenthesized` | Tables | A | — | — | 162 |
 | `Clause.GroupBy` | Queries | B | — | — | 158 |
-| `Expression.Prefixed` | Values | C | gap 26 | 156: no target record: a typed T-SQL rowset table source (proposal 7) (156) | 156 |
+| `Expression.Prefixed` | Values | C | — | 156: no target record: a typed T-SQL rowset table source (proposal 7) (156) | 156 |
 | `Clause.JsonColumn` | Tables | C | gap 1 | 1: no target record: RowsetColumn.Ordinal is a number, and keeps no spelling of it such as `00` (1) | 155 |
 | `Statement.WorkloadGroupDefinition` | Server | C | converted 155 | — | 155 |
 | `Statement.CreateDatabase` | Database | C | converted 154 | — | 154 |
@@ -439,8 +441,8 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Clause.References` | Tables | A | — | — | 145 |
 | `Statement.Update` | Dml | A | converted 116 | — | 140 |
 | `Expression.GraphMatch` | Values | C | — | — | 131 |
-| `Expression.Hinted` | Values | C | gap 37 | 127: needs decision: inventory Expression.Hinted (127) | 127 |
-| `Statement.Transaction` | Procedural | B | converted 87, gap 28 | 28: no target record: TransactionName (a number and a name of two parts, `-5:a.b`) (28) | 125 |
+| `Expression.Hinted` | Values | C | — | 127: needs decision: inventory Expression.Hinted (127) | 127 |
+| `Statement.Transaction` | Procedural | B | converted 115 | — | 125 |
 | `Expression.And` | Values | A | — | — | 122 |
 | `Statement.ServerAuditDefinition` | Monitoring | C | converted 116, gap 2 | 2: not kept by the old tree: a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank (2) | 118 |
 | `Statement.Delete` | Dml | A | converted 68 | — | 114 |
@@ -460,7 +462,7 @@ many nodes of the record the statements hold, at any depth. All three are over t
 | `Statement.ResourcePoolDefinition` | Server | C | converted 86 | — | 86 |
 | `Clause.Top` | Queries | C | — | — | 84 |
 | `Query.TableValueConstructor` | Queries | A | — | — | 84 |
-| `Statement.ViewDefinition` | Tables | B | converted 80 | — | 84 |
+| `Statement.ViewDefinition` | Tables | B | converted 84 | — | 84 |
 | `Query.FromFile` | Dml | C | — | — | 83 |
 | `Clause.Dropped` | Tables | B | — | — | 82 |
 | `Clause.For` | Queries | C | — | — | 82 |
