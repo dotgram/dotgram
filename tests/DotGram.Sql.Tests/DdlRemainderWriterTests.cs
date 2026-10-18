@@ -81,8 +81,24 @@ public sealed class DdlRemainderWriterTests
 			"CREATE SPATIAL INDEX brackets" => Spatial(
 				Set("BOUNDING_BOX", new Expression.Row([new LiteralValue.Numeric("-1.5", NumericLiteralKind.Decimal), Number("0"), Number("500"), Number("200")])),
 				new Option(Name("GRIDS"), null, [Set("LEVEL_1", Ref("HIGH")), Set("LEVEL_2", Ref("LOW"))])),
+			"CREATE SELECTIVE XML INDEX" => new Statement.CreateSelectiveXmlIndex(Qualified("t"), Name("sxi"), Name("c"),
+				[
+					new PromotedPath(Name("p1"), Str("/a")) { Hints = [new PathHint.XQuery(Str("xs:string"), (LiteralValue.Numeric)Number("5")), new PathHint.Singleton()] },
+					new PromotedPath(Name("p2"), Str("/b")) { Hints = [new PathHint.Sql(new DataType.Character(CharacterTypeKind.Nvarchar, 10))] },
+				])
+			{
+				XmlNamespaces = [new XmlNamespace(Text("urn:a"), Name("ns"))],
+				Options       = [Set("PAD_INDEX", Ref("ON"))],
+			},
+			"ALTER INDEX paths" => new Statement.AlterIndex(Qualified("t"), new IndexAlteration.Paths([new PathAction.Remove(Name("p2")), new PathAction.Add(new PromotedPath(Name("p1"), Str("/a")))])) { Name = Name("sxi") },
+			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
+	}
+
+	static LiteralValue.String Str(string text)
+	{
+		return new LiteralValue.String("'" + text + "'", StringLiteralKind.Character);
 	}
 
 	static Statement Spatial(params Option[] options)
@@ -107,6 +123,9 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("ALTER FULLTEXT INDEX DROP with no population", "ALTER FULLTEXT INDEX ON t DROP (c) WITH NO POPULATION")]
 	[InlineData("CTAS a name of three words", "CREATE TABLE t WITH (CLUSTERED COLUMNSTORE INDEX) AS SELECT a FROM u")]
 	[InlineData("CREATE SPATIAL INDEX brackets", "CREATE SPATIAL INDEX i ON t (g) WITH (BOUNDING_BOX = (-1.5, 0, 500, 200), GRIDS = (LEVEL_1 = HIGH, LEVEL_2 = LOW))")]
+	[InlineData("CREATE SELECTIVE XML INDEX", "CREATE SELECTIVE XML INDEX sxi ON t (c) WITH XMLNAMESPACES ('urn:a' AS ns) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR(10)) WITH (PAD_INDEX = ON)")]
+	[InlineData("ALTER INDEX paths", "ALTER INDEX sxi ON t FOR (REMOVE p2, ADD p1 = '/a')")]
+	[InlineData("CREATE XML INDEX FOR a path", "CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (p)")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -119,6 +138,9 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("ALTER FULLTEXT INDEX DROP with no population")]
 	[InlineData("CTAS a name of three words")]
 	[InlineData("CREATE SPATIAL INDEX brackets")]
+	[InlineData("CREATE SELECTIVE XML INDEX")]
+	[InlineData("ALTER INDEX paths")]
+	[InlineData("CREATE XML INDEX FOR a path")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -152,6 +174,13 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("filegroup first without a catalog")]
 	[InlineData("catalog bracketed beside a filegroup")]
 	[InlineData("catalog bracketed without a catalog")]
+	[InlineData("selective with no path")]
+	[InlineData("selective a national path")]
+	[InlineData("selective a national XQuery type")]
+	[InlineData("selective a signed length")]
+	[InlineData("selective an option it does not read")]
+	[InlineData("XML index FOR a kind and a path")]
+	[InlineData("ALTER INDEX no path changed")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -202,6 +231,20 @@ public sealed class DdlRemainderWriterTests
 			// FullTextCatalogOn: with a filegroup the brackets are always written.
 			"catalog bracketed beside a filegroup" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { Catalog = Name("c"), FileGroup = Name("fg"), CatalogBracketed = true },
 			"catalog bracketed without a catalog" => new Statement.CreateFullTextIndex(Qualified("t"), [], Name("k")) { CatalogBracketed = true },
+			// SelectivePaths: FOR (path, …), one at least.
+			"selective with no path" => new Statement.CreateSelectiveXmlIndex(Qualified("t"), Name("sxi"), Name("c"), []),
+			// PromotedPath: Lexical.CharacterStringLiteral.
+			"selective a national path" => new Statement.CreateSelectiveXmlIndex(Qualified("t"), Name("sxi"), Name("c"), [new PromotedPath(Name("p"), new LiteralValue.String("'/a'", StringLiteralKind.National))]),
+			// PathHint: AS XQUERY Lexical.CharacterStringLiteral.
+			"selective a national XQuery type" => new Statement.CreateSelectiveXmlIndex(Qualified("t"), Name("sxi"), Name("c"), [new PromotedPath(Name("p"), Str("/a")) { Hints = [new PathHint.XQuery(new LiteralValue.String("'x'", StringLiteralKind.National), null)] }]),
+			// PathLength: MAXLENGTH (Lexical.UnsignedNumericLiteral).
+			"selective a signed length" => new Statement.CreateSelectiveXmlIndex(Qualified("t"), Name("sxi"), Name("c"), [new PromotedPath(Name("p"), Str("/a")) { Hints = [new PathHint.XQuery(null, new LiteralValue.Numeric("-5", NumericLiteralKind.DecimalInteger))] }]),
+			// XmlIndexOption: ONLINE = ON is refused for an XML index.
+			"selective an option it does not read" => new Statement.CreateSelectiveXmlIndex(Qualified("t"), Name("sxi"), Name("c"), [new PromotedPath(Name("p"), Str("/a"))]) { Options = [Set("ONLINE", Ref("ON"))] },
+			// XmlIndexUsing: FOR a kind or a path, never both.
+			"XML index FOR a kind and a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), For = XmlIndexFor.Path, ForPath = Name("p") },
+			// SelectivePaths: one at least.
+			"ALTER INDEX no path changed" => new Statement.AlterIndex(Qualified("t"), new IndexAlteration.Paths([])) { Name = Name("sxi") },
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 

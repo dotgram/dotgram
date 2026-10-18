@@ -179,8 +179,12 @@ public static partial class Sql2023Writer
 					if (xml.Primary && xml.Using is not null)
 						throw Both(xml, "Primary", "Using");
 
-					if ((xml.Using is null) != (xml.For is null))
+					if ((xml.Using is null) != (xml.For is null && xml.ForPath is null))
 						throw Misplaced(xml, "Using or For", "without the other, which a secondary index says together");
+
+					// XmlIndexUsing: FOR a kind or FOR a selective index's path, one or the other.
+					if (xml.For is not null && xml.ForPath is not null)
+						throw Both(xml, "For", "ForPath");
 
 					Word(xml.Primary ? "CREATE PRIMARY XML INDEX" : "CREATE XML INDEX");
 					PutIdentifier(xml.Name);
@@ -194,17 +198,43 @@ public static partial class Sql2023Writer
 					{
 						Word("USING XML INDEX");
 						PutIdentifier(over);
-						Word(xml.For switch
+
+						if (xml.ForPath is { } path)
 						{
-							XmlIndexFor.Value    => "FOR VALUE",
-							XmlIndexFor.Path     => "FOR PATH",
-							XmlIndexFor.Property => "FOR PROPERTY",
-							_                    => throw NoText(xml.For!.Value),
-						});
+							Word("FOR");
+							Open();
+							PutIdentifier(path);
+							Close();
+						}
+						else
+							Word(xml.For switch
+							{
+								XmlIndexFor.Value    => "FOR VALUE",
+								XmlIndexFor.Path     => "FOR PATH",
+								XmlIndexFor.Property => "FOR PROPERTY",
+								_                    => throw NoText(xml.For!.Value),
+							});
 					}
 
-					CheckXmlIndexOptions(xml);
+					CheckXmlIndexOptions(xml, xml.Options);
 					PutOptions(xml.Options);
+					return true;
+
+				// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). The column, the namespaces, the paths, the options.
+				case Statement.CreateSelectiveXmlIndex selective:
+					if (selective.Paths.Count == 0)
+						throw Empty(selective, "Paths");
+
+					Word("CREATE SELECTIVE XML INDEX");
+					PutIdentifier(selective.Name);
+					Word("ON");
+					PutName(selective.Table);
+					Open();
+					PutIdentifier(selective.Column);
+					Close();
+					PutSelectivePaths(selective.XmlNamespaces, selective.Paths, PutPromotedPath);
+					CheckXmlIndexOptions(selective, selective.Options);
+					PutOptions(selective.Options);
 					return true;
 
 				// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). One column, the grid, the options, and a filegroup alone.
@@ -1332,8 +1362,121 @@ public static partial class Sql2023Writer
 					Word("ABORT");
 					break;
 
+				// T-SQL: ALTER INDEX (Selective XML Indexes).
+				case IndexAlteration.Paths paths:
+					if (paths.Actions.Count == 0)
+						throw Empty(paths, "Actions");
+
+					PutSelectivePaths(paths.XmlNamespaces, paths.Actions, PutPathAction);
+					CheckXmlIndexOptions(paths, paths.Options);
+					PutOptions(paths.Options);
+					break;
+
 				default:
 					throw Unwritten(action);
+			}
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL), ALTER INDEX (Selective XML Indexes). <c>[WITH XMLNAMESPACES (…)]
+		/// FOR (…)</c>.
+		/// </summary>
+		void PutSelectivePaths<T>(SqlList<XmlNamespace> namespaces, SqlList<T> items, Action<T> put)
+			where T : ISqlNode
+		{
+			if (namespaces.Count > 0)
+			{
+				Word("WITH");
+				PutXmlNamespaces(namespaces);
+			}
+
+			Word("FOR");
+			Open();
+			Each(items, put);
+			Close();
+		}
+
+		/// <summary>T-SQL: ALTER INDEX (Selective XML Indexes). <c>ADD path</c>, <c>ALTER PATH path</c>, <c>REMOVE name</c>.</summary>
+		void PutPathAction(PathAction action)
+		{
+			switch (action)
+			{
+				case PathAction.Add add:
+					Word("ADD");
+					PutPromotedPath(add.Path);
+					break;
+
+				case PathAction.Alter alter:
+					Word("ALTER PATH");
+					PutPromotedPath(alter.Path);
+					break;
+
+				case PathAction.Remove remove:
+					Word("REMOVE");
+					PutIdentifier(remove.Name);
+					break;
+
+				default:
+					throw Unwritten(action);
+			}
+		}
+
+		/// <summary>
+		/// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). PromotedPath: <c>[name =] 'node path'</c>, a plain string, then
+		/// its hints in order — <c>AS XQUERY ['type'] [MAXLENGTH (n)]</c>, the type a plain string and the length an unsigned
+		/// number; <c>AS SQL type</c>; <c>SINGLETON</c>.
+		/// </summary>
+		void PutPromotedPath(PromotedPath path)
+		{
+			if (path.Path is not { Kind: StringLiteralKind.Character, CharacterSet: null, UnicodeEscape: null })
+				throw Misplaced(path, "Path", "other than a plain string, which PromotedPath reads (Lexical.CharacterStringLiteral)");
+
+			if (path.Name is { } name)
+			{
+				PutIdentifier(name);
+				Word("=");
+			}
+
+			PutExpression(path.Path);
+
+			foreach (var hint in path.Hints)
+			{
+				switch (hint)
+				{
+					case PathHint.XQuery xquery:
+						if (xquery.Type is not (null or { Kind: StringLiteralKind.Character, CharacterSet: null, UnicodeEscape: null }))
+							throw Misplaced(xquery, "Type", "other than a plain string (PathHint: Lexical.CharacterStringLiteral)");
+
+						if (xquery.MaxLength is { } most && !IsOptionNumber(most))
+							throw Misplaced(xquery, "MaxLength", "other than an unsigned number (PathLength)");
+
+						Word("AS XQUERY");
+
+						if (xquery.Type is { } type)
+							PutExpression(type);
+
+						if (xquery.MaxLength is { } length)
+						{
+							Word("MAXLENGTH");
+							Open();
+							PutExpression(length);
+							Close();
+						}
+
+						break;
+
+					case PathHint.Sql sql:
+						Word("AS SQL");
+						PutType(sql.Type);
+						break;
+
+					case PathHint.Singleton:
+						Word("SINGLETON");
+						break;
+
+					default:
+						throw Unwritten(hint);
+				}
 			}
 		}
 
@@ -1522,9 +1665,9 @@ public static partial class Sql2023Writer
 		/// unsigned number; IGNORE_DUP_KEY and ONLINE set to OFF alone; XML_COMPRESSION set to ON or OFF, which may say
 		/// ON PARTITIONS. No other name, no option of its own, no option without its value.
 		/// </summary>
-		static void CheckXmlIndexOptions(Statement.CreateXmlIndex index)
+		static void CheckXmlIndexOptions(ISqlNode index, SqlList<Option> options)
 		{
-			foreach (var option in index.Options)
+			foreach (var option in options)
 			{
 				var read = option.Options.Count == 0 && option.Order is null && option.Place is null && option.Words.Count == 0 && !option.EqualsOmitted
 					&& (option.Partitions is null || Plain(option.Name, "XML_COMPRESSION"))
