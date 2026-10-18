@@ -2022,18 +2022,51 @@ public sealed class TerminalInventory
 					return null;
 			}
 
-			// An alternative that binds nothing may not match a string that begins a later one's:
-			// the automaton would take the later, longer reading where the rule takes the earlier.
-			for (var i = 0; i < whole.Count; i++)
-				for (var j = i + 1; j < whole.Count; j++)
-				{
-					var pair = LexicalAutomaton.Of(graph, [whole[i], whole[j]], []);
+			// The alternatives that bind nothing, and every choice inside them, must be free of one
+			// alternative matching a string that begins another's: there the rule's first reading
+			// and the automaton's longest match can part — the automaton takes the longer reading
+			// where the rule, trying them in order, may stop at the shorter.
+			if (!PrefixFree(whole))
+				return null;
 
-					if (pair is null || Prefixes(pair, 0, 1))
+			foreach (var one in whole)
+				foreach (var nested in Choices(one, []))
+					if (!PrefixFree(nested.Nodes))
 						return null;
-				}
 
 			return (shapes.Count == 1 ? shapes[0] : new Node.Choice(shapes), tagged);
+		}
+
+		/// <summary>Whether no alternative matches a string that begins, or is, a string another matches.</summary>
+		bool PrefixFree(IReadOnlyList<Node> alternatives)
+		{
+			for (var i = 0; i < alternatives.Count; i++)
+				for (var j = 0; j < alternatives.Count; j++)
+				{
+					if (i == j)
+						continue;
+
+					var pair = LexicalAutomaton.Of(graph, [alternatives[i], alternatives[j]], []);
+
+					if (pair is null || Prefixes(pair, 0, 1))
+						return false;
+				}
+
+			return true;
+		}
+
+		/// <summary>Every ordered choice a node holds, the rules it calls included.</summary>
+		IEnumerable<Node.Choice> Choices(Node node, HashSet<RuleSymbol> inside)
+		{
+			foreach (var each in NodeWalk.Descendants(node))
+			{
+				if (each is Node.Choice { Selection: null } choice)
+					yield return choice;
+
+				if (each is Node.Call(var called, _) && inside.Add(called) && graph.Bodies.TryGetValue(called, out var body))
+					foreach (var inner in Choices(body, inside))
+						yield return inner;
+			}
 		}
 
 		/// <summary>
