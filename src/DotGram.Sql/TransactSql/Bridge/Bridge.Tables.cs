@@ -774,8 +774,8 @@ static partial class Bridge
 		/// </summary>
 		static Ast.Constraint Constraint(Clause.ConstraintDefinition old, bool table)
 		{
-			if (old.Hash || old.Columnstore || old.Order is not null || old.Include is not null || old.Filter is not null)
-				throw BridgeGap.Open(old, $"inventory Clause.ConstraintDefinition ({old.Kind} with HASH, COLUMNSTORE, ORDER, INCLUDE or a filter)");
+			if (old.Columnstore || old.Order is not null || old.Include is not null || old.Filter is not null || old.Hash && old.Kind is not ("PRIMARY KEY" or "UNIQUE"))
+				throw BridgeGap.Open(old, $"inventory Clause.ConstraintDefinition ({old.Kind} with COLUMNSTORE, ORDER, INCLUDE or a filter, or HASH on other than a key)");
 
 			if (old.Kind is not ("PRIMARY KEY" or "UNIQUE") && (old.Clustering is not null || old.Placements is not null || !old.Bracketed && old.Kind != "DEFAULT"
 				|| old.Options is { Length: > 0 } && old.Kind is not ("CHECK" or "CONNECTION" or "DEFAULT")))
@@ -820,6 +820,7 @@ static partial class Bridge
 			return new Ast.Constraint.Unique(old.Kind == "PRIMARY KEY" ? Ast.UniqueKind.PrimaryKey : Ast.UniqueKind.Unique, null, [])
 			{
 				Clustering         = Clustering(old, old.Clustering),
+				Storage            = old.Hash ? Ast.IndexStorage.Hash : null,
 				Keys               = old.Columns.Length == 0 ? null : Each(old.Columns, Sorted),
 				Options            = Each(old.Options ?? [], Option),
 				OptionsUnbracketed = !old.Bracketed,

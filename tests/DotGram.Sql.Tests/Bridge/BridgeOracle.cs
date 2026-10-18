@@ -209,7 +209,7 @@ static class BridgeOracle
 
 		Ast.Constraint Key(Ast.Constraint constraint)
 		{
-			if (constraint is not Ast.Constraint.Unique { Keys: { Count: > 0 } keys, Clustering: null, Options.Count: 0, OptionsUnbracketed: false, On: null, Columns.Count: 0 } unique
+			if (constraint is not Ast.Constraint.Unique { Keys: { Count: > 0 } keys, Clustering: null, Storage: null, Options.Count: 0, OptionsUnbracketed: false, On: null, Columns.Count: 0 } unique
 				|| !keys.All(static one => one is { Direction: null, NullOrdering: null, Key: Ast.Expression.Reference { Name.Parts.Count: 1 } }))
 				return constraint;
 
