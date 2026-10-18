@@ -7,21 +7,23 @@ namespace DotGram.ExpressionLanguage;
 // Raw string literals — a run of three or more quotes, text, and the same run again — with
 // their interpolated forms, read as C# 11 reads them.
 //
-// The grammar reads the forms of three to five quotes and one or two dollars itself: each a
-// beginning the lexer reads and a rule, handed the closing quotes, that ends it. Everything
-// longer is measured and cut here, by hand, because C# allows any number of either and the
-// notation writes a count where it knows one. What both share is what the value of a raw
+// The grammar reads a plain one of any number of quotes itself, the quotes it opens with bound
+// and the same run closing it, and the interpolated forms of three to five quotes and one or two
+// dollars: each a beginning the lexer reads and a rule, handed the closing quotes, that ends it.
+// Everything longer is measured and cut here, by hand, because C# allows any number of either
+// and the notation writes a count where it knows one. What both share is what the value of a raw
 // string is: the text between its quotes, and — where that text runs over several lines — the
 // lines between the first and the last with the last line's indentation taken off each.
 
 public static partial class ExpressionParser
 {
-	/// <summary>A raw string with no holes, from its token and the number of quotes it opened with.</summary>
-	internal static string Raw(string token, int quotes)
+	/// <summary>A raw string with no holes, from its token, which opens and closes with as many quotes.</summary>
+	internal static string Raw(string token)
 	{
 		if (token is null)
 			throw new ArgumentNullException(nameof(token));
 
+		var quotes = Run(token.AsSpan(), 0, '"');
 		var text = new StringBuilder();
 
 		foreach (var part in Unindented([Segment.Of(token.Substring(quotes, token.Length - 2 * quotes))]))

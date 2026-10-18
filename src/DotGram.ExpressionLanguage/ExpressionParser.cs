@@ -401,15 +401,14 @@ namespace DotGram.ExpressionLanguage;
 		// there is always one, a raw string being never empty — and what keeps a run of six quotes
 		// from reading as three, nothing, and three more.
 		//
-		// The forms of three to five quotes and one or two dollars are written here, each a
-		// beginning and a rule handed the closing quotes. Longer ones are `RawByHand`: C# allows
-		// any number of either, and the notation writes a count only where it knows one. The value
-		// is the text between with the closing line's indentation taken off every line, which is
-		// `ExpressionParser.Raw`, and where C# refuses a raw string that is where it says so.
-		RawText3 : @string = "\"\"\"" & [^ '"'] & RawPlain('"'{1,2}) & "\"\"\"" => @(ExpressionParser.Raw(parserText, 3))
-		RawText4 : @string = "\"\"\"\"" & [^ '"'] & RawPlain('"'{1,3}) & "\"\"\"\"" => @(ExpressionParser.Raw(parserText, 4))
-		RawText5 : @string = "\"\"\"\"\"" & [^ '"'] & RawPlain('"'{1,4}) & "\"\"\"\"\"" => @(ExpressionParser.Raw(parserText, 5))
-
+		// A plain one, with no dollar, is one rule whatever the number of quotes: the run it opens
+		// with is bound, and the closing run is as many again. The interpolated forms of three to
+		// five quotes and one or two dollars are written out here, each a beginning and a rule handed
+		// the closing quotes. Longer ones are `RawByHand`: C# allows any number of either, and the
+		// notation writes a count only where it knows one. The value is the text between with the
+		// closing line's indentation taken off every line, which is `ExpressionParser.Raw`, and where
+		// C# refuses a raw string that is where it says so.
+		//
 		// The text of a plain one is written as what it may hold — any character but a quote, or a
 		// run of quotes shorter than the closing one with something else after it — and not as
 		// the text up to the closing quotes. The lexer's automaton and the rule that reads a token
@@ -420,7 +419,20 @@ namespace DotGram.ExpressionLanguage;
 		// One character a turn, or a run of quotes shorter than the closing one and then a
 		// character: the two cannot both read the same text, so an unclosed raw string has one
 		// reading and is refused at once, quotes in it or not (D57).
-		RawPlain(quotes) = ([^ '"'] | quotes & [^ '"'])*
+		RawText : @string
+			= $q: '"'{3,} & [^ '"'] & ([^ '"'] | ?!$q & '"'+ & [^ '"'])* & $q
+			=> @(ExpressionParser.Raw(parserText))
+
+		// A string, plain or raw, is one token: a plain string's `""` is the beginning of a raw one
+		// (three quotes), and two tokens that begin alike would leave the lexer no way to tell which stands
+		// here. As alternatives of one, the raw reading is tried first, as it is over characters.
+		//
+		// Three to five quotes that open no raw string are an empty string and what follows it. Six
+		// or more are only ever a raw string, so a plain one is not read there: the text running out
+		// inside them is a string not yet finished, and that is all they can be.
+		Str : @string = { r: RawText | t: PlainText } => @(r ?? t!)
+
+		PlainText : @string = '"' & ?!('"'{5}) & parts: TextPart* & '"' => @(string.Concat(parts))
 
 		// With one dollar a brace always opens a hole, and a closing one outside a hole is refused.
 		RawPiece(close) : @Segment
@@ -447,15 +459,20 @@ namespace DotGram.ExpressionLanguage;
 		RawDoubled4 : @InterpolatedText = "$$\"\"\"\"" & body: RawDoubleBody("\"\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
 		RawDoubled5 : @InterpolatedText = "$$\"\"\"\"\"" & body: RawDoubleBody("\"\"\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
 
-		// Six quotes and more, or three dollars and more: the beginning is every dollar and every
-		// quote, and the host measures the rest and cuts it into its pieces.
+		// Six quotes and more after a dollar, or three dollars and more: the beginning is every dollar
+		// and every quote, and the host measures the rest and cuts it into its pieces.
 		RawByHand : @InterpolatedText
-			= ('$'{3,} & '"'{3,} | '$'{0,2} & '"'{6,}) & @MeasureRaw
+			= ('$'{3,} & '"'{3,} | '$'{1,2} & '"'{6,}) & @MeasureRaw
 			=> @(ExpressionParser.RawByHand(parserText, parserInput, parserSpan))
+
+		// A plain one as a hole holds it, where only its end matters, so the host measures it. Every
+		// terminal that reads a hole reaches this rule, and one that reached a binding would have to be
+		// a token of its own, which an interpolated string is not.
+		RawBare = '"'{3,} & @MeasureRaw
 
 		// Any of them, longest first, for a hole that holds one.
 		RawAny = RawByHand | RawDoubled5 | RawDoubled4 | RawDoubled3
-		       | RawInterpolated5 | RawInterpolated4 | RawInterpolated3 | RawText5 | RawText4 | RawText3
+		       | RawInterpolated5 | RawInterpolated4 | RawInterpolated3 | RawBare
 	}
 
 	// §4.6: a keyword is a whole word, so `returned` is a name and not a jump, and
@@ -654,7 +671,7 @@ namespace DotGram.ExpressionLanguage;
 	// conditional, or the coalesce operator once what is between them is a token in its own
 	// right rather than two apart) — answers the other way: `x as int? ?? 5`, `x as int? < 5`
 	// and `x is int? ? 1 : 2` all keep it, where `x as int??5` and `x is int ? 1 : 2` do not.
-	// Each string and character form is asked for by the rule that already reads it (`Text`,
+	// Each string and character form is asked for by the rule that already reads it (`Str`,
 	// `Verbatim`, `Interpolated`, the raw forms, …) rather than the quotes, `@` or `$` that
 	// open them read as bare characters: that cost the generated parser's own position tracking
 	// elsewhere once any of the three stood in a lookahead this far from the lexer (a malformed
@@ -675,8 +692,8 @@ namespace DotGram.ExpressionLanguage;
 
 	TestedMarked : @bool
 		= ?!"??" & '?'
-		  & ?!(Word | Digit | Text | Char | Verbatim | Interpolated | VerbatimInterpolated
-		     | RawText3 | RawText4 | RawText5 | RawByHand
+		  & ?!(Word | Digit | Str | Char | Verbatim | Interpolated | VerbatimInterpolated
+		     | RawByHand
 		     | RawInterpolated3 | RawInterpolated4 | RawInterpolated5
 		     | RawDoubled3 | RawDoubled4 | RawDoubled5 | '(' | '+' | '-' | '!' | '~')
 		  => @(true)
@@ -1472,9 +1489,6 @@ namespace DotGram.ExpressionLanguage;
 
 	// The raw strings, as two values: a plain one is a string, and every other form an
 	// interpolated string, holes or none.
-	RawString : @string
-		= t: RawText3 => @(t) | t: RawText4 => @(t) | t: RawText5 => @(t)
-
 	RawLiteral : @InterpolatedText
 		= l: RawByHand        => @(l)
 		| l: RawInterpolated3 => @(l) | l: RawInterpolated4 => @(l) | l: RawInterpolated5 => @(l)
@@ -1593,14 +1607,13 @@ namespace DotGram.ExpressionLanguage;
 		| token: Dec               => @(ExpressionParser.Integer(token, 10, unsigned: false, wide: false))
 
 		| token: Verbatim  => @(Expression.Constant(token))
-		| token: Text      => @(Expression.Constant(token))
+		| token: Str       => @(Expression.Constant(token))
 		| token: Char      => @(Expression.Constant(token[0]))
 
 		// Its holes are read here, each over its own window of the text, by the publication
 		// below — this reading's own, whichever carrier it is.
 		| literal: Interpolated => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
 		| literal: VerbatimInterpolated => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
-		| token: RawString              => @(Expression.Constant(token))
 		| literal: RawLiteral           => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
 
 		| "true"     => @(Expression.Constant(true))
