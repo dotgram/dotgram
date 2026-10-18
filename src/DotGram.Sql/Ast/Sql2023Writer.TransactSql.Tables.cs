@@ -1360,12 +1360,20 @@ public static partial class Sql2023Writer
 			Word("KEY INDEX");
 			PutIdentifier(index.KeyIndex);
 
+			// FullTextCatalogOn: the filegroup and the catalog in brackets in either order, or the catalog alone with or
+			// without them.
+			if (index.FileGroupFirst && (index.FileGroup is null || index.Catalog is null))
+				throw Misplaced(index, "FileGroupFirst", "without both a FileGroup and a Catalog");
+
+			if (index.CatalogBracketed && (index.FileGroup is not null || index.Catalog is null))
+				throw Misplaced(index, "CatalogBracketed", "other than on a Catalog alone");
+
 			if (index.FileGroup is { } fileGroup)
 			{
 				Word("ON");
 				Open();
 
-				if (index.Catalog is { } catalog)
+				if (index.Catalog is { } catalog && !index.FileGroupFirst)
 				{
 					PutIdentifier(catalog);
 					Tight(",");
@@ -1373,12 +1381,26 @@ public static partial class Sql2023Writer
 
 				Word("FILEGROUP");
 				PutIdentifier(fileGroup);
+
+				if (index.Catalog is { } last && index.FileGroupFirst)
+				{
+					Tight(",");
+					PutIdentifier(last);
+				}
+
 				Close();
 			}
 			else if (index.Catalog is { } catalog)
 			{
 				Word("ON");
+
+				if (index.CatalogBracketed)
+					Open();
+
 				PutIdentifier(catalog);
+
+				if (index.CatalogBracketed)
+					Close();
 			}
 
 			if (index.Options.Count > 0)

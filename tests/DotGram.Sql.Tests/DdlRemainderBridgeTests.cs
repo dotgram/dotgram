@@ -33,6 +33,11 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE SPATIAL INDEX i ON t (g) WITH (BOUNDING_BOX = (xmin = -1, ymin = 0, xmax = 3, ymax = 4))", "a bracket by name")]
 	[InlineData("CREATE SPATIAL INDEX i ON t (g) WITH (GRIDS = (LOW))", "a bracket of one")]
 	[InlineData("CREATE SPATIAL INDEX i ON t (g) WITH (CELLS_PER_OBJECT = 16)", "a value alone")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k ON (c, FILEGROUP fg)", "the catalog first")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k ON (FILEGROUP fg, c)", "the filegroup first")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k ON (c)", "the catalog in brackets")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k ON c", "the catalog alone")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX k ON (FILEGROUP fg)", "the filegroup alone")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -57,6 +62,11 @@ public sealed class DdlRemainderBridgeTests
 			"a bracket by name" => made is Ast.Statement.CreateSpatialIndex { Options: [{ Value: null, EqualsOmitted: false, Options: [{ Name.Text: "xmin", Value: Ast.LiteralValue.Numeric { Text: "-1" } }, _, _, _] }] },
 			"a bracket of one" => made is Ast.Statement.CreateSpatialIndex { Options: [{ Value: Ast.Expression.Row { Items: [Ast.Expression.Reference] } }] },
 			"a value alone" => made is Ast.Statement.CreateSpatialIndex { Options: [{ Value: Ast.LiteralValue.Numeric, Options.Count: 0 }] },
+			"the catalog first" => made is Ast.Statement.CreateFullTextIndex { Catalog.Text: "c", FileGroup.Text: "fg", FileGroupFirst: false, CatalogBracketed: false },
+			"the filegroup first" => made is Ast.Statement.CreateFullTextIndex { Catalog.Text: "c", FileGroup.Text: "fg", FileGroupFirst: true, CatalogBracketed: false },
+			"the catalog in brackets" => made is Ast.Statement.CreateFullTextIndex { Catalog.Text: "c", FileGroup: null, FileGroupFirst: false, CatalogBracketed: true },
+			"the catalog alone" => made is Ast.Statement.CreateFullTextIndex { Catalog.Text: "c", FileGroup: null, FileGroupFirst: false, CatalogBracketed: false },
+			"the filegroup alone" => made is Ast.Statement.CreateFullTextIndex { Catalog: null, FileGroup.Text: "fg", FileGroupFirst: false, CatalogBracketed: false },
 			_ => false,
 		};
 
