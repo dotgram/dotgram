@@ -107,6 +107,12 @@ public static partial class Sql2023Writer
 						Each(named.Arguments, PutExpression);
 						Close();
 					}
+					else if (named.Max)
+					{
+						Call();
+						Word("MAX");
+						Close();
+					}
 
 					return true;
 
@@ -204,8 +210,26 @@ public static partial class Sql2023Writer
 			if (named.Arguments.Count > 2 || named.Arguments.Any(static one => one is not LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger }))
 				throw Misplaced(named, "Arguments", "other than one or two whole numbers");
 
+			if (named.Max)
+			{
+				if (named.Arguments.Count > 0)
+					throw Both(named, "Max", "Arguments");
+
+				// AnyLength reads MAX after the types that have none of their own; a fixed string's is Msg 156, and a varying
+				// one's is the standard's record.
+				if (last.ToUpperInvariant() is "CHAR" or "CHARACTER" or "NCHAR" or "BINARY")
+					throw Misplaced(named, "Max", $"on {last}, which never takes MAX (Msg 156)");
+
+				if (last.ToUpperInvariant() is "VARCHAR" or "NVARCHAR" or "VARBINARY")
+					throw Misplaced(named, "Max", $"on {last}, which reads back as the standard's record with its MAX");
+
+				// ExactMax: an exact numeric sized MAX only where a column is declared or altered.
+				if (last.ToUpperInvariant() is "DECIMAL" or "NUMERIC" or "DEC" && !columnType)
+					throw Misplaced(named, "Max", $"on {last} outside a column, where it is Msg 156 (ExactMax)");
+			}
+
 			// A number too large for an int is no number to the standard's record, which reads such a type as Named.
-			if (StandardTypeArguments.TryGetValue(last, out var most) && named.Arguments.Count <= most
+			if (!named.Max && StandardTypeArguments.TryGetValue(last, out var most) && named.Arguments.Count <= most
 				&& named.Arguments.All(static one => one is LiteralValue.Numeric numeric && int.TryParse(numeric.Text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _)))
 				throw Misplaced(named, "Name", $"{last} with {named.Arguments.Count} arguments, which reads back as the standard's type");
 		}

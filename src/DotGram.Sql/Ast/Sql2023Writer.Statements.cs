@@ -918,7 +918,7 @@ public static partial class Sql2023Writer
 			PutIdentifier(column.Name);
 
 			if (column.Type is { } type)
-				PutType(type);
+				PutColumnType(type);
 
 			switch (column.Generation)
 			{

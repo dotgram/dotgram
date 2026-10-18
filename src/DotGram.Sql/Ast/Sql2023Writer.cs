@@ -75,6 +75,17 @@ public static partial class Sql2023Writer
 		/// </summary>
 		bool adding;
 
+		/// <summary>Whether the type written is a column's, the one place an exact numeric reads MAX.</summary>
+		bool columnType;
+
+		/// <summary>A column's type, declared or altered.</summary>
+		void PutColumnType(DataType type)
+		{
+			columnType = true;
+			PutType(type);
+			columnType = false;
+		}
+
 		public override string ToString()
 		{
 			return written.ToString();
