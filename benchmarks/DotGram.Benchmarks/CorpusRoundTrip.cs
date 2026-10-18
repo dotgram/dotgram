@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 using DotGram.Sql;
 using DotGram.Sql.TransactSql;
@@ -27,6 +28,13 @@ namespace DotGram.Benchmarks;
 /// once from ScriptDom's own reading and once from what this grammar read and <see cref="DotGram.Sql.Ast.TransactSqlWriter"/>
 /// wrote — and the two printings are held against each other. So formatting is not what is being
 /// measured; what the tree holds is.
+/// </para>
+/// <para>
+/// One difference in spelling survives that: ScriptDom keeps a word it reads as a name as it was written
+/// (<c>trim</c>, <c>wk</c> as a date part, <c>all privileges</c>), where the tree holds the key word or the
+/// member of an enum, and the writer prints it in capitals. Such a word is compared without case
+/// (<see cref="KeyWordCaseOnly"/>), and only where the tree holds it as no text at all; a name, bare or
+/// bracketed, a string and anything else the tree holds as written are compared exactly.
 /// </para>
 /// </remarks>
 internal static class CorpusRoundTrip
@@ -64,7 +72,8 @@ internal static class CorpusRoundTrip
 	/// <param name="Why">Why it did not come back, where there is no pair of printings to compare.</param>
 	/// <param name="Theirs">ScriptDom's printing of its own reading, where both printed.</param>
 	/// <param name="Ours">ScriptDom's printing of what this grammar read, where both printed.</param>
-	internal sealed record Trouble(string Kind, string Original, string? Why, string? Theirs, string? Ours);
+	/// <param name="File">The file's key, as <see cref="Key"/> gives it.</param>
+	internal sealed record Trouble(string Kind, string Original, string? Why, string? Theirs, string? Ours, string File);
 
 	/// <summary>
 	/// The version to read and print one file with, where a <c>Baselines&lt;n&gt;</c> directory names it.
@@ -134,6 +143,7 @@ internal static class CorpusRoundTrip
 
 			var text  = File.ReadAllText(file);
 			var named = Named(ceiling, versions.GetValueOrDefault(file));
+			var key   = Key(root, file);
 
 			if (!readers.TryGetValue(named, out var parser))
 				readers[named] = parser = Reader(named);
@@ -175,7 +185,7 @@ internal static class CorpusRoundTrip
 					{
 						threw++;
 						tally.Broken++;
-						show?.Invoke(new Trouble(kind, original, "the writer threw: " + failure.GetType().Name, null, null));
+						show?.Invoke(new Trouble(kind, original, "the writer threw: " + failure.GetType().Name, null, null, key));
 
 						continue;
 					}
@@ -189,23 +199,23 @@ internal static class CorpusRoundTrip
 					{
 						threw++;
 						tally.Broken++;
-						show?.Invoke(new Trouble(kind, original, "printed as: " + printed, null, null));
+						show?.Invoke(new Trouble(kind, original, "printed as: " + printed, null, null, key));
 
 						continue;
 					}
 
 					generator.GenerateScript(only, out var ours);
 
-					if (Normalized(theirs) == Normalized(ours))
+					if (Normalized(theirs) == Normalized(ours) || KeyWordCaseOnly(parser, theirs, ours, made))
 					{
 						same++;
 						tally.Same++;
 					}
 					else
-						show?.Invoke(new Trouble(kind, original, null, theirs, ours));
+						show?.Invoke(new Trouble(kind, original, null, theirs, ours, key));
 				}
 
-			counted[Key(root, file)] = new Counts(read, refused, threw, same);
+			counted[key] = new Counts(read, refused, threw, same);
 		}
 
 		return new Result(counted, kinds);
@@ -259,6 +269,125 @@ internal static class CorpusRoundTrip
 		{
 			return null;
 		}
+	}
+
+	/// <summary>
+	/// Whether two printings say the same but for the case of words the tree holds as key words.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Token by token, by ScriptDom's own lexer: the two must have the same tokens of the same types, and a pair
+	/// may differ only in case, never a quoted name or a string. A word that differs so must be no text the tree
+	/// holds, in any case: then the writer printed it from a key word or an enum, at a place of the tree that holds
+	/// no spelling. A name is held as written, so a name that comes back in other capitals (<c>Wk</c> as
+	/// <c>WK</c>) is a difference, and so is a key word's case wherever the same word is also a name in the
+	/// statement: the comparison then cannot tell the two places apart, and says different rather than same.
+	/// </para>
+	/// <para>
+	/// Comments are not compared: ScriptDom prints none, so neither printing has any.
+	/// </para>
+	/// </remarks>
+	internal static bool KeyWordCaseOnly(TSqlParser parser, string theirs, string ours, DotGram.Sql.Ast.Statement made)
+	{
+		var one = Tokens(parser, theirs);
+		var two = Tokens(parser, ours);
+
+		if (one is null || two is null || one.Count != two.Count)
+			return false;
+
+		HashSet<string>? held = null;
+
+		for (var at = 0; at < one.Count; at++)
+		{
+			var a = one[at];
+			var b = two[at];
+
+			if (a.TokenType == b.TokenType && string.Equals(a.Text, b.Text, StringComparison.Ordinal))
+				continue;
+
+			if (a.TokenType != b.TokenType || Verbatim(a.TokenType) || !string.Equals(a.Text, b.Text, StringComparison.OrdinalIgnoreCase))
+				return false;
+
+			held ??= Held(made);
+
+			if (held.Contains(b.Text))
+				return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>The tokens of a text that say something: no blanks, no comments, no end.</summary>
+	static List<TSqlParserToken>? Tokens(TSqlParser parser, string text)
+	{
+		using var reader = new StringReader(text);
+
+		var tokens = parser.GetTokenStream(reader, out var errors);
+
+		if (errors.Count > 0)
+			return null;
+
+		return [.. tokens.Where(static one => one.TokenType is not (TSqlTokenType.WhiteSpace or TSqlTokenType.SingleLineComment or TSqlTokenType.MultilineComment or TSqlTokenType.EndOfFile))];
+	}
+
+	/// <summary>The tokens whose case is what they say: a quoted name and a string.</summary>
+	static bool Verbatim(TSqlTokenType type)
+	{
+		return type is TSqlTokenType.QuotedIdentifier or TSqlTokenType.AsciiStringLiteral or TSqlTokenType.UnicodeStringLiteral
+			or TSqlTokenType.AsciiStringOrQuotedIdentifier;
+	}
+
+	/// <summary>
+	/// Every word of every text a tree holds — its names, numbers and free texts — without case: what the writer
+	/// prints as it was written, rather than from a key word or an enum. A string is left out: its words stand
+	/// where no key word does, and its token is compared exactly.
+	/// </summary>
+	static HashSet<string> Held(object tree)
+	{
+		var words = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		var stack = new Stack<object>();
+
+		stack.Push(tree);
+
+		while (stack.Count > 0)
+		{
+			switch (stack.Pop())
+			{
+				case string text:
+					var start = 0;
+
+					for (var at = 0; at <= text.Length; at++)
+						if (at == text.Length || !(char.IsLetterOrDigit(text[at]) || text[at] is '_' or '@' or '#' or '$'))
+						{
+							if (at > start)
+								words.Add(text[start..at]);
+
+							start = at + 1;
+						}
+
+					break;
+
+				// A string's words are no place a key word could stand, and its tokens compare exactly.
+				case DotGram.Sql.Ast.LiteralValue.String:
+					break;
+
+				case System.Collections.IEnumerable many:
+					foreach (var item in many)
+						if (item is not null)
+							stack.Push(item);
+
+					break;
+
+				case var node when node.GetType().Namespace == typeof(DotGram.Sql.Ast.Statement).Namespace:
+					foreach (var property in node.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+						if (property.GetIndexParameters().Length == 0 && property.GetValue(node) is { } value)
+							stack.Push(value);
+
+					break;
+			}
+		}
+
+		return words;
 	}
 
 	/// <summary>Whitespace is not what is compared.</summary>
