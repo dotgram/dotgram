@@ -13,16 +13,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-10-18 03:08 |
-| DotGram.Examples | 2026-10-18 03:05 |
-| DotGram.ExpressionLanguage | 2026-10-18 03:05 |
-| DotGram.ExpressionLanguage.Tape | 2026-10-18 03:05 |
-| DotGram.Finance | 2026-10-18 03:05 |
-| DotGram.Finance.Fix44 | 2026-10-18 03:08 |
-| DotGram.Sql | 2026-10-18 03:05 |
-| DotGram.Sql.Productions | 2026-10-18 03:07 |
-| DotGram.Tests | 2026-10-18 03:08 |
-| DotGram.Web | 2026-10-18 03:07 |
+| DotGram.Benchmarks | 2026-10-18 07:56 |
+| DotGram.Examples | 2026-10-18 07:55 |
+| DotGram.ExpressionLanguage | 2026-10-18 07:55 |
+| DotGram.ExpressionLanguage.Tape | 2026-10-18 07:55 |
+| DotGram.Finance | 2026-10-18 07:56 |
+| DotGram.Finance.Fix44 | 2026-10-18 07:56 |
+| DotGram.Sql | 2026-10-18 07:56 |
+| DotGram.Sql.Productions | 2026-10-18 07:56 |
+| DotGram.Tests | 2026-10-18 07:57 |
+| DotGram.Web | 2026-10-18 07:56 |
 
 **Carrier** is what a grammar left to the generator is read with — `immediate`, or `tape` where the
 immediate carrier refused a machine — or the author's own choice. **Gate** is what the tape would
@@ -121,7 +121,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1307/2672 |
 | DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/310 |
 | DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
-| DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2357/3132 |
+| DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2355/3130 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -601,8 +601,8 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Sql.TransactSql.TransactSqlParser
 
-- memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 10: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone; not 0
-- memo ParseStatement, ParseStatement100, ParseStatement110, ParseStatement120, ParseStatement130, ParseStatement140, ParseStatement150, ParseStatement160, ParseStatement170, ParseSql, ParseSql100, ParseSql110, ParseSql120, ParseSql130, ParseSql140, ParseSql150, ParseSql160, ParseSql170 [whole]: remembered 20: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone, TSqlInsert, OutputClause, OptionSetting, TryCatchStatement, StatementList, ConditionalStatement, Branch, EventValue, EventPredicate, BackupName; not 0
+- memo ParseSyntaxSelect, ParseSyntaxCondition, ParseSyntaxExpression [whole]: remembered 10: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone; not 0
+- memo ParseSyntaxStatement, ParseSyntaxStatement100, ParseSyntaxStatement110, ParseSyntaxStatement120, ParseSyntaxStatement130, ParseSyntaxStatement140, ParseSyntaxStatement150, ParseSyntaxStatement160, ParseSyntaxStatement170, ParseSyntaxSql, ParseSyntaxSql100, ParseSyntaxSql110, ParseSyntaxSql120, ParseSyntaxSql130, ParseSyntaxSql140, ParseSyntaxSql150, ParseSyntaxSql160, ParseSyntaxSql170 [whole]: remembered 20: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone, TSqlInsert, OutputClause, OptionSetting, TryCatchStatement, StatementList, ConditionalStatement, Branch, EventValue, EventPredicate, BackupName; not 0
 
 ## DotGram.Tests.Calculators.DecimalCalculator
 
