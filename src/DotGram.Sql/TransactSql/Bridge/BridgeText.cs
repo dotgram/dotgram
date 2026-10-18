@@ -148,6 +148,30 @@ static class BridgeText
 		"Statement.AvailabilityGroupDefinition.Tail",
 		"Statement.EndpointDefinition.Protocol",
 		"Statement.EndpointDefinition.Payload",
+		// The Database family's tails: BACKUP and RESTORE, partitions, full-text catalogs, search property lists, a
+		// filegroup's change, and CREATE DATABASE's containment, written as the writer prints them but for case and blanks.
+		"Statement.AlterDatabaseModifyFileGroup.Tail",
+		"Statement.AlterFullTextCatalog.Tail",
+		"Statement.AlterPartitionFunction.Tail",
+		"Statement.AlterPartitionScheme.Tail",
+		"Statement.AlterSearchPropertyList.Tail",
+		"Statement.BackupCertificate.Tail",
+		"Statement.BackupDatabase.Tail",
+		"Statement.BackupServiceMasterKey.Tail",
+		"Statement.BackupTransactionLog.Tail",
+		"Statement.CreateDatabase.Containment",
+		"Statement.CreateDatabase.Tail",
+		"Statement.FullTextCatalogDefinition.Tail",
+		"Statement.PartitionFunctionDefinition.Tail",
+		"Statement.PartitionSchemeDefinition.Tail",
+		"Statement.RestoreDatabase.Tail",
+		"Statement.RestoreFileListOnly.Tail",
+		"Statement.RestoreLabelOnly.Tail",
+		"Statement.RestoreLog.Tail",
+		"Statement.RestoreMasterKey.Tail",
+		"Statement.RestoreRewindOnly.Tail",
+		"Statement.RestoreServiceMasterKey.Tail",
+		"Statement.RestoreVerifyOnly.Tail",
 	};
 
 	/// <summary>
@@ -162,10 +186,16 @@ static class BridgeText
 	/// </summary>
 	public const string SignerName = "Expression.ColumnReference.Text under Statement.DropSignature";
 
+	/// <summary>
+	/// What a module's EXECUTE AS word counts as: the old tree keeps <c>caller</c>, <c>self</c> and <c>owner</c> as one column
+	/// reference's text, which compares so as the value of an EXECUTE AS option alone.
+	/// </summary>
+	public const string ExecuteAsWord = "Expression.ColumnReference.Text of EXECUTE AS";
+
 	/// <summary>Whether a member, or a scoped member above, compares token by token.</summary>
 	public static bool Free(string member)
 	{
-		return FreeText.Contains(member) || member is DropIndexName or SignerName;
+		return FreeText.Contains(member) || member is DropIndexName or SignerName or ExecuteAsWord;
 	}
 
 	/// <summary>
@@ -223,6 +253,10 @@ static class BridgeText
 		"APPLICATION_LOG", "AUDIT", "DROP", "EVENT", "EXTERNAL_MONITOR", "FAN_IN", "FILEPATH", "FOR", "MODIFY", "NOT", "NOTIFICATION", "NULL", "ON", "OR", "PUBLIC", "SECURITY_LOG", "SESSION", "SPECIFICATION", "START", "STOP", "URL",
 		// The Server family: the words of its statements that the writer prints in capitals.
 		"AVAILABILITY", "CONFIGURATION", "DATABASE_MIRRORING", "DATA_MIRRORING", "DENY", "DHCP", "FAILOVER", "FORCE_FAILOVER_ALLOW_DATA_LOSS", "GOVERNOR", "HTTP", "IP", "LISTENER", "OFFLINE", "POOL", "PORT", "RECONFIGURE", "REPLICA", "RESET", "RESOURCE", "RESTART", "SERVICE_BROKER", "SOAP", "STATISTICS", "TCP", "TSQL", "WORKLOAD",
+		// The Database family's tails, and a module's EXECUTE AS: the words of BACKUP, RESTORE, partitions, catalogs and
+		// filegroups, and the three contexts, that the writer prints in capitals.
+		"ACCENT_SENSITIVITY", "AUTOGROW_ALL_FILES", "AUTOGROW_SINGLE_FILE", "CALLER", "COPY", "DISK", "LEFT", "MIRROR", "READONLY",
+		"READWRITE", "READ_ONLY", "READ_WRITE", "RIGHT", "SPLIT", "TAPE", "USED",
 	};
 
 	/// <summary>

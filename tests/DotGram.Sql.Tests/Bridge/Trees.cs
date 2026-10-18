@@ -36,6 +36,8 @@ static class Trees
 
 	public const string SignerName = BridgeText.SignerName;
 
+	public const string ExecuteAsWord = BridgeText.ExecuteAsWord;
+
 	public static bool Free(string member)
 	{
 		return BridgeText.Free(member);
@@ -150,7 +152,7 @@ static class Trees
 
 			if (old && a is string first && b is string second && first != second)
 			{
-				var scoped = FreeText.Contains(member) ? member : DatePart(left, path) ? DatePartWord : Dropped(left, path);
+				var scoped = FreeText.Contains(member) ? member : DatePart(left, path) ? DatePartWord : ExecutedAs(left, path) ? ExecuteAsWord : Dropped(left, path);
 
 				if (scoped is not null && SameTokens(left, scoped, first, second))
 				{
@@ -195,6 +197,17 @@ static class Trees
 				_                       => null,
 			}
 			: null;
+	}
+
+	/// <summary>
+	/// Whether an old column reference is the word a module's EXECUTE AS option is set to, <c>caller</c>, <c>self</c> or
+	/// <c>owner</c>, whose case the new tree does not keep.
+	/// </summary>
+	static bool ExecutedAs(object node, List<Step> path)
+	{
+		return node is Expression.ColumnReference
+			&& path is [.., { Node: Clause.Option { Name: var name }, Member: "Value", Index: null }]
+			&& string.Join(' ', name.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).Equals("EXECUTE AS", StringComparison.OrdinalIgnoreCase);
 	}
 
 	static string Show(object? value)

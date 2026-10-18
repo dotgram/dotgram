@@ -42,6 +42,10 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE TRIGGER tr ON DATABASE FOR CREATE_TABLE AS PRINT 1", "event names on a scope")]
 	[InlineData("CREATE TRIGGER tr ON dbo.t FOR CREATE_TABLE AS PRINT 1", "event names on a table")]
 	[InlineData("CREATE TRIGGER tr ON dbo.t FOR INSERT AS PRINT 1", "statements on a table")]
+	[InlineData("alter database d1 modify filegroup fg1 readonly", "READONLY in lower case")]
+	[InlineData("restore labelonly from disk = 'd:'", "a tail in lower case")]
+	[InlineData("create proc p1 @a int with execute as caller as print 'hi'", "EXECUTE AS caller")]
+	[InlineData("CREATE PROCEDURE p1 @a INT WITH EXECUTE AS 'caller' AS PRINT 'hi'", "EXECUTE AS a user called caller")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -75,6 +79,10 @@ public sealed class DdlRemainderBridgeTests
 			"event names on a scope" => made is Ast.Statement.CreateTrigger { Scope: Ast.TriggerScope.Database, Table: null, Events.Count: 0, EventNames: [{ Text: "CREATE_TABLE" }] },
 			"event names on a table" => made is Ast.Statement.CreateTrigger { Scope: null, Table: not null, Events.Count: 0, EventNames: [{ Text: "CREATE_TABLE" }] },
 			"statements on a table" => made is Ast.Statement.CreateTrigger { Scope: null, Table: not null, Events: [{ Kind: Ast.TriggerEventKind.Insert }], EventNames.Count: 0 },
+			"READONLY in lower case" => made is Ast.Statement.AlterDatabase { Action: Ast.AlterDatabaseAction.ModifyFileGroup { Change: Ast.FileGroupChange.Updatability { Kind: Ast.FileGroupUpdatability.ReadOnly, Underscored: false } } },
+			"a tail in lower case" => made is Ast.Statement.RestoreLabelOnly { From: [Ast.BackupDevice.Physical { Kind: Ast.DeviceKind.Disk }] },
+			"EXECUTE AS caller" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.ExecuteAs { Context: { Kind: Ast.ExecutionContextKind.Caller, Name: null } }] },
+			"EXECUTE AS a user called caller" => made is Ast.Statement.CreateRoutine { Definition.Options: [Ast.RoutineOption.ExecuteAs { Context: { Kind: Ast.ExecutionContextKind.User, Name: not null } }] },
 			_ => false,
 		};
 
@@ -83,5 +91,25 @@ public sealed class DdlRemainderBridgeTests
 		var outcome = BridgeOracle.Run(TransactSqlParser.Located.ParseStatement(text), text);
 
 		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+	}
+
+	/// <summary>
+	/// A tail the old tree keeps compares token by token: a key word without its case and the blanks between tokens, and
+	/// nothing else — not a string, a name in brackets, a plain name, a word or the order of the words.
+	/// </summary>
+	[Theory]
+	[InlineData("Statement.RestoreLabelOnly.Tail", "from disk = 'd:'", "FROM DISK = 'd:'", true)]
+	[InlineData("Statement.BackupDatabase.Tail", "to disk = 'd:' with format, compression", "TO DISK = 'd:' WITH  format ,compression", true)]
+	[InlineData("Statement.BackupDatabase.Tail", "with encryption(algorithm = AES_128)", "WITH encryption (algorithm = AES_128)", true)]
+	[InlineData("Statement.RestoreLabelOnly.Tail", "from disk = 'D:'", "FROM DISK = 'd:'", false)]
+	[InlineData("Statement.AlterPartitionScheme.Tail", "next used fg1", "NEXT USED FG1", false)]
+	[InlineData("Statement.AlterPartitionScheme.Tail", "next used [fg 1]", "NEXT USED [FG 1]", false)]
+	[InlineData("Statement.AlterPartitionScheme.Tail", "next used [fg 1]", "NEXT USED [fg  1]", false)]
+	[InlineData("Statement.BackupDatabase.Tail", "with format, compression", "WITH compression, format", false)]
+	[InlineData("Statement.AlterDatabaseModifyFileGroup.Tail", "fg1 readonly", "fg1 READ_ONLY", false)]
+	[InlineData("Statement.RestoreDatabase.Tail", "with stats = 10", "WITH stats = 20", false)]
+	public void A_tail_compares_key_words_without_case_and_nothing_else(string member, string one, string two, bool same)
+	{
+		Assert.Equal(same, Trees.SameTokens(new object(), member, one, two));
 	}
 }

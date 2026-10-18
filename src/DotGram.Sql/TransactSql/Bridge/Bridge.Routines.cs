@@ -702,13 +702,13 @@ static partial class Bridge
 
 		/// <summary>
 		/// A module's WITH: EXECUTE AS, the two ON NULL INPUT forms, and every other a setting. The old tree keeps EXECUTE
-		/// AS's word as written and compares it exactly, so only one in capitals carries over.
+		/// AS's word as written; CALLER, SELF and OWNER are key words at that place, whatever their case.
 		/// </summary>
 		static SqlList<Ast.RoutineOption> RoutineOptions(Statement old, SqlList<Clause>? options)
 		{
 			return Each<Clause, Ast.RoutineOption>(options ?? [], one => one switch
 			{
-				Clause.Option { Name: var name, Value: Expression.ColumnReference(var who) } when Words(name) is ["EXECUTE", "AS"] => new Ast.RoutineOption.ExecuteAs(who switch
+				Clause.Option { Name: var name, Value: Expression.ColumnReference(var who) } when Words(name) is ["EXECUTE", "AS"] => new Ast.RoutineOption.ExecuteAs(who.ToUpperInvariant() switch
 				{
 					"CALLER" => new Ast.ExecutionContext(Ast.ExecutionContextKind.Caller, null),
 					"SELF"   => new Ast.ExecutionContext(Ast.ExecutionContextKind.Self, null),
