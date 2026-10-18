@@ -42,7 +42,7 @@ public sealed class TreeEqualityTests
 		var statements = 0;
 		var changed    = 0;
 		var collisions = 0;
-		var distinct   = new HashSet<Statement>();
+		var distinct   = new HashSet<Ast.Statement>();
 
 		Assert.True(files.Length > 1000, root);
 
@@ -50,9 +50,9 @@ public sealed class TreeEqualityTests
 		{
 			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
 			{
-				var first   = OldTree.TryParseSql(batch);
-				var second  = OldTree.TryParseSql(batch);
-				var located = OldTree.Located.TryParseSql(batch);
+				var first   = TransactSqlParser.TryParseSql(batch);
+				var second  = TransactSqlParser.TryParseSql(batch);
+				var located = TransactSqlParser.Located.TryParseSql(batch);
 
 				if (!first.IsSuccess)
 					continue;
@@ -76,7 +76,7 @@ public sealed class TreeEqualityTests
 					if (Deepest(statement) is not { } literal)
 						continue;
 
-					var edited = (Statement)Replace(statement, literal, Retexted(literal));
+					var edited = (Ast.Statement)Replace(statement, literal, Retexted(literal));
 
 					Assert.NotEqual(statement, edited);
 					Assert.NotEqual(edited, second.Value[i]);
@@ -94,16 +94,17 @@ public sealed class TreeEqualityTests
 		Assert.True(collisions <= Tolerated(changed), $"{collisions} of {changed} changed statements hash as before");
 		Assert.True(distinct.Count > 3_500, $"{distinct.Count} distinct statements");
 
-		// A statement whose rule builds the common tree hashes as that tree does, whose records hash a member left out as its
-		// default (`CONTAINMENT = NONE` and none at all): the hashes held here are this tree's.
-		var own    = distinct.Where(static one => one is not Statement.Built).ToList();
+		// The common tree's records hash a member left out as its default and the same member written as it (`ROLLBACK`
+		// and `ROLLBACK TRAN`, `VECTOR(1)` and `VECTOR(1, FLOAT32)`, `ORDER BY a` and `ORDER BY a ASC`), which equality
+		// tells apart and the corpus writes both ways; a statement the tree has no place for is an extension, left out.
+		var own    = distinct.Where(static one => one is not Ast.Statement.Extension).ToList();
 		var hashed = own.Select(static one => one.GetHashCode()).Distinct().Count();
 
-		Assert.True(own.Count - hashed <= Tolerated(own.Count), $"{own.Count} distinct statements, {hashed} distinct hashes");
+		Assert.True(own.Count - hashed <= Spelled(own.Count), $"{own.Count} distinct statements, {hashed} distinct hashes");
 	}
 
 	/// <summary>
-	/// Every statement the corpus holds equals the reparse of what <see cref="SqlWriter"/> wrote of
+	/// Every statement the corpus holds equals the reparse of what <see cref="Ast.TransactSqlWriter"/> wrote of
 	/// it: not merely the same text by some other printer's judgment (<c>CorpusRoundTripTests</c>,
 	/// held to ScriptDom's own), but the same tree TransactSqlParser itself reads back.
 	/// </summary>
@@ -120,7 +121,7 @@ public sealed class TreeEqualityTests
 		foreach (var file in files)
 			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
 			{
-				var first = OldTree.TryParseSql(batch);
+				var first = TransactSqlParser.TryParseSql(batch);
 
 				if (!first.IsSuccess)
 					continue;
@@ -129,15 +130,15 @@ public sealed class TreeEqualityTests
 				{
 					read++;
 
-					// A statement whose rule builds the common tree and found a gap there: neither writer has it to write.
-					if (statement is Statement.Built { Made: null })
+					// A statement the tree has no place for: the writer has it not to write.
+					if (statement is Ast.Statement.Extension)
 						continue;
 
 					string written;
 
 					try
 					{
-						written = SqlWriter.Write(statement);
+						written = Ast.TransactSqlWriter.Write(statement);
 					}
 					catch (Exception failure)
 					{
@@ -146,7 +147,7 @@ public sealed class TreeEqualityTests
 						continue;
 					}
 
-					var reparsed = OldTree.TryParseStatement(written);
+					var reparsed = TransactSqlParser.TryParseStatement(written);
 
 					if (!reparsed.IsSuccess)
 						faults.Add($"printed as `{written}`, which the parser refuses to read back");
@@ -165,7 +166,7 @@ public sealed class TreeEqualityTests
 	/// </summary>
 	/// <remarks>
 	/// SQL-92 has no cutter of its own for somebody else's T-SQL: this asks what
-	/// <see cref="TransactSqlParser"/> already read and <see cref="SqlWriter"/> already printed, in the
+	/// <see cref="TransactSqlParser"/> already read and <see cref="Ast.TransactSqlWriter"/> already printed, in the
 	/// walk above, which <see cref="Sql92Parser"/> happens to read as well — a query plain enough to be
 	/// both. The corpus is T-SQL, so most of it is not; what SQL-92 refuses here is a dialect
 	/// difference and not a defect, exactly as <c>Sql92ParserTests</c> already treats it.
@@ -181,21 +182,21 @@ public sealed class TreeEqualityTests
 		foreach (var file in files)
 			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
 			{
-				var first = OldTree.TryParseSql(batch);
+				var first = TransactSqlParser.TryParseSql(batch);
 
 				if (!first.IsSuccess)
 					continue;
 
 				foreach (var statement in first.Value)
 				{
-					if (statement is not Statement.Built { Given: Bridge.Queries.Selecting })
+					if (statement is not Ast.Statement.Select)
 						continue;
 
 					string candidate;
 
 					try
 					{
-						candidate = SqlWriter.Write(statement);
+						candidate = Ast.TransactSqlWriter.Write(statement);
 					}
 					catch (Exception)
 					{
@@ -254,21 +255,21 @@ public sealed class TreeEqualityTests
 		foreach (var file in files)
 			foreach (var batch in SqlScript.Read(File.ReadAllText(file)).Batches)
 			{
-				var first = OldTree.TryParseSql(batch);
+				var first = TransactSqlParser.TryParseSql(batch);
 
 				if (!first.IsSuccess)
 					continue;
 
 				foreach (var statement in first.Value)
 				{
-					if (statement is not Statement.Built { Given: Bridge.Queries.Selecting })
+					if (statement is not Ast.Statement.Select)
 						continue;
 
 					string candidate;
 
 					try
 					{
-						candidate = SqlWriter.Write(statement);
+						candidate = Ast.TransactSqlWriter.Write(statement);
 					}
 					catch (Exception)
 					{
@@ -324,7 +325,7 @@ public sealed class TreeEqualityTests
 		var hashes = new HashSet<int>();
 
 		for (var i = 0; i < count; i++)
-			hashes.Add(OldTree.ParseStatement(string.Format(template, i)).GetHashCode());
+			hashes.Add(TransactSqlParser.ParseStatement(string.Format(template, i)).GetHashCode());
 
 		Assert.True(count - hashes.Count <= Tolerated(count), $"{hashes.Count} distinct hashes of {count} statements");
 	}
@@ -338,6 +339,15 @@ public sealed class TreeEqualityTests
 	static int Tolerated(int count)
 	{
 		return Math.Max(1, count / 1000);
+	}
+
+	/// <summary>
+	/// The collisions allowed among distinct statements of the corpus, which writes a good many of them twice, once
+	/// with a member left at its default and once with it written out: about one in a hundred and fifty does.
+	/// </summary>
+	static int Spelled(int count)
+	{
+		return Math.Max(1, count / 100);
 	}
 
 	/// <summary>
@@ -479,15 +489,14 @@ public sealed class TreeEqualityTests
 	[Fact]
 	public void A_copy_changed_and_changed_back_is_equal_again()
 	{
-		// A record its rules read: a query statement's rule builds the common tree, and keeps no record of this one.
-		var located = (Statement.Update)OldTree.Record(OldTree.Located.ParseStatement("UPDATE t SET a = 1, b = 2 WHERE a = 1"));
-		var changed = located with { Set = [.. located.Set.Skip(1)] };
-		var back    = changed with { Set = located.Set };
+		var located = (Ast.Statement.Update)TransactSqlParser.Located.ParseStatement("UPDATE t SET a = 1, b = 2 WHERE a = 1");
+		var changed = located with { Assignments = [.. located.Assignments.Skip(1)] };
+		var back    = changed with { Assignments = located.Assignments };
 
 		Assert.NotEqual(located, changed);
 		Assert.Equal(located, back);
 		Assert.Equal(located.GetHashCode(), back.GetHashCode());
-		Assert.True(back.Span.IsStale);
+		Assert.Equal(located.Span, back.Span);
 	}
 
 	/// <summary>

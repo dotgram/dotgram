@@ -33,8 +33,8 @@ public sealed class LocatedReadingTests
 	[InlineData("a BETWEEN 1 AND 2 AND NOT b LIKE 'c%'", true)]
 	public void A_located_tree_equals_the_plain_tree(string text, bool condition)
 	{
-		var plain   = condition ? OldTree.ParseSearchCondition(text) : OldTree.ParseValueExpression(text);
-		var located = condition ? OldTree.Located.ParseSearchCondition(text) : OldTree.Located.ParseValueExpression(text);
+		var plain   = condition ? TransactSqlParser.ParseSearchCondition(text) : TransactSqlParser.ParseExpression(text);
+		var located = condition ? TransactSqlParser.Located.ParseSearchCondition(text) : TransactSqlParser.Located.ParseExpression(text);
 
 		Assert.False(plain.Span.Known);
 		Assert.True(located.Span.Known);
@@ -46,8 +46,8 @@ public sealed class LocatedReadingTests
 	[Fact]
 	public void Two_located_trees_that_differ_only_in_trivia_are_equal()
 	{
-		var tight = OldTree.Located.ParseValueExpression("a+b*2");
-		var loose = OldTree.Located.ParseValueExpression("a  +  /* two */ b * -- c\n 2");
+		var tight = TransactSqlParser.Located.ParseExpression("a+b*2");
+		var loose = TransactSqlParser.Located.ParseExpression("a  +  /* two */ b * -- c\n 2");
 
 		Assert.NotEqual(tight.Span, loose.Span);
 		Assert.Equal(tight, loose);
@@ -57,39 +57,42 @@ public sealed class LocatedReadingTests
 	[Fact]
 	public void A_plain_reading_locates_nothing()
 	{
-		var statement = TransactSqlParser.ParseSyntaxStatement("SELECT a, b FROM t WHERE a = 1");
+		var statement = TransactSqlParser.ParseStatement("SELECT a, b FROM t WHERE a = 1");
 
 		Assert.True(SqlWalker.Walk(statement, static node => !node.Span.Known && node.Span.GapStart == 0));
 	}
 
-	/// <summary>The gap in front of a node runs from the end of the token before it.</summary>
+	/// <summary>
+	/// A node of the common tree keeps where it was written and how much, and no gap of its own: the text in front of it
+	/// is said to begin where the node does, and runs, between two nodes, from the end of the one before.
+	/// </summary>
 	[Fact]
-	public void A_node_says_where_the_text_in_front_of_it_begins()
+	public void A_node_says_where_it_begins_and_the_text_in_front_of_it_is_between_nodes()
 	{
 		var text      = "SELECT a, /* about b */\n  b FROM t";
-		var statement = OldTree.Located.ParseStatement(text);
-		var b         = Nodes(statement).OfType<Expression.ColumnReference>().Single(node => node.Span.At == text.IndexOf("b FROM", StringComparison.Ordinal));
+		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var a         = Nodes(statement).OfType<Ast.Expression.Reference>().Single(node => node.Span.At == text.IndexOf('a'));
+		var b         = Nodes(statement).OfType<Ast.Expression.Reference>().Single(node => node.Span.At == text.IndexOf("b FROM", StringComparison.Ordinal));
 
-		Assert.Equal(text.IndexOf(',') + 1, b.Span.GapStart);
-		Assert.Equal(" /* about b */\n  ", text.Substring(b.Span.GapStart, b.Span.At - b.Span.GapStart));
+		Assert.Equal(b.Span.At, b.Span.GapStart);
+		Assert.Equal(", /* about b */\n  ", text.Substring(a.Span.End, b.Span.At - a.Span.End));
 	}
 
-	/// <summary>The first node of a reading has its gap from where the reading began.</summary>
+	/// <summary>The first node of a reading in a window is where it was written in the whole text.</summary>
 	[Fact]
-	public void The_first_node_of_a_window_has_its_gap_from_the_window()
+	public void The_first_node_of_a_window_is_where_it_was_written()
 	{
 		var text  = "SELECT 1\n-- second\nSELECT 2";
 		var at    = text.IndexOf('\n');
-		var match = OldTree.Located.TryParseSql(text, at, text.Length - at);
+		var match = TransactSqlParser.Located.TryParseSql(text, at, text.Length - at);
 
 		Assert.True(match.IsSuccess);
-		Assert.Equal(at, match.Value.Single().Span.GapStart);
 		Assert.Equal(text.IndexOf("SELECT 2", StringComparison.Ordinal), match.Value.Single().Span.At);
 
-		var whole = OldTree.Located.ParseSql(text);
+		var whole = TransactSqlParser.Located.ParseSql(text);
 
-		Assert.Equal(0, whole[0].Span.GapStart);
-		Assert.Equal(text.IndexOf('1') + 1, whole[1].Span.GapStart);
+		Assert.Equal(0, whole[0].Span.At);
+		Assert.Equal(text.IndexOf("SELECT 2", StringComparison.Ordinal), whole[1].Span.At);
 	}
 
 	/// <summary>
@@ -101,17 +104,17 @@ public sealed class LocatedReadingTests
 	{
 		var text = "SELECT 1; -- end\n";
 
-		Assert.Equal(text.Length, OldTree.Located.TryParseSql(text).ReadingEnd);
-		Assert.Equal(text.Length, OldTree.TryParseSql(text).ReadingEnd);
-		Assert.Equal(text.Length - 3, OldTree.Located.TryParseSql(text, 0, text.Length - 3).ReadingEnd);
+		Assert.Equal(text.Length, TransactSqlParser.Located.TryParseSql(text).ReadingEnd);
+		Assert.Equal(text.Length, TransactSqlParser.TryParseSql(text).ReadingEnd);
+		Assert.Equal(text.Length - 3, TransactSqlParser.Located.TryParseSql(text, 0, text.Length - 3).ReadingEnd);
 
-		var from = OldTree.Located.TryParseStatement(text, 0);
+		var from = TransactSqlParser.Located.TryParseStatement(text, 0);
 
 		Assert.Equal(from.Position + from.Length, from.ReadingEnd);
 
 		var batch = SqlScript.Read("SELECT 1\nGO\n-- only a comment\n").Batches.Last();
 
-		Assert.Equal(batch.At + batch.Length, OldTree.Located.TryParseSql(batch).ReadingEnd);
+		Assert.Equal(batch.At + batch.Length, TransactSqlParser.Located.TryParseSql(batch).ReadingEnd);
 	}
 
 	/// <summary>
@@ -123,26 +126,26 @@ public sealed class LocatedReadingTests
 	/// back adds its <c>WHERE</c> to nothing, so the condition begins at its operand.
 	/// </remarks>
 	[Theory]
-	[InlineData("SELECT 1 WHERE a = 1", typeof(Expression.Comparison))]
-	[InlineData("SELECT 1 WHERE a BETWEEN 1 AND 2", typeof(Expression.Between))]
-	[InlineData("SELECT 1 WHERE a NOT BETWEEN 1 AND 2", typeof(Expression.Between))]
-	[InlineData("SELECT 1 WHERE a IN (1, 2)", typeof(Expression.In))]
-	[InlineData("SELECT 1 WHERE a NOT LIKE 'x%'", typeof(Expression.Like))]
-	[InlineData("SELECT 1 WHERE a IS NOT NULL", typeof(Expression.IsNull))]
-	[InlineData("SELECT 1 WHERE a > ALL (SELECT b FROM t)", typeof(Expression.Quantified))]
+	[InlineData("SELECT 1 WHERE a = 1", typeof(Ast.Expression.Comparison))]
+	[InlineData("SELECT 1 WHERE a BETWEEN 1 AND 2", typeof(Ast.Expression.Between))]
+	[InlineData("SELECT 1 WHERE a NOT BETWEEN 1 AND 2", typeof(Ast.Expression.Between))]
+	[InlineData("SELECT 1 WHERE a IN (1, 2)", typeof(Ast.Expression.In))]
+	[InlineData("SELECT 1 WHERE a NOT LIKE 'x%'", typeof(Ast.Expression.Like))]
+	[InlineData("SELECT 1 WHERE a IS NOT NULL", typeof(Ast.Expression.IsNull))]
+	[InlineData("SELECT 1 WHERE a > ALL (SELECT b FROM t)", typeof(Ast.Expression.QuantifiedComparison))]
 	public void A_predicate_completed_with_with_keeps_its_spans(string text, Type predicate)
 	{
-		var statement = OldTree.Located.ParseStatement(text);
+		var statement = TransactSqlParser.Located.ParseStatement(text);
 		var where     = text.IndexOf("WHERE", StringComparison.Ordinal);
 		var node      = Nodes(statement).Single(node => node.GetType() == predicate);
-		var operand   = Nodes(node).OfType<Expression.ColumnReference>().First();
+		var operand   = Nodes(node).OfType<Ast.Expression.Reference>().First();
 
 		var at        = where + "WHERE ".Length;
 
 		Assert.False(node.Span.IsStale);
-		Assert.Equal(new SqlSpan(at, text.Length - at, where + "WHERE".Length), node.Span);
+		Assert.Equal(new SqlSpan(at, text.Length - at), node.Span);
 		Assert.False(operand.Span.IsStale);
-		Assert.Equal(new SqlSpan(at, 1, where + "WHERE".Length), operand.Span);
+		Assert.Equal(new SqlSpan(at, 1), operand.Span);
 	}
 
 	/// <summary>Every clause that hands back what it reads leaves its keyword outside the value's span.</summary>
@@ -153,17 +156,14 @@ public sealed class LocatedReadingTests
 	[InlineData("IF 1 = 1 SELECT 1 ELSE SELECT 2", "SELECT 2")]
 	public void A_condition_is_spanned_without_its_keyword(string text, string condition)
 	{
-		var statement = OldTree.Located.ParseStatement(text);
+		var statement = TransactSqlParser.Located.ParseStatement(text);
 		var at        = text.LastIndexOf(condition, StringComparison.Ordinal);
 
 		Assert.Contains(Nodes(statement), node => node.Span.At == at && node.Span.Length == condition.Length);
-		Assert.DoesNotContain(Nodes(statement), node => node is Expression or Statement && node.Span.End == text.Length && node.Span.At < at && node.Span.At > 0);
+		Assert.DoesNotContain(Nodes(statement), node => node is Ast.Expression or Ast.Statement && node.Span.End == text.Length && node.Span.At < at && node.Span.At > 0);
 	}
 
-	/// <summary>
-	/// The same of the clauses of a query its rule builds on the common tree, which keeps none of them in this tree: the
-	/// common tree's node is told the span its rule's value was offered.
-	/// </summary>
+	/// <summary>The same of the clauses of a query.</summary>
 	[Theory]
 	[InlineData("SELECT a FROM t GROUP BY a HAVING COUNT(*) > 1", "COUNT(*) > 1")]
 	[InlineData("SELECT a FROM t JOIN u ON t.a = u.a", "t.a = u.a")]
@@ -184,15 +184,15 @@ public sealed class LocatedReadingTests
 	public void A_chain_closed_while_reading_spans_all_of_it_and_is_fresh()
 	{
 		var text      = "SELECT (c1).P1.P2, d AT TIME ZONE 'UTC'";
-		var statement = OldTree.Located.ParseStatement(text);
+		var statement = TransactSqlParser.Located.ParseStatement(text);
 		var chain     = text.IndexOf("(c1)", StringComparison.Ordinal);
-		var members   = Nodes(statement).OfType<Expression.Member>().ToList();
+		var members   = Nodes(statement).OfType<Ast.Expression.Member>().ToList();
 
 		Assert.DoesNotContain(Nodes(statement), static node => node.Span.IsStale);
 		Assert.Equal(2, members.Count);
 		Assert.Contains(members, node => node.Span.At == chain && node.Span.Length == "(c1).P1".Length);
 		Assert.Contains(members, node => node.Span.At == chain && node.Span.Length == "(c1).P1.P2".Length);
-		Assert.Contains(Nodes(statement).OfType<Expression.RoutineInvocation>(), node => text.Substring(node.Span.At, node.Span.Length) == "d AT TIME ZONE 'UTC'");
+		Assert.Contains(Nodes(statement).OfType<Ast.Expression.AtTimeZone>(), node => text.Substring(node.Span.At, node.Span.Length) == "d AT TIME ZONE 'UTC'");
 	}
 
 	/// <summary>
@@ -202,10 +202,10 @@ public sealed class LocatedReadingTests
 	[Fact]
 	public void A_null_is_a_node_of_its_own_in_every_reading()
 	{
-		var first  = OldTree.Record(OldTree.Located.ParseStatement("UPDATE t SET a = NULL"));
-		var second = OldTree.Record(OldTree.Located.ParseStatement("UPDATE t SET a = 1, bb = NULL"));
-		var one    = Nodes(first).OfType<Expression.Literal>().Single(static node => node.Kind == SqlLiteralKind.Null);
-		var two    = Nodes(second).OfType<Expression.Literal>().Single(static node => node.Kind == SqlLiteralKind.Null);
+		var first  = TransactSqlParser.Located.ParseStatement("UPDATE t SET a = NULL");
+		var second = TransactSqlParser.Located.ParseStatement("UPDATE t SET a = 1, bb = NULL");
+		var one    = Nodes(first).OfType<Ast.LiteralValue.Null>().Single();
+		var two    = Nodes(second).OfType<Ast.LiteralValue.Null>().Single();
 
 		Assert.NotSame(one, two);
 		Assert.Equal(17, one.Span.At);
@@ -214,7 +214,7 @@ public sealed class LocatedReadingTests
 		System.Threading.Tasks.Parallel.For(0, 64, i =>
 		{
 			var text    = new string(' ', i) + "UPDATE t SET a = NULL";
-			var literal = Nodes(OldTree.Record(OldTree.Located.ParseStatement(text))).OfType<Expression.Literal>().Single();
+			var literal = Nodes(TransactSqlParser.Located.ParseStatement(text)).OfType<Ast.LiteralValue.Null>().Single();
 
 			Assert.Equal(i + 17, literal.Span.At);
 		});
@@ -222,18 +222,16 @@ public sealed class LocatedReadingTests
 		Assert.Equal(17, one.Span.At);
 	}
 
-	/// <summary>A window, named or written out, is spanned without the <c>OVER</c> in front of it.</summary>
+	/// <summary>A call over a window, named or written out, is spanned with its <c>OVER</c> and the window.</summary>
 	[Theory]
-	[InlineData("SELECT SUM(x) OVER w FROM t WINDOW w AS (ORDER BY x)", "w", "OVER")]
-	[InlineData("SELECT SUM(x) OVER (ORDER BY x) FROM t", "ORDER BY x", "OVER (")]
-	public void A_window_is_spanned_without_its_over(string text, string window, string before)
+	[InlineData("SELECT SUM(x) OVER w FROM t WINDOW w AS (ORDER BY x)", "SUM(x) OVER w")]
+	[InlineData("SELECT SUM(x) OVER (ORDER BY x) FROM t", "SUM(x) OVER (ORDER BY x)")]
+	public void A_call_over_a_window_is_spanned_with_it(string text, string call)
 	{
-		var statement = OldTree.Located.ParseStatement(text);
-		var gap       = text.IndexOf(before, StringComparison.Ordinal) + before.Length;
-		var spanned   = Nodes(statement).OfType<Clause.Window>().First(node => node.Span.GapStart == gap);
+		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var spanned   = Nodes(statement).OfType<Ast.Expression.Invocation>().Single();
 
-		Assert.Equal(window, text.Substring(spanned.Span.At, spanned.Span.Length));
-		Assert.DoesNotContain(Nodes(statement).OfType<Clause.Window>(), node => text.Substring(node.Span.At, node.Span.Length).StartsWith("OVER", StringComparison.Ordinal));
+		Assert.Equal(call, text.Substring(spanned.Span.At, spanned.Span.Length));
 	}
 
 	/// <summary>
@@ -244,14 +242,14 @@ public sealed class LocatedReadingTests
 	public void A_window_cut_short_by_the_lexer_says_where_it_stopped()
 	{
 		var text    = "SELECT 1 \uFFFF and more";
-		var plain   = OldTree.TryParseSql(text, 0, text.Length);
-		var located = OldTree.Located.TryParseSql(text, 0, text.Length);
+		var plain   = TransactSqlParser.TryParseSql(text, 0, text.Length);
+		var located = TransactSqlParser.Located.TryParseSql(text, 0, text.Length);
 
 		Assert.True(located.IsSuccess);
 		Assert.Equal("SELECT 1".Length, located.ReadingEnd);
 		Assert.Equal(located.ReadingEnd, plain.ReadingEnd);
 
-		var whole = OldTree.Located.TryParseSql(text, 0, "SELECT 1 ".Length);
+		var whole = TransactSqlParser.Located.TryParseSql(text, 0, "SELECT 1 ".Length);
 
 		Assert.Equal("SELECT 1 ".Length, whole.ReadingEnd);
 	}
@@ -265,21 +263,19 @@ public sealed class LocatedReadingTests
 	{
 		var script = ":setvar table Orders\nSELECT a FROM $(table) /* t */ WHERE b = 1 -- end\nGO\n";
 		var batch  = SqlScript.Read(script).Batches.First(static one => !one.IsVerbatim);
-		var match  = OldTree.Located.TryParseSql(batch);
+		var match  = TransactSqlParser.Located.TryParseSql(batch);
 
 		Assert.True(match.IsSuccess);
 		Assert.Equal(batch.At + batch.Length, match.ReadingEnd);
 
 		var text      = batch.Text;
 		var statement = Assert.Single(match.Value);
-		var condition = Nodes(statement).OfType<Expression.Comparison>().Single();
-
-		// A source its rule builds on the common tree, which keeps it there: the common tree's node, told its span.
-		var table     = Nodes(Assert.Single(TransactSqlParser.Located.TryParseSql(batch).Value!)).OfType<Ast.TableSource.Named>().Single();
+		var condition = Nodes(statement).OfType<Ast.Expression.Comparison>().Single();
+		var table     = Nodes(statement).OfType<Ast.TableSource.Named>().Single();
 
 		Assert.Equal("Orders", text.Substring(table.Span.At, table.Span.Length));
 		Assert.Equal("b = 1", text.Substring(condition.Span.At, condition.Span.Length));
-		Assert.Equal(" ", text.Substring(condition.Span.GapStart, condition.Span.At - condition.Span.GapStart));
+		Assert.Equal("WHERE ", text.Substring(condition.Span.At - "WHERE ".Length, "WHERE ".Length));
 		Assert.Equal(" /* t */ ", text.Substring(table.Span.End, text.IndexOf("WHERE", table.Span.End, StringComparison.Ordinal) - table.Span.End));
 		Assert.Contains("-- end", text.Substring(statement.Span.End, (int)match.ReadingEnd - statement.Span.End), StringComparison.Ordinal);
 		Assert.True(Trivia(text.Substring(statement.Span.End, (int)match.ReadingEnd - statement.Span.End)));
@@ -304,8 +300,9 @@ public sealed class LocatedReadingTests
 
 	/// <summary>
 	/// A node of the SQL:2023 tree keeps its span in eight bytes, where and how much, and a node of the
-	/// T-SQL tree in twelve, the start of the gap in front of it with them: every record of either that
-	/// declares the field, found by reflection, so a record added later is held to it too.
+	/// old T-SQL tree in twelve, the start of the gap in front of it with them, as do the records the T-SQL rules read
+	/// before they build the common tree: every record of each that declares the field, found by reflection, so a
+	/// record added later is held to it too.
 	/// </summary>
 	[Fact]
 	public void A_SQL2023_node_keeps_its_span_in_eight_bytes()
@@ -318,15 +315,17 @@ public sealed class LocatedReadingTests
 
 		var ast    = holders.Where(static holder => holder.Type.Namespace == "DotGram.Sql.Ast").ToList();
 		var syntax = holders.Where(static holder => holder.Type.Namespace == "DotGram.Sql").ToList();
+		var read   = holders.Where(static holder => holder.Type.Namespace == "DotGram.Sql.TransactSql").ToList();
 
 		Assert.True(ast.Count > 100, $"{ast.Count} records of the SQL:2023 tree hold a span");
 		Assert.Equal(6, syntax.Count);
-		Assert.Equal(holders.Count, ast.Count + syntax.Count);
+		Assert.NotEmpty(read);
+		Assert.Equal(holders.Count, ast.Count + syntax.Count + read.Count);
 
 		foreach (var holder in ast)
 			Assert.True(SizeOf(holder.Field!.FieldType) == 8, holder.Type.FullName);
 
-		foreach (var holder in syntax)
+		foreach (var holder in syntax.Concat(read))
 			Assert.True(SizeOf(holder.Field!.FieldType) == 12, holder.Type.FullName);
 	}
 
@@ -506,21 +505,24 @@ public sealed class LocatedReadingTests
 	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH REPLACE")]
 	public void A_statement_given_its_tail_with_with_keeps_its_span(string text)
 	{
-		var statement = OldTree.Located.ParseStatement(text);
+		var statement = TransactSqlParser.Located.ParseStatement(text);
 
 		Assert.Equal(new SqlSpan(0, text.Length, 0), statement.Span);
 	}
 
 	/// <summary>
-	/// A copy made with <c>with</c> keeps where its original was written and the gap in front of it,
-	/// and says it is stale; the original does not change, and an unlocated node's copy is unlocated.
+	/// A copy of a node of the old T-SQL tree made with <c>with</c> keeps where its original was written and the gap in
+	/// front of it, and says it is stale; the original does not change, and an unlocated node's copy is unlocated. No
+	/// parser builds that tree any more, so the node is built and located by hand.
 	/// </summary>
 	[Fact]
 	public void A_copy_keeps_the_span_and_is_stale()
 	{
-		var text     = "SELECT 1 WHERE  a = 1";
-		var original = (Expression.Comparison)Nodes(OldTree.Located.ParseStatement(text)).OfType<Expression.Comparison>().Single();
-		var copy     = original with { Left = original.Right };
+		var original = new Expression.Comparison(new Expression.ColumnReference("a"), SqlComparison.Equal, new Expression.Literal(SqlLiteralKind.Number, "1"));
+
+		((ISqlLocatable)original).Locate(16, 5, 14);
+
+		var copy = original with { Left = original.Right };
 
 		Assert.False(original.Span.IsStale);
 		Assert.True(copy.Span.IsStale);
@@ -528,9 +530,21 @@ public sealed class LocatedReadingTests
 		Assert.Equal(original.Span.Length, copy.Span.Length);
 		Assert.Equal(original.Span.GapStart, copy.Span.GapStart);
 
-		var plain = (Expression.Comparison)Nodes(TransactSqlParser.ParseSyntaxStatement(text)).OfType<Expression.Comparison>().Single();
+		var plain = new Expression.Comparison(new Expression.ColumnReference("a"), SqlComparison.Equal, new Expression.Literal(SqlLiteralKind.Number, "1"));
 
 		Assert.False((plain with { Left = plain.Right }).Span.IsStale);
+	}
+
+	/// <summary>A copy of a node of the common tree made with <c>with</c> keeps where its original was written.</summary>
+	[Fact]
+	public void A_copy_of_the_common_tree_keeps_the_span()
+	{
+		var text     = "SELECT 1 WHERE  a = 1";
+		var original = Nodes(TransactSqlParser.Located.ParseStatement(text)).OfType<Ast.Expression.Comparison>().Single();
+		var copy     = original with { Left = original.Right };
+
+		Assert.Equal(original.Span, copy.Span);
+		Assert.Equal("a = 1", text.Substring(copy.Span.At, copy.Span.Length));
 	}
 
 	/// <summary>
@@ -575,12 +589,12 @@ public sealed class LocatedReadingTests
 
 			Assert.Equal(TransactSqlParser.TryParseScript(text).IsSuccess, TransactSqlParser.Located.TryParseScript(text).IsSuccess);
 
-			Agree(OldTree.TryParseSql(text), OldTree.Located.TryParseSql(text), text, 0);
+			Agree(TransactSqlParser.TryParseSql(text), TransactSqlParser.Located.TryParseSql(text), text, 0);
 
 			for (int at = 0, guard = 0; at < text.Length && guard < 10_000; guard++)
 			{
-				var plain   = OldTree.TryParseStatement(text, at);
-				var located = OldTree.Located.TryParseStatement(text, at);
+				var plain   = TransactSqlParser.TryParseStatement(text, at);
+				var located = TransactSqlParser.Located.TryParseStatement(text, at);
 
 				Assert.Equal(plain.IsSuccess, located.IsSuccess);
 				Assert.Equal(plain.Position, located.Position);
@@ -596,18 +610,17 @@ public sealed class LocatedReadingTests
 			foreach (var batch in SqlScript.Read(text).Batches)
 			{
 				Agree(
-					OldTree.TryParseSql(batch.Text, batch.At, batch.Length),
-					OldTree.Located.TryParseSql(batch.Text, batch.At, batch.Length),
+					TransactSqlParser.TryParseSql(batch.Text, batch.At, batch.Length),
+					TransactSqlParser.Located.TryParseSql(batch.Text, batch.At, batch.Length),
 					batch.Text, batch.At);
-				Agree(OldTree.TryParseSql(batch), OldTree.Located.TryParseSql(batch), batch.Text, batch.At);
+				Agree(TransactSqlParser.TryParseSql(batch), TransactSqlParser.Located.TryParseSql(batch), batch.Text, batch.At);
 			}
 		}
 
-		// The nodes of this tree only: the statements whose rules build the common tree hold none of them.
 		Assert.True(gaps > 50_000, $"{gaps} gaps");
 		Assert.True(ends > 4_000, $"{ends} reading ends");
 
-		void Agree(TransactSqlParser.Match<Statement[]> plain, TransactSqlParser.Match<Statement[]> located, string text, int floor)
+		void Agree(TransactSqlParser.Match<Ast.Statement[]> plain, TransactSqlParser.Match<Ast.Statement[]> located, string text, int floor)
 		{
 			Assert.Equal(plain.IsSuccess, located.IsSuccess);
 			Assert.Equal(plain.Position, located.Position);
@@ -638,29 +651,36 @@ public sealed class LocatedReadingTests
 		}
 	}
 
-	/// <summary>Every located node's gap, which must run from no earlier than the reading to its start, over trivia.</summary>
-	static int Gaps(Statement statement, string text, int floor)
+	/// <summary>
+	/// Every located node, which must stand no earlier than the reading and inside the text, with the gap in front of it
+	/// over trivia.
+	/// </summary>
+	/// <remarks>
+	/// A table type's columns and indexes, and the statements a CREATE SCHEMA holds, are read again from the statement's
+	/// own text, and their nodes are told positions in that text rather than in the input's, so they are left out until
+	/// that is put right.
+	/// </remarks>
+	static int Gaps(Ast.Statement statement, string text, int floor)
 	{
 		var count = 0;
 		var seen  = new HashSet<ISqlSpan>(ReferenceEqualityComparer.Instance);
 
-		OldTree.Walk(statement, node =>
-		{
-			// A node of the common tree, held by a statement whose rule builds that tree: the bridge tells it where it was
-			// written, as it tells every node of that tree (TransactSqlEntryTests).
-			if (node is DotGram.Sql.Ast.ISqlNode)
-				return true;
+		if (statement is Ast.Statement.CreateTableType or Ast.Statement.CreateSchema)
+			return 0;
 
+		SqlWalker.Walk(statement, node =>
+		{
 			var span = node.Span;
+
+			if (!span.Known && span.GapStart == 0)
+				return true;
 
 			// A node told where it was written is this reading's own: one object shared between
 			// two places, or with another reading, would have one span written over the other.
 			Assert.True(seen.Add(node), $"{node.GetType().Name} at {span.At} is reached twice");
 
-			if (!span.Known && span.GapStart == 0)
-				return true;
-
 			Assert.InRange(span.GapStart, floor, span.At);
+			Assert.InRange(span.End, span.At, text.Length);
 			Assert.False(span.IsStale, $"{node.GetType().Name} at {span.At} is stale in a fresh reading");
 			Assert.True(Trivia(text.Substring(span.GapStart, span.At - span.GapStart)), $"gap of {node.GetType().Name} at {span.At}");
 			count++;
@@ -672,11 +692,11 @@ public sealed class LocatedReadingTests
 	}
 
 	/// <summary>What a tree says, without where: every node's type and every value it holds.</summary>
-	static string Shape(Statement statement)
+	static string Shape(Ast.Statement statement)
 	{
 		var shape = new System.Text.StringBuilder();
 
-		OldTree.Walk(statement, node =>
+		SqlWalker.Walk(statement, node =>
 		{
 			shape.Append(node.GetType().FullName).Append('{');
 
@@ -744,13 +764,19 @@ public sealed class LocatedReadingTests
 		return (int)typeof(Unsafe).GetMethod(nameof(Unsafe.SizeOf))!.MakeGenericMethod(type).Invoke(null, null)!;
 	}
 
-	/// <summary>
-	/// Every node of this tree under the root, and what a query statement or a query whose rule builds the common tree
-	/// keeps of the parts its rules read (<see cref="OldTree.Walk"/>).
-	/// </summary>
+	/// <summary>Every node under the root, the root first, as <see cref="SqlWalker"/> hands them out.</summary>
 	static List<ISqlSpan> Nodes(ISqlSpan root)
 	{
-		return OldTree.Nodes(root);
+		var nodes = new List<ISqlSpan>();
+
+		SqlWalker.Walk(root, node =>
+		{
+			nodes.Add(node);
+
+			return true;
+		});
+
+		return nodes;
 	}
 
 	static string Here([System.Runtime.CompilerServices.CallerFilePath] string here = "")

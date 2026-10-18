@@ -10,7 +10,7 @@ using Ast = DotGram.Sql.Ast;
 namespace DotGram.Sql.Tests;
 
 /// <summary>
-/// <see cref="SqlWriter"/>: the tree back as SQL.
+/// <see cref="Ast.TransactSqlWriter"/>: the tree back as SQL.
 /// </summary>
 /// <remarks>
 /// Two claims, and the second is the one that matters. The first is that a handful of shapes
@@ -21,7 +21,7 @@ namespace DotGram.Sql.Tests;
 /// asked; what only a second parser can say — whether the tree matches the <em>text</em> —
 /// is <c>benchmarks --roundtrip</c>'s business.
 /// </remarks>
-public sealed class SqlWriterTests
+public sealed class TransactSqlWriterTextTests
 {
 	/// <summary>Every bracket somebody wrote comes back, and none that they did not.</summary>
 	/// <remarks>
@@ -40,7 +40,7 @@ public sealed class SqlWriterTests
 	[InlineData("- (a * b)", "-(a * b)")]
 	public void A_bracket_is_written_where_precedence_needs_it(string input, string printed)
 	{
-		Assert.Equal(printed, SqlWriter.Write(OldTree.ParseValueExpression(input)));
+		Assert.Equal(printed, Ast.TransactSqlWriter.Write(TransactSqlParser.ParseExpression(input)));
 	}
 
 	/// <summary>A default's <c>WITH VALUES</c> comes back after the column it is for.</summary>
@@ -51,10 +51,10 @@ public sealed class SqlWriterTests
 	[InlineData("ALTER TABLE t1 ADD CONSTRAINT d1 DEFAULT 1 FOR c1")]
 	public void A_default_keeps_the_values_it_was_given_with(string input)
 	{
-		var match = OldTree.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input);
-		Assert.Equal(input, SqlWriter.Write(match.Value!));
+		Assert.Equal(input, Ast.TransactSqlWriter.Write(match.Value!));
 	}
 
 	/// <summary>A procedure called by its number comes back with it.</summary>
@@ -64,10 +64,10 @@ public sealed class SqlWriterTests
 	[InlineData("EXECUTE dbo.p1")]
 	public void A_call_keeps_the_number_after_its_name(string input)
 	{
-		var match = OldTree.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input);
-		Assert.Equal(input, SqlWriter.Write(match.Value!));
+		Assert.Equal(input, Ast.TransactSqlWriter.Write(match.Value!));
 	}
 
 	/// <summary>The word before an insert's target comes back as it was written.</summary>
@@ -82,10 +82,10 @@ public sealed class SqlWriterTests
 	[InlineData("INSERT OVER t1 (c1) VALUES (1)")]
 	public void An_insert_keeps_the_word_before_its_target(string input)
 	{
-		var match = OldTree.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input);
-		Assert.Equal(input, SqlWriter.Write(match.Value!));
+		Assert.Equal(input, Ast.TransactSqlWriter.Write(match.Value!));
 	}
 
 	/// <summary>
@@ -97,13 +97,13 @@ public sealed class SqlWriterTests
 	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao (x) WHERE x = 1")]
 	public void A_statement_read_as_a_table_comes_back_one(string input)
 	{
-		var printed = SqlWriter.Write(OldTree.TryParseStatement(input).Value);
+		var printed = Ast.TransactSqlWriter.Write(TransactSqlParser.TryParseStatement(input).Value);
 
 		Assert.DoesNotContain(";)", printed);
-		Assert.True(OldTree.TryParseStatement(printed).IsSuccess, printed);
+		Assert.True(TransactSqlParser.TryParseStatement(printed).IsSuccess, printed);
 	}
 
-	/// <summary>And the same for the tower of conditions.</summary>
+	/// <summary>And the same for the tower of conditions, written where T-SQL reads one.</summary>
 	[Theory]
 	[InlineData("a = 1 AND b = 2 OR c = 3", "a = 1 AND b = 2 OR c = 3")]
 	[InlineData("a = 1 AND (b = 2 OR c = 3)", "a = 1 AND (b = 2 OR c = 3)")]
@@ -116,7 +116,7 @@ public sealed class SqlWriterTests
 	[InlineData("a IS NOT NULL", "a IS NOT NULL")]
 	public void And_where_a_condition_needs_it(string input, string printed)
 	{
-		Assert.Equal(printed, SqlWriter.Write(OldTree.ParseSearchCondition(input)));
+		Assert.Equal("SELECT 1 WHERE " + printed, Ast.TransactSqlWriter.Write(TransactSqlParser.ParseStatement("SELECT 1 WHERE " + input)));
 	}
 
 	/// <summary>The calls whose syntax is their own, and not an argument list.</summary>
@@ -134,7 +134,7 @@ public sealed class SqlWriterTests
 	[InlineData("CASE WHEN a > 1 THEN 2 ELSE 3 END", "CASE WHEN a > 1 THEN 2 ELSE 3 END")]
 	public void A_call_with_a_syntax_of_its_own_comes_back_in_it(string input, string printed)
 	{
-		Assert.Equal(printed, SqlWriter.Write(OldTree.ParseValueExpression(input)));
+		Assert.Equal(printed, Ast.TransactSqlWriter.Write(TransactSqlParser.ParseExpression(input)));
 	}
 
 	/// <summary>And the statements the tree holds whole.</summary>
@@ -206,7 +206,7 @@ public sealed class SqlWriterTests
 	[InlineData("SET ERRLVL 1", "SET ERRLVL 1")]
 	public void A_statement_comes_back_as_what_it_said(string input, string printed)
 	{
-		Assert.Equal(printed, SqlWriter.Write(Read(input)));
+		Assert.Equal(printed, Ast.TransactSqlWriter.Write(Read(input)));
 	}
 
 	/// <summary>
@@ -256,8 +256,8 @@ public sealed class SqlWriterTests
 	[InlineData("SETUSER @u WITH NORESET")]
 	public void What_the_writer_prints_reads_back_the_same(string input)
 	{
-		var once  = SqlWriter.Write(Read(input));
-		var twice = SqlWriter.Write(Read(once));
+		var once  = Ast.TransactSqlWriter.Write(Read(input));
+		var twice = Ast.TransactSqlWriter.Write(Read(once));
 
 		Assert.Equal(once, twice);
 	}
@@ -278,28 +278,24 @@ public sealed class SqlWriterTests
 	{
 		const string input = "SELECT a + 1 FROM t WHERE b = 2";
 
-		var match = OldTree.Located.TryParseStatement(input);
+		var match = TransactSqlParser.Located.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input);
 
-		var read  = Assert.IsAssignableFrom<Statement>(match.Value);
-		var query = OldTree.QueryOf(read);
+		var read  = Assert.IsType<Ast.Statement.Select>(match.Value);
+		var query = Assert.IsType<Ast.Query.Select>(read.Query);
 
 		// And the reading that was not asked for locations keeps none, which is the whole
 		// point of there being two.
-		Assert.False(TransactSqlParser.ParseSyntaxStatement(input).Span.Known);
+		Assert.False(TransactSqlParser.ParseStatement(input).Span.Known);
 
 		Assert.Equal(input, Cut(input, read.Span));
 		Assert.Equal(input, Cut(input, query.Span));
 
-		var column = Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns));
+		var column = Assert.IsType<Ast.SelectColumn.ExpressionItem>(Assert.Single(query.Columns));
 
-		Assert.Equal("a + 1", Cut(input, column.Span));
-		Assert.Equal("a + 1", Cut(input, column.Value.Span));
-		// A source its rule builds on the common tree, which keeps it there, told its span.
-		var made = Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Statement.Select>(TransactSqlParser.Located.ParseStatement(input)).Query);
-
-		Assert.Equal("t", Cut(input, Assert.Single(made.From!.Sources).Span));
+		Assert.Equal("a + 1", Cut(input, column.Expression.Span));
+		Assert.Equal("t", Cut(input, Assert.Single(query.From!.Sources).Span));
 
 		// A rule that only hands back a value another rule made offers it nothing, and
 		// `WhereClause` is `"WHERE"i & c: SearchCondition => @(c)`: the keyword stays outside
@@ -313,12 +309,12 @@ public sealed class SqlWriterTests
 		return input.Substring(span.At, span.Length);
 	}
 
-	static Statement Read(string input)
+	static Ast.Statement Read(string input)
 	{
-		var match = OldTree.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 
-		return Assert.IsAssignableFrom<Statement>(match.Value);
+		return Assert.IsAssignableFrom<Ast.Statement>(match.Value);
 	}
 }

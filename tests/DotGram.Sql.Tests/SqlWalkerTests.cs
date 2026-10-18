@@ -24,8 +24,7 @@ public sealed class SqlWalkerTests
 	[Fact]
 	public void Every_node_is_visited_the_root_first()
 	{
-		// A record its rules read: a query statement's rule builds the common tree, and keeps no node of this one.
-		var statement = OldTree.Record(OldTree.ParseStatement("DELETE t WHERE b = a + 1"));
+		var statement = TransactSqlParser.ParseStatement("DELETE t WHERE b = a + 1");
 		var seen      = new List<ISqlSpan>();
 
 		Assert.True(SqlWalker.Walk(statement, node =>
@@ -36,9 +35,9 @@ public sealed class SqlWalkerTests
 		}));
 
 		Assert.Same(statement, seen[0]);
-		Assert.Contains(seen, static node => node is Expression.Add);
-		Assert.Contains(seen, static node => node is Expression.Comparison);
-		Assert.Contains(seen, static node => node is TableReference.Named);
+		Assert.Contains(seen, static node => node is Ast.Expression.Binary { Operator: Ast.BinaryOperator.Add });
+		Assert.Contains(seen, static node => node is Ast.Expression.Comparison);
+		Assert.Contains(seen, static node => node is Ast.TableSource.Named);
 	}
 
 	/// <summary>The SQL:2023 tree holds its nodes in lists rather than arrays, and they are walked the same.</summary>
@@ -64,13 +63,13 @@ public sealed class SqlWalkerTests
 	[Fact]
 	public void A_visit_that_answers_false_ends_the_walk()
 	{
-		var statement = OldTree.Record(OldTree.ParseStatement("DELETE t WHERE b = a + 1"));
+		var statement = TransactSqlParser.ParseStatement("DELETE t WHERE b = a + 1");
 		var all       = 0;
 		var seen      = 0;
 
 		SqlWalker.Walk(statement, _ => ++all > 0);
 
-		Assert.False(SqlWalker.Walk(statement, node => ++seen > 0 && node is not Expression.Add));
+		Assert.False(SqlWalker.Walk(statement, node => ++seen > 0 && node is not Ast.Expression.Binary { Operator: Ast.BinaryOperator.Add }));
 		Assert.True(seen < all);
 	}
 

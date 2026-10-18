@@ -55,9 +55,9 @@ static partial class Bridge
 				return Finish(held, at);
 
 			if (statement is not (Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge))
-				return Syntax.Preceded(with, statement);
+				return Rules.Preceded(with, statement);
 
-			var read = Syntax.Preceded(with, statement);
+			var read = Rules.Preceded(with, statement);
 
 			read.Locate(at.At, at.Length);
 
@@ -77,21 +77,21 @@ static partial class Bridge
 		}
 
 		/// <summary>READTEXT, on the common tree.</summary>
-		internal static Statement ReadText(string column, Expression pointer, Expression offset, Expression size, bool holdLock)
+		internal static Statement ReadText(string column, Ast.Expression pointer, Ast.Expression offset, Ast.Expression size, bool holdLock)
 		{
 			return Text(new Statement.ReadText(column, pointer, offset, size, holdLock));
 		}
 
 		/// <summary>WRITETEXT, on the common tree.</summary>
-		internal static Statement WriteText(string column, Expression pointer, Expression? data, bool bulk, bool log, Expression? timestamp)
+		internal static Statement WriteText(string column, Ast.Expression pointer, Ast.Expression? data, bool bulk, bool log, Ast.Expression? timestamp)
 		{
 			return Text(new Statement.WriteText(column, pointer, data, bulk, log, timestamp));
 		}
 
 		/// <summary>UPDATETEXT, on the common tree.</summary>
 		internal static Statement UpdateText(
-			string column, Expression pointer, Expression offset, Expression length, Expression? data, string? source, Expression? sourcePointer,
-			bool bulk, bool log, Expression? timestamp)
+			string column, Ast.Expression pointer, Ast.Expression offset, Ast.Expression length, Ast.Expression? data, string? source, Ast.Expression? sourcePointer,
+			bool bulk, bool log, Ast.Expression? timestamp)
 		{
 			return Text(new Statement.UpdateText(column, pointer, offset, length, data, source, sourcePointer, bulk, log, timestamp));
 		}
@@ -120,7 +120,7 @@ static partial class Bridge
 		/// </summary>
 		static Ast.TableSource Changed(TableReference.Changed old)
 		{
-			var said = Recover("Alias.AsKeyword of a table source", After(old.Statement, old), static text => Words(text) is [")", "AS", ..], false);
+			var said = Recover(After(old.Statement, old), static text => Words(text) is [")", "AS", ..], false);
 
 			return new Ast.TableSource.DataChange(null, StatementOf(old.Statement),
 				new Ast.Alias(Values.Part(old, old.Name), old.Columns is { } columns ? Values.Parts(old, columns) : null, said));
@@ -129,10 +129,13 @@ static partial class Bridge
 		/// <summary>The text from the end of one located node to the end of the node it stands in.</summary>
 		static string? After(ISqlSpan node, ISqlSpan within)
 		{
-			if (!Cuttable(node.Span) || !Cuttable(within.Span))
+			var span  = SpanOf(node);
+			var outer = SpanOf(within);
+
+			if (!Cuttable(span) || !Cuttable(outer))
 				return null;
 
-			return node.Span.End <= within.Span.End && within.Span.End <= source.Length ? source[node.Span.End..within.Span.End] : null;
+			return span.End <= outer.End && outer.End <= source.Length ? source[span.End..outer.End] : null;
 		}
 
 		/// <summary>
@@ -218,7 +221,7 @@ static partial class Bridge
 						Values.Name(old, table),
 
 						// The file's quoted string is kept with its N, which is a national string and not the character one with an N in it.
-						file is Expression.Literal { Kind: SqlLiteralKind.Text, Text: var token } ? Values.String(token) : Values.Of(file),
+						file is Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.Character, Text: var token } ? Values.String(token) : Values.Of(file),
 						Each(options ?? [], BulkOption));
 
 				case Query.FromStream(var columns, var options) when old.Target is TableReference.Named { Table: var table }:
@@ -295,7 +298,7 @@ static partial class Bridge
 			{
 				With        = With(old.With),
 				Top         = Queries.Topped(old.Top),
-				FromOmitted = Recover("Statement.Delete.FromOmitted", Before(old, old.Target), static text => Words(text) is not [.., "DELETE", "FROM"] and not ["FROM"], false),
+				FromOmitted = Recover(Before(old, old.Target), static text => Words(text) is not [.., "DELETE", "FROM"] and not ["FROM"], false),
 				Target      = Target(old.Target),
 				Output      = Output(old.Output),
 				From        = old.From.Length > 0 ? new Ast.FromClause(Each(old.From, Source)) : null,
@@ -323,9 +326,9 @@ static partial class Bridge
 		/// <c>WHERE CURRENT OF c</c>, which the old tree keeps as a column reference whose text is the words, and
 		/// the new tree as the cursor it names.
 		/// </summary>
-		static Ast.CursorReference? CurrentOf(Statement old, Expression? where)
+		static Ast.CursorReference? CurrentOf(Statement old, Ast.Expression? where)
 		{
-			if (where is not Expression.ColumnReference(var text) || !text.StartsWith("CURRENT OF ", StringComparison.OrdinalIgnoreCase))
+			if (Values.Wording(where) is not { } text || !text.StartsWith("CURRENT OF ", StringComparison.OrdinalIgnoreCase))
 				return null;
 
 			var name   = text["CURRENT OF ".Length..].TrimStart();
@@ -337,9 +340,9 @@ static partial class Bridge
 			return new Ast.CursorReference(Values.Name(old, name), Global: global);
 		}
 
-		static Ast.Expression? Where(Expression? where)
+		static Ast.Expression? Where(Ast.Expression? where)
 		{
-			return where is null || where is Expression.ColumnReference(var text) && text.StartsWith("CURRENT OF ", StringComparison.OrdinalIgnoreCase)
+			return where is null || Values.Wording(where) is { } text && text.StartsWith("CURRENT OF ", StringComparison.OrdinalIgnoreCase)
 				? null
 				: Values.Of(where);
 		}
@@ -352,7 +355,7 @@ static partial class Bridge
 			// A method called on a column, `SET c.WRITE (…)`: the call is the value, on the column's reference.
 			if (op == "")
 			{
-				if (value is not Expression.RoutineInvocation(var method, var arguments, null) || !method.StartsWith('.') || target.Contains('.'))
+				if (value is not Values.Call(var method, var arguments, null) || !method.StartsWith('.') || target.Contains('.'))
 					throw BridgeGap.Open(old, "inventory Clause.Set (a method call that is not one on a column)");
 
 				return new Ast.Assignment([], new Ast.Expression.Member(
@@ -395,7 +398,7 @@ static partial class Bridge
 
 			// `MERGE t AS x` and `MERGE t x` are one old node; the text between the target and USING says which.
 			var alias = old.Alias is { } name
-				? new Ast.Alias(Values.Part(old, name), AsKeyword: Recover("Alias.AsKeyword of MERGE's target", Between(old.Target, old.Using), static text => Words(text).Contains("AS"), true))
+				? new Ast.Alias(Values.Part(old, name), AsKeyword: Recover(Between(old.Target, old.Using), static text => Words(text).Contains("AS"), true))
 				: null;
 
 			return new Ast.Statement.Merge
@@ -440,19 +443,25 @@ static partial class Bridge
 		/// <summary>The rows of a table value constructor its rule built, carried as the query it stands for would be.</summary>
 		static SqlList<Ast.RowValue> Rows(Query.Built values)
 		{
-			if (values.Recovered is { } read)
-				recovered?.AddRange(read);
-
 			return values.Values ?? throw values.Gap!;
+		}
+
+		/// <summary>
+		/// What one row in brackets holds: the value, or the subquery whose second pair of brackets the row's were
+		/// (<see cref="Values.Parenthesized"/>).
+		/// </summary>
+		static Ast.Expression? Bracketed(Ast.Expression row)
+		{
+			return row is Ast.Expression.Subquery(Ast.Query.Parenthesized(var query)) ? new Ast.Expression.Subquery(query) : Values.Bracketed(row);
 		}
 
 		static Ast.MergeInsertAction Inserted(Statement.Insert old)
 		{
 			return old.Rows switch
 			{
-				Query.Built { Record: "Query.TableValueConstructor", Rows: [Expression.RowValueConstructor(var items)] } =>
+				Query.Built { Record: "Query.TableValueConstructor", Rows: [Ast.Expression.Row(var items, _)] } =>
 					new Ast.MergeInsertAction(Values.Parts(old, old.Columns), null, Each(items, Values.Of)),
-				Query.Built { Record: "Query.TableValueConstructor", Rows: [Expression.Parenthesized(var one)] } =>
+				Query.Built { Record: "Query.TableValueConstructor", Rows: [var row] } when Bracketed(row) is { } one =>
 					new Ast.MergeInsertAction(Values.Parts(old, old.Columns), null, [Values.Of(one)]),
 				Query.DefaultValues when old.Columns is null => new Ast.MergeInsertAction([], null, []) { DefaultValues = true },
 				_                   => throw BridgeGap.Open(old, "inventory Clause.MergeWhen (an INSERT that is not one row)"),

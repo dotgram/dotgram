@@ -20,22 +20,17 @@ static partial class Bridge
 	/// </remarks>
 	internal static class Drop
 	{
-		public static readonly string[] Owns =
-		[
-			.. typeof(Statement).GetNestedTypes().Where(static one => one.IsSubclassOf(typeof(Statement.Removal))).Select(NameOf),
-		];
-
 		/// <summary>
 		/// What a <c>DROP</c> rule hands its builder: the T-SQL tree's record the statement was, the names, what was written
 		/// after them and whether <c>IF EXISTS</c> was.
 		/// </summary>
-		sealed record Dropping(string Record, SqlList<Expression> Names, string? Tail, bool IfExists) : Given(Record);
+		sealed record Dropping(string Record, SqlList<Ast.Expression> Names, string? Tail, bool IfExists) : Given(Record);
 
 		/// <summary>
 		/// The <c>DROP</c> the words name, on the common tree: the kind as it was written, the names, what was written after
 		/// them and the <c>IF EXISTS</c>, where it was.
 		/// </summary>
-		internal static Statement Dropped(string kind, SqlList<Expression>? some, string? tail = null, string? ifExists = null)
+		internal static Statement Dropped(string kind, SqlList<Ast.Expression>? some, string? tail = null, string? ifExists = null)
 		{
 			// The words as tokens: a comment between two of them (`DROP SERVER /*x*/ AUDIT a`) is no part of the kind.
 			var what    = Syntax.Squared(string.Join(" ", SqlTokens.Of(kind).Select(static one => one.Text)));
@@ -197,7 +192,7 @@ static partial class Bridge
 			if (old.Tail is not null)
 				throw BridgeGap.Open(old, $"inventory {NameOf(old)} (`{old.Tail}` after the names)");
 
-			return Each(old.Names, one => one is Expression.ColumnReference(var text)
+			return Each(old.Names, one => Values.Wording(one) is { } text
 				? Values.Name(old, text)
 				: throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a name that is {NameOf(one)})"));
 		}
@@ -375,7 +370,7 @@ static partial class Bridge
 			if (old.Tail is not null)
 				throw BridgeGap.Open(old, $"inventory Statement.DropIndex (`{old.Tail}` after the names)");
 
-			return new Ast.Statement.DropIndex(Each(old.Names, one => one is Expression.ColumnReference(var text)
+			return new Ast.Statement.DropIndex(Each(old.Names, one => Values.Wording(one) is { } text
 				? DroppedIndex(old, text)
 				: throw BridgeGap.Open(old, $"inventory Statement.DropIndex (a name that is {NameOf(one)})")), old.IfExists);
 		}
@@ -447,15 +442,15 @@ static partial class Bridge
 			switch (words)
 			{
 				case ["MAXDOP", "=", _] when tokens[2].Kind == SqlTokens.Kind.Number:
-					return (new Ast.Option(name, Values.Of(new Expression.Literal(SqlLiteralKind.Number, tokens[2].Text)), []), $"{tokens[0].Text} = {tokens[2].Text}");
+					return (new Ast.Option(name, Values.Of(Values.Number(tokens[2].Text)), []), $"{tokens[0].Text} = {tokens[2].Text}");
 
 				case ["ONLINE" or "DATA_COMPRESSION", "=", _] when tokens[2].Kind == SqlTokens.Kind.Word:
-					return (new Ast.Option(name, Values.Of(new Expression.ColumnReference(tokens[2].Text)), []), $"{tokens[0].Text} = {tokens[2].Text}");
+					return (new Ast.Option(name, Values.Of(Values.Reference(tokens[2].Text)), []), $"{tokens[0].Text} = {tokens[2].Text}");
 
 				case ["DATA_COMPRESSION", "=", _, "ON", "PARTITIONS", "(", .., ")"] when tokens[2].Kind == SqlTokens.Kind.Word:
 					var (ranges, spelled) = Ranges(old, tokens.Skip(6).Take(tokens.Count - 7).ToList());
 
-					return (new Ast.Option(name, Values.Of(new Expression.ColumnReference(tokens[2].Text)), []) { Partitions = ranges },
+					return (new Ast.Option(name, Values.Of(Values.Reference(tokens[2].Text)), []) { Partitions = ranges },
 						$"{tokens[0].Text} = {tokens[2].Text} ON PARTITIONS ({spelled})");
 
 				case ["MOVE", "TO", ..]:
@@ -475,9 +470,9 @@ static partial class Bridge
 					if (words.Length != at + 4 || words[at - 1] != "," || words[at] != "ABORT_AFTER_WAIT" || words[at + 1] != "=" || words[^1] != ")")
 						break;
 
-					var number   = Values.Of(new Expression.Literal(SqlLiteralKind.Number, tokens[4].Text));
+					var number   = Values.Of(Values.Number(tokens[4].Text));
 					var duration = new Ast.Option(new Ast.Identifier(tokens[2].Text), minutes ? new Ast.Expression.Measured(number, new Ast.Identifier(tokens[5].Text)) : number, []);
-					var abort    = new Ast.Option(new Ast.Identifier(tokens[at].Text), Values.Of(new Expression.ColumnReference(tokens[at + 2].Text)), []);
+					var abort    = new Ast.Option(new Ast.Identifier(tokens[at].Text), Values.Of(Values.Reference(tokens[at + 2].Text)), []);
 
 					return (new Ast.Option(name, null, [duration, abort]),
 						$"{tokens[0].Text} ({tokens[2].Text} = {tokens[4].Text}{(minutes ? " " + tokens[5].Text : "")}, {tokens[at].Text} = {tokens[at + 2].Text})");
@@ -518,12 +513,12 @@ static partial class Bridge
 				switch (range)
 				{
 					case [{ Kind: SqlTokens.Kind.Number } from]:
-						ranges.Add(new Ast.PartitionRange(Values.Of(new Expression.Literal(SqlLiteralKind.Number, from.Text)), null));
+						ranges.Add(new Ast.PartitionRange(Values.Of(Values.Number(from.Text)), null));
 						written.Add(from.Text);
 						break;
 
 					case [{ Kind: SqlTokens.Kind.Number } from, { Kind: SqlTokens.Kind.Word, Text: var to }, { Kind: SqlTokens.Kind.Number } until] when to.Equals("TO", StringComparison.OrdinalIgnoreCase):
-						ranges.Add(new Ast.PartitionRange(Values.Of(new Expression.Literal(SqlLiteralKind.Number, from.Text)), Values.Of(new Expression.Literal(SqlLiteralKind.Number, until.Text))));
+						ranges.Add(new Ast.PartitionRange(Values.Of(Values.Number(from.Text)), Values.Of(Values.Number(until.Text))));
 						written.Add($"{from.Text} TO {until.Text}");
 						break;
 
@@ -539,7 +534,7 @@ static partial class Bridge
 		/// DROP SIGNATURE: the module, which the old tree keeps as text with its class before <c>::</c>, and what signed it, kept as
 		/// words; both are read as ADD SIGNATURE's are (<see cref="Security.SignedModule"/>).
 		/// </summary>
-		internal static Statement Signature(SqlList<Expression> names, string? from, bool counter)
+		internal static Statement Signature(SqlList<Ast.Expression> names, string? from, bool counter)
 		{
 			var old = new Dropping("Statement.DropSignature", names, null, false);
 

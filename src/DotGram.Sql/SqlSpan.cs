@@ -145,9 +145,16 @@ public readonly record struct SqlSpan
 /// span it hands back has its gap begin at <see cref="SqlSpan.At"/>, which is all a node of this
 /// tree was ever offered; what lies in front of a node is the reading's to say, not the node's.
 /// </para>
+/// <para>
+/// A value the T-SQL reader builds is told where it was written in every reading, since what builds
+/// the statement around it reads the text by the span; only a reading asked for locations keeps it
+/// for everybody (<see cref="Publishing"/>). A span kept for the reading alone is held with its start
+/// complemented, so that <see cref="Span"/> says nothing and <see cref="Read"/> says where.
+/// </para>
 /// </remarks>
 internal readonly struct SqlLocation : IEquatable<SqlLocation>
 {
+	/// <summary>The first character, or its complement where the span is the reading's alone.</summary>
 	readonly int _at;
 
 	/// <summary>The length, or its complement where the span is stale (<see cref="SqlSpan.StoredLength"/>).</summary>
@@ -159,11 +166,38 @@ internal readonly struct SqlLocation : IEquatable<SqlLocation>
 		_length = span.StoredLength;
 	}
 
+	SqlLocation(int at, int length)
+	{
+		_at     = at;
+		_length = length;
+	}
+
+	/// <summary>
+	/// Whether the reading under way on this thread keeps the spans it tells the values it builds: one asked for
+	/// locations. Set by the reader's entries around a reading.
+	/// </summary>
+	[ThreadStatic] internal static bool Publishing;
+
+	/// <summary>A span told by a reading: kept for everybody where the reading publishes it, and for the reading alone where not.</summary>
+	public static SqlLocation Told(int at, int length)
+	{
+		return new SqlLocation(Publishing ? at : ~at, length);
+	}
+
 	public SqlSpan Span
 	{
 		get
 		{
-			return SqlSpan.Stored(_at, _length);
+			return _at < 0 ? default : SqlSpan.Stored(_at, _length);
+		}
+	}
+
+	/// <summary>Where a reading said the node was written, whether it kept the span for everybody or not.</summary>
+	public SqlSpan Read
+	{
+		get
+		{
+			return SqlSpan.Stored(_at < 0 ? ~_at : _at, _length);
 		}
 	}
 

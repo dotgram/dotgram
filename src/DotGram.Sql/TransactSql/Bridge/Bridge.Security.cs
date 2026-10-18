@@ -25,24 +25,6 @@ static partial class Bridge
 	/// </remarks>
 	internal static class Security
 	{
-		public static readonly string[] Owns =
-		[
-			"Statement.Grant", "Statement.Deny", "Statement.Revoke",
-			"Statement.CreateRole", "Statement.AlterRole", "Statement.CreateServerRole",
-			"Statement.AlterServerRole", "Statement.CreateApplicationRole", "Statement.AlterApplicationRole",
-			"Statement.CreateLogin", "Statement.AlterLogin", "Statement.CreateUser",
-			"Statement.AlterUser", "Statement.SchemaDefinition", "Statement.AlterSchema",
-			"Statement.AlterAuthorization", "Statement.AsymmetricKeyDefinition", "Statement.AlterAsymmetricKey",
-			"Statement.SymmetricKeyDefinition", "Statement.AlterSymmetricKey", "Statement.CertificateDefinition",
-			"Statement.AlterCertificate", "Statement.MasterKeyDefinition", "Statement.AlterMasterKey",
-			"Statement.AlterServiceMasterKey", "Statement.DatabaseEncryptionKeyDefinition", "Statement.AlterDatabaseEncryptionKey",
-			"Statement.ColumnEncryptionKeyDefinition", "Statement.AlterColumnEncryptionKey", "Statement.ColumnMasterKeyDefinition",
-			"Statement.CredentialDefinition", "Statement.DatabaseScopedCredentialDefinition", "Statement.SecurityPolicyDefinition",
-			"Statement.CryptographicProviderDefinition", "Statement.OpenSymmetricKey", "Statement.OpenMasterKey",
-			"Statement.CloseSymmetricKey", "Statement.CloseAllSymmetricKeys", "Statement.CloseMasterKey",
-			"Statement.Classification", "Statement.AddSignature",
-		];
-
 		/// <summary>
 		/// <c>CREATE SCHEMA [s] [AUTHORIZATION owner] [element …]</c>. The old tree keeps what follows the name as text:
 		/// the owner is read from its tokens, and the elements, which are whole statements, are read again as a script is
@@ -447,13 +429,13 @@ static partial class Bridge
 					return Values.String(token.Text);
 
 				case { Kind: SqlTokens.Kind.Number } when token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase):
-					return Values.Of(new Expression.Literal(SqlLiteralKind.Hex, token.Text));
+					return Values.Of(Values.Hex(token.Text));
 
 				case { Kind: SqlTokens.Kind.Number }:
-					return Values.Of(new Expression.Literal(SqlLiteralKind.Number, token.Text));
+					return Values.Of(Values.Number(token.Text));
 
 				case { Kind: SqlTokens.Kind.Word } when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase):
-					return Values.Of(new Expression.Literal(SqlLiteralKind.Null, token.Text));
+					return Values.Null();
 
 				case { Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited }:
 					return new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, token.Text)]));
@@ -844,7 +826,7 @@ static partial class Bridge
 				if (_at >= _tokens.Count || _tokens[_at].Kind != SqlTokens.Kind.Number || !_tokens[_at].Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
 					throw Unread();
 
-				return (Ast.LiteralValue.Binary)Values.Of(new Expression.Literal(SqlLiteralKind.Hex, _tokens[_at++].Text));
+				return (Ast.LiteralValue.Binary)Values.Of(Values.Hex(_tokens[_at++].Text));
 			}
 
 			public Ast.Identifier? Authorization()
@@ -1666,7 +1648,7 @@ static partial class Bridge
 				throw BridgeGap.Open(old, "inventory Statement.Classification (not an ADD)");
 
 			// The old tree upper-cases the option names and the rank word; the words as written are read from the text.
-			var options = Recover("Statement.Classification.Options", Spelled(old), text => ClassificationOptions(old, text), Each(old.Options, one => one is Clause.Option(var name, var value, _, _, _) && value is not null
+			var options = Recover(Spelled(old), text => ClassificationOptions(old, text), Each(old.Options, one => one is Clause.Option(var name, var value, _, _, _) && value is not null
 				? new Ast.Option(new Ast.Identifier(name), Values.Of(value), [])
 				: throw BridgeGap.Open(old, "inventory Statement.Classification (an option that is not a name and a value)")));
 
@@ -1715,11 +1697,11 @@ static partial class Bridge
 		/// <summary>
 		/// What signs a module, kept by the old tree as one column reference's text each: <c>CERTIFICATE c WITH PASSWORD = 'p'</c>.
 		/// </summary>
-		internal static SqlList<Ast.SignedBy> Signers(object old, SqlList<Expression> by)
+		internal static SqlList<Ast.SignedBy> Signers(object old, SqlList<Ast.Expression> by)
 		{
 			return Each(by, one =>
 			{
-				var text   = one is Expression.ColumnReference(var words) ? words : throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a signer that is {NameOf(one)})");
+				var text   = Values.Wording(one) is { } words ? words : throw BridgeGap.Open(old, $"inventory {NameOf(old)} (a signer that is {NameOf(one)})");
 				var reader = new Reader(old, text);
 				Ast.SignedBy signed;
 				var written = new List<string>();
@@ -1797,7 +1779,7 @@ static partial class Bridge
 		}
 
 		/// <summary>ADD SIGNATURE, on the common tree: what signs, the module it signs and whether it countersigns.</summary>
-		internal static Statement AddSignature(SqlList<Expression> by, string? to, bool counter)
+		internal static Statement AddSignature(SqlList<Ast.Expression> by, string? to, bool counter)
 		{
 			var old = new Defining("Statement.AddSignature", "");
 

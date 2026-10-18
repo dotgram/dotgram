@@ -46,7 +46,7 @@ public sealed class DropBridgeTests
 	[InlineData("DROP TABLE IF EXISTS t",                                 "ISO table")]
 	public void The_bridge_builds_the_drop_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -84,8 +84,6 @@ public sealed class DropBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 }

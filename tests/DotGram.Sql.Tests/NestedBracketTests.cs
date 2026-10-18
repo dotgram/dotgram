@@ -29,41 +29,44 @@ public sealed class NestedBracketTests
 	[Fact]
 	public void A_bracket_that_holds_a_condition_is_a_condition()
 	{
-		var outer = Assert.IsType<Expression.Parenthesized>(OldTree.TryParseSearchCondition("((a = 1))").Value);
-		var inner = Assert.IsType<Expression.Parenthesized>(outer.Value);
-		var equal = Assert.IsType<Expression.Comparison>(inner.Value);
+		var outer = Assert.IsType<Ast.Expression.Parenthesized>(TransactSqlParser.TryParseSearchCondition("((a = 1))").Value);
+		var inner = Assert.IsType<Ast.Expression.Parenthesized>(outer.Value);
+		var equal = Assert.IsType<Ast.Expression.Comparison>(inner.Value);
 
-		Assert.Equal(SqlComparison.Equal, equal.Operator);
-		Assert.IsType<Expression.ColumnReference>(equal.Left);
+		Assert.Equal(Ast.ComparisonOperator.Equal, equal.Operator);
+		Assert.IsType<Ast.Expression.Reference>(equal.Left);
 	}
 
 	[Fact]
 	public void A_bracket_that_holds_a_value_is_the_predicate_s_operand()
 	{
-		var equal = Assert.IsType<Expression.Comparison>(OldTree.TryParseSearchCondition("((a)) = 1").Value);
-		var outer = Assert.IsType<Expression.Parenthesized>(equal.Left);
-		var inner = Assert.IsType<Expression.Parenthesized>(outer.Value);
+		var equal = Assert.IsType<Ast.Expression.Comparison>(TransactSqlParser.TryParseSearchCondition("((a)) = 1").Value);
+		var outer = Assert.IsType<Ast.Expression.Parenthesized>(equal.Left);
+		var inner = Assert.IsType<Ast.Expression.Parenthesized>(outer.Value);
 
-		Assert.IsType<Expression.ColumnReference>(inner.Value);
+		Assert.IsType<Ast.Expression.Reference>(inner.Value);
 	}
 
 	[Fact]
 	public void A_value_bracket_inside_a_condition_bracket_is_each_what_it_holds()
 	{
-		var condition = Assert.IsType<Expression.Parenthesized>(OldTree.TryParseSearchCondition("((a) + 1 = 2)").Value);
-		var equal     = Assert.IsType<Expression.Comparison>(condition.Value);
-		var sum       = Assert.IsType<Expression.Add>(equal.Left);
+		var condition = Assert.IsType<Ast.Expression.Parenthesized>(TransactSqlParser.TryParseSearchCondition("((a) + 1 = 2)").Value);
+		var equal     = Assert.IsType<Ast.Expression.Comparison>(condition.Value);
+		var sum       = Assert.IsType<Ast.Expression.Binary>(equal.Left);
 
-		Assert.IsType<Expression.Parenthesized>(sum.Left);
+		Assert.Equal(Ast.BinaryOperator.Add, sum.Operator);
+
+		Assert.IsType<Ast.Expression.Parenthesized>(sum.Left);
 	}
 
 	[Fact]
 	public void A_bracketed_subquery_compared_is_a_value()
 	{
-		var equal = Assert.IsType<Expression.Comparison>(OldTree.TryParseSearchCondition("((SELECT 1)) = 1").Value);
-		var outer = Assert.IsType<Expression.Parenthesized>(equal.Left);
+		var equal    = Assert.IsType<Ast.Expression.Comparison>(TransactSqlParser.TryParseSearchCondition("((SELECT 1)) = 1").Value);
+		var subquery = Assert.IsType<Ast.Expression.Subquery>(equal.Left);
 
-		Assert.IsType<Expression.Subquery>(outer.Value);
+		// The outer bracket is the subquery's, the inner one the query's own.
+		Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Query.Parenthesized>(subquery.Query).Query);
 	}
 
 	[Theory]
@@ -72,17 +75,17 @@ public sealed class NestedBracketTests
 	[InlineData("a IS NOT DISTINCT FROM b",     true)]
 	public void A_row_read_once_still_takes_IS_DISTINCT_FROM(string input, bool negated)
 	{
-		var distinct = Assert.IsType<Expression.IsDistinctFrom>(OldTree.TryParseSearchCondition(input).Value);
+		var distinct = Assert.IsType<Ast.Expression.IsDistinct>(TransactSqlParser.TryParseSearchCondition(input).Value);
 
-		Assert.Equal(negated, distinct.Negated);
+		Assert.Equal(negated, distinct.Not);
 	}
 
 	[Fact]
 	public void A_row_read_once_still_takes_the_standard_s_tails()
 	{
-		Assert.IsType<Expression.IsNull>(OldTree.TryParseSearchCondition("(a) IS NOT NULL").Value);
-		Assert.IsType<Expression.In>(OldTree.TryParseSearchCondition("(a) IN (1, 2)").Value);
-		Assert.IsType<Expression.Between>(OldTree.TryParseSearchCondition("(a) BETWEEN (1) AND (2)").Value);
+		Assert.IsType<Ast.Expression.IsNull>(TransactSqlParser.TryParseSearchCondition("(a) IS NOT NULL").Value);
+		Assert.IsType<Ast.Expression.In>(TransactSqlParser.TryParseSearchCondition("(a) IN (1, 2)").Value);
+		Assert.IsType<Ast.Expression.Between>(TransactSqlParser.TryParseSearchCondition("(a) BETWEEN (1) AND (2)").Value);
 	}
 
 	/// <summary>
@@ -107,9 +110,9 @@ public sealed class NestedBracketTests
 		Assert.True(TransactSqlParser.TryParseStatement160("SELECT 1 WHERE (REGEXP_LIKE ('abc', '^a')) = 1").IsSuccess);
 		Assert.True(TransactSqlParser.TryParseStatement160("SELECT 1 WHERE (REGEXP_LIKE ('abc', '^a')) IS NULL").IsSuccess);
 
-		Assert.True(OldTree.TryParseStatement("SELECT 1 WHERE (REGEXP_LIKE ('abc', '^a'))").IsSuccess);
-		Assert.True(OldTree.TryParseStatement("SELECT 1 WHERE (REGEXP_LIKE ('abc', '^a')) = 1").IsSuccess);
-		Assert.True(OldTree.TryParseStatement("SELECT 1 WHERE (REGEXP_LIKE ('abc', '^a')) IS NULL").IsSuccess);
+		Assert.True(TransactSqlParser.TryParseStatement("SELECT 1 WHERE (REGEXP_LIKE ('abc', '^a'))").IsSuccess);
+		Assert.True(TransactSqlParser.TryParseStatement("SELECT 1 WHERE (REGEXP_LIKE ('abc', '^a')) = 1").IsSuccess);
+		Assert.True(TransactSqlParser.TryParseStatement("SELECT 1 WHERE (REGEXP_LIKE ('abc', '^a')) IS NULL").IsSuccess);
 	}
 
 	/// <summary>
@@ -120,9 +123,9 @@ public sealed class NestedBracketTests
 	public void A_deep_nest_of_conditions_is_read(int depth)
 	{
 		var text  = new string('(', depth) + "a = 1" + new string(')', depth);
-		var value = Deep(() => OldTree.TryParseSearchCondition(text).Value);
+		var value = Deep(() => TransactSqlParser.TryParseSearchCondition(text).Value);
 
-		Assert.IsType<Expression.Comparison>(Unwrap(value, depth));
+		Assert.IsType<Ast.Expression.Comparison>(Unwrap(value, depth));
 	}
 
 	/// <summary>Values nested in a predicate's operand, read once a level.</summary>
@@ -131,9 +134,9 @@ public sealed class NestedBracketTests
 	public void A_deep_nest_of_values_in_a_predicate_is_read(int depth)
 	{
 		var text  = new string('(', depth) + "a" + new string(')', depth) + " = 1";
-		var equal = Assert.IsType<Expression.Comparison>(Deep(() => OldTree.TryParseSearchCondition(text).Value));
+		var equal = Assert.IsType<Ast.Expression.Comparison>(Deep(() => TransactSqlParser.TryParseSearchCondition(text).Value));
 
-		Assert.IsType<Expression.ColumnReference>(Unwrap(equal.Left, depth));
+		Assert.IsType<Ast.Expression.Reference>(Unwrap(equal.Left, depth));
 	}
 
 	/// <summary>
@@ -147,9 +150,9 @@ public sealed class NestedBracketTests
 		var open  = new string('(', depth);
 		var close = new string(')', depth);
 		var text  = open + open + "a" + close + " = 1" + close;
-		var equal = Assert.IsType<Expression.Comparison>(Unwrap(Deep(() => OldTree.TryParseSearchCondition(text).Value), depth));
+		var equal = Assert.IsType<Ast.Expression.Comparison>(Unwrap(Deep(() => TransactSqlParser.TryParseSearchCondition(text).Value), depth));
 
-		Assert.IsType<Expression.ColumnReference>(Unwrap(equal.Left, depth));
+		Assert.IsType<Ast.Expression.Reference>(Unwrap(equal.Left, depth));
 	}
 
 	[Fact]
@@ -163,18 +166,18 @@ public sealed class NestedBracketTests
 	}
 
 	/// <summary>What stands inside that many brackets, each of which must be one.</summary>
-	static Expression Unwrap(Expression value, int depth)
+	static Ast.Expression Unwrap(Ast.Expression value, int depth)
 	{
 		for (var level = 0; level < depth; level++)
-			value = Assert.IsType<Expression.Parenthesized>(value).Value;
+			value = Assert.IsType<Ast.Expression.Parenthesized>(value).Value;
 
 		return value;
 	}
 
 	/// <summary>On a thread with room for the nest, so the row does not depend on the runner's stack.</summary>
-	static Expression Deep(Func<Expression> read)
+	static Ast.Expression Deep(Func<Ast.Expression> read)
 	{
-		Expression? value = null;
+		Ast.Expression? value = null;
 		Exception?  error = null;
 
 		var thread = new Thread(() =>

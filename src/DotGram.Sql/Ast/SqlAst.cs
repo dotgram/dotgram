@@ -783,7 +783,7 @@ public enum SampleMethod { Bernoulli, System }
 public enum ResultOption { Final, New, Old }
 
 /// <summary>BNF: <c>&lt;value expression&gt;</c> and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars.</summary>
-public abstract partial record Expression : ISqlNode
+public abstract partial record Expression : ISqlNode, ISqlLocatable
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -791,6 +791,16 @@ public abstract partial record Expression : ISqlNode
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
+
+	// The T-SQL reader builds values of this tree in its actions and tells each where it was written, as it told the
+	// records it built before; the span is everybody's only where the reading was asked for locations (SqlLocation.Told).
+	void ISqlLocatable.Locate(int at, int length, int gapStart)
+	{
+		_location = SqlLocation.Told(at, length);
+	}
+
+	/// <summary>Where a reading said the value was written, whether the reading published locations or not.</summary>
+	internal SqlSpan Read => _location.Read;
 
 	public record Reference(QualifiedName Name) : Expression;
 

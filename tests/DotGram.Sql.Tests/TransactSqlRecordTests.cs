@@ -12,42 +12,11 @@ using Ast = DotGram.Sql.Ast;
 namespace DotGram.Sql.Tests;
 
 /// <summary>
-/// The bridge from the old T-SQL tree to the new one, held by its round trip over every statement T-SQL
-/// reads and by a baseline per family (docs/design/sql-tsql-bridge.md).
+/// Which record and member a T-SQL text reads as where another would write the same text, which a round trip cannot see;
+/// the names and types its rules build; and where a text the tree does not hold is an extension.
 /// </summary>
-public sealed class BridgeTests(ITestOutputHelper output)
+public sealed class TransactSqlRecordTests
 {
-	/// <summary>
-	/// The statements expected to fail the round trip because of a known writer defect, each with the status
-	/// it fails with, as flattened text. Listed one by one, so that a statement newly broken cannot hide
-	/// behind one fixed: one that fails and is not here fails the test, and one here that passes is printed.
-	/// </summary>
-	static readonly Dictionary<string, BridgeOracle.Status> Expected = new(StringComparer.Ordinal)
-	{
-	};
-
-	/// <summary>
-	/// Every concrete old record is owned by exactly one family, and every name a family owns is a record.
-	/// </summary>
-	[Fact]
-	public void Every_old_record_belongs_to_one_family()
-	{
-		Type[] roots   = [typeof(Statement), typeof(Query), typeof(Expression), typeof(TableReference), typeof(Clause), typeof(SetExpression)];
-		var    records = typeof(Statement).Assembly.GetTypes()
-			.Where(one => one is { IsClass: true, IsAbstract: false } && roots.Any(one.IsSubclassOf))
-			.Select(Bridge.NameOf)
-			.ToHashSet(StringComparer.Ordinal);
-
-		var owned  = Bridge.Ownership.SelectMany(static family => family.Owns).ToList();
-		var faults = new List<string>();
-
-		faults.AddRange(records.Where(one => !owned.Contains(one)).Select(static one => $"{one}: no family owns it"));
-		faults.AddRange(owned.GroupBy(static one => one).Where(static one => one.Count() > 1).Select(static one => $"{one.Key}: owned {one.Count()} times"));
-		faults.AddRange(owned.Where(one => !records.Contains(one)).Select(static one => $"{one}: owned and not an old record"));
-
-		Assert.Equal([], faults);
-	}
-
 	/// <summary>
 	/// A name the old tree keeps as text is split into its parts, each with the style its quotes say.
 	/// </summary>
@@ -75,49 +44,6 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// Free text compares token by token: a key word without case, and nothing else — not a name in brackets,
-	/// not a word that is no key word, not a string.
-	/// </summary>
-	[Theory]
-	[InlineData("with (delayed_durability = on)", "WITH (DELAYED_DURABILITY = ON)", true)]
-	[InlineData("varchar (10)",                   "VARCHAR(10)",                    true)]
-	[InlineData("national character varying(5)", "NATIONAL CHARACTER VARYING(5)",  true)]
-	[InlineData("AUTHORIZATION [a b]",            "AUTHORIZATION [ab]",             false)]
-	[InlineData("BEGIN TRAN T1",                  "BEGIN TRAN t1",                  false)]
-	[InlineData("WITH MARK 'A'",                  "WITH MARK 'a'",                  false)]
-	[InlineData("AS dbo.MyInt",                   "AS dbo.myint",                   false)]
-	public void Free_text_compares_key_words_without_case_and_nothing_else(string one, string two, bool same)
-	{
-		Assert.Equal(same, Trees.SameTokens(new object(), "Statement.Transaction.Tail", one, two));
-	}
-
-	/// <summary>
-	/// A key word folds only where it is one: a routine's name of several parts, and the owner, mark, transaction
-	/// or savepoint after its word, are names whose case a collation may tell apart.
-	/// </summary>
-	[Theory]
-	[InlineData("Expression.RoutineInvocation.Name", "max",                 "MAX",                 true)]
-	[InlineData("Expression.RoutineInvocation.Name", "dbo.max",             "dbo.MAX",             false)]
-	[InlineData("Statement.SchemaDefinition.Tail",   "AUTHORIZATION cache", "AUTHORIZATION CACHE", false)]
-	[InlineData("Statement.Transaction.Tail",        "WITH MARK cache",     "WITH MARK CACHE",     false)]
-	[InlineData("Clause.Hint.Text",                  "use hint ('x')",      "USE HINT ('x')",      true)]
-	[InlineData("Clause.Hint.Text",                  "INDEX (path)",        "INDEX (PATH)",        false)]
-	[InlineData("Clause.Hint.Text",                  "FORCESEEK (ix (value))", "FORCESEEK (ix (VALUE))", false)]
-	[InlineData("Clause.Hint.Text",                  "TABLE HINT (data, nolock)", "TABLE HINT (DATA, nolock)", false)]
-	[InlineData("Clause.Hint.Text",                  "table hint (t, nolock)", "TABLE HINT (t, nolock)", true)]
-	[InlineData("Clause.For.Options",                "root ('r')",          "ROOT ('r')",          true)]
-	[InlineData("Expression.GraphMatch.Pattern",     "last_node (n) = last_node (m) and a-(e)->b", "LAST_NODE (n) = LAST_NODE (m) AND a-(e)->b", true)]
-	[InlineData("Expression.GraphMatch.Pattern",     "value-(e)->data",     "VALUE-(e)->DATA",     false)]
-	[InlineData("Expression.WindowFunction.Within",  "within group (order by type)", "WITHIN GROUP (ORDER BY TYPE)", false)]
-	[InlineData("Expression.WindowFunction.Within",  "within group (graph path)", "WITHIN GROUP (GRAPH PATH)", true)]
-	[InlineData("Clause.Option.Name",                "ORDER (root ASC)",    "ORDER (ROOT ASC)",    false)]
-	[InlineData("Clause.JsonColumn.Type",            "varchar(10) collate null", "VARCHAR(10) COLLATE NULL", false)]
-	public void A_key_word_folds_only_where_it_is_one(string member, string one, string two, bool same)
-	{
-		Assert.Equal(same, Trees.SameTokens(new object(), member, one, two));
-	}
-
-	/// <summary>
 	/// A block comment nests, and a word after a comment is the word after the node.
 	/// </summary>
 	[Fact]
@@ -127,7 +53,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		const string text = "SELECT TOP (1) a /* c */ AS x FROM t";
 
-		var made   = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made   = (Ast.Statement.Select)TransactSqlParser.Located.ParseStatement(text);
 		var column = (Ast.SelectColumn.ExpressionItem)((Ast.Query.Select)made.Query).Columns[0];
 
 		Assert.True(column.AsKeyword);
@@ -141,15 +67,10 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	{
 		const string text = "CREATE SCHEMA s AUTHORIZATION /* outer /* inner */ cache -- */ [realowner]";
 
-		var old = OldTree.Located.ParseStatement(text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
-		try
-		{
-			Assert.Equal("[realowner]", ((Ast.Statement.CreateSchema)Bridge.ToAst(old, text)).Authorization!.Name.Text);
-		}
-		catch (BridgeGap)
-		{
-		}
+		if (made is not Ast.Statement.Extension)
+			Assert.Equal("[realowner]", ((Ast.Statement.CreateSchema)made).Authorization!.Name.Text);
 	}
 
 	/// <summary>
@@ -163,9 +84,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something' AS Z")]
 	public void A_name_part_that_is_none_is_a_gap(string text)
 	{
-		var old = OldTree.Located.ParseStatement(text);
-
-		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+		Assert.IsType<DotGram.Sql.Ast.Statement.Extension>(TransactSqlParser.Located.ParseStatement(text));
 	}
 
 	/// <summary>A delimited name with a blank after it is the blank's gap, not a part that is no name.</summary>
@@ -175,118 +94,18 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("EXEC [dbo] . [p]")]
 	public void A_delimited_name_with_a_blank_is_the_blank_s_gap(string text)
 	{
-		var old    = OldTree.Located.ParseStatement(text);
-		var thrown = Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+		var made = Assert.IsType<Ast.Statement.Extension>(TransactSqlParser.Located.ParseStatement(text));
 
-		Assert.DoesNotContain("that is no name", thrown.Reason, StringComparison.Ordinal);
+		Assert.DoesNotContain("that is no name", made.Kind, StringComparison.Ordinal);
 	}
 
-	/// <summary>
-	/// A word the bridge read from the text and the writer then lost is found by the round trip on the new tree.
-	/// </summary>
-	[Theory]
-	[InlineData("SELECT a AS x FROM t", "SELECT a AS x FROM t", true)]
-	[InlineData("SELECT a AS x FROM t", "SELECT a x FROM t",    false)]
-	public void A_word_read_from_the_text_is_held_to_the_written_text(string text, string written, bool same)
-	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
-
-		Assert.Equal(same, BridgeOracle.Again(made, written) is null);
-	}
-
-	/// <summary>
-	/// A dialect pattern exempts its own subtree and no more: the same construct with a difference elsewhere is
-	/// a shape mismatch.
-	/// </summary>
-	[Theory]
-	[InlineData("SELECT TOP (1) a FROM t WHERE b = 1", "SELECT TOP (1) a FROM t WHERE b = 1", BridgeOracle.Top, false)]
-	[InlineData("SELECT TOP (1) a FROM t WHERE b = 1", "SELECT TOP (1) a FROM t WHERE b = 2", BridgeOracle.Top, true)]
-	[InlineData("SELECT TOP (1) a FROM t WHERE b = 1", "SELECT TOP (1) a, b FROM t WHERE b = 1", BridgeOracle.Top, true)]
-	[InlineData("UPDATE t SET u.c = 1 WHERE b = 1",    "UPDATE t SET u.c = 1 WHERE b = 1",    BridgeOracle.SetTc, false)]
-	[InlineData("UPDATE t SET u.c = 1 WHERE b = 1",    "UPDATE t SET u.c = 1 WHERE b = 2",    BridgeOracle.SetTc, true)]
-	[InlineData("OPEN GLOBAL c",                        "OPEN GLOBAL c",                       BridgeOracle.Global, false)]
-	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF GLOBAL c", "UPDATE t SET a = 2 WHERE CURRENT OF GLOBAL c", BridgeOracle.Global, true)]
-	[InlineData("SELECT a FROM t WHERE FREETEXT ((b), 'x')", "SELECT a FROM t WHERE FREETEXT ((b), 'x')", BridgeOracle.FullText, false)]
-	[InlineData("SELECT a FROM t WHERE FREETEXT ((b), 'x')", "SELECT a FROM u WHERE FREETEXT ((b), 'x')", BridgeOracle.FullText, true)]
-	[InlineData("SELECT CAST (a AS money) FROM t",     "SELECT CAST (a AS money) FROM t",     BridgeOracle.TypeName, false)]
-	[InlineData("SELECT CAST (a AS timestamp) FROM t", "SELECT CAST (a AS timestamp) FROM t", BridgeOracle.TypeName, false)]
-	[InlineData("SELECT CAST (a AS nvarchar) FROM t",  "SELECT CAST (a AS nvarchar) FROM t",  BridgeOracle.TypeName, false)]
-	[InlineData("SELECT CAST (a AS sys.sysname) FROM t", "SELECT CAST (a AS sys.sysname) FROM t", BridgeOracle.TypeName, false)]
-	[InlineData("SELECT CAST (a AS \"int\") FROM t",   "SELECT CAST (a AS \"int\") FROM t",   BridgeOracle.TypeName, false)]
-	[InlineData("SELECT CAST (a AS sys.\"int\") FROM t", "SELECT CAST (a AS sys.\"int\") FROM t", BridgeOracle.TypeName, false)]
-	[InlineData("SELECT CAST (a AS \"int\") FROM t WHERE b = 1", "SELECT CAST (a AS \"int\") FROM t WHERE b = 2", BridgeOracle.TypeName, true)]
-	[InlineData("SELECT CAST (a AS xml) FROM t",       "SELECT CAST (a AS xml) FROM t",       BridgeOracle.TypeName, false)]
-	[InlineData("SELECT CAST (a AS money) FROM t WHERE b = 1", "SELECT CAST (a AS money) FROM t WHERE b = 2", BridgeOracle.TypeName, true)]
-	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 1, a) FROM t",    BridgeOracle.DatePart, false)]
-	[InlineData("SELECT DATEADD (dd, 1, a) FROM t",    "SELECT DATEADD (dd, 2, a) FROM t",    BridgeOracle.DatePart, true)]
-	[InlineData("SELECT a FROM t GROUP BY ALL a",      "SELECT a FROM t GROUP BY ALL a",      BridgeOracle.GroupAll, false)]
-	[InlineData("SELECT a FROM t GROUP BY ALL a",      "SELECT a FROM t GROUP BY ALL b",      BridgeOracle.GroupAll, true)]
-	[InlineData("SELECT a INTO t FROM u",              "SELECT a INTO t FROM u",              BridgeOracle.Into, false)]
-	[InlineData("SELECT a INTO t FROM u",              "SELECT a INTO v FROM u",              BridgeOracle.Into, true)]
-	[InlineData("SELECT a AS x FROM t OPTION (RECOMPILE)", "SELECT a AS x FROM t OPTION (RECOMPILE)", BridgeOracle.Option, false)]
-	[InlineData("SELECT a AS x FROM t OPTION (RECOMPILE)", "SELECT a AS y FROM t OPTION (RECOMPILE)", BridgeOracle.Option, true)]
-	[InlineData("SELECT x = b FROM t",                 "SELECT x = b FROM t",                 BridgeOracle.Named, false)]
-	[InlineData("SELECT x = b FROM t WHERE c = 1",     "SELECT x = b FROM t WHERE c = 2",     BridgeOracle.Named, true)]
-	[InlineData("UPDATE ONLY (t) SET a = 1",            "UPDATE ONLY (t) SET a = 1",            BridgeOracle.Only, false)]
-	[InlineData("DELETE FROM ONLY (t) WHERE a = 1",     "DELETE FROM ONLY (t) WHERE a = 1",     BridgeOracle.Only, false)]
-	[InlineData("DELETE FROM ONLY (t) WHERE a = 1",     "DELETE FROM ONLY (t) WHERE a = 2",     BridgeOracle.Only, true)]
-	public void A_dialect_pattern_exempts_its_subtree_and_no_more(string bridged, string standard, string pattern, bool shape)
-	{
-		var made        = Bridge.ToAst(OldTree.Located.ParseStatement(bridged), bridged);
-		var differences = Trees.Differences(made, SqlStandardParser.ParseStatement(standard), old: false);
-		var exempted    = BridgeOracle.Meaning(differences, out var unexplained);
-
-		Assert.Contains(pattern, exempted);
-		Assert.Equal(shape, unexplained.Count > 0);
-	}
-
-	/// <summary>
-	/// The OPTION pattern exempts the statement's hints only where the standard's statement has none: a difference
-	/// between two lists of hints is a shape mismatch.
-	/// </summary>
+	/// <summary>A user-defined type is the standard's record for it.</summary>
 	[Fact]
-	public void The_option_pattern_needs_the_standard_side_without_hints()
-	{
-		const string text = "SELECT a FROM t OPTION (RECOMPILE)";
-
-		var made     = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
-		var standard = made with { Hints = [new Ast.QueryHint.Named(new Ast.Identifier("MAXDOP"), [])] };
-
-		Assert.Contains(BridgeOracle.Option, BridgeOracle.Meaning(Trees.Differences(made, made with { Hints = [] }, old: false), out var none));
-		Assert.Empty(none);
-
-		BridgeOracle.Meaning(Trees.Differences(made, standard, old: false), out var unexplained);
-		Assert.NotEmpty(unexplained);
-	}
-
-	/// <summary>
-	/// A user-defined type is the standard's, and a bridge that built another record for it, or for a type the
-	/// standard spells, would be a shape mismatch the type-name pattern does not exempt.
-	/// </summary>
-	[Fact]
-	public void The_type_name_pattern_exempts_only_a_system_type()
+	public void A_user_defined_type_is_the_standards()
 	{
 		const string text = "SELECT CAST (a AS MyType) FROM t";
 
-		Assert.Equal(SqlStandardParser.ParseStatement(text), Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
-
-		var mine = new Ast.QualifiedName([new Ast.Identifier("MyType")]);
-		var made   = new Ast.QualifiedName([new Ast.Identifier("INT")]);
-		var xml    = new Ast.QualifiedName([new Ast.Identifier("[xml]", Ast.IdentifierStyle.Bracketed)]);
-		var quoted = new Ast.QualifiedName([new Ast.Identifier("\"int\"", Ast.IdentifierStyle.Delimited)]);
-
-		foreach (var (bridged, standard) in new (Ast.DataType, Ast.DataType)[]
-		{
-			(new Ast.DataType.Named(mine, []), new Ast.DataType.UserDefined(mine)),
-			(new Ast.DataType.Named(made, []), new Ast.DataType.Numeric(Ast.NumericTypeKind.Int)),
-			(new Ast.DataType.Named(xml, []), new Ast.DataType.UserDefined(xml)),
-			(new Ast.DataType.Numeric(Ast.NumericTypeKind.Int, 10) { WrittenName = quoted }, new Ast.DataType.UserDefined(quoted)),
-		})
-		{
-			BridgeOracle.Meaning(Trees.Differences(bridged, standard, old: false), out var unexplained);
-
-			Assert.NotEmpty(unexplained);
-		}
+		Assert.Equal(SqlStandardParser.ParseStatement(text), TransactSqlParser.Located.ParseStatement(text));
 	}
 
 	/// <summary>
@@ -350,7 +169,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("MERGE INTO t USING u ON t.a = u.a WHEN NOT MATCHED BY SOURCE AND t.b = 1 THEN UPDATE SET b = 2 WHEN NOT MATCHED BY TARGET THEN INSERT DEFAULT VALUES;", "Merge.BySource ByTarget DefaultValues")]
 	public void The_bridge_builds_the_data_change_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -444,9 +263,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	/// <summary>
@@ -487,7 +304,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("CREATE TABLE t (a INT) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = [dbo 2].[t history]))", "Option a bracketed name with a blank")]
 	public void The_bridge_builds_the_table_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		static SqlList<Ast.TableElement> Elements(Ast.Statement made)
 		{
@@ -587,9 +404,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	/// <summary>
@@ -637,7 +452,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("CREATE SYNONYM s FOR srv.db.dbo.t",                                                                                                                                      "Synonym")]
 	public void The_bridge_builds_the_definition_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		static Ast.Option Word(string name, string value)
 		{
@@ -701,110 +516,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
-	}
-
-	/// <summary>
-	/// The shape check projects a T-SQL column's options and a key's columns onto the standard's members, once, in
-	/// the oracle: a column both parsers read compares equal so, and one option wrong, or one with no counterpart,
-	/// leaves it a shape mismatch.
-	/// </summary>
-	[Fact]
-	public void The_shape_check_projects_columns_and_keys_and_no_more()
-	{
-		const string text = "CREATE TABLE t (a INT DEFAULT 1 NOT NULL, PRIMARY KEY (a))";
-
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.Equal(BridgeOracle.Status.Converted, outcome.Status);
-		Assert.True(outcome.Standard);
-		Assert.False(outcome.Shape);
-		Assert.Equal([BridgeOracle.ProjectedColumn, BridgeOracle.ProjectedKey], outcome.Projected);
-
-		var standard = SqlStandardParser.ParseStatement(text);
-		var made     = (Ast.Statement.CreateTable)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
-		var items    = ((Ast.TableContents.Elements)made.Contents).Items;
-		var column   = ((Ast.TableElement.Column)items[0]).Definition;
-
-		Ast.Statement With(params Ast.ColumnOption[] options)
-		{
-			return made with { Contents = new Ast.TableContents.Elements([new Ast.TableElement.Column(column with { Options = [.. options] }), items[1]]) };
-		}
-
-		var one  = new Ast.LiteralValue.Numeric("1", Ast.NumericLiteralKind.DecimalInteger);
-		var two  = new Ast.LiteralValue.Numeric("2", Ast.NumericLiteralKind.DecimalInteger);
-		var keep = new Ast.ColumnOption.Constraint(new Ast.Constraint.NotNull());
-
-		foreach (var wrong in new[] { With(new Ast.ColumnOption.Default(two), keep), With(new Ast.ColumnOption.Default(one), keep, new Ast.ColumnOption.Sparse()) })
-		{
-			var projected = BridgeOracle.Projection(wrong, []);
-
-			Assert.NotEqual(standard, projected);
-			BridgeOracle.Meaning(Trees.Differences(projected, standard, old: false), out var unexplained);
-			Assert.NotEmpty(unexplained);
-		}
-	}
-
-	/// <summary>
-	/// <c>DEFAULT v COLLATE x</c> is exempted as the one move it names, the collation from the default's value to the
-	/// column, and only where the value and the collation are the standard's: either half alone, another value or
-	/// another collation is a shape mismatch.
-	/// </summary>
-	[Theory]
-	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_BIN)", false)]
-	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'y' COLLATE Latin1_General_BIN)", true)]
-	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_CI_AS)", true)]
-	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'x')", true)]
-	[InlineData("CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_BIN, b INT DEFAULT 2)", true)]
-	public void The_collated_default_pattern_exempts_the_move_and_no_more(string standard, bool shape)
-	{
-		const string text = "CREATE TABLE t (a VARCHAR(10) DEFAULT 'x' COLLATE Latin1_General_BIN)";
-
-		var made        = BridgeOracle.Projection(Bridge.ToAst(OldTree.Located.ParseStatement(text), text), []);
-		var differences = Trees.Differences(made, SqlStandardParser.ParseStatement(standard), old: false);
-		var exempted    = BridgeOracle.Meaning(differences, out var unexplained);
-
-		Assert.NotEmpty(differences);
-		Assert.Equal(shape, unexplained.Count > 0);
-
-		if (!shape)
-			Assert.Equal([BridgeOracle.Collated], exempted);
-	}
-
-	/// <summary>
-	/// The bridge builds T-SQL's column and key, which the shape check then projects: a tree already in the
-	/// standard's form is refused by the oracle before any comparison, as a different tree.
-	/// </summary>
-	[Fact]
-	public void The_oracle_refuses_a_tree_already_in_the_standards_form()
-	{
-		const string text = "CREATE TABLE t (a VARCHAR(10) COLLATE Latin1_General_BIN NOT NULL, PRIMARY KEY (a))";
-
-		var made = (Ast.Statement.CreateTable)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
-
-		Assert.Null(BridgeOracle.Unprojected(made));
-
-		var items  = ((Ast.TableContents.Elements)made.Contents).Items;
-		var column = ((Ast.TableElement.Column)items[0]).Definition;
-		var key    = (Ast.Constraint.Unique)((Ast.TableElement.TableConstraint)items[1]).Value;
-
-		Ast.Statement With(Ast.TableElement first, Ast.TableElement second)
-		{
-			return made with { Contents = new Ast.TableContents.Elements([first, second]) };
-		}
-
-		var collation = new Ast.CollationName(new Ast.QualifiedName([new Ast.Identifier("Latin1_General_BIN")]));
-
-		foreach (var standard in new[]
-		{
-			With(new Ast.TableElement.Column(column with { Options = [], Constraints = [new Ast.Constraint.NotNull()] }), items[1]),
-			With(new Ast.TableElement.Column(column with { Options = [column.Options[1]], Collation = collation }), items[1]),
-			With(new Ast.TableElement.Column(column with { Options = [column.Options[1]], Type = new Ast.DataType.Character(Ast.CharacterTypeKind.Varchar, 10, Collation: collation) }), items[1]),
-			With(items[0], new Ast.TableElement.TableConstraint(key with { Keys = null, Columns = [new Ast.Identifier("a")] })),
-		})
-			Assert.NotNull(BridgeOracle.Unprojected(standard));
+		ReadBack.Holds(text);
 	}
 
 	/// <summary>
@@ -819,7 +531,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT JSON_ARRAYAGG(a ORDER BY b) FROM t")]
 	public void A_json_function_is_the_standards_node(string text)
 	{
-		Assert.Equal(SqlStandardParser.ParseStatement(text), Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
+		Assert.Equal(SqlStandardParser.ParseStatement(text), TransactSqlParser.Located.ParseStatement(text));
 	}
 
 	/// <summary>
@@ -841,11 +553,24 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT JSON_ARRAYAGG(c.name ORDER BY c.column_id) FROM t AS c")]
 	[InlineData("SELECT JSON_ARRAYAGG(a ORDER BY b << 1) FROM t")]
 	[InlineData("SELECT JSON_ARRAYAGG(a ORDER BY b || c) FROM t")]
+	[InlineData("SELECT DATEADD(wk, 1, d)")]
+	[InlineData("DECLARE @a int")]
+	[InlineData("SET STATISTICS io ON")]
+	[InlineData("RAISERROR ('x', 1, 1) with nowait")]
+	[InlineData("EXEC p with recompile")]
+	[InlineData("CREATE PROCEDURE p @a int AS SELECT 1")]
+	[InlineData("CREATE FUNCTION f () RETURNS int AS BEGIN RETURN 1 END")]
+	[InlineData("DROP SYMMETRIC KEY k remove provider key")]
+	[InlineData("DROP ASSEMBLY a with no dependents")]
+	[InlineData("DROP TRIGGER r on database")]
+	[InlineData("DROP EVENT SESSION s on server")]
+	[InlineData("DROP SIGNATURE FROM object::p BY CERTIFICATE c")]
+	[InlineData("DROP SIGNATURE FROM p BY certificate c")]
+	[InlineData("DROP INDEX i on t")]
+	[InlineData("DROP INDEX i ON t with (ONLINE = ON)")]
 	public void A_statement_converts(string text)
 	{
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	/// <summary>
@@ -896,7 +621,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT ISJSON (a)",                                  "Expression.Invocation ISJSON")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
-		var made  = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made  = (Ast.Statement.Select)TransactSqlParser.Located.ParseStatement(text);
 		var value = ((Ast.SelectColumn.ExpressionItem)((Ast.Query.Select)made.Query).Columns[0]).Expression;
 
 		static Ast.DataType Target(Ast.Expression value)
@@ -1010,7 +735,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT * FROM FREETEXTTABLE (t, (*), @s, 5) AS k",       "TableSource.FreetextTable")]
 	public void The_bridge_builds_the_query_record_the_text_means(string text, string expected)
 	{
-		var made   = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made   = (Ast.Statement.Select)TransactSqlParser.Located.ParseStatement(text);
 		var select = (Ast.Query.Select)made.Query;
 		var source = select.From?.Sources[0];
 
@@ -1097,7 +822,7 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("SELECT a FROM \"as\" AS x", true)]
 	public void A_quoted_name_is_not_the_word_AS(string text, bool said)
 	{
-		var made = (Ast.Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = (Ast.Statement.Select)TransactSqlParser.Located.ParseStatement(text);
 		var from = ((Ast.Query.Select)made.Query).From!.Sources[0];
 
 		Assert.Equal(said, ((Ast.TableSource.Named)from).Alias!.AsKeyword);
@@ -1113,269 +838,9 @@ public sealed class BridgeTests(ITestOutputHelper output)
 	[InlineData("CREATE SCHEMA s AUTHORIZATION dbo CREATE TABLE t (c int)", "dbo", 1)]
 	public void A_schema_owner_is_one_name(string text, string owner, int elements)
 	{
-		var made = (Ast.Statement.CreateSchema)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = (Ast.Statement.CreateSchema)TransactSqlParser.Located.ParseStatement(text);
 
 		Assert.Equal(owner, made.Authorization!.Name.Text);
 		Assert.Equal(elements, made.Elements.Count);
-	}
-
-	/// <summary>
-	/// Every statement of the corpus and of <c>TransactSqlTests</c> carried, written and read back, and no
-	/// family doing worse than its baseline: <c>converted</c> no lower, the other five no higher; every
-	/// counter of <c>Baseline.Counters.txt</c> no higher; every failure of the round trip one of
-	/// <see cref="Expected"/>.
-	/// </summary>
-	/// <remarks>
-	/// <c>DOTGRAM_RECORD_BRIDGE_BASELINE=1</c> rewrites the baselines and docs/design/sql-tsql-bridge.md from
-	/// this run instead of comparing; nothing is written otherwise.
-	/// </remarks>
-	[Fact]
-	public void No_family_converts_worse_than_its_baseline()
-	{
-		var corpus = BridgeOracle.CorpusStatements().ToList();
-		var tests  = BridgeOracle.TestStatements().ToList();
-
-		Assert.Equal(BridgeOracle.CorpusCount(), corpus.Count);
-		Assert.True(corpus.Count > 6_000, $"{corpus.Count} corpus statements");
-		Assert.True(tests.Count > 1_000, $"{tests.Count} statements of TransactSqlTests");
-
-		var fromCorpus = corpus.AsParallel().AsOrdered().Select(static one => BridgeOracle.Run(one.Statement, one.Source)).ToList();
-		var fromTests  = tests.AsParallel().AsOrdered().Select(static one => BridgeOracle.Run(one.Statement, one.Source)).ToList();
-		var outcomes   = fromCorpus.Concat(fromTests).ToList();
-
-		var families = Bridge.Ownership
-			.SelectMany(static family => family.Owns.Select(record => (Record: record, family.Family)))
-			.ToDictionary(static one => one.Record, static one => one.Family, StringComparer.Ordinal);
-
-		var counts   = Count(outcomes);
-		var counters = Counters(outcomes);
-		var gaps     = outcomes
-			.SelectMany(static one => one.Gaps ?? [])
-			.GroupBy(static one => one.Record)
-			.ToDictionary(
-				static group => group.Key,
-				static group => group.GroupBy(static one => one.Reason).ToDictionary(static one => one.Key, static one => one.Count()),
-				StringComparer.Ordinal);
-
-		Summarize("corpus", fromCorpus);
-		Summarize("TransactSqlTests", fromTests);
-		Summarize("both", outcomes, 60);
-		Faults(outcomes);
-
-		Assert.Equal([], counts.Keys.Where(one => !families.ContainsKey(one)).Select(static one => $"{one}: counted and owned by no family"));
-
-		if (Environment.GetEnvironmentVariable(Baselines.Variable) is { Length: > 0 })
-		{
-			foreach (var (family, owns) in Bridge.Ownership)
-				Baselines.Write(family, owns, counts);
-
-			Baselines.WriteCounters(counters);
-
-			var occurrences = corpus.Concat(tests)
-				.SelectMany(static one => Trees.Nodes(one.Statement))
-				.GroupBy(Bridge.NameOf)
-				.ToDictionary(static group => group.Key, static group => group.Count(), StringComparer.Ordinal);
-
-			BridgeReport.Write(families, counts, gaps, occurrences, counters, Expected);
-
-			return;
-		}
-
-		var faults = new List<string>();
-		var better = new List<string>();
-
-		foreach (var (family, owns) in Bridge.Ownership)
-		{
-			var baseline = Baselines.Read(family);
-
-			foreach (var record in owns)
-			{
-				var now  = counts.TryGetValue(record, out var found) ? found : Baselines.None;
-				var then = baseline.TryGetValue(record, out var kept) ? kept : null;
-
-				if (then is null)
-				{
-					faults.Add($"{family}: {record} is not in Baseline.{family}.txt. Add `{record} = {now}`.");
-
-					continue;
-				}
-
-				var worse = new List<string>();
-
-				if (now.Converted < then.Converted)
-					worse.Add($"converted {now.Converted} where the baseline converted {then.Converted}");
-
-				Rise(worse, "refused", now.Refused, then.Refused);
-				Rise(worse, "crashed", now.Crashed, then.Crashed);
-				Rise(worse, "unread", now.Unread, then.Unread);
-				Rise(worse, "different", now.Different, then.Different);
-				Rise(worse, "shape", now.Shape, then.Shape);
-
-				faults.AddRange(worse.Select(one => $"{family}: {record} {one}."));
-
-				if (now != then && worse.Count == 0)
-					better.Add($"{family}: {record} = {then} -> {now}");
-			}
-		}
-
-		var recorded = Baselines.Rows("Counters").ToDictionary(static one => one.Key, static one => int.Parse(one.Value), StringComparer.Ordinal);
-
-		foreach (var (key, now) in counters)
-		{
-			var then = recorded.TryGetValue(key, out var kept) ? kept : 0;
-
-			if (now > then)
-				faults.Add($"Counters: {key} = {now} against {then}.");
-			else if (now < then)
-				better.Add($"Counters: {key} = {then} -> {now}");
-		}
-
-		foreach (var one in outcomes.Where(static one => one.Status is not (BridgeOracle.Status.Converted or BridgeOracle.Status.Gap)))
-		{
-			if (!Expected.TryGetValue(Flat(one.Text), out var status) || status != one.Status)
-				faults.Add($"{one.Status} and not expected: {Flat(one.Text)}");
-		}
-
-		foreach (var (text, status) in Expected)
-			if (!outcomes.Any(one => one.Status == status && Flat(one.Text) == text))
-				better.Add($"expected {status} and no longer: {text}");
-
-		// Printed rather than asserted: the baselines are rewritten deliberately, not by a passing run.
-		if (better.Count > 0)
-			foreach (var line in better.Prepend($"changed for the better, so rewrite the baselines deliberately ({Baselines.Variable}=1):"))
-				output.WriteLine(line);
-
-		Assert.Equal([], faults);
-	}
-
-	static void Rise(List<string> worse, string what, int now, int then)
-	{
-		if (now > then)
-			worse.Add($"{what} {now} against {then}");
-	}
-
-	static Dictionary<string, Baselines.Counts> Count(IEnumerable<BridgeOracle.Outcome> outcomes)
-	{
-		var counts = new Dictionary<string, Baselines.Counts>(StringComparer.Ordinal);
-
-		foreach (var one in outcomes)
-		{
-			var was = counts.TryGetValue(one.Counted, out var found) ? found : Baselines.None;
-
-			was = one.Status switch
-			{
-				BridgeOracle.Status.Converted => was with { Converted = was.Converted + 1 },
-				BridgeOracle.Status.Gap       => was with { Gap = was.Gap + 1 },
-				BridgeOracle.Status.Refused   => was with { Refused = was.Refused + 1 },
-				BridgeOracle.Status.Crashed   => was with { Crashed = was.Crashed + 1 },
-				BridgeOracle.Status.Unread    => was with { Unread = was.Unread + 1 },
-				_                             => was with { Different = was.Different + 1 },
-			};
-
-			counts[one.Counted] = one.Shape ? was with { Shape = was.Shape + 1 } : was;
-		}
-
-		return counts;
-	}
-
-	/// <summary>
-	/// The debts: each member passed only with key words' case aside, each read from the text, each dialect
-	/// pattern's exempted subtrees. Every name of the closed lists has a row, zero or not.
-	/// </summary>
-	static Dictionary<string, int> Counters(IEnumerable<BridgeOracle.Outcome> outcomes)
-	{
-		var counters = new Dictionary<string, int>(StringComparer.Ordinal);
-
-		foreach (var member in Trees.FreeText)
-			counters["ByCase " + member] = 0;
-
-		counters["ByCase " + Trees.DatePartWord] = 0;
-		counters["ByCase " + Trees.DropIndexName] = 0;
-		counters["ByCase " + Trees.SignerName] = 0;
-		counters["ByCase " + Trees.ExecuteAsWord] = 0;
-
-		foreach (var member in Bridge.Recoverable)
-			counters["Recovered " + member] = 0;
-
-		foreach (var pattern in BridgeOracle.Patterns)
-			counters["Meaning " + pattern] = 0;
-
-		foreach (var projection in BridgeOracle.Projections)
-			counters["Projected " + projection] = 0;
-
-		foreach (var one in outcomes)
-		{
-			foreach (var member in one.ByCase ?? [])
-				counters["ByCase " + member]++;
-
-			foreach (var member in one.Recovered ?? [])
-				counters["Recovered " + member]++;
-
-			foreach (var pattern in one.Dialects ?? [])
-				counters["Meaning " + pattern]++;
-
-			foreach (var projection in one.Projected ?? [])
-				counters["Projected " + projection]++;
-		}
-
-		return counters;
-	}
-
-	void Summarize(string name, IReadOnlyList<BridgeOracle.Outcome> outcomes, int reasons = 10)
-	{
-		int Of(BridgeOracle.Status status)
-		{
-			return outcomes.Count(one => one.Status == status);
-		}
-
-		output.WriteLine(
-			$"{name}: {outcomes.Count} statements; converted {Of(BridgeOracle.Status.Converted)} " +
-			$"({outcomes.Count(static one => one.ByCase is { Count: > 0 })} with the case of a key word aside), gap {Of(BridgeOracle.Status.Gap)}, " +
-			$"refused {Of(BridgeOracle.Status.Refused)}, crashed {Of(BridgeOracle.Status.Crashed)}, unread {Of(BridgeOracle.Status.Unread)}, " +
-			$"different {Of(BridgeOracle.Status.Different)}; read by the standard's parser {outcomes.Count(static one => one.Standard)}, " +
-			$"shape {outcomes.Count(static one => one.Shape)}, read with another meaning {outcomes.Count(static one => one.Dialect)}");
-
-		foreach (var (family, owns) in Bridge.Ownership)
-		{
-			var mine = outcomes.Where(one => owns.Contains(one.Counted)).ToList();
-
-			if (mine.Count > 0)
-				output.WriteLine(
-					$"  {family}: converted {mine.Count(static one => one.Status == BridgeOracle.Status.Converted)}, " +
-					$"gap {mine.Count(static one => one.Status == BridgeOracle.Status.Gap)}, " +
-					$"refused {mine.Count(static one => one.Status == BridgeOracle.Status.Refused)}, " +
-					$"crashed {mine.Count(static one => one.Status == BridgeOracle.Status.Crashed)}, " +
-					$"unread {mine.Count(static one => one.Status == BridgeOracle.Status.Unread)}, " +
-					$"different {mine.Count(static one => one.Status == BridgeOracle.Status.Different)}, " +
-					$"shape {mine.Count(static one => one.Shape)}");
-		}
-
-		output.WriteLine($"  the {reasons} commonest first gaps:");
-
-		foreach (var reason in outcomes.Where(static one => one.Reason is not null).GroupBy(static one => $"{one.Counted}: {one.Reason}").OrderByDescending(static one => one.Count()).Take(reasons))
-			output.WriteLine($"    {reason.Count(),6}  {reason.Key}");
-	}
-
-	/// <summary>
-	/// Every statement that was refused, crashed, unread, different, of another shape or read with another
-	/// meaning, with what explains it.
-	/// </summary>
-	void Faults(IEnumerable<BridgeOracle.Outcome> outcomes)
-	{
-		foreach (var one in outcomes.Where(static one => one.Status is not (BridgeOracle.Status.Converted or BridgeOracle.Status.Gap) || one.Shape || one.Dialect).Take(300))
-		{
-			output.WriteLine($"{one.Status}{(one.Shape ? " (shape)" : "")}{(one.Dialect ? $" (another meaning: {string.Join("; ", one.Dialects!)})" : "")} {one.Root}: {Flat(one.Text)}");
-
-			if (one.Written is not null)
-				output.WriteLine($"    written: {one.Written}");
-
-			if (one.Detail is not null)
-				output.WriteLine($"    {one.Detail}");
-		}
-	}
-
-	static string Flat(string text)
-	{
-		return string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 	}
 }

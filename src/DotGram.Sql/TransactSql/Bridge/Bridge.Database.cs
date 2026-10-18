@@ -294,7 +294,7 @@ static partial class Bridge
 				made = value switch
 				{
 					null                                => null,
-					Expression.Measured(var v, var unit) => new Ast.Expression.Measured(Values.Of(v), new Ast.Identifier(unit)),
+					Values.Measured(var v, var unit) => new Ast.Expression.Measured(Values.Of(v), new Ast.Identifier(unit)),
 					_                                   => Values.Of(value),
 				};
 
@@ -776,7 +776,7 @@ static partial class Bridge
 		static Ast.Expression Language(ISqlSpan old, SqlTokens.Token token)
 		{
 			return token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-				? Values.Of(new Expression.Literal(SqlLiteralKind.Hex, token.Text))
+				? Values.Of(Values.Hex(token.Text))
 				: Value(old, token);
 		}
 
@@ -889,7 +889,7 @@ static partial class Bridge
 			return token switch
 			{
 				{ Kind: SqlTokens.Kind.String }                                              => Values.String(token.Text),
-				{ Kind: SqlTokens.Kind.Number }                                              => Values.Of(new Expression.Literal(SqlLiteralKind.Number, token.Text)),
+				{ Kind: SqlTokens.Kind.Number }                                              => Values.Of(Values.Number(token.Text)),
 				{ Kind: SqlTokens.Kind.Word } when token.Text.StartsWith("@", StringComparison.Ordinal) => new Ast.Expression.Variable(new Ast.Identifier(token.Text)),
 				{ Kind: SqlTokens.Kind.Word } when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase) => new Ast.LiteralValue.Null(),
 				{ Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited }                     => new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, token.Text)])),

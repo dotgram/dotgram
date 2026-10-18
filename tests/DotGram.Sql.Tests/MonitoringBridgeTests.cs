@@ -16,9 +16,7 @@ public sealed class MonitoringBridgeTests
 {
 	static void Converts(string text)
 	{
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	[Theory]
@@ -28,7 +26,7 @@ public sealed class MonitoringBridgeTests
 	[InlineData("create event notification n on queue q with fan_in for Alter_Table to service 's'", "Lower case")]
 	public void The_bridge_builds_the_notification_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -57,7 +55,7 @@ public sealed class MonitoringBridgeTests
 	[InlineData("alter server audit a to application_log with (on_failure = shutdown) where c = 1", "Alter lower case")]
 	public void The_bridge_builds_the_audit_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -93,9 +91,7 @@ public sealed class MonitoringBridgeTests
 	[InlineData("CREATE SERVER AUDIT a TO FILE (FILEPATH = 'p', MAXSIZE = 1MB)")]
 	public void A_text_the_records_do_not_hold_is_a_gap(string text)
 	{
-		var old = OldTree.Located.ParseStatement(text);
-
-		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+		Assert.IsType<DotGram.Sql.Ast.Statement.Extension>(TransactSqlParser.Located.ParseStatement(text));
 	}
 
 	[Theory]
@@ -109,7 +105,7 @@ public sealed class MonitoringBridgeTests
 	[InlineData("alter server audit specification s for server audit a add (g) with (state = on, state = off)", "Lower case")]
 	public void The_bridge_builds_the_specification_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -146,7 +142,7 @@ public sealed class MonitoringBridgeTests
 	[InlineData("CREATE EVENT SESSION s ON SERVER ADD EVENT e (SET a = 1, a = 2)",               "A setting twice")]
 	public void The_bridge_builds_the_session_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -207,7 +203,7 @@ public sealed class MonitoringBridgeTests
 	public void The_bridge_builds_the_predicate_the_text_means(string predicate, string expected)
 	{
 		var text = $"CREATE EVENT SESSION s ON SERVER ADD EVENT e (WHERE {predicate})";
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 		var held = made is Ast.Statement.CreateEventSession { Pieces: [Ast.EventSessionPiece.AddEvent { Where: { } where }] } ? where : null;
 
 		var holds = expected switch
@@ -242,8 +238,6 @@ public sealed class MonitoringBridgeTests
 	[InlineData("CREATE EVENT SESSION s ON SERVER ADD EVENT e (SET a = -0x10)")]
 	public void A_value_the_tree_has_no_place_for_is_a_gap(string text)
 	{
-		var old = OldTree.Located.ParseStatement(text);
-
-		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+		Assert.IsType<DotGram.Sql.Ast.Statement.Extension>(TransactSqlParser.Located.ParseStatement(text));
 	}
 }

@@ -403,51 +403,6 @@ public abstract record Statement : ISqlSpan, ISqlLocatable
 		public string? Verb { get; init; }
 	}
 
-	/// <summary>
-	/// A statement whose rule builds the common tree (<see cref="DotGram.Sql.Ast.Statement"/>) already, standing
-	/// where a statement of this tree is held: in a text of statements, a block, a body. The bridge carries it
-	/// across as what it holds.
-	/// </summary>
-	/// <param name="Made">The statement on the common tree, or null where building it found a gap.</param>
-	/// <param name="Gap">What the common tree has no place for yet, which carrying the statement throws.</param>
-	/// <param name="Recovered">The members building it read from the text, which carrying it counts again.</param>
-	/// <param name="Given">
-	/// What the rule handed its builder: a <c>Bridge.Given</c>, which names the record of this tree the rule built before,
-	/// or that record itself, where the rule's parts were gathered into one; the statement is counted under it. Held as an
-	/// object, so that a walk of the tree takes none of it for a node.
-	/// </param>
-	internal sealed record Built(DotGram.Sql.Ast.Statement? Made, TransactSql.BridgeGap? Gap, string[]? Recovered, object Given) : Statement
-	{
-		/// <summary>
-		/// The builder of a statement whose conversion reads the text the statement was written in, waiting for the extent
-		/// the statement ends with: that of the rule that reads the WITH in front of it and the `;` after it, which is
-		/// where it is finished (`Bridge.Dml.Preceded`). Null once it is built.
-		/// </summary>
-		internal Func<object, DotGram.Sql.Ast.Statement>? Pending { get; init; }
-
-		/// <summary>The record of this tree the rule built before.</summary>
-		public string Record => Given is TransactSql.Bridge.Given given ? given.Record : TransactSql.Bridge.NameOf(Given);
-
-		/// <inheritdoc/>
-		public override StatementCategory Category => Made is { } made ? DotGram.Sql.Ast.StatementCategories.Category(made) : Given is TransactSql.Bridge.Queries.Selecting ? StatementCategory.Query : StatementCategory.Ddl;
-
-		/// <summary>
-		/// Equal where both hold equal statements, or gaps that say the same; one held until it is carried
-		/// (<see cref="Pending"/>), where both were handed what is equal.
-		/// </summary>
-		public bool Equals(Built? other)
-		{
-			return other is not null && Equals(Made, other.Made) && Gap?.Message == other.Gap?.Message &&
-				(Pending is null && other.Pending is null || Equals(Given, other.Given));
-		}
-
-		/// <inheritdoc/>
-		public override int GetHashCode()
-		{
-			return Pending is null ? (Made?.GetHashCode() ?? 0) * 31 + (Gap?.Message.GetHashCode() ?? 0) : Given.GetHashCode();
-		}
-	}
-
 	/// <param name="Tail">What the action was given, where the tree keeps it as written.</param>
 	public sealed record AlterTable(
 		string Name, string Action, SqlList<Clause> Elements, SqlList<Clause>? Options = null, string? Tail = null) : Statement
@@ -2546,97 +2501,6 @@ public abstract record Query : ISqlSpan, ISqlLocatable
 	/// </remarks>
 	public sealed record FromExecute(Statement.Execute Execute) : Query;
 
-	/// <summary>
-	/// A query whose rule builds it on the common tree (<see cref="DotGram.Sql.Ast.Query"/>) already, standing where a
-	/// query of this tree is held: under a value, a table source, a statement's rows. The bridge carries it across as
-	/// what it holds.
-	/// </summary>
-	/// <remarks>
-	/// What the rules that hold a query ask of it is kept with it (<see cref="Facts"/>), since the parts it was built
-	/// from are not; so is what a reading of the text <c>SELECT value</c> takes apart, a specification's select list
-	/// and condition, and a table value constructor's rows. None of its members is public, so that a walk of this tree
-	/// takes it for a leaf.
-	/// </remarks>
-	internal sealed record Built : Query
-	{
-		DotGram.Sql.Ast.Query? _made;
-
-		/// <param name="made">The query on the common tree, or null where building it found a gap.</param>
-		/// <param name="gap">What the common tree has no place for yet, which carrying the query throws.</param>
-		/// <param name="recovered">The members building it read from the text, which carrying it counts again.</param>
-		/// <param name="record">The record of this tree the rule built before, under which a gap in it is said.</param>
-		/// <param name="facts">What the rules that hold the query ask of it.</param>
-		internal Built(DotGram.Sql.Ast.Query? made, TransactSql.BridgeGap? gap, string[]? recovered, string record, Facts facts)
-		{
-			_made     = made;
-			Gap       = gap;
-			Recovered = recovered;
-			Record    = record;
-			Is        = facts;
-		}
-
-		/// <summary>What the rules that hold a query ask of it, of the query and of what its brackets and operators lead to.</summary>
-		[Flags]
-		internal enum Facts
-		{
-			None = 0,
-
-			/// <summary>A select that assigns a variable in its select list, in brackets or not (<see cref="Syntax.Assigns"/>).</summary>
-			Assigns = 1,
-
-			/// <summary>A select that assigns a variable and has nothing to select from (<see cref="Syntax.AssignsFromNothing"/>).</summary>
-			AssignsFromNothing = 2,
-
-			/// <summary>A query a cursor may be declared for (<see cref="Syntax.Cursorable"/>).</summary>
-			Cursorable = 4,
-
-			/// <summary>A query that combines a select that assigns a variable (<see cref="Syntax.AssignsCombined"/>).</summary>
-			AssignsCombined = 8,
-		}
-
-		/// <summary>
-		/// The query on the common tree, or null where building it found a gap; a table value constructor's is made of its
-		/// rows when it is first asked for, since the rows of an <c>INSERT</c> are taken without it.
-		/// </summary>
-		internal DotGram.Sql.Ast.Query? Made => _made ??= Values is { } rows ? new DotGram.Sql.Ast.Query.Select { Values = rows } : null;
-
-		/// <summary>What the common tree has no place for yet, which carrying the query throws.</summary>
-		internal TransactSql.BridgeGap? Gap { get; }
-
-		/// <summary>The members building it read from the text, which carrying it counts again.</summary>
-		internal string[]? Recovered { get; }
-
-		/// <summary>The record of this tree the rule built before.</summary>
-		internal string Record { get; }
-
-		/// <summary>What the rules that hold the query ask of it.</summary>
-		internal Facts Is { get; }
-
-		/// <summary>A specification's select list, as the rules read it.</summary>
-		internal SqlList<Clause> Columns { get; init; }
-
-		/// <summary>A specification's condition, as the rules read it.</summary>
-		internal Expression? Where { get; init; }
-
-		/// <summary>A table value constructor's rows, as the rules read them.</summary>
-		internal SqlList<Expression> Rows { get; init; }
-
-		/// <summary>A table value constructor's rows on the common tree, where they were built.</summary>
-		internal SqlList<DotGram.Sql.Ast.RowValue>? Values { get; init; }
-
-		/// <summary>Equal where both hold equal queries, or gaps that say the same.</summary>
-		public bool Equals(Built? other)
-		{
-			return other is not null && Equals(Made, other.Made) && Gap?.Message == other.Gap?.Message;
-		}
-
-		/// <inheritdoc/>
-		public override int GetHashCode()
-		{
-			return (Made?.GetHashCode() ?? 0) * 31 + (Gap?.Message.GetHashCode() ?? 0);
-		}
-	}
-
 	/// <summary>Whether a set quantifier asked for distinct rows, for a reader that wants to know.</summary>
 	public static bool IsDistinct(string? quantifier)
 	{
@@ -3136,75 +3000,6 @@ public abstract record TableReference : ISqlSpan, ISqlLocatable
 	public sealed record Joined(
 		SqlJoin Kind, bool Outer, bool Natural, TableReference Left, TableReference Right,
 		Expression? On = null, SqlList<string>? Using = null, string? Hint = null) : TableReference;
-
-	/// <summary>
-	/// A source whose rule builds it on the common tree (<see cref="DotGram.Sql.Ast.TableSource"/>) already, standing
-	/// where a source of this tree is held: in a <c>FROM</c>, a join, a <c>MERGE</c>'s <c>USING</c>. The bridge carries
-	/// it across as what it holds.
-	/// </summary>
-	/// <remarks>
-	/// What the rules that hold a source ask of it is kept with it (<see cref="Shape"/>, <see cref="Bracketable"/>). None
-	/// of its members is public, so that a walk of this tree takes it for a leaf.
-	/// </remarks>
-	internal sealed record Built : TableReference
-	{
-		/// <param name="made">The source on the common tree, or null where building it found a gap.</param>
-		/// <param name="gap">What the common tree has no place for yet, which carrying the source throws.</param>
-		/// <param name="recovered">The members building it read from the text, which carrying it counts again.</param>
-		/// <param name="record">The record of this tree the rule built before, under which a gap in it is said.</param>
-		/// <param name="shape">The record the rule built before, by kind.</param>
-		/// <param name="bracketable">Whether it may stand in a source's brackets (<see cref="Syntax.Bracketable"/>).</param>
-		internal Built(DotGram.Sql.Ast.TableSource? made, TransactSql.BridgeGap? gap, string[]? recovered, string record, Kind shape, bool bracketable)
-		{
-			Made        = made;
-			Gap         = gap;
-			Recovered   = recovered;
-			Record      = record;
-			Shape       = shape;
-			Bracketable = bracketable;
-		}
-
-		/// <summary>The kinds of source the rules that hold one tell apart.</summary>
-		internal enum Kind
-		{
-			Other,
-			Joined,
-			Parenthesized,
-			OdbcJoin,
-			Pivot,
-			Unpivot,
-		}
-
-		/// <summary>The source on the common tree, or null where building it found a gap.</summary>
-		internal DotGram.Sql.Ast.TableSource? Made { get; }
-
-		/// <summary>What the common tree has no place for yet, which carrying the source throws.</summary>
-		internal TransactSql.BridgeGap? Gap { get; }
-
-		/// <summary>The members building it read from the text, which carrying it counts again.</summary>
-		internal string[]? Recovered { get; }
-
-		/// <summary>The record of this tree the rule built before.</summary>
-		internal string Record { get; }
-
-		/// <summary>The record the rule built before, by kind.</summary>
-		internal Kind Shape { get; }
-
-		/// <summary>Whether it may stand in a source's brackets.</summary>
-		internal bool Bracketable { get; }
-
-		/// <summary>Equal where both hold equal sources, or gaps that say the same.</summary>
-		public bool Equals(Built? other)
-		{
-			return other is not null && Equals(Made, other.Made) && Gap?.Message == other.Gap?.Message;
-		}
-
-		/// <inheritdoc/>
-		public override int GetHashCode()
-		{
-			return (Made?.GetHashCode() ?? 0) * 31 + (Gap?.Message.GetHashCode() ?? 0);
-		}
-	}
 
 	/// <summary>What a clause with no sources is handed, once rather than per call.</summary>
 	public static readonly SqlList<TableReference> None = [];
@@ -4341,7 +4136,6 @@ public static class Syntax
 	{
 		return inner switch
 		{
-			TableReference.Built built => built.Bracketable,
 			TableReference.Joined { Kind: SqlJoin.Cross or SqlJoin.CrossApply or SqlJoin.OuterApply, Right: var right } when Pivots(right) => false,
 			TableReference.Joined or TableReference.Parenthesized or TableReference.OdbcJoin => true,
 			_ => false,
@@ -4351,7 +4145,7 @@ public static class Syntax
 	/// <summary>Whether a source is a pivot or an unpivot, which an ODBC join's braces may not hold alone.</summary>
 	public static bool Pivots(TableReference? source)
 	{
-		return source is TableReference.Pivot or TableReference.Unpivot or TableReference.Built { Shape: TableReference.Built.Kind.Pivot or TableReference.Built.Kind.Unpivot };
+		return source is TableReference.Pivot or TableReference.Unpivot;
 	}
 
 	/// <summary>A call and what was written after it, where anything was.</summary>
@@ -4536,10 +4330,6 @@ public static class Syntax
 	/// </remarks>
 	public static bool Cursorable(Query? query)
 	{
-		// A query its rule built already says so itself.
-		if (query is Query.Built built)
-			return (built.Is & Query.Built.Facts.Cursorable) != 0;
-
 		// One query, which is nearly always what this is asked about, without the stack below.
 		if (query is not (Query.Union or Query.Except or Query.Intersect or Query.Parenthesized or Query.Ordered))
 			return query is not (null or Query.Specification { Into: not null } or Query.TableValueConstructor);
@@ -4554,7 +4344,7 @@ public static class Syntax
 		{
 			var next = pending.Pop();
 
-			if (next is null or Query.Specification { Into: not null } or Query.TableValueConstructor || next is Query.Built { Is: var facts } && (facts & Query.Built.Facts.Cursorable) == 0)
+			if (next is null or Query.Specification { Into: not null } or Query.TableValueConstructor)
 				return false;
 
 			if (Combined(next) is (var left, var right))
@@ -4649,9 +4439,6 @@ public static class Syntax
 		while (query is Query.Parenthesized(var inner))
 			query = inner;
 
-		if (query is Query.Built built)
-			return (built.Is & Query.Built.Facts.Assigns) != 0;
-
 		return query is Query.Specification { Columns: var columns } && columns.Exists(static one => one is Clause.VariableAssignment);
 	}
 
@@ -4661,10 +4448,6 @@ public static class Syntax
 	/// </summary>
 	public static bool AssignsCombined(Query? query)
 	{
-		// A query its rule built already says so itself.
-		if (query is Query.Built built)
-			return (built.Is & Query.Built.Facts.AssignsCombined) != 0;
-
 		// Every select statement asks this, and nearly every one is one query: no stack for that.
 		if (query is not (Query.Union or Query.Except or Query.Intersect or Query.Parenthesized))
 			return false;
@@ -4678,12 +4461,7 @@ public static class Syntax
 		{
 			var next = pending.Pop();
 
-			if (next is Query.Built { Is: var facts })
-			{
-				if ((facts & Query.Built.Facts.AssignsCombined) != 0)
-					return true;
-			}
-			else if (Combined(next) is (var left, var right))
+			if (Combined(next) is (var left, var right))
 			{
 				if (Assigns(left) || Assigns(right))
 					return true;
@@ -4713,9 +4491,6 @@ public static class Syntax
 	/// <summary>Whether a query assigns a variable and has nothing to select from — which no `ORDER BY` may follow.</summary>
 	public static bool AssignsFromNothing(Query? query)
 	{
-		if (query is Query.Built built)
-			return (built.Is & Query.Built.Facts.AssignsFromNothing) != 0;
-
 		return query is Query.Specification { From.IsEmpty: true } && Assigns(query);
 	}
 

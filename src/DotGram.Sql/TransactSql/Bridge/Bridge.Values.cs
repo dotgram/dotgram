@@ -11,231 +11,634 @@ namespace DotGram.Sql.TransactSql;
 static partial class Bridge
 {
 	/// <summary>
-	/// Names, literals, variables, operators, data types and functions: every <see cref="DotGram.Sql.Expression"/>,
-	/// and the strings the old tree keeps names and types in.
+	/// Names, literals, variables, operators, data types and functions: the values the rules build on the common tree in
+	/// their actions, and the strings names and types are read as until a builder takes them apart.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A rule that reads a value builds its node at once, with the node its parts already are. Where the common tree has
+	/// no place for what was read, the node is <see cref="Unbuilt"/>, which says why; a value built over one is that
+	/// one, and a builder that takes one (<see cref="Of"/>) throws its gap, which the builder's statement holds, as a
+	/// statement built from a part with no place always did.
+	/// </para>
+	/// <para>
+	/// A few shapes a builder takes apart and nothing else holds — a word standing for a name, a call whose arguments say
+	/// more than values, a key and its value — stand as a <see cref="Held"/> until the builder that knows what they mean
+	/// meets them; anywhere else <see cref="Of"/> makes of one what it is as a value.
+	/// </para>
+	/// </remarks>
 	internal static class Values
 	{
-		public static readonly string[] Owns =
-		[
-			.. typeof(Expression).GetNestedTypes().Where(static one => one.IsSubclassOf(typeof(Expression))).Select(NameOf),
-			"Clause.When",
-			"Clause.Window",
-			"Clause.WindowDefinition",
-		];
+		/// <summary>What a call with no values is handed, once rather than per call.</summary>
+		public static readonly SqlList<Ast.Expression> None = [];
 
-		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
+		/// <summary>
+		/// A value as a node of the common tree: itself, or what a held shape is as a value, told where the shape was
+		/// written; a value with no place throws its gap.
+		/// </summary>
+		public static Ast.Expression Of(Ast.Expression value)
 		{
-			made = old is Expression expression ? Of(expression) : null;
+			if (value is not Held held)
+				return value;
 
-			return made is not null;
-		}
+			var made = held.Resolved();
 
-		public static Ast.Expression Of(Expression old)
-		{
-			if (!SqlStack.Enough())
-				return Deeper(old, static node => Of((Expression)node));
-
-			var made = Converted(old);
-
-			// The family recurses on itself rather than through the dispatcher, so it places its own nodes.
-			if (locating && old.Span is { Known: true, IsStale: false } span)
-				Place(made, span);
+			if (locating && held.Read is { Known: true } span)
+				made.Locate(span.At, span.Length);
 
 			return made;
 		}
 
-		static Ast.Expression Converted(Expression old)
+		/// <summary>A value built at once, or the gap that says why it could not be: the value of every builder below.</summary>
+		static Ast.Expression Gapped(BridgeGap gap)
 		{
-			return old switch
+			return new Unbuilt(gap);
+		}
+
+		/// <summary>
+		/// The same, where the rules ask of the value what it was read as (<see cref="Unbuilt.Shape"/>), whether it held a query,
+		/// and what it was read over.
+		/// </summary>
+		static Ast.Expression Gapped(BridgeGap gap, string? shape, bool query, SqlList<Ast.Expression> parts)
+		{
+			return new Unbuilt(gap) { Shape = shape, HoldsQuery = query, Parts = parts };
+		}
+
+		/// <summary>The values a CASE was read over.</summary>
+		static SqlList<Ast.Expression> Parts(Ast.Expression? operand, SqlList<Clause> whens, Ast.Expression? otherwise)
+		{
+			var parts = new List<Ast.Expression>();
+
+			if (operand is not null)
+				parts.Add(operand);
+
+			foreach (var one in whens)
+				if (one is Clause.When(var test, var result))
+				{
+					parts.Add(test);
+					parts.Add(result);
+				}
+
+			if (otherwise is not null)
+				parts.Add(otherwise);
+
+			return [.. parts];
+		}
+
+		/// <summary>The values a primary and what was reached through it were read over.</summary>
+		static SqlList<Ast.Expression> Parts(Ast.Expression primary, Reach[]? members, Zoning[]? zones)
+		{
+			var parts = new List<Ast.Expression> { primary };
+
+			foreach (var member in members ?? [])
+				parts.AddRange(member.Arguments ?? []);
+
+			foreach (var zone in zones ?? [])
+				parts.Add(zone.Zone);
+
+			return [.. parts];
+		}
+
+		// ── What the rules ask of a value ─────────────────────────────────────────
+
+		/// <summary>What a value in brackets holds, or null where it is not one.</summary>
+		public static Ast.Expression? Bracketed(Ast.Expression? value)
+		{
+			return value switch
 			{
-				Expression.Or(var left, var right)          => Binary(left, Ast.BinaryOperator.Or, right),
-				Expression.And(var left, var right)         => Binary(left, Ast.BinaryOperator.And, right),
-				Expression.Not(var operand)                 => new Ast.Expression.Unary(Ast.UnaryOperator.Not, Of(operand)),
-				Expression.IsTruth(var operand, var not, var truth) => new Ast.Expression.IsTruth(Of(operand), not, Truth(truth)),
-
-				Expression.Add(var left, var right)         => Binary(left, Ast.BinaryOperator.Add, right),
-				Expression.Subtract(var left, var right)    => Binary(left, Ast.BinaryOperator.Subtract, right),
-				Expression.Concatenate(var left, var right) => Binary(left, Ast.BinaryOperator.Concatenate, right),
-				Expression.Multiply(var left, var right)    => Binary(left, Ast.BinaryOperator.Multiply, right),
-				Expression.Divide(var left, var right)      => Binary(left, Ast.BinaryOperator.Divide, right),
-				Expression.Modulo(var left, var right)      => Binary(left, Ast.BinaryOperator.Modulo, right),
-				Expression.BitwiseAnd(var left, var right)  => Binary(left, Ast.BinaryOperator.BitwiseAnd, right),
-				Expression.BitwiseOr(var left, var right)   => Binary(left, Ast.BinaryOperator.BitwiseOr, right),
-				Expression.BitwiseXor(var left, var right)  => Binary(left, Ast.BinaryOperator.BitwiseXor, right),
-				Expression.ShiftLeft(var left, var right)   => Binary(left, Ast.BinaryOperator.ShiftLeft, right),
-				Expression.ShiftRight(var left, var right)  => Binary(left, Ast.BinaryOperator.ShiftRight, right),
-
-				Expression.Negate(var operand)              => new Ast.Expression.Unary(Ast.UnaryOperator.Minus, Of(operand)),
-				Expression.Plus(var operand)                => new Ast.Expression.Unary(Ast.UnaryOperator.Plus, Of(operand)),
-				Expression.BitwiseNot(var operand)          => new Ast.Expression.Unary(Ast.UnaryOperator.BitwiseNot, Of(operand)),
-
-				Expression.Comparison(var left, var op, var right) =>
-					new Ast.Expression.Comparison(Of(left), Comparison(op), Of(right), op == SqlComparison.NotEqualBang),
-
-				Expression.Quantified quantified            => Quantified(quantified),
-
-				Expression.Between(var value, var not, var low, var high) =>
-					new Ast.Expression.Between(Of(value), not, null, Of(low), Of(high)),
-
-				Expression.In(var value, var not, var from) => new Ast.Expression.In(Of(value), not, InSource(old, from)),
-
-				// T-SQL's `{ESCAPE '%'}`: the escape value itself, written in ODBC's braces.
-				Expression.Like(var value, var not, var pattern, Expression.OdbcEscape(var kind, var braced, _)) =>
-					kind.Equals("ESCAPE", StringComparison.OrdinalIgnoreCase)
-						? new Ast.Expression.Like(Of(value), not, Ast.LikeKind.Like, Of(pattern), Of(braced)) { BracedEscape = true }
-						: throw BridgeGap.Open(old, $"inventory Expression.Like (an escape in braces of kind `{kind}`)"),
-
-				Expression.Like(var value, var not, var pattern, var escape) =>
-					new Ast.Expression.Like(Of(value), not, Ast.LikeKind.Like, Of(pattern), escape is null ? null : Of(escape)),
-
-				Expression.IsNull(var value, var not)       => new Ast.Expression.IsNull(Of(value), not),
-				Expression.Exists(var query)                => new Ast.Expression.Exists(QueryOf(query)),
-				Expression.Unique(var query)                => new Ast.Expression.Unique(null, QueryOf(query)),
-				Expression.Match match                      => Match(match),
-				Expression.Overlaps(var left, var right)    => new Ast.Expression.Overlaps(Of(left), Of(right)),
-
-				// DistinctTail's quantifier before a subquery, which the old tree keeps as a word in front of it.
-				Expression.IsDistinctFrom(var left, var not, Expression.Prefixed(var word, Expression.Subquery subquery)) when word.ToUpperInvariant() is "ALL" or "ANY" or "SOME" =>
-					new Ast.Expression.IsDistinct(Of(left), not, Of(subquery))
-					{
-						Quantifier = word.ToUpperInvariant() switch { "ALL" => Ast.Quantifier.All, "ANY" => Ast.Quantifier.Any, _ => Ast.Quantifier.Some },
-					},
-
-				Expression.IsDistinctFrom(var left, var not, var right) =>
-					new Ast.Expression.IsDistinct(Of(left), not, Of(right)),
-
-				Expression.RoutineInvocation call           => Function(call),
-				Expression.WindowFunction windowed          => Windowed(windowed),
-
-				Expression.Case(var operand, var whens, var otherwise) => new Ast.Expression.Case(
-					operand is null ? null : Of(operand),
-					Each(whens, When),
-					otherwise is null ? null : Of(otherwise)),
-
-				// `t.*` as an argument: all columns of `t`, its target the table's reference, as the standard's parser builds it.
-				Expression.ColumnReference(var text) when text.Length > 2 && text.EndsWith(".*", StringComparison.Ordinal) =>
-					new Ast.Expression.Wildcard(new Ast.Expression.Reference(Name(old, text[..^2])), Ast.WildcardKind.Member),
-
-				// A bare `*` where a value stands: CONTAINS, FREETEXT and the semantic-search functions' every column.
-				Expression.ColumnReference("*")             => new Ast.Expression.Asterisk(),
-				Expression.ColumnReference(var text)        => new Ast.Expression.Reference(Name(old, text)),
-				Expression.Literal literal                  => Literal(literal),
-				Expression.RowValueConstructor(var items)   => new Ast.Expression.Row(Each(items, Of)),
-
-				Expression.Member(var of, var by, var name, var arguments) => new Ast.Expression.Member(
-					Of(of),
-					by == "::" ? Ast.MemberAccessKind.StaticMethod : Ast.MemberAccessKind.Dot,
-					Part(old, name),
-					arguments is { } passed ? Each(passed, Argument) : null),
-
-				Expression.Collated(var value, var collation) =>
-					new Ast.Expression.Collate(Of(value), new Ast.CollationName(Name(old, collation))),
-
-				Expression.Parenthesized(var value)         => Parenthesized(Of(value)),
-				Expression.Subquery(var query)              => new Ast.Expression.Subquery(QueryOf(query)),
-
-				Expression.GraphMatch(var pattern) => Queries.GraphMatch(old, pattern),
-				Expression.RowsetOrder     => throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)"),
-				Expression.Prefixed        => throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)"),
-				Expression.Pieced          => throw BridgeGap.Missing(old, "a typed T-SQL rowset table source (proposal 7)"),
-				Expression.Measured        => throw BridgeGap.Unwritten(old, "Expression.Measured"),
-				Expression.OdbcEscape escape => Odbc(escape),
-				Expression.Hinted          => throw BridgeGap.Open(old, "inventory Expression.Hinted"),
-				Expression.JsonPair        => throw BridgeGap.Open(old, "inventory Expression.JsonPair"),
-				Expression.NamedArgument   => throw BridgeGap.Open(old, "inventory Expression.NamedArgument"),
-				Expression.Aliased         => throw BridgeGap.Open(old, "inventory Expression.Aliased"),
-
-				_ => throw BridgeGap.Missing(old, "no arm"),
+				Ast.Expression.Parenthesized(var inner)               => inner,
+				Unbuilt { Shape: "Expression.Parenthesized", Parts: [var inner] } => inner,
+				_                                                     => null,
 			};
 		}
+
+		/// <summary>
+		/// The text of a value written as a column or a word, as written: <c>t.*</c>, <c>*</c>, a name in its parts; null
+		/// where it is no such thing. What a builder that reads a word an option is set to reads.
+		/// </summary>
+		public static string? Wording(Ast.Expression? value)
+		{
+			return value switch
+			{
+				Word(var text)                                                  => text,
+				Ast.Expression.Asterisk                                         => "*",
+				Ast.Expression.Reference(var name)                              => Joined(name),
+				Ast.Expression.Wildcard(Ast.Expression.Reference(var name), Ast.WildcardKind.Member) => Joined(name) + ".*",
+				_                                                               => null,
+			};
+
+			static string Joined(Ast.QualifiedName name)
+			{
+				if (name.Count == 1)
+					return name[0].Text;
+
+				var parts = new string[name.Count];
+
+				for (var at = 0; at < parts.Length; at++)
+					parts[at] = name[at].Text;
+
+				return string.Join(".", parts);
+			}
+		}
+
+		/// <summary>
+		/// Whether a value is what the reference calls a literal where a value stands: a number, a string, a binary string,
+		/// <c>NULL</c>, <c>DEFAULT</c>, a variable or a parameter, or one of the words that stand for a value.
+		/// </summary>
+		public static bool IsLiteral(Ast.Expression? value)
+		{
+			return value is Ast.LiteralValue or Ast.Expression.Default or Ast.Expression.Variable or Ast.Expression.Parameter
+				or Ast.Expression.Current or Literal;
+		}
+
+		/// <summary>Whether a value is a variable or a parameter, <c>@x</c>, <c>?</c>, <c>:x</c>.</summary>
+		public static bool IsParameter(Ast.Expression? value)
+		{
+			return value is Ast.Expression.Variable or Ast.Expression.Parameter or Literal { Kind: "Parameter" };
+		}
+
+		/// <summary>A literal's text as written, quotes and all, or null where the value is no literal with a text.</summary>
+		public static string? LiteralText(Ast.Expression? value)
+		{
+			return value switch
+			{
+				Ast.LiteralValue.String { Kind: Ast.StringLiteralKind.National } national => "N" + national.Text,
+				Ast.LiteralValue.String text      => text.Text,
+				Ast.LiteralValue.Numeric number   => number.Text,
+				Ast.LiteralValue.Binary binary    => "0x" + binary.Text,
+				Ast.LiteralValue.Null             => "NULL",
+				Ast.Expression.Default            => "DEFAULT",
+				Ast.Expression.Variable(var name) => name.Text,
+				Ast.Expression.Parameter          => "?",
+				Literal(_, var text)              => text,
+				_                                 => null,
+			};
+		}
+
+		// ── The operators ─────────────────────────────────────────────────────────
 
 		/// <summary>
 		/// A pair of brackets around a value. Around a subquery, which has brackets of its own, the new tree
 		/// takes the second pair as the query's (<see cref="Ast.Query.Parenthesized"/>): <c>((SELECT 1))</c> is a
 		/// subquery of a bracketed query, where the old tree has a bracketed subquery.
 		/// </summary>
-		static Ast.Expression Parenthesized(Ast.Expression value)
+		public static Ast.Expression Parenthesized(Ast.Expression value)
 		{
-			return value is Ast.Expression.Subquery(var query)
-				? new Ast.Expression.Subquery(new Ast.Query.Parenthesized(query))
-				: new Ast.Expression.Parenthesized(value);
-		}
-
-		static Ast.Expression Binary(Expression left, Ast.BinaryOperator op, Expression right)
-		{
-			return new Ast.Expression.Binary(Of(left), op, Of(right));
-		}
-
-		static Ast.BooleanLiteral Truth(SqlTruth truth)
-		{
-			return truth switch
+			try
 			{
-				SqlTruth.True  => Ast.BooleanLiteral.True,
-				SqlTruth.False => Ast.BooleanLiteral.False,
-				_              => Ast.BooleanLiteral.Unknown,
+				return Of(value) is Ast.Expression.Subquery(var query)
+					? new Ast.Expression.Subquery(new Ast.Query.Parenthesized(query))
+					: new Ast.Expression.Parenthesized(Of(value));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, "Expression.Parenthesized", false, [value]);
+			}
+		}
+
+		public static Ast.Expression Binary(Ast.Expression left, Ast.BinaryOperator op, Ast.Expression right)
+		{
+			try
+			{
+				return new Ast.Expression.Binary(Of(left), op, Of(right));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, [left, right]);
+			}
+		}
+
+		/// <summary>An additive operator and its two operands: T-SQL's bitwise three and its two shifts among them, which bind as weakly.</summary>
+		public static Ast.Expression Additive(string operatorText, Ast.Expression left, Ast.Expression right)
+		{
+			return Binary(left, operatorText switch
+			{
+				"+"  => Ast.BinaryOperator.Add,
+				"-"  => Ast.BinaryOperator.Subtract,
+				"&"  => Ast.BinaryOperator.BitwiseAnd,
+				"|"  => Ast.BinaryOperator.BitwiseOr,
+				"^"  => Ast.BinaryOperator.BitwiseXor,
+				"<<" => Ast.BinaryOperator.ShiftLeft,
+				">>" => Ast.BinaryOperator.ShiftRight,
+				_    => Ast.BinaryOperator.Concatenate,
+			}, right);
+		}
+
+		/// <summary>Likewise for the multiplicative operators, T-SQL's <c>%</c> among them.</summary>
+		public static Ast.Expression Multiplicative(string operatorText, Ast.Expression left, Ast.Expression right)
+		{
+			return Binary(left, operatorText switch
+			{
+				"*" => Ast.BinaryOperator.Multiply,
+				"/" => Ast.BinaryOperator.Divide,
+				_   => Ast.BinaryOperator.Modulo,
+			}, right);
+		}
+
+		/// <summary>Likewise for the sign in front of one operand, T-SQL's <c>~</c> among them, and <c>NOT</c>.</summary>
+		public static Ast.Expression Signed(string sign, Ast.Expression operand)
+		{
+			return Unary(sign switch
+			{
+				"-" => Ast.UnaryOperator.Minus,
+				"~" => Ast.UnaryOperator.BitwiseNot,
+				_   => Ast.UnaryOperator.Plus,
+			}, operand);
+		}
+
+		public static Ast.Expression Unary(Ast.UnaryOperator op, Ast.Expression operand)
+		{
+			try
+			{
+				return new Ast.Expression.Unary(op, Of(operand));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, [operand]);
+			}
+		}
+
+		public static Ast.Expression IsTruth(Ast.Expression operand, bool not, string truth)
+		{
+			try
+			{
+				return new Ast.Expression.IsTruth(Of(operand), not, (truth[0] | 0x20) switch
+				{
+					't' => Ast.BooleanLiteral.True,
+					'f' => Ast.BooleanLiteral.False,
+					_   => Ast.BooleanLiteral.Unknown,
+				});
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, [operand]);
+			}
+		}
+
+		/// <summary>A value and the collation it is compared under.</summary>
+		public static Ast.Expression Collated(Ast.Expression value, string collation)
+		{
+			try
+			{
+				return new Ast.Expression.Collate(Of(value), new Ast.CollationName(Name("Expression.Collated", collation)));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, [value]);
+			}
+		}
+
+		// ── The predicates ────────────────────────────────────────────────────────
+
+		/// <summary>
+		/// What may follow a row on the left of a predicate, built without the row and closed over it once the row is
+		/// read (<see cref="Predicated"/>): the row is read once for every predicate that begins with one.
+		/// </summary>
+		internal abstract class Tail
+		{
+			/// <summary>The predicate over its left side, the row it was read after.</summary>
+			public abstract Ast.Expression Over(Ast.Expression left);
+
+			/// <summary>The values the tail was read over.</summary>
+			public abstract SqlList<Ast.Expression> Parts { get; }
+
+			/// <summary>Whether the tail holds a query of its own.</summary>
+			public virtual bool Query => false;
+
+			/// <summary>The same tail with <c>NOT</c> read in front of it, where it is one a <c>NOT</c> may stand in front of.</summary>
+			public virtual Tail Negated()
+			{
+				return this;
+			}
+		}
+
+		/// <summary><c>= right</c>, and the other comparisons, <c>!=</c> spelled as written.</summary>
+		sealed class Compared(Ast.ComparisonOperator op, bool bang, Ast.Expression right) : Tail
+		{
+			public override SqlList<Ast.Expression> Parts => [right];
+
+			public override Ast.Expression Over(Ast.Expression left)
+			{
+				return new Ast.Expression.Comparison(Of(left), op, Of(right), bang);
+			}
+		}
+
+		/// <summary><c>= ALL (…)</c>: a comparison with every row of a subquery.</summary>
+		sealed class QuantifiedTail(Ast.ComparisonOperator op, bool bang, string quantifier, Query query) : Tail
+		{
+			public override SqlList<Ast.Expression> Parts => [];
+
+			public override bool Query => true;
+
+			public override Ast.Expression Over(Ast.Expression left)
+			{
+				if (bang)
+					throw BridgeGap.Missing("Expression.Quantified", "QuantifiedComparison has no spelling flag for `!=`");
+
+				var how = quantifier.ToUpperInvariant() switch
+				{
+					"ALL"  => Ast.Quantifier.All,
+					"SOME" => Ast.Quantifier.Some,
+					"ANY"  => Ast.Quantifier.Any,
+					_      => throw BridgeGap.Open("Expression.Quantified", $"inventory Expression.Quantified (quantifier `{quantifier}`)"),
+				};
+
+				return new Ast.Expression.QuantifiedComparison(Of(left), op, how, QueryOf(query));
+			}
+		}
+
+		sealed class BetweenTail(bool not, Ast.Expression low, Ast.Expression high) : Tail
+		{
+			public override SqlList<Ast.Expression> Parts => [low, high];
+
+			public override Ast.Expression Over(Ast.Expression left)
+			{
+				return new Ast.Expression.Between(Of(left), not, null, Of(low), Of(high));
+			}
+
+			public override Tail Negated()
+			{
+				return new BetweenTail(true, low, high);
+			}
+		}
+
+		sealed class InTail(bool not, Ast.Expression source) : Tail
+		{
+			public override SqlList<Ast.Expression> Parts => [source];
+
+			public override Ast.Expression Over(Ast.Expression left)
+			{
+				return new Ast.Expression.In(Of(left), not, Of(source) switch
+				{
+					Ast.Expression.Row(var items, _)    => new Ast.InSource.Values(items),
+					Ast.Expression.Subquery(var query) => new Ast.InSource.Subquery(query),
+					var other                           => throw BridgeGap.Open("Expression.In", $"inventory Expression.In (a source that is {other.GetType().Name})"),
+				});
+			}
+
+			public override Tail Negated()
+			{
+				return new InTail(true, source);
+			}
+		}
+
+		sealed class LikeTail(bool not, Ast.Expression pattern, Escape? escape) : Tail
+		{
+			public override SqlList<Ast.Expression> Parts => escape is null ? [pattern] : [pattern, escape.Value];
+
+			public override Ast.Expression Over(Ast.Expression left)
+			{
+				// T-SQL's `{ESCAPE '%'}`: the escape value itself, written in ODBC's braces.
+				if (escape is { Braced: true } braced)
+					return braced.Kind.Equals("ESCAPE", StringComparison.OrdinalIgnoreCase)
+						? new Ast.Expression.Like(Of(left), not, Ast.LikeKind.Like, Of(pattern), Of(braced.Value)) { BracedEscape = true }
+						: throw BridgeGap.Open("Expression.Like", $"inventory Expression.Like (an escape in braces of kind `{braced.Kind}`)");
+
+				return new Ast.Expression.Like(Of(left), not, Ast.LikeKind.Like, Of(pattern), escape is { } plain ? Of(plain.Value) : null);
+			}
+
+			public override Tail Negated()
+			{
+				return new LikeTail(true, pattern, escape);
+			}
+		}
+
+		sealed class IsNullTail(bool not) : Tail
+		{
+			public override SqlList<Ast.Expression> Parts => [];
+
+			public override Ast.Expression Over(Ast.Expression left)
+			{
+				return new Ast.Expression.IsNull(Of(left), not);
+			}
+		}
+
+		sealed class MatchTail(string? qualifier, Query query) : Tail
+		{
+			public override SqlList<Ast.Expression> Parts => [];
+
+			public override bool Query => true;
+
+			public override Ast.Expression Over(Ast.Expression left)
+			{
+				var words  = qualifier is null ? [] : Words(qualifier);
+				var unique = words.Contains("UNIQUE");
+				var rest   = words.Where(static one => one != "UNIQUE").ToArray();
+
+				Ast.MatchType? type = rest switch
+				{
+					[]          => null,
+					["FULL"]    => Ast.MatchType.Full,
+					["PARTIAL"] => Ast.MatchType.Partial,
+					["SIMPLE"]  => Ast.MatchType.Simple,
+					_           => throw BridgeGap.Open("Expression.Match", $"inventory Expression.Match (qualifier `{qualifier}`)"),
+				};
+
+				return new Ast.Expression.Match(Of(left), unique, type, QueryOf(query));
+			}
+		}
+
+		sealed class OverlapsTail(Ast.Expression right) : Tail
+		{
+			public override SqlList<Ast.Expression> Parts => [right];
+
+			public override Ast.Expression Over(Ast.Expression left)
+			{
+				return new Ast.Expression.Overlaps(Of(left), Of(right));
+			}
+		}
+
+		/// <summary>An escape: its value, and whether it was written in ODBC's braces, with the word inside them.</summary>
+		internal sealed record Escape(Ast.Expression Value, bool Braced, string Kind);
+
+		/// <summary>A comparison's operator, and whether it was <c>!=</c>, which the tree keeps beside <c>&lt;&gt;</c>.</summary>
+		static (Ast.ComparisonOperator Operator, bool Bang) Compare(string operatorText)
+		{
+			return Syntax.Compacted(operatorText) switch
+			{
+				"="  => (Ast.ComparisonOperator.Equal, false),
+				"<>" => (Ast.ComparisonOperator.NotEqual, false),
+				"!=" => (Ast.ComparisonOperator.NotEqual, true),
+				"<"  => (Ast.ComparisonOperator.Less, false),
+				"<=" => (Ast.ComparisonOperator.LessOrEqual, false),
+				"!<" => (Ast.ComparisonOperator.NotLess, false),
+				">"  => (Ast.ComparisonOperator.Greater, false),
+				"!>" => (Ast.ComparisonOperator.NotGreater, false),
+				_    => (Ast.ComparisonOperator.GreaterOrEqual, false),
 			};
 		}
 
-		public static Ast.ComparisonOperator Comparison(SqlComparison op)
+		public static Tail Comparison(string operatorText, Ast.Expression right)
 		{
-			return op switch
-			{
-				SqlComparison.Equal          => Ast.ComparisonOperator.Equal,
-				SqlComparison.NotEqual       => Ast.ComparisonOperator.NotEqual,
-				SqlComparison.NotEqualBang   => Ast.ComparisonOperator.NotEqual,
-				SqlComparison.Less           => Ast.ComparisonOperator.Less,
-				SqlComparison.LessOrEqual    => Ast.ComparisonOperator.LessOrEqual,
-				SqlComparison.Greater        => Ast.ComparisonOperator.Greater,
-				SqlComparison.GreaterOrEqual => Ast.ComparisonOperator.GreaterOrEqual,
-				SqlComparison.NotLess        => Ast.ComparisonOperator.NotLess,
-				SqlComparison.NotGreater     => Ast.ComparisonOperator.NotGreater,
-				_                            => throw new ArgumentOutOfRangeException(nameof(op), op, null),
-			};
+			var (op, bang) = Compare(operatorText);
+
+			return new Compared(op, bang, right);
 		}
 
-		static Ast.Expression Quantified(Expression.Quantified old)
+		public static Tail Quantified(string operatorText, string quantifier, Query query)
 		{
-			if (old.Operator == SqlComparison.NotEqualBang)
-				throw BridgeGap.Missing(old, "QuantifiedComparison has no spelling flag for `!=`");
+			var (op, bang) = Compare(operatorText);
 
-			var quantifier = old.Quantifier.ToUpperInvariant() switch
-			{
-				"ALL"  => Ast.Quantifier.All,
-				"SOME" => Ast.Quantifier.Some,
-				"ANY"  => Ast.Quantifier.Any,
-				_      => throw BridgeGap.Open(old, $"inventory Expression.Quantified (quantifier `{old.Quantifier}`)"),
-			};
-
-			return new Ast.Expression.QuantifiedComparison(Of(old.Left), Comparison(old.Operator), quantifier, QueryOf(old.Query));
+			return new QuantifiedTail(op, bang, Syntax.Quantified(quantifier), query);
 		}
 
-		static Ast.InSource InSource(Expression owner, Expression from)
+		public static Tail Between(Ast.Expression low, Ast.Expression high)
 		{
-			return from switch
-			{
-				Expression.RowValueConstructor(var items) => new Ast.InSource.Values(Each(items, Of)),
-				Expression.Subquery(var query)            => new Ast.InSource.Subquery(QueryOf(query)),
-				_                                         => throw BridgeGap.Open(owner, $"inventory Expression.In (a source that is {NameOf(from)})"),
-			};
+			return new BetweenTail(false, low, high);
 		}
 
-		static Ast.Expression Match(Expression.Match old)
+		public static Tail In(Ast.Expression source)
 		{
-			var words  = old.Qualifier is null ? [] : Words(old.Qualifier);
-			var unique = words.Contains("UNIQUE");
-			var rest   = words.Where(static one => one != "UNIQUE").ToArray();
+			return new InTail(false, source);
+		}
 
-			Ast.MatchType? type = rest switch
+		public static Tail Like(Ast.Expression pattern, Escape? escape)
+		{
+			return new LikeTail(false, pattern, escape);
+		}
+
+		public static Tail IsNull(bool not)
+		{
+			return new IsNullTail(not);
+		}
+
+		public static Tail Match(string? unique, string? kind, Query query)
+		{
+			return new MatchTail(Syntax.Matched(unique, kind), query);
+		}
+
+		public static Tail Overlaps(Ast.Expression right)
+		{
+			return new OverlapsTail(right);
+		}
+
+		/// <summary>A tail with the <c>NOT</c> read in front of it, where one was.</summary>
+		public static Tail Negated(Tail tail, bool not)
+		{
+			return not ? tail.Negated() : tail;
+		}
+
+		/// <summary>The predicate a row and the tail read after it are.</summary>
+		public static Ast.Expression Predicated(Ast.Expression left, Tail tail)
+		{
+			try
 			{
-				[]            => null,
-				["FULL"]      => Ast.MatchType.Full,
-				["PARTIAL"]   => Ast.MatchType.Partial,
-				["SIMPLE"]    => Ast.MatchType.Simple,
-				_             => throw BridgeGap.Open(old, $"inventory Expression.Match (qualifier `{old.Qualifier}`)"),
-			};
+				return tail.Over(left);
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, tail.Query, [left, .. tail.Parts]);
+			}
+		}
 
-			return new Ast.Expression.Match(Of(old.Value), unique, type, QueryOf(old.Query));
+		public static Ast.Expression Exists(Query query)
+		{
+			try
+			{
+				return new Ast.Expression.Exists(QueryOf(query));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, "Expression.Exists", true, []);
+			}
+		}
+
+		public static Ast.Expression Unique(Query query)
+		{
+			try
+			{
+				return new Ast.Expression.Unique(null, QueryOf(query));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, "Expression.Unique", true, []);
+			}
+		}
+
+		public static Ast.Expression Subquery(Query query)
+		{
+			try
+			{
+				return new Ast.Expression.Subquery(QueryOf(query));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, "Expression.Subquery", true, []);
+			}
+		}
+
+		/// <summary><c>IS [NOT] DISTINCT FROM</c>: a row, or a quantifier and a subquery (<c>DistinctTail</c>).</summary>
+		public static Ast.Expression IsDistinct(Ast.Expression left, bool not, Ast.Expression right)
+		{
+			try
+			{
+				// DistinctTail's quantifier before a subquery, which the old tree keeps as a word in front of it.
+				if (right is Prefixed(var word, Ast.Expression.Subquery or Unbuilt) prefixed && word.ToUpperInvariant() is "ALL" or "ANY" or "SOME")
+					return new Ast.Expression.IsDistinct(Of(left), not, Of(prefixed.Value))
+					{
+						Quantifier = word.ToUpperInvariant() switch { "ALL" => Ast.Quantifier.All, "ANY" => Ast.Quantifier.Any, _ => Ast.Quantifier.Some },
+					};
+
+				return new Ast.Expression.IsDistinct(Of(left), not, Of(right));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, [left, right]);
+			}
+		}
+
+		/// <summary>T-SQL's graph <c>MATCH (…)</c>, its drawing read token by token.</summary>
+		public static Ast.Expression GraphMatch(string pattern)
+		{
+			try
+			{
+				return Queries.GraphMatch("Expression.GraphMatch", pattern);
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap);
+			}
+		}
+
+		public static Ast.Expression And(Ast.Expression left, Ast.Expression right)
+		{
+			return Binary(left, Ast.BinaryOperator.And, right);
+		}
+
+		public static Ast.Expression Or(Ast.Expression left, Ast.Expression right)
+		{
+			return Binary(left, Ast.BinaryOperator.Or, right);
+		}
+
+		public static Ast.Expression Not(Ast.Expression operand)
+		{
+			return Unary(Ast.UnaryOperator.Not, operand);
+		}
+
+		// ── Rows, cases, columns ──────────────────────────────────────────────────
+
+		public static Ast.Expression Row(SqlList<Ast.Expression> items)
+		{
+			try
+			{
+				return new Ast.Expression.Row(Each(items, Of));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, items);
+			}
+		}
+
+		public static Ast.Expression Case(Ast.Expression? operand, SqlList<Clause> whens, Ast.Expression? otherwise)
+		{
+			try
+			{
+				return new Ast.Expression.Case(operand is null ? null : Of(operand), Each(whens, When), otherwise is null ? null : Of(otherwise));
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, Parts(operand, whens, otherwise));
+			}
 		}
 
 		static Ast.CaseWhen When(Clause clause)
@@ -245,68 +648,96 @@ static partial class Bridge
 				: throw BridgeGap.Open(clause, "inventory Clause.When (a CASE arm that is not a WHEN)");
 		}
 
-		public static Ast.Argument Argument(Expression value)
+		/// <summary>
+		/// A column, as written, dots and all: <c>t.*</c>, all columns of <c>t</c>; a bare <c>*</c>, every column; any other a
+		/// reference to the name. Where the name has no place the word is held, and taking it throws why.
+		/// </summary>
+		public static Ast.Expression Reference(string text)
+		{
+			try
+			{
+				return Word.Of(text);
+			}
+			catch (BridgeGap)
+			{
+				return new Word(text);
+			}
+		}
+
+		/// <summary>A word standing for a name, held for a builder that asks what it says (<see cref="Word"/>).</summary>
+		public static Ast.Expression Worded(string text)
+		{
+			return new Word(text);
+		}
+
+		public static Ast.Expression Null()
+		{
+			return new Ast.LiteralValue.Null();
+		}
+
+		public static Ast.Expression Default()
+		{
+			return new Ast.Expression.Default();
+		}
+
+		public static Ast.Argument Argument(Ast.Expression value)
 		{
 			return new Ast.Argument(Of(value));
 		}
 
 		// ── Literals ──────────────────────────────────────────────────────────────
 
-		static Ast.Expression Literal(Expression.Literal old)
-		{
-			var text = old.Text;
-
-			switch (old.Kind)
-			{
-				case SqlLiteralKind.Number:
-					return Value(new Ast.LiteralValue.Numeric(text, Numeric(text)));
-
-				case SqlLiteralKind.Text:
-					return Value(new Ast.LiteralValue.String(text, Ast.StringLiteralKind.Character));
-
-				case SqlLiteralKind.National:
-					return Value(new Ast.LiteralValue.String(text.Substring(1), Ast.StringLiteralKind.National));
-
-				case SqlLiteralKind.Null:
-					return Value(new Ast.LiteralValue.Null());
-
-				case SqlLiteralKind.Default:
-					return new Ast.Expression.Default();
-
-				case SqlLiteralKind.Special:
-					return Special(old);
-
-				case SqlLiteralKind.Parameter when text.StartsWith('@'):
-					return new Ast.Expression.Variable(new Ast.Identifier(text));
-
-				case SqlLiteralKind.Parameter when text == "?":
-					return new Ast.Expression.Parameter(Ast.ParameterKind.Dynamic);
-
-				// The digits after the introducer, as a string's text leaves its introducer out.
-				case SqlLiteralKind.Hex:
-					return Value(new Ast.LiteralValue.Binary(text[2..]) { ZeroX = true });
-
-				case SqlLiteralKind.Bit:
-					throw BridgeGap.Missing(old, "a bit string literal, which SQL:2023 removed");
-
-				default:
-					throw BridgeGap.Open(old, $"inventory SqlLiteralKind ({old.Kind})");
-			}
-		}
-
 		static Ast.Expression Value(Ast.LiteralValue value)
 		{
 			return value;
 		}
 
-		/// <summary>
-		/// A string literal as one token of text, <c>'a'</c> or <c>N'a'</c>, where the old tree keeps it in a text.
-		/// </summary>
+		public static Ast.Expression Number(string text)
+		{
+			return new Ast.LiteralValue.Numeric(text, Numeric(text));
+		}
+
+		public static Ast.Expression Text(string text)
+		{
+			return new Ast.LiteralValue.String(text, Ast.StringLiteralKind.Character);
+		}
+
+		public static Ast.Expression National(string text)
+		{
+			return new Ast.LiteralValue.String(text.Substring(1), Ast.StringLiteralKind.National);
+		}
+
+		/// <summary>A binary string, the digits after the introducer, as a string's text leaves its introducer out.</summary>
+		public static Ast.Expression Hex(string text)
+		{
+			return new Ast.LiteralValue.Binary(text[2..]) { ZeroX = true };
+		}
+
+		public static Ast.Expression Bit()
+		{
+			return new Literal("Bit", "");
+		}
+
+		/// <summary>A literal of a kind the common tree has no record for yet: a date, a time, a timestamp, an interval.</summary>
+		public static Ast.Expression Unread(string kind)
+		{
+			return new Literal(kind, "");
+		}
+
+		/// <summary>A variable, <c>@x</c>, a dynamic parameter, <c>?</c>, or a host parameter, which has no record yet.</summary>
+		public static Ast.Expression Parameter(string text)
+		{
+			return text.StartsWith('@') ? new Ast.Expression.Variable(new Ast.Identifier(text))
+				: text == "?" ? new Ast.Expression.Parameter(Ast.ParameterKind.Dynamic)
+				: new Literal("Parameter", text);
+		}
+
+		/// <summary>A string literal as one token of text, <c>'a'</c> or <c>N'a'</c>, where a builder reads one from words.</summary>
 		public static Ast.Expression String(string token)
 		{
 			return token[0] is 'N' or 'n'
-				? Value(new Ast.LiteralValue.String(token[1..], Ast.StringLiteralKind.National))
-				: Value(new Ast.LiteralValue.String(token, Ast.StringLiteralKind.Character));
+				? new Ast.LiteralValue.String(token[1..], Ast.StringLiteralKind.National)
+				: new Ast.LiteralValue.String(token, Ast.StringLiteralKind.Character);
 		}
 
 		/// <summary>
@@ -327,20 +758,23 @@ static partial class Bridge
 			return text.Contains('.') ? Ast.NumericLiteralKind.Decimal : Ast.NumericLiteralKind.DecimalInteger;
 		}
 
-		static Ast.Expression Special(Expression.Literal old)
+		/// <summary>A word that stands where a value does: <c>USER</c>, <c>CURRENT_USER</c>, <c>VALUE</c> and the rest.</summary>
+		public static Ast.Expression Special(string text)
 		{
-			Ast.CurrentValue kind = old.Text.ToUpperInvariant() switch
+			Ast.CurrentValue kind;
+
+			switch (text.ToUpperInvariant())
 			{
-				"USER"              => Ast.CurrentValue.User,
-				"CURRENT_USER"      => Ast.CurrentValue.CurrentUser,
-				"SESSION_USER"      => Ast.CurrentValue.SessionUser,
-				"SYSTEM_USER"       => Ast.CurrentValue.SystemUser,
-				"VALUE"             => Ast.CurrentValue.Value,
-				"CURRENT_DATE"      => Ast.CurrentValue.Date,
-				"CURRENT_TIME"      => Ast.CurrentValue.Time,
-				"CURRENT_TIMESTAMP" => Ast.CurrentValue.Timestamp,
-				_                   => throw BridgeGap.Open(old, $"inventory SqlLiteralKind (Special `{old.Text}`)"),
-			};
+				case "USER":              kind = Ast.CurrentValue.User; break;
+				case "CURRENT_USER":      kind = Ast.CurrentValue.CurrentUser; break;
+				case "SESSION_USER":      kind = Ast.CurrentValue.SessionUser; break;
+				case "SYSTEM_USER":       kind = Ast.CurrentValue.SystemUser; break;
+				case "VALUE":             kind = Ast.CurrentValue.Value; break;
+				case "CURRENT_DATE":      kind = Ast.CurrentValue.Date; break;
+				case "CURRENT_TIME":      kind = Ast.CurrentValue.Time; break;
+				case "CURRENT_TIMESTAMP": kind = Ast.CurrentValue.Timestamp; break;
+				default:                  return Gapped(BridgeGap.Open("Expression.Literal", $"inventory SqlLiteralKind (Special `{text}`)"));
+			}
 
 			return new Ast.Expression.Current(kind);
 		}
@@ -361,13 +795,13 @@ static partial class Bridge
 		/// pair as a JsonPair, and the clauses after the last argument as its words. JSON_VALUE of another argument
 		/// count stays a call, as the grammar reads it; the standard's functions T-SQL has no syntax for are a gap.
 		/// </summary>
-		static Ast.Expression? JsonCall(Expression.RoutineInvocation old, string upper)
+		static Ast.Expression? JsonCall(Call old, string upper)
 		{
 			// The words after the last argument, and that argument without them.
 			var arguments = old.Arguments.ToList();
 			var words     = "";
 
-			if (arguments is [.., Expression.Hinted(var last, var tail)])
+			if (arguments is [.., Hinted(var last, var tail)])
 			{
 				arguments[^1] = last;
 				words         = tail;
@@ -421,9 +855,9 @@ static partial class Bridge
 					: throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({upper} RETURNING {returning})");
 			}
 
-			Ast.JsonMember Member(Expression one)
+			Ast.JsonMember Member(Ast.Expression one)
 			{
-				return one is Expression.JsonPair(var key, var value)
+				return one is JsonPair(var key, var value)
 					? new Ast.JsonMember(Of(key), Of(value), Ast.JsonMemberSyntax.Colon)
 					: throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({upper} with a member that is not a key and a value)");
 			}
@@ -509,7 +943,7 @@ static partial class Bridge
 			["CURRENT_TIME"]      = Ast.CurrentValue.Time,
 		};
 
-		public static Ast.Expression Function(Expression.RoutineInvocation old)
+		public static Ast.Expression Function(Call old)
 		{
 			var name  = old.Name;
 			var upper = name.ToUpperInvariant();
@@ -523,7 +957,7 @@ static partial class Bridge
 				};
 
 			// AI_GENERATE_EMBEDDINGS: what is embedded, and the model after USE MODEL, which the old tree keeps as words.
-			if (upper == "AI_GENERATE_EMBEDDINGS" && old is { Word: null, Arguments: [Expression.Hinted(var source, var words)] })
+			if (upper == "AI_GENERATE_EMBEDDINGS" && old is { Word: null, Arguments: [Hinted(var source, var words)] })
 				return Embeddings(old, source, words);
 
 			// FullTextPredicate: the columns, what is searched for, and LANGUAGE and its value.
@@ -596,9 +1030,6 @@ static partial class Bridge
 			if (old.Arguments.Length == 0 && old.Word is null && Niladic.TryGetValue(name, out var current))
 				return new Ast.Expression.Current(current);
 
-			if (old.Arguments.Length == 0 && old.Word is null && Bracketless(old))
-				throw BridgeGap.Lost(old, "whether a call with no arguments was written with brackets");
-
 			Ast.SetQuantifier? quantifier = null;
 			SqlList<Ast.Argument> arguments;
 
@@ -637,18 +1068,18 @@ static partial class Bridge
 		/// CONTAINS or FREETEXT, which the old tree keeps as a call: the columns, a list in brackets or one alone, what is
 		/// searched for, and the language, the word in front of its value.
 		/// </summary>
-		static Ast.Expression FullText(Expression.RoutineInvocation old, Ast.FullTextPredicateKind kind)
+		static Ast.Expression FullText(Call old, Ast.FullTextPredicateKind kind)
 		{
 			if (old.Arguments is not [var searched, var search, .. var rest] || rest.Length > 1
-				|| rest is [var said] && said is not Expression.Prefixed || rest is [Expression.Prefixed(var other, _)] && !other.Equals("LANGUAGE", StringComparison.OrdinalIgnoreCase))
+				|| rest is [var said] && said is not Prefixed || rest is [Prefixed(var other, _)] && !other.Equals("LANGUAGE", StringComparison.OrdinalIgnoreCase))
 				throw BridgeGap.Open(old, $"inventory Expression.RoutineInvocation ({old.Name} with these arguments)");
 
-			var bracketed = searched is Expression.RowValueConstructor;
-			SqlList<Expression> items = searched is Expression.RowValueConstructor(var list) ? list : [searched];
+			var bracketed = searched is Ast.Expression.Row;
+			SqlList<Ast.Expression> items = searched is Ast.Expression.Row(var list, _) ? list : [searched];
 
 			return new Ast.Expression.FullTextPredicate(kind, Each(items, Of), Of(search))
 			{
-				Language         = rest is [Expression.Prefixed(_, var language)] ? Of(language) : null,
+				Language         = rest is [Prefixed(_, var language)] ? Of(language) : null,
 				ColumnsBracketed = bracketed,
 			};
 		}
@@ -657,7 +1088,7 @@ static partial class Bridge
 		/// <c>USE MODEL m [PARAMETERS p]</c> after AI_GENERATE_EMBEDDINGS's source: the model's name to PARAMETERS, and the
 		/// value after it read again as a value.
 		/// </summary>
-		static Ast.Expression Embeddings(Expression.RoutineInvocation old, Expression source, string words)
+		static Ast.Expression Embeddings(Call old, Ast.Expression source, string words)
 		{
 			var located = SqlTokens.Located(words);
 			var tokens  = located.ConvertAll(static one => one.Token);
@@ -705,11 +1136,11 @@ static partial class Bridge
 			};
 		}
 
-		static Ast.Expression DatePart(Expression.RoutineInvocation old)
+		static Ast.Expression DatePart(Call old)
 		{
 			// A word of the reference's table, unquoted and unbracketed, is the date part; anything else first — `[yy]`,
 			// `(year)`, a string, a variable — is the call as written, its first argument a value as the others are.
-			if (old.Arguments is not [Expression.ColumnReference(var part), ..] || !DateParts.TryGetValue(part, out var made))
+			if (old.Arguments is not [Word(var part), ..] || !DateParts.TryGetValue(part, out var made))
 				return new Ast.Expression.Invocation(Name(old, old.Name), Each(old.Arguments, Argument));
 
 			return new Ast.Expression.Invocation(
@@ -753,27 +1184,38 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// An ODBC escape, <c>{fn LEFT (a, 2)}</c>, <c>{d '2026-09-26'}</c>. A function inside one is ODBC's and
-		/// not T-SQL's — <c>{fn CONVERT (a, SQL_INTEGER)}</c> names its type as ODBC does — so it is a plain call.
+		/// An ODBC escape, <c>{fn LEFT (a, 2)}</c>, <c>{d '2026-09-26'}</c>: its kind, what is inside it, and whether the
+		/// function's brackets were written. A function inside one is ODBC's and not T-SQL's — <c>{fn CONVERT (a,
+		/// SQL_INTEGER)}</c> names its type as ODBC does — so it is a plain call.
 		/// </summary>
-		static Ast.Expression Odbc(Expression.OdbcEscape old)
+		public static Ast.Expression Odbc(string kind, Ast.Expression inside, bool called)
 		{
-			if (old.Kind.Length == 0)
-				throw BridgeGap.Open(old, "inventory Expression.OdbcEscape (an escape without its kind)");
+			try
+			{
+				if (kind.Length == 0)
+					throw BridgeGap.Open("Expression.OdbcEscape", "inventory Expression.OdbcEscape (an escape without its kind)");
 
-			var value = old.Value is Expression.RoutineInvocation { Word: null } call
-				? new Ast.Expression.Invocation(Name(call, call.Name), Each(call.Arguments, Argument))
-				: Of(old.Value);
+				var value = inside is Call { Word: null } call
+					? new Ast.Expression.Invocation(Name(call, call.Name), Each(call.Arguments, Argument))
+					: Of(inside);
 
-			return new Ast.Expression.OdbcEscape(Part(old, old.Kind), value, old.Called);
+				return new Ast.Expression.OdbcEscape(Part("Expression.OdbcEscape", kind), value, called);
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, [inside]);
+			}
 		}
+
+		/// <summary>What <c>{ fn … }</c> holds, and whether a function's brackets were written in it.</summary>
+		internal sealed record OdbcInside(Ast.Expression Value, bool Called);
 
 		/// <summary>
 		/// T-SQL's <c>TRIM ([LEADING | TRAILING | BOTH] [characters FROM] string)</c>, which the old tree keeps as
 		/// a call with the specification as its word: two arguments are the characters and the string, and
 		/// <c>FROM</c> stood between them; one is the string, and <c>FROM</c> stood before it where the text says.
 		/// </summary>
-		static Ast.Expression Trim(Expression.RoutineInvocation old)
+		static Ast.Expression Trim(Call old)
 		{
 			Ast.TrimSpecification? specification = old.Word?.ToUpperInvariant() switch
 			{
@@ -788,38 +1230,51 @@ static partial class Bridge
 			{
 				[var characters, var value] => new Ast.Expression.Trim(specification, Of(characters), true, Of(value)),
 				[var value]                 => new Ast.Expression.Trim(specification, null,
-					specification is not null && Recover("Expression.Trim.FromKeyword", Spelled(old), static text => Words(text).Contains("FROM"), false), Of(value)),
+					specification is not null && Recovered(old.From, false), Of(value)),
 				_                           => throw BridgeGap.Open(old, "inventory Expression.RoutineInvocation (TRIM with no string)"),
 			};
 		}
 
-		/// <summary>
-		/// Whether a call with no arguments was written without its brackets, where the text says; a call
-		/// not located is taken to have had them.
-		/// </summary>
-		static bool Bracketless(Expression.RoutineInvocation old)
+		/// <summary>What may follow a call, as <c>CallTail</c> reads it: a null treatment or a WITHIN GROUP as written, and the window.</summary>
+		internal sealed record Windowing(string? Within, Clause? Over);
+
+		/// <summary>A call and what was written after it, where anything was.</summary>
+		public static Ast.Expression Called(Ast.Expression call, Windowing? tail)
 		{
-			return Recover("Expression.Invocation without brackets", Spelled(old), static text => !text.TrimEnd().EndsWith(')'), false);
+			if (tail is null)
+				return call;
+
+			try
+			{
+				return Windowed(call, tail);
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, [call]);
+			}
 		}
 
-		static Ast.Expression Windowed(Expression.WindowFunction old)
+		/// <summary>The record a window's gap is said under.</summary>
+		const string WindowFunction = "Expression.WindowFunction";
+
+		static Ast.Expression Windowed(Ast.Expression called, Windowing old)
 		{
-			if (old.Function is Expression.RoutineInvocation sequence && Function(sequence) is Ast.Expression.NextValue next)
+			if (called is Call sequence && Function(sequence) is Ast.Expression.NextValue next)
 			{
 				// `NEXT VALUE FOR s OVER (ORDER BY …)`: a specification, never a window's name.
 				if (old.Within is not null || old.Over is not Clause.Window window)
-					throw BridgeGap.Open(old, "inventory Expression.WindowFunction (NEXT VALUE FOR over something that is not a window)");
+					throw BridgeGap.Open(WindowFunction, "inventory Expression.WindowFunction (NEXT VALUE FOR over something that is not a window)");
 
 				return next with { Over = Specification(window) };
 			}
 
 			// A JSON aggregate takes its window as the standard's record does; WITHIN GROUP after it has no place there.
-			var function = old.Function is Expression.RoutineInvocation aggregate ? Function(aggregate) : null;
+			var function = called is Call aggregate ? Function(aggregate) : null;
 
 			if (function is Ast.Expression.JsonObjectAggregate or Ast.Expression.JsonArrayAggregate)
 			{
 				if (old.Within is not null || old.Over is null)
-					throw BridgeGap.Open(old, "inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for)");
+					throw BridgeGap.Open(WindowFunction, "inventory Expression.WindowFunction (a JSON aggregate with WITHIN GROUP or a null treatment, which its record has no place for)");
 
 				return function switch
 				{
@@ -852,16 +1307,16 @@ static partial class Bridge
 						break;
 
 					case ["WITHIN", "GROUP", "(", "ORDER", "BY", .., ")"]:
-						within = new Ast.WithinGroupClause(Ordering(old, text[(SqlTokens.Find(text, "(") + 1)..SqlTokens.FindLast(text, ")")]));
+						within = new Ast.WithinGroupClause(Ordering(WindowFunction, text[(SqlTokens.Find(text, "(") + 1)..SqlTokens.FindLast(text, ")")]));
 						break;
 
 					default:
-						throw BridgeGap.Open(old, $"inventory Expression.WindowFunction (the words `{text}` before its window)");
+						throw BridgeGap.Open(WindowFunction, $"inventory Expression.WindowFunction (the words `{text}` before its window)");
 				}
 			}
 
 			if (function is not Ast.Expression.Invocation invocation)
-				throw BridgeGap.Open(old, "inventory Expression.WindowFunction (a window over something that is not a call)");
+				throw BridgeGap.Open(WindowFunction, "inventory Expression.WindowFunction (a window over something that is not a call)");
 
 			invocation = invocation with { Nulls = nulls, WithinGroup = within, GraphPath = path };
 
@@ -899,7 +1354,7 @@ static partial class Bridge
 
 			// `OVER w` and `OVER (w)` are one old node; the text says which, and without it the name alone is taken.
 			if (window is { Name: { } named, PartitionBy.Length: 0, By: null, Frame: null }
-				&& !Recover("WindowReference.NameRef against (name)", Spelled(window), static text => text.TrimStart().StartsWith('('), false))
+				&& !Recover(Spelled(window), static text => text.TrimStart().StartsWith('('), false))
 				return new Ast.WindowReference.NameRef(Part(over, named));
 
 			return new Ast.WindowReference.Specification(Specification(window));
@@ -990,6 +1445,232 @@ static partial class Bridge
 				throw BridgeGap.Open(window, $"inventory Clause.Window (a frame `{text}`)");
 
 			return new Ast.WindowFrame(unit, extent, null, null);
+		}
+
+		// ── Members and zones ─────────────────────────────────────────────────────
+
+		/// <summary>
+		/// A member reached through a value, <c>.name</c> or <c>::name</c>, and a method's arguments: read after the value,
+		/// and built over it where the value is closed (<see cref="Reached"/>).
+		/// </summary>
+		internal sealed record Reach(string By, string Name, SqlList<Ast.Expression>? Arguments) : Read;
+
+		/// <summary>
+		/// <c>AT TIME ZONE zone</c>, with the collation written in front of it, read after the value and built over it where the
+		/// value is closed.
+		/// </summary>
+		internal sealed record Zoning(string? Collation, Ast.Expression Zone) : Read;
+
+		/// <summary>
+		/// A primary and what was reached through it: the members written after it, and the zones it is read in, each with
+		/// the collation written in front of it. Each is built over what stood to its left, told the range from the primary's
+		/// first character to its own last.
+		/// </summary>
+		public static Ast.Expression Reached(Ast.Expression primary, Reach[]? members, Zoning[]? zones)
+		{
+			if (members is null && zones is null)
+				return primary;
+
+			try
+			{
+				if (members is not null)
+					foreach (var member in members)
+						primary = Joined(new Ast.Expression.Member(
+							Of(primary),
+							member.By == "::" ? Ast.MemberAccessKind.StaticMethod : Ast.MemberAccessKind.Dot,
+							Part("Expression.Member", member.Name),
+							member.Arguments is { } passed ? Each(passed, Argument) : null), primary, member);
+
+				if (zones is not null)
+					foreach (var zone in zones)
+					{
+						// The collation in front of a zone is told the value's range: it was written with no range of its own.
+						var of = zone.Collation is { } how
+							? Joined(new Ast.Expression.Collate(Of(primary), new Ast.CollationName(Name("Expression.Collated", how))), primary, primary)
+							: primary;
+
+						primary = Joined(new Ast.Expression.AtTimeZone(Of(of), Of(zone.Zone)), primary, zone);
+					}
+
+				return primary;
+			}
+			catch (BridgeGap gap)
+			{
+				return Gapped(gap, null, false, Parts(primary, members, zones));
+			}
+		}
+
+		/// <summary>
+		/// A node built over others, told the range from the first of them to the last, as the reading tells a node: a node
+		/// made while reading is no edit.
+		/// </summary>
+		static Ast.Expression Joined(Ast.Expression made, ISqlSpan first, ISqlSpan last)
+		{
+			var head = SpanOf(first);
+			var tail = SpanOf(last);
+
+			if (!head.Known && !tail.Known)
+				return made;
+
+			var from = head.Known ? head : tail;
+			var to   = tail.Known ? tail : head;
+
+			((ISqlLocatable)made).Locate(from.At, to.End - from.At, from.At);
+
+			return made;
+		}
+
+		// ── What a builder takes apart ────────────────────────────────────────────
+
+		/// <summary>
+		/// A value of a shape only a builder takes apart, or that has no place on the common tree yet: kept as read, with
+		/// the record it was read as, under which its gap is said.
+		/// </summary>
+		internal abstract record Held(string Record) : Ast.Expression
+		{
+			/// <summary>What it is as a value of the common tree; a shape with no place there throws its gap.</summary>
+			public abstract Ast.Expression Resolved();
+		}
+
+		/// <summary>A value with no place on the common tree, and why: what a builder that takes it throws.</summary>
+		internal sealed record Unbuilt(BridgeGap Gap) : Held(Gap.OldType)
+		{
+			/// <summary>What the value was read as, where a rule asks: <c>Expression.Parenthesized</c>, <c>Expression.Subquery</c>.</summary>
+			public string? Shape { get; init; }
+
+			/// <summary>Whether the value held a query of its own, which a rule's condition asks (<see cref="Rules.Binds"/>).</summary>
+			public bool HoldsQuery { get; init; }
+
+			/// <summary>The values it was read over, which a rule's condition walks as it walks any value.</summary>
+			public SqlList<Ast.Expression> Parts { get; init; } = [];
+
+			public override Ast.Expression Resolved()
+			{
+				throw Gap;
+			}
+		}
+
+		/// <summary>A literal of a kind the common tree has no record for yet, and its text: a host parameter's.</summary>
+		internal sealed record Literal(string Kind, string Text) : Held("Expression.Literal")
+		{
+			public override Ast.Expression Resolved()
+			{
+				throw Kind == "Bit"
+					? BridgeGap.Missing(Record, "a bit string literal, which SQL:2023 removed")
+					: BridgeGap.Open(Record, $"inventory SqlLiteralKind ({Kind})");
+			}
+		}
+
+		/// <summary>
+		/// A word written where a name or a value stands, as written: a column (<c>t.*</c> all of <c>t</c>'s, a bare
+		/// <c>*</c> every one), or a word an option is set to, which its builder reads as a word.
+		/// </summary>
+		internal sealed record Word(string Text) : Held("Expression.ColumnReference")
+		{
+			public override Ast.Expression Resolved()
+			{
+				return Of(Text);
+			}
+
+			/// <summary>The column a word names.</summary>
+			public static Ast.Expression Of(string text)
+			{
+				// `t.*` as an argument: all columns of `t`, its target the table's reference, as the standard's parser builds it.
+				if (text.Length > 2 && text.EndsWith(".*", StringComparison.Ordinal))
+					return new Ast.Expression.Wildcard(new Ast.Expression.Reference(Name(Column, text[..^2])), Ast.WildcardKind.Member);
+
+				// A bare `*` where a value stands: CONTAINS, FREETEXT and the semantic-search functions' every column.
+				return text == "*" ? new Ast.Expression.Asterisk() : new Ast.Expression.Reference(Name(Column, text));
+			}
+
+			const string Column = "Expression.ColumnReference";
+		}
+
+		/// <summary>
+		/// A call: the name as written, its arguments, and the one word a few of them carry — <c>DISTINCT</c>, a date part,
+		/// a trim specification, the type a cast names. What it is depends on all three (<see cref="Function"/>).
+		/// </summary>
+		internal sealed record Call(string Name, SqlList<Ast.Expression> Arguments, string? Word = null) : Held("Expression.RoutineInvocation")
+		{
+			/// <summary>Whether TRIM's <c>FROM</c> was written, which a trim of one value keeps.</summary>
+			public bool From { get; init; }
+
+			public override Ast.Expression Resolved()
+			{
+				return Function(this);
+			}
+		}
+
+		/// <summary>An argument with a word in front of it: <c>BULK 'f'</c>, <c>CHANGES t</c>, <c>LANGUAGE 1033</c>.</summary>
+		internal sealed record Prefixed(string Word, Ast.Expression Value) : Held("Expression.Prefixed")
+		{
+			public override Ast.Expression Resolved()
+			{
+				throw BridgeGap.Missing(Record, "a typed T-SQL rowset table source (proposal 7)");
+			}
+		}
+
+		/// <summary>A value and the unit written after it: <c>10 MINUTES</c>, <c>50 PERCENT</c>, <c>4 GB</c>.</summary>
+		internal sealed record Measured(Ast.Expression Value, string Unit) : Held("Expression.Measured")
+		{
+			public override Ast.Expression Resolved()
+			{
+				throw BridgeGap.Unwritten(Record, "Expression.Measured");
+			}
+		}
+
+		/// <summary>A value with the words written after it that say how it is to be taken, as written.</summary>
+		internal sealed record Hinted(Ast.Expression Value, string Words) : Held("Expression.Hinted")
+		{
+			public override Ast.Expression Resolved()
+			{
+				throw BridgeGap.Open(Record, "inventory Expression.Hinted");
+			}
+		}
+
+		/// <summary><c>key : value</c> in a JSON constructor.</summary>
+		internal sealed record JsonPair(Ast.Expression Key, Ast.Expression Value) : Held("Expression.JsonPair")
+		{
+			public override Ast.Expression Resolved()
+			{
+				throw BridgeGap.Open(Record, "inventory Expression.JsonPair");
+			}
+		}
+
+		/// <summary>An argument written with its name, <c>MODEL = m</c>.</summary>
+		internal sealed record NamedArgument(string Name, Ast.Expression Value) : Held("Expression.NamedArgument")
+		{
+			public override Ast.Expression Resolved()
+			{
+				throw BridgeGap.Open(Record, "inventory Expression.NamedArgument");
+			}
+		}
+
+		/// <summary>A value with the name it is known by, <c>DATA = t AS d</c>, and whether AS was written.</summary>
+		internal sealed record Aliased(Ast.Expression Value, string Alias, bool As) : Held("Expression.Aliased")
+		{
+			public override Ast.Expression Resolved()
+			{
+				throw BridgeGap.Open(Record, "inventory Expression.Aliased");
+			}
+		}
+
+		/// <summary>Values written as one argument with semicolons between them, OPENROWSET's login.</summary>
+		internal sealed record Pieced(SqlList<Ast.Expression> Parts) : Held("Expression.Pieced")
+		{
+			public override Ast.Expression Resolved()
+			{
+				throw BridgeGap.Missing(Record, "a typed T-SQL rowset table source (proposal 7)");
+			}
+		}
+
+		/// <summary>The <c>ORDER (c1 ASC, c2 DESC) UNIQUE</c> a bulk rowset is declared to arrive in.</summary>
+		internal sealed record RowsetOrder(SqlList<Clause> By, bool IsUnique) : Held("Expression.RowsetOrder")
+		{
+			public override Ast.Expression Resolved()
+			{
+				throw BridgeGap.Missing(Record, "a typed T-SQL rowset table source (proposal 7)");
+			}
 		}
 
 		// ── Names ─────────────────────────────────────────────────────────────────

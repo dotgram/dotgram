@@ -56,7 +56,7 @@ static partial class Bridge
 				Statement.TryCatch(var tried, var caught) => new Ast.Statement.TryCatch(Each(tried, StatementOf), Each(caught, StatementOf)),
 				Statement.Break              => new Ast.Statement.Break(),
 				Statement.Continue           => new Ast.Statement.Continue(),
-				Statement.GoTo(Expression.ColumnReference(var label)) => new Ast.Statement.GoTo(Values.Part(old, label)),
+				Statement.GoTo(var named) when Values.Wording(named) is { } label => new Ast.Statement.GoTo(Values.Part(old, label)),
 				Statement.Label(var label)   => new Ast.Statement.Label(Values.Part(old, label)),
 				Statement.Declare declare    => new Ast.Statement.DeclareVariables(Each(declare.Variables, Declaration)),
 				Statement.SetVariable set    => SetVariable(set),
@@ -67,7 +67,7 @@ static partial class Bridge
 				Statement.ExecuteAs who      => ExecuteAs(who),
 				Statement.Revert(var cookie) => new Ast.Statement.Revert(cookie is null ? null : Values.Of(cookie)),
 				Statement.SetUser(var user, var noReset) => new Ast.Statement.SetUser(user is null ? null : Values.Of(user)) { NoReset = noReset },
-				Statement.Use(Expression.ColumnReference(var database)) => new Ast.Statement.Use(Values.Part(old, database)),
+				Statement.Use(var named) when Values.Wording(named) is { } database => new Ast.Statement.Use(Values.Part(old, database)),
 				Statement.LineNumber(var line) => Values.Of(line) is Ast.LiteralValue.Numeric number
 					? new Ast.Statement.LineNumber(number)
 					: throw BridgeGap.Open(old, "inventory Statement.LineNumber (a line that is not a number)"),
@@ -107,13 +107,13 @@ static partial class Bridge
 		}
 
 		/// <summary>IF and its branches, on the common tree.</summary>
-		internal static Statement If(Expression condition, Statement then, Statement? other)
+		internal static Statement If(Ast.Expression condition, Statement then, Statement? other)
 		{
 			return Built(new Statement.If(condition, then, other));
 		}
 
 		/// <summary>WHILE and its body, on the common tree.</summary>
-		internal static Statement While(Expression condition, Statement body)
+		internal static Statement While(Ast.Expression condition, Statement body)
 		{
 			return Built(new Statement.While(condition, body));
 		}
@@ -137,7 +137,7 @@ static partial class Bridge
 		}
 
 		/// <summary>FETCH, on the common tree.</summary>
-		internal static Statement Fetch(string? orientation, Expression? offset, bool from, Expression cursor, bool global, SqlList<Expression>? into)
+		internal static Statement Fetch(string? orientation, Ast.Expression? offset, bool from, Ast.Expression cursor, bool global, SqlList<Ast.Expression>? into)
 		{
 			return Built(new Statement.Fetch(orientation, offset, from, cursor, global, into));
 		}
@@ -149,7 +149,7 @@ static partial class Bridge
 		}
 
 		/// <summary>SET of a variable, on the common tree.</summary>
-		internal static Statement SetVariable(string name, Expression value, string? @operator = null, string? through = null)
+		internal static Statement SetVariable(string name, Ast.Expression value, string? @operator = null, string? through = null)
 		{
 			return Built(new Statement.SetVariable(name, value, @operator, through));
 		}
@@ -161,13 +161,13 @@ static partial class Bridge
 		}
 
 		/// <summary>REVERT, on the common tree.</summary>
-		internal static Statement Revert(Expression? cookie = null)
+		internal static Statement Revert(Ast.Expression? cookie = null)
 		{
 			return Built(new Statement.Revert(cookie));
 		}
 
 		/// <summary>SETUSER, on the common tree.</summary>
-		internal static Statement SetUser(Expression? name = null, bool noReset = false)
+		internal static Statement SetUser(Ast.Expression? name = null, bool noReset = false)
 		{
 			return Built(new Statement.SetUser(name, noReset));
 		}
@@ -179,31 +179,31 @@ static partial class Bridge
 		}
 
 		/// <summary>LINENO, on the common tree.</summary>
-		internal static Statement LineNumber(Expression line)
+		internal static Statement LineNumber(Ast.Expression line)
 		{
 			return Built(new Statement.LineNumber(line));
 		}
 
 		/// <summary>RAISERROR, where the rule says it was written, on the common tree.</summary>
-		internal static Statement RaiseError(SqlList<Expression> arguments, string? tail, SqlSpan at)
+		internal static Statement RaiseError(SqlList<Ast.Expression> arguments, string? tail, SqlSpan at)
 		{
 			return Built(new Statement.RaiseError(arguments, tail), at);
 		}
 
 		/// <summary>WAITFOR DELAY and TIME, on the common tree.</summary>
-		internal static Statement WaitFor(Expression value, string kind)
+		internal static Statement WaitFor(Ast.Expression value, string kind)
 		{
 			return Built(new Statement.WaitFor(value, kind));
 		}
 
 		/// <summary>One of the statements that are a word and a value, on the common tree (<c>Statement.Commanded</c>).</summary>
-		internal static Statement Commanded(string word, Expression? value)
+		internal static Statement Commanded(string word, Ast.Expression? value)
 		{
 			return Built(Statement.Commanded(word, value));
 		}
 
 		/// <summary>The same, where the values arrived as a list that may not be there.</summary>
-		internal static Statement Commanded(string word, SqlList<Expression>? values)
+		internal static Statement Commanded(string word, SqlList<Ast.Expression>? values)
 		{
 			return Built(Statement.Commanded(word, values));
 		}
@@ -305,7 +305,7 @@ static partial class Bridge
 				_                  => throw BridgeGap.Open(old, $"inventory SetExpression.Transactions.IsolationLevel (`{level}`)"),
 			};
 
-			var tran = Recover("Statement.SetTransaction.Tran", Spelled(old), static text => Words(text) is [_, "TRAN", ..], false);
+			var tran = Recover(Spelled(old), static text => Words(text) is [_, "TRAN", ..], false);
 
 			return new Ast.Statement.SetTransaction { Modes = [new Ast.TransactionMode.Isolation(isolation)], Tran = tran };
 		}
@@ -354,7 +354,7 @@ static partial class Bridge
 				_ => throw Unconverted(option),
 			};
 
-			static Ast.SetOption Valued(string name, Expression value)
+			static Ast.SetOption Valued(string name, Ast.Expression value)
 			{
 				return new Ast.SetOption.Value(new Ast.Identifier(name), Values.Of(value));
 			}
@@ -574,13 +574,13 @@ static partial class Bridge
 			{
 				NoRevert = old.NoRevert,
 				Cookie   = cookie,
-				Exec     = Recover("Statement.ExecuteAs.Exec", Spelled(old), static text => Words(text) is ["EXEC", ..], false),
+				Exec     = Recover(Spelled(old), static text => Words(text) is ["EXEC", ..], false),
 			};
 		}
 
-		static Ast.CursorReference Reference(Statement old, Expression cursor, bool global)
+		static Ast.CursorReference Reference(Statement old, Ast.Expression cursor, bool global)
 		{
-			return cursor is Expression.ColumnReference(var name)
+			return Values.Wording(cursor) is { } name
 				? new Ast.CursorReference(Values.Name(old, name), Global: global)
 				: new Ast.CursorReference(null, Values.Of(cursor), Global: global);
 		}
@@ -669,7 +669,7 @@ static partial class Bridge
 
 			if (old.Operator == "")
 			{
-				if (members is not [var method] || old.Value is not Expression.RoutineInvocation("", var arguments, null))
+				if (members is not [var method] || old.Value is not Values.Call("", var arguments, null))
 					throw BridgeGap.Open(old, "inventory Statement.SetVariable (a call that is not a method's of the variable)");
 
 				var call = new Ast.Expression.Member(variable, Ast.MemberAccessKind.Dot, method, Each(arguments, static one => new Ast.Argument(Values.Of(one))));
@@ -716,7 +716,7 @@ static partial class Bridge
 
 			if (words is ["TRANSACTION" or "TRAN", "ISOLATION", "LEVEL"])
 			{
-				Ast.IsolationLevel level = value is Expression.ColumnReference(var text) ? string.Join(' ', Words(text)) switch
+				Ast.IsolationLevel level = Values.Wording(value) is { } text ? string.Join(' ', Words(text)) switch
 				{
 					"READ UNCOMMITTED" => Ast.IsolationLevel.ReadUncommitted,
 					"READ COMMITTED"   => Ast.IsolationLevel.ReadCommitted,

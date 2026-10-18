@@ -13,10 +13,9 @@ using Ast = DotGram.Sql.Ast;
 namespace DotGram.Sql.Tests;
 
 /// <summary>
-/// <c>TransactSqlParser</c>'s entries hand back the common tree, carried across by the bridge from the T-SQL tree the
-/// grammar's rules build: every text <see cref="TransactSqlTests"/> puts to the parser is answered by the entry as the
-/// grammar's own reading answers it — read where it reads, refused where it refuses — and what it reads is that
-/// reading carried across, through the plain door and the located one alike.
+/// <c>TransactSqlParser</c>'s entries hand back the common tree the grammar's rules build: every text
+/// <see cref="TransactSqlTests"/> puts to the parser is answered by the plain door as by the located one — read where it
+/// reads, refused where it refuses, at the same place — and what it reads is the same tree, spans aside.
 /// </summary>
 public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 {
@@ -32,8 +31,8 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// A statement: the same answer, the same place a refusal stops at, and the carried tree; the located door's tree
-	/// equals the plain one's.
+	/// A statement: the same answer, the same place a refusal stops at, and the same tree through either door; a statement
+	/// the tree has no place for is T-SQL's extension.
 	/// </summary>
 	[Fact]
 	public void Every_statement_reads_through_the_entry_as_the_grammar_reads_it()
@@ -43,45 +42,29 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 
 		foreach (var input in Texts())
 		{
-			var old = OldTree.TryParseStatement(input);
-			var now = TransactSqlParser.TryParseStatement(input);
+			var located = TransactSqlParser.Located.TryParseStatement(input);
+			var now     = TransactSqlParser.TryParseStatement(input);
 
-			if (old.IsSuccess != now.IsSuccess)
+			if (located.IsSuccess != now.IsSuccess)
 			{
-				faults.Add($"{(old.IsSuccess ? "read by the grammar and refused by the entry" : "refused by the grammar and read by the entry")}: {input}");
+				faults.Add($"{(located.IsSuccess ? "read located and refused plainly" : "refused located and read plainly")}: {input}");
 
 				continue;
 			}
 
-			if (!old.IsSuccess)
+			if (!located.IsSuccess)
 			{
-				if (old.Position != now.Position)
-					faults.Add($"refused at {now.Position} where the grammar stops at {old.Position}: {input}");
+				if (located.Position != now.Position)
+					faults.Add($"refused at {now.Position} where the located door stops at {located.Position}: {input}");
 
 				continue;
 			}
 
 			read++;
 
-			Ast.Statement carried;
-
-			try
-			{
-				carried = Bridge.ToAst(OldTree.Located.ParseStatement(input), input);
-			}
-			catch (BridgeGap)
-			{
-				if (now.Value is not Ast.Statement.Extension { Dialect: "T-SQL" })
-					faults.Add($"a gap of the bridge, and not an extension: {input}");
-
-				continue;
-			}
-
-			var located = TransactSqlParser.Located.TryParseStatement(input);
-
-			if (!carried.Equals(now.Value))
-				faults.Add($"not the carried tree: {input}: {Trees.Difference(carried, now.Value, old: false)}");
-			else if (!located.IsSuccess || !located.Value.Equals(now.Value))
+			if (now.Value is Ast.Statement.Extension { Dialect: not "T-SQL" })
+				faults.Add($"an extension of another dialect: {input}");
+			else if (!located.Value.Equals(now.Value))
 				faults.Add($"the located door gives another tree: {input}");
 		}
 
@@ -95,8 +78,7 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// An expression and a search condition: the same answer and the same place as the grammar's reading of the same
-	/// rule, and the carried tree.
+	/// An expression and a search condition: the same answer and the same place through either door, and the same tree.
 	/// </summary>
 	[Theory]
 	[InlineData("dbo.f(@v) + [b]")]
@@ -106,19 +88,19 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 	[InlineData("(SELECT TOP (1) a AS x FROM t)")]
 	public void An_expression_reads_through_the_entry_as_the_grammar_reads_it(string input)
 	{
-		var old = OldTree.TryParseValueExpression(input);
+		var located = TransactSqlParser.Located.TryParseExpression(input);
 		var now = TransactSqlParser.TryParseExpression(input);
 
-		Assert.Equal(old.IsSuccess, now.IsSuccess);
+		Assert.Equal(located.IsSuccess, now.IsSuccess);
 
-		if (!old.IsSuccess)
+		if (!located.IsSuccess)
 		{
-			Assert.Equal(old.Position, now.Position);
+			Assert.Equal(located.Position, now.Position);
 
 			return;
 		}
 
-		Assert.Equal(Bridge.ToAst(OldTree.Located.ParseValueExpression(input), input), now.Value);
+		Assert.Equal(TransactSqlParser.Located.ParseExpression(input), now.Value);
 		Assert.Equal(now.Value, TransactSqlParser.Located.ParseExpression(input));
 	}
 
@@ -128,30 +110,30 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 	[InlineData("a =")]
 	public void A_condition_reads_through_the_entry_as_the_grammar_reads_it(string input)
 	{
-		var old = OldTree.TryParseSearchCondition(input);
+		var located = TransactSqlParser.Located.TryParseSearchCondition(input);
 		var now = TransactSqlParser.TryParseSearchCondition(input);
 
-		Assert.Equal(old.IsSuccess, now.IsSuccess);
+		Assert.Equal(located.IsSuccess, now.IsSuccess);
 
-		if (!old.IsSuccess)
+		if (!located.IsSuccess)
 		{
-			Assert.Equal(old.Position, now.Position);
+			Assert.Equal(located.Position, now.Position);
 
 			return;
 		}
 
-		Assert.Equal(Bridge.ToAst(OldTree.Located.ParseSearchCondition(input), input), now.Value);
+		Assert.Equal(TransactSqlParser.Located.ParseSearchCondition(input), now.Value);
 		Assert.Equal(now.Value, TransactSqlParser.Located.ParseSearchCondition(input));
 	}
 
 	/// <summary>
-	/// A word the T-SQL tree does not keep is read from the text through either door: both read with locations, at
-	/// which the bridge reads the text, so <c>SELECT a b</c> keeps its alias without <c>AS</c>.
+	/// A word the rules read from the text is read through either door: both read with locations, so <c>SELECT a b</c>
+	/// keeps its alias without <c>AS</c>.
 	/// </summary>
 	[Theory]
 	[InlineData("SELECT a b FROM t", false)]
 	[InlineData("SELECT a AS b FROM t", true)]
-	public void A_word_the_old_tree_drops_is_read_through_either_door(string input, bool said)
+	public void A_word_read_from_the_text_is_read_through_either_door(string input, bool said)
 	{
 		foreach (var statement in (Ast.Statement[])[TransactSqlParser.ParseStatement(input), TransactSqlParser.Located.ParseStatement(input), TransactSqlParser.ParseSql(input)[0]])
 		{
@@ -184,11 +166,11 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// A construct the bridge has no place for yet reads, as an extension that names it, and is never thrown out of an
+	/// A construct the tree has no place for yet reads, as an extension that names it, and is never thrown out of an
 	/// entry: the first such statement among the tests'.
 	/// </summary>
 	[Fact]
-	public void A_statement_the_bridge_cannot_carry_reads_as_an_extension()
+	public void A_statement_the_tree_cannot_hold_reads_as_an_extension()
 	{
 		var text = Unplaced();
 
@@ -205,7 +187,7 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// What stands for a construct the bridge has no place for is located where the grammar located the construct: a
+	/// What stands for a construct the tree has no place for is located where the grammar located the construct: a
 	/// statement alone and among others, and an expression, through the located door; through the plain door nowhere.
 	/// </summary>
 	[Fact]
@@ -232,22 +214,14 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 		Assert.False(TransactSqlParser.ParseExpression(value).Span.Known);
 	}
 
-	/// <summary>The first statement of the tests the bridge has no place for.</summary>
+	/// <summary>The first statement of the tests the tree has no place for.</summary>
 	static string Unplaced()
 	{
-		foreach (var (old, source) in BridgeOracle.TestStatements())
-		{
-			try
-			{
-				Bridge.ToAst(old, source);
-			}
-			catch (BridgeGap)
-			{
-				return BridgeOracle.Text(old, source);
-			}
-		}
+		foreach (var input in Texts())
+			if (TransactSqlParser.TryParseStatement(input) is { IsSuccess: true, Value: Ast.Statement.Extension })
+				return input;
 
-		throw new InvalidOperationException("Every statement of the tests is carried: this test has nothing left to hold.");
+		throw new InvalidOperationException("Every statement of the tests is held by the tree: this test has nothing left to hold.");
 	}
 
 	/// <summary>Every statement of the common tree says what it does.</summary>
@@ -267,38 +241,6 @@ public sealed class TransactSqlEntryTests(ITestOutputHelper output)
 				faults.Add(failure.Message);
 			}
 		}
-
-		Assert.Equal([], faults);
-	}
-
-	/// <summary>
-	/// And says what the T-SQL tree's record said, for every statement of the corpus and of the tests that the bridge
-	/// carries.
-	/// </summary>
-	[Fact]
-	public void A_statement_says_the_category_the_old_tree_said()
-	{
-		var faults = new SortedSet<string>(StringComparer.Ordinal);
-
-		foreach (var (old, source) in BridgeOracle.CorpusStatements().Concat(BridgeOracle.TestStatements()))
-		{
-			Ast.Statement made;
-
-			try
-			{
-				made = Bridge.ToAst(old, source);
-			}
-			catch (BridgeGap)
-			{
-				continue;
-			}
-
-			if (made.Category() != old.Category)
-				faults.Add($"{Bridge.NameOf(old)} is {old.Category}, and Statement.{made.GetType().Name} {made.Category()}");
-		}
-
-		foreach (var fault in faults)
-			output.WriteLine(fault);
 
 		Assert.Equal([], faults);
 	}

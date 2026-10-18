@@ -7,49 +7,41 @@ using Ast = DotGram.Sql.Ast;
 namespace DotGram.Sql.TransactSql;
 
 /// <summary>
-/// The old T-SQL tree (<c>SqlSyntax.cs</c>, <c>DotGram.Sql</c>) carried onto the new one
-/// (<c>SqlAst*.cs</c>, <c>DotGram.Sql.Ast</c>), node by node, so that <c>Sql2023Writer</c> can be held
-/// to every statement T-SQL reads before the grammar is switched (docs/design/sql-tsql-bridge.md).
+/// The builders the T-SQL rules hand what they read to, in the action that completes it: each makes the common tree
+/// (<c>SqlAst*.cs</c>, <c>DotGram.Sql.Ast</c>) of what its rule gathered.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>What it does not do.</b> It declares nothing in the new tree and decides no shape: an old node
-/// whose target is missing, unwritten or undecided throws a <see cref="BridgeGap"/> naming it. A gap is
-/// the answer for that construct until a later task gives it a place.
+/// <b>What it does not do.</b> It declares nothing in the common tree and decides no shape: a part whose target is
+/// missing, unwritten or undecided throws a <see cref="BridgeGap"/> naming it, which the statement it is in holds, and
+/// a public entry hands back as an extension. A gap is the answer for that construct until a later task gives it a place.
 /// </para>
 /// <para>
-/// <b>One file a family.</b> Each family — Values, Queries, Dml, Tables, Routines, Procedural, Security,
-/// Database, Server, Drop — is a nested class with a <c>TryConvert</c> that answers for the old records it
-/// owns and says no to the rest; <see cref="Convert{T}"/> asks them in turn. A family is filled in its own
-/// file without touching a shared switch.
+/// <b>One file a family.</b> Each family — Values, Queries, Dml, Tables, Routines, Procedural, Security, Database,
+/// Server, Drop — is a nested class with the builders of its rules and a <c>TryConvert</c> that answers for the records
+/// of <c>Bridge.Read.cs</c> it takes apart and says no to the rest; <see cref="Convert{T}"/> asks them in turn.
 /// </para>
 /// <para>
-/// <b>Words the old tree drops.</b> Where the old tree does not keep a word the new tree records — <c>AS</c>
-/// before an alias, <c>ROW</c> against <c>ROWS</c> — the bridge reads it from the text the node was read
-/// from, through its span, when the statement was read with <c>TransactSqlParser.Located</c> and the text
-/// was handed in. Without either it takes the commoner spelling, which the round trip cannot tell from the
-/// other.
+/// <b>Words the records leave out.</b> Where a record does not keep a word the common tree records — <c>AS</c> before an
+/// alias, <c>ROW</c> against <c>ROWS</c> — the builder reads it from the text the record was read from, through its span:
+/// every reading of a public entry is a located one (<see cref="Over"/>), whether it publishes the locations or not.
 /// </para>
 /// </remarks>
 static partial class Bridge
 {
 	/// <summary>
-	/// The text the statement being carried was read from, or null where it is not known.
+	/// The text the reading under way was given, which a builder reads the words a record leaves out from, or null where
+	/// it is not known.
 	/// </summary>
 	[ThreadStatic] static string? source;
 
 	/// <summary>
-	/// The members the statement being carried had read from its text, by name (<see cref="Recovered"/>).
+	/// Whether the reading under way publishes where each node was written: <c>TransactSqlParser.Located</c>'s. A node of
+	/// the common tree keeps the span it is told for everybody only then (<see cref="SqlLocation.Publishing"/>).
 	/// </summary>
-	[ThreadStatic] static List<string>? recovered;
+	static bool locating => SqlLocation.Publishing;
 
-	/// <summary>
-	/// Whether the new nodes take the spans of the old nodes they are made from: a carriage for
-	/// <c>TransactSqlParser.Located</c>.
-	/// </summary>
-	[ThreadStatic] static bool locating;
-
-	delegate bool Converter(object old, [NotNullWhen(true)] out Ast.ISqlNode? made);
+	delegate bool Converter(object read, [NotNullWhen(true)] out Ast.ISqlNode? made);
 
 	/// <summary>
 	/// The families, in the order they are asked. Each answers only for what it owns.
@@ -57,7 +49,6 @@ static partial class Bridge
 	static readonly Converter[] Families =
 	[
 		Built.TryConvert,
-		Values.TryConvert,
 		Queries.TryConvert,
 		Dml.TryConvert,
 		Tables.TryConvert,
@@ -68,123 +59,27 @@ static partial class Bridge
 	];
 
 	/// <summary>
-	/// Every family by name, and the old records it owns, for the baselines and the gap report.
+	/// A value a rule read from the text where the record that holds it leaves it out, as the builder reads it where the
+	/// text was there to read; where it was not, the default the caller passes stands.
 	/// </summary>
-	public static readonly IReadOnlyList<(string Family, string[] Owns)> Ownership =
-	[
-		("Built",      Built.Owns),
-		("Values",     Values.Owns),
-		("Queries",    Queries.Owns),
-		("Dml",        Dml.Owns),
-		("Tables",     Tables.Owns),
-		("Routines",   Routines.Owns),
-		("Procedural", Procedural.Owns),
-		("Security",   Security.Owns),
-		("Database",   Database.Owns),
-		("Server",     Server.Owns),
-		("Broker",     Broker.Owns),
-		("Monitoring", Monitoring.Owns),
-		("External",   External.Owns),
-		("Drop",       Drop.Owns),
-	];
-
-	public static Ast.Statement ToAst(Statement old, string? text = null)
+	static T Recover<T>(string? text, Func<string, T> read, T otherwise)
 	{
-		return Reading(text, () => StatementOf(old));
-	}
-
-	public static Ast.Query ToAst(Query old, string? text = null)
-	{
-		return Reading(text, () => QueryOf(old));
-	}
-
-	public static Ast.Expression ToAst(Expression old, string? text = null)
-	{
-		return Reading(text, () => ExpressionOf(old));
-	}
-
-	public static Ast.TableSource ToAst(TableReference old, string? text = null)
-	{
-		return Reading(text, () => Source(old));
-	}
-
-	public static Ast.ISqlNode ToAst(Clause old, string? text = null)
-	{
-		return Reading(text, () => Convert<Ast.ISqlNode>(old));
-	}
-
-	static T Reading<T>(string? text, Func<T> convert)
-	{
-		var outer = source;
-
-		source    = text;
-		recovered = [];
-
-		try
-		{
-			return convert();
-		}
-		finally
-		{
-			source = outer;
-		}
+		return text is null ? otherwise : read(text);
 	}
 
 	/// <summary>
-	/// The members of the new tree the last statement carried on this thread had read from its text rather than
-	/// from the old tree, one entry a reading: the closed list <see cref="Recoverable"/> names them.
+	/// A word a rule saw written, where a record of an earlier reading read it from the text: what it says, except in a
+	/// reading of a part again from a text of its own (<see cref="Reread"/>), where a record has no span to read it by
+	/// and the default stands, as it always did.
 	/// </summary>
-	public static IReadOnlyList<string> Recovered => recovered ?? [];
-
-	/// <summary>
-	/// Every member the bridge may read from the text, because the old tree does not keep it. Closed: a reading
-	/// under any other name fails (<see cref="Recover{T}"/>), and docs/design/sql-tsql-bridge.md lists them.
-	/// </summary>
-	public static readonly string[] Recoverable =
-	[
-		"SelectColumn.ExpressionItem.AsKeyword",
-		"Clause.DerivedColumn alias = expression",
-		"Alias.AsKeyword of a table source",
-		"Alias.AsKeyword of MERGE's target",
-		"Limit.OffsetRowWord",
-		"Limit.Position",
-		"Limit.FetchRowWord",
-		"WindowReference.NameRef against (name)",
-		"Expression.Invocation without brackets",
-		"Expression.Trim.FromKeyword",
-		"Statement.SetTransaction.Tran",
-		"Statement.Delete.FromOmitted",
-		"ReferencesSpecification.DeleteRuleFirst",
-		"Statement.ExecuteModule.Keyword",
-		"Statement.ExecuteString.Exec",
-		"RoutineDefinition.Proc",
-		"ParameterDefinition.AsKeyword",
-		"Statement.ExecuteAs.Exec",
-		"RoutineDefinition.Unbracketed",
-		"RoutineDefinition.AsOmitted",
-		"Statement.Classification.Options",
-	];
-
-	/// <summary>
-	/// A value read from the text, counted under its member's name where the text was there to read; where it
-	/// was not, the default the caller passes stands and nothing is counted.
-	/// </summary>
-	static T Recover<T>(string member, string? text, Func<string, T> read, T otherwise)
+	static bool Recovered(bool read, bool otherwise)
 	{
-		if (Array.IndexOf(Recoverable, member) < 0)
-			throw new ArgumentOutOfRangeException(nameof(member), member, "Not one of Bridge.Recoverable.");
-
-		if (text is null)
-			return otherwise;
-
-		recovered?.Add(member);
-
-		return read(text);
+		return unlocated ? otherwise : read;
 	}
 
 	/// <summary>
-	/// A conversion of nodes read again from another text than the statement's, with that text as the source their
-	/// spans are in; what is read from the text is still counted for the statement.
+	/// A reading of nodes read again from another text than the statement's, with that text as the source their spans
+	/// are in.
 	/// </summary>
 	static T Inside<T>(string text, Func<T> convert)
 	{
@@ -202,114 +97,58 @@ static partial class Bridge
 		}
 	}
 
-	internal static Ast.Statement StatementOf(Statement old)
+	internal static Ast.Statement StatementOf(Statement read)
 	{
-		return Convert<Ast.Statement>(old);
+		return Convert<Ast.Statement>(read);
 	}
 
-	internal static Ast.Query QueryOf(Query old)
+	internal static Ast.Query QueryOf(Query read)
 	{
-		return Convert<Ast.Query>(old);
+		return Convert<Ast.Query>(read);
 	}
 
-	internal static Ast.Expression ExpressionOf(Expression old)
+	internal static Ast.TableSource Source(TableReference read)
 	{
-		return Convert<Ast.Expression>(old);
-	}
-
-	internal static Ast.TableSource Source(TableReference old)
-	{
-		return Convert<Ast.TableSource>(old);
+		return Convert<Ast.TableSource>(read);
 	}
 
 	/// <summary>
-	/// The one dispatcher: the first family that owns the record converts it.
+	/// The one dispatcher: the first family that owns the record converts it, and the node is told where the record was
+	/// written where the reading publishes it.
 	/// </summary>
-	/// <remarks>
-	/// Every node that can hold another of its kind passes here, so this is where a deep tree's carriage checks its
-	/// stack: where it runs low, the rest of the carriage goes on with a stack of its own (<see cref="SqlStack"/>), as
-	/// the reader that built the tree did, rather than overflowing it.
-	/// </remarks>
-	static T Convert<T>(object old)
+	static T Convert<T>(object read)
 		where T : Ast.ISqlNode
 	{
-		if (!SqlStack.Enough())
-			return Deeper(old, static node => Convert<T>(node));
-
 		foreach (var family in Families)
-			if (family(old, out var made))
+			if (family(read, out var made))
 			{
 				if (made is not T typed)
-					throw BridgeGap.Open(old, $"converts to {made.GetType().Name}, where a {typeof(T).Name} stands");
+					throw BridgeGap.Open(read, $"converts to {made.GetType().Name}, where a {typeof(T).Name} stands");
 
-				if (locating && old is ISqlSpan { Span: { Known: true, IsStale: false } span })
+				if (locating && read is ISqlSpan { Span: { Known: true, IsStale: false } span })
 					Place(typed, span);
 
 				return typed;
 			}
 
-		throw BridgeGap.Missing(old, "no family converts it");
+		throw BridgeGap.Missing(read, "no family converts it");
 	}
 
 	/// <summary>
-	/// A conversion on a stack of its own, with this thread's carriage — its text, what it read from it and whether it
-	/// locates — taken across. Called where the stack runs low, by <see cref="Convert{T}"/> and by a family's conversion
-	/// that recurses on itself.
+	/// A record's name as the inventory writes it: <c>Statement.Select</c>, <c>SetExpression.Locking.LockTimeout</c>; a
+	/// name the caller has, itself.
 	/// </summary>
-	static T Deeper<T>(object old, Func<object, T> convert)
+	public static string NameOf(object read)
 	{
-		var carriage = Carriage.Here();
-		var made     = new object?[1];
-
-		SqlStack.Deeper(old, (carriage, convert), made, static (node, state, result) =>
+		return read switch
 		{
-			var outer = Carriage.Here();
-
-			state.carriage.Restore();
-
-			try
-			{
-				result[0] = state.convert(node);
-			}
-			finally
-			{
-				outer.Restore();
-			}
-		});
-
-		carriage.Restore();
-
-		return (T)made[0]!;
-	}
-
-	/// <summary>The thread-static state of a carriage, taken from one thread to another.</summary>
-	sealed class Carriage(string? source, List<string>? recovered, bool locating)
-	{
-		public static Carriage Here()
-		{
-			return new Carriage(Bridge.source, Bridge.recovered, Bridge.locating);
-		}
-
-		public void Restore()
-		{
-			Bridge.source    = source;
-			Bridge.recovered = recovered;
-			Bridge.locating  = locating;
-		}
-	}
-
-	/// <summary>
-	/// An old record's name as the inventory writes it: <c>Statement.Select</c>, <c>SetExpression.Locking.LockTimeout</c>.
-	/// </summary>
-	public static string NameOf(object old)
-	{
-		return old switch
-		{
+			string name               => name,
 			Given given               => given.Record,
 			Statement.Built made      => made.Record,
 			Query.Built query         => query.Record,
 			TableReference.Built from => from.Record,
-			_                         => NameOf(old.GetType()),
+			Values.Held held          => held.Record,
+			_                         => NameOf(read.GetType()),
 		};
 	}
 
@@ -317,35 +156,29 @@ static partial class Bridge
 	{
 		var name = type.Name;
 
-		for (var outer = type.DeclaringType; outer is not null; outer = outer.DeclaringType)
+		for (var outer = type.DeclaringType; outer is not null && outer != typeof(Bridge); outer = outer.DeclaringType)
 			name = outer.Name + "." + name;
 
 		return name;
 	}
 
 	/// <summary>
-	/// What says the gap for an old record a family owns and has no arm for, where something says more than the
-	/// record's name: the tests set it to name the row of the tree's inventory that the record waits on.
+	/// The gap for a record a family owns and has no arm for.
 	/// </summary>
-	internal static Func<object, BridgeGap>? Explained { get; set; }
-
-	/// <summary>
-	/// The gap for an old record a family owns and has no arm for.
-	/// </summary>
-	static BridgeGap Unconverted(object old)
+	static BridgeGap Unconverted(object read)
 	{
-		return Explained is { } explain ? explain(old) : BridgeGap.Unbridged(old, "the bridge has no arm for it");
+		return BridgeGap.Unbridged(read, "the bridge has no arm for it");
 	}
 
 	/// <summary>
-	/// Whether a name is one of the old records a family lists.
+	/// Whether a name is one of the records a family lists.
 	/// </summary>
-	static bool Owned(string[] owns, object old)
+	static bool Owned(string[] owns, object read)
 	{
-		return Array.IndexOf(owns, NameOf(old)) >= 0;
+		return Array.IndexOf(owns, NameOf(read)) >= 0;
 	}
 
-	// ── The words the old tree drops ────────────────────────────────────────────
+	// ── The words a record leaves out ───────────────────────────────────────────
 
 	/// <summary>Whether text can be cut at a span: there is a text, and the span says where in it.</summary>
 	[MemberNotNullWhen(true, nameof(source))]
@@ -355,11 +188,20 @@ static partial class Bridge
 	}
 
 	/// <summary>
+	/// Where a node was read: a value of the common tree keeps the span its reading told it apart where the reading does
+	/// not publish locations (<see cref="SqlLocation.Read"/>).
+	/// </summary>
+	static SqlSpan SpanOf(ISqlSpan node)
+	{
+		return node is Ast.Expression value ? value.Read : node.Span;
+	}
+
+	/// <summary>
 	/// The text a node was read from, or null where it was not located or no text was handed in.
 	/// </summary>
 	static string? Spelled(ISqlSpan node)
 	{
-		var span = node.Span;
+		var span = SpanOf(node);
 
 		if (!Cuttable(span) || span.End > source.Length)
 			return null;
@@ -369,15 +211,18 @@ static partial class Bridge
 
 	/// <summary>
 	/// The text between the end of one node and the start of the next, or null where either is not
-	/// located: what was written between two things the old tree keeps.
+	/// located: what was written between two things a record keeps.
 	/// </summary>
 	static string? Between(ISqlSpan before, ISqlSpan after)
 	{
-		if (!Cuttable(before.Span) || !Cuttable(after.Span))
+		var first = SpanOf(before);
+		var next  = SpanOf(after);
+
+		if (!Cuttable(first) || !Cuttable(next))
 			return null;
 
-		var from = before.Span.End;
-		var to   = after.Span.At;
+		var from = first.End;
+		var to   = next.At;
 
 		return from <= to && to <= source.Length ? source.Substring(from, to - from) : null;
 	}
@@ -412,10 +257,12 @@ static partial class Bridge
 	/// </summary>
 	static string? WordAfter(ISqlSpan node)
 	{
-		if (!Cuttable(node.Span) || node.Span.End > source.Length)
+		var span = SpanOf(node);
+
+		if (!Cuttable(span) || span.End > source.Length)
 			return null;
 
-		return SqlTokens.First(source, node.Span.End) is { } token
+		return SqlTokens.First(source, span.End) is { } token
 			? token.Kind == SqlTokens.Kind.Word ? token.Text.ToUpperInvariant() : token.Text
 			: null;
 	}

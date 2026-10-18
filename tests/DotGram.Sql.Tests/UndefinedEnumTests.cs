@@ -427,7 +427,7 @@ public sealed class UndefinedEnumTests
 		}
 
 		foreach (var text in Statements)
-			Check(text, Bridge.ToAst(OldTree.Located.ParseStatement(text), text), static node => TransactSqlWriter.Write(node), static text => Bridge.ToAst(OldTree.Located.ParseStatement(text), text), "T-SQL");
+			Check(text, TransactSqlParser.Located.ParseStatement(text), static node => TransactSqlWriter.Write(node), static text => TransactSqlParser.Located.ParseStatement(text), "T-SQL");
 
 		foreach (var text in StandardStatements)
 			Check(text, SqlStandardParser.ParseStatement(text), static node => Sql2023Writer.Write(node), static text => SqlStandardParser.ParseStatement(text), "the standard");
@@ -474,7 +474,7 @@ public sealed class UndefinedEnumTests
 
 		foreach (var text in Statements)
 		{
-			var tree  = (ISqlNode)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+			var tree  = (ISqlNode)TransactSqlParser.Located.ParseStatement(text);
 			var count = Members(tree);
 
 			Assert.True(count > 0, text);

@@ -425,7 +425,7 @@ public sealed class Sql92TreeTests
 
 	/// <summary>
 	/// The ScriptDom corpus: each statement as its file writes it, and each query
-	/// <see cref="TransactSqlParser"/> reads as <see cref="SqlWriter"/> prints it, which is where the
+	/// <see cref="TransactSqlParser"/> reads as <see cref="TransactSqlWriter"/> prints it, which is where the
 	/// SQL-92 the corpus holds is found — the files are T-SQL, and their brackets and words are not.
 	/// </summary>
 	static IEnumerable<string> CorpusTexts()
@@ -437,21 +437,21 @@ public sealed class Sql92TreeTests
 					if (statement.Trim() is { Length: > 0 } one)
 						yield return one;
 
-				var read = OldTree.TryParseSql(batch);
+				var read = TransactSqlParser.TryParseSql(batch);
 
 				if (!read.IsSuccess)
 					continue;
 
 				foreach (var statement in read.Value!)
 				{
-					if (statement is not Statement.Select)
+					if (statement is not Ast.Statement.Select)
 						continue;
 
 					string? printed;
 
 					try
 					{
-						printed = SqlWriter.Write(statement);
+						printed = TransactSqlWriter.Write(statement);
 					}
 					catch (Exception)
 					{

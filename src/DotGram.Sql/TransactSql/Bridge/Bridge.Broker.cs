@@ -25,15 +25,6 @@ static partial class Bridge
 	/// </remarks>
 	internal static class Broker
 	{
-		public static readonly string[] Owns =
-		[
-			"Statement.MessageTypeDefinition", "Statement.ContractDefinition", "Statement.QueueDefinition",
-			"Statement.ServiceDefinition", "Statement.RouteDefinition", "Statement.RemoteServiceBindingDefinition",
-			"Statement.BrokerPriorityDefinition", "Statement.BeginDialog", "Statement.ConversationTimer",
-			"Statement.EndConversation", "Statement.MoveConversation", "Statement.Send",
-			"Statement.Receive", "Statement.GetConversationGroup", "Statement.WaitForStatement",
-		];
-
 		/// <summary>The verb a definition opened with: CREATE or ALTER, whatever the case it was written in.</summary>
 		internal static string Verb(Defining old)
 		{
@@ -409,37 +400,37 @@ static partial class Bridge
 		}
 
 		/// <summary>WAITFOR of a statement, on the common tree.</summary>
-		internal static Statement Wait(Statement waited, Expression? timeout)
+		internal static Statement Wait(Statement waited, Ast.Expression? timeout)
 		{
 			return Carry(new Statement.WaitForStatement(waited, timeout), Wait);
 		}
 
 		/// <summary>BEGIN DIALOG, on the common tree.</summary>
-		internal static Statement Dialog(string handle, bool conversation, string from, Expression to, Expression? instance, string? contract, SqlList<Clause> options)
+		internal static Statement Dialog(string handle, bool conversation, string from, Ast.Expression to, Ast.Expression? instance, string? contract, SqlList<Clause> options)
 		{
 			return Carry(new Statement.BeginDialog(handle, conversation, from, to, instance, contract, options), Dialog);
 		}
 
 		/// <summary>BEGIN CONVERSATION TIMER, on the common tree.</summary>
-		internal static Statement Timer(Expression handle, Expression timeout)
+		internal static Statement Timer(Ast.Expression handle, Ast.Expression timeout)
 		{
 			return Carry(new Statement.ConversationTimer(handle, timeout), static old => new Ast.Statement.BeginConversationTimer(Values.Of(old.Handle), Values.Of(old.Timeout)));
 		}
 
 		/// <summary>END CONVERSATION, on the common tree: the handle, and what its rules read after it.</summary>
-		internal static Statement End(Expression handle, Statement.EndConversation? ending)
+		internal static Statement End(Ast.Expression handle, Statement.EndConversation? ending)
 		{
 			return Carry(ending is null ? new Statement.EndConversation(handle) : ending with { Handle = handle }, End);
 		}
 
 		/// <summary>MOVE CONVERSATION, on the common tree.</summary>
-		internal static Statement Move(Expression handle, Expression group)
+		internal static Statement Move(Ast.Expression handle, Ast.Expression group)
 		{
 			return Carry(new Statement.MoveConversation(handle, group), static old => new Ast.Statement.MoveConversation(Values.Of(old.Handle), Values.Of(old.Group)));
 		}
 
 		/// <summary>SEND, on the common tree: the conversations its rules read, the message type and the body.</summary>
-		internal static Statement Send(Statement.Send targets, string? messageType, Expression? body)
+		internal static Statement Send(Statement.Send targets, string? messageType, Ast.Expression? body)
 		{
 			return Carry(targets with { MessageType = messageType, Body = body }, Send);
 		}
@@ -451,7 +442,7 @@ static partial class Bridge
 		}
 
 		/// <summary>RECEIVE, on the common tree.</summary>
-		internal static Statement Receive(Clause? top, SqlList<Clause> columns, string queue, string? into, Expression? where)
+		internal static Statement Receive(Clause? top, SqlList<Clause> columns, string queue, string? into, Ast.Expression? where)
 		{
 			return Carry(new Statement.Receive(top, columns, queue, into, where), Receive);
 		}
@@ -601,7 +592,7 @@ static partial class Bridge
 			{
 				var minus = TakePunctuation("-");
 
-				return Values.Of(new Expression.Literal(SqlLiteralKind.Number, (minus ? "-" : "") + Number().Text)) as Ast.LiteralValue.Numeric ?? throw Unread();
+				return Values.Of(Values.Number((minus ? "-" : "") + Number().Text)) as Ast.LiteralValue.Numeric ?? throw Unread();
 			}
 
 			/// <summary>The text of the token just taken.</summary>
@@ -700,7 +691,7 @@ static partial class Bridge
 			/// <summary>An unsigned number.</summary>
 			public Ast.LiteralValue.Numeric Number()
 			{
-				return _at < _tokens.Count && _tokens[_at].Kind == SqlTokens.Kind.Number && Values.Of(new Expression.Literal(SqlLiteralKind.Number, _tokens[_at++].Text)) is Ast.LiteralValue.Numeric number
+				return _at < _tokens.Count && _tokens[_at].Kind == SqlTokens.Kind.Number && Values.Of(Values.Number(_tokens[_at++].Text)) is Ast.LiteralValue.Numeric number
 					? number
 					: throw Unread();
 			}
@@ -819,7 +810,7 @@ static partial class Bridge
 						if (Regex.IsMatch(token.Text, "^(?:[0-9]+[.]?[0-9]*|[.][0-9]+)[A-Za-z_]+$") && !Regex.IsMatch(token.Text, "^(?:[0-9]+[.]?[0-9]*|[.][0-9]+)[eE]$") && !token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
 							throw BridgeGap.Lost(_old, "a number written with its unit against it (`1MB`): the text is compared by tokens, and the tree writes the unit after a blank");
 
-						var number = Values.Of(new Expression.Literal(token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? SqlLiteralKind.Hex : SqlLiteralKind.Number, token.Text));
+						var number = token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? Values.Hex(token.Text) : Values.Number(token.Text);
 
 						if (_at < _tokens.Count && _tokens[_at].Kind == SqlTokens.Kind.Word)
 							return new Ast.Expression.Measured(number, new Ast.Identifier(_tokens[_at++].Text));
@@ -828,7 +819,7 @@ static partial class Bridge
 					}
 
 					case SqlTokens.Kind.Word when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase):
-						return Values.Of(Expression.NullValue);
+						return Values.Of(Values.Null());
 
 					case SqlTokens.Kind.Word or SqlTokens.Kind.Delimited:
 						return new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(_old, token.Text)]));
@@ -926,10 +917,10 @@ static partial class Bridge
 				switch (token.Kind)
 				{
 					case SqlTokens.Kind.Number when token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase):
-						return minus ? throw BridgeGap.Missing(_old, "a binary string with a minus before it, which the grammar's EventValue reads and the tree has no place for") : Values.Of(new Expression.Literal(SqlLiteralKind.Hex, token.Text));
+						return minus ? throw BridgeGap.Missing(_old, "a binary string with a minus before it, which the grammar's EventValue reads and the tree has no place for") : Values.Of(Values.Hex(token.Text));
 
 					case SqlTokens.Kind.Number:
-						return Values.Of(new Expression.Literal(SqlLiteralKind.Number, (minus ? "-" : "") + token.Text));
+						return Values.Of(Values.Number((minus ? "-" : "") + token.Text));
 
 					case SqlTokens.Kind.String when !minus:
 						return Values.String(token.Text);

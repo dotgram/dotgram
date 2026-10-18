@@ -65,7 +65,7 @@ static partial class Bridge
 			if (!unlocated)
 				read.Locate(at.At, at.Length);
 
-			Building(read, static read => Of(read), out var made, out var gap, out var taken);
+			Building(read, static read => Of(read), out var made, out var gap);
 
 			var shape = read switch
 			{
@@ -77,7 +77,7 @@ static partial class Bridge
 				_                            => TableReference.Built.Kind.Other,
 			};
 
-			return new TableReference.Built(made, gap, taken, NameOf(read), shape, Syntax.Bracketable(read));
+			return new TableReference.Built(made, gap, NameOf(read), shape, Rules.Bracketable(read));
 		}
 
 		static Ast.TableSource Of(TableReference old)
@@ -99,7 +99,7 @@ static partial class Bridge
 
 				case TableReference.FunctionCall(var call, var name, var columns, var schema):
 					// AI_GENERATE_CHUNKS from level 170 names its arguments; below, it is a function of the user's.
-					if (schema.Length > 0 || Rowsets.Contains(call.Name) || call is { Name: var chunks, Arguments: [Expression.NamedArgument, ..] } && chunks.Equals("AI_GENERATE_CHUNKS", StringComparison.OrdinalIgnoreCase))
+					if (schema.Length > 0 || Rowsets.Contains(call.Name) || call is { Name: var chunks, Arguments: [Values.NamedArgument, ..] } && chunks.Equals("AI_GENERATE_CHUNKS", StringComparison.OrdinalIgnoreCase))
 						return Rowset((TableReference.FunctionCall)old);
 
 					// VariableSource: `@v.f (1)`, a method on a variable, which the old tree keeps as one name; a variable's
@@ -210,10 +210,10 @@ static partial class Bridge
 						table,
 						alias);
 
-				case "OPENQUERY" when arguments is [Expression.ColumnReference(var server), var query] && old.Schema.Length == 0:
+				case "OPENQUERY" when arguments is [var linked, { } query] && Values.Wording(linked) is { } server && old.Schema.Length == 0:
 					return new Ast.TableSource.OpenQuery(Values.Part(old, server), Values.Of(query), alias);
 
-				case "OPENROWSET" when arguments is [Expression.Prefixed(var bulk, var file), ..] && bulk.Equals("BULK", StringComparison.OrdinalIgnoreCase):
+				case "OPENROWSET" when arguments is [Values.Prefixed(var bulk, var file), ..] && bulk.Equals("BULK", StringComparison.OrdinalIgnoreCase):
 					return new Ast.TableSource.OpenRowsetBulk(
 						Values.Of(file),
 						Each(arguments[1..], one => BulkOption(old, one)),
@@ -223,9 +223,9 @@ static partial class Bridge
 				case "OPENROWSET" when arguments.Length == 3 && old.Schema.Length == 0:
 					return arguments[1] switch
 					{
-						Expression.Pieced([var source, var user, var password]) =>
+						Values.Pieced([var source, var user, var password]) =>
 							new Ast.TableSource.OpenRowset(Values.Of(arguments[0]), null, new Ast.RowsetLogin(Values.Of(source), Values.Of(user), Values.Of(password)), Values.Of(arguments[2]), alias),
-						Expression.Pieced =>
+						Values.Pieced =>
 							throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (OPENROWSET's login in other than three parts)"),
 						var provider =>
 							new Ast.TableSource.OpenRowset(Values.Of(arguments[0]), Values.Of(provider), null, Values.Of(arguments[2]), alias),
@@ -251,13 +251,13 @@ static partial class Bridge
 		/// <summary>
 		/// One option of OPENROWSET BULK: a word (<c>SINGLE_BLOB</c>) or a word and its value (<c>FORMAT = 'CSV'</c>).
 		/// </summary>
-		static Ast.Option BulkOption(TableReference old, Expression option)
+		static Ast.Option BulkOption(TableReference old, Ast.Expression option)
 		{
 			return option switch
 			{
-				Expression.NamedArgument(var name, var value)                 => new Ast.Option(Values.Part(old, name), Values.Of(value), []),
-				Expression.ColumnReference(var word) when !word.Contains('.') => new Ast.Option(Values.Part(old, word), null, []),
-				Expression.RowsetOrder(var by, var unique)                    => new Ast.Option(new Ast.Identifier("ORDER"), null, [])
+				Values.NamedArgument(var name, var value)                 => new Ast.Option(Values.Part(old, name), Values.Of(value), []),
+				_ when Values.Wording(option) is { } word && !word.Contains('.') => new Ast.Option(Values.Part(old, word), null, []),
+				Values.RowsetOrder(var by, var unique)                    => new Ast.Option(new Ast.Identifier("ORDER"), null, [])
 				{
 					Order = new Ast.RowOrder(Queries.Order(new Clause.OrderBy(by, null, null)).Items, unique),
 				},
@@ -274,13 +274,13 @@ static partial class Bridge
 			string[] names = ["SOURCE", "CHUNK_TYPE", "CHUNK_SIZE", "OVERLAP", "ENABLE_CHUNK_SET_ID"];
 			var arguments  = old.Function.Arguments;
 
-			if (arguments.Length is < 3 or > 5 || arguments[1] is not Expression.NamedArgument(_, Expression.ColumnReference(var type))
-				|| Enumerable.Range(0, arguments.Length).Any(at => arguments[at] is not Expression.NamedArgument(var name, _) || !name.Equals(names[at], StringComparison.OrdinalIgnoreCase)))
+			if (arguments.Length is < 3 or > 5 || arguments[1] is not Values.NamedArgument(_, var typed) || Values.Wording(typed) is not { } type
+				|| Enumerable.Range(0, arguments.Length).Any(at => arguments[at] is not Values.NamedArgument(var name, _) || !name.Equals(names[at], StringComparison.OrdinalIgnoreCase)))
 				throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (AI_GENERATE_CHUNKS with these arguments)");
 
 			Ast.Expression Value(int at)
 			{
-				return Values.Of(((Expression.NamedArgument)arguments[at]).Value);
+				return Values.Of(((Values.NamedArgument)arguments[at]).Value);
 			}
 
 			return new Ast.TableSource.AiGenerateChunks(Value(0), Values.Part(old, type), Value(2))
@@ -298,10 +298,10 @@ static partial class Bridge
 		static Ast.TableSource Predict(TableReference.FunctionCall old, Ast.Alias? alias)
 		{
 			var arguments = old.Function.Arguments;
-			var dataFirst = arguments is [Expression.NamedArgument(var leading, _), ..] && leading.Equals("DATA", StringComparison.OrdinalIgnoreCase);
+			var dataFirst = arguments is [Values.NamedArgument(var leading, _), ..] && leading.Equals("DATA", StringComparison.OrdinalIgnoreCase);
 
-			if (arguments.Length < 2 || arguments[dataFirst ? 1 : 0] is not Expression.NamedArgument(var model, var value) || arguments[dataFirst ? 0 : 1] is not Expression.NamedArgument(var data, Expression.Aliased(var source, var named, var written))
-				|| source is not (Expression.ColumnReference or Expression.Subquery)
+			if (arguments.Length < 2 || arguments[dataFirst ? 1 : 0] is not Values.NamedArgument(var model, var value) || arguments[dataFirst ? 0 : 1] is not Values.NamedArgument(var data, Values.Aliased(var source, var named, var written))
+				|| Values.Wording(source) is null && source is not (Ast.Expression.Subquery or Values.Unbuilt { Shape: "Expression.Subquery" })
 				|| !model.Equals("MODEL", StringComparison.OrdinalIgnoreCase) || !data.Equals("DATA", StringComparison.OrdinalIgnoreCase)
 				|| old.Schema.Length == 0)
 				throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a PREDICT that is not MODEL, DATA AS and a schema)");
@@ -311,12 +311,12 @@ static partial class Bridge
 			Ast.Identifier? runtime = rest switch
 			{
 				[]                                                                                                          => null,
-				[Expression.NamedArgument(var word, Expression.ColumnReference(var engine))] when word.Equals("RUNTIME", StringComparison.OrdinalIgnoreCase) => Values.Part(old, engine),
+				[Values.NamedArgument(var word, var said)] when Values.Wording(said) is { } engine && word.Equals("RUNTIME", StringComparison.OrdinalIgnoreCase) => Values.Part(old, engine),
 				_                                                                                                           => throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a PREDICT argument after DATA that is not RUNTIME)"),
 			};
 
 			var called = new Ast.Alias(Values.Part(old, named), null, written);
-			Ast.TableSource scored = source is Expression.ColumnReference(var table)
+			Ast.TableSource scored = Values.Wording(source) is { } table
 				? new Ast.TableSource.Named(Values.Name(old, table)) { Alias = called }
 				: new Ast.TableSource.Subquery(((Ast.Expression.Subquery)Values.Of(source)).Query) { Alias = called };
 
@@ -417,7 +417,7 @@ static partial class Bridge
 				return null;
 
 			// The words after the rotation's last bracket, read as tokens: a bracket in a quoted alias is not one.
-			var said = Recover("Alias.AsKeyword of a table source", Spelled(old), static text =>
+			var said = Recover(Spelled(old), static text =>
 			{
 				var tokens = SqlTokens.Of(text);
 				var close  = tokens.FindLastIndex(static one => one is { Kind: SqlTokens.Kind.Punctuation, Text: ")" });
@@ -437,7 +437,7 @@ static partial class Bridge
 			if (name is null)
 				return null;
 
-			var said = Recover("Alias.AsKeyword of a table source", before is null ? Spelled(old) : WordsAfter(before, old), static text =>
+			var said = Recover(before is null ? Spelled(old) : WordsAfter(before, old), static text =>
 			{
 				// A word AS, not a name `"as"` or `[as]`, not the AS of FOR SYSTEM_TIME AS OF, and not one inside
 				// brackets, a method's arguments (`@v.f (CAST (1 AS INT))`).
@@ -463,11 +463,14 @@ static partial class Bridge
 		/// </summary>
 		static string? WordsAfter(ISqlSpan node, ISqlSpan within)
 		{
-			if (!Cuttable(node.Span) || !Cuttable(within.Span))
+			var span  = SpanOf(node);
+			var outer = SpanOf(within);
+
+			if (!Cuttable(span) || !Cuttable(outer))
 				return null;
 
-			var from = node.Span.End;
-			var to   = within.Span.End;
+			var from = span.End;
+			var to   = outer.End;
 
 			return from <= to && to <= source.Length ? source.Substring(from, to - from) : null;
 		}
@@ -495,19 +498,19 @@ static partial class Bridge
 		static Ast.TableSource ChangeTable(TableReference.FunctionCall old, Ast.Alias? alias)
 		{
 			var arguments = old.Function.Arguments;
-			var seek      = arguments is [.., Expression.ColumnReference(var last)] && last.Equals("FORCESEEK", StringComparison.OrdinalIgnoreCase);
+			var seek      = arguments is [.., var last] && Values.Wording(last) is { } word && word.Equals("FORCESEEK", StringComparison.OrdinalIgnoreCase);
 			var count     = arguments.Length - (seek ? 1 : 0);
 
 			switch (arguments[0])
 			{
-				case Expression.Prefixed(var word, Expression.ColumnReference(var table)) when word.Equals("CHANGES", StringComparison.OrdinalIgnoreCase) && count == 2:
+				case Values.Prefixed(var said, var named) when Values.Wording(named) is { } table && said.Equals("CHANGES", StringComparison.OrdinalIgnoreCase) && count == 2:
 					return new Ast.TableSource.ChangeTableChanges(Values.Name(old, table), Values.Of(arguments[1]), seek, alias);
 
-				case Expression.Prefixed(var word, Expression.ColumnReference(var table)) when word.Equals("VERSION", StringComparison.OrdinalIgnoreCase) && count == 3
-					&& arguments[1] is Expression.RowValueConstructor(var columns) && arguments[2] is Expression.RowValueConstructor(var values):
+				case Values.Prefixed(var said, var named) when Values.Wording(named) is { } table && said.Equals("VERSION", StringComparison.OrdinalIgnoreCase) && count == 3
+					&& arguments[1] is Ast.Expression.Row(var columns, _) && arguments[2] is Ast.Expression.Row(var values, _):
 					return new Ast.TableSource.ChangeTableVersion(
 						Values.Name(old, table),
-						Each(columns, one => one is Expression.ColumnReference(var column) && !column.Contains('.') ? Values.Part(old, column) : throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a CHANGETABLE key column that is not one name)")),
+						Each(columns, one => Values.Wording(one) is { } column && !column.Contains('.') ? Values.Part(old, column) : throw BridgeGap.Open(old, "inventory TableReference.FunctionCall (a CHANGETABLE key column that is not one name)")),
 						Each(values, Values.Of),
 						seek,
 						alias);
@@ -523,7 +526,7 @@ static partial class Bridge
 		/// </summary>
 		static Ast.TableSource FullTextTable(TableReference.FunctionCall old, string name, Ast.Alias? alias)
 		{
-			if (old.Function.Arguments is not [Expression.ColumnReference(var table), var searched, var search, .. var rest] || rest.Length > 2)
+			if (old.Function.Arguments is not [var named, var searched, var search, .. var rest] || Values.Wording(named) is not { } table || rest.Length > 2)
 				throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name} with these arguments)");
 
 			Ast.Expression? language = null;
@@ -531,22 +534,22 @@ static partial class Bridge
 
 			foreach (var one in rest)
 			{
-				if (one is Expression.Prefixed(var word, var value) && word.Equals("LANGUAGE", StringComparison.OrdinalIgnoreCase) && language is null && top is null)
+				if (one is Values.Prefixed(var word, var value) && word.Equals("LANGUAGE", StringComparison.OrdinalIgnoreCase) && language is null && top is null)
 					language = Values.Of(value);
-				else if (one is not Expression.Prefixed && top is null)
+				else if (one is not Values.Prefixed && top is null)
 					top = Values.Of(one);
 				else
 					throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name} with these arguments)");
 			}
 
-			var bracketed = searched is Expression.RowValueConstructor;
-			SqlList<Expression> items = searched is Expression.RowValueConstructor(var list) ? list : [searched];
+			var bracketed = searched is Ast.Expression.Row;
+			SqlList<Ast.Expression> items = searched is Ast.Expression.Row(var list, _) ? list : [searched];
 
 			var columns = Each(items, one => one switch
 			{
-				Expression.ColumnReference("*") => new Ast.Expression.Asterisk(),
-				Expression.ColumnReference(var column) when !column.Contains('.') => new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, column)])),
-				Expression.RoutineInvocation when !bracketed => Values.Of(one),
+				_ when Values.Wording(one) == "*" => new Ast.Expression.Asterisk(),
+				_ when Values.Wording(one) is { } column && !column.Contains('.') => new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, column)])),
+				Values.Call when !bracketed => Values.Of(one),
 				_ => throw BridgeGap.Open(old, $"inventory TableReference.FunctionCall ({name} searching a column that is not one name, *, or a property)"),
 			});
 
@@ -695,7 +698,8 @@ static partial class Bridge
 				case Clause.ColumnDefinition column:
 					return new Ast.TableElement.Column(Column(column));
 
-				case Clause.ConstraintDefinition { Kind: "PERIOD FOR SYSTEM_TIME", Columns: [Clause.SortSpecification(Expression.ColumnReference(var begin), SqlOrder.Unspecified), Clause.SortSpecification(Expression.ColumnReference(var end), SqlOrder.Unspecified)], Name: null }:
+				case Clause.ConstraintDefinition { Kind: "PERIOD FOR SYSTEM_TIME", Columns: [Clause.SortSpecification(var first, SqlOrder.Unspecified), Clause.SortSpecification(var last, SqlOrder.Unspecified)], Name: null }
+					when Values.Wording(first) is { } begin && Values.Wording(last) is { } end:
 					return new Ast.TableElement.Period(new Ast.PeriodDefinition(Ast.PeriodKind.SystemTime, null, Values.Part(old, begin), Values.Part(old, end)));
 
 				case Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" } index:
@@ -832,7 +836,7 @@ static partial class Bridge
 				case "NOT NULL":
 					return new Ast.ColumnOption.Constraint(new Ast.Constraint.NotNull { Name = name is null ? null : Values.Name(old, name) });
 
-				case "COLLATE" when old.Arguments is [Expression.ColumnReference(var collation)]:
+				case "COLLATE" when old.Arguments is [var named] && Values.Wording(named) is { } collation:
 					return new Ast.ColumnOption.Collation(new Ast.CollationName(Values.Name(old, collation)));
 
 				case "IDENTITY" when old.Arguments.Length <= 2:
@@ -934,7 +938,7 @@ static partial class Bridge
 		/// <summary>A foreign key's own columns, which T-SQL reads with a direction and which the standard names alone.</summary>
 		static SqlList<Ast.Identifier> KeyNames(Clause.ConstraintDefinition old)
 		{
-			return Each(old.Columns, one => one is Clause.SortSpecification(Expression.ColumnReference(var name), SqlOrder.Unspecified)
+			return Each(old.Columns, one => one is Clause.SortSpecification(var named, SqlOrder.Unspecified) && Values.Wording(named) is { } name
 				? Values.Part(old, name)
 				: throw BridgeGap.Open(one, "inventory Clause.ConstraintDefinition (a foreign key's column with a direction)"));
 		}
@@ -945,7 +949,7 @@ static partial class Bridge
 				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (a foreign key with no REFERENCES)");
 
 			// The old tree keeps the two actions and not their order, which the text has; a delete rule alone is first.
-			var deleteFirst = onDelete is not null && (onUpdate is null || Recover("ReferencesSpecification.DeleteRuleFirst", Spelled(references), static text =>
+			var deleteFirst = onDelete is not null && (onUpdate is null || Recover(Spelled(references), static text =>
 			{
 				var words = string.Join(" ", Words(text));
 
@@ -1136,7 +1140,7 @@ static partial class Bridge
 		{
 			switch (old)
 			{
-				case Clause.Option(var name, Expression.RoutineInvocation { Name: "", Arguments: var items }, [], null, false):
+				case Clause.Option(var name, Values.Call { Name: "", Arguments: var items }, [], null, false):
 					return new Ast.Option(Values.Part(old, name), new Ast.Expression.Row(Each(items, Values.Of)), []);
 
 				case Clause.Option(var name, null, { Length: > 0 } settings, null, false):
@@ -1147,18 +1151,18 @@ static partial class Bridge
 			}
 		}
 
-		static Ast.Expression OptionValue(Clause owner, Expression value)
+		static Ast.Expression OptionValue(Clause owner, Ast.Expression value)
 		{
 			switch (value)
 			{
 				// A blank inside a bracketed or quoted name is the name's own: the tokens are the text less its blanks.
-				case Expression.ColumnReference(var words) when SqlTokens.Of(words).Sum(static one => one.Text.Length) != words.Length || words.StartsWith('('):
+				case var said when Values.Wording(said) is { } words && (SqlTokens.Of(words).Sum(static one => one.Text.Length) != words.Length || words.StartsWith('(')):
 					throw BridgeGap.Open(owner, $"inventory Clause.Option (a value that is a run of words or numbers, `{words}`)");
 
-				case Expression.RoutineInvocation { Name: "" }:
+				case Values.Call { Name: "" }:
 					throw BridgeGap.Open(owner, "inventory Clause.Option (a bracketed list of values)");
 
-				case Expression.Measured(var measured, var unit):
+				case Values.Measured(var measured, var unit):
 					return new Ast.Expression.Measured(Values.Of(measured), new Ast.Identifier(unit));
 
 				default:
@@ -1662,7 +1666,7 @@ static partial class Bridge
 		/// <summary>The one column an XML or a spatial index is over, bare.</summary>
 		static Ast.Identifier Column(Clause.ConstraintDefinition old)
 		{
-			return old.Columns is [Clause.SortSpecification(Expression.ColumnReference(var column), SqlOrder.Unspecified)]
+			return old.Columns is [Clause.SortSpecification(var named, SqlOrder.Unspecified)] && Values.Wording(named) is { } column
 				? Values.Part(old, column)
 				: throw BridgeGap.Open(old, "inventory Statement.CreateIndex (an XML or spatial index over other than one column)");
 		}
@@ -1742,7 +1746,7 @@ static partial class Bridge
 
 					if (Is(tokens, at, "MAXLENGTH") && at + 3 < tokens.Count && tokens[at + 1].Token.Text == "(" && tokens[at + 2].Token.Kind == SqlTokens.Kind.Number && tokens[at + 3].Token.Text == ")")
 					{
-						length = (Ast.LiteralValue.Numeric)Values.Of(new Expression.Literal(SqlLiteralKind.Number, tokens[at + 2].Token.Text));
+						length = (Ast.LiteralValue.Numeric)Values.Of(Values.Number(tokens[at + 2].Token.Text));
 						at    += 4;
 					}
 
@@ -1830,7 +1834,7 @@ static partial class Bridge
 			};
 		}
 
-		static Ast.IndexAlteration IndexAlteration(object owner, string action, Expression? partition, SqlList<Clause>? options)
+		static Ast.IndexAlteration IndexAlteration(object owner, string action, Ast.Expression? partition, SqlList<Clause>? options)
 		{
 			var made = Each(options ?? [], Option);
 
@@ -1842,7 +1846,7 @@ static partial class Bridge
 
 			return action switch
 			{
-				"REBUILD" when partition is Expression.ColumnReference("ALL") => new Ast.IndexAlteration.Rebuild(null, true, made),
+				"REBUILD" when Values.Wording(partition) == "ALL" => new Ast.IndexAlteration.Rebuild(null, true, made),
 				"REBUILD"    => new Ast.IndexAlteration.Rebuild(partition is null ? null : Values.Of(partition), false, made),
 				"REORGANIZE" => new Ast.IndexAlteration.Reorganize(partition is null ? null : Values.Of(partition), made),
 				"DISABLE"    => new Ast.IndexAlteration.Disable(),
@@ -2037,7 +2041,7 @@ static partial class Bridge
 						var value = one[(SqlTokens.Find(one, "=") + 1)..].Trim();
 
 						return new Ast.Option(new Ast.Identifier(tokens[0].Text), words is [_, _, _] && tokens[2].Kind == SqlTokens.Kind.Word
-							? Values.Of(new Expression.ColumnReference(tokens[2].Text))
+							? Values.Of(Values.Reference(tokens[2].Text))
 							: ValueOf(owner, value), []);
 
 					default:
@@ -2277,7 +2281,7 @@ static partial class Bridge
 				// A lone word is a name, unless it is a key word the grammar's ValueExpression reads as a literal: NULL.
 				column = column with { Language = Words(language) is [var word] && !word.Equals("NULL", StringComparison.OrdinalIgnoreCase)
 					&& SqlTokens.Of(language)[0].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited
-					? Values.Of(new Expression.ColumnReference(language.Trim()))
+					? Values.Of(Values.Reference(language.Trim()))
 					: ValueOf(owner, language) };
 				at = end;
 			}

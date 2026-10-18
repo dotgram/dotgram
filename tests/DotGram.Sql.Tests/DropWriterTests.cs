@@ -260,7 +260,7 @@ public sealed class DropWriterTests
 		var tree = Tree(which);
 		var text = TransactSqlWriter.Write(tree);
 
-		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
+		Assert.Equal(tree, TransactSqlParser.Located.ParseStatement(text));
 	}
 
 	/// <summary>

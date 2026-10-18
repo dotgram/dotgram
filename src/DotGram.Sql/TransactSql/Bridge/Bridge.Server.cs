@@ -24,14 +24,6 @@ static partial class Bridge
 	/// </remarks>
 	internal static class Server
 	{
-		public static readonly string[] Owns =
-		[
-			"Statement.ResourcePoolDefinition", "Statement.WorkloadGroupDefinition", "Statement.AlterResourceGovernor",
-			"Statement.AlterServerConfiguration", "Statement.AvailabilityGroupDefinition", "Statement.EndpointDefinition",
-			"Statement.Kill", "Statement.Reconfigure", "Statement.Shutdown",
-			"Statement.Dbcc",
-		];
-
 		// ── ALTER SERVER CONFIGURATION ────────────────────────────────────────────
 
 		internal static Ast.Statement Configuration(Defining old)
@@ -252,7 +244,7 @@ static partial class Bridge
 				if (name.Text.Equals("CLASSIFIER_FUNCTION", StringComparison.OrdinalIgnoreCase))
 				{
 					if (reader.Take("NULL"))
-						value = Values.Of(Expression.NullValue);
+						value = Values.Of(Values.Null());
 					else
 					{
 						var function = reader.Qualified();
@@ -843,7 +835,7 @@ static partial class Bridge
 		// ── KILL, DBCC ────────────────────────────────────────────────────────────
 
 		/// <summary>KILL, on the common tree: what is killed, its number or string, and what follows.</summary>
-		internal static Statement Kill(string what, Expression target, string? with = null)
+		internal static Statement Kill(string what, Ast.Expression target, string? with = null)
 		{
 			return Carry(new Statement.Kill(what, target, with), Kill);
 		}
@@ -861,7 +853,7 @@ static partial class Bridge
 		}
 
 		/// <summary>DBCC, on the common tree.</summary>
-		internal static Statement Dbcc(string command, SqlList<Expression>? arguments, SqlList<Clause> options)
+		internal static Statement Dbcc(string command, SqlList<Ast.Expression>? arguments, SqlList<Clause> options)
 		{
 			return Carry(new Statement.Dbcc(command, arguments, options), Dbcc);
 		}
@@ -884,7 +876,7 @@ static partial class Bridge
 					return new Ast.Statement.KillStatsJob(target as Ast.LiteralValue.Numeric ?? throw BridgeGap.Open(old, "inventory Statement.Kill (a statistics job that is no number)"));
 
 				case "QUERY NOTIFICATION SUBSCRIPTION":
-					return old.Target is Expression.ColumnReference { Text: var all } && all.Equals("ALL", StringComparison.OrdinalIgnoreCase)
+					return Values.Wording(old.Target) is { } all && all.Equals("ALL", StringComparison.OrdinalIgnoreCase)
 						? new Ast.Statement.KillQueryNotificationSubscription { All = true }
 						: new Ast.Statement.KillQueryNotificationSubscription { Subscription = target as Ast.LiteralValue.Numeric ?? throw BridgeGap.Open(old, "inventory Statement.Kill (a subscription that is no number)") };
 
@@ -914,15 +906,15 @@ static partial class Bridge
 			};
 		}
 
-		static Ast.ExecuteArgument DbccArgument(Statement.Dbcc owner, Expression old)
+		static Ast.ExecuteArgument DbccArgument(Statement.Dbcc owner, Ast.Expression old)
 		{
-			return old is Expression.NamedArgument(var name, var value)
+			return old is Values.NamedArgument(var name, var value)
 				? new Ast.ExecuteArgument(DbccValue(owner, value)) { Name = name.StartsWith('@') ? new Ast.Identifier(name) : Values.Part(owner, name) }
 				: new Ast.ExecuteArgument(DbccValue(owner, old));
 		}
 
 		/// <summary>A value, money among them: the grammar reads blanks between the sign of money and its digits, which the tree keeps none of.</summary>
-		static Ast.Expression DbccValue(Statement.Dbcc owner, Expression old)
+		static Ast.Expression DbccValue(Statement.Dbcc owner, Ast.Expression old)
 		{
 			return Values.Of(old) is Ast.LiteralValue.Numeric { Kind: Ast.NumericLiteralKind.Money } money && money.Text.Any(char.IsWhiteSpace)
 				? throw BridgeGap.Lost(owner, $"money written with blanks (`{money.Text}`), which the tree writes without")

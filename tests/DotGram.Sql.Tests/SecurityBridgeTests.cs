@@ -41,7 +41,7 @@ public sealed class SecurityBridgeTests
 	[InlineData("grant alter on server role::s to u",                      "Lower case")]
 	public void The_bridge_builds_the_permission_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -74,9 +74,7 @@ public sealed class SecurityBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	[Theory]
@@ -122,7 +120,7 @@ public sealed class SecurityBridgeTests
 	[InlineData("CREATE SCHEMA s CREATE VIEW v AS SELECT 1 AS a",          "Schema elements without owner")]
 	public void The_bridge_builds_the_principal_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -171,9 +169,7 @@ public sealed class SecurityBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	[Theory]
@@ -261,7 +257,7 @@ public sealed class SecurityBridgeTests
 	[InlineData("DROP SIGNATURE FROM p BY PASSWORD = N'x'", 81)]
 	public void The_bridge_builds_the_key_record_the_text_means(string text, int row)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = row switch
 		{
@@ -352,9 +348,7 @@ public sealed class SecurityBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	/// <summary>The words of a classification's options are kept as written.</summary>
@@ -363,10 +357,10 @@ public sealed class SecurityBridgeTests
 	[InlineData("ADD SENSITIVITY CLASSIFICATION TO t.c WITH (LABEL = 'l', RANK = HIGH)", "LABEL", "HIGH")]
 	public void A_classification_keeps_its_words_as_written(string text, string name, string rank)
 	{
-		var made = (Ast.Statement.AddSensitivityClassification)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = (Ast.Statement.AddSensitivityClassification)TransactSqlParser.Located.ParseStatement(text);
 
 		Assert.Equal(name, made.Options[0].Name.Text);
 		Assert.Equal(rank, ((Ast.Expression.Reference)made.Options[1].Value!).Name[0].Text);
-		Assert.Equal(BridgeOracle.Status.Converted, BridgeOracle.Run(OldTree.Located.ParseStatement(text), text).Status);
+		ReadBack.Holds(text);
 	}
 }

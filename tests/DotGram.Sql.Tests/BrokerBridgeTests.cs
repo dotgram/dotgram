@@ -25,7 +25,7 @@ public sealed class BrokerBridgeTests
 	[InlineData("CREATE CONTRACT c (a SENT BY INITIATOR, [b] SENT BY target, c SENT BY ANY)",      "Contract")]
 	public void The_bridge_builds_the_message_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -45,9 +45,7 @@ public sealed class BrokerBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	[Theory]
@@ -68,7 +66,7 @@ public sealed class BrokerBridgeTests
 	[InlineData("create queue db..q with status = on on fg",                                     "Lower case, a left out part")]
 	public void The_bridge_builds_the_queue_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -108,9 +106,7 @@ public sealed class BrokerBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	[Theory]
@@ -131,7 +127,7 @@ public sealed class BrokerBridgeTests
 	[InlineData("CREATE BROKER PRIORITY p FOR CONVERSATION SET (CONTRACT_NAME = ANY, LOCAL_SERVICE_NAME = [ANY], REMOTE_SERVICE_NAME = any)", "Priority ANY and [ANY]")]
 	public void The_bridge_builds_the_service_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -163,9 +159,7 @@ public sealed class BrokerBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	[Theory]
@@ -185,7 +179,7 @@ public sealed class BrokerBridgeTests
 	[InlineData("send on conversation @h message type [a b] (N'x')",                             "Send lower case")]
 	public void The_bridge_builds_the_conversation_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -212,9 +206,7 @@ public sealed class BrokerBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	[Theory]
@@ -229,7 +221,7 @@ public sealed class BrokerBridgeTests
 	[InlineData("waitfor (receive top (1) * from q), timeout 100",                               "Wait lower case")]
 	public void The_bridge_builds_the_receive_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -251,9 +243,7 @@ public sealed class BrokerBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
+		ReadBack.Holds(text);
 	}
 
 	/// <summary>
@@ -264,8 +254,6 @@ public sealed class BrokerBridgeTests
 	[InlineData("CREATE QUEUE db. q")]
 	public void A_text_the_records_do_not_hold_is_a_gap(string text)
 	{
-		var old = OldTree.Located.ParseStatement(text);
-
-		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+		Assert.IsType<DotGram.Sql.Ast.Statement.Extension>(TransactSqlParser.Located.ParseStatement(text));
 	}
 }

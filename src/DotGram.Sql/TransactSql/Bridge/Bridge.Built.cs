@@ -6,11 +6,10 @@ using Ast = DotGram.Sql.Ast;
 
 namespace DotGram.Sql.TransactSql;
 
-// The statements whose rules build the common tree themselves. Such a rule hands what it read to a builder of its
-// family, which makes the statement of the common tree from it, its parts that are still the T-SQL tree's carried
-// across as the bridge carries them; the statement stands where the T-SQL tree holds statements as a Statement.Built,
-// which the bridge carries as itself. A reading is carried with the text it is read from, set before it starts
-// (Over), so that what a builder reads from the text it can read while the statement is read.
+// The statements the rules build on the common tree. Such a rule hands what it read to a builder of its family, which
+// makes the statement of the common tree from it; the statement stands where the rules hold statements as a
+// Statement.Built, which holds what was built or the gap found. A reading is told the text it is read from before it
+// starts (Over), so that what a builder reads from the text it can read while the statement is read.
 static partial class Bridge
 {
 	/// <summary>
@@ -166,31 +165,23 @@ static partial class Bridge
 	}
 
 	/// <summary>
-	/// A statement its rule builds on the common tree, held where the T-SQL tree holds statements: what the builder
-	/// made, or the gap it found, which carrying the statement throws as the bridge would have.
+	/// A statement its rule builds on the common tree, held where the rules hold statements: what the builder made, or
+	/// the gap it found, which taking the statement throws.
 	/// </summary>
-	/// <remarks>
-	/// What building it read from the text is taken off this reading's count and kept with the statement, which puts it
-	/// back when it is carried: a statement read and then given up leaves nothing counted.
-	/// </remarks>
 	/// <param name="given">What the rule handed the builder: a <see cref="Given"/>, or the T-SQL tree's record its parts were gathered into.</param>
 	/// <param name="build">The builder, handed <paramref name="given"/> back, so that it captures nothing.</param>
 	static Statement Hold<T>(T given, Func<T, Ast.Statement> build) where T : class
 	{
 		if (skimming)
-			return new Statement.Built(null, null, null, given);
-
-		var mark = recovered?.Count ?? 0;
+			return new Statement.Built(null, null, given);
 
 		try
 		{
-			var made = build(given);
-
-			return new Statement.Built(made, null, Taken(mark), given);
+			return new Statement.Built(build(given), null, given);
 		}
 		catch (BridgeGap gap)
 		{
-			return new Statement.Built(null, gap, Taken(mark), given);
+			return new Statement.Built(null, gap, given);
 		}
 	}
 
@@ -198,19 +189,15 @@ static partial class Bridge
 	static Statement Hold<T, TState>(T given, TState state, Func<T, TState, Ast.Statement> build) where T : class
 	{
 		if (skimming)
-			return new Statement.Built(null, null, null, given);
-
-		var mark = recovered?.Count ?? 0;
+			return new Statement.Built(null, null, given);
 
 		try
 		{
-			var made = build(given, state);
-
-			return new Statement.Built(made, null, Taken(mark), given);
+			return new Statement.Built(build(given, state), null, given);
 		}
 		catch (BridgeGap gap)
 		{
-			return new Statement.Built(null, gap, Taken(mark), given);
+			return new Statement.Built(null, gap, given);
 		}
 	}
 
@@ -243,9 +230,9 @@ static partial class Bridge
 		Situate(given, at);
 
 		if (skimming)
-			return new Statement.Built(null, null, null, given);
+			return new Statement.Built(null, null, given);
 
-		return new Statement.Built(null, null, null, given) { Pending = one => build((T)one) };
+		return new Statement.Built(null, null, given) { Pending = one => build((T)one) };
 	}
 
 	/// <summary>A held statement built, told the extent it ends with.</summary>
@@ -268,44 +255,29 @@ static partial class Bridge
 	/// <summary>Whether the reading under way is skimmed: its statements hold what their rules were handed, and are not built.</summary>
 	[ThreadStatic] static bool skimming;
 
-	static string[]? Taken(int mark)
-	{
-		if (recovered is not { } list || list.Count <= mark)
-			return null;
-
-		var taken = list.GetRange(mark, list.Count - mark).ToArray();
-
-		list.RemoveRange(mark, list.Count - mark);
-
-		return taken;
-	}
-
 	/// <summary>
-	/// A reading carried with its text: the text the rules' builders read from, and whether the nodes they carry take
-	/// their spans, for as long as the reading lasts; with a count of what they read from it where <paramref name="count"/>
-	/// asks for one (the bridge's own round trip), and none for a public entry, which nothing asks.
+	/// A reading told its text, which the builders read the words their records leave out from, and whether it publishes
+	/// where each node was written, for as long as it lasts.
 	/// </summary>
-	internal static Prior Over(string text, bool locate, bool count = false)
+	internal static Prior Over(string text, bool locate)
 	{
-		var outer = new Prior(source, recovered, locating, unlocated);
+		var outer = new Prior(source, locating, unlocated);
 
-		source    = text;
-		recovered = count ? [] : null;
-		locating  = locate;
-		unlocated = false;
+		source                 = text;
+		SqlLocation.Publishing = locate;
+		unlocated              = false;
 
 		return outer;
 	}
 
 	/// <summary>The carriage that stood before a reading, put back when it ends; a value, so that a reading allocates none.</summary>
-	internal readonly struct Prior(string? source, List<string>? recovered, bool locating, bool unlocated) : IDisposable
+	internal readonly struct Prior(string? source, bool locating, bool unlocated) : IDisposable
 	{
 		public void Dispose()
 		{
-			Bridge.source    = source;
-			Bridge.recovered = recovered;
-			Bridge.locating  = locating;
-			Bridge.unlocated = unlocated;
+			Bridge.source          = source;
+			SqlLocation.Publishing = locating;
+			Bridge.unlocated       = unlocated;
 		}
 	}
 
@@ -334,50 +306,28 @@ static partial class Bridge
 	/// <summary>Whether the reading under way is a plain one the bridge made (<see cref="Reread"/>), whose records have no span.</summary>
 	[ThreadStatic] static bool unlocated;
 
-	/// <summary>The statements whose rules built them on the common tree: each carried as what it holds.</summary>
+	/// <summary>The statements, queries and sources the rules built on the common tree: each taken as what it holds.</summary>
 	internal static class Built
 	{
-		public static readonly string[] Owns = ["Statement.Built", "Query.Built", "TableReference.Built"];
-
-		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
+		public static bool TryConvert(object read, [NotNullWhen(true)] out Ast.ISqlNode? made)
 		{
-			made = null;
-
-			if (old is not Statement.Built built)
-				return Carried(old, out made);
-
-			// Held for an extent no rule gave it: built with its rule's own.
-			if (built.Pending is { } build)
-				built = (Statement.Built)Hold(built.Given, build);
-
-			if (built.Recovered is { } read)
-				recovered?.AddRange(read);
-
-			if (built.Gap is { } gap)
-				throw gap;
-
-			made = built.Made!;
-
-			return true;
-		}
-
-		/// <summary>A query or a source its rule built: what building it read from the text counted again, and its gap thrown.</summary>
-		static bool Carried(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
-		{
-			switch (old)
+			switch (read)
 			{
-				case Query.Built query:
-					if (query.Recovered is { } read)
-						recovered?.AddRange(read);
+				case Statement.Built built:
+					// Held for an extent no rule gave it: built with its rule's own.
+					if (built.Pending is { } build)
+						built = (Statement.Built)Hold(built.Given, build);
 
+					made = built.Made ?? throw built.Gap!;
+
+					return true;
+
+				case Query.Built query:
 					made = query.Made ?? throw query.Gap!;
 
 					return true;
 
 				case TableReference.Built source:
-					if (source.Recovered is { } taken)
-						recovered?.AddRange(taken);
-
 					made = source.Made ?? throw source.Gap!;
 
 					return true;
@@ -391,21 +341,14 @@ static partial class Bridge
 	}
 
 	/// <summary>
-	/// What a builder makes of what it is handed, built the moment its rule is read: the node, or the gap it found; with
-	/// what it read from the text taken off the reading's count, to be counted again where the node is carried. A
-	/// skimmed reading builds nothing.
+	/// What a builder makes of what it is handed, built the moment its rule is read: the node, or the gap it found. A
+	/// skimmed reading builds its queries and sources too, since the values its rules build take them at once.
 	/// </summary>
 	/// <param name="state">What the rule read, handed back to the builder, so that it captures nothing.</param>
-	static void Building<T, TState>(TState state, Func<TState, T> build, out T? made, out BridgeGap? gap, out string[]? taken)
+	static void Building<T, TState>(TState state, Func<TState, T> build, out T? made, out BridgeGap? gap)
 	{
-		made  = default;
-		gap   = null;
-		taken = null;
-
-		if (skimming)
-			return;
-
-		var mark = recovered?.Count ?? 0;
+		made = default;
+		gap  = null;
 
 		try
 		{
@@ -414,10 +357,6 @@ static partial class Bridge
 		catch (BridgeGap found)
 		{
 			gap = found;
-		}
-		finally
-		{
-			taken = Taken(mark);
 		}
 	}
 }

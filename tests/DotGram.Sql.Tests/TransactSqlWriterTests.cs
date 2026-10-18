@@ -172,7 +172,7 @@ public sealed class TransactSqlWriterTests
 		var tree = Named(which, Bracketed);
 		var text = TransactSqlWriter.Write(tree);
 
-		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
+		Assert.Equal(tree, TransactSqlParser.Located.ParseStatement(text));
 	}
 
 	/// <summary>An EXEC argument of DEFAULT or NULL is the key word, which is what reads there.</summary>
@@ -181,7 +181,7 @@ public sealed class TransactSqlWriterTests
 	[InlineData("EXEC p NULL")]
 	public void An_argument_of_DEFAULT_or_NULL_is_the_key_word(string text)
 	{
-		var tree = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var tree = TransactSqlParser.Located.ParseStatement(text);
 
 		Assert.True(tree is Statement.ExecuteModule { Arguments: [{ Value: Expression.Default or LiteralValue.Null }] }, $"{text} built {tree}");
 		Assert.Equal(text, TransactSqlWriter.Write(tree));
@@ -207,7 +207,7 @@ public sealed class TransactSqlWriterTests
 
 		var tree   = Atomic(Bracketed("DEFAULT"));
 		var source = "CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS " + TransactSqlWriter.Write(tree);
-		var made   = (Statement.CreateRoutine)Bridge.ToAst(OldTree.Located.ParseStatement(source), source);
+		var made   = (Statement.CreateRoutine)TransactSqlParser.Located.ParseStatement(source);
 
 		Assert.Equal(tree, ((RoutineBody.Statements)made.Definition.Body).List[0]);
 	}
@@ -238,10 +238,10 @@ public sealed class TransactSqlWriterTests
 	[InlineData("ALTER INDEX i ON t SET (ALLOW_ROW_LOCKS = ON)")]
 	public void A_key_word_place_writes_its_word(string text)
 	{
-		var tree = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var tree = TransactSqlParser.Located.ParseStatement(text);
 
 		Assert.Equal(text, TransactSqlWriter.Write(tree));
-		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
+		Assert.Equal(tree, TransactSqlParser.Located.ParseStatement(text));
 	}
 
 	/// <summary>A trigger's UPDATE(c) and an atomic block's DELAYED_DURABILITY = ON, inside the statements that read them.</summary>
@@ -250,7 +250,7 @@ public sealed class TransactSqlWriterTests
 	[InlineData("CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english', DELAYED_DURABILITY = ON) SELECT 1; END;")]
 	public void A_key_word_place_inside_a_module_writes_its_word(string text)
 	{
-		var tree = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var tree = TransactSqlParser.Located.ParseStatement(text);
 
 		Assert.Equal(text, TransactSqlWriter.Write(tree));
 	}
@@ -627,7 +627,7 @@ public sealed class TransactSqlWriterTests
 
 	static ISqlNode Read(string text)
 	{
-		return Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		return TransactSqlParser.Located.ParseStatement(text);
 	}
 
 	/// <summary>
@@ -878,7 +878,7 @@ public sealed class TransactSqlWriterTests
 	[Fact]
 	public void A_dropped_constraint_reads_no_filestream_place()
 	{
-		Assert.ThrowsAny<FormatException>(() => OldTree.Located.ParseStatement("ALTER TABLE t DROP CONSTRAINT k WITH (FILESTREAM_ON fg)"));
+		Assert.ThrowsAny<FormatException>(() => TransactSqlParser.Located.ParseStatement("ALTER TABLE t DROP CONSTRAINT k WITH (FILESTREAM_ON fg)"));
 
 		var tree = Placed("ALTER TABLE t DROP CONSTRAINT k WITH (MOVE TO fg)", static option => new Option(new Identifier("FILESTREAM_ON"), null, [])
 		{

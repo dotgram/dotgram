@@ -325,7 +325,7 @@ public sealed class BrokerWriterTests
 		var tree = (Statement)Texts[which].Tree;
 		var text = TransactSqlWriter.Write(tree);
 
-		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
+		Assert.Equal(tree, TransactSqlParser.Located.ParseStatement(text));
 	}
 
 	/// <summary>

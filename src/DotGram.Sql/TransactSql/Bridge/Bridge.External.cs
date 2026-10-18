@@ -23,12 +23,6 @@ static partial class Bridge
 	/// </remarks>
 	internal static class External
 	{
-		public static readonly string[] Owns =
-		[
-			"Statement.ExternalDataSourceDefinition", "Statement.ExternalFileFormatDefinition", "Statement.ExternalLibraryDefinition",
-			"Statement.ExternalLanguageDefinition", "Statement.ExternalModelDefinition", "Statement.ExternalResourcePoolDefinition",
-		];
-
 		// ── Data sources and file formats ─────────────────────────────────────────
 
 		/// <summary>
@@ -293,13 +287,13 @@ static partial class Bridge
 					return Values.String(token.Text);
 
 				case { Kind: SqlTokens.Kind.Number } when token.Text.StartsWith("0x", StringComparison.OrdinalIgnoreCase):
-					return Values.Of(new Expression.Literal(SqlLiteralKind.Hex, token.Text));
+					return Values.Of(Values.Hex(token.Text));
 
 				case { Kind: SqlTokens.Kind.Number }:
-					return Values.Of(new Expression.Literal(SqlLiteralKind.Number, token.Text));
+					return Values.Of(Values.Number(token.Text));
 
 				case { Kind: SqlTokens.Kind.Word } when token.Text.Equals("NULL", StringComparison.OrdinalIgnoreCase):
-					return Values.Of(new Expression.Literal(SqlLiteralKind.Null, token.Text));
+					return Values.Null();
 
 				case { Kind: SqlTokens.Kind.Word or SqlTokens.Kind.Delimited }:
 					return new Ast.Expression.Reference(new Ast.QualifiedName([Values.Part(old, token.Text)]));

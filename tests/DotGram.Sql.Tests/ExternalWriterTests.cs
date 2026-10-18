@@ -61,7 +61,7 @@ public sealed class ExternalWriterTests
 
 	static DotGram.Sql.Ast.Query Select(string text)
 	{
-		return ((Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text)).Query;
+		return ((Statement.Select)TransactSqlParser.Located.ParseStatement(text)).Query;
 	}
 
 	static QualifiedName Dotted(params string[] parts)
@@ -247,7 +247,7 @@ public sealed class ExternalWriterTests
 		var tree = (Statement)Texts[which].Tree;
 		var text = TransactSqlWriter.Write(tree);
 
-		Assert.Equal(tree, Bridge.ToAst(OldTree.Located.ParseStatement(text), text));
+		Assert.Equal(tree, TransactSqlParser.Located.ParseStatement(text));
 	}
 
 	/// <summary>

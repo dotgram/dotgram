@@ -14125,9 +14125,9 @@ public sealed class TransactSqlTests
 		Assert.NotNull(ordered.OrderBy);
 		Assert.Null(ordered.For);
 
-		var insert = Assert.IsType<Statement.Insert>(OldTree.Record(OldTree.TryParseStatement("INSERT INTO x SELECT y FROM z").Value!));
+		var insert = Assert.IsType<Ast.Statement.Insert>(TransactSqlParser.ParseStatement("INSERT INTO x SELECT y FROM z"));
 
-		Assert.Equal("Query.Specification", Assert.IsType<Query.Built>(insert.Rows).Record);
+		Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.InsertSource.Subquery>(insert.SourceValue).Query);
 	}
 
 	/// <summary>A subquery as the count of a `TOP`, whose brackets are the subquery's own.</summary>
@@ -14387,15 +14387,15 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_column_list_is_not_a_call()
 	{
-		var insert = Assert.IsType<Statement.Insert>(OldTree.Record(OldTree.TryParseStatement("INSERT t (c1) VALUES (1)").Value!));
+		var insert = Assert.IsType<Ast.Statement.Insert>(TransactSqlParser.ParseStatement("INSERT t (c1) VALUES (1)"));
 
-		Assert.IsType<TableReference.Named>(insert.Target);
-		Assert.Equal(new[] { "c1" }, insert.Columns);
+		Assert.IsType<Ast.TableSource.Named>(insert.Target);
+		Assert.Equal(new[] { "c1" }, insert.Columns.Select(static one => one.Text));
 
-		var called = Assert.IsType<Statement.Insert>(OldTree.Record(OldTree.TryParseStatement("INSERT dbo.f() (c1) DEFAULT VALUES").Value!));
+		var called = Assert.IsType<Ast.Statement.Insert>(TransactSqlParser.ParseStatement("INSERT dbo.f() (c1) DEFAULT VALUES"));
 
-		Assert.IsType<TableReference.FunctionCall>(called.Target);
-		Assert.Equal(new[] { "c1" }, called.Columns);
+		Assert.IsType<Ast.TableSource.Function>(called.Target);
+		Assert.Equal(new[] { "c1" }, called.Columns.Select(static one => one.Text));
 	}
 
 	/// <summary>
@@ -14438,50 +14438,69 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void The_operators_group_as_the_engine_computes()
 	{
-		var and = Assert.IsType<Expression.BitwiseAnd>(OldTree.TryParseValueExpression("2 + 5 & 4").Value);
-		Assert.IsType<Expression.Add>(and.Left);
+		var and = Operator(Value("2 + 5 & 4"), Ast.BinaryOperator.BitwiseAnd);
+		Operator(and.Left, Ast.BinaryOperator.Add);
 
-		var add = Assert.IsType<Expression.Add>(OldTree.TryParseValueExpression("5 & 4 + 2").Value);
-		Assert.IsType<Expression.BitwiseAnd>(add.Left);
+		var add = Operator(Value("5 & 4 + 2"), Ast.BinaryOperator.Add);
+		Operator(add.Left, Ast.BinaryOperator.BitwiseAnd);
 
-		var times = Assert.IsType<Expression.Multiply>(OldTree.TryParseValueExpression("7 % 3 * 2").Value);
-		Assert.IsType<Expression.Modulo>(times.Left);
+		var times = Operator(Value("7 % 3 * 2"), Ast.BinaryOperator.Multiply);
+		Operator(times.Left, Ast.BinaryOperator.Modulo);
 
-		var inverted = Assert.IsType<Expression.Multiply>(OldTree.TryParseValueExpression("~2 * 3").Value);
-		Assert.IsType<Expression.BitwiseNot>(inverted.Left);
+		var inverted = Operator(Value("~2 * 3"), Ast.BinaryOperator.Multiply);
+		Assert.Equal(Ast.UnaryOperator.BitwiseNot, Assert.IsType<Ast.Expression.Unary>(inverted.Left).Operator);
 
-		var masked = Assert.IsType<Expression.BitwiseAnd>(OldTree.TryParseValueExpression("6 & 3 * 2").Value);
-		Assert.IsType<Expression.Multiply>(masked.Right);
+		var masked = Operator(Value("6 & 3 * 2"), Ast.BinaryOperator.BitwiseAnd);
+		Operator(masked.Right, Ast.BinaryOperator.Multiply);
 
 		// The shifts stand with `+`: `1 << 1 + 1` is 3, `1 + 1 << 1` is 4, `1 & 1 << 1` is 2,
 		// `8 >> 1 + 1` is 5, and `1 << 1 * 2` is 4 because `*` is stronger.
-		var shifted = Assert.IsType<Expression.Add>(OldTree.TryParseValueExpression("1 << 1 + 1").Value);
-		Assert.IsType<Expression.ShiftLeft>(shifted.Left);
+		var shifted = Operator(Value("1 << 1 + 1"), Ast.BinaryOperator.Add);
+		Operator(shifted.Left, Ast.BinaryOperator.ShiftLeft);
 
-		var summed = Assert.IsType<Expression.ShiftLeft>(OldTree.TryParseValueExpression("1 + 1 << 1").Value);
-		Assert.IsType<Expression.Add>(summed.Left);
+		var summed = Operator(Value("1 + 1 << 1"), Ast.BinaryOperator.ShiftLeft);
+		Operator(summed.Left, Ast.BinaryOperator.Add);
 
-		var anded = Assert.IsType<Expression.ShiftLeft>(OldTree.TryParseValueExpression("1 & 1 << 1").Value);
-		Assert.IsType<Expression.BitwiseAnd>(anded.Left);
+		var anded = Operator(Value("1 & 1 << 1"), Ast.BinaryOperator.ShiftLeft);
+		Operator(anded.Left, Ast.BinaryOperator.BitwiseAnd);
 
-		var right = Assert.IsType<Expression.Add>(OldTree.TryParseValueExpression("8 >> 1 + 1").Value);
-		Assert.IsType<Expression.ShiftRight>(right.Left);
+		var right = Operator(Value("8 >> 1 + 1"), Ast.BinaryOperator.Add);
+		Operator(right.Left, Ast.BinaryOperator.ShiftRight);
 
-		var scaled = Assert.IsType<Expression.ShiftLeft>(OldTree.TryParseValueExpression("1 << 1 * 2").Value);
-		Assert.IsType<Expression.Multiply>(scaled.Right);
+		var scaled = Operator(Value("1 << 1 * 2"), Ast.BinaryOperator.ShiftLeft);
+		Operator(scaled.Right, Ast.BinaryOperator.Multiply);
 
-		var twice = Assert.IsType<Expression.ShiftRight>(OldTree.TryParseValueExpression("1 << 1 >> 1").Value);
-		Assert.IsType<Expression.ShiftLeft>(twice.Left);
+		var twice = Operator(Value("1 << 1 >> 1"), Ast.BinaryOperator.ShiftRight);
+		Operator(twice.Left, Ast.BinaryOperator.ShiftLeft);
 
-		var compared2 = Assert.IsType<Expression.Comparison>(OldTree.TryParseSearchCondition("1 << 1 = 2").Value);
-		Assert.IsType<Expression.ShiftLeft>(compared2.Left);
+		var compared2 = Assert.IsType<Ast.Expression.Comparison>(TransactSqlParser.TryParseSearchCondition("1 << 1 = 2").Value);
+		Operator(compared2.Left, Ast.BinaryOperator.ShiftLeft);
 
-		var compared = Assert.IsType<Expression.Comparison>(OldTree.TryParseSearchCondition("1 & 3 = 1").Value);
-		Assert.IsType<Expression.BitwiseAnd>(compared.Left);
+		var compared = Assert.IsType<Ast.Expression.Comparison>(TransactSqlParser.TryParseSearchCondition("1 & 3 = 1").Value);
+		Operator(compared.Left, Ast.BinaryOperator.BitwiseAnd);
 
-		Assert.Equal(
-			SqlComparison.NotEqualBang,
-			Assert.IsType<Expression.Comparison>(OldTree.TryParseSearchCondition("a ! = 1").Value).Operator);
+		var bang = Assert.IsType<Ast.Expression.Comparison>(TransactSqlParser.TryParseSearchCondition("a ! = 1").Value);
+
+		Assert.Equal(Ast.ComparisonOperator.NotEqual, bang.Operator);
+		Assert.True(bang.Exclamation);
+	}
+
+	static Ast.Expression Value(string input)
+	{
+		var match = TransactSqlParser.TryParseExpression(input);
+
+		Assert.True(match.IsSuccess, input);
+
+		return match.Value!;
+	}
+
+	static Ast.Expression.Binary Operator(Ast.Expression value, Ast.BinaryOperator expected)
+	{
+		var binary = Assert.IsType<Ast.Expression.Binary>(value);
+
+		Assert.Equal(expected, binary.Operator);
+
+		return binary;
 	}
 
 	/// <summary>T-SQL's operators, as the engine answers them.</summary>
@@ -15305,30 +15324,24 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_statement_and_a_query_hold_each_other()
 	{
-		var written = Assert.IsType<Statement.Insert>(
-			OldTree.Record(OldTree.TryParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1").Value!));
+		var written = Assert.IsType<Ast.Statement.Insert>(TransactSqlParser.ParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1"));
 
-		Assert.Equal(new[] { "a" }, written.Columns);
+		Assert.Equal(new[] { "a" }, written.Columns.Select(static one => one.Text));
 
-		var query = Assert.IsType<Query.Built>(written.Rows);
-		var made  = Assert.IsType<Ast.Query.Select>(query.Made);
+		var made = Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.InsertSource.Subquery>(written.SourceValue).Query);
 
-		Assert.Equal("Query.Specification", query.Record);
 		Assert.Equal("u", Assert.IsType<Ast.TableSource.Named>(Assert.Single(made.From!.Sources)).Name.Last.Text);
-		Assert.NotNull(query.Where);
+		Assert.NotNull(made.Where);
 
-		var merged = Assert.IsType<Statement.Merge>(
-			OldTree.Record(OldTree.TryParseStatement(
-				"MERGE t USING u ON t.id = u.id WHEN MATCHED THEN UPDATE SET a = 1").Value!));
+		var merged = Assert.IsType<Ast.Statement.Merge>(TransactSqlParser.ParseStatement("MERGE t USING u ON t.id = u.id WHEN MATCHED THEN UPDATE SET a = 1"));
 
-		var arm = Assert.IsType<Clause.MergeWhen>(Assert.Single(merged.Whens));
+		var arm = Assert.IsType<Ast.MergeClause.Matched>(Assert.Single(merged.Clauses));
 
-		Assert.True(arm.OnMatch);
 		Assert.Null(arm.Condition);
 
-		var change = Assert.IsType<Statement.Update>(arm.Action);
+		var change = Assert.IsType<Ast.MergeMatchedAction.Update>(arm.Action);
 
-		Assert.Equal("a", Assert.IsType<Clause.Set>(Assert.Single(change.Set)).Target);
+		Assert.Equal("a", Assert.Single(Assert.Single(change.Assignments).Targets).Name.Last.Text);
 	}
 
 	/// <summary>And the query entry point still reads only queries.</summary>
@@ -15761,10 +15774,10 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256",
 		"AlterDatabaseEncryptionKey")]
 	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_128 ENCRYPTION BY SERVER CERTIFICATE c1",
-		"DatabaseEncryptionKeyDefinition")]
+		"CreateDatabaseEncryptionKey")]
 	public void And_what_only_begins_like_a_database_is_read_as_itself(string input, string node)
 	{
-		var match = OldTree.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 		Assert.Equal(node, Record(match.Value!));
@@ -16218,11 +16231,11 @@ public sealed class TransactSqlTests
 		foreach (var kind in kinds)
 		{
 			var input = $"DROP {kind} x";
-			var match = OldTree.TryParseStatement(input);
+			var match = TransactSqlParser.TryParseStatement(input);
 
 			Assert.True(match.IsSuccess, input);
 
-			var made = Record(Assert.IsAssignableFrom<Statement>(match.Value));
+			var made = Record(match.Value!);
 
 			Assert.StartsWith("Drop", made, StringComparison.Ordinal);
 
@@ -16297,7 +16310,7 @@ public sealed class TransactSqlTests
 
 	[InlineData("DROP TABLE t",                     "DropTable")]
 	[InlineData("DROP VIEW v",                      "DropView")]
-	[InlineData("DROP PROC p",                      "DropProcedure")]
+	[InlineData("DROP PROC p",                      "DropRoutine.Procedure")]
 	[InlineData("DROP INDEX ix ON t",               "DropIndex")]
 	[InlineData("DROP MASTER KEY",                  "DropMasterKey")]
 
@@ -16305,55 +16318,60 @@ public sealed class TransactSqlTests
 	[InlineData("DENY SELECT ON t TO u",            "Deny")]
 	[InlineData("REVOKE SELECT ON t FROM u",        "Revoke")]
 
-	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetStatement")]
-	[InlineData("SET IDENTITY_INSERT t ON",         "SetStatement")]
-	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetStatement")]
-	[InlineData("SET LANGUAGE us_english",          "SetStatement")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetTransaction")]
+	[InlineData("SET IDENTITY_INSERT t ON",         "SetOptions")]
+	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetOptions")]
+	[InlineData("SET LANGUAGE us_english",          "SetOptions")]
 	[InlineData("SET @a = 1",                       "SetVariable")]
 
 	[InlineData("CREATE DATABASE d",                "CreateDatabase")]
-	[InlineData("ALTER DATABASE d SET AUTO_CLOSE ON", "AlterDatabaseSet")]
-	[InlineData("ALTER DATABASE d COLLATE Estonian_CS_AS", "AlterDatabaseCollate")]
-	[InlineData("ALTER DATABASE d MODIFY NAME = e", "AlterDatabaseModifyName")]
-	[InlineData("ALTER DATABASE d REBUILD LOG",     "AlterDatabaseRebuildLog")]
-	[InlineData("ALTER DATABASE d MODIFY BACKUP_STORAGE_REDUNDANCY = 'ZONE'", "AlterDatabaseModifyBackupStorageRedundancy")]
+	[InlineData("ALTER DATABASE d SET AUTO_CLOSE ON", "AlterDatabase.Set")]
+	[InlineData("ALTER DATABASE d COLLATE Estonian_CS_AS", "AlterDatabase.Collate")]
+	[InlineData("ALTER DATABASE d MODIFY NAME = e", "AlterDatabase.ModifyName")]
+	[InlineData("ALTER DATABASE d REBUILD LOG",     "AlterDatabase.RebuildLog")]
+	[InlineData("ALTER DATABASE d MODIFY BACKUP_STORAGE_REDUNDANCY = 'ZONE'", "AlterDatabase.ModifyBackupStorageRedundancy")]
 
 	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p'", "CreateLogin")]
 	[InlineData("CREATE USER u",                    "CreateUser")]
-	[InlineData("CREATE SCHEMA s",                  "SchemaDefinition")]
+	[InlineData("CREATE SCHEMA s",                  "CreateSchema")]
 	[InlineData("ALTER AUTHORIZATION ON t TO u",    "AlterAuthorization")]
 
-	[InlineData("CREATE EXTERNAL FILE FORMAT f WITH (FORMAT_TYPE = PARQUET)", "ExternalFileFormatDefinition")]
-	[InlineData("CREATE WORKLOAD GROUP g",          "WorkloadGroupDefinition")]
-	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT a.b", "EventSessionDefinition")]
-	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 1)", "EndpointDefinition")]
+	[InlineData("CREATE EXTERNAL FILE FORMAT f WITH (FORMAT_TYPE = PARQUET)", "CreateExternalFileFormat")]
+	[InlineData("CREATE WORKLOAD GROUP g",          "CreateWorkloadGroup")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT a.b", "CreateEventSession")]
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 1)", "CreateEndpoint")]
 	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT", "ExecuteAs")]
 	[InlineData("REVERT WITH COOKIE = @c",          "Revert")]
 	[InlineData("SETUSER 'u' WITH NORESET",         "SetUser")]
 	[InlineData("RESTORE SYMMETRIC KEY k FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q'",
 		"RestoreSymmetricKey")]
 
-	[InlineData("CREATE TABLE t (a INT)",           "TableDefinition")]
-	[InlineData("CREATE VIEW v AS SELECT a FROM t", "ViewDefinition")]
+	[InlineData("CREATE TABLE t (a INT)",           "CreateTable")]
+	[InlineData("CREATE VIEW v AS SELECT a FROM t", "CreateView")]
 	[InlineData("SELECT a FROM t",                  "Select")]
 	[InlineData("SELECT a FROM t ORDER BY a",       "Select")]
 	[InlineData("INSERT INTO t (a) VALUES (1)",     "Insert")]
 	[InlineData("BEGIN PRINT 1 END",                "Compound")]
 	public void A_statement_is_the_record_its_production_is_named_after(string input, string node)
 	{
-		var match = OldTree.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 		Assert.Equal(node, Record(match.Value!));
 	}
 
 	/// <summary>
-	/// The record a statement is: its own type's name, or for one whose rule builds the common tree already, the name of
-	/// the record the rule built before, which it is counted under (<c>Statement.Built</c>).
+	/// The record a statement is: its own type's name, and for the statements the common tree holds in one record, what
+	/// tells them apart — an ALTER DATABASE's action, a DROP of a routine's kind.
 	/// </summary>
-	static string Record(Statement statement)
+	static string Record(Ast.Statement statement)
 	{
-		return statement is Statement.Built built ? built.Record.Substring("Statement.".Length) : statement.GetType().Name;
+		return statement switch
+		{
+			Ast.Statement.AlterDatabase { Action: var action }          => "AlterDatabase." + action.GetType().Name,
+			Ast.Statement.DropRoutine { Routines: [var routine, ..] } => "DropRoutine." + routine.Kind,
+			_                                                         => statement.GetType().Name,
+		};
 	}
 
 	/// <summary>The full-text catalogue, and copying a database out and back.</summary>
@@ -16489,15 +16507,15 @@ public sealed class TransactSqlTests
 	{
 		var query = Selected("SELECT dbo.f(a, 1) FROM t");
 
-		var call = Assert.IsType<Expression.RoutineInvocation>(
-			Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns)).Value);
+		var call = Assert.IsType<Ast.Expression.Invocation>(
+			Assert.IsType<Ast.SelectColumn.ExpressionItem>(Assert.Single(query.Columns)).Expression);
 
-		Assert.Equal("dbo.f", call.Name);
-		Assert.Equal(2, call.Arguments.Length);
-		Assert.Equal("a", Assert.IsType<Expression.ColumnReference>(call.Arguments[0]).Text);
+		Assert.Equal("dbo.f", string.Join(".", call.Name.Parts.Select(static one => one.Text)));
+		Assert.Equal(2, call.Arguments.Count);
+		Assert.Equal("a", Assert.IsType<Ast.Expression.Reference>(call.Arguments[0].Value).Name.Last.Text);
 	}
 
-	/// <summary>A variable is a parameter, which is the rule it was widened into.</summary>
+	/// <summary>A variable, the rule a parameter was widened into, is a variable of the common tree.</summary>
 	[Theory]
 	[InlineData("SELECT @v",         "@v")]
 	[InlineData("SELECT @@ROWCOUNT", "@@ROWCOUNT")]
@@ -16505,11 +16523,10 @@ public sealed class TransactSqlTests
 	{
 		var query = Selected(input);
 
-		var literal = Assert.IsType<Expression.Literal>(
-			Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns)).Value);
+		var variable = Assert.IsType<Ast.Expression.Variable>(
+			Assert.IsType<Ast.SelectColumn.ExpressionItem>(Assert.Single(query.Columns)).Expression);
 
-		Assert.Equal(SqlLiteralKind.Parameter, literal.Kind);
-		Assert.Equal(text, literal.Text);
+		Assert.Equal(text, variable.Name.Text);
 	}
 
 	/// <summary>
@@ -16531,15 +16548,15 @@ public sealed class TransactSqlTests
 		Assert.Equal("10", Assert.IsType<Ast.LiteralValue.Numeric>(top.Value).Text);
 		Assert.Null(Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Statement.Select>(TransactSqlParser.ParseSelect("SELECT a FROM t")).Query).Top);
 
-		var over = Assert.IsType<Expression.WindowFunction>(
-			Assert.IsType<Clause.DerivedColumn>(
-				Assert.Single(Selected("SELECT COUNT(*) OVER (PARTITION BY b) FROM t").Columns)).Value);
+		var over = Assert.IsType<Ast.Expression.Invocation>(
+			Assert.IsType<Ast.SelectColumn.ExpressionItem>(
+				Assert.Single(Selected("SELECT COUNT(*) OVER (PARTITION BY b) FROM t").Columns)).Expression);
 
-		var window = Assert.IsType<Clause.Window>(over.Over);
+		var window = Assert.IsType<Ast.WindowReference.Specification>(over.Over).Value;
 
-		Assert.Equal("COUNT", Assert.IsType<Expression.RoutineInvocation>(over.Function).Name);
-		Assert.Equal("b", Assert.IsType<Expression.ColumnReference>(
-			Assert.Single(window.PartitionBy)).Text);
+		Assert.Equal("COUNT", over.Name.Last.Text);
+		Assert.Equal("b", Assert.IsType<Ast.Expression.Reference>(
+			Assert.Single(window.PartitionBy)).Name.Last.Text);
 	}
 
 	/// <summary>And the clauses the statement wraps a query in.</summary>
@@ -16550,27 +16567,28 @@ public sealed class TransactSqlTests
 			"WITH c AS (SELECT a FROM u) SELECT a INTO #t FROM c ORDER BY a " +
 			"OFFSET 5 ROWS FETCH NEXT 2 ROWS ONLY FOR XML AUTO OPTION (MAXDOP 2)";
 
-		var read  = OldTree.Selecting(OldTree.TryParseStatement(text).Value!);
-		var named = Assert.IsType<Clause.CommonTableExpression>(Assert.Single(read.With));
-		var by    = Assert.IsType<Clause.OrderBy>(read.By);
-		var made  = Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Statement.Select>(TransactSqlParser.ParseStatement(text)).Query);
+		var read  = Assert.IsType<Ast.Statement.Select>(TransactSqlParser.ParseStatement(text));
+		var made  = Assert.IsType<Ast.Query.Select>(read.Query);
+		var named = Assert.Single(made.With!.Items);
+		var limit = made.Limit!;
 
-		Assert.Equal("c", named.Name);
+		Assert.Equal("c", named.Name.Text);
 		Assert.Equal("#t", made.IntoTable!.Table.Last.Text);
-		Assert.Equal("5", Assert.IsType<Expression.Literal>(by.Offset).Text);
-		Assert.Equal("2", Assert.IsType<Expression.Literal>(by.Fetch).Text);
-		Assert.Equal("XML", Assert.IsType<Clause.For>(read.Shape).Kind);
-		Assert.Equal("MAXDOP 2", Assert.IsType<Clause.Hint>(Assert.Single(read.Options)).Text);
+		Assert.NotNull(made.OrderBy);
+		Assert.Equal("5", Assert.IsType<Ast.LiteralValue.Numeric>(limit.Offset).Text);
+		Assert.Equal("2", Assert.IsType<Ast.LiteralValue.Numeric>(limit.Count).Text);
+		Assert.Equal(Ast.XmlMode.Auto, Assert.IsType<Ast.ForClause.Xml>(made.For).Mode);
+		Assert.Equal("MAXDOP", Assert.IsType<Ast.QueryHint.Named>(Assert.Single(read.Hints)).Name.Text);
 	}
 
-	/// <summary>What the dialect read, where it was a query: the specification as its rule built it, which keeps its select list.</summary>
-	static Query.Built Selected(string input)
+	/// <summary>What the dialect read, where it was a query: the specification, which keeps its select list.</summary>
+	static Ast.Query.Select Selected(string input)
 	{
-		var query = OldTree.QueryOf(OldTree.TryParseSelect(input).Value!);
+		var match = TransactSqlParser.TryParseSelect(input);
 
-		Assert.Equal("Query.Specification", query.Record);
+		Assert.True(match.IsSuccess, input);
 
-		return query;
+		return Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Statement.Select>(match.Value).Query);
 	}
 
 	/// <summary>A bracketed name may be a reserved word, which is what brackets are for.</summary>
@@ -16585,8 +16603,8 @@ public sealed class TransactSqlTests
 
 		Assert.Equal(
 			"[select]",
-			Assert.IsType<Expression.ColumnReference>(
-				Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns)).Value).Text);
+			Assert.IsType<Ast.Expression.Reference>(
+				Assert.IsType<Ast.SelectColumn.ExpressionItem>(Assert.Single(query.Columns)).Expression).Name.Last.Text);
 
 		Assert.False(TransactSqlParser.TryParseSelect("SELECT select FROM t").IsSuccess);
 	}

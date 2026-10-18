@@ -46,8 +46,8 @@ public sealed class DeepTreeTests
 
 		var (written, thrown) = OnStack(() =>
 		{
-			Assert.True(OldTree.TryParseStatement(text, 0).IsSuccess, "the positional reading refused it");
-			Assert.True(OldTree.Located.TryParseStatement(text).IsSuccess, "the located reading refused it");
+			Assert.True(TransactSqlParser.TryParseStatement(text, 0).IsSuccess, "the positional reading refused it");
+			Assert.True(TransactSqlParser.Located.TryParseStatement(text).IsSuccess, "the located reading refused it");
 			Assert.True(TransactSqlParser.TryParseScript(text).IsSuccess, "the script reading refused it");
 			Assert.True(Sql92Parser.TryParseSelect(text + " FROM t").IsSuccess, "SQL-92 refused it");
 
@@ -71,13 +71,13 @@ public sealed class DeepTreeTests
 
 		var (written, thrown) = OnStack(() =>
 		{
-			var transact = SqlWriter.Write(OldTree.ParseStatement(chain));
-			var carried  = Ast.TransactSqlWriter.Write(TransactSqlParser.ParseStatement(chain));
+			var transact = Ast.TransactSqlWriter.Write(TransactSqlParser.ParseStatement(chain));
+			var located  = Ast.TransactSqlWriter.Write(TransactSqlParser.Located.ParseStatement(chain));
 			var standard = Ast.Sql2023Writer.Write(SqlStandardParser.ParseStatement(from));
 			var sql92    = Ast.Sql2023Writer.Write(Sql92Parser.ParseSelect(from));
 
 			Assert.Equal(chain, transact);
-			Assert.Equal(chain, carried);
+			Assert.Equal(chain, located);
 			Assert.Equal(from, standard);
 			Assert.Equal(from, sql92);
 
@@ -130,7 +130,7 @@ public sealed class DeepTreeTests
 			// Thrown again by the thread that handed the walk over, which is what says it crossed.
 			Assert.Contains("SqlStack", caught.StackTrace, StringComparison.Ordinal);
 
-			return SqlWriter.Write(OldTree.ParseStatement(deep));
+			return Ast.TransactSqlWriter.Write(TransactSqlParser.ParseStatement(deep));
 		});
 
 		Assert.Null(thrown);
@@ -147,12 +147,11 @@ public sealed class DeepTreeTests
 	[Fact]
 	public void A_deep_tree_is_walked_and_hashed_without_a_crash()
 	{
-		// A value, which is this tree's: a query statement's rule builds the common tree, and keeps no node of this one.
 		var text = Nested("", "CASE WHEN 1 = 1 THEN 1 ELSE ", "1", " END", "", Depth);
 
 		var (nodes, thrown) = OnStack(() =>
 		{
-			var tree  = OldTree.ParseValueExpression(text);
+			var tree  = TransactSqlParser.ParseExpression(text);
 			var count = 0;
 
 			SqlWalker.Walk(tree, _ =>

@@ -49,8 +49,8 @@ static partial class Bridge
 
 		/// <summary>SELECT and the clauses under it, on the common tree.</summary>
 		internal static Query Specification(
-			string? quantifier, Clause? top, SqlList<Clause> columns, Clause? into, SqlList<TableReference> from, Expression? where,
-			Clause? group, Expression? having, SqlList<Clause>? windows)
+			string? quantifier, Clause? top, SqlList<Clause> columns, Clause? into, SqlList<TableReference> from, Ast.Expression? where,
+			Clause? group, Ast.Expression? having, SqlList<Clause>? windows)
 		{
 			var assigns = columns.Exists(static one => one is Clause.VariableAssignment);
 			var facts   = (assigns ? Query.Built.Facts.Assigns : Query.Built.Facts.None)
@@ -68,17 +68,17 @@ static partial class Bridge
 				GroupBy    = parts.group is null ? null : Group(parts.group),
 				Having     = parts.having is null ? null : Values.Of(parts.having),
 				Window     = parts.windows is { Length: > 0 } list ? new Ast.WindowClause(Each(list, Window)) : null,
-			}, out var made, out var gap, out var taken);
+			}, out var made, out var gap);
 
-			return new Query.Built(made, gap, taken, SpecificationName.Record, facts) { Columns = columns, Where = where };
+			return new Query.Built(made, gap, SpecificationName.Record, facts) { Columns = columns, Where = where };
 		}
 
 		/// <summary>VALUES (…), (…): the rows, on the common tree; the query of them is made when it is asked for.</summary>
-		internal static Query Constructed(SqlList<Expression> rows)
+		internal static Query Constructed(SqlList<Ast.Expression> rows)
 		{
-			Building(rows, static rows => Each(rows, Row), out SqlList<Ast.RowValue> made, out var gap, out var taken);
+			Building(rows, static rows => Each(rows, Row), out SqlList<Ast.RowValue> made, out var gap);
 
-			return new Query.Built(null, gap, taken, "Query.TableValueConstructor", Query.Built.Facts.None)
+			return new Query.Built(null, gap, "Query.TableValueConstructor", Query.Built.Facts.None)
 			{
 				Rows   = rows,
 				Values = gap is null ? made : null,
@@ -93,22 +93,22 @@ static partial class Bridge
 				Columns = [new Ast.SelectColumn.All()],
 				From    = new Ast.FromClause([new Ast.TableSource.Named(Values.Name(TableName, name))]),
 				Table   = true,
-			}, out var made, out var gap, out var taken);
+			}, out var made, out var gap);
 
-			return new Query.Built(made, gap, taken, TableName.Record, Query.Built.Facts.Cursorable);
+			return new Query.Built(made, gap, TableName.Record, Query.Built.Facts.Cursorable);
 		}
 
 		/// <summary>A query in brackets.</summary>
 		internal static Query Parenthesized(Query query)
 		{
-			Building(query, static query => (Ast.Query)new Ast.Query.Parenthesized(QueryOf(query)), out var made, out var gap, out var taken);
+			Building(query, static query => (Ast.Query)new Ast.Query.Parenthesized(QueryOf(query)), out var made, out var gap);
 
 			// The brackets hide nothing a rule asks about the query in them.
-			var facts = (Syntax.Assigns(query) ? Query.Built.Facts.Assigns : Query.Built.Facts.None)
-				| (Syntax.Cursorable(query) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None)
-				| (Syntax.AssignsCombined(query) ? Query.Built.Facts.AssignsCombined : Query.Built.Facts.None);
+			var facts = (Rules.Assigns(query) ? Query.Built.Facts.Assigns : Query.Built.Facts.None)
+				| (Rules.Cursorable(query) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None)
+				| (Rules.AssignsCombined(query) ? Query.Built.Facts.AssignsCombined : Query.Built.Facts.None);
 
-			return new Query.Built(made, gap, taken, "Query.Parenthesized", facts);
+			return new Query.Built(made, gap, "Query.Parenthesized", facts);
 		}
 
 		/// <summary>
@@ -127,9 +127,9 @@ static partial class Bridge
 				var ordered = parts.order is null ? QueryOf(parts.query) : Ordered(QueryOf(parts.query), parts.order);
 
 				return parts.shape is null ? ordered : ordered with { For = For(parts.shape) };
-			}, out var made, out var gap, out var taken);
+			}, out var made, out var gap);
 
-			return new Query.Built(made, gap, taken, "Query.Ordered", Syntax.Cursorable(query) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None);
+			return new Query.Built(made, gap, "Query.Ordered", Rules.Cursorable(query) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None);
 		}
 
 		/// <summary>
@@ -155,14 +155,14 @@ static partial class Bridge
 					throw BridgeGap.Open(parts.left, "inventory Query.Union (a left operand with an order of its own and no brackets)");
 
 				return first with { SetOperations = [.. first.SetOperations, new Ast.SetOperation(parts.op, QueryOf(parts.right))] };
-			}, out var made, out var gap, out var taken);
+			}, out var made, out var gap);
 
-			var facts = (Syntax.Cursorable(left) && Syntax.Cursorable(right) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None)
-				| (Syntax.Assigns(left) || Syntax.Assigns(right) || Syntax.AssignsCombined(left) || Syntax.AssignsCombined(right)
+			var facts = (Rules.Cursorable(left) && Rules.Cursorable(right) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None)
+				| (Rules.Assigns(left) || Rules.Assigns(right) || Rules.AssignsCombined(left) || Rules.AssignsCombined(right)
 					? Query.Built.Facts.AssignsCombined
 					: Query.Built.Facts.None);
 
-			return new Query.Built(made, gap, taken, record, facts);
+			return new Query.Built(made, gap, record, facts);
 		}
 
 		/// <summary>What the builders of a specification and of TABLE t say a gap of theirs under: the record they replace.</summary>
@@ -189,13 +189,13 @@ static partial class Bridge
 		/// </summary>
 		internal static Statement Select(SqlList<Clause> with, Query query, Clause? by, Clause? shape, SqlList<Clause> options)
 		{
-			return new Statement.Built(null, null, null, new Selecting(query, by, shape, options) { With = with }) { Pending = BuildSelect };
+			return new Statement.Built(null, null, new Selecting(query, by, shape, options) { With = with }) { Pending = BuildSelect };
 		}
 
 		/// <summary>A query statement held, given the WITH in front of it.</summary>
 		internal static Statement Select(Statement.Built held, Selecting selecting, SqlList<Clause> with)
 		{
-			return new Statement.Built(null, null, null, selecting with { With = with }) { Pending = held.Pending };
+			return new Statement.Built(null, null, selecting with { With = with }) { Pending = held.Pending };
 		}
 
 		static readonly Func<object, Ast.Statement> BuildSelect = static one => Statemented((Selecting)one);
@@ -336,7 +336,7 @@ static partial class Bridge
 		/// <c>MATCH (…)</c>, whose drawing the old tree keeps as text: read again token by token, an arrow being
 		/// two characters with perhaps a blank between them, as the grammar reads it.
 		/// </summary>
-		public static Ast.Expression.GraphMatch GraphMatch(Expression old, string pattern)
+		public static Ast.Expression.GraphMatch GraphMatch(object old, string pattern)
 		{
 			var reader   = new GraphReader(old, [.. SqlTokens.Of(pattern)]);
 			var patterns = new List<Ast.GraphPattern> { reader.Pattern() };
@@ -351,7 +351,7 @@ static partial class Bridge
 		}
 
 		/// <summary>A drawing's tokens, read from the left.</summary>
-		sealed class GraphReader(Expression old, SqlTokens.Token[] tokens)
+		sealed class GraphReader(object old, SqlTokens.Token[] tokens)
 		{
 			int _at;
 
@@ -805,9 +805,9 @@ static partial class Bridge
 		/// <summary>
 		/// A row of <c>VALUES</c>: a row of several values in brackets, or one value, which keeps its own.
 		/// </summary>
-		public static Ast.RowValue Row(Expression row)
+		public static Ast.RowValue Row(Ast.Expression row)
 		{
-			return row is Expression.RowValueConstructor(var items)
+			return row is Ast.Expression.Row(var items, _)
 				? new Ast.RowValue(Each(items, Values.Of))
 				: new Ast.RowValue([Values.Of(row)]);
 		}
@@ -830,11 +830,11 @@ static partial class Bridge
 
 					// `x = a` and `a AS x` are one old node; where the value starts after the column, the
 					// alias was written in front of it.
-					var first = Recover("Clause.DerivedColumn alias = expression", Spelled(old) is not null && Spelled(value) is not null ? "" : null,
-						value.Span.At > old.Span.At ? static _ => true : static _ => false, false);
+					var first = Recover(Spelled(old) is not null && Spelled(value) is not null ? "" : null,
+						SpanOf(value).At > old.Span.At ? static _ => true : static _ => false, false);
 
 					return new Ast.SelectColumn.ExpressionItem(Values.Of(value), alias,
-						!first && Recover("SelectColumn.ExpressionItem.AsKeyword", WordAfter(value), static word => word == "AS", false))
+						!first && Recover(WordAfter(value), static word => word == "AS", false))
 					{
 						AliasFirst = first,
 					};
@@ -884,7 +884,7 @@ static partial class Bridge
 				_             => throw BridgeGap.Open(old, $"inventory Clause.Top (WITH {with})"),
 			};
 
-			return value is Expression.Parenthesized(var inner)
+			return Values.Bracketed(value) is { } inner
 				? new Ast.TopClause(Values.Of(inner), true, percent, said)
 				: new Ast.TopClause(Values.Of(value), false, percent, said);
 		}
@@ -937,15 +937,15 @@ static partial class Bridge
 				limit = new Ast.Limit
 				{
 					Offset        = Values.Of(offset),
-					OffsetRowWord = Recover("Limit.OffsetRowWord", after, static text => Words(text) is ["ROW", ..] ? Ast.RowWord.Row : Ast.RowWord.Rows, Ast.RowWord.Rows),
+					OffsetRowWord = Recover(after, static text => Words(text) is ["ROW", ..] ? Ast.RowWord.Row : Ast.RowWord.Rows, Ast.RowWord.Rows),
 				};
 
 				if (by.Fetch is { } fetch)
 					limit = limit with
 					{
 						Count        = Values.Of(fetch),
-						Position     = Recover("Limit.Position", after, static text => Words(text).Contains("FIRST") ? Ast.FetchPosition.First : Ast.FetchPosition.Next, Ast.FetchPosition.Next),
-						FetchRowWord = Recover("Limit.FetchRowWord", WordAfter(fetch), static word => word == "ROW" ? Ast.RowWord.Row : Ast.RowWord.Rows, Ast.RowWord.Rows),
+						Position     = Recover(after, static text => Words(text).Contains("FIRST") ? Ast.FetchPosition.First : Ast.FetchPosition.Next, Ast.FetchPosition.Next),
+						FetchRowWord = Recover(WordAfter(fetch), static word => word == "ROW" ? Ast.RowWord.Row : Ast.RowWord.Rows, Ast.RowWord.Rows),
 					};
 			}
 			else if (by.Fetch is not null)
@@ -972,9 +972,9 @@ static partial class Bridge
 			return new Ast.GroupByClause(null, Each(by, Grouping)) { AllKeyword = all, With = suffix };
 		}
 
-		static Ast.GroupingElement Grouping(Expression old)
+		static Ast.GroupingElement Grouping(Ast.Expression old)
 		{
-			if (old is Expression.RoutineInvocation { Word: null } call)
+			if (old is Values.Call { Word: null } call)
 			{
 				var name = call.Name.ToUpperInvariant();
 
@@ -994,15 +994,15 @@ static partial class Bridge
 		/// <summary>
 		/// One element inside a <c>ROLLUP</c>, a <c>CUBE</c> or a plain list: a value, a row of them in brackets, or <c>()</c>.
 		/// </summary>
-		static Ast.GroupingElement Grouped(Expression old)
+		static Ast.GroupingElement Grouped(Ast.Expression old)
 		{
 			return old switch
 			{
-				Expression.RowValueConstructor { Values.Length: 0 } => new Ast.GroupingElement.Empty(),
-				Expression.RowValueConstructor(var items)           => new Ast.GroupingElement.Ordinary(Each(items, Values.Of), true),
+				Ast.Expression.Row { Items.Length: 0 } => new Ast.GroupingElement.Empty(),
+				Ast.Expression.Row(var items, _)           => new Ast.GroupingElement.Ordinary(Each(items, Values.Of), true),
 
 				// TSqlGroupingColumn's WITH (DISTRIBUTED_AGG), which the old tree keeps as words after the column.
-				Expression.Hinted(var column, var words) when Words(words) is ["WITH", "(", "DISTRIBUTED_AGG", ")"]
+				Values.Hinted(var column, var words) when Words(words) is ["WITH", "(", "DISTRIBUTED_AGG", ")"]
 					=> new Ast.GroupingElement.Ordinary([Values.Of(column)]) { DistributedAggregation = true },
 
 				_                                                   => new Ast.GroupingElement.Ordinary([Values.Of(old)]),

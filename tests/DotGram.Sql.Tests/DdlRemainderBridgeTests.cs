@@ -108,7 +108,7 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE PROCEDURE p1 @a INT WITH EXECUTE AS 'caller' AS PRINT 'hi'", "EXECUTE AS a user called caller")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
-		var made = Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+		var made = TransactSqlParser.Located.ParseStatement(text);
 
 		var holds = expected switch
 		{
@@ -208,32 +208,7 @@ public sealed class DdlRemainderBridgeTests
 
 		Assert.True(holds, $"{text} built {made}");
 
-		var outcome = BridgeOracle.Run(OldTree.Located.ParseStatement(text), text);
-
-		Assert.True(outcome.Status == BridgeOracle.Status.Converted, $"{text}: {outcome.Status} {outcome.Reason} {outcome.Detail}");
-	}
-
-	/// <summary>
-	/// A tail the old tree keeps compares token by token: a key word without its case and the blanks between tokens, and
-	/// nothing else — not a string, a name in brackets, a plain name, a word or the order of the words. A comment is
-	/// no token: the tree keeps none, so its words are neither compared nor taken for key words.
-	/// </summary>
-	[Theory]
-	[InlineData("Statement.RestoreLabelOnly.Tail", "from disk = 'd:'", "FROM DISK = 'd:'", true)]
-	[InlineData("Statement.BackupDatabase.Tail", "to disk = 'd:' with format, compression", "TO DISK = 'd:' WITH  format ,compression", true)]
-	[InlineData("Statement.BackupDatabase.Tail", "with encryption(algorithm = AES_128)", "WITH encryption (algorithm = AES_128)", true)]
-	[InlineData("Statement.RestoreLabelOnly.Tail", "from disk = 'D:'", "FROM DISK = 'd:'", false)]
-	[InlineData("Statement.AlterPartitionScheme.Tail", "next used fg1", "NEXT USED FG1", false)]
-	[InlineData("Statement.AlterPartitionScheme.Tail", "next used [fg 1]", "NEXT USED [FG 1]", false)]
-	[InlineData("Statement.AlterPartitionScheme.Tail", "next used [fg 1]", "NEXT USED [fg  1]", false)]
-	[InlineData("Statement.BackupDatabase.Tail", "with format, compression", "WITH compression, format", false)]
-	[InlineData("Statement.AlterDatabaseModifyFileGroup.Tail", "fg1 readonly", "fg1 READ_ONLY", false)]
-	[InlineData("Statement.RestoreDatabase.Tail", "with stats = 10", "WITH stats = 20", false)]
-	[InlineData("Statement.BackupDatabase.Tail", "with /* Format */ format", "WITH FORMAT", true)]
-	[InlineData("Statement.BackupDatabase.Tail", "with format -- 'a' [b]\n, stats = 10", "WITH FORMAT, STATS = 20", false)]
-	public void A_tail_compares_key_words_without_case_and_nothing_else(string member, string one, string two, bool same)
-	{
-		Assert.Equal(same, Trees.SameTokens(new object(), member, one, two));
+		ReadBack.Holds(text);
 	}
 
 	[Theory]
@@ -241,8 +216,6 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE OR ALTER MATERIALIZED VIEW v AS SELECT 1 AS a")]
 	public void A_materialized_view_altered_is_a_gap(string text)
 	{
-		var old = OldTree.Located.ParseStatement(text);
-
-		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
+		Assert.IsType<DotGram.Sql.Ast.Statement.Extension>(TransactSqlParser.Located.ParseStatement(text));
 	}
 }

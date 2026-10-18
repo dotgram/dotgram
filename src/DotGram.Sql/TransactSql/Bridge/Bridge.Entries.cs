@@ -6,128 +6,78 @@ using Ast = DotGram.Sql.Ast;
 
 namespace DotGram.Sql.TransactSql;
 
-// How TransactSqlParser's entries hand back the common tree while the grammar still builds the T-SQL tree: each
-// public entry reads through the internal one of the same rule, with locations, and what it read is carried across
-// here with the text it was read from (TransactSqlParser.Entries.cs). A construct the bridge has no place for yet
-// comes back as the family's Extension node, naming the old record and why, rather than being thrown out of a
-// TryParse. This goes as the grammar's rules come to build the common tree themselves.
+// How TransactSqlParser's entries hand back the common tree: each public entry reads through the internal one of the
+// same rule, with locations, and what the rules built is taken out of the records that hold it here. A construct the
+// common tree has no place for yet comes back as the family's Extension node, naming the record and why, rather than
+// being thrown out of a TryParse.
 static partial class Bridge
 {
 	/// <summary>
-	/// A statement an entry read, on the common tree; one the bridge has no place for, a
+	/// A statement an entry read, on the common tree; one with something the tree has no place for, a
 	/// <see cref="Ast.Statement.Extension"/> that says which and why.
 	/// </summary>
-	/// <param name="old">The T-SQL tree the entry read, with locations: the bridge reads the words it drops from the text.</param>
-	/// <param name="input">The whole text the reading was given; a located node's span is a position in it.</param>
-	/// <param name="locate">Whether the new nodes take the old nodes' spans: the located door's tree, and not the plain one's.</param>
-	internal static Ast.Statement Carried(Statement old, string input, bool locate)
+	/// <param name="read">What the entry read, told where it was written.</param>
+	/// <param name="locate">Whether the extension takes the statement's span: the located door's tree, and not the plain one's.</param>
+	internal static Ast.Statement Carried(Statement read, bool locate)
 	{
-		return Carry(old, input, locate, out var gap) as Ast.Statement ?? Unplaced(old, gap, locate);
+		try
+		{
+			return StatementOf(read);
+		}
+		catch (BridgeGap gap)
+		{
+			return Unplaced(read, gap, locate);
+		}
 	}
 
 	/// <summary>An expression an entry read, on the common tree, or an <see cref="Ast.Expression.Extension"/>.</summary>
-	internal static Ast.Expression Carried(Expression old, string input, bool locate)
+	internal static Ast.Expression Carried(Ast.Expression read, bool locate)
 	{
-		return Carry(old, input, locate, out var gap) as Ast.Expression
-			?? Placed(new Ast.Expression.Extension(Dialect, gap?.Message ?? NameOf(old), []), old, locate);
+		try
+		{
+			return Values.Of(read);
+		}
+		catch (BridgeGap gap)
+		{
+			var made = new Ast.Expression.Extension(Dialect, gap.Message, []);
+
+			if (locate && read.Read is { Known: true } span)
+				made.Locate(span.At, span.Length);
+
+			return made;
+		}
 	}
 
-	/// <summary>The statements an entry read, on the common tree, each the bridge has no place for an extension.</summary>
-	internal static Ast.Statement[] Carried(Statement[] old, string input, bool locate)
+	/// <summary>The statements an entry read, on the common tree, each with something the tree has no place for an extension.</summary>
+	internal static Ast.Statement[] Carried(Statement[] read, bool locate)
 	{
-		return (Ast.Statement[])Carry(old, input, locate, out _)!;
+		var made = new Ast.Statement[read.Length];
+
+		for (var i = 0; i < read.Length; i++)
+			made[i] = Carried(read[i], locate);
+
+		return made;
 	}
 
 	/// <summary>What an extension of the common tree carried across from T-SQL says it is.</summary>
 	const string Dialect = "T-SQL";
 
 	/// <summary>
-	/// The extension a statement the bridge has no place for stands as: located where the grammar located the statement,
-	/// in the located door's tree, as what it replaces would have been.
+	/// The extension a statement with no place on the common tree stands as: located where the grammar located the
+	/// statement, in the located door's tree, as what it replaces would have been.
 	/// </summary>
-	static Ast.Statement Unplaced(Statement old, BridgeGap? gap, bool locate)
+	static Ast.Statement Unplaced(Statement read, BridgeGap gap, bool locate)
 	{
-		return Placed(new Ast.Statement.Extension { Dialect = Dialect, Kind = gap?.Message ?? NameOf(old) }, old, locate);
+		return Placed(new Ast.Statement.Extension { Dialect = Dialect, Kind = gap.Message }, read, locate);
 	}
 
-	/// <summary>A node made in place of an old one, given the old one's span where the carriage locates.</summary>
-	static T Placed<T>(T made, ISqlSpan old, bool locate) where T : class
+	/// <summary>A node made in place of a record, given the record's span where the reading publishes it.</summary>
+	static T Placed<T>(T made, ISqlSpan read, bool locate) where T : class
 	{
-		if (locate && old.Span is { Known: true, IsStale: false } span)
+		if (locate && read.Span is { Known: true, IsStale: false } span)
 			Place(made, span);
 
 		return made;
-	}
-
-	/// <summary>
-	/// The common tree of what an entry read, or null where the bridge has no place for something in it, and then the
-	/// gap that says so.
-	/// </summary>
-	static object? Carry(object old, string input, bool locate, out BridgeGap? gap)
-	{
-		gap = null;
-
-		try
-		{
-			return Along(input, locate, () => Across(old));
-		}
-		catch (BridgeGap found)
-		{
-			gap = found;
-
-			return null;
-		}
-	}
-
-	/// <summary>One old tree an entry reads, carried.</summary>
-	static object Across(object old)
-	{
-		switch (old)
-		{
-			case Statement statement:
-				return StatementOf(statement);
-
-			case Expression expression:
-				return ExpressionOf(expression);
-
-			// A text of statements reads whole: each the bridge has no place for stands as an extension among the rest.
-			case Statement[] statements:
-				var made = new Ast.Statement[statements.Length];
-
-				for (var i = 0; i < statements.Length; i++)
-				{
-					try
-					{
-						made[i] = StatementOf(statements[i]);
-					}
-					catch (BridgeGap gap)
-					{
-						made[i] = Unplaced(statements[i], gap, locating);
-					}
-				}
-
-				return made;
-
-			default:
-				throw new ArgumentException($"An entry reads no {old.GetType().Name}.", nameof(old));
-		}
-	}
-
-	/// <summary>A carriage with the text it was read from.</summary>
-	static T Along<T>(string text, bool locate, Func<T> convert)
-	{
-		var outer = locating;
-
-		locating = locate;
-
-		try
-		{
-			return Reading(text, convert);
-		}
-		finally
-		{
-			locating = outer;
-		}
 	}
 
 	// ── Spans ───────────────────────────────────────────────────────────────────

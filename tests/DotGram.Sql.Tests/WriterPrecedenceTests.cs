@@ -269,8 +269,7 @@ public sealed class WriterPrecedenceTests
 		});
 
 	/// <summary>
-	/// T-SQL, through a statement: a value in a SELECT list, a condition in a WHERE, which is where T-SQL reads each. Read
-	/// into the old tree and carried onto the new one by the bridge, as everything T-SQL reads is for now.
+	/// T-SQL, through a statement: a value in a SELECT list, a condition in a WHERE, which is where T-SQL reads each.
 	/// </summary>
 	static readonly Reading TransactSql = new(
 		"T-SQL",
@@ -284,12 +283,12 @@ public sealed class WriterPrecedenceTests
 		},
 		static (text, condition) =>
 		{
-			var read = OldTree.Located.TryParseStatement(text);
+			var read = TransactSqlParser.Located.TryParseStatement(text);
 
 			if (!read.IsSuccess)
 				return null;
 
-			var query = (Query.Select)((Statement.Select)Bridge.ToAst(read.Value!, text)).Query;
+			var query = (Query.Select)((Statement.Select)read.Value!).Query;
 
 			return condition ? query.Where : ((SelectColumn.ExpressionItem)query.Columns[0]).Expression;
 		});
@@ -741,7 +740,7 @@ public sealed class WriterPrecedenceTests
 
 			Assert.Equal(expected, text);
 
-			var read = (Statement.Select)Bridge.ToAst(OldTree.Located.ParseStatement(text), text);
+			var read = (Statement.Select)TransactSqlParser.Located.ParseStatement(text);
 
 			Assert.Equal(structure, read.Query);
 			Assert.Equal(text, TransactSqlWriter.Write(read));

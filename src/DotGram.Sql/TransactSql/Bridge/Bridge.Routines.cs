@@ -92,7 +92,7 @@ static partial class Bridge
 
 				return new Ast.Statement.ExecuteString(Values.Of(sql), Each(values, Values.Of))
 				{
-					Exec       = Recover("Statement.ExecuteString.Exec", spelled, static text => Words(text) is ["EXEC", ..], false),
+					Exec       = Recover(spelled, static text => Words(text) is ["EXEC", ..], false),
 					Context    = old.Context is null ? null : Context(old, old.Context),
 					At         = old.At is null ? null : Values.Part(old, old.At),
 					DataSource = old.DataSource is null ? null : Values.Part(old, old.DataSource),
@@ -113,7 +113,7 @@ static partial class Bridge
 				};
 
 			var keyword = old.Bare ? (Ast.ExecuteKeyword?)null
-				: Recover("Statement.ExecuteModule.Keyword", spelled, static text => Words(text) is ["EXEC", ..] ? Ast.ExecuteKeyword.Exec : Ast.ExecuteKeyword.Execute, Ast.ExecuteKeyword.Execute);
+				: Recover(spelled, static text => Words(text) is ["EXEC", ..] ? Ast.ExecuteKeyword.Exec : Ast.ExecuteKeyword.Execute, Ast.ExecuteKeyword.Execute);
 
 			return new Ast.Statement.ExecuteModule(module, Each(old.Arguments, one => ExecuteArgument(old, one)))
 			{
@@ -131,7 +131,7 @@ static partial class Bridge
 		/// </summary>
 		internal static Statement Routine(Statement body, string verb, SqlSpan at)
 		{
-			var read = Syntax.Verbed(body, verb);
+			var read = Rules.Verbed(body, verb);
 
 			return Defer(read, at, static read => read switch
 			{
@@ -155,8 +155,8 @@ static partial class Bridge
 				Options        = RoutineOptions(old, old.Options),
 				ForReplication = old.ForReplication,
 				Number         = old.Number is null ? null : new Ast.LiteralValue.Numeric(old.Number, Ast.NumericLiteralKind.DecimalInteger),
-				Proc           = Recover("RoutineDefinition.Proc", Spelled(old), static text => Words(text) is [.., "PROC"] or ["CREATE" or "ALTER", "PROC", ..] or ["CREATE", "OR", "ALTER", "PROC", ..], false),
-				Unbracketed    = old.Parameters.Length > 0 && Recover("RoutineDefinition.Unbracketed", Spelled(old), static text => !Bracketed(text), false),
+				Proc           = Recover(Spelled(old), static text => Words(text) is [.., "PROC"] or ["CREATE" or "ALTER", "PROC", ..] or ["CREATE", "OR", "ALTER", "PROC", ..], false),
+				Unbracketed    = old.Parameters.Length > 0 && Recover(Spelled(old), static text => !Bracketed(text), false),
 			};
 
 			return new Ast.Statement.CreateRoutine { Definition = definition, Verb = Verb(old, old.Verb) };
@@ -202,7 +202,7 @@ static partial class Bridge
 
 			var definition = new Ast.RoutineDefinition(Ast.RoutineKind.Function, Values.Name(old, old.Name), Parameters(old, old.Parameters), returns, [], body)
 			{
-				AsOmitted = Recover("RoutineDefinition.AsOmitted", Spelled(old), text => !AsBefore(old, text, body), false),
+				AsOmitted = Recover(Spelled(old), text => !AsBefore(old, text, body), false),
 				Options = RoutineOptions(old, old.Options),
 				Order   = Each(old.Order ?? [], one => one is Clause.SortSpecification sort ? Queries.Sort(sort) : throw BridgeGap.Open(old, $"inventory {NameOf(one)} (in ORDER)")),
 			};
@@ -397,8 +397,8 @@ static partial class Bridge
 				foreach (var (named, value) in options)
 					made = named switch
 					{
-						"PERMISSION_SET" when value is Expression.ColumnReference(var word) => made with { PermissionSet = Permission(old, word) },
-						"VISIBILITY" when value is Expression.ColumnReference(var word)     => made with { Visibility = word == "ON" },
+						"PERMISSION_SET" when Values.Wording(value) is { } word => made with { PermissionSet = Permission(old, word) },
+						"VISIBILITY" when Values.Wording(value) is { } word     => made with { Visibility = word == "ON" },
 						"UNCHECKED DATA"                                                    => made with { UncheckedData = true },
 						_ => throw BridgeGap.Open(old, $"inventory Statement.AssemblyDefinition (the option {named})"),
 					};
@@ -712,7 +712,7 @@ static partial class Bridge
 					})
 				{
 					ShortOutput = back is ["OUT"],
-					AsKeyword   = Recover("ParameterDefinition.AsKeyword", Spelled(one), static text => Words(text) is [_, "AS", ..], false),
+					AsKeyword   = Recover(Spelled(one), static text => Words(text) is [_, "AS", ..], false),
 				};
 			});
 		}
@@ -725,7 +725,7 @@ static partial class Bridge
 		{
 			return Each<Clause, Ast.RoutineOption>(options ?? [], one => one switch
 			{
-				Clause.Option { Name: var name, Value: Expression.ColumnReference(var who) } when Words(name) is ["EXECUTE", "AS"] => new Ast.RoutineOption.ExecuteAs(who.ToUpperInvariant() switch
+				Clause.Option { Name: var name, Value: var value } when Values.Wording(value) is { } who && Words(name) is ["EXECUTE", "AS"] => new Ast.RoutineOption.ExecuteAs(who.ToUpperInvariant() switch
 				{
 					"CALLER" => new Ast.ExecutionContext(Ast.ExecutionContextKind.Caller, null),
 					"SELF"   => new Ast.ExecutionContext(Ast.ExecutionContextKind.Self, null),
@@ -755,23 +755,23 @@ static partial class Bridge
 		}
 
 		/// <summary>One value passed: <c>@p = v</c>, and OUTPUT or OUT after it, which the old tree keeps as a hint.</summary>
-		static Ast.ExecuteArgument ExecuteArgument(ISqlSpan old, Expression value)
+		static Ast.ExecuteArgument ExecuteArgument(ISqlSpan old, Ast.Expression value)
 		{
 			Ast.OutputKeyword? output = null;
 
-			if (value is Expression.Hinted(var hinted, var words))
+			if (value is Values.Hinted(var hinted, var words))
 			{
 				output = Words(words) switch
 				{
 					["OUTPUT"] => Ast.OutputKeyword.Output,
 					["OUT"]    => Ast.OutputKeyword.Out,
-					_          => throw BridgeGap.Open(old, $"inventory Expression.Hinted (`{words}` after an argument)"),
+					_          => throw BridgeGap.Open(old, $"inventory Values.Hinted (`{words}` after an argument)"),
 				};
 
 				value = hinted;
 			}
 
-			return value is Expression.NamedArgument(var name, var named)
+			return value is Values.NamedArgument(var name, var named)
 				? new Ast.ExecuteArgument(Values.Of(named)) { Name = new Ast.Identifier(name), Output = output }
 				: new Ast.ExecuteArgument(Values.Of(value)) { Output = output };
 		}
