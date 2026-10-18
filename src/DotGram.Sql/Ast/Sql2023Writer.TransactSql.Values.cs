@@ -16,6 +16,27 @@ public static partial class Sql2023Writer
 		{
 			switch (node)
 			{
+				// T-SQL: AI_GENERATE_EMBEDDINGS (Transact-SQL). One argument, USE MODEL and the model's name (UseModel), and
+				// PARAMETERS and a value.
+				case Expression.AiGenerateEmbeddings embeddings:
+					if (embeddings.Model.Count == 0 || embeddings.Model.Parts.Any(static part => part.Text.Length == 0))
+						throw Misplaced(embeddings, "Model", "with no part or an empty one (UseModel: TSqlQualifiedName)");
+
+					Word("AI_GENERATE_EMBEDDINGS");
+					Call();
+					PutArgument(new Argument(embeddings.Source));
+					Word("USE MODEL");
+					PutName(embeddings.Model);
+
+					if (embeddings.Parameters is { } parameters)
+					{
+						Word("PARAMETERS");
+						PutExpression(parameters);
+					}
+
+					Close();
+					return true;
+
 				// T-SQL: CONTAINS (Transact-SQL), FREETEXT (Transact-SQL). FullTextPredicate.
 				case Expression.FullTextPredicate predicate:
 					PutFullTextPredicate(predicate);

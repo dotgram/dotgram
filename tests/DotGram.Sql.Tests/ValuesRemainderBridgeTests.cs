@@ -26,6 +26,9 @@ public sealed class ValuesRemainderBridgeTests
 	[InlineData("SELECT a FROM t WHERE CONTAINS ((*), 'x')", "CONTAINS of every column")]
 	[InlineData("SELECT a FROM t WHERE a IS NOT DISTINCT FROM ANY (SELECT b FROM u)", "IS NOT DISTINCT FROM ANY")]
 	[InlineData("SELECT a FROM t WHERE a IS DISTINCT FROM (SELECT b FROM u)", "IS DISTINCT FROM a subquery")]
+	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('x' USE MODEL [dbo.m] PARAMETERS (TRY_CONVERT (JSON, N'{}')))", "embeddings with parameters in brackets")]
+	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('x' USE MODEL dbo.m PARAMETERS TRY_CONVERT (JSON, N'{}'))", "embeddings with parameters")]
+	[InlineData("SELECT AI_GENERATE_EMBEDDINGS (@t USE MODEL m)", "embeddings")]
 	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
 	{
 		var made = Bridge.ToAst(TransactSqlParser.Located.ParseStatement(text), text);
@@ -42,6 +45,9 @@ public sealed class ValuesRemainderBridgeTests
 			"CONTAINS of every column" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.FullTextPredicate { Columns: [Ast.Expression.Asterisk], ColumnsBracketed: true } } },
 			"IS NOT DISTINCT FROM ANY" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.IsDistinct { Not: true, Quantifier: Ast.Quantifier.Any, Right: Ast.Expression.Subquery } } },
 			"IS DISTINCT FROM a subquery" => made is Ast.Statement.Select { Query: Ast.Query.Select { Where: Ast.Expression.IsDistinct { Quantifier: null } } },
+			"embeddings with parameters in brackets" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Model: [{ Style: Ast.IdentifierStyle.Bracketed }], Parameters: Ast.Expression.Parenthesized } }] } },
+			"embeddings with parameters" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Model.Count: 2, Parameters: Ast.Expression.Convert } }] } },
+			"embeddings" => made is Ast.Statement.Select { Query: Ast.Query.Select { Columns: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.AiGenerateEmbeddings { Source: Ast.Expression.Variable, Parameters: null } }] } },
 			_ => false,
 		};
 
