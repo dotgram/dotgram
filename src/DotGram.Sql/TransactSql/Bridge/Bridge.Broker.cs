@@ -48,7 +48,6 @@ static partial class Bridge
 				Statement.Send send                           => Send(send),
 				Statement.Receive receive                     => Receive(receive),
 				Statement.GetConversationGroup get            => new Ast.Statement.GetConversationGroup(Variable(get, get.Group), Values.Name(get, get.Queue)),
-				Statement.WaitForStatement wait               => Wait(wait),
 				_ when Owned(Owns, old)                       => throw Unconverted(old),
 				_                                             => null,
 			};
@@ -428,6 +427,12 @@ static partial class Bridge
 				Into  = old.Into is null ? null : Variable(old, old.Into),
 				Where = old.Where is null ? null : Values.Of(old.Where),
 			};
+		}
+
+		/// <summary>WAITFOR of a statement, on the common tree.</summary>
+		internal static Statement Wait(Statement waited, Expression? timeout)
+		{
+			return Carry(new Statement.WaitForStatement(waited, timeout), Wait);
 		}
 
 		static Ast.Statement Wait(Statement.WaitForStatement old)

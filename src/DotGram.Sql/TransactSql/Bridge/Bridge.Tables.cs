@@ -1855,9 +1855,7 @@ static partial class Bridge
 				throw BridgeGap.Open(owner, $"inventory Clause.Option (partitions `{text}`)");
 
 			var list = text[text.IndexOf('(')..];
-			var read = TransactSql.TransactSqlParser.TryParseSyntaxSql("TRUNCATE TABLE t WITH (PARTITIONS " + list + ")");
-
-			return read is { IsSuccess: true, Value: [Statement.Truncate { Partitions: { } partitions }] }
+			return Skim("TRUNCATE TABLE t WITH (PARTITIONS " + list + ")") is [Statement.Built { Given: Read<Statement> { Value: Statement.Truncate { Partitions: { } partitions } } }]
 				? Each(partitions, one => one is Clause.PartitionRange(var from, var to)
 					? new Ast.PartitionRange(Values.Of(from), to is null ? null : Values.Of(to))
 					: throw BridgeGap.Open(owner, "inventory Clause.PartitionRange"))

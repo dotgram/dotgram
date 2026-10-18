@@ -30,16 +30,6 @@ static partial class Bridge
 				Statement.Update update     => Update(update),
 				Statement.Delete delete     => Delete(delete),
 				Statement.Merge merge       => Merge(merge),
-				Statement.Truncate truncate => Truncate(truncate),
-				Statement.ReadText read     => new Ast.Statement.ReadText(Values.Name(read, read.Column), Values.Of(read.Pointer), Values.Of(read.Offset), Values.Of(read.Size), read.HoldLock),
-				Statement.WriteText write   => new Ast.Statement.WriteText(
-					Values.Name(write, write.Column), Values.Of(write.Pointer), write.Data is null ? null : Values.Of(write.Data), write.Bulk, write.Log,
-					write.Timestamp is null ? null : Values.Of(write.Timestamp)),
-				Statement.UpdateText update => new Ast.Statement.UpdateText(
-					Values.Name(update, update.Column), Values.Of(update.Pointer), Values.Of(update.Offset), Values.Of(update.Length),
-					update.Data is null ? null : Values.Of(update.Data), update.Source is null ? null : Values.Name(update, update.Source),
-					update.SourcePointer is null ? null : Values.Of(update.SourcePointer), update.Bulk, update.Log,
-					update.Timestamp is null ? null : Values.Of(update.Timestamp)),
 				TableReference.Changed changed => Changed(changed),
 				Query.DefaultValues         => throw BridgeGap.Open(old, "inventory Query.DefaultValues (outside an INSERT)"),
 				_ when Owned(Owns, old)     => throw Unconverted(old),
@@ -47,6 +37,69 @@ static partial class Bridge
 			};
 
 			return made is not null;
+		}
+
+		/// <summary>
+		/// The statement a WITH is written in front of, on the common tree where it changes rows: the WITH, and what the
+		/// rules read of the statement into the T-SQL tree's record, which is then no statement of any tree. It stands
+		/// where the statement and its WITH were written. A query keeps its own, and any other statement has none.
+		/// </summary>
+		internal static Statement Preceded(SqlList<Clause>? with, Statement statement, SqlSpan at)
+		{
+			if (statement is not (Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge))
+				return Syntax.Preceded(with, statement);
+
+			return Carry(Syntax.Preceded(with, statement), at, static read => read switch
+			{
+				Statement.Insert insert => Insert(insert),
+				Statement.Update update => Update(update),
+				Statement.Delete delete => Delete(delete),
+				_                       => Merge((Statement.Merge)read),
+			});
+		}
+
+		/// <summary>TRUNCATE TABLE, on the common tree: the table and its partitions.</summary>
+		internal static Statement Truncate(string name, SqlList<Clause>? partitions)
+		{
+			return Carry(new Statement.Truncate(name, partitions), Truncate);
+		}
+
+		/// <summary>READTEXT, on the common tree.</summary>
+		internal static Statement ReadText(string column, Expression pointer, Expression offset, Expression size, bool holdLock)
+		{
+			return Text(new Statement.ReadText(column, pointer, offset, size, holdLock));
+		}
+
+		/// <summary>WRITETEXT, on the common tree.</summary>
+		internal static Statement WriteText(string column, Expression pointer, Expression? data, bool bulk, bool log, Expression? timestamp)
+		{
+			return Text(new Statement.WriteText(column, pointer, data, bulk, log, timestamp));
+		}
+
+		/// <summary>UPDATETEXT, on the common tree.</summary>
+		internal static Statement UpdateText(
+			string column, Expression pointer, Expression offset, Expression length, Expression? data, string? source, Expression? sourcePointer,
+			bool bulk, bool log, Expression? timestamp)
+		{
+			return Text(new Statement.UpdateText(column, pointer, offset, length, data, source, sourcePointer, bulk, log, timestamp));
+		}
+
+		/// <summary>READTEXT, WRITETEXT and UPDATETEXT, on the common tree, from the record their rules read.</summary>
+		static Statement Text(Statement read)
+		{
+			return Carry(read, static old => old switch
+			{
+					Statement.ReadText read     => new Ast.Statement.ReadText(Values.Name(read, read.Column), Values.Of(read.Pointer), Values.Of(read.Offset), Values.Of(read.Size), read.HoldLock),
+					Statement.WriteText write   => new Ast.Statement.WriteText(
+						Values.Name(write, write.Column), Values.Of(write.Pointer), write.Data is null ? null : Values.Of(write.Data), write.Bulk, write.Log,
+						write.Timestamp is null ? null : Values.Of(write.Timestamp)),
+					Statement.UpdateText update => new Ast.Statement.UpdateText(
+						Values.Name(update, update.Column), Values.Of(update.Pointer), Values.Of(update.Offset), Values.Of(update.Length),
+						update.Data is null ? null : Values.Of(update.Data), update.Source is null ? null : Values.Name(update, update.Source),
+						update.SourcePointer is null ? null : Values.Of(update.SourcePointer), update.Bulk, update.Log,
+						update.Timestamp is null ? null : Values.Of(update.Timestamp)),
+				_ => throw new ArgumentException($"No text statement is a {NameOf(old)}.", nameof(old)),
+			});
 		}
 
 		/// <summary>

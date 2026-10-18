@@ -127,6 +127,15 @@ static class OldTree
 		return TransactSqlParser.TryParseSyntaxCondition(input);
 	}
 
+	/// <summary>
+	/// The record of this tree a statement's rules read, where they read it into one and built the common tree from it
+	/// (<c>Statement.Built</c>); any other statement is its own.
+	/// </summary>
+	public static Statement Record(Statement statement)
+	{
+		return statement is Statement.Built { Given: Bridge.Read<Statement> { Value: var read } } ? read : statement;
+	}
+
 	static TransactSqlParser.Match<Statement[]> Whole(ScriptBatch batch, TransactSqlParser.Match<Statement[]> read)
 	{
 		return !read.IsSuccess || read.ReadingEnd == batch.At + batch.Length

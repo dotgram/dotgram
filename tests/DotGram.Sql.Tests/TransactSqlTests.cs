@@ -14125,7 +14125,7 @@ public sealed class TransactSqlTests
 		Assert.NotNull(ordered.By);
 		Assert.Null(ordered.For);
 
-		var insert = Assert.IsType<Statement.Insert>(OldTree.TryParseStatement("INSERT INTO x SELECT y FROM z").Value);
+		var insert = Assert.IsType<Statement.Insert>(OldTree.Record(OldTree.TryParseStatement("INSERT INTO x SELECT y FROM z").Value!));
 
 		Assert.IsType<Query.Specification>(insert.Rows);
 	}
@@ -14387,12 +14387,12 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_column_list_is_not_a_call()
 	{
-		var insert = Assert.IsType<Statement.Insert>(OldTree.TryParseStatement("INSERT t (c1) VALUES (1)").Value);
+		var insert = Assert.IsType<Statement.Insert>(OldTree.Record(OldTree.TryParseStatement("INSERT t (c1) VALUES (1)").Value!));
 
 		Assert.IsType<TableReference.Named>(insert.Target);
 		Assert.Equal(new[] { "c1" }, insert.Columns);
 
-		var called = Assert.IsType<Statement.Insert>(OldTree.TryParseStatement("INSERT dbo.f() (c1) DEFAULT VALUES").Value);
+		var called = Assert.IsType<Statement.Insert>(OldTree.Record(OldTree.TryParseStatement("INSERT dbo.f() (c1) DEFAULT VALUES").Value!));
 
 		Assert.IsType<TableReference.FunctionCall>(called.Target);
 		Assert.Equal(new[] { "c1" }, called.Columns);
@@ -15306,7 +15306,7 @@ public sealed class TransactSqlTests
 	public void A_statement_and_a_query_hold_each_other()
 	{
 		var written = Assert.IsType<Statement.Insert>(
-			OldTree.TryParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1").Value);
+			OldTree.Record(OldTree.TryParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1").Value!));
 
 		Assert.Equal(new[] { "a" }, written.Columns);
 
@@ -15316,8 +15316,8 @@ public sealed class TransactSqlTests
 		Assert.NotNull(query.Where);
 
 		var merged = Assert.IsType<Statement.Merge>(
-			OldTree.TryParseStatement(
-				"MERGE t USING u ON t.id = u.id WHEN MATCHED THEN UPDATE SET a = 1").Value);
+			OldTree.Record(OldTree.TryParseStatement(
+				"MERGE t USING u ON t.id = u.id WHEN MATCHED THEN UPDATE SET a = 1").Value!));
 
 		var arm = Assert.IsType<Clause.MergeWhen>(Assert.Single(merged.Whens));
 

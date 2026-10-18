@@ -186,8 +186,8 @@ public sealed class LocatedReadingTests
 	[Fact]
 	public void A_null_is_a_node_of_its_own_in_every_reading()
 	{
-		var first  = OldTree.Located.ParseStatement("UPDATE t SET a = NULL");
-		var second = OldTree.Located.ParseStatement("UPDATE t SET a = 1, bb = NULL");
+		var first  = OldTree.Record(OldTree.Located.ParseStatement("UPDATE t SET a = NULL"));
+		var second = OldTree.Record(OldTree.Located.ParseStatement("UPDATE t SET a = 1, bb = NULL"));
 		var one    = Nodes(first).OfType<Expression.Literal>().Single(static node => node.Kind == SqlLiteralKind.Null);
 		var two    = Nodes(second).OfType<Expression.Literal>().Single(static node => node.Kind == SqlLiteralKind.Null);
 
@@ -198,7 +198,7 @@ public sealed class LocatedReadingTests
 		System.Threading.Tasks.Parallel.For(0, 64, i =>
 		{
 			var text    = new string(' ', i) + "UPDATE t SET a = NULL";
-			var literal = Nodes(OldTree.Located.ParseStatement(text)).OfType<Expression.Literal>().Single();
+			var literal = Nodes(OldTree.Record(OldTree.Located.ParseStatement(text))).OfType<Expression.Literal>().Single();
 
 			Assert.Equal(i + 17, literal.Span.At);
 		});

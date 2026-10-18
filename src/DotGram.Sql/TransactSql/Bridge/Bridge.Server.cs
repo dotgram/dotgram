@@ -32,9 +32,6 @@ static partial class Bridge
 		{
 			made = old switch
 			{
-				Statement.Kill kill                    => Kill(kill),
-				Statement.Reconfigure reconfigure      => new Ast.Statement.Reconfigure(reconfigure.Override),
-				Statement.Shutdown shutdown            => new Ast.Statement.Shutdown(shutdown.NoWait),
 				Statement.Dbcc dbcc                    => Dbcc(dbcc),
 				Statement.AlterServerConfiguration c   => Configuration(c),
 				Statement.AlterResourceGovernor g      => Governor(g),
@@ -858,6 +855,24 @@ static partial class Bridge
 		}
 
 		// ── KILL, DBCC ────────────────────────────────────────────────────────────
+
+		/// <summary>KILL, on the common tree: what is killed, its number or string, and what follows.</summary>
+		internal static Statement Kill(string what, Expression target, string? with = null)
+		{
+			return Carry(new Statement.Kill(what, target, with), Kill);
+		}
+
+		/// <summary>RECONFIGURE, on the common tree.</summary>
+		internal static Statement Reconfigure(bool @override)
+		{
+			return Carry(new Statement.Reconfigure(@override), static old => new Ast.Statement.Reconfigure(old.Override));
+		}
+
+		/// <summary>SHUTDOWN, on the common tree.</summary>
+		internal static Statement Shutdown(bool noWait)
+		{
+			return Carry(new Statement.Shutdown(noWait), static old => new Ast.Statement.Shutdown(old.NoWait));
+		}
 
 		static Ast.Statement Kill(Statement.Kill old)
 		{

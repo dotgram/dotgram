@@ -78,7 +78,6 @@ static partial class Bridge
 				Statement.CloseSymmetricKey close => new Ast.Statement.CloseSymmetricKey(Values.Part(close, close.Name)),
 				Statement.CloseAllSymmetricKeys   => new Ast.Statement.CloseAllSymmetricKeys(),
 				Statement.CloseMasterKey          => new Ast.Statement.CloseMasterKey(),
-				Statement.Classification classification => Classification(classification),
 				Statement.Grant grant             => Grant(grant),
 				Statement.Deny deny               => Deny(deny),
 				Statement.Revoke revoke           => Revoke(revoke),
@@ -1725,6 +1724,12 @@ static partial class Bridge
 			reader.Finish();
 
 			return options;
+		}
+
+		/// <summary>ADD SENSITIVITY CLASSIFICATION, on the common tree: its columns and options, where the rule says it was written.</summary>
+		internal static Statement Classification(SqlList<string> columns, SqlList<Clause> options, SqlSpan at)
+		{
+			return Carry(new Statement.Classification(true, columns, options), at, Classification);
 		}
 
 		static Ast.Statement Classification(Statement.Classification old)

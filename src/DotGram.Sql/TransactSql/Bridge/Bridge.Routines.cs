@@ -30,8 +30,6 @@ static partial class Bridge
 		{
 			made = old switch
 			{
-				Statement.Execute execute => Execute(execute),
-				Statement.TriggerSwitch(var enable, var names, var on) => Switch(old, enable, names, on),
 				Query.FromExecute         => throw BridgeGap.Open(old, "inventory Query.FromExecute (outside an INSERT)"),
 				_ when Owned(Owns, old) => throw Unconverted(old),
 				_                       => null,
@@ -58,6 +56,20 @@ static partial class Bridge
 		/// OUTPUT AT s WITH …</c>, or the bare call. The old tree keeps neither EXEC against EXECUTE, which is read from
 		/// the text, nor the WITH but as its text, which is read again here.
 		/// </summary>
+		/// <summary>EXECUTE, on the common tree, from what its rules read: it stands where the rule says it was written.</summary>
+		internal static Statement Execute(Statement.Execute read, SqlSpan at)
+		{
+			return Carry(read, at, static old => Execute(old));
+		}
+
+		/// <summary>ENABLE and DISABLE TRIGGER, on the common tree.</summary>
+		internal static Statement Switch(bool enable, SqlList<string>? names, string on)
+		{
+			var read = new Statement.TriggerSwitch(enable, names, on);
+
+			return Carry(read, static old => Switch(old, old.Enable, old.Triggers, old.On));
+		}
+
 		static Ast.Statement Execute(Statement.Execute old, string? inside = null)
 		{
 			// Inside an INSERT the call has no span of its own; the rows' span begins with it.

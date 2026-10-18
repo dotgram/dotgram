@@ -33,6 +33,21 @@ static partial class Bridge
 		{
 			made = old switch
 			{
+				_ when Owned(Owns, old) => throw Unconverted(old),
+				_                       => null,
+			};
+
+			return made is not null;
+		}
+
+		/// <summary>
+		/// A statement of the family on the common tree, from the T-SQL tree's record its rule read it into: the record is
+		/// what the conversion reads, and no statement of any tree.
+		/// </summary>
+		internal static Ast.Statement Converted(Statement old)
+		{
+			return old switch
+			{
 				Statement.Return(var value)  => new Ast.Statement.Return { Value = value is null ? null : Values.Of(value) },
 				Statement.Compound compound  => Compound(compound),
 				Statement.If(var condition, var then, var other) =>
@@ -62,11 +77,147 @@ static partial class Bridge
 				Statement.CursorAction acted => Cursor(acted),
 				Statement.Fetch fetch        => Fetch(fetch),
 				Statement.SetStatement set   => Set(set),
-				_ when Owned(Owns, old)      => throw Unconverted(old),
-				_                            => null,
+				Statement.Checkpoint(var duration) => new Ast.Statement.Checkpoint(duration is null ? null : Values.Of(duration)),
+				_ => throw new ArgumentException($"The procedural family builds no {NameOf(old)}.", nameof(old)),
 			};
+		}
 
-			return made is not null;
+		/// <summary>A statement of the family, on the common tree, from the record its rule read it into.</summary>
+		internal static Statement Built(Statement read)
+		{
+			return Carry(read, Converted);
+		}
+
+		/// <summary>The same, of a statement whose conversion reads the text it was written in, where the rule says.</summary>
+		internal static Statement Built(Statement read, SqlSpan at)
+		{
+			return Carry(read, at, Converted);
+		}
+
+		/// <summary>BEGIN TRY … END TRY BEGIN CATCH … END CATCH, on the common tree.</summary>
+		internal static Statement TryCatch(SqlList<Statement> tried, SqlList<Statement> caught)
+		{
+			return Built(new Statement.TryCatch(tried, caught));
+		}
+
+		/// <summary>A block, BEGIN … END, or a natively compiled module's atomic one, on the common tree.</summary>
+		internal static Statement Compound(SqlList<Statement> statements, SqlList<Clause>? atomic = null)
+		{
+			return Built(new Statement.Compound(statements, atomic));
+		}
+
+		/// <summary>IF and its branches, on the common tree.</summary>
+		internal static Statement If(Expression condition, Statement then, Statement? other)
+		{
+			return Built(new Statement.If(condition, then, other));
+		}
+
+		/// <summary>WHILE and its body, on the common tree.</summary>
+		internal static Statement While(Expression condition, Statement body)
+		{
+			return Built(new Statement.While(condition, body));
+		}
+
+		/// <summary>BEGIN, COMMIT, ROLLBACK and SAVE of a transaction, on the common tree.</summary>
+		internal static Statement Transaction(string kind, string? name, string? word = null, string? tail = null)
+		{
+			return Built(new Statement.Transaction(kind, name, word, tail));
+		}
+
+		/// <summary>DECLARE of a cursor, on the common tree.</summary>
+		internal static Statement DeclareCursor(string name, Clause.CursorDefinition cursor)
+		{
+			return Built(new Statement.DeclareCursor(name, cursor));
+		}
+
+		/// <summary>DECLARE of variables, on the common tree.</summary>
+		internal static Statement Declare(SqlList<Clause> variables)
+		{
+			return Built(new Statement.Declare(variables));
+		}
+
+		/// <summary>FETCH, on the common tree.</summary>
+		internal static Statement Fetch(string? orientation, Expression? offset, bool from, Expression cursor, bool global, SqlList<Expression>? into)
+		{
+			return Built(new Statement.Fetch(orientation, offset, from, cursor, global, into));
+		}
+
+		/// <summary>SET of a cursor variable, on the common tree.</summary>
+		internal static Statement SetCursor(string name, Clause.CursorDefinition cursor)
+		{
+			return Built(new Statement.SetCursor(name, cursor));
+		}
+
+		/// <summary>SET of a variable, on the common tree.</summary>
+		internal static Statement SetVariable(string name, Expression value, string? @operator = null, string? through = null)
+		{
+			return Built(new Statement.SetVariable(name, value, @operator, through));
+		}
+
+		/// <summary>SET of the session's options, where the rule says it was written, on the common tree.</summary>
+		internal static Statement SetStatement(SqlList<SetExpression> items, SqlSpan at)
+		{
+			return Built(new Statement.SetStatement(items), at);
+		}
+
+		/// <summary>REVERT, on the common tree.</summary>
+		internal static Statement Revert(Expression? cookie = null)
+		{
+			return Built(new Statement.Revert(cookie));
+		}
+
+		/// <summary>SETUSER, on the common tree.</summary>
+		internal static Statement SetUser(Expression? name = null, bool noReset = false)
+		{
+			return Built(new Statement.SetUser(name, noReset));
+		}
+
+		/// <summary>A label, on the common tree.</summary>
+		internal static Statement Label(string name)
+		{
+			return Built(new Statement.Label(name));
+		}
+
+		/// <summary>LINENO, on the common tree.</summary>
+		internal static Statement LineNumber(Expression line)
+		{
+			return Built(new Statement.LineNumber(line));
+		}
+
+		/// <summary>RAISERROR, where the rule says it was written, on the common tree.</summary>
+		internal static Statement RaiseError(SqlList<Expression> arguments, string? tail, SqlSpan at)
+		{
+			return Built(new Statement.RaiseError(arguments, tail), at);
+		}
+
+		/// <summary>WAITFOR DELAY and TIME, on the common tree.</summary>
+		internal static Statement WaitFor(Expression value, string kind)
+		{
+			return Built(new Statement.WaitFor(value, kind));
+		}
+
+		/// <summary>One of the statements that are a word and a value, on the common tree (<c>Statement.Commanded</c>).</summary>
+		internal static Statement Commanded(string word, Expression? value)
+		{
+			return Built(Statement.Commanded(word, value));
+		}
+
+		/// <summary>The same, where the values arrived as a list that may not be there.</summary>
+		internal static Statement Commanded(string word, SqlList<Expression>? values)
+		{
+			return Built(Statement.Commanded(word, values));
+		}
+
+		/// <summary>A cursor opened, closed or deallocated, on the common tree.</summary>
+		internal static Statement Cursor(Statement.CursorAction cursor, string verb)
+		{
+			return Built(cursor with { Verb = verb });
+		}
+
+		/// <summary>EXECUTE AS, on the common tree: whom, and what follows it.</summary>
+		internal static Statement ExecuteAs(Statement.ExecuteAs who, Statement.ExecuteAs? with, SqlSpan at)
+		{
+			return Built(with is null ? who : who with { NoRevert = with.NoRevert, Cookie = with.Cookie }, at);
 		}
 
 		/// <summary>

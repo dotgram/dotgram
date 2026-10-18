@@ -2130,7 +2130,7 @@ SearchTop : @Expression = ',' & ?=((Lexical.Digits | TSql.Variable) & ')') & v: 
 // A statement and as many `;` after it as a text of statements takes, the engine reading the
 // empty ones: a statement cut out of a text may carry them, `… AS staging_data;\n;`.
 TSqlStatement : @Statement
-	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'* => @(Syntax.Preceded(SqlList.OwnOrNull(with), s))
+	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'* => @(Bridge.Dml.Preceded(SqlList.OwnOrNull(with), s, new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| c: BareCall & ';'*                                         => @(c)
 
 StatementBody : @Statement
@@ -2411,7 +2411,7 @@ DefinitionStatement : @Statement
 	= s: DeclareStatement     => @(s)
 	| s: SetStatement         => @(s)
 	| s: SessionStatement     => @(s)
-	| e: ExecuteStatement     => @(e)
+	| e: ExecuteStatement     => @(Bridge.Routines.Execute(e, new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| s: BulkInsertStatement  => @(s)
 	| s: CreateTableStatement => @(s)
 	| s: AlterTableStatement  => @(s)
@@ -2465,7 +2465,7 @@ FirstPiece : @Statement
 
 SqlPiece : @Statement
 	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & (';'+ | ?!"WITH"i & ?!Unseparated)
-		=> @(Syntax.Preceded(SqlList.OwnOrNull(with), s))
+		=> @(Bridge.Dml.Preceded(SqlList.OwnOrNull(with), s, new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
 // A statement not ended by `;` is not followed by one whose first word is not reserved: the
 // engine reads the word as a continuation of the statement before it and answers `Msg 102`.
@@ -2484,10 +2484,10 @@ StatementList : @Statement[] = ';'* & { s: SqlPiece+ } => @(s)
 TryCatchStatement : @Statement
 	= "BEGIN"i & "TRY"i & tried: StatementList & "END"i & "TRY"i
 	  & "BEGIN"i & "CATCH"i & caught: StatementList? & "END"i & "CATCH"i
-		=> @(new Statement.TryCatch(SqlList.Own(tried), SqlList.Own(caught)))
+		=> @(Bridge.Procedural.TryCatch(SqlList.Own(tried), SqlList.Own(caught)))
 
 StatementBlock : @Statement
-	= "BEGIN"i & body: StatementList & "END"i => @(new Statement.Compound(SqlList.Own(body)))
+	= "BEGIN"i & body: StatementList & "END"i => @(Bridge.Procedural.Compound(SqlList.Own(body)))
 
 // A natively compiled module's body, which is one atomic block and nothing after it: `… AS BEGIN
 // ATOMIC WITH (…) SELECT 1; END; SELECT 2` is `Msg 156`. There is one nowhere else — in a batch,
@@ -2499,7 +2499,7 @@ StatementBlock : @Statement
 // refuse it and left every statement read where its reading is thrown away.
 AtomicBody : @Statement[]
 	= "BEGIN"i & "ATOMIC"i & "WITH"i & atomic: AtomicOptions & body: StatementList & "END"i & { ';'* } & ?=eof
-		=> @(new Statement[] { new Statement.Compound(SqlList.Own(body), SqlList.OwnOrNull(atomic)) })
+		=> @(new Statement[] { Bridge.Procedural.Compound(SqlList.Own(body), SqlList.OwnOrNull(atomic)) })
 
 // ── A natively compiled block's options ─────────────────────────────────────
 //
@@ -2548,35 +2548,35 @@ AtomicConstant
 // next statement's, which the engine reads.
 ConditionalStatement : @Statement
 	= "IF"i & c: SearchCondition & then: Branch & other: ElseBranch?
-		=> @(new Statement.If(c, then, other))
+		=> @(Bridge.Procedural.If(c, then, other))
 
 ElseBranch : @Statement = ';'? & "ELSE"i & s: Branch => @(s)
 
 LoopStatement : @Statement
-	= "WHILE"i & c: SearchCondition & body: Branch => @(new Statement.While(c, body))
+	= "WHILE"i & c: SearchCondition & body: Branch => @(Bridge.Procedural.While(c, body))
 
 Branch : @Statement
-	= (with: WithClause & ?!"WITH"i)? & s: StatementBody => @(Syntax.Preceded(SqlList.OwnOrNull(with), s))
+	= (with: WithClause & ?!"WITH"i)? & s: StatementBody => @(Bridge.Dml.Preceded(SqlList.OwnOrNull(with), s, new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
 // ── Transactions ────────────────────────────────────────────────────────────
 TransactionStatement : @Statement
 	= "BEGIN"i & "DISTRIBUTED"i & word: TranWord & name: TranName? & mark: TranMark?
-		=> @(new Statement.Transaction("BEGIN DISTRIBUTED", name, word, Syntax.Tail(mark)))
+		=> @(Bridge.Procedural.Transaction("BEGIN DISTRIBUTED", name, word, Syntax.Tail(mark)))
 	| "BEGIN"i & word: TranWord & name: TranName? & mark: TranMark?
-		=> @(new Statement.Transaction("BEGIN", name, word, Syntax.Tail(mark)))
+		=> @(Bridge.Procedural.Transaction("BEGIN", name, word, Syntax.Tail(mark)))
 
 	// `WORK` ends a transaction and begins none, and a transaction it ends has no name: `BEGIN
 	// WORK`, `SAVE WORK` and `COMMIT WORK t1` are `Msg 102`.
 	| "COMMIT"i & word: WorkWord & how: TranDelayed?
-		=> @(new Statement.Transaction("COMMIT", null, word, Syntax.Tail(how)))
+		=> @(Bridge.Procedural.Transaction("COMMIT", null, word, Syntax.Tail(how)))
 	| "COMMIT"i & word: TranWord? & name: TranName? & how: TranDelayed?
-		=> @(new Statement.Transaction("COMMIT", name, word, Syntax.Tail(how)))
+		=> @(Bridge.Procedural.Transaction("COMMIT", name, word, Syntax.Tail(how)))
 	| "ROLLBACK"i & word: WorkWord
-		=> @(new Statement.Transaction("ROLLBACK", null, word))
+		=> @(Bridge.Procedural.Transaction("ROLLBACK", null, word))
 	| "ROLLBACK"i & word: TranWord? & name: TranName?
-		=> @(new Statement.Transaction("ROLLBACK", name, word))
+		=> @(Bridge.Procedural.Transaction("ROLLBACK", name, word))
 	| "SAVE"i & word: TranWord & name: TranName
-		=> @(new Statement.Transaction("SAVE", name, word))
+		=> @(Bridge.Procedural.Transaction("SAVE", name, word))
 
 TranWord : @string = t: ("TRANSACTION"i | "TRAN"i) => @(Syntax.Squared(t))
 WorkWord : @string = t: "WORK"i => @(Syntax.Squared(t))
@@ -2598,9 +2598,9 @@ TranName : @string
 
 // ── Declarations ────────────────────────────────────────────────────────────
 DeclareStatement : @Statement
-	= "DECLARE"i & name: TSqlIdentifier & d: CursorDefinition => @(new Statement.DeclareCursor(name, d))
+	= "DECLARE"i & name: TSqlIdentifier & d: CursorDefinition => @(Bridge.Procedural.DeclareCursor(name, d))
 	| "DECLARE"i & first: Declaration & (',' & rest: Declaration)*
-		=> @(new Statement.Declare(SqlList.Own(Syntax.Listed(first, rest))))
+		=> @(Bridge.Procedural.Declare(SqlList.Own(Syntax.Listed(first, rest))))
 
 Declaration : @Clause
 	= name: TSql.Variable & said: "AS"i? & d: DeclaredAs
@@ -2640,15 +2640,15 @@ DeclaredAs : @Clause.VariableDeclaration
 TextStatement : @Statement
 	= "READTEXT"i & column: TextColumn & pointer: TextPointer & offset: TextAmount & size: TextAmount
 	  & hold: "HOLDLOCK"i?
-		=> @(new Statement.ReadText(column, pointer, offset, size, hold is not null))
+		=> @(Bridge.Dml.ReadText(column, pointer, offset, size, hold is not null))
 	| "WRITETEXT"i & bulk: "BULK"i? & column: TextColumn & pointer: TextPointer & stamp: TextStamp?
 	  & log: TextLog? & data: TextData?
-		=> @(new Statement.WriteText(column, pointer, data, bulk is not null, log is not null, stamp))
+		=> @(Bridge.Dml.WriteText(column, pointer, data, bulk is not null, log is not null, stamp))
 	| "UPDATETEXT"i & bulk: "BULK"i? & column: TextColumn & pointer: TextPointer & stamp: TextStamp?
 	  & offset: TextPlace & length: TextPlace & log: TextLog? & (source: TextColumn & from: TextPointer | data: TextData)?
-		=> @(new Statement.UpdateText(column, pointer, offset, length, data, source, from, bulk is not null, log is not null, stamp))
+		=> @(Bridge.Dml.UpdateText(column, pointer, offset, length, data, source, from, bulk is not null, log is not null, stamp))
 	| "RECONFIGURE"i & o: ("WITH"i & "OVERRIDE"i)?
-		=> @(new Statement.Reconfigure(o is not null))
+		=> @(Bridge.Server.Reconfigure(o is not null))
 
 TextColumn : @string = t: TSqlQualifiedName => @(t)
 
@@ -2826,19 +2826,19 @@ SignatureProof = "WITH"i & ("PASSWORD"i & '=' & Quoted | "SIGNATURE"i & '=' & TS
 // three, with strings for the labels and the types and a word for the rank, each once.
 MaintenanceStatement : @Statement
 	= "TRUNCATE"i & "TABLE"i & name: TSqlQualifiedName & p: TruncatePartitions?
-		=> @(new Statement.Truncate(name, SqlList.OwnOrNull(p)))
+		=> @(Bridge.Dml.Truncate(name, SqlList.OwnOrNull(p)))
 	| verb: ("ENABLE"i | "DISABLE"i) & "TRIGGER"i & triggers: TriggerNames & "ON"i & on: TriggerScope
-		=> @(new Statement.TriggerSwitch(Syntax.Squared(verb) == "ENABLE", SqlList.OwnOrNull(triggers.Length == 0 ? null : triggers), on))
+		=> @(Bridge.Routines.Switch(Syntax.Squared(verb) == "ENABLE", SqlList.OwnOrNull(triggers.Length == 0 ? null : triggers), on))
 	| "KILL"i & "QUERY"i & "NOTIFICATION"i & "SUBSCRIPTION"i & t: KillSubscription
-		=> @(new Statement.Kill("QUERY NOTIFICATION SUBSCRIPTION", t))
+		=> @(Bridge.Server.Kill("QUERY NOTIFICATION SUBSCRIPTION", t))
 	| "KILL"i & "STATS"i & "JOB"i & t: KillNumber
-		=> @(new Statement.Kill("STATS JOB", t))
+		=> @(Bridge.Server.Kill("STATS JOB", t))
 	| "KILL"i & t: KillSession & with: KillWith?
-		=> @(new Statement.Kill("", t, with))
+		=> @(Bridge.Server.Kill("", t, with))
 	| "ADD"i & "SENSITIVITY"i & "CLASSIFICATION"i & "TO"i & first: ClassifiedColumn & (',' & rest: ClassifiedColumn)*
 	  & "WITH"i & '(' & option: ClassificationOption & (',' & options: ClassificationOption)* & ')'
 	  & when @(Syntax.NamedOnce(option, options))
-		=> @(new Statement.Classification(true, SqlList.Own(Syntax.Named(first, rest)), SqlList.Own(Syntax.Listed(option, options))))
+		=> @(Bridge.Security.Classification(SqlList.Own(Syntax.Named(first, rest)), SqlList.Own(Syntax.Listed(option, options)), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
 TruncatePartitions : @Clause[]
 	= "WITH"i & '(' & "PARTITIONS"i & '(' & first: PartitionSpan & (',' & rest: PartitionSpan)* & ')' & ')'
@@ -3509,15 +3509,15 @@ CursorColumn  : @string   = t: TSqlQualifiedName => @(t)
 // any but the server's own, which the engine refuses in all three places: `@@x` is read,
 // `@@ROWCOUNT` is not.
 CursorStatement : @Statement
-	= "OPEN"i & ?!KeyWord & c: CursorName  => @(c with { Verb = "OPEN" })
-	| "CLOSE"i & ?!KeyWord & c: CursorName => @(c with { Verb = "CLOSE" })
-	| "DEALLOCATE"i & c: CursorName => @(c with { Verb = "DEALLOCATE" })
+	= "OPEN"i & ?!KeyWord & c: CursorName  => @(Bridge.Procedural.Cursor(c, "OPEN"))
+	| "CLOSE"i & ?!KeyWord & c: CursorName => @(Bridge.Procedural.Cursor(c, "CLOSE"))
+	| "DEALLOCATE"i & c: CursorName => @(Bridge.Procedural.Cursor(c, "DEALLOCATE"))
 	| "FETCH"i & t: ("NEXT"i | "PRIOR"i | "FIRST"i | "LAST"i) & "FROM"i & c: CursorName & into: FetchInto?
-		=> @(new Statement.Fetch(Syntax.Squared(t), null, true, c.Cursor, c.Global, SqlList.OwnOrNull(into)))
+		=> @(Bridge.Procedural.Fetch(Syntax.Squared(t), null, true, c.Cursor, c.Global, SqlList.OwnOrNull(into)))
 	| "FETCH"i & t: ("ABSOLUTE"i | "RELATIVE"i) & n: FetchRow & "FROM"i & c: CursorName & into: FetchInto?
-		=> @(new Statement.Fetch(Syntax.Squared(t), n, true, c.Cursor, c.Global, SqlList.OwnOrNull(into)))
+		=> @(Bridge.Procedural.Fetch(Syntax.Squared(t), n, true, c.Cursor, c.Global, SqlList.OwnOrNull(into)))
 	| "FETCH"i & from: "FROM"i? & c: CursorName & into: FetchInto?
-		=> @(new Statement.Fetch(null, null, from is not null, c.Cursor, c.Global, SqlList.OwnOrNull(into)))
+		=> @(Bridge.Procedural.Fetch(null, null, from is not null, c.Cursor, c.Global, SqlList.OwnOrNull(into)))
 
 // After `OPEN` and `CLOSE` these three begin a key's statement and not a cursor's name: `OPEN
 // master` is refused, `OPEN [master]`, `OPEN GLOBAL master` and `DEALLOCATE master` are read.
@@ -3561,13 +3561,13 @@ GeneratedWhen = "START"i | "END"i
 // statements puts it in. Put to the engine some hundred times with its variables declared:
 // every setting takes values of its own kind, and none an expression.
 SetStatement : @Statement
-	= "SET"i & name: TSql.Variable & '=' & d: CursorInPlace => @(new Statement.SetCursor(name, d))
+	= "SET"i & name: TSql.Variable & '=' & d: CursorInPlace => @(Bridge.Procedural.SetCursor(name, d))
 	| "SET"i & name: TSql.Variable & ('.' & members: MemberName)+ & tail: MemberTail
 	  & when @(tail is not { Operator: "" } || members is { Length: 1 })
-		=> @(new Statement.SetVariable(Syntax.Member(name, members), tail.Value, tail.Operator))
+		=> @(Bridge.Procedural.SetVariable(Syntax.Member(name, members), tail.Value, tail.Operator))
 	| "SET"i & name: TSql.Variable & s: AssignTail
-		=> @(new Statement.SetVariable(name, s.Value, s.Operator, s.Through))
-	| "SET"i & items: SetExpressions => @(new Statement.SetStatement(SqlList.Own(items)))
+		=> @(Bridge.Procedural.SetVariable(name, s.Value, s.Operator, s.Through))
+	| "SET"i & items: SetExpressions => @(Bridge.Procedural.SetStatement(SqlList.Own(items), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
 // A variable's property is assigned, and its method called, the way a column's are in an
 // `UPDATE`: `SET @g.STSrid = 4267`, `SET @x.modify('delete /a')`. A property may be a property's,
@@ -3688,10 +3688,10 @@ IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE
 // engine refuses too.
 SessionStatement : @Statement
 	= ExecWord & "AS"i & who: SessionWho & w: SessionWith?
-		=> @(w is null ? who : who with { NoRevert = w.NoRevert, Cookie = w.Cookie })
-	| "REVERT"i & k: RevertCookie? => @(new Statement.Revert(k))
-	| "SETUSER"i & n: SessionUser & r: SessionNoReset? => @(new Statement.SetUser(n, r is not null))
-	| "SETUSER"i => @(new Statement.SetUser())
+		=> @(Bridge.Procedural.ExecuteAs(who, w, new SqlSpan(parserSpan.Start, parserSpan.Length)))
+	| "REVERT"i & k: RevertCookie? => @(Bridge.Procedural.Revert(k))
+	| "SETUSER"i & n: SessionUser & r: SessionNoReset? => @(Bridge.Procedural.SetUser(n, r is not null))
+	| "SETUSER"i => @(Bridge.Procedural.SetUser())
 
 SessionWho : @Statement.ExecuteAs
 	= "CALLER"i => @(new Statement.ExecuteAs("CALLER", null))
@@ -3736,9 +3736,9 @@ ExecuteBody : @Statement.Execute
 // here, a client having cut the script at them (SqlScript).
 // A procedure called bare is named and not held in a variable: `@p 1, 2` and `@p` alone are
 // `Msg 102`, where `EXEC @p` reads.
-BareCall : @Statement.Execute
+BareCall : @Statement
 	= ?!TSql.Variable & into: ExecReturn? & target: ExecTarget & args: ExecArguments? & with: ExecWith?
-		=> @(target with { Into = into, Arguments = SqlList.Own(args), Tail = Syntax.Tail(with), Bare = true })
+		=> @(Bridge.Routines.Execute(target with { Into = into, Arguments = SqlList.Own(args), Tail = Syntax.Tail(with), Bare = true }, new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
 ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: TSql.Variable & '=' => @(t)
@@ -3936,28 +3936,28 @@ BulkFormat : @Expression
 
 // ── A word and some values ──────────────────────────────────────────────────
 SimpleCommand : @Statement
-	= "PRINT"i & v: TSqlValueExpression      => @(Statement.Commanded("PRINT", v))
-	| "RETURN"i & (?!Label & v: TSqlValueExpression)? => @(Statement.Commanded("RETURN", v))
-	| "THROW"i & (?!Label & args: ThrowArguments)? => @(Statement.Commanded("THROW", SqlList.OwnOrNull(args)))
-	| "GOTO"i & name: TSqlIdentifier         => @(Statement.Commanded("GOTO", new Expression.ColumnReference(name)))
-	| name: TSqlIdentifier & ':' & ?!':'     => @(new Statement.Label(name))
-	| "BREAK"i                           => @(Statement.Commanded("BREAK", (Expression?)null))
-	| "CONTINUE"i                        => @(Statement.Commanded("CONTINUE", (Expression?)null))
-	| "CHECKPOINT"i & (?!Label & v: TSqlValueExpression)? => @(Statement.Commanded("CHECKPOINT", v))
+	= "PRINT"i & v: TSqlValueExpression      => @(Bridge.Procedural.Commanded("PRINT", v))
+	| "RETURN"i & (?!Label & v: TSqlValueExpression)? => @(Bridge.Procedural.Commanded("RETURN", v))
+	| "THROW"i & (?!Label & args: ThrowArguments)? => @(Bridge.Procedural.Commanded("THROW", SqlList.OwnOrNull(args)))
+	| "GOTO"i & name: TSqlIdentifier         => @(Bridge.Procedural.Commanded("GOTO", new Expression.ColumnReference(name)))
+	| name: TSqlIdentifier & ':' & ?!':'     => @(Bridge.Procedural.Label(name))
+	| "BREAK"i                           => @(Bridge.Procedural.Commanded("BREAK", (Expression?)null))
+	| "CONTINUE"i                        => @(Bridge.Procedural.Commanded("CONTINUE", (Expression?)null))
+	| "CHECKPOINT"i & (?!Label & v: TSqlValueExpression)? => @(Bridge.Procedural.Commanded("CHECKPOINT", v))
 	// `SHUTDOWN` and `SHUTDOWN WITH NOWAIT`, and nothing else after the word: `WITH X` is
 	// `Msg 102`, `NOWAIT` alone 1018, the option twice 102. `LINENO n`: a whole number and
 	// only that — a variable, `-1`, `1 + 1`, `'a'`, `1.5` and nothing are each `Msg 102`.
-	| "SHUTDOWN"i & w: ("WITH"i & "NOWAIT"i)? => @(new Statement.Shutdown(w is not null))
-	| "LINENO"i & n: Lexical.Digits => @(new Statement.LineNumber(new Expression.Literal(SqlLiteralKind.Number, n)))
-	| "USE"i & name: TSqlIdentifier          => @(Statement.Commanded("USE", new Expression.ColumnReference(name)))
+	| "SHUTDOWN"i & w: ("WITH"i & "NOWAIT"i)? => @(Bridge.Server.Shutdown(w is not null))
+	| "LINENO"i & n: Lexical.Digits => @(Bridge.Procedural.LineNumber(new Expression.Literal(SqlLiteralKind.Number, n)))
+	| "USE"i & name: TSqlIdentifier          => @(Bridge.Procedural.Commanded("USE", new Expression.ColumnReference(name)))
 	| "RAISERROR"i & '(' & args: Arguments & ')' & how: RaiseWith?
-		=> @(new Statement.RaiseError(SqlList.Own(args), Syntax.Tail(how)))
+		=> @(Bridge.Procedural.RaiseError(SqlList.Own(args), Syntax.Tail(how), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| "WAITFOR"i & '(' & waited: WaitedFor & ')' & (',' & "TIMEOUT"i & timeout: WaitTimeout)?
-		=> @(new Statement.WaitForStatement(waited, timeout))
+		=> @(Bridge.Broker.Wait(waited, timeout))
 	| "WAITFOR"i & t: Lexical.TimeLiteral
-		=> @(new Statement.WaitFor(new Expression.Literal(SqlLiteralKind.Text, t.Substring(t.IndexOf('\''))), "TIME"))
+		=> @(Bridge.Procedural.WaitFor(new Expression.Literal(SqlLiteralKind.Text, t.Substring(t.IndexOf('\''))), "TIME"))
 	| "WAITFOR"i & kind: WaitKind & v: WaitValue
-		=> @(new Statement.WaitFor(v, Syntax.Squared(kind)))
+		=> @(Bridge.Procedural.WaitFor(v, Syntax.Squared(kind)))
 
 // Three values or none, and no other number of them: `THROW 1`, `THROW 1, 'a'` and a fourth value
 // are `Msg 102`.

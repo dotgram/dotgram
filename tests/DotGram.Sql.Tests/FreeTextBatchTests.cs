@@ -25,10 +25,7 @@ public sealed class FreeTextBatchTests
 	/// the bridge carries it, the writer prints it its own way, and the oracle counts the statement converted, by case.
 	/// </summary>
 	[Theory]
-	[InlineData("DECLARE @a int",                                          "Clause.VariableDeclaration.Type")]
-	[InlineData("SET STATISTICS io ON",                                    "SetExpression.Statistics.Report.Kind")]
-	[InlineData("RAISERROR ('x', 1, 1) with nowait",                       "Statement.RaiseError.Tail")]
-	[InlineData("EXEC p with recompile",                                   "Statement.Execute.Tail")]
+	[InlineData("SELECT DATEADD(wk, 1, d)",                                Trees.DatePartWord)]
 	public void A_text_of_the_batch_converts_by_case(string text, string member)
 	{
 		var outcome = BridgeOracle.Run(Old(text), text);
@@ -42,6 +39,10 @@ public sealed class FreeTextBatchTests
 	/// capitals, and the statement converts with nothing aside.
 	/// </summary>
 	[Theory]
+	[InlineData("DECLARE @a int")]
+	[InlineData("SET STATISTICS io ON")]
+	[InlineData("RAISERROR ('x', 1, 1) with nowait")]
+	[InlineData("EXEC p with recompile")]
 	[InlineData("CREATE PROCEDURE p @a int AS SELECT 1")]
 	[InlineData("CREATE FUNCTION f () RETURNS int AS BEGIN RETURN 1 END")]
 	[InlineData("DROP SYMMETRIC KEY k remove provider key")]

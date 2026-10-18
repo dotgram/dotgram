@@ -128,6 +128,26 @@ static partial class Bridge
 		}
 	}
 
+	/// <summary>
+	/// A statement its rule read into the T-SQL tree's record, built on the common tree by the conversion that reads that
+	/// record: the record is what the conversion reads, and no statement of any tree.
+	/// </summary>
+	static Statement Carry<T>(T read, Func<T, Ast.Statement> build) where T : Statement
+	{
+		return Hold(new Read<Statement>(NameOf(read), read), () => build(read));
+	}
+
+	/// <summary>
+	/// The same, of a statement whose conversion reads the text it was written in: the record is told where, the rule's
+	/// own extent.
+	/// </summary>
+	static Statement Carry<T>(T read, SqlSpan at, Func<T, Ast.Statement> build) where T : Statement
+	{
+		read.Locate(at.At, at.Length);
+
+		return Carry(read, build);
+	}
+
 	/// <summary>Whether the reading under way is skimmed: its statements hold what their rules were handed, and are not built.</summary>
 	[ThreadStatic] static bool skimming;
 

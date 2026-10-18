@@ -38,7 +38,6 @@ static partial class Bridge
 		{
 			made = old switch
 			{
-				Statement.Checkpoint(var duration) => new Ast.Statement.Checkpoint(duration is null ? null : Values.Of(duration)),
 				_ when Owned(Owns, old) => throw Unconverted(old),
 				_ => null,
 			};
