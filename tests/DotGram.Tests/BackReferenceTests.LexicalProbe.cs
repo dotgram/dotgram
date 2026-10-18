@@ -703,7 +703,7 @@ public sealed class LexicalBindingProbe
 			{
 				Begun = Other = Windowed = 0;
 
-				var told = Compare(grammar, "TryParseRoot", inputs, values: true, out var header, most: 6);
+				var told = Compare(grammar, "TryParseRoot", inputs, values: true, out var header, most: Environment.GetEnvironmentVariable("DOTGRAM_LEXRANDOM_ALL") is null ? 6 : int.MaxValue);
 
 				Count(how + " grammars");
 
