@@ -72,6 +72,8 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE TABLE t (c VECTOR(1, FLOAT16))", "a vector of float16")]
 	[InlineData("DECLARE @v VECTOR (3)", "a vector of three")]
 	[InlineData("DECLARE @v vector(max)", "a vector of MAX")]
+	[InlineData("CREATE TABLE t (c dbo.mytype (10, 20))", "a user's type with two numbers")]
+	[InlineData("CREATE TABLE t (c dbo.mytype)", "a user's type")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -159,6 +161,8 @@ public sealed class DdlRemainderBridgeTests
 			"a vector of float16" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Vector { Dimensions: 1, BaseType: Ast.VectorBaseType.Float16 } }] } },
 			"a vector of three" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { Type: Ast.DataType.Vector { Dimensions: 3, BaseType: null, Max: false } }] },
 			"a vector of MAX" => made is Ast.Statement.DeclareVariables { Variables: [Ast.VariableDeclaration.Typed { Type: Ast.DataType.Vector { Dimensions: null, Max: true } }] },
+			"a user's type with two numbers" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.UserDefined { Arguments.Count: 2, Max: false } }] } },
+			"a user's type" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.UserDefined { Arguments.Count: 0, Max: false } }] } },
 			_ => false,
 		};
 

@@ -778,7 +778,34 @@ public static partial class Sql2023Writer
 					if (transactSql && IsSystemTypeName(user.Name, out _))
 						throw Misplaced(user, "Name", "that is a system type of T-SQL, which reads back as that type");
 
+					// T-SQL: DottedTail, one or two whole numbers or MAX alone; the standard reads none.
+					if (user.Arguments.Count > 0 || user.Max)
+					{
+						if (!transactSql)
+							throw Misplaced(user, "Arguments or Max", "on a user-defined type, which the standard writes with none");
+
+						if (user.Max && user.Arguments.Count > 0)
+							throw Both(user, "Max", "Arguments");
+
+						if (user.Arguments.Count > 2 || user.Arguments.Any(static one => one is not LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger, Text: var digits } || !digits.All(char.IsDigit)))
+							throw Misplaced(user, "Arguments", "other than one or two whole numbers (DottedTail)");
+					}
+
 					PutName(user.Name);
+
+					if (user.Max)
+					{
+						Call();
+						Word("MAX");
+						Close();
+					}
+					else if (user.Arguments.Count > 0)
+					{
+						Call();
+						Each(user.Arguments, PutExpression);
+						Close();
+					}
+
 					break;
 
 				case DataType.Json json:

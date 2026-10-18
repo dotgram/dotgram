@@ -1176,7 +1176,7 @@ public abstract partial record DataType : ISqlNode
 	public record Reference(QualifiedName ReferencedType, QualifiedName? Scope = null) : DataType;
 	public record Array(DataType ElementType, int? MaximumCardinality = null, bool Trigraphs = false) : DataType;
 	public record Multiset(DataType ElementType) : DataType;
-	public record UserDefined(QualifiedName Name) : DataType;
+	public partial record UserDefined(QualifiedName Name) : DataType;
 	public record Json : DataType;
 	public record Domain(QualifiedName Name) : DataType;
 	public record Descriptor : DataType;

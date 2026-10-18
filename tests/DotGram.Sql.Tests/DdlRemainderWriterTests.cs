@@ -98,6 +98,7 @@ public sealed class DdlRemainderWriterTests
 			"DROP PERIOD" => new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.DropPeriod(PeriodKind.SystemTime, null, null)] },
 			"CREATE TABLE a DECIMAL (MAX)" => Table(Column(Max("DECIMAL"))),
 			"CAST AS VECTOR" => Cast(new DataType.Vector(3) { BaseType = VectorBaseType.Float16 }),
+			"CAST AS a user's type of MAX" => Cast(new DataType.UserDefined(new QualifiedName([Name("dbo"), Name("t")])) { Max = true }),
 			"CREATE MATERIALIZED VIEW" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("ROUND_ROBIN")), Set("FOR_APPEND")] },
 			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
@@ -169,6 +170,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("DROP PERIOD", "ALTER TABLE t DROP PERIOD FOR SYSTEM_TIME")]
 	[InlineData("CREATE TABLE a DECIMAL (MAX)", "CREATE TABLE t (c DECIMAL(MAX))")]
 	[InlineData("CAST AS VECTOR", "SELECT CAST(a AS VECTOR(3, FLOAT16))")]
+	[InlineData("CAST AS a user's type of MAX", "SELECT CAST(a AS dbo.t(MAX))")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -193,6 +195,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("DROP PERIOD")]
 	[InlineData("CREATE TABLE a DECIMAL (MAX)")]
 	[InlineData("CAST AS VECTOR")]
+	[InlineData("CAST AS a user's type of MAX")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);
@@ -203,11 +206,12 @@ public sealed class DdlRemainderWriterTests
 
 	/// <summary>The standard's DROP PERIOD demands a behavior, which T-SQL's leaves out.</summary>
 	[Fact]
-	public void The_standard_writer_refuses_a_period_dropped_with_no_behavior()
+	public void The_standard_writer_refuses_a_period_dropped_with_no_behavior_and_a_user_type_with_numbers()
 	{
 		var node = new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.DropPeriod(PeriodKind.SystemTime, null, null)] };
 
 		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(Cast(new DataType.UserDefined(Qualified("t")) { Arguments = [Number("1")] })));
 	}
 
 	[Theory]
@@ -262,6 +266,8 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("a vector of MAX and dimensions")]
 	[InlineData("a vector's base type without dimensions")]
 	[InlineData("a vector as a named type")]
+	[InlineData("a user's type of three numbers")]
+	[InlineData("a user's type of a signed number")]
 	[InlineData("ALTER COLUMN a collation after SPARSE")]
 	[InlineData("JSON a path with an escape")]
 	public void A_tree_with_no_text_is_refused(string which)
@@ -365,6 +371,9 @@ public sealed class DdlRemainderWriterTests
 			"a vector's base type without dimensions" => Cast(new DataType.Vector(null) { BaseType = VectorBaseType.Float32 }),
 			// TSqlDataType: VECTOR reads back as the vector type.
 			"a vector as a named type" => Cast(new DataType.Named(Qualified("VECTOR"), [Number("3")])),
+			// DottedTail: one or two whole numbers.
+			"a user's type of three numbers" => Cast(new DataType.UserDefined(Qualified("t")) { Arguments = [Number("1"), Number("2"), Number("3")] }),
+			"a user's type of a signed number" => Cast(new DataType.UserDefined(Qualified("t")) { Arguments = [Number("-1")] }),
 			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
 			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
 			// JsonIndexPath: a plain or national string.

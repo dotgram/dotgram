@@ -1118,9 +1118,15 @@ static partial class Bridge
 					? new Ast.DataType.Named(name, [.. arguments.Select(static one => Value(new Ast.LiteralValue.Numeric(one, Ast.NumericLiteralKind.DecimalInteger)))])
 					: throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a word in the brackets of a type)");
 
-			return arguments.Length == 0
-				? new Ast.DataType.UserDefined(name)
-				: throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a user-defined type with arguments)");
+			// A type of the user's with the numbers DottedTail reads after it, one or two, or MAX alone.
+			return arguments switch
+			{
+				[] => new Ast.DataType.UserDefined(name),
+				[var max] when max.Equals("MAX", StringComparison.OrdinalIgnoreCase) => new Ast.DataType.UserDefined(name) { Max = true },
+				{ Length: 1 or 2 } when arguments.All(static one => one.Length > 0 && one.All(char.IsDigit))
+					=> new Ast.DataType.UserDefined(name) { Arguments = [.. arguments.Select(static one => Value(new Ast.LiteralValue.Numeric(one, Ast.NumericLiteralKind.DecimalInteger)))] },
+				_ => throw BridgeGap.Open(owner, $"inventory DataType (`{text}`: a user-defined type with arguments)"),
+			};
 		}
 
 		/// <summary>A name part's text without its delimiters, a doubled closing one undoubled.</summary>
