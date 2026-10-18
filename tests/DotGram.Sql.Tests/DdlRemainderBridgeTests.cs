@@ -45,6 +45,8 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("alter database d1 modify filegroup fg1 readonly", "READONLY in lower case")]
 	[InlineData("CREATE JSON INDEX ix ON dbo.t (j) FOR ('$.a', N'$.b') WITH (MAXDOP = 2)", "a JSON index with paths")]
 	[InlineData("CREATE JSON INDEX ix ON dbo.t (j)", "a JSON index")]
+	[InlineData("CREATE SPATIAL INDEX i ON t (g) USING [GEOMETRY_GRID]", "a grid in brackets")]
+	[InlineData("CREATE SPATIAL INDEX i ON t (g) USING GEOMETRY_GRID", "a grid")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -105,6 +107,8 @@ public sealed class DdlRemainderBridgeTests
 			"paths changed" => made is Ast.Statement.AlterIndex { Name.Text: "sxi", Action: Ast.IndexAlteration.Paths { Actions: [Ast.PathAction.Add { Path.Name.Text: "p1" }, Ast.PathAction.Remove { Name.Text: "p2" }, Ast.PathAction.Alter { Path.Hints: [Ast.PathHint.XQuery] }] } },
 			"a JSON index with paths" => made is Ast.Statement.CreateJsonIndex { Column.Text: "j", Paths: [{ Kind: Ast.StringLiteralKind.Character }, { Kind: Ast.StringLiteralKind.National }], Options: [{ Name.Text: "MAXDOP" }] },
 			"a JSON index" => made is Ast.Statement.CreateJsonIndex { Paths.Count: 0, Options.Count: 0 },
+			"a grid in brackets" => made is Ast.Statement.CreateSpatialIndex { Using: Ast.SpatialTessellation.GeometryGrid, UsingBracketed: true },
+			"a grid" => made is Ast.Statement.CreateSpatialIndex { Using: Ast.SpatialTessellation.GeometryGrid, UsingBracketed: false },
 			_ => false,
 		};
 

@@ -461,6 +461,12 @@ public abstract partial record Statement
 		/// <summary>T-SQL: CREATE SPATIAL INDEX (Transact-SQL). The tessellation scheme, <c>USING …</c>.</summary>
 		public SpatialTessellation? Using { get; init; }
 
+		/// <summary>
+		/// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). <c>USING [GEOMETRY_GRID]</c>: the scheme's word written in brackets, as
+		/// the grammar reads any name there.
+		/// </summary>
+		[Spelling] public bool UsingBracketed { get; init; }
+
 		public SqlList<Option> Options { get; init; } = [];
 
 		/// <summary>T-SQL: CREATE SPATIAL INDEX (Transact-SQL). <c>ON</c> a filegroup.</summary>

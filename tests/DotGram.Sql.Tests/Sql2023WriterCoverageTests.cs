@@ -827,6 +827,9 @@ public sealed class Sql2023WriterCoverageTests
 			["IndexDefinition.OptionsUnbracketed"] = (
 				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])] }),
 				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])], OptionsUnbracketed = true })),
+			["CreateSpatialIndex.UsingBracketed"] = (
+				new Statement.CreateSpatialIndex(T, I, C) { Using = SpatialTessellation.GeographyGrid },
+				new Statement.CreateSpatialIndex(T, I, C) { Using = SpatialTessellation.GeographyGrid, UsingBracketed = true }),
 			["CreateFullTextIndex.FileGroupFirst"] = (
 				new Statement.CreateFullTextIndex(T, [], I) { Catalog = new Identifier("c"), FileGroup = new Identifier("fg") },
 				new Statement.CreateFullTextIndex(T, [], I) { Catalog = new Identifier("c"), FileGroup = new Identifier("fg"), FileGroupFirst = true }),

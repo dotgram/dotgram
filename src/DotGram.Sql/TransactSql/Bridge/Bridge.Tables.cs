@@ -1495,16 +1495,22 @@ static partial class Bridge
 					};
 
 				case "SPATIAL":
+					// The grid is any one name to the grammar: one of the four, bare or in brackets, carries over; any other
+					// word is the engine's to refuse, and a gap.
+					var grid      = old.Using is null ? null : SqlTokens.Of(old.Using) is [_, var scheme] ? scheme : default(SqlTokens.Token?);
+					var bracketed = grid is { Kind: SqlTokens.Kind.Delimited, Text: var written } && written.StartsWith('[');
+
 					return new Ast.Statement.CreateSpatialIndex(table, IndexName(index), Column(index))
 					{
-						Using = old.Using is null ? null : Words(old.Using) switch
+						Using = old.Using is null ? null : (bracketed ? Values.Unquoted(grid!.Value.Text) : grid?.Kind == SqlTokens.Kind.Word ? grid.Value.Text : "").ToUpperInvariant() switch
 						{
-							["USING", "GEOMETRY_GRID"]       => Ast.SpatialTessellation.GeometryGrid,
-							["USING", "GEOGRAPHY_GRID"]      => Ast.SpatialTessellation.GeographyGrid,
-							["USING", "GEOMETRY_AUTO_GRID"]  => Ast.SpatialTessellation.GeometryAutoGrid,
-							["USING", "GEOGRAPHY_AUTO_GRID"] => Ast.SpatialTessellation.GeographyAutoGrid,
-							_                                => throw BridgeGap.Open(old, $"inventory Statement.CreateIndex (a spatial index {old.Using})"),
+							"GEOMETRY_GRID"       => Ast.SpatialTessellation.GeometryGrid,
+							"GEOGRAPHY_GRID"      => Ast.SpatialTessellation.GeographyGrid,
+							"GEOMETRY_AUTO_GRID"  => Ast.SpatialTessellation.GeometryAutoGrid,
+							"GEOGRAPHY_AUTO_GRID" => Ast.SpatialTessellation.GeographyAutoGrid,
+							_                     => throw BridgeGap.Open(old, $"inventory Statement.CreateIndex (a spatial index {old.Using})"),
 						},
+						UsingBracketed = bracketed,
 						Options    = Each(index.Options ?? [], SpatialOption),
 						Placements = Each(index.Placements ?? [], Placement),
 					};
