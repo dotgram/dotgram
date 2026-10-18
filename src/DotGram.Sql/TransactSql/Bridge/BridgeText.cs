@@ -172,6 +172,9 @@ static class BridgeText
 		"Statement.RestoreRewindOnly.Tail",
 		"Statement.RestoreServiceMasterKey.Tail",
 		"Statement.RestoreVerifyOnly.Tail",
+		// A selective XML index's paths and namespaces, which ALTER INDEX keeps as written.
+		"Statement.AlterIndex.Paths",
+		"Statement.AlterIndex.Namespaces",
 	};
 
 	/// <summary>
@@ -257,6 +260,8 @@ static class BridgeText
 		// filegroups, and the three contexts, that the writer prints in capitals.
 		"ACCENT_SENSITIVITY", "AUTOGROW_ALL_FILES", "AUTOGROW_SINGLE_FILE", "CALLER", "COPY", "DISK", "LEFT", "MIRROR", "READONLY",
 		"READWRITE", "READ_ONLY", "READ_WRITE", "RIGHT", "SPLIT", "TAPE", "USED",
+		// A selective XML index's promoted paths.
+		"MAXLENGTH", "SINGLETON", "SQL", "XQUERY",
 	};
 
 	/// <summary>

@@ -1456,8 +1456,12 @@ static partial class Bridge
 					if (old.Using is null)
 						return xml;
 
-					// `USING XML INDEX p FOR PATH`; FOR a selective index's path in brackets is a gap.
+					// `USING XML INDEX p FOR PATH`, or FOR a selective index's path in brackets.
 					var tokens = SqlTokens.Of(old.Using);
+
+					if (Words(old.Using) is ["USING", "XML", "INDEX", _, "FOR", "(", _, ")"] && tokens[3].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited
+						&& tokens[6].Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited)
+						return xml with { Using = Values.Part(old, tokens[3].Text), ForPath = Values.Part(old, tokens[6].Text) };
 
 					if (Words(old.Using) is not ["USING", "XML", "INDEX", _, "FOR", var kind] || tokens[3].Kind is not (SqlTokens.Kind.Word or SqlTokens.Kind.Delimited))
 						throw BridgeGap.Open(old, "inventory Statement.CreateIndex (a secondary XML index FOR a selective index's path)");
@@ -1473,6 +1477,9 @@ static partial class Bridge
 							_          => throw BridgeGap.Open(old, $"inventory Statement.CreateIndex (FOR {kind})"),
 						},
 					};
+
+				case "SELECTIVE XML":
+					return SelectiveXmlIndex(old, table, index);
 
 				case "SPATIAL":
 					return new Ast.Statement.CreateSpatialIndex(table, IndexName(index), Column(index))
@@ -1507,15 +1514,143 @@ static partial class Bridge
 				: throw BridgeGap.Open(old, "inventory Statement.CreateIndex (an XML or spatial index over other than one column)");
 		}
 
-		/// <summary>ALTER INDEX: one index or ALL, and the action. A selective XML index's paths are a gap.</summary>
+		/// <summary>
+		/// CREATE SELECTIVE XML INDEX, whose namespaces and paths the old tree keeps as text after the column: each path
+		/// read as PromotedPath reads it. A path that adds, alters or removes, which only ALTER INDEX means, is a gap.
+		/// </summary>
+		static Ast.Statement SelectiveXmlIndex(Statement.CreateIndex old, Ast.QualifiedName table, Clause.ConstraintDefinition index)
+		{
+			var text    = old.Using ?? throw BridgeGap.Open(old, "inventory Statement.CreateIndex (a selective XML index with no paths)");
+			var tokens  = Located(text);
+			var at      = 0;
+			SqlList<Ast.XmlNamespace> namespaces = [];
+
+			if (Is(tokens, 0, "WITH") && Is(tokens, 1, "XMLNAMESPACES") && tokens.Count > 2 && tokens[2].Token.Text == "(")
+			{
+				var close = Closing(tokens, 2);
+
+				namespaces = Queries.XmlNamespaces(old, text[tokens[1].At..(tokens[close].At + 1)]);
+				at         = close + 1;
+			}
+
+			if (!Is(tokens, at, "FOR") || at + 1 >= tokens.Count || tokens[at + 1].Token.Text != "(" || Closing(tokens, at + 1) != tokens.Count - 1)
+				throw BridgeGap.Open(old, $"inventory Statement.CreateIndex (a selective XML index's paths `{text}`)");
+
+			var paths = Listed(text[(tokens[at + 1].At + 1)..tokens[^1].At]).Select(one => Promoted(old, one)).ToSqlList();
+
+			return new Ast.Statement.CreateSelectiveXmlIndex(table, IndexName(index), Column(index), paths)
+			{
+				XmlNamespaces = namespaces,
+				Options       = Each(index.Options ?? [], Option),
+			};
+		}
+
+		/// <summary>
+		/// One promoted path, as PromotedPath reads it: a name, an equals sign and the node path, or the node path alone, and
+		/// then what it is said to be, in the order written — <c>AS XQUERY ['type'] [MAXLENGTH (n)]</c>, <c>AS SQL type</c>,
+		/// <c>SINGLETON</c>. PathHint's <c>AS word</c>, which no page publishes, is a gap.
+		/// </summary>
+		static Ast.PromotedPath Promoted(object owner, string text)
+		{
+			var tokens = Located(text);
+			var named  = tokens.Count > 2 && tokens[0].Token.Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited && tokens[1].Token.Text == "=";
+			var at     = named ? 2 : 0;
+
+			if (at >= tokens.Count || tokens[at].Token is not { Kind: SqlTokens.Kind.String } path || path.Text[0] != '\'')
+				throw BridgeGap.Open(owner, $"inventory Statement.CreateIndex (a promoted path `{text.Trim()}`)");
+
+			var hints = new List<Ast.PathHint>();
+
+			at++;
+
+			while (at < tokens.Count)
+			{
+				if (Is(tokens, at, "SINGLETON"))
+				{
+					hints.Add(new Ast.PathHint.Singleton());
+					at++;
+				}
+				else if (Is(tokens, at, "AS") && Is(tokens, at + 1, "XQUERY"))
+				{
+					at += 2;
+
+					Ast.LiteralValue.String? type = null;
+					Ast.LiteralValue.Numeric? length = null;
+
+					if (at < tokens.Count && tokens[at].Token is { Kind: SqlTokens.Kind.String } typed && typed.Text[0] == '\'')
+					{
+						type = (Ast.LiteralValue.String)Values.String(typed.Text);
+						at++;
+					}
+
+					if (Is(tokens, at, "MAXLENGTH") && at + 3 < tokens.Count && tokens[at + 1].Token.Text == "(" && tokens[at + 2].Token.Kind == SqlTokens.Kind.Number && tokens[at + 3].Token.Text == ")")
+					{
+						length = (Ast.LiteralValue.Numeric)Values.Of(new Expression.Literal(SqlLiteralKind.Number, tokens[at + 2].Token.Text));
+						at    += 4;
+					}
+
+					hints.Add(new Ast.PathHint.XQuery(type, length));
+				}
+				else if (Is(tokens, at, "AS") && Is(tokens, at + 1, "SQL") && at + 2 < tokens.Count)
+				{
+					// The type runs to the next hint: an AS or a SINGLETON outside its brackets.
+					var end   = at + 2;
+					var depth = 0;
+
+					while (end < tokens.Count && !(depth == 0 && end > at + 2 && (Is(tokens, end, "AS") || Is(tokens, end, "SINGLETON"))))
+					{
+						depth += tokens[end].Token.Text == "(" ? 1 : tokens[end].Token.Text == ")" ? -1 : 0;
+						end++;
+					}
+
+					hints.Add(new Ast.PathHint.Sql(Values.Type(owner, text[tokens[at + 2].At..(end < tokens.Count ? tokens[end].At : text.Length)].Trim())));
+					at = end;
+				}
+				else
+					throw BridgeGap.Open(owner, $"inventory Statement.CreateIndex (a promoted path's hint `{text.Trim()}`)");
+			}
+
+			return new Ast.PromotedPath(named ? Values.Part(owner, tokens[0].Token.Text) : null, (Ast.LiteralValue.String)Values.String(path.Text))
+			{
+				Hints = [.. hints],
+			};
+		}
+
+		/// <summary>
+		/// ALTER INDEX … FOR (…): a selective index's paths added, altered or removed, each kept as text and read as
+		/// SelectivePath reads it. A path that does none of the three, which only CREATE means, is a gap.
+		/// </summary>
+		static Ast.IndexAlteration Paths(Statement.AlterIndex old)
+		{
+			var actions = Each(old.Paths ?? [], one =>
+			{
+				var tokens = Located(one);
+
+				if (Is(tokens, 0, "ADD"))
+					return (Ast.PathAction)new Ast.PathAction.Add(Promoted(old, one[tokens[1].At..]));
+
+				if (Is(tokens, 0, "ALTER") && Is(tokens, 1, "PATH") && tokens.Count > 2)
+					return new Ast.PathAction.Alter(Promoted(old, one[tokens[2].At..]));
+
+				if (Is(tokens, 0, "REMOVE") && tokens.Count == 2 && tokens[1].Token.Kind is SqlTokens.Kind.Word or SqlTokens.Kind.Delimited)
+					return new Ast.PathAction.Remove(Values.Part(old, tokens[1].Token.Text));
+
+				throw BridgeGap.Open(old, $"inventory Statement.AlterIndex (a selective index's path `{one.Trim()}` that is not added, altered or removed)");
+			});
+
+			return new Ast.IndexAlteration.Paths(actions)
+			{
+				XmlNamespaces = old.Namespaces is null ? [] : Queries.XmlNamespaces(old, old.Namespaces),
+				Options       = Each(old.Options ?? [], Option),
+			};
+		}
+
+		/// <summary>ALTER INDEX: one index or ALL, and the action, a selective XML index's paths among them.</summary>
 		static Ast.Statement AlterIndex(Statement.AlterIndex old)
 		{
-			if (old.Paths is not null || old.Namespaces is not null)
-				throw BridgeGap.Open(old, "inventory Statement.AlterIndex (a selective XML index's paths)");
-
 			var all = old.Name == "ALL";
 
-			return new Ast.Statement.AlterIndex(Values.Name(old, old.On), IndexAlteration(old, old.Action, old.Partition, old.Options))
+			return new Ast.Statement.AlterIndex(Values.Name(old, old.On), old.Paths is not null ? Paths(old) : IndexAlteration(old, old.Action, old.Partition, old.Options))
 			{
 				Name = all ? null : Values.Part(old, old.Name),
 				All  = all,

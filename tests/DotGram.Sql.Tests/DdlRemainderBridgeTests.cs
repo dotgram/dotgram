@@ -43,6 +43,12 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE TRIGGER tr ON dbo.t FOR CREATE_TABLE AS PRINT 1", "event names on a table")]
 	[InlineData("CREATE TRIGGER tr ON dbo.t FOR INSERT AS PRINT 1", "statements on a table")]
 	[InlineData("alter database d1 modify filegroup fg1 readonly", "READONLY in lower case")]
+	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
+	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
+	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
+	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' SINGLETON AS XQUERY 'xs:string')", "hints in another order")]
+	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) WITH XMLNAMESPACES ('urn:a' AS ns) FOR (p1 = '/ns:a' AS XQUERY)", "namespaces and a bare XQUERY")]
+	[InlineData("ALTER INDEX sxi ON t FOR (ADD p1 = '/a', REMOVE p2, ALTER PATH p3 = '/c' AS XQUERY 'node()')", "paths changed")]
 	[InlineData("SELECT * FROM OPENJSON (a + b, N'$')", "a sum, not a word and a value")]
 	[InlineData("SELECT * FROM OPENJSON (t.c)", "a qualified column, not a word and a value")]
 	[InlineData("SELECT * FROM CHANGETABLE (CHANGES t, 0) AS c", "a word and its value")]
@@ -89,6 +95,12 @@ public sealed class DdlRemainderBridgeTests
 			"a sum, not a word and a value" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.OpenJson { Json: Ast.Expression.Binary }] } },
 			"a qualified column, not a word and a value" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.OpenJson { Json: Ast.Expression.Reference { Name.Count: 2 } }] } },
 			"a word and its value" => made is Ast.Statement.Select { Query: Ast.Query.Select { From.Sources: [Ast.TableSource.ChangeTableChanges] } },
+			"a selective index's path called PATH" => made is Ast.Statement.CreateXmlIndex { Using.Text: "sxi", For: null, ForPath.Text: "PATH" },
+			"a secondary index FOR PATH" => made is Ast.Statement.CreateXmlIndex { Using.Text: "p", For: Ast.XmlIndexFor.Path, ForPath: null },
+			"promoted paths" => made is Ast.Statement.CreateSelectiveXmlIndex { Column.Text: "c", XmlNamespaces.Count: 0, Paths: [{ Name.Text: "p1", Path.Text: "'/a'", Hints: [Ast.PathHint.XQuery { Type.Text: "'xs:string'", MaxLength.Text: "5" }, Ast.PathHint.Singleton] }, { Name.Text: "p2", Hints: [Ast.PathHint.Sql { Type: Ast.DataType.Character }] }] },
+			"hints in another order" => made is Ast.Statement.CreateSelectiveXmlIndex { Paths: [{ Hints: [Ast.PathHint.Singleton, Ast.PathHint.XQuery] }] },
+			"namespaces and a bare XQUERY" => made is Ast.Statement.CreateSelectiveXmlIndex { XmlNamespaces: [{ Prefix.Text: "ns" }], Paths: [{ Hints: [Ast.PathHint.XQuery { Type: null, MaxLength: null }] }] },
+			"paths changed" => made is Ast.Statement.AlterIndex { Name.Text: "sxi", Action: Ast.IndexAlteration.Paths { Actions: [Ast.PathAction.Add { Path.Name.Text: "p1" }, Ast.PathAction.Remove { Name.Text: "p2" }, Ast.PathAction.Alter { Path.Hints: [Ast.PathHint.XQuery] }] } },
 			_ => false,
 		};
 

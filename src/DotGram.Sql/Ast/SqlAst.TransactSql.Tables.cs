@@ -419,6 +419,24 @@ public abstract partial record Statement
 		/// <summary>T-SQL: CREATE XML INDEX (Transact-SQL). Which secondary index it is, said after <see cref="Using"/>.</summary>
 		public XmlIndexFor? For { get; init; }
 
+		/// <summary>
+		/// T-SQL: CREATE XML INDEX (Selective XML Indexes). <c>USING XML INDEX sxi FOR (path1)</c>: the path of the
+		/// selective index a secondary one is built over, in place of <see cref="For"/>.
+		/// </summary>
+		public Identifier? ForPath { get; init; }
+
+		public SqlList<Option> Options { get; init; } = [];
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). <c>CREATE SELECTIVE XML INDEX i ON t (c) [WITH XMLNAMESPACES
+	/// (…)] FOR (path = 'node path' [AS …] …, …) [WITH (…)]</c>: the paths an XML column's index promotes.
+	/// </summary>
+	public sealed record CreateSelectiveXmlIndex(QualifiedName Table, Identifier Name, Identifier Column, SqlList<PromotedPath> Paths) : Statement
+	{
+		/// <summary>T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). <c>WITH XMLNAMESPACES ('uri' AS p, …)</c>.</summary>
+		public SqlList<XmlNamespace> XmlNamespaces { get; init; } = [];
+
 		public SqlList<Option> Options { get; init; } = [];
 	}
 
@@ -563,6 +581,70 @@ public abstract partial record Statement
 public enum XmlIndexFor { Value, Path, Property }
 
 /// <summary>
+/// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). One path a selective index promotes: <c>path1 = '/a/b'</c> and what
+/// it is said to be, in the order written. Unnamed where the grammar reads the node path alone.
+/// </summary>
+public sealed record PromotedPath(Identifier? Name, LiteralValue.String Path) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). What the path is said to be, each as written.</summary>
+	public SqlList<PathHint> Hints { get; init; } = [];
+}
+
+/// <summary>T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). What a promoted path is said to be.</summary>
+public abstract record PathHint : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>
+	/// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). <c>AS XQUERY ['xs:string'] [MAXLENGTH (n)]</c>: the XQuery type,
+	/// <c>'node()'</c> among them, and the length.
+	/// </summary>
+	public sealed record XQuery(LiteralValue.String? Type, LiteralValue.Numeric? MaxLength) : PathHint;
+
+	/// <summary>T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). <c>AS SQL type</c>.</summary>
+	public sealed record Sql(DataType Type) : PathHint;
+
+	/// <summary>T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). <c>SINGLETON</c>.</summary>
+	public sealed record Singleton : PathHint;
+}
+
+/// <summary>T-SQL: ALTER INDEX (Selective XML Indexes). One change to a selective index's paths.</summary>
+public abstract record PathAction : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	/// <summary>T-SQL: ALTER INDEX (Selective XML Indexes). <c>ADD path = 'node path' …</c>.</summary>
+	public sealed record Add(PromotedPath Path) : PathAction;
+
+	/// <summary>T-SQL: ALTER INDEX (Selective XML Indexes). <c>ALTER PATH path = 'node path' …</c>.</summary>
+	public sealed record Alter(PromotedPath Path) : PathAction;
+
+	/// <summary>T-SQL: ALTER INDEX (Selective XML Indexes). <c>REMOVE path</c>.</summary>
+	public sealed record Remove(Identifier Name) : PathAction;
+}
+
+/// <summary>
 /// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). <c>GEOMETRY_GRID</c>, <c>GEOGRAPHY_GRID</c>, <c>GEOMETRY_AUTO_GRID</c>,
 /// <c>GEOGRAPHY_AUTO_GRID</c>.
 /// </summary>
@@ -593,6 +675,18 @@ public abstract record IndexAlteration : ISqlNode
 
 	/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>SET (ALLOW_ROW_LOCKS = ON, …)</c>.</summary>
 	public sealed record SetOptions(SqlList<Option> Options) : IndexAlteration;
+
+	/// <summary>
+	/// T-SQL: ALTER INDEX (Selective XML Indexes). <c>[WITH XMLNAMESPACES (…)] FOR (ADD …, REMOVE …) [WITH (…)]</c>: a
+	/// selective index's paths changed.
+	/// </summary>
+	public sealed record Paths(SqlList<PathAction> Actions) : IndexAlteration
+	{
+		/// <summary>T-SQL: ALTER INDEX (Selective XML Indexes). <c>WITH XMLNAMESPACES ('uri' AS p, …)</c>.</summary>
+		public SqlList<XmlNamespace> XmlNamespaces { get; init; } = [];
+
+		public SqlList<Option> Options { get; init; } = [];
+	}
 
 	/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>RESUME [WITH (…)]</c>, a resumable rebuild resumed.</summary>
 	public sealed record Resume(SqlList<Option> Options) : IndexAlteration;

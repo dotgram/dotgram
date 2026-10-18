@@ -82,7 +82,7 @@ static partial class Bridge
 		/// <summary>
 		/// <c>XMLNAMESPACES ('uri' AS ns, DEFAULT 'uri')</c>, read from the old option's text.
 		/// </summary>
-		static SqlList<Ast.XmlNamespace> XmlNamespaces(Clause old, string text)
+		internal static SqlList<Ast.XmlNamespace> XmlNamespaces(object old, string text)
 		{
 			var tokens = SqlTokens.Of(text);
 
