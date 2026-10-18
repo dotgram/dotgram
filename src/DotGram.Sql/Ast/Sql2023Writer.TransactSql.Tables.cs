@@ -877,8 +877,12 @@ public static partial class Sql2023Writer
 		/// </summary>
 		bool PutTransactSqlKey(Constraint.Unique unique)
 		{
-			if (unique is { Clustering: null, Keys: null, Options.Count: 0, OptionsUnbracketed: false, On: null })
+			if (unique is { Clustering: null, Storage: null, Keys: null, Options.Count: 0, OptionsUnbracketed: false, On: null })
 				return false;
+
+			// ConstraintBody: HASH and no other storage.
+			if (unique.Storage is { } storage && storage != IndexStorage.Hash)
+				throw Misplaced(unique, "Storage", "other than HASH, which a key reads alone (ConstraintBody)");
 
 			if (unique.Columns.Count > 0 || unique.Nulls is not null || unique.WithoutOverlapsPeriod is not null || unique.Kind == UniqueKind.UniqueValue)
 				throw Misplaced(unique, "Clustering, Keys, Options or On", "beside the standard's Columns, Nulls, WithoutOverlapsPeriod or UNIQUE (VALUE)");
@@ -894,6 +898,9 @@ public static partial class Sql2023Writer
 
 			Word(unique.Kind switch { UniqueKind.Unique => "UNIQUE", UniqueKind.PrimaryKey => "PRIMARY KEY", _ => throw NoText(unique.Kind) });
 			PutClustering(unique.Clustering);
+
+			if (unique.Storage == IndexStorage.Hash)
+				Word("HASH");
 
 			if (unique.Keys is { } keys)
 			{

@@ -173,6 +173,12 @@ public abstract partial record Constraint
 		public IndexClustering? Clustering { get; init; }
 
 		/// <summary>
+		/// T-SQL: CREATE TABLE (Transact-SQL), a memory-optimized table's key. <c>PRIMARY KEY NONCLUSTERED HASH (c) WITH
+		/// (BUCKET_COUNT = n)</c>: a hash index; the constraint reads no other storage.
+		/// </summary>
+		public IndexStorage? Storage { get; init; }
+
+		/// <summary>
 		/// T-SQL: table_constraint (Transact-SQL). The key's columns, each with the direction written: T-SQL keeps
 		/// them here and leaves <see cref="Columns"/> empty, whether a direction was written or not; null where no
 		/// columns were written, a column's own key.

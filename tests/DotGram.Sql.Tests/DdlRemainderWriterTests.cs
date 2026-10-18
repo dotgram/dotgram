@@ -224,6 +224,7 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("ALTER COLUMN a default")]
 	[InlineData("CREATE TABLE a default WITH VALUES")]
 	[InlineData("CREATE TABLE a default constraint WITH VALUES")]
+	[InlineData("a columnstore key")]
 	[InlineData("ALTER COLUMN a collation after SPARSE")]
 	[InlineData("JSON a path with an escape")]
 	public void A_tree_with_no_text_is_refused(string which)
@@ -307,6 +308,8 @@ public sealed class DdlRemainderWriterTests
 			// AddedDefaultTail: CREATE TABLE t (c INT DEFAULT 1 WITH VALUES) is Msg 156.
 			"CREATE TABLE a default WITH VALUES" => Table(Column(new DataType.Numeric(NumericTypeKind.Int)) with { Options = [new ColumnOption.Default(Number("1")) { WithValues = true }] }),
 			"CREATE TABLE a default constraint WITH VALUES" => new Statement.CreateTable { Name = Qualified("t"), Contents = new TableContents.Elements([new TableElement.Column(Column(new DataType.Numeric(NumericTypeKind.Int))), new TableElement.TableConstraint(new Constraint.Default(Number("1"), Name("c")) { WithValues = true })]) },
+			// ConstraintBody: HASH, never COLUMNSTORE.
+			"a columnstore key" => new Statement.CreateTable { Name = Qualified("t"), Contents = new TableContents.Elements([new TableElement.Column(Column(new DataType.Numeric(NumericTypeKind.Int))), new TableElement.TableConstraint(new Constraint.Unique(UniqueKind.PrimaryKey, null, []) { Keys = [new SortItem(Ref("c"))], Storage = IndexStorage.Columnstore })]) },
 			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
 			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
 			// JsonIndexPath: a plain or national string.
