@@ -5494,7 +5494,7 @@ file.Line("return spare;");
 		foreach (var rule in Measuring(lexical))
 		{
 			file.Line($"/// <summary>Where a token ends whose rest <c>{rule.Name}</c> reads.</summary>");
-			file.Write(valuing.RenderWrapper(rule, "Measure_" + IdentifierOf(rule) + "_DotGram", engine, whole: false));
+			file.Write(valuing.RenderWrapper(rule, "Measure_" + IdentifierOf(rule) + "_DotGram", engine, whole: false, materialize: false));
 			file.Line();
 		}
 
