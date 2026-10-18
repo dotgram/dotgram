@@ -656,6 +656,42 @@ public sealed partial class BufferedInputTests
 		Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == GramCompiler.BufferedUnsupported && diagnostic.Severity == GramSeverity.Error);
 	}
 
+	/// <summary>
+	/// A type the grammar builds from a raw capture has nothing to take it in over bytes: its
+	/// member is a <c>string</c>, and a raw capture of the byte form is a
+	/// <c>ReadOnlySpan&lt;byte&gt;</c> that nothing decodes (§6.3). The byte form is refused at
+	/// the publication, naming the rule and the capture, where it used to be written as a
+	/// constructor call the consumer's compiler refused (CS1503). A type built from captures of
+	/// rules that declare their own types is read over bytes as before.
+	/// </summary>
+	[Theory]
+	[InlineData("Start = c: ['a'..'z']+", "Start", "c")]
+	[InlineData("Start = { c: ['a'..'z']+ } & ';'", "Start", "c")]
+	[InlineData("Inner = c: ['a'..'z']+\nStart = Inner & ';' & eof", "Inner", "c")]
+	[InlineData("Inner = word: ['a'..'z']+\nStart = v: Inner+ & eof", "Inner", "word")]
+	[InlineData("Inner = n: Count & d: ['a'..'z']*\nCount : @int = ['0'..'9'] => @(1)\nStart = Inner & eof", "Inner", "d")]
+	[InlineData("Inner : @int = c: ['a'..'z']+ => @(c.Length)\nOuter = n: Inner\nStart = v: Outer & ';' & eof", null, null)]
+	public void A_type_the_grammar_builds_from_a_raw_capture_is_refused_over_bytes(string rules, string? rule, string? capture)
+	{
+		var grammar     = rules + "\nparse Start stream bytes";
+		var compilation = GramCompiler.Compile(grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
+
+		if (rule is null)
+		{
+			EmittedCode.Quiet(compilation.Diagnostics);
+			EmittedCode.Compile(compilation.Sources.Single().Text);
+
+			return;
+		}
+
+		var refused = Assert.Single(compilation.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GramCompiler.BufferedUnsupported, refused.Id);
+		Assert.Equal(grammar.IndexOf("parse Start", StringComparison.Ordinal), refused.Position);
+		Assert.Contains($"'{rule}'", refused.Message, StringComparison.Ordinal);
+		Assert.Contains($"'{capture}'", refused.Message, StringComparison.Ordinal);
+	}
+
 	[Fact]
 	public void Byte_machine_materializes_typed_rule_captures()
 	{

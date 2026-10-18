@@ -2286,7 +2286,9 @@ Byte input is compared numerically without text decoding. Byte literals are
 case-sensitive values in 0..255; sets use byte values or `any`. Unicode categories,
 case folding, external sets, and line/column recovery are unsupported. Typed scalar
 values and typed rule captures are supported. Raw captures and `parserText` are
-passed to byte-form semantic actions and guards as `ReadOnlySpan<byte>`. No
+passed to byte-form semantic actions and guards as `ReadOnlySpan<byte>`; a type the
+grammar makes for a rule from a raw capture, whose member is a `string`, is refused over
+bytes (`GRAM4026`) — declare the rule's type and build it with `=>`. No
 decoding, byte-to-character conversion, or intermediate string is performed for
 these captures. Encoding syntax remains future work.
 
