@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.RegularExpressions;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -229,5 +230,54 @@ public sealed class GeneratedShapeTests
 
 		Assert.Equal("123", EmittedCode.Match(folded, "Grammar", "TryParseE", "1+2+3").Value);
 		Assert.False(EmittedCode.Match(folded, "Grammar", "TryParseE", "1+2+3+4").IsSuccess);
+	}
+
+	// ── A helper nothing calls ───────────────────────────────────────────────
+
+	/// <summary>
+	/// Every helper that says how far a literal run matched is written only where a scanner
+	/// calls it. The support of a file read by methods carried one of its own that nothing
+	/// called (IDE0051 in every such file), compiled by every consumer for nothing.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Ways))]
+	public void A_helper_for_how_far_a_run_matched_is_written_only_where_it_is_called(CarrierKind carrier, bool direct)
+	{
+		foreach (var grammar in new[]
+		{
+			// A number joined with `~`: no seam between its parts, and no run to compare.
+			"Start = ['0'..'9']+ ~ ('.' & ['0'..'9']+)?\nparse Start",
+			// The same inside a reading that reaches itself, which is read by methods with a tape.
+			"trivia = ' '*\n" +
+			"Value : @int = '[' & items: Value* & ']' => @(items.Length) | n: Number => @(n)\n" +
+			"Number : @int = d: ['0'..'9']+ ~ f: ('.' & ['0'..'9']+)? => @(d.Length)\n" +
+			"parse Value",
+			// A literal run a scanner compares in one go, and refuses on.
+			"Start = { \"ab\" & 'c' }+ & eof\nparse Start",
+			"trivia = ' '*\nValue : @int = '[' & items: Value* & ']' => @(items.Length) | { \"ab\" & 'c' } => @(1)\nparse Value",
+		})
+		{
+			var result = GramCompiler.Compile(
+				grammar,
+				new GramCompilerOptions
+				{
+					ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Carrier = carrier, Direct = direct,
+				});
+
+			EmittedCode.Quiet(result.Diagnostics);
+
+			var text = result.Sources[0].Text;
+
+			foreach (Match declared in Regex.Matches(text, @"static int (Reach_DotGram\w*)\("))
+			{
+				var name = declared.Groups[1].Value;
+
+				Assert.True(
+					Regex.Matches(text, name + @"\(").Count > 1,
+					$"{name} is written and never called:\n\n{text}");
+			}
+
+			EmittedCode.Compile(text);
+		}
 	}
 }
