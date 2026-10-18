@@ -589,6 +589,10 @@ public static partial class Sql2023Writer
 			switch (type)
 			{
 				case DataType.Character character:
+					// T-SQL has no CLOB or NCLOB: the word reads back as a type of the user's of that name.
+					if (transactSql && character.Kind is CharacterTypeKind.Clob or CharacterTypeKind.Nclob)
+						throw Misplaced(character, "Kind", $"{character.Kind}, which T-SQL reads as a type of the user's");
+
 					PutTypeName(character, character.Kind switch
 					{
 						CharacterTypeKind.Character                    => "CHARACTER",
@@ -644,6 +648,10 @@ public static partial class Sql2023Writer
 					break;
 
 				case DataType.Binary binary:
+					// T-SQL has no BLOB: the word reads back as a type of the user's of that name.
+					if (transactSql && binary.Kind == BinaryTypeKind.Blob)
+						throw Misplaced(binary, "Kind", "Blob, which T-SQL reads as a type of the user's");
+
 					PutTypeName(binary, binary.Kind switch
 					{
 						BinaryTypeKind.Binary            => "BINARY",
