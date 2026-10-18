@@ -3434,6 +3434,46 @@ public sealed class SemanticTests
 		Refused(GrammarNormalizer.UnbuiltCall, Listing + "Start = List(Word)");
 	}
 
+	/// <summary>
+	/// A parameterized rule named without its arguments is refused where it is named. Its name
+	/// alone is no rule (§4.2): only a call makes one, and the bare name went on as a call to a
+	/// rule that has no body, which failed inside the compiler with an exception where the
+	/// grammar should have been told. The library's rules are parameterized like any other.
+	/// </summary>
+	[Theory]
+	[InlineData("P(x) = x & 'b'\nStart = 'a' & P & eof", "P")]
+	[InlineData("Start = 'a' & Std.Nested & eof", "Std.Nested")]
+	[InlineData("Start = 'a' & Std.BlockComment & eof", "Std.BlockComment")]
+	[InlineData("trivia = { ' '+ | Std.Nested }\nStart = 'a' & 'b' & eof", "Std.Nested")]
+	public void A_parameterized_rule_named_without_arguments_is_refused_where_it_is_named(string grammar, string name)
+	{
+		var told = Assert.Single(
+			Compile(grammar + "\nparse Start").Diagnostics,
+			static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GrammarNormalizer.UnbuiltCall, told.Id);
+		Assert.Equal(grammar.IndexOf(name + " ", StringComparison.Ordinal), told.Position);
+		Assert.Contains("without arguments", told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A call with the wrong number of arguments is told at the call, which is where the
+	/// mistake is: the declaration it was placed at is the library's own text where the rule
+	/// is the library's, and no place in the grammar at all.
+	/// </summary>
+	[Theory]
+	[InlineData(Listing + "Start = List(Word)", "List(Word)")]
+	[InlineData("Start = 'a' & Std.Nested(\"/*\") & eof", "Std.Nested(")]
+	public void A_call_with_the_wrong_number_of_arguments_is_told_at_the_call(string grammar, string call)
+	{
+		var told = Assert.Single(
+			Compile(grammar + "\nparse Start").Diagnostics,
+			static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GrammarNormalizer.UnbuiltCall, told.Id);
+		Assert.Equal(grammar.IndexOf(call, StringComparison.Ordinal), told.Position);
+	}
+
 	// ── Publishing an expression (§6) ───────────────────────────────────────────
 
 	[Fact]
