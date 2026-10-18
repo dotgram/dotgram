@@ -721,7 +721,7 @@ static partial class Bridge
 				Clause.Option { Name: var name, Value: null } when Words(name) is ["CALLED", "ON", "NULL", "INPUT"]          => new Ast.RoutineOption.NullCall(Ast.NullCallMode.CalledOnNullInput),
 				// INLINE ON: a value after the name with no =, which the catalogue's reading leaves to the place that has it.
 				Clause.Option { Bare: true, Value: not null } option => new Ast.RoutineOption.Setting(Tables.Option(option with { Bare = false }) with { EqualsOmitted = true }),
-				Clause.Option option => new Ast.RoutineOption.Setting(Tables.Option(option)),
+				Clause.Option option => new Ast.RoutineOption.Setting(Tables.GenericOption(option)),
 				_ => throw BridgeGap.Open(one, $"inventory {NameOf(one)} (a module's option)"),
 			});
 		}

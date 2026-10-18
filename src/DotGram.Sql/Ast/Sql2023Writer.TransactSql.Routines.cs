@@ -783,8 +783,8 @@ public static partial class Sql2023Writer
 							throw Misplaced(option, "Option", "named " + setting.Name.Text + ", which begins another of RoutineOption's forms");
 
 						// One word, unlike a bracketed list's (the AS would be taken); a value may stand with no =, INLINE ON.
-						if (setting.Words.Count > 0 || setting.EqualsOmitted && setting.Options.Count > 0)
-							throw Misplaced(option, "Option", "of several words, or with its = left out before a list (RoutineOption)");
+						if (setting.Words.Count > 0 || setting.EqualsOmitted && setting.Value is not null && setting.Options.Count > 0)
+							throw Misplaced(option, "Option", "of several words, or with its = left out before a value and a list (RoutineOption)");
 
 						PutOption(setting, multiWord: true);
 						break;

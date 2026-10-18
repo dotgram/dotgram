@@ -245,12 +245,11 @@ public static partial class Sql2023Writer
 					PutOptions(xml.Options);
 					return true;
 
-				// T-SQL: CREATE MATERIALIZED VIEW AS SELECT (Transact-SQL). The options are OptionsWith, the generic list a
-				// table made of a query is written with.
+				// T-SQL: CREATE MATERIALIZED VIEW AS SELECT (Transact-SQL). The options are OptionsWith, the generic list, read
+				// with no catalogue: a table's is not a view's.
 				case Statement.CreateMaterializedView view:
 					Word("CREATE MATERIALIZED VIEW");
 					PutName(view.Name);
-					CheckTableOptions(view, view.Options, set: false);
 					PutOptions(view.Options, multiWord: true);
 					Word("AS");
 					PutQuery(view.Query);
@@ -1208,8 +1207,8 @@ public static partial class Sql2023Writer
 
 				PutOptionValue(value);
 			}
-			else if (option.EqualsOmitted)
-				throw Misplaced(option, "EqualsOmitted", "on an option with no value, which has no = to leave out");
+			else if (option.EqualsOmitted && (!multiWord || option.Options.Count == 0))
+				throw Misplaced(option, "EqualsOmitted", "on an option with no value, and no bracketed list where the generic rule reads one with its = or without (OptionTail)");
 
 			// `DATA_COMPRESSION = PAGE ON PARTITIONS (1)`: the partitions after the value, and no options of its own beside them.
 			// Only the two compressions read ON PARTITIONS in a WITH list (RESAMPLE does in UPDATE STATISTICS, which writes it itself).
@@ -1223,6 +1222,11 @@ public static partial class Sql2023Writer
 
 			if (option.Options.Count > 0)
 			{
+				// OptionTail: where the generic rule stands, a list with no value reads after an = or with none; elsewhere the
+				// place fixes it with none.
+				if (multiWord && option.Value is null && !option.EqualsOmitted)
+					Word("=");
+
 				Open();
 				Each(option.Options, one => PutOption(one, multiWord));
 				Close();

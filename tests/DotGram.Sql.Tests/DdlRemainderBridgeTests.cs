@@ -48,6 +48,9 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE SPATIAL INDEX i ON t (g) USING [GEOMETRY_GRID]", "a grid in brackets")]
 	[InlineData("CREATE SPATIAL INDEX i ON t (g) USING GEOMETRY_GRID", "a grid")]
 	[InlineData("CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = HASH (a), FOR_APPEND) AS SELECT a, COUNT_BIG (*) AS n FROM t GROUP BY a", "a materialized view")]
+	[InlineData("CREATE MATERIALIZED VIEW v WITH (X = (Y = 1)) AS SELECT a FROM t", "a list after =")]
+	[InlineData("CREATE MATERIALIZED VIEW v WITH (X (Y = 1)) AS SELECT a FROM t", "a list with no =")]
+	[InlineData("CREATE TABLE t WITH (X = (Y = (Z = 1))) AS SELECT a FROM u", "a list after = in a list after =")]
 	[InlineData("CREATE VIEW v AS SELECT a FROM t", "a view")]
 	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff), c (a) AS (SELECT a FROM t) DELETE t FROM t", "a change tracking context and a CTE")]
 	[InlineData("with change_tracking_context (@v) update t set a = 1", "a change tracking context alone")]
@@ -153,6 +156,9 @@ public sealed class DdlRemainderBridgeTests
 			"a JSON index" => made is Ast.Statement.CreateJsonIndex { Paths.Count: 0, Options.Count: 0 },
 			"a grid in brackets" => made is Ast.Statement.CreateSpatialIndex { Using: Ast.SpatialTessellation.GeometryGrid, UsingBracketed: true },
 			"a grid" => made is Ast.Statement.CreateSpatialIndex { Using: Ast.SpatialTessellation.GeometryGrid, UsingBracketed: false },
+			"a list after =" => made is Ast.Statement.CreateMaterializedView { Options: [{ Name.Text: "X", Value: null, EqualsOmitted: false, Options: [{ Name.Text: "Y" }] }] },
+			"a list with no =" => made is Ast.Statement.CreateMaterializedView { Options: [{ Name.Text: "X", Value: null, EqualsOmitted: true, Options: [{ Name.Text: "Y", EqualsOmitted: false }] }] },
+			"a list after = in a list after =" => made is Ast.Statement.CreateTable { Options: [{ EqualsOmitted: false, Options: [{ Name.Text: "Y", EqualsOmitted: false, Options: [{ Name.Text: "Z" }] }] }] },
 			"a materialized view" => made is Ast.Statement.CreateMaterializedView { Name: [{ Text: "v" }], Options: [{ Name.Text: "DISTRIBUTION" }, { Name.Text: "FOR_APPEND", Value: null }] },
 			"a view" => made is Ast.Statement.CreateView,
 			"a change tracking context and a CTE" => made is Ast.Statement.Delete { With: { ChangeTrackingContext: Ast.LiteralValue.Binary, XmlNamespaces.Count: 0, Items.Count: 1 } },
@@ -225,5 +231,15 @@ public sealed class DdlRemainderBridgeTests
 	public void A_tail_compares_key_words_without_case_and_nothing_else(string member, string one, string two, bool same)
 	{
 		Assert.Equal(same, Trees.SameTokens(new object(), member, one, two));
+	}
+
+	[Theory]
+	[InlineData("ALTER MATERIALIZED VIEW v AS SELECT 1 AS a")]
+	[InlineData("CREATE OR ALTER MATERIALIZED VIEW v AS SELECT 1 AS a")]
+	public void A_materialized_view_altered_is_a_gap(string text)
+	{
+		var old = TransactSqlParser.Located.ParseStatement(text);
+
+		Assert.Throws<BridgeGap>(() => Bridge.ToAst(old, text));
 	}
 }

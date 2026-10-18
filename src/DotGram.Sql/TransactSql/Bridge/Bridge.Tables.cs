@@ -648,7 +648,7 @@ static partial class Bridge
 			{
 				Name     = Values.Name(old, old.Name),
 				Contents = new Ast.TableContents.AsQuery(Values.Parts(old, old.Columns), select.Query, null) { Hints = select.Hints },
-				Options  = Each(old.Options, Option),
+				Options  = Each(old.Options, GenericOption),
 			};
 		}
 
@@ -1043,6 +1043,22 @@ static partial class Bridge
 		/// </summary>
 		internal static Ast.Option Option(Clause old)
 		{
+			return Option(old, generic: false);
+		}
+
+		/// <summary>
+		/// An option where the generic rule stands whole (OptionsWith, RoutineOption): OptionTail reads a bracketed list
+		/// after the name both after an <c>=</c> and with none, <c>X = (Y = 1)</c> against <c>X (Y = 1)</c>, and
+		/// <see cref="Ast.Option.EqualsOmitted"/> keeps which. Elsewhere the place fixes the form, and the one with the
+		/// <c>=</c> is a gap.
+		/// </summary>
+		internal static Ast.Option GenericOption(Clause old)
+		{
+			return Option(old, generic: true);
+		}
+
+		static Ast.Option Option(Clause old, bool generic)
+		{
 			if (old is not Clause.Option(var name, var value, var options, var partitions, var bare))
 				throw BridgeGap.Open(old, $"inventory Clause.Option (an option that is a {NameOf(old)})");
 
@@ -1070,13 +1086,14 @@ static partial class Bridge
 			if (bare && value is not null)
 				throw BridgeGap.Open(old, "inventory Clause.Option (a value written after the name with no =)");
 
-			if (!bare && value is null && options.Length > 0)
+			if (!generic && !bare && value is null && options.Length > 0)
 				throw BridgeGap.Open(old, "inventory Clause.Option (a bracketed list after =)");
 
-			return new Ast.Option(Values.Part(old, named[0].Text), value is null ? null : OptionValue(old, value), Each(options, Option))
+			return new Ast.Option(Values.Part(old, named[0].Text), value is null ? null : OptionValue(old, value), Each(options, one => Option(one, generic)))
 			{
-				Partitions = partitions is null ? null : Ranges(old, partitions),
-				Words      = [.. named.Skip(1).Select(one => Values.Part(old, one.Text))],
+				Partitions    = partitions is null ? null : Ranges(old, partitions),
+				Words         = [.. named.Skip(1).Select(one => Values.Part(old, one.Text))],
+				EqualsOmitted = generic && bare && value is null && options.Length > 0,
 			};
 		}
 
@@ -1825,10 +1842,15 @@ static partial class Bridge
 			if (StatementOf(old.Body) is not Ast.Statement.Select { Hints.Count: 0 } select)
 				throw BridgeGap.Open(old, "inventory Statement.ViewDefinition (a query with OPTION, which CreateView cannot hold)");
 
+			// The grammar reads ALTER and CREATE OR ALTER before MATERIALIZED VIEW … AS SELECT, which the engine does not
+			// (its ALTER MATERIALIZED VIEW rebuilds or disables); the record holds CREATE alone.
+			if (old.Materialized && !old.Verb.Equals("CREATE", StringComparison.OrdinalIgnoreCase))
+				throw BridgeGap.Open(old, $"inventory Statement.ViewDefinition (a materialized view with the verb {old.Verb})");
+
 			if (old.Materialized)
 				return new Ast.Statement.CreateMaterializedView(Values.Name(old, old.Name), select.Query)
 				{
-					Options = Each(old.Options ?? [], Option),
+					Options = Each(old.Options ?? [], GenericOption),
 				};
 
 			return new Ast.Statement.CreateView

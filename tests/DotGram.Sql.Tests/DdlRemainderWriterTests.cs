@@ -106,6 +106,9 @@ public sealed class DdlRemainderWriterTests
 				From    = [new BackupDevice.Physical(DeviceKind.Disk, Text("x"))],
 				Options = [new Option(Name("MOVE"), Text("a"), [Set("TO", Text("b"))]), new Option(Name("STOPATMARK"), Text("m"), [Set("AFTER", Text("t"))])],
 			},
+			"CREATE MATERIALIZED VIEW a list after =" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [new Option(Name("X"), null, [Set("Y", Number("1"))])] },
+			"CREATE MATERIALIZED VIEW a list with no =" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [new Option(Name("X"), null, [Set("Y", Number("1"))]) { EqualsOmitted = true }] },
+			"CREATE MATERIALIZED VIEW of any distribution" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("RANDOM"))] },
 			"CREATE MATERIALIZED VIEW" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("ROUND_ROBIN")), Set("FOR_APPEND")] },
 			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
@@ -175,6 +178,9 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE XML INDEX FOR a path", "CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (p)")]
 	[InlineData("CREATE JSON INDEX", "CREATE JSON INDEX ix ON t (j) FOR ('$.a') WITH (OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
 	[InlineData("CREATE MATERIALIZED VIEW", "CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = ROUND_ROBIN, FOR_APPEND) AS SELECT a FROM u")]
+	[InlineData("CREATE MATERIALIZED VIEW a list after =", "CREATE MATERIALIZED VIEW v WITH (X = (Y = 1)) AS SELECT a FROM u")]
+	[InlineData("CREATE MATERIALIZED VIEW a list with no =", "CREATE MATERIALIZED VIEW v WITH (X (Y = 1)) AS SELECT a FROM u")]
+	[InlineData("CREATE MATERIALIZED VIEW of any distribution", "CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = RANDOM) AS SELECT a FROM u")]
 	[InlineData("WITH CHANGE_TRACKING_CONTEXT", "WITH CHANGE_TRACKING_CONTEXT (0xFF) SELECT a FROM u")]
 	[InlineData("CREATE TABLE a column set", "CREATE TABLE t (c XML COLLATE x COLUMN_SET FOR ALL_SPARSE_COLUMNS)")]
 	[InlineData("ALTER COLUMN a front", "ALTER TABLE t ALTER COLUMN c XML COLLATE x COLUMN_SET FOR ALL_SPARSE_COLUMNS NULL")]
@@ -203,6 +209,9 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE XML INDEX FOR a path")]
 	[InlineData("CREATE JSON INDEX")]
 	[InlineData("CREATE MATERIALIZED VIEW")]
+	[InlineData("CREATE MATERIALIZED VIEW of any distribution")]
+	[InlineData("CREATE MATERIALIZED VIEW a list after =")]
+	[InlineData("CREATE MATERIALIZED VIEW a list with no =")]
 	[InlineData("WITH CHANGE_TRACKING_CONTEXT")]
 	[InlineData("CREATE TABLE a column set")]
 	[InlineData("ALTER COLUMN a front")]
@@ -266,7 +275,6 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("ALTER INDEX no path changed")]
 	[InlineData("JSON an option it does not read")]
 	[InlineData("spatial a grid in brackets that is none")]
-	[InlineData("materialized view a distribution it does not read")]
 	[InlineData("a change tracking context beside namespaces")]
 	[InlineData("a column set after a type with brackets")]
 	[InlineData("a column set after SPARSE")]
@@ -293,6 +301,8 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("a user's type of a signed number")]
 	[InlineData("ALTER COLUMN a collation after SPARSE")]
 	[InlineData("JSON a path with an escape")]
+	[InlineData("EqualsOmitted with neither a value nor a list")]
+	[InlineData("EqualsOmitted before a list where the place fixes the form")]
 	public void A_tree_with_no_text_is_refused(string which)
 	{
 		Statement node = which switch
@@ -357,8 +367,6 @@ public sealed class DdlRemainderWriterTests
 			"XML index FOR a kind and a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), For = XmlIndexFor.Path, ForPath = Name("p") },
 			// SpatialIndex: USING names a grid; brackets around none are no text.
 			"spatial a grid in brackets that is none" => new Statement.CreateSpatialIndex(Qualified("t"), Name("i"), Name("g")) { UsingBracketed = true },
-			// TableOptionSyntax: DISTRIBUTION = HASH (…), ROUND_ROBIN or REPLICATE.
-			"materialized view a distribution it does not read" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("RANDOM"))] },
 			// WithClause: CHANGE_TRACKING_CONTEXT or XMLNAMESPACES first, one of them.
 			"a change tracking context beside namespaces" => new Statement.Select { Query = ((Query.Select)Select()) with { With = new WithClause(false, []) { ChangeTrackingContext = Number("1"), XmlNamespaces = [new XmlNamespace(Text("u"), Name("x"))] } } },
 			// Syntax.Tailed: a column set follows a type written with no brackets (VARCHAR (10) takes none).
@@ -408,6 +416,10 @@ public sealed class DdlRemainderWriterTests
 			// JsonIndexOptionSyntax: FILLFACTOR is Msg 153.
 			"JSON an option it does not read" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Options = [Set("FILLFACTOR", Number("80"))] },
 			// JsonIndexPath: a plain or national string.
+			// OptionTail: an = to leave out stands before a value or a list.
+			"EqualsOmitted with neither a value nor a list" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [new Option(Name("X"), null, []) { EqualsOmitted = true }] },
+			// A place whose own rule fixes the form of a list reads it with no =, and keeps no flag for it.
+			"EqualsOmitted before a list where the place fixes the form" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Options = [new Option(Name("X"), null, [Set("Y", Number("1"))]) { EqualsOmitted = true }] },
 			"JSON a path with an escape" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a") with { UnicodeEscape = '!' }] },
 			// SelectivePaths: one at least.
 			"ALTER INDEX no path changed" => new Statement.AlterIndex(Qualified("t"), new IndexAlteration.Paths([])) { Name = Name("sxi") },
