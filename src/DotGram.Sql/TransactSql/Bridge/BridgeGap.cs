@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 /// <summary>
 /// What <see cref="Bridge"/> throws for an old node it cannot carry onto the new tree yet: the old

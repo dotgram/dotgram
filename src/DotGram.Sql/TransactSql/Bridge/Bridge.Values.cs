@@ -6,7 +6,7 @@ using System.Text;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {

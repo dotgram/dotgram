@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -49,7 +49,7 @@ static partial class Bridge
 				Statement.Receive receive                     => Receive(receive),
 				Statement.GetConversationGroup get            => new Ast.Statement.GetConversationGroup(Variable(get, get.Group), Values.Name(get, get.Queue)),
 				Statement.WaitForStatement wait               => Wait(wait),
-				_ when Owned(Owns, old)                       => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old)                       => throw Unconverted(old),
 				_                                             => null,
 			};
 

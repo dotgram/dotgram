@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -62,7 +62,7 @@ static partial class Bridge
 				Statement.CursorAction acted => Cursor(acted),
 				Statement.Fetch fetch        => Fetch(fetch),
 				Statement.SetStatement set   => Set(set),
-				_ when Owned(Owns, old)      => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old)      => throw Unconverted(old),
 				_                            => null,
 			};
 
@@ -200,7 +200,7 @@ static partial class Bridge
 				SetExpression.Miscellaneous.ContextInfo(var value)             => Valued("CONTEXT_INFO", value),
 				SetExpression.Miscellaneous.ErrorLevel(var value)              => Valued("ERRLVL", value),
 
-				_ => throw Inventory.Unconverted(option),
+				_ => throw Unconverted(option),
 			};
 
 			static Ast.SetOption Valued(string name, Expression value)

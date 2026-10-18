@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -54,7 +54,7 @@ static partial class Bridge
 				Statement.TypeDefinition type                => CreateType(type),
 				Statement.SynonymDefinition synonym          => Synonym(synonym),
 				Statement.SequenceDefinition sequence        => Sequence(sequence),
-				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old) => throw Unconverted(old),
 				_                       => null,
 			};
 
@@ -106,7 +106,7 @@ static partial class Bridge
 					return new Ast.TableSource.OdbcJoin(Source(inner));
 
 				default:
-					throw Inventory.Unconverted(old);
+					throw Unconverted(old);
 			}
 		}
 

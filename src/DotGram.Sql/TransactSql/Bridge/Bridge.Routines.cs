@@ -5,7 +5,7 @@ using System.Linq;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -42,7 +42,7 @@ static partial class Bridge
 				Statement.AlterXmlSchemaCollection collection => SchemaCollection(collection, alter: true),
 				Statement.TriggerSwitch(var enable, var names, var on) => Switch(old, enable, names, on),
 				Query.FromExecute         => throw BridgeGap.Open(old, "inventory Query.FromExecute (outside an INSERT)"),
-				_ when Owned(Owns, old) => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old) => throw Unconverted(old),
 				_                       => null,
 			};
 

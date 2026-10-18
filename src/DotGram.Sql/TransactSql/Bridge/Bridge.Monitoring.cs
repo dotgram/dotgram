@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -37,7 +37,7 @@ static partial class Bridge
 				Statement.DatabaseAuditSpecificationDefinition db  => Specification(db, database: true),
 				Statement.EventSessionDefinition session           => Session(session),
 				Clause.EventPiece piece                            => Piece(piece),
-				_ when Owned(Owns, old)                            => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old)                            => throw Unconverted(old),
 				_                                                  => null,
 			};
 

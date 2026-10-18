@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 using Ast = DotGram.Sql.Ast;
 
-namespace DotGram.Sql.Tests;
+namespace DotGram.Sql.TransactSql;
 
 static partial class Bridge
 {
@@ -84,7 +84,7 @@ static partial class Bridge
 				Statement.Grant grant             => Grant(grant),
 				Statement.Deny deny               => Deny(deny),
 				Statement.Revoke revoke           => Revoke(revoke),
-				_ when Owned(Owns, old)           => throw Inventory.Unconverted(old),
+				_ when Owned(Owns, old)           => throw Unconverted(old),
 				_                                 => null,
 			};
 
@@ -1826,7 +1826,7 @@ static partial class Bridge
 					throw reader.Unread();
 
 				reader.Finish();
-				Written(old, Trees.SignerName, text, string.Join(' ', written));
+				Written(old, BridgeText.SignerName, text, string.Join(' ', written));
 
 				return signed;
 			});
