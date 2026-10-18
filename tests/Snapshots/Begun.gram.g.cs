@@ -3309,22 +3309,22 @@ namespace DotGram.Snapshots
 			static int Measure_Token_Raw_DotGram(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				object? recognized;
-				var end = Recognize_DotGram_Value(text, pos, 87, -1, false, true, ref failure, out recognized);
+				var end = Recognize_DotGram_Value(text, pos, 87, -1, false, false, ref failure, out recognized);
 				return end;
 			}
 
 			static int Measure_Token_Long_DotGram(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				object? recognized;
-				var end = Recognize_DotGram_Value(text, pos, 67, -1, false, true, ref failure, out recognized);
+				var end = Recognize_DotGram_Value(text, pos, 67, -1, false, false, ref failure, out recognized);
 				return end;
 			}
 
 			static int Measure_Token_Heredoc_DotGram(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 			{
 				object? recognized;
-				var end = Recognize_DotGram_Value(text, pos, 3, 0, false, true, ref failure, out recognized);
-				value = end < 0 ? default! : (string)recognized!;
+				var end = Recognize_DotGram_Value(text, pos, 3, 0, false, false, ref failure, out recognized);
+				value = default!;
 				return end;
 			}
 

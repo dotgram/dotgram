@@ -1770,7 +1770,16 @@ sealed partial class Machine
 		return RenderProbe(name, engine, entry, powers, input);
 	}
 
-	public string RenderWrapper(RuleSymbol root, string name, string engine, bool whole)
+	/// <param name="root">The rule the wrapper reads.</param>
+	/// <param name="name">The wrapper's name.</param>
+	/// <param name="engine">The engine it calls.</param>
+	/// <param name="whole">Whether the rule must end where the text does.</param>
+	/// <param name="materialize">
+	/// Whether the wrapper hands back the rule's value. A wrapper that only says how far the rule reads
+	/// passes false: the value is built when it is wanted, and a construction that throws does not
+	/// throw for a reading that only measured.
+	/// </param>
+	public string RenderWrapper(RuleSymbol root, string name, string engine, bool whole, bool materialize = true)
 	{
 		var file  = new Writer(0);
 		var type  = _results.QualifiedOf(root);
@@ -1810,14 +1819,14 @@ sealed partial class Machine
 
 			file.Line(
 				$"var end = {engine}(text, {(lead is null ? "pos" : "began")}, {entry}, {ValueRule(root)}{enginePower}, " +
-				$"{(whole ? "true" : "false")}, true{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, {(materialize ? "true" : "false")}{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out recognized);");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
 			if (IsExtent(root))
 				file.Line($"value = end < 0 ? default : {Span(lead is null ? "pos" : "began", lead is null ? "end - pos" : "end - began")};");
 			else if (type is not null)
-				file.Line($"value = end < 0 ? default! : ({type})recognized!;");
+				file.Line(materialize ? $"value = end < 0 ? default! : ({type})recognized!;" : "value = default!;");
 
 			file.Line("return end;");
 		}
