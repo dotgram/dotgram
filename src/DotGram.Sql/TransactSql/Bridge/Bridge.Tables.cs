@@ -909,30 +909,28 @@ static partial class Bridge
 
 		/// <summary>
 		/// An index written at the table or on a column, or made by CREATE INDEX: its columnstore ORDER, and its ON and
-		/// FILESTREAM_ON in the order written. Options written without brackets are a gap.
+		/// FILESTREAM_ON in the order written, and whether its options were written without brackets.
 		/// </summary>
 		static Ast.IndexDefinition Index(Clause.ConstraintDefinition old)
 		{
 			if (old.Hash && old.Columnstore)
 				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index both COLUMNSTORE and HASH)");
 
-			if (!old.Bracketed)
-				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index's options without brackets, which IndexDefinition has no flag for)");
-
 			if (old.Check is not null || old.Referenced is not null || old.Enforced is not null || old.ForColumn is not null)
 				throw BridgeGap.Open(old, "inventory Clause.ConstraintDefinition (an index with a constraint's parts)");
 
 			return new Ast.IndexDefinition(IndexName(old))
 			{
-				Unique     = old.Kind == "UNIQUE INDEX",
-				Clustering = Clustering(old, old.Clustering),
-				Storage    = old.Columnstore ? Ast.IndexStorage.Columnstore : old.Hash ? Ast.IndexStorage.Hash : null,
-				Columns    = Each(old.Columns, Sorted),
-				Order      = Values.Parts(old, old.Order),
-				Include    = Values.Parts(old, old.Include),
-				Where      = old.Filter is null ? null : Values.Of(old.Filter),
-				Options    = Each(old.Options ?? [], Option),
-				Placements = Each(old.Placements ?? [], Placement),
+				Unique             = old.Kind == "UNIQUE INDEX",
+				Clustering         = Clustering(old, old.Clustering),
+				Storage            = old.Columnstore ? Ast.IndexStorage.Columnstore : old.Hash ? Ast.IndexStorage.Hash : null,
+				Columns            = Each(old.Columns, Sorted),
+				Order              = Values.Parts(old, old.Order),
+				Include            = Values.Parts(old, old.Include),
+				Where              = old.Filter is null ? null : Values.Of(old.Filter),
+				Options            = Each(old.Options ?? [], Option),
+				Placements         = Each(old.Placements ?? [], Placement),
+				OptionsUnbracketed = !old.Bracketed,
 			};
 		}
 
