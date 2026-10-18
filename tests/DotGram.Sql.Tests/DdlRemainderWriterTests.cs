@@ -99,6 +99,8 @@ public sealed class DdlRemainderWriterTests
 			"CREATE TABLE a DECIMAL (MAX)" => Table(Column(Max("DECIMAL"))),
 			"CAST AS VECTOR" => Cast(new DataType.Vector(3) { BaseType = VectorBaseType.Float16 }),
 			"CAST AS a user's type of MAX" => Cast(new DataType.UserDefined(new QualifiedName([Name("dbo"), Name("t")])) { Max = true }),
+			"ALTER DATABASE REBUILD LOG ON with a termination" => new Statement.AlterDatabase(Name("d"), new AlterDatabaseAction.RebuildLog { On = new DatabaseFile([Set("NAME", Text("n"))]) }) { Termination = new Termination.RollbackImmediate() },
+			"ALTER DATABASE ADD LOG FILE TO FILEGROUP" => new Statement.AlterDatabase(Name("d"), new AlterDatabaseAction.AddLogFile([new DatabaseFile([Set("NAME", Ref("l"))])]) { ToFileGroup = Name("g") }),
 			"CREATE MATERIALIZED VIEW" => new Statement.CreateMaterializedView(Qualified("v"), Select()) { Options = [Set("DISTRIBUTION", Ref("ROUND_ROBIN")), Set("FOR_APPEND")] },
 			"CREATE JSON INDEX" => new Statement.CreateJsonIndex(Qualified("t"), Name("ix"), Name("j")) { Paths = [Str("$.a")], Options = [Set("OPTIMIZE_FOR_ARRAY_SEARCH", Ref("ON"))] },
 			"CREATE XML INDEX FOR a path" => new Statement.CreateXmlIndex(Qualified("t"), Name("i"), Name("c")) { Using = Name("sxi"), ForPath = Name("p") },
@@ -171,6 +173,8 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE TABLE a DECIMAL (MAX)", "CREATE TABLE t (c DECIMAL(MAX))")]
 	[InlineData("CAST AS VECTOR", "SELECT CAST(a AS VECTOR(3, FLOAT16))")]
 	[InlineData("CAST AS a user's type of MAX", "SELECT CAST(a AS dbo.t(MAX))")]
+	[InlineData("ALTER DATABASE REBUILD LOG ON with a termination", "ALTER DATABASE d REBUILD LOG ON (NAME = 'n') WITH ROLLBACK IMMEDIATE")]
+	[InlineData("ALTER DATABASE ADD LOG FILE TO FILEGROUP", "ALTER DATABASE d ADD LOG FILE (NAME = l) TO FILEGROUP g")]
 	public void Each_tree_writes_its_text(string which, string text)
 	{
 		Assert.Equal(text, TransactSqlWriter.Write(Tree(which)));
@@ -196,6 +200,8 @@ public sealed class DdlRemainderWriterTests
 	[InlineData("CREATE TABLE a DECIMAL (MAX)")]
 	[InlineData("CAST AS VECTOR")]
 	[InlineData("CAST AS a user's type of MAX")]
+	[InlineData("ALTER DATABASE REBUILD LOG ON with a termination")]
+	[InlineData("ALTER DATABASE ADD LOG FILE TO FILEGROUP")]
 	public void Each_tree_reads_back_as_itself(string which)
 	{
 		var tree = Tree(which);

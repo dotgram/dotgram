@@ -572,19 +572,30 @@ public abstract record AlterDatabaseAction : ISqlNode
 	/// <summary><c>PERFORM_CUTOVER</c>, which takes nothing.</summary>
 	public sealed record PerformCutover : AlterDatabaseAction;
 
-	/// <summary><c>REBUILD LOG</c>, which takes nothing here.</summary>
+	/// <summary><c>REBUILD LOG [ON (filespec)]</c>.</summary>
 	/// <remarks>
 	/// The one action of this statement that <c>TransactSql/Specification/syntax.md</c> does not publish:
 	/// the words appear nowhere in the transcribed pages, and the grammar reads them anyway. So it has
-	/// the parts the current reading gives it, which is none, and none is invented for it.
+	/// the parts the grammar reads, a file after ON, and nothing else.
 	/// </remarks>
-	public sealed record RebuildLog : AlterDatabaseAction;
+	public sealed record RebuildLog : AlterDatabaseAction
+	{
+		/// <summary>T-SQL (no syntax block in syntax.md). <c>REBUILD LOG ON (NAME = …, FILENAME = …)</c>: the log file.</summary>
+		public DatabaseFile? On { get; init; }
+	}
 
 	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>ADD FILE ... [TO FILEGROUP g]</c>.</summary>
 	public sealed record AddFile(SqlList<DatabaseFile> Files, Identifier? ToFileGroup) : AlterDatabaseAction;
 
-	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>ADD LOG FILE ...</c>.</summary>
-	public sealed record AddLogFile(SqlList<DatabaseFile> Files) : AlterDatabaseAction;
+	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>ADD LOG FILE ... [TO FILEGROUP g]</c>.</summary>
+	public sealed record AddLogFile(SqlList<DatabaseFile> Files) : AlterDatabaseAction
+	{
+		/// <summary>
+		/// T-SQL: ALTER DATABASE File and Filegroups. <c>TO FILEGROUP g</c>, which DatabaseAdd reads after a log file as after
+		/// a data file.
+		/// </summary>
+		public Identifier? ToFileGroup { get; init; }
+	}
 
 	/// <summary>T-SQL: ALTER DATABASE File and Filegroups. <c>MODIFY FILE (...)</c>.</summary>
 	public sealed record ModifyFile(DatabaseFile File) : AlterDatabaseAction;
@@ -605,14 +616,7 @@ public abstract record AlterDatabaseAction : ISqlNode
 	/// T-SQL: ALTER DATABASE SET Options (Transact-SQL). <c>SET option_spec [,…n] [WITH termination]</c>: the settings, one
 	/// at least, in the order written.
 	/// </summary>
-	public sealed record Set(SqlList<Option> Options) : AlterDatabaseAction
-	{
-		/// <summary>
-		/// T-SQL: ALTER DATABASE SET Options (Transact-SQL). <c>WITH ROLLBACK AFTER n [SECONDS]</c>, <c>WITH ROLLBACK
-		/// IMMEDIATE</c> or <c>WITH NO_WAIT</c>: what is done with the sessions in the way; null where none is said.
-		/// </summary>
-		public Termination? Termination { get; init; }
-	}
+	public sealed record Set(SqlList<Option> Options) : AlterDatabaseAction;
 }
 
 /// <summary>T-SQL: ALTER DATABASE File and Filegroups. A file, as its <c>(NAME = ..., SIZE = ...)</c> says it.</summary>

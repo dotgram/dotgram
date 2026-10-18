@@ -152,10 +152,10 @@ public sealed class DatabaseWriterTests
 			"SET QUERY_STORE" => SetOf(Nested("QUERY_STORE", Ref("ON"), Set("OPERATION_MODE", Ref("READ_WRITE")), Nested("CLEANUP_POLICY", null, Set("STALE_QUERY_THRESHOLD_DAYS", Number("30"))), Set("QUERY_CAPTURE_MODE", Ref("ALL")), Nested("QUERY_CAPTURE_POLICY", null, Set("STALE_CAPTURE_POLICY_THRESHOLD", Sized("1", "DAY")), Set("EXECUTION_COUNT", Number("30")))), Nested("QUERY_STORE", Ref("OFF"), Set("FORCED")), Worded("QUERY_STORE", ["CLEAR", "ALL"])),
 			"SET with lists after =" => SetOf(Nested("REMOTE_DATA_ARCHIVE", Ref("ON"), Set("SERVER", Text("s")), Set("CREDENTIAL", Ref("c"))), Nested("PERSISTENT_LOG_BUFFER", Ref("ON"), Set("DIRECTORY_NAME", Text("x"))), Nested("SUSPEND_FOR_SNAPSHOT_BACKUP", Ref("ON"), Set("MODE", Ref("COPY_ONLY"))), Nested("ACCELERATED_DATABASE_RECOVERY", Ref("ON"), Set("PERSISTENT_VERSION_STORE_FILEGROUP", Ref("fg")))),
 			"SET mirroring and HADR" => SetOf(Worded("PARTNER", ["SAFETY"], Ref("FULL")), Worded("PARTNER", ["TIMEOUT"], Number("10")), Set("PARTNER", Ref("FAILOVER")), Set("WITNESS", Text("tcp://w:5022")), Worded("HADR", ["AVAILABILITY", "GROUP"], Ref("ag")), Set("HADR", Ref("SUSPEND"))),
-			"SET WITH ROLLBACK AFTER" => Alter(new AlterDatabaseAction.Set([Set("SINGLE_USER")]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("10", NumericLiteralKind.DecimalInteger)) { Seconds = true } }),
-			"SET WITH ROLLBACK AFTER without SECONDS" => Alter(new AlterDatabaseAction.Set([Set("SINGLE_USER")]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("10", NumericLiteralKind.DecimalInteger)) }),
-			"SET WITH ROLLBACK IMMEDIATE" => Alter(new AlterDatabaseAction.Set([Set("OFFLINE")]) { Termination = new Termination.RollbackImmediate() }),
-			"SET WITH NO_WAIT on CURRENT" => new Statement.AlterDatabase(null, new AlterDatabaseAction.Set([Set("READ_ONLY")]) { Termination = new Termination.NoWait() }) { Current = true },
+			"SET WITH ROLLBACK AFTER" => Alter(new AlterDatabaseAction.Set([Set("SINGLE_USER")])) with { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("10", NumericLiteralKind.DecimalInteger)) { Seconds = true } },
+			"SET WITH ROLLBACK AFTER without SECONDS" => Alter(new AlterDatabaseAction.Set([Set("SINGLE_USER")])) with { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("10", NumericLiteralKind.DecimalInteger)) },
+			"SET WITH ROLLBACK IMMEDIATE" => Alter(new AlterDatabaseAction.Set([Set("OFFLINE")])) with { Termination = new Termination.RollbackImmediate() },
+			"SET WITH NO_WAIT on CURRENT" => new Statement.AlterDatabase(null, new AlterDatabaseAction.Set([Set("READ_ONLY")])) { Current = true, Termination = new Termination.NoWait() },
 			"SCOPED switch FOR SECONDARY" => Scoped(Set("PARAMETER_SNIFFING", Ref("PRIMARY")), true),
 			"SCOPED MAXDOP negative" => Scoped(Set("MAXDOP", new Expression.Unary(UnaryOperator.Minus, Number("1")))),
 			"SCOPED words and strings" => Scoped(Set("ELEVATE_ONLINE", Ref("WHEN_SUPPORTED"))),
@@ -609,7 +609,7 @@ public sealed class DatabaseWriterTests
 			// DatabaseSetting: no partitions.
 			"SET a setting with partitions" => SetOf(Set("ONLINE") with { Partitions = [] }),
 			// DatabaseTermination: AFTER 5.5 is refused.
-			"SET ROLLBACK AFTER a fraction" => Alter(new AlterDatabaseAction.Set([Set("SINGLE_USER")]) { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("5.5", NumericLiteralKind.Decimal)) }),
+			"SET ROLLBACK AFTER a fraction" => Alter(new AlterDatabaseAction.Set([Set("SINGLE_USER")])) with { Termination = new Termination.RollbackAfter(new LiteralValue.Numeric("5.5", NumericLiteralKind.Decimal)) },
 			// ScopedSetting, Msg 102.
 			"SCOPED of a name it does not read" => Scoped(Set("FOO", Ref("ON"))),
 			// ScopedSetting: OFF, WHEN_SUPPORTED or FAIL_UNSUPPORTED.

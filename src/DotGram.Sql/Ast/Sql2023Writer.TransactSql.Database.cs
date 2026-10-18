@@ -16,10 +16,12 @@ public static partial class Sql2023Writer
 			switch (node)
 			{
 				// T-SQL: ALTER DATABASE (Transact-SQL). A name or CURRENT, exactly one (DatabaseTarget), and one action.
+				// The termination after the action, whichever it is (DatabaseTermination).
 				case Statement.AlterDatabase alter:
 					Word("ALTER DATABASE");
 					PutDatabaseTarget(alter, alter.Name, alter.Current);
 					PutDatabaseAction(alter.Action);
+					PutTermination(alter.Termination);
 					return true;
 
 				// T-SQL: CREATE DATABASE (Transact-SQL).
@@ -544,8 +546,15 @@ public static partial class Sql2023Writer
 					Word("PERFORM_CUTOVER");
 					break;
 
-				case AlterDatabaseAction.RebuildLog:
+				case AlterDatabaseAction.RebuildLog rebuild:
 					Word("REBUILD LOG");
+
+					if (rebuild.On is { } log)
+					{
+						Word("ON");
+						PutDatabaseFile(log);
+					}
+
 					break;
 
 				case AlterDatabaseAction.AddFile add:
@@ -563,6 +572,13 @@ public static partial class Sql2023Writer
 				case AlterDatabaseAction.AddLogFile add:
 					Word("ADD LOG FILE");
 					PutDatabaseFiles(add, add.Files);
+
+					if (add.ToFileGroup is { } logGroup)
+					{
+						Word("TO FILEGROUP");
+						PutIdentifier(logGroup);
+					}
+
 					break;
 
 				case AlterDatabaseAction.ModifyFile modify:
@@ -643,7 +659,6 @@ public static partial class Sql2023Writer
 
 					Word("SET");
 					Each(set.Options, option => PutSetting(option, DatabaseSettings, "DatabaseSetting"));
-					PutTermination(set.Termination);
 					break;
 
 				default:
