@@ -76,6 +76,7 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE TABLE t (c dbo.mytype)", "a user's type")]
 	[InlineData("CREATE TABLE t (c [sys].[char] varying (10))", "char varying written as a name")]
 	[InlineData("CREATE TABLE t (c national sys.Char varying)", "national char varying written as a name")]
+	[InlineData("CREATE TABLE t (c [sys].\"Char\" varying)", "char varying written as a quoted name")]
 	[InlineData("CREATE TABLE t (c char varying (10))", "char varying")]
 	[InlineData("CREATE TABLE t (c XML ([dbo].xsd))", "xml with a bracketed collection")]
 	[InlineData("ALTER DATABASE d MODIFY FILEGROUP g READ_ONLY WITH ROLLBACK AFTER 10 SECONDS", "a filegroup changed with a termination")]
@@ -181,6 +182,7 @@ public sealed class DdlRemainderBridgeTests
 			"a user's type" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.UserDefined { Arguments.Count: 0, Max: false } }] } },
 			"char varying written as a name" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Character { Kind: Ast.CharacterTypeKind.CharVarying, Length: 10, WrittenName: [{ Text: "[sys]" }, { Text: "[char]" }] } }] } },
 			"national char varying written as a name" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Character { Kind: Ast.CharacterTypeKind.NationalCharVarying, WrittenName: [{ Text: "sys" }, { Text: "Char" }] } }] } },
+			"char varying written as a quoted name" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Character { Kind: Ast.CharacterTypeKind.CharVarying, WrittenName: [{ Text: "[sys]" }, { Style: Ast.IdentifierStyle.Delimited }] } }] } },
 			"char varying" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Character { Kind: Ast.CharacterTypeKind.CharVarying, WrittenName: null } }] } },
 			"xml with a bracketed collection" => made is Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements { Items: [Ast.TableElement.Column { Definition.Type: Ast.DataType.Xml { Schema: [{ Text: "[dbo]" }, _] } }] } },
 			"a filegroup changed with a termination" => made is Ast.Statement.AlterDatabase { Action: Ast.AlterDatabaseAction.ModifyFileGroup, Termination: Ast.Termination.RollbackAfter { Seconds: true } },
