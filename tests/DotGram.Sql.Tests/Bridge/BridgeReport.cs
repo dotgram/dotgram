@@ -38,10 +38,14 @@ static class BridgeReport
 		grammar is switched, every construct T-SQL reads has to have a place in the new tree and be printed back by
 		`Sql2023Writer`. The bridge proves that family by family, without touching the grammar:
 
-		1. `TransactSqlParser.Located` reads a statement into the old tree;
+		1. `TransactSqlParser.Located` reads a statement into the old tree, through the internal entries that still build
+		   it (`ParseSyntax…`);
 		2. `Bridge.ToAst` carries it onto the new tree, or throws a `BridgeGap` naming the old record and why;
 		3. `TransactSqlWriter.Write` prints the new tree, refuses it, or crashes;
 		4. `TransactSqlParser` reads the text back, and the old tree it builds is held to the first.
+
+		The bridge is `src/DotGram.Sql/TransactSql/Bridge`, internal: the parser's public entries carry what they read
+		across with it, and a statement it has no place for is handed back as an extension of the new tree.
 
 		Each statement is **converted** (the same tree came back), a **gap**, **refused** by the writer (it said no:
 		`NotSupportedException`, a rejected argument or operation), **crashed** (anything else the writer threw),
