@@ -429,6 +429,16 @@ public abstract partial record Statement
 	}
 
 	/// <summary>
+	/// T-SQL: CREATE MATERIALIZED VIEW AS SELECT (Transact-SQL). <c>CREATE MATERIALIZED VIEW v [WITH (DISTRIBUTION = …,
+	/// FOR_APPEND)] AS SELECT …</c>: Synapse's view whose rows are kept.
+	/// </summary>
+	public sealed record CreateMaterializedView(QualifiedName Name, Query Query) : Statement
+	{
+		/// <summary>T-SQL: CREATE MATERIALIZED VIEW AS SELECT (Transact-SQL). <c>WITH (…)</c>, the generic option list.</summary>
+		public SqlList<Option> Options { get; init; } = [];
+	}
+
+	/// <summary>
 	/// T-SQL: CREATE JSON INDEX (Transact-SQL). <c>CREATE JSON INDEX i ON t (c) [FOR ('$.a', …)] [WITH (…)]</c>: an index
 	/// over one JSON column, and the paths it covers.
 	/// </summary>

@@ -47,6 +47,8 @@ public sealed class DdlRemainderBridgeTests
 	[InlineData("CREATE JSON INDEX ix ON dbo.t (j)", "a JSON index")]
 	[InlineData("CREATE SPATIAL INDEX i ON t (g) USING [GEOMETRY_GRID]", "a grid in brackets")]
 	[InlineData("CREATE SPATIAL INDEX i ON t (g) USING GEOMETRY_GRID", "a grid")]
+	[InlineData("CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = HASH (a), FOR_APPEND) AS SELECT a, COUNT_BIG (*) AS n FROM t GROUP BY a", "a materialized view")]
+	[InlineData("CREATE VIEW v AS SELECT a FROM t", "a view")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX sxi FOR (PATH)", "a selective index's path called PATH")]
 	[InlineData("CREATE XML INDEX i ON t (c) USING XML INDEX p FOR PATH", "a secondary index FOR PATH")]
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (p1 = '/a' AS XQUERY 'xs:string' MAXLENGTH (5) SINGLETON, p2 = '/b' AS SQL NVARCHAR (10))", "promoted paths")]
@@ -109,6 +111,8 @@ public sealed class DdlRemainderBridgeTests
 			"a JSON index" => made is Ast.Statement.CreateJsonIndex { Paths.Count: 0, Options.Count: 0 },
 			"a grid in brackets" => made is Ast.Statement.CreateSpatialIndex { Using: Ast.SpatialTessellation.GeometryGrid, UsingBracketed: true },
 			"a grid" => made is Ast.Statement.CreateSpatialIndex { Using: Ast.SpatialTessellation.GeometryGrid, UsingBracketed: false },
+			"a materialized view" => made is Ast.Statement.CreateMaterializedView { Name: [{ Text: "v" }], Options: [{ Name.Text: "DISTRIBUTION" }, { Name.Text: "FOR_APPEND", Value: null }] },
+			"a view" => made is Ast.Statement.CreateView,
 			_ => false,
 		};
 

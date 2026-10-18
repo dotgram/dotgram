@@ -220,6 +220,17 @@ public static partial class Sql2023Writer
 					PutOptions(xml.Options);
 					return true;
 
+				// T-SQL: CREATE MATERIALIZED VIEW AS SELECT (Transact-SQL). The options are OptionsWith, the generic list a
+				// table made of a query is written with.
+				case Statement.CreateMaterializedView view:
+					Word("CREATE MATERIALIZED VIEW");
+					PutName(view.Name);
+					CheckTableOptions(view, view.Options, set: false);
+					PutOptions(view.Options, multiWord: true);
+					Word("AS");
+					PutQuery(view.Query);
+					return true;
+
 				// T-SQL: CREATE JSON INDEX (Transact-SQL). One column, the paths it covers, and its five options.
 				case Statement.CreateJsonIndex json:
 					if (json.Paths.Any(static one => one is not { Kind: StringLiteralKind.Character or StringLiteralKind.National, CharacterSet: null, UnicodeEscape: null }))

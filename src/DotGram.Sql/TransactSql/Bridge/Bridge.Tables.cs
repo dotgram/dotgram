@@ -1736,16 +1736,19 @@ static partial class Bridge
 		}
 
 		/// <summary>
-		/// CREATE VIEW, ALTER VIEW, CREATE OR ALTER VIEW: the standard's view, with T-SQL's verb and attributes. A
-		/// materialized view, and a query with OPTION, are gaps.
+		/// CREATE VIEW, ALTER VIEW, CREATE OR ALTER VIEW: the standard's view, with T-SQL's verb and attributes; Synapse's
+		/// materialized view, its query and its options. A query with OPTION is a gap.
 		/// </summary>
 		static Ast.Statement View(Statement.ViewDefinition old)
 		{
-			if (old.Materialized)
-				throw BridgeGap.Open(old, "inventory Statement.ViewDefinition (CREATE MATERIALIZED VIEW, Synapse's)");
-
 			if (StatementOf(old.Body) is not Ast.Statement.Select { Hints.Count: 0 } select)
 				throw BridgeGap.Open(old, "inventory Statement.ViewDefinition (a query with OPTION, which CreateView cannot hold)");
+
+			if (old.Materialized)
+				return new Ast.Statement.CreateMaterializedView(Values.Name(old, old.Name), select.Query)
+				{
+					Options = Each(old.Options ?? [], Option),
+				};
 
 			return new Ast.Statement.CreateView
 			{
