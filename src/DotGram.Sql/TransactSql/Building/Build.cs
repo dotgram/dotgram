@@ -161,8 +161,8 @@ static partial class Build
 	{
 		var made = new object?[1];
 
-		// The walk's thread takes the context, and the reading with it; carried here as well, so that it holds where the
-		// caller keeps the context from flowing.
+		// The walk's thread takes the context and not the reading, which is carried by hand, as the parser's hand-off
+		// carries it (TransactSqlParser.OnHandingOff).
 		SqlStack.Deeper(read, (reading: SqlReading.Current, convert), made, static (node, state, result) =>
 		{
 			var outer = SqlReading.Swap(state.reading);
