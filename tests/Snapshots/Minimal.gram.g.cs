@@ -3262,6 +3262,10 @@ namespace DotGram.Snapshots
 				if (this.whole.IsEmpty)
 					throw new global::System.InsufficientExecutionStackException();
 
+				object? handed = null;
+
+				OnHandingOff(ref handed);
+
 				var deep = Deep_DotGram_Sum.Take();
 
 				deep.whole  = this.whole;
@@ -3273,8 +3277,7 @@ namespace DotGram.Snapshots
 				deep.which  = which;
 				deep.power  = power;
 
-				// What the host keeps of the reading outside it, where it asked to be told (OnHandingOff).
-				OnHandingOff(ref deep.handed);
+				deep.handed = handed;
 
 				deep.Go();
 
@@ -3676,35 +3679,47 @@ namespace DotGram.Snapshots
 
 			internal void Run()
 			{
-				OnTakingOver(ref this.handed);
+				var taken = false;
 
 				try
 				{
-					try
+					OnTakingOver(ref this.handed);
+
+					taken = true;
+
+					var reader = new Reader_DotGram_Sum(this.whole.Span, this.ways, this.whole);
+
+					reader.failure = this.failure;
+					reader.last1 = this.last1;
+					reader.probes = this.probes;
+
+					switch (this.which)
 					{
-						var reader = new Reader_DotGram_Sum(this.whole.Span, this.ways, this.whole);
-
-						reader.failure = this.failure;
-						reader.last1 = this.last1;
-						reader.probes = this.probes;
-
-						switch (this.which)
-						{
-							case 0: this.end = reader.Read_Sum_Sum(this.pos, this.power); break;
-						}
-
-						this.failure = reader.failure;
-						this.last1 = reader.last1;
-						this.probes = reader.probes;
+						case 0: this.end = reader.Read_Sum_Sum(this.pos, this.power); break;
 					}
-					catch (global::System.Exception caught)
-					{
-						this.thrown = caught;
-					}
+
+					this.failure = reader.failure;
+					this.last1 = reader.last1;
+					this.probes = reader.probes;
 				}
-				finally
+				catch (global::System.Exception caught)
+				{
+					this.thrown = caught;
+				}
+
+				// This thread's own state back, where the host's went in, whatever the reading did; a hook that throws
+				// here is carried back too, unless the reading threw first.
+				if (!taken)
+					return;
+
+				try
 				{
 					OnTakingOver(ref this.handed);
+				}
+				catch (global::System.Exception caught)
+				{
+					if (this.thrown == null)
+						this.thrown = caught;
 				}
 			}
 		}
