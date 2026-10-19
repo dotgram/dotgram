@@ -2110,6 +2110,11 @@ public sealed class TerminalInventory
 				break;
 			}
 
+			// Only where the automaton's reading of it is the rule's: what the automaton takes as
+			// an empty match or reads with a way back the rule does not have is not.
+			if (!Exact(node, node, []))
+				return null;
+
 			if (Regular(node))
 				return node;
 
@@ -2142,6 +2147,276 @@ public sealed class TerminalInventory
 				1 => read[0],
 				_ => new Node.Sequence(read),
 			};
+		}
+
+		/// <summary>
+		/// Whether the automaton reads <paramref name="node"/>, an alternative that binds nothing
+		/// with its wrappers taken off, as the rule reads it — so that a token the automaton read
+		/// whole is one the rule would have read, and need not be read again.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// The automaton approximates, always in the direction of accepting more. A guard is an
+		/// empty match to it, where the rule runs the C# and may refuse (<c>'a' &amp; when
+		/// @(…)</c> read <c>a</c> as a token the rule refuses). An atomic group is its body to it,
+		/// where the rule gives nothing back out of it: <c>{ 'a'+ } &amp; 'a'</c> refuses
+		/// <c>aa</c>, the run having taken both, where the automaton splits them. A glue, a
+		/// binding, a reference or a count by a length it reads as nothing or not at all. Any of
+		/// them anywhere in the alternative, the rules it calls included, and the token is read
+		/// again — but for one atomic shape that gives back nothing anyone would take: a run of
+		/// one character (<c>{ C+ }</c>, no upper bound) that nothing after it can begin with
+		/// (<see cref="Follow"/>), the run itself through the repetition around it excepted — a
+		/// run followed by the same run is one run. The possessive reading then takes exactly the
+		/// characters any reading would. A bounded run, <c>{ C{2,5} }</c>, can: five and one is
+		/// not three and three.
+		/// </para>
+		/// <para>
+		/// A lookahead's body is not looked into: a lookahead at the top is answered by the tags
+		/// over a superset of what it refuses, and accepting more there is the safe direction.
+		/// Choices are the business of <see cref="PrefixFree"/>, asked of every one of them.
+		/// </para>
+		/// </remarks>
+		bool Exact(Node node, Node scope, HashSet<RuleSymbol> inside)
+		{
+			switch (node)
+			{
+				case Node.Guard or Node.Glue or Node.Bind or Node.Same or Node.Counted:
+					return false;
+
+				case Node.Lookahead:
+					return true;
+
+				case Node.Atomic(Node.Repeat(var one, _, null) run) when Single(one, []):
+				{
+					var first = FirstSets.Of(one, graph);
+
+					return Follow(scope, node, FirstSets.First.None, []) is { } follow && !follow.Overlaps(first) && Exact(run, scope, inside);
+				}
+
+				case Node.Atomic(var kept):
+					return !GivesBack(kept, []) && Exact(kept, scope, inside);
+
+				case Node.Call(var called, _):
+					if (!inside.Add(called))
+						return true;
+
+					var exact = !graph.Bodies.TryGetValue(called, out var body) || Exact(body, scope, inside);
+
+					inside.Remove(called);
+
+					return exact;
+
+				default:
+					foreach (var child in node.Children)
+						if (!Exact(child, scope, inside))
+							return false;
+
+					return true;
+			}
+		}
+
+		/// <summary>Whether the node reads one character: a class, a one-character literal, or a rule that is one.</summary>
+		bool Single(Node node, HashSet<RuleSymbol> inside)
+		{
+			switch (node)
+			{
+				case Node.Element:                           return true;
+				case Node.Literal { Text.Length: 1 }:        return true;
+				case Node.Capture(_, var held):              return Single(held, inside);
+				case Node.Marked(var kept, _):               return Single(kept, inside);
+				case Node.Call(var called, { Count: 0 }):    return inside.Add(called) && graph.Bodies.TryGetValue(called, out var body) && Single(body, inside);
+				default:                                     return false;
+			}
+		}
+
+		/// <summary>Whether anything under the node, the rules it calls included, is a repetition — the one shape that gives back.</summary>
+		bool GivesBack(Node node, HashSet<RuleSymbol> inside)
+		{
+			foreach (var each in NodeWalk.Descendants(node))
+			{
+				if (each is Node.Repeat or Node.Counted)
+					return true;
+
+				if (each is Node.Call(var called, _) && inside.Add(called) && graph.Bodies.TryGetValue(called, out var body) && GivesBack(body, inside))
+					return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// What can follow <paramref name="target"/> wherever it stands under <paramref name="scope"/>:
+		/// the first characters of what comes after it, through what may match nothing, and of the
+		/// body of a repetition around it entered again — the target's own contribution to that
+		/// left out. Null where the target is not under the scope.
+		/// </summary>
+		FirstSets.First? Follow(Node scope, Node target, FirstSets.First follow, HashSet<RuleSymbol> inside)
+		{
+			if (ReferenceEquals(scope, target))
+				return follow;
+
+			switch (scope)
+			{
+				case Node.Sequence(var parts):
+				{
+					FirstSets.First? found = null;
+
+					for (var i = 0; i < parts.Count; i++)
+					{
+						if (!Holds(parts[i], target, []))
+							continue;
+
+						var after    = FirstSets.First.None;
+						var nullable = true;
+
+						for (var j = i + 1; j < parts.Count && nullable; j++)
+						{
+							after     = after.Or(FirstSets.Of(parts[j], graph));
+							nullable &= FirstSets.Nullable(parts[j], graph);
+						}
+
+						if (nullable)
+							after = after.Or(follow);
+
+						if (Follow(parts[i], target, after, inside) is { } inner)
+							found = found is null ? inner : found.Or(inner);
+					}
+
+					return found;
+				}
+
+				case Node.Choice(var alternatives):
+				{
+					FirstSets.First? found = null;
+
+					foreach (var alternative in alternatives)
+						if (Follow(alternative, target, follow, inside) is { } inner)
+							found = found is null ? inner : found.Or(inner);
+
+					return found;
+				}
+
+				case Node.Repeat(var body, _, var max):
+				{
+					var again = max == 1 ? FirstSets.First.None : FirstWithout(body, target, []).First;
+
+					return Follow(body, target, again.Or(follow), inside);
+				}
+
+				case Node.Call(var called, _):
+				{
+					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
+						return null;
+
+					var found = Follow(body, target, follow, inside);
+
+					inside.Remove(called);
+
+					return found;
+				}
+
+				case Node.Lookahead:
+					return null;
+
+				default:
+				{
+					FirstSets.First? found = null;
+
+					foreach (var child in scope.Children)
+						if (Follow(child, target, follow, inside) is { } inner)
+							found = found is null ? inner : found.Or(inner);
+
+					return found;
+				}
+			}
+		}
+
+		/// <summary>Whether the target stands under the node, the rules it calls included.</summary>
+		bool Holds(Node node, Node target, HashSet<RuleSymbol> inside)
+		{
+			foreach (var each in NodeWalk.Descendants(node))
+			{
+				if (ReferenceEquals(each, target))
+					return true;
+
+				if (each is Node.Call(var called, _) && inside.Add(called) && graph.Bodies.TryGetValue(called, out var body) && Holds(body, target, inside))
+					return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// What the node can begin with and whether it may match nothing, with <paramref name="target"/>
+		/// counted as beginning with nothing: what the body of a repetition begins with other than
+		/// through the run being asked about.
+		/// </summary>
+		(FirstSets.First First, bool Nullable) FirstWithout(Node node, Node target, HashSet<RuleSymbol> inside)
+		{
+			if (ReferenceEquals(node, target))
+				return (FirstSets.First.None, FirstSets.Nullable(node, graph));
+
+			switch (node)
+			{
+				case Node.Sequence(var parts):
+				{
+					var first    = FirstSets.First.None;
+					var nullable = true;
+
+					foreach (var part in parts)
+					{
+						if (!nullable)
+							break;
+
+						var (one, empty) = FirstWithout(part, target, inside);
+
+						first     = first.Or(one);
+						nullable &= empty;
+					}
+
+					return (first, nullable);
+				}
+
+				case Node.Choice(var alternatives):
+				{
+					var first    = FirstSets.First.None;
+					var nullable = false;
+
+					foreach (var alternative in alternatives)
+					{
+						var (one, empty) = FirstWithout(alternative, target, inside);
+
+						first     = first.Or(one);
+						nullable |= empty;
+					}
+
+					return (first, nullable);
+				}
+
+				case Node.Repeat(var body, var min, _):
+				{
+					var (first, nullable) = FirstWithout(body, target, inside);
+
+					return (first, min == 0 || nullable);
+				}
+
+				case Node.Atomic(var kept):       return FirstWithout(kept, target, inside);
+				case Node.Marked(var kept, _):    return FirstWithout(kept, target, inside);
+				case Node.Capture(_, var held):   return FirstWithout(held, target, inside);
+				case Node.Construct(var made, _): return FirstWithout(made, target, inside);
+
+				case Node.Call(var called, _) when inside.Add(called) && graph.Bodies.TryGetValue(called, out var body):
+				{
+					var found = FirstWithout(body, target, inside);
+
+					inside.Remove(called);
+
+					return found;
+				}
+
+				default:
+					return (FirstSets.Of(node, graph), FirstSets.Nullable(node, graph));
+			}
 		}
 
 		/// <summary>
