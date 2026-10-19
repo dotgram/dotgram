@@ -453,7 +453,10 @@ at the token's start, and the automaton's reading of the plain form stands. That
 the plain form's longest match, as every regular token's is; its own rule, read again, would
 give the form's first reading, and the two differ only where that form can stop short of
 its longest reading — the ordinary contract of a token, and the one reason a plain form is
-written so that it cannot.
+written so that it cannot. Such a token's value is read the same way: where the terminal
+has one plain form, a capture of a rule that builds a value, under a `=>` over its captures
+alone, the value is that rule's reading of the token, handed to the `=>` in its capture's
+place with nothing in the others'.
 
 A publication over a `TextReader` or a stream (§6.3) reads bindings as the string form does,
 bytes included. A reference compares the items where they stand in the buffer, so the buffer
