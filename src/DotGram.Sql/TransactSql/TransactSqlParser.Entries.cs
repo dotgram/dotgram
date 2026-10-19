@@ -6,11 +6,11 @@ namespace DotGram.Sql.TransactSql;
 
 // The public entries: each reads through the internal entry of the same rule (TransactSql.gram, `ParseSyntax…`), whose
 // rules build the common tree, DotGram.Sql.Ast, and hands back what was built, taken out of the records the rules hold
-// it in (TransactSql/Bridge). A refusal is the internal entry's own, at the same place with the same message. The same
+// it in (TransactSql/Building). A refusal is the internal entry's own, at the same place with the same message. The same
 // methods twice, for the plain reader and the located one, at every level the grammar publishes; both read with
 // locations, since a builder reads the words its records leave out from the text by their spans, and the plain one
 // hands back a tree that says none. Each reading is told its text and whether it publishes locations before it starts
-// (Bridge.Over).
+// (Build.Over).
 public abstract partial class TransactSqlParser
 {
 	/// <summary>Reads the whole input as a query statement (no other kind).</summary>
@@ -23,7 +23,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a query statement (no other kind), answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseSelect(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSelect(input), locate: false);
 	}
@@ -31,7 +31,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a query statement (no other kind), answering only whether it is read.</summary>
 	public static bool TryParseSelect(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSelect(input, out var old), old, false, out value);
 	}
@@ -39,7 +39,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a query statement (no other kind) from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseSelect(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSelect(input, at), locate: false);
 	}
@@ -47,7 +47,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a query statement (no other kind) from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSelect(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSelect(input, ref at, out var old), old, false, out value);
 	}
@@ -55,7 +55,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a query statement (no other kind) in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseSelect(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSelect(input, at, length), locate: false);
 	}
@@ -63,7 +63,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a query statement (no other kind) in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSelect(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSelect(input, ref at, length, out var old), old, false, out value);
 	}
@@ -78,7 +78,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a search condition, answering rather than throwing.</summary>
 	public static Match<Ast.Expression> TryParseSearchCondition(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxCondition(input), locate: false);
 	}
@@ -86,7 +86,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a search condition, answering only whether it is read.</summary>
 	public static bool TryParseSearchCondition(string input, out Ast.Expression value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxCondition(input, out var old), old, false, out value);
 	}
@@ -94,7 +94,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a search condition from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Expression> TryParseSearchCondition(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxCondition(input, at), locate: false);
 	}
@@ -102,7 +102,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a search condition from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSearchCondition(string input, ref int at, out Ast.Expression value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxCondition(input, ref at, out var old), old, false, out value);
 	}
@@ -110,7 +110,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a search condition in a window of the input.</summary>
 	public static Match<Ast.Expression> TryParseSearchCondition(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxCondition(input, at, length), locate: false);
 	}
@@ -118,7 +118,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a search condition in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSearchCondition(string input, ref int at, int length, out Ast.Expression value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxCondition(input, ref at, length, out var old), old, false, out value);
 	}
@@ -133,7 +133,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as an expression, answering rather than throwing.</summary>
 	public static Match<Ast.Expression> TryParseExpression(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxExpression(input), locate: false);
 	}
@@ -141,7 +141,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as an expression, answering only whether it is read.</summary>
 	public static bool TryParseExpression(string input, out Ast.Expression value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxExpression(input, out var old), old, false, out value);
 	}
@@ -149,7 +149,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads an expression from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Expression> TryParseExpression(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxExpression(input, at), locate: false);
 	}
@@ -157,7 +157,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads an expression from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseExpression(string input, ref int at, out Ast.Expression value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxExpression(input, ref at, out var old), old, false, out value);
 	}
@@ -165,7 +165,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads an expression in a window of the input.</summary>
 	public static Match<Ast.Expression> TryParseExpression(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxExpression(input, at, length), locate: false);
 	}
@@ -173,7 +173,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads an expression in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseExpression(string input, ref int at, int length, out Ast.Expression value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxExpression(input, ref at, length, out var old), old, false, out value);
 	}
@@ -188,7 +188,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement, answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseStatement(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement(input), locate: false);
 	}
@@ -196,7 +196,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement, answering only whether it is read.</summary>
 	public static bool TryParseStatement(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement(input, out var old), old, false, out value);
 	}
@@ -204,7 +204,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseStatement(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement(input, at), locate: false);
 	}
@@ -212,7 +212,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement(input, ref at, out var old), old, false, out value);
 	}
@@ -220,7 +220,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseStatement(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement(input, at, length), locate: false);
 	}
@@ -228,7 +228,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement(input, ref at, length, out var old), old, false, out value);
 	}
@@ -243,7 +243,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 100, answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseStatement100(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement100(input), locate: false);
 	}
@@ -251,7 +251,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 100, answering only whether it is read.</summary>
 	public static bool TryParseStatement100(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement100(input, out var old), old, false, out value);
 	}
@@ -259,7 +259,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 100 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseStatement100(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement100(input, at), locate: false);
 	}
@@ -267,7 +267,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 100 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement100(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement100(input, ref at, out var old), old, false, out value);
 	}
@@ -275,7 +275,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 100 in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseStatement100(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement100(input, at, length), locate: false);
 	}
@@ -283,7 +283,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 100 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement100(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement100(input, ref at, length, out var old), old, false, out value);
 	}
@@ -298,7 +298,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 110, answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseStatement110(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement110(input), locate: false);
 	}
@@ -306,7 +306,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 110, answering only whether it is read.</summary>
 	public static bool TryParseStatement110(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement110(input, out var old), old, false, out value);
 	}
@@ -314,7 +314,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 110 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseStatement110(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement110(input, at), locate: false);
 	}
@@ -322,7 +322,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 110 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement110(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement110(input, ref at, out var old), old, false, out value);
 	}
@@ -330,7 +330,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 110 in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseStatement110(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement110(input, at, length), locate: false);
 	}
@@ -338,7 +338,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 110 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement110(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement110(input, ref at, length, out var old), old, false, out value);
 	}
@@ -353,7 +353,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 120, answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseStatement120(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement120(input), locate: false);
 	}
@@ -361,7 +361,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 120, answering only whether it is read.</summary>
 	public static bool TryParseStatement120(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement120(input, out var old), old, false, out value);
 	}
@@ -369,7 +369,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 120 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseStatement120(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement120(input, at), locate: false);
 	}
@@ -377,7 +377,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 120 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement120(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement120(input, ref at, out var old), old, false, out value);
 	}
@@ -385,7 +385,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 120 in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseStatement120(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement120(input, at, length), locate: false);
 	}
@@ -393,7 +393,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 120 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement120(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement120(input, ref at, length, out var old), old, false, out value);
 	}
@@ -408,7 +408,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 130, answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseStatement130(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement130(input), locate: false);
 	}
@@ -416,7 +416,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 130, answering only whether it is read.</summary>
 	public static bool TryParseStatement130(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement130(input, out var old), old, false, out value);
 	}
@@ -424,7 +424,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 130 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseStatement130(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement130(input, at), locate: false);
 	}
@@ -432,7 +432,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 130 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement130(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement130(input, ref at, out var old), old, false, out value);
 	}
@@ -440,7 +440,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 130 in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseStatement130(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement130(input, at, length), locate: false);
 	}
@@ -448,7 +448,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 130 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement130(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement130(input, ref at, length, out var old), old, false, out value);
 	}
@@ -463,7 +463,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 140, answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseStatement140(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement140(input), locate: false);
 	}
@@ -471,7 +471,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 140, answering only whether it is read.</summary>
 	public static bool TryParseStatement140(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement140(input, out var old), old, false, out value);
 	}
@@ -479,7 +479,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 140 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseStatement140(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement140(input, at), locate: false);
 	}
@@ -487,7 +487,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 140 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement140(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement140(input, ref at, out var old), old, false, out value);
 	}
@@ -495,7 +495,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 140 in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseStatement140(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement140(input, at, length), locate: false);
 	}
@@ -503,7 +503,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 140 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement140(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement140(input, ref at, length, out var old), old, false, out value);
 	}
@@ -518,7 +518,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 150, answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseStatement150(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement150(input), locate: false);
 	}
@@ -526,7 +526,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 150, answering only whether it is read.</summary>
 	public static bool TryParseStatement150(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement150(input, out var old), old, false, out value);
 	}
@@ -534,7 +534,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 150 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseStatement150(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement150(input, at), locate: false);
 	}
@@ -542,7 +542,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 150 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement150(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement150(input, ref at, out var old), old, false, out value);
 	}
@@ -550,7 +550,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 150 in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseStatement150(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement150(input, at, length), locate: false);
 	}
@@ -558,7 +558,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 150 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement150(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement150(input, ref at, length, out var old), old, false, out value);
 	}
@@ -573,7 +573,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 160, answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseStatement160(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement160(input), locate: false);
 	}
@@ -581,7 +581,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 160, answering only whether it is read.</summary>
 	public static bool TryParseStatement160(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement160(input, out var old), old, false, out value);
 	}
@@ -589,7 +589,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 160 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseStatement160(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement160(input, at), locate: false);
 	}
@@ -597,7 +597,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 160 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement160(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement160(input, ref at, out var old), old, false, out value);
 	}
@@ -605,7 +605,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 160 in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseStatement160(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement160(input, at, length), locate: false);
 	}
@@ -613,7 +613,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 160 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement160(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement160(input, ref at, length, out var old), old, false, out value);
 	}
@@ -628,7 +628,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 170, answering rather than throwing.</summary>
 	public static Match<Ast.Statement> TryParseStatement170(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement170(input), locate: false);
 	}
@@ -636,7 +636,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as one statement at compatibility level 170, answering only whether it is read.</summary>
 	public static bool TryParseStatement170(string input, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement170(input, out var old), old, false, out value);
 	}
@@ -644,7 +644,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 170 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement> TryParseStatement170(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement170(input, at), locate: false);
 	}
@@ -652,7 +652,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 170 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement170(string input, ref int at, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement170(input, ref at, out var old), old, false, out value);
 	}
@@ -660,7 +660,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 170 in a window of the input.</summary>
 	public static Match<Ast.Statement> TryParseStatement170(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement170(input, at, length), locate: false);
 	}
@@ -668,7 +668,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads one statement at compatibility level 170 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseStatement170(string input, ref int at, int length, out Ast.Statement value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxStatement170(input, ref at, length, out var old), old, false, out value);
 	}
@@ -683,7 +683,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements, answering rather than throwing.</summary>
 	public static Match<Ast.Statement[]> TryParseSql(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql(input), locate: false);
 	}
@@ -691,7 +691,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements, answering only whether it is read.</summary>
 	public static bool TryParseSql(string input, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql(input, out var old), old, false, out value);
 	}
@@ -699,7 +699,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement[]> TryParseSql(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql(input, at), locate: false);
 	}
@@ -707,7 +707,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql(string input, ref int at, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql(input, ref at, out var old), old, false, out value);
 	}
@@ -715,7 +715,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements in a window of the input.</summary>
 	public static Match<Ast.Statement[]> TryParseSql(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql(input, at, length), locate: false);
 	}
@@ -723,7 +723,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql(string input, ref int at, int length, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql(input, ref at, length, out var old), old, false, out value);
 	}
@@ -738,7 +738,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 100, answering rather than throwing.</summary>
 	public static Match<Ast.Statement[]> TryParseSql100(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql100(input), locate: false);
 	}
@@ -746,7 +746,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 100, answering only whether it is read.</summary>
 	public static bool TryParseSql100(string input, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql100(input, out var old), old, false, out value);
 	}
@@ -754,7 +754,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 100 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement[]> TryParseSql100(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql100(input, at), locate: false);
 	}
@@ -762,7 +762,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 100 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql100(string input, ref int at, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql100(input, ref at, out var old), old, false, out value);
 	}
@@ -770,7 +770,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 100 in a window of the input.</summary>
 	public static Match<Ast.Statement[]> TryParseSql100(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql100(input, at, length), locate: false);
 	}
@@ -778,7 +778,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 100 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql100(string input, ref int at, int length, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql100(input, ref at, length, out var old), old, false, out value);
 	}
@@ -793,7 +793,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 110, answering rather than throwing.</summary>
 	public static Match<Ast.Statement[]> TryParseSql110(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql110(input), locate: false);
 	}
@@ -801,7 +801,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 110, answering only whether it is read.</summary>
 	public static bool TryParseSql110(string input, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql110(input, out var old), old, false, out value);
 	}
@@ -809,7 +809,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 110 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement[]> TryParseSql110(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql110(input, at), locate: false);
 	}
@@ -817,7 +817,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 110 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql110(string input, ref int at, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql110(input, ref at, out var old), old, false, out value);
 	}
@@ -825,7 +825,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 110 in a window of the input.</summary>
 	public static Match<Ast.Statement[]> TryParseSql110(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql110(input, at, length), locate: false);
 	}
@@ -833,7 +833,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 110 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql110(string input, ref int at, int length, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql110(input, ref at, length, out var old), old, false, out value);
 	}
@@ -848,7 +848,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 120, answering rather than throwing.</summary>
 	public static Match<Ast.Statement[]> TryParseSql120(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql120(input), locate: false);
 	}
@@ -856,7 +856,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 120, answering only whether it is read.</summary>
 	public static bool TryParseSql120(string input, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql120(input, out var old), old, false, out value);
 	}
@@ -864,7 +864,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 120 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement[]> TryParseSql120(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql120(input, at), locate: false);
 	}
@@ -872,7 +872,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 120 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql120(string input, ref int at, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql120(input, ref at, out var old), old, false, out value);
 	}
@@ -880,7 +880,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 120 in a window of the input.</summary>
 	public static Match<Ast.Statement[]> TryParseSql120(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql120(input, at, length), locate: false);
 	}
@@ -888,7 +888,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 120 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql120(string input, ref int at, int length, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql120(input, ref at, length, out var old), old, false, out value);
 	}
@@ -903,7 +903,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 130, answering rather than throwing.</summary>
 	public static Match<Ast.Statement[]> TryParseSql130(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql130(input), locate: false);
 	}
@@ -911,7 +911,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 130, answering only whether it is read.</summary>
 	public static bool TryParseSql130(string input, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql130(input, out var old), old, false, out value);
 	}
@@ -919,7 +919,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 130 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement[]> TryParseSql130(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql130(input, at), locate: false);
 	}
@@ -927,7 +927,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 130 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql130(string input, ref int at, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql130(input, ref at, out var old), old, false, out value);
 	}
@@ -935,7 +935,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 130 in a window of the input.</summary>
 	public static Match<Ast.Statement[]> TryParseSql130(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql130(input, at, length), locate: false);
 	}
@@ -943,7 +943,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 130 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql130(string input, ref int at, int length, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql130(input, ref at, length, out var old), old, false, out value);
 	}
@@ -958,7 +958,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 140, answering rather than throwing.</summary>
 	public static Match<Ast.Statement[]> TryParseSql140(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql140(input), locate: false);
 	}
@@ -966,7 +966,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 140, answering only whether it is read.</summary>
 	public static bool TryParseSql140(string input, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql140(input, out var old), old, false, out value);
 	}
@@ -974,7 +974,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 140 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement[]> TryParseSql140(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql140(input, at), locate: false);
 	}
@@ -982,7 +982,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 140 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql140(string input, ref int at, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql140(input, ref at, out var old), old, false, out value);
 	}
@@ -990,7 +990,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 140 in a window of the input.</summary>
 	public static Match<Ast.Statement[]> TryParseSql140(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql140(input, at, length), locate: false);
 	}
@@ -998,7 +998,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 140 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql140(string input, ref int at, int length, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql140(input, ref at, length, out var old), old, false, out value);
 	}
@@ -1013,7 +1013,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 150, answering rather than throwing.</summary>
 	public static Match<Ast.Statement[]> TryParseSql150(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql150(input), locate: false);
 	}
@@ -1021,7 +1021,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 150, answering only whether it is read.</summary>
 	public static bool TryParseSql150(string input, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql150(input, out var old), old, false, out value);
 	}
@@ -1029,7 +1029,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 150 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement[]> TryParseSql150(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql150(input, at), locate: false);
 	}
@@ -1037,7 +1037,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 150 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql150(string input, ref int at, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql150(input, ref at, out var old), old, false, out value);
 	}
@@ -1045,7 +1045,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 150 in a window of the input.</summary>
 	public static Match<Ast.Statement[]> TryParseSql150(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql150(input, at, length), locate: false);
 	}
@@ -1053,7 +1053,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 150 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql150(string input, ref int at, int length, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql150(input, ref at, length, out var old), old, false, out value);
 	}
@@ -1068,7 +1068,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 160, answering rather than throwing.</summary>
 	public static Match<Ast.Statement[]> TryParseSql160(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql160(input), locate: false);
 	}
@@ -1076,7 +1076,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 160, answering only whether it is read.</summary>
 	public static bool TryParseSql160(string input, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql160(input, out var old), old, false, out value);
 	}
@@ -1084,7 +1084,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 160 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement[]> TryParseSql160(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql160(input, at), locate: false);
 	}
@@ -1092,7 +1092,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 160 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql160(string input, ref int at, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql160(input, ref at, out var old), old, false, out value);
 	}
@@ -1100,7 +1100,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 160 in a window of the input.</summary>
 	public static Match<Ast.Statement[]> TryParseSql160(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql160(input, at, length), locate: false);
 	}
@@ -1108,7 +1108,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 160 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql160(string input, ref int at, int length, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql160(input, ref at, length, out var old), old, false, out value);
 	}
@@ -1123,7 +1123,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 170, answering rather than throwing.</summary>
 	public static Match<Ast.Statement[]> TryParseSql170(string input)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql170(input), locate: false);
 	}
@@ -1131,7 +1131,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads the whole input as a text of statements at compatibility level 170, answering only whether it is read.</summary>
 	public static bool TryParseSql170(string input, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql170(input, out var old), old, false, out value);
 	}
@@ -1139,7 +1139,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 170 from a position, not looking past what it reads.</summary>
 	public static Match<Ast.Statement[]> TryParseSql170(string input, int at)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql170(input, at), locate: false);
 	}
@@ -1147,7 +1147,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 170 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql170(string input, ref int at, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql170(input, ref at, out var old), old, false, out value);
 	}
@@ -1155,7 +1155,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 170 in a window of the input.</summary>
 	public static Match<Ast.Statement[]> TryParseSql170(string input, int at, int length)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql170(input, at, length), locate: false);
 	}
@@ -1163,7 +1163,7 @@ public abstract partial class TransactSqlParser
 	/// <summary>Reads a text of statements at compatibility level 170 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 	public static bool TryParseSql170(string input, ref int at, int length, out Ast.Statement[] value)
 	{
-		using var reading = Bridge.Over(input, false);
+		using var reading = Build.Over(input, false);
 
 		return Entries.Carry(Located.TryParseSyntaxSql170(input, ref at, length, out var old), old, false, out value);
 	}
@@ -1180,7 +1180,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a query statement (no other kind), answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseSelect(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSelect(input), locate: true);
 		}
@@ -1188,7 +1188,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a query statement (no other kind), answering only whether it is read.</summary>
 		public static bool TryParseSelect(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSelect(input, out var old), old, true, out value);
 		}
@@ -1196,7 +1196,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a query statement (no other kind) from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseSelect(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSelect(input, at), locate: true);
 		}
@@ -1204,7 +1204,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a query statement (no other kind) from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSelect(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSelect(input, ref at, out var old), old, true, out value);
 		}
@@ -1212,7 +1212,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a query statement (no other kind) in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseSelect(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSelect(input, at, length), locate: true);
 		}
@@ -1220,7 +1220,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a query statement (no other kind) in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSelect(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSelect(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1235,7 +1235,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a search condition, answering rather than throwing.</summary>
 		public static Match<Ast.Expression> TryParseSearchCondition(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxCondition(input), locate: true);
 		}
@@ -1243,7 +1243,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a search condition, answering only whether it is read.</summary>
 		public static bool TryParseSearchCondition(string input, out Ast.Expression value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxCondition(input, out var old), old, true, out value);
 		}
@@ -1251,7 +1251,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a search condition from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Expression> TryParseSearchCondition(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxCondition(input, at), locate: true);
 		}
@@ -1259,7 +1259,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a search condition from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSearchCondition(string input, ref int at, out Ast.Expression value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxCondition(input, ref at, out var old), old, true, out value);
 		}
@@ -1267,7 +1267,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a search condition in a window of the input.</summary>
 		public static Match<Ast.Expression> TryParseSearchCondition(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxCondition(input, at, length), locate: true);
 		}
@@ -1275,7 +1275,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a search condition in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSearchCondition(string input, ref int at, int length, out Ast.Expression value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxCondition(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1290,7 +1290,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as an expression, answering rather than throwing.</summary>
 		public static Match<Ast.Expression> TryParseExpression(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxExpression(input), locate: true);
 		}
@@ -1298,7 +1298,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as an expression, answering only whether it is read.</summary>
 		public static bool TryParseExpression(string input, out Ast.Expression value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxExpression(input, out var old), old, true, out value);
 		}
@@ -1306,7 +1306,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads an expression from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Expression> TryParseExpression(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxExpression(input, at), locate: true);
 		}
@@ -1314,7 +1314,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads an expression from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseExpression(string input, ref int at, out Ast.Expression value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxExpression(input, ref at, out var old), old, true, out value);
 		}
@@ -1322,7 +1322,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads an expression in a window of the input.</summary>
 		public static Match<Ast.Expression> TryParseExpression(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxExpression(input, at, length), locate: true);
 		}
@@ -1330,7 +1330,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads an expression in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseExpression(string input, ref int at, int length, out Ast.Expression value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxExpression(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1345,7 +1345,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement, answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseStatement(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement(input), locate: true);
 		}
@@ -1353,7 +1353,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement, answering only whether it is read.</summary>
 		public static bool TryParseStatement(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement(input, out var old), old, true, out value);
 		}
@@ -1361,7 +1361,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseStatement(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement(input, at), locate: true);
 		}
@@ -1369,7 +1369,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement(input, ref at, out var old), old, true, out value);
 		}
@@ -1377,7 +1377,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseStatement(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement(input, at, length), locate: true);
 		}
@@ -1385,7 +1385,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1400,7 +1400,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 100, answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseStatement100(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement100(input), locate: true);
 		}
@@ -1408,7 +1408,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 100, answering only whether it is read.</summary>
 		public static bool TryParseStatement100(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement100(input, out var old), old, true, out value);
 		}
@@ -1416,7 +1416,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 100 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseStatement100(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement100(input, at), locate: true);
 		}
@@ -1424,7 +1424,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 100 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement100(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement100(input, ref at, out var old), old, true, out value);
 		}
@@ -1432,7 +1432,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 100 in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseStatement100(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement100(input, at, length), locate: true);
 		}
@@ -1440,7 +1440,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 100 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement100(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement100(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1455,7 +1455,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 110, answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseStatement110(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement110(input), locate: true);
 		}
@@ -1463,7 +1463,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 110, answering only whether it is read.</summary>
 		public static bool TryParseStatement110(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement110(input, out var old), old, true, out value);
 		}
@@ -1471,7 +1471,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 110 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseStatement110(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement110(input, at), locate: true);
 		}
@@ -1479,7 +1479,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 110 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement110(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement110(input, ref at, out var old), old, true, out value);
 		}
@@ -1487,7 +1487,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 110 in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseStatement110(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement110(input, at, length), locate: true);
 		}
@@ -1495,7 +1495,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 110 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement110(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement110(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1510,7 +1510,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 120, answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseStatement120(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement120(input), locate: true);
 		}
@@ -1518,7 +1518,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 120, answering only whether it is read.</summary>
 		public static bool TryParseStatement120(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement120(input, out var old), old, true, out value);
 		}
@@ -1526,7 +1526,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 120 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseStatement120(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement120(input, at), locate: true);
 		}
@@ -1534,7 +1534,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 120 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement120(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement120(input, ref at, out var old), old, true, out value);
 		}
@@ -1542,7 +1542,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 120 in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseStatement120(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement120(input, at, length), locate: true);
 		}
@@ -1550,7 +1550,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 120 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement120(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement120(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1565,7 +1565,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 130, answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseStatement130(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement130(input), locate: true);
 		}
@@ -1573,7 +1573,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 130, answering only whether it is read.</summary>
 		public static bool TryParseStatement130(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement130(input, out var old), old, true, out value);
 		}
@@ -1581,7 +1581,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 130 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseStatement130(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement130(input, at), locate: true);
 		}
@@ -1589,7 +1589,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 130 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement130(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement130(input, ref at, out var old), old, true, out value);
 		}
@@ -1597,7 +1597,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 130 in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseStatement130(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement130(input, at, length), locate: true);
 		}
@@ -1605,7 +1605,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 130 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement130(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement130(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1620,7 +1620,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 140, answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseStatement140(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement140(input), locate: true);
 		}
@@ -1628,7 +1628,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 140, answering only whether it is read.</summary>
 		public static bool TryParseStatement140(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement140(input, out var old), old, true, out value);
 		}
@@ -1636,7 +1636,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 140 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseStatement140(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement140(input, at), locate: true);
 		}
@@ -1644,7 +1644,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 140 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement140(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement140(input, ref at, out var old), old, true, out value);
 		}
@@ -1652,7 +1652,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 140 in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseStatement140(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement140(input, at, length), locate: true);
 		}
@@ -1660,7 +1660,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 140 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement140(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement140(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1675,7 +1675,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 150, answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseStatement150(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement150(input), locate: true);
 		}
@@ -1683,7 +1683,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 150, answering only whether it is read.</summary>
 		public static bool TryParseStatement150(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement150(input, out var old), old, true, out value);
 		}
@@ -1691,7 +1691,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 150 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseStatement150(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement150(input, at), locate: true);
 		}
@@ -1699,7 +1699,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 150 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement150(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement150(input, ref at, out var old), old, true, out value);
 		}
@@ -1707,7 +1707,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 150 in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseStatement150(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement150(input, at, length), locate: true);
 		}
@@ -1715,7 +1715,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 150 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement150(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement150(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1730,7 +1730,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 160, answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseStatement160(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement160(input), locate: true);
 		}
@@ -1738,7 +1738,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 160, answering only whether it is read.</summary>
 		public static bool TryParseStatement160(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement160(input, out var old), old, true, out value);
 		}
@@ -1746,7 +1746,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 160 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseStatement160(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement160(input, at), locate: true);
 		}
@@ -1754,7 +1754,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 160 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement160(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement160(input, ref at, out var old), old, true, out value);
 		}
@@ -1762,7 +1762,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 160 in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseStatement160(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement160(input, at, length), locate: true);
 		}
@@ -1770,7 +1770,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 160 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement160(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement160(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1785,7 +1785,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 170, answering rather than throwing.</summary>
 		public static Match<Ast.Statement> TryParseStatement170(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement170(input), locate: true);
 		}
@@ -1793,7 +1793,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as one statement at compatibility level 170, answering only whether it is read.</summary>
 		public static bool TryParseStatement170(string input, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement170(input, out var old), old, true, out value);
 		}
@@ -1801,7 +1801,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 170 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement> TryParseStatement170(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement170(input, at), locate: true);
 		}
@@ -1809,7 +1809,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 170 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement170(string input, ref int at, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement170(input, ref at, out var old), old, true, out value);
 		}
@@ -1817,7 +1817,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 170 in a window of the input.</summary>
 		public static Match<Ast.Statement> TryParseStatement170(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement170(input, at, length), locate: true);
 		}
@@ -1825,7 +1825,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads one statement at compatibility level 170 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseStatement170(string input, ref int at, int length, out Ast.Statement value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxStatement170(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1840,7 +1840,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements, answering rather than throwing.</summary>
 		public static Match<Ast.Statement[]> TryParseSql(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql(input), locate: true);
 		}
@@ -1848,7 +1848,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements, answering only whether it is read.</summary>
 		public static bool TryParseSql(string input, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql(input, out var old), old, true, out value);
 		}
@@ -1856,7 +1856,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement[]> TryParseSql(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql(input, at), locate: true);
 		}
@@ -1864,7 +1864,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql(string input, ref int at, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql(input, ref at, out var old), old, true, out value);
 		}
@@ -1872,7 +1872,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements in a window of the input.</summary>
 		public static Match<Ast.Statement[]> TryParseSql(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql(input, at, length), locate: true);
 		}
@@ -1880,7 +1880,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql(string input, ref int at, int length, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1895,7 +1895,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 100, answering rather than throwing.</summary>
 		public static Match<Ast.Statement[]> TryParseSql100(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql100(input), locate: true);
 		}
@@ -1903,7 +1903,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 100, answering only whether it is read.</summary>
 		public static bool TryParseSql100(string input, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql100(input, out var old), old, true, out value);
 		}
@@ -1911,7 +1911,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 100 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement[]> TryParseSql100(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql100(input, at), locate: true);
 		}
@@ -1919,7 +1919,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 100 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql100(string input, ref int at, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql100(input, ref at, out var old), old, true, out value);
 		}
@@ -1927,7 +1927,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 100 in a window of the input.</summary>
 		public static Match<Ast.Statement[]> TryParseSql100(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql100(input, at, length), locate: true);
 		}
@@ -1935,7 +1935,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 100 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql100(string input, ref int at, int length, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql100(input, ref at, length, out var old), old, true, out value);
 		}
@@ -1950,7 +1950,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 110, answering rather than throwing.</summary>
 		public static Match<Ast.Statement[]> TryParseSql110(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql110(input), locate: true);
 		}
@@ -1958,7 +1958,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 110, answering only whether it is read.</summary>
 		public static bool TryParseSql110(string input, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql110(input, out var old), old, true, out value);
 		}
@@ -1966,7 +1966,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 110 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement[]> TryParseSql110(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql110(input, at), locate: true);
 		}
@@ -1974,7 +1974,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 110 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql110(string input, ref int at, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql110(input, ref at, out var old), old, true, out value);
 		}
@@ -1982,7 +1982,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 110 in a window of the input.</summary>
 		public static Match<Ast.Statement[]> TryParseSql110(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql110(input, at, length), locate: true);
 		}
@@ -1990,7 +1990,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 110 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql110(string input, ref int at, int length, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql110(input, ref at, length, out var old), old, true, out value);
 		}
@@ -2005,7 +2005,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 120, answering rather than throwing.</summary>
 		public static Match<Ast.Statement[]> TryParseSql120(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql120(input), locate: true);
 		}
@@ -2013,7 +2013,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 120, answering only whether it is read.</summary>
 		public static bool TryParseSql120(string input, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql120(input, out var old), old, true, out value);
 		}
@@ -2021,7 +2021,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 120 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement[]> TryParseSql120(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql120(input, at), locate: true);
 		}
@@ -2029,7 +2029,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 120 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql120(string input, ref int at, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql120(input, ref at, out var old), old, true, out value);
 		}
@@ -2037,7 +2037,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 120 in a window of the input.</summary>
 		public static Match<Ast.Statement[]> TryParseSql120(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql120(input, at, length), locate: true);
 		}
@@ -2045,7 +2045,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 120 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql120(string input, ref int at, int length, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql120(input, ref at, length, out var old), old, true, out value);
 		}
@@ -2060,7 +2060,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 130, answering rather than throwing.</summary>
 		public static Match<Ast.Statement[]> TryParseSql130(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql130(input), locate: true);
 		}
@@ -2068,7 +2068,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 130, answering only whether it is read.</summary>
 		public static bool TryParseSql130(string input, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql130(input, out var old), old, true, out value);
 		}
@@ -2076,7 +2076,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 130 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement[]> TryParseSql130(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql130(input, at), locate: true);
 		}
@@ -2084,7 +2084,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 130 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql130(string input, ref int at, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql130(input, ref at, out var old), old, true, out value);
 		}
@@ -2092,7 +2092,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 130 in a window of the input.</summary>
 		public static Match<Ast.Statement[]> TryParseSql130(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql130(input, at, length), locate: true);
 		}
@@ -2100,7 +2100,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 130 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql130(string input, ref int at, int length, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql130(input, ref at, length, out var old), old, true, out value);
 		}
@@ -2115,7 +2115,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 140, answering rather than throwing.</summary>
 		public static Match<Ast.Statement[]> TryParseSql140(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql140(input), locate: true);
 		}
@@ -2123,7 +2123,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 140, answering only whether it is read.</summary>
 		public static bool TryParseSql140(string input, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql140(input, out var old), old, true, out value);
 		}
@@ -2131,7 +2131,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 140 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement[]> TryParseSql140(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql140(input, at), locate: true);
 		}
@@ -2139,7 +2139,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 140 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql140(string input, ref int at, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql140(input, ref at, out var old), old, true, out value);
 		}
@@ -2147,7 +2147,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 140 in a window of the input.</summary>
 		public static Match<Ast.Statement[]> TryParseSql140(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql140(input, at, length), locate: true);
 		}
@@ -2155,7 +2155,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 140 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql140(string input, ref int at, int length, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql140(input, ref at, length, out var old), old, true, out value);
 		}
@@ -2170,7 +2170,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 150, answering rather than throwing.</summary>
 		public static Match<Ast.Statement[]> TryParseSql150(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql150(input), locate: true);
 		}
@@ -2178,7 +2178,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 150, answering only whether it is read.</summary>
 		public static bool TryParseSql150(string input, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql150(input, out var old), old, true, out value);
 		}
@@ -2186,7 +2186,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 150 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement[]> TryParseSql150(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql150(input, at), locate: true);
 		}
@@ -2194,7 +2194,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 150 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql150(string input, ref int at, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql150(input, ref at, out var old), old, true, out value);
 		}
@@ -2202,7 +2202,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 150 in a window of the input.</summary>
 		public static Match<Ast.Statement[]> TryParseSql150(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql150(input, at, length), locate: true);
 		}
@@ -2210,7 +2210,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 150 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql150(string input, ref int at, int length, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql150(input, ref at, length, out var old), old, true, out value);
 		}
@@ -2225,7 +2225,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 160, answering rather than throwing.</summary>
 		public static Match<Ast.Statement[]> TryParseSql160(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql160(input), locate: true);
 		}
@@ -2233,7 +2233,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 160, answering only whether it is read.</summary>
 		public static bool TryParseSql160(string input, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql160(input, out var old), old, true, out value);
 		}
@@ -2241,7 +2241,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 160 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement[]> TryParseSql160(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql160(input, at), locate: true);
 		}
@@ -2249,7 +2249,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 160 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql160(string input, ref int at, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql160(input, ref at, out var old), old, true, out value);
 		}
@@ -2257,7 +2257,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 160 in a window of the input.</summary>
 		public static Match<Ast.Statement[]> TryParseSql160(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql160(input, at, length), locate: true);
 		}
@@ -2265,7 +2265,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 160 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql160(string input, ref int at, int length, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql160(input, ref at, length, out var old), old, true, out value);
 		}
@@ -2280,7 +2280,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 170, answering rather than throwing.</summary>
 		public static Match<Ast.Statement[]> TryParseSql170(string input)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql170(input), locate: true);
 		}
@@ -2288,7 +2288,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads the whole input as a text of statements at compatibility level 170, answering only whether it is read.</summary>
 		public static bool TryParseSql170(string input, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql170(input, out var old), old, true, out value);
 		}
@@ -2296,7 +2296,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 170 from a position, not looking past what it reads.</summary>
 		public static Match<Ast.Statement[]> TryParseSql170(string input, int at)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql170(input, at), locate: true);
 		}
@@ -2304,7 +2304,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 170 from a position, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql170(string input, ref int at, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql170(input, ref at, out var old), old, true, out value);
 		}
@@ -2312,7 +2312,7 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 170 in a window of the input.</summary>
 		public static Match<Ast.Statement[]> TryParseSql170(string input, int at, int length)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql170(input, at, length), locate: true);
 		}
@@ -2320,60 +2320,60 @@ public abstract partial class TransactSqlParser
 		/// <summary>Reads a text of statements at compatibility level 170 in a window of the input, answering only whether it is read; <paramref name="at"/> moves past it.</summary>
 		public static bool TryParseSql170(string input, ref int at, int length, out Ast.Statement[] value)
 		{
-			using var reading = Bridge.Over(input, true);
+			using var reading = Build.Over(input, true);
 
 			return Entries.Carry(Located.TryParseSyntaxSql170(input, ref at, length, out var old), old, true, out value);
 		}
 	}
 
 	/// <summary>
-	/// What the public entries share: a reading of the T-SQL tree carried onto the common tree. Every entry reads through
-	/// the located door, since the bridge reads the words the T-SQL tree drops from the text at the old nodes' spans; the
-	/// plain door's tree is told no span.
+	/// What the public entries share: the common tree taken out of what the rules read it into. Every entry reads through
+	/// the located door, since a builder reads the words its records leave out from the text at their spans; the plain
+	/// door's tree is told no span.
 	/// </summary>
 	static class Entries
 	{
 		/// <summary>What a refusal says where the reading had nothing of its own to say.</summary>
 		const string Otherwise = "Input does not match.";
 
-		public static Match<Ast.Statement> Carry(Match<Bridge.Statement> read, bool locate)
+		public static Match<Ast.Statement> Carry(Match<Build.Statement> read, bool locate)
 		{
 			return read.IsSuccess
-				? Match<Ast.Statement>.Success(Bridge.Carried(read.Value, locate), read.Position, read.Length, read.ReadingEnd)
+				? Match<Ast.Statement>.Success(Build.Carried(read.Value, locate), read.Position, read.Length, read.ReadingEnd)
 				: read.Refusal<Ast.Statement>(read.Position, Otherwise);
 		}
 
 		public static Match<Ast.Expression> Carry(Match<Ast.Expression> read, bool locate)
 		{
 			return read.IsSuccess
-				? Match<Ast.Expression>.Success(Bridge.Carried(read.Value, locate), read.Position, read.Length, read.ReadingEnd)
+				? Match<Ast.Expression>.Success(Build.Carried(read.Value, locate), read.Position, read.Length, read.ReadingEnd)
 				: read.Refusal<Ast.Expression>(read.Position, Otherwise);
 		}
 
-		public static Match<Ast.Statement[]> Carry(Match<Bridge.Statement[]> read, bool locate)
+		public static Match<Ast.Statement[]> Carry(Match<Build.Statement[]> read, bool locate)
 		{
 			return read.IsSuccess
-				? Match<Ast.Statement[]>.Success(Bridge.Carried(read.Value, locate), read.Position, read.Length, read.ReadingEnd)
+				? Match<Ast.Statement[]>.Success(Build.Carried(read.Value, locate), read.Position, read.Length, read.ReadingEnd)
 				: read.Refusal<Ast.Statement[]>(read.Position, Otherwise);
 		}
 
-		public static bool Carry(bool read, Bridge.Statement old, bool locate, out Ast.Statement value)
+		public static bool Carry(bool read, Build.Statement old, bool locate, out Ast.Statement value)
 		{
-			value = read ? Bridge.Carried(old, locate) : null!;
+			value = read ? Build.Carried(old, locate) : null!;
 
 			return read;
 		}
 
 		public static bool Carry(bool read, Ast.Expression old, bool locate, out Ast.Expression value)
 		{
-			value = read ? Bridge.Carried(old, locate) : null!;
+			value = read ? Build.Carried(old, locate) : null!;
 
 			return read;
 		}
 
-		public static bool Carry(bool read, Bridge.Statement[] old, bool locate, out Ast.Statement[] value)
+		public static bool Carry(bool read, Build.Statement[] old, bool locate, out Ast.Statement[] value)
 		{
-			value = read ? Bridge.Carried(old, locate) : null!;
+			value = read ? Build.Carried(old, locate) : null!;
 
 			return read;
 		}

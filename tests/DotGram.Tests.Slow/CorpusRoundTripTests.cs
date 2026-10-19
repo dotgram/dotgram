@@ -190,7 +190,7 @@ public sealed class CorpusRoundTripTests(ITestOutputHelper output)
 	];
 
 	/// <summary>How a known difference fails, which it must go on doing to be excused.</summary>
-	/// <param name="How">The bridge's gap, the writer's refusal of a tree, or a printing ScriptDom reads otherwise.</param>
+	/// <param name="How">The rules' gap, the writer's refusal of a tree, or a printing ScriptDom reads otherwise.</param>
 	/// <param name="Says">
 	/// A piece of the gap's reason, the name of the writer's exception, or a piece of ScriptDom's printing of what this
 	/// grammar read.
@@ -199,7 +199,7 @@ public sealed class CorpusRoundTripTests(ITestOutputHelper output)
 
 	enum Failure { Gap, Refused, Printed }
 
-	/// <summary>An extension of the bridge's, whose reason says <paramref name="reason"/>, which the writer refuses.</summary>
+	/// <summary>An extension of the rules', whose reason says <paramref name="reason"/>, which the writer refuses.</summary>
 	static Expected Gap(string reason)
 	{
 		return new Expected(Failure.Gap, reason);

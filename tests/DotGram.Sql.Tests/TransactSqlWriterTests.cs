@@ -214,7 +214,7 @@ public sealed class TransactSqlWriterTests
 
 	/// <summary>
 	/// Every place whose grammar reads a key word into a name or value slot writes it through PutKeyWord: the text, read
-	/// and carried by the bridge, is written back as it was and reads as the same tree.
+	/// is written back as it was and reads as the same tree.
 	/// </summary>
 	[Theory]
 	[InlineData("CREATE INDEX i ON t (a) WITH (PAD_INDEX = ON, FILLFACTOR = 80)")]
@@ -465,12 +465,12 @@ public sealed class TransactSqlWriterTests
 	}
 
 	/// <summary>
-	/// A type with a number too large for an int is a system type of its own name for the bridge, and so for the writer; and the
-	/// arguments the standard's record takes are the same two places' fact: for each type, the bridge builds <c>Named</c> exactly when the
+	/// A type with a number too large for an int is a system type of its own name for the rules, and so for the writer; and the
+	/// arguments the standard's record takes are the same two places' fact: for each type, the rules build <c>Named</c> exactly when the
 	/// writer writes one.
 	/// </summary>
 	[Fact]
-	public void The_arguments_the_standard_takes_are_the_bridge_s()
+	public void The_arguments_the_standard_takes_are_the_rules_s()
 	{
 		var text = "DECLARE @a char(99999999999)";
 		var tree = Read(text);
@@ -481,20 +481,20 @@ public sealed class TransactSqlWriterTests
 		var table = (Dictionary<string, int>)text2.GetField("StandardTypeArguments", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
 		var wrong = new List<string>();
 
-		foreach (var type in Bridge.Values.SystemTypes.Where(static one => one is not ("xml" or "table" or "cursor")))
+		foreach (var type in Build.Values.SystemTypes.Where(static one => one is not ("xml" or "table" or "cursor")))
 			for (var count = 0; count <= 2; count++)
 			{
 				var arguments = string.Join(", ", Enumerable.Range(1, count));
 				var named     = new DotGram.Sql.Ast.DataType.Named(Q(Plain(type)), SqlList.From(Enumerable.Range(1, count).Select(static one => (Expression)new LiteralValue.Numeric(one.ToString(), NumericLiteralKind.DecimalInteger)).ToArray()));
 				var select    = new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.Cast(new Expression.Reference(Q(Plain("a"))), named))] } };
 
-				bool bridge;
+				bool built;
 
 				try
 				{
-					bridge = Bridge.Values.Type(new object(), type + (count == 0 ? "" : "(" + arguments + ")")) is DotGram.Sql.Ast.DataType.Named;
+					built = Build.Values.Type(new object(), type + (count == 0 ? "" : "(" + arguments + ")")) is DotGram.Sql.Ast.DataType.Named;
 				}
-				catch (BridgeGap)
+				catch (BuildGap)
 				{
 					continue;
 				}
@@ -511,8 +511,8 @@ public sealed class TransactSqlWriterTests
 					writes = false;
 				}
 
-				if (bridge != writes)
-					wrong.Add($"{type}({arguments}): the bridge builds Named: {bridge}, the writer writes it: {writes}");
+				if (built != writes)
+					wrong.Add($"{type}({arguments}): the rules build Named: {built}, the writer writes it: {writes}");
 			}
 
 		Assert.NotEmpty(table);
@@ -522,18 +522,18 @@ public sealed class TransactSqlWriterTests
 	// ── System types ──────────────────────────────────────────────────────────────
 
 	/// <summary>
-	/// The writer's system types are the bridge's, both ways: a type written by one of these names reads back as that type, and any
+	/// The writer's system types are the rules', both ways: a type written by one of these names reads back as that type, and any
 	/// other name as a user-defined type, so the two lists have to agree.
 	/// </summary>
 	[Fact]
-	public void The_system_types_are_the_bridge_s()
+	public void The_system_types_are_the_rules_s()
 	{
 		var text  = typeof(Sql2023Writer).GetNestedType("Text", BindingFlags.NonPublic)!;
 		var field = text.GetField("TransactSqlSystemTypes", BindingFlags.NonPublic | BindingFlags.Static)!;
 		var types = (HashSet<string>)field.GetValue(null)!;
 
-		Assert.Empty(types.Except(Bridge.Values.SystemTypes, StringComparer.OrdinalIgnoreCase));
-		Assert.Empty(Bridge.Values.SystemTypes.Except(types, StringComparer.OrdinalIgnoreCase));
+		Assert.Empty(types.Except(Build.Values.SystemTypes, StringComparer.OrdinalIgnoreCase));
+		Assert.Empty(Build.Values.SystemTypes.Except(types, StringComparer.OrdinalIgnoreCase));
 	}
 
 	/// <summary>

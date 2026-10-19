@@ -194,7 +194,7 @@ public sealed class DropWriterTests
 	}
 
 	/// <summary>
-	/// Each record's tree, written and read back by TransactSqlParser, carried by the bridge to the same tree.
+	/// Each record's tree, written and read back by TransactSqlParser, as the same tree.
 	/// </summary>
 	[Theory]
 	[InlineData("Aggregate")]

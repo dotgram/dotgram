@@ -317,7 +317,7 @@ public sealed class BrokerWriterTests
 		Assert.Equal(Texts[which].Text, TransactSqlWriter.Write(Texts[which].Tree));
 	}
 
-	/// <summary>Each tree written and read back by TransactSqlParser, carried by the bridge to the same tree.</summary>
+	/// <summary>Each tree written and read back by TransactSqlParser, as the same tree.</summary>
 	[Theory]
 	[MemberData(nameof(TreeNames))]
 	public void Each_statement_reads_back_as_itself(string which)

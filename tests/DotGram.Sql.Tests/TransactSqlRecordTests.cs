@@ -32,7 +32,7 @@ public sealed class TransactSqlRecordTests
 	[InlineData("s.db.dbo.t",  "t|t|t|t")]
 	public void A_name_is_split_into_its_parts(string text, string styles)
 	{
-		var name = Bridge.Values.Name("test", text);
+		var name = Build.Values.Name("test", text);
 
 		Assert.Equal(text, string.Join('.', name.Parts.Select(static one => one.Text)));
 		Assert.Equal(styles, string.Join('|', name.Parts.Select(static one => one.Style switch
@@ -125,19 +125,19 @@ public sealed class TransactSqlRecordTests
 	[InlineData("character")]
 	public void A_system_type_is_named_however_quoted(string name)
 	{
-		Assert.Contains(name, Bridge.Values.SystemTypes);
+		Assert.Contains(name, Build.Values.SystemTypes);
 
 		var written = new Ast.QualifiedName([new Ast.Identifier("[" + name + "]", Ast.IdentifierStyle.Bracketed)]);
-		var type    = Bridge.Values.Type(new object(), "[" + name + "]");
+		var type    = Build.Values.Type(new object(), "[" + name + "]");
 
-		if (Bridge.Values.StandardWords.Contains(name) || name == "vector")
-			Assert.Equal(Bridge.Values.Type(new object(), name) with { WrittenName = written }, type);
+		if (Build.Values.StandardWords.Contains(name) || name == "vector")
+			Assert.Equal(Build.Values.Type(new object(), name) with { WrittenName = written }, type);
 		else
 			Assert.Equal(new Ast.DataType.Named(written, []), type);
 	}
 
 	/// <summary>
-	/// Which record and member the bridge builds for a data change statement's T-SQL parts: what the round trip
+	/// Which record and member the rules build for a data change statement's T-SQL parts: what the round trip
 	/// cannot see where another record would write the same text.
 	/// </summary>
 	[Theory]
@@ -167,7 +167,7 @@ public sealed class TransactSqlRecordTests
 	[InlineData("WRITETEXT BULK t.c @p TIMESTAMP = 0x0A WITH LOG",                 "WriteText")]
 	[InlineData("UPDATETEXT t.c @p NULL -1 WITH LOG u.d @q",                       "UpdateText source")]
 	[InlineData("MERGE INTO t USING u ON t.a = u.a WHEN NOT MATCHED BY SOURCE AND t.b = 1 THEN UPDATE SET b = 2 WHEN NOT MATCHED BY TARGET THEN INSERT DEFAULT VALUES;", "Merge.BySource ByTarget DefaultValues")]
-	public void The_bridge_builds_the_data_change_record_the_text_means(string text, string expected)
+	public void The_rules_build_the_data_change_record_the_text_means(string text, string expected)
 	{
 		var made = TransactSqlParser.Located.ParseStatement(text);
 
@@ -267,7 +267,7 @@ public sealed class TransactSqlRecordTests
 	}
 
 	/// <summary>
-	/// Which record and member the bridge builds for the table statements' T-SQL parts, the DROP list grouped by its
+	/// Which record and member the rules build for the table statements' T-SQL parts, the DROP list grouped by its
 	/// words both ways, and that each converts.
 	/// </summary>
 	[Theory]
@@ -302,7 +302,7 @@ public sealed class TransactSqlRecordTests
 	[InlineData("CREATE TABLE t (a VARCHAR(10) COLLATE Latin1_General_BIN)", "Type collated")]
 	[InlineData("CREATE TABLE t (a INT, PRIMARY KEY (a))", "Plain key")]
 	[InlineData("CREATE TABLE t (a INT) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = [dbo 2].[t history]))", "Option a bracketed name with a blank")]
-	public void The_bridge_builds_the_table_record_the_text_means(string text, string expected)
+	public void The_rules_build_the_table_record_the_text_means(string text, string expected)
 	{
 		var made = TransactSqlParser.Located.ParseStatement(text);
 
@@ -408,7 +408,7 @@ public sealed class TransactSqlRecordTests
 	}
 
 	/// <summary>
-	/// Which record the bridge builds for the indexes, full-text indexes, views, statistics, types, sequences and
+	/// Which record the rules build for the indexes, full-text indexes, views, statistics, types, sequences and
 	/// synonyms, where another record writes the same text, and that each converts.
 	/// </summary>
 	[Theory]
@@ -450,7 +450,7 @@ public sealed class TransactSqlRecordTests
 	[InlineData("CREATE SEQUENCE s CACHE 10 NO CYCLE",                                                                                                                                    "Sequence cache")]
 	[InlineData("CREATE SEQUENCE s NO CACHE",                                                                                                                                             "Sequence no cache")]
 	[InlineData("CREATE SYNONYM s FOR srv.db.dbo.t",                                                                                                                                      "Synonym")]
-	public void The_bridge_builds_the_definition_record_the_text_means(string text, string expected)
+	public void The_rules_build_the_definition_record_the_text_means(string text, string expected)
 	{
 		var made = TransactSqlParser.Located.ParseStatement(text);
 
@@ -582,11 +582,11 @@ public sealed class TransactSqlRecordTests
 	{
 		Assert.Equal(
 			new Ast.DataType.Xml() { WrittenName = new Ast.QualifiedName([new Ast.Identifier("sys"), new Ast.Identifier("xml")]) },
-			Bridge.Values.Type(new object(), "sys.xml"));
+			Build.Values.Type(new object(), "sys.xml"));
 	}
 
 	/// <summary>
-	/// Which record the bridge builds where the written text would be the same for another: what the round trip
+	/// Which record the rules build where the written text would be the same for another: what the round trip
 	/// cannot see.
 	/// </summary>
 	[Theory]
@@ -619,7 +619,7 @@ public sealed class TransactSqlRecordTests
 	[InlineData("SELECT JSON_QUERY (a)",                              "Expression.JsonQuery { no path }")]
 	[InlineData("SELECT JSON_QUERY (a, '$.x' WITH ARRAY WRAPPER)",    "Expression.JsonQuery { WithArray }")]
 	[InlineData("SELECT ISJSON (a)",                                  "Expression.Invocation ISJSON")]
-	public void The_bridge_builds_the_record_the_text_means(string text, string expected)
+	public void The_rules_build_the_record_the_text_means(string text, string expected)
 	{
 		var made  = (Ast.Statement.Select)TransactSqlParser.Located.ParseStatement(text);
 		var value = ((Ast.SelectColumn.ExpressionItem)((Ast.Query.Select)made.Query).Columns[0]).Expression;
@@ -699,7 +699,7 @@ public sealed class TransactSqlRecordTests
 	}
 
 	/// <summary>
-	/// Which record the bridge builds for a query's T-SQL parts where another record would write the same text.
+	/// Which record the rules build for a query's T-SQL parts where another record would write the same text.
 	/// </summary>
 	[Theory]
 	[InlineData("SELECT * FROM @t AS x",                                  "TableSource.Variable")]
@@ -733,7 +733,7 @@ public sealed class TransactSqlRecordTests
 	[InlineData("SELECT * FROM CHANGETABLE (VERSION t, (a, b), (1, 2)) AS c", "TableSource.ChangeTableVersion")]
 	[InlineData("SELECT * FROM CONTAINSTABLE (t, PROPERTY (c, 'Title'), 'x', LANGUAGE 1033, 10) AS k", "TableSource.ContainsTable")]
 	[InlineData("SELECT * FROM FREETEXTTABLE (t, (*), @s, 5) AS k",       "TableSource.FreetextTable")]
-	public void The_bridge_builds_the_query_record_the_text_means(string text, string expected)
+	public void The_rules_build_the_query_record_the_text_means(string text, string expected)
 	{
 		var made   = (Ast.Statement.Select)TransactSqlParser.Located.ParseStatement(text);
 		var select = (Ast.Query.Select)made.Query;
@@ -829,7 +829,7 @@ public sealed class TransactSqlRecordTests
 	}
 
 	/// <summary>
-	/// A schema's owner is one name; what follows it is a schema element the old tree keeps as text, and the bridge reads it
+	/// A schema's owner is one name; what follows it is a schema element kept as text, which the rules read
 	/// again as a statement.
 	/// </summary>
 	[Theory]

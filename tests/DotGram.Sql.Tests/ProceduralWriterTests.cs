@@ -254,7 +254,7 @@ public sealed class ProceduralWriterTests
 	}
 
 	/// <summary>
-	/// Each record's tree, written and read back by TransactSqlParser, carried by the bridge to the same tree. A natively
+	/// Each record's tree, written and read back by TransactSqlParser, as the same tree. A natively
 	/// compiled block reads only as a procedure's body, so it is read inside one.
 	/// </summary>
 	[Theory]
@@ -530,7 +530,7 @@ public sealed class ProceduralWriterTests
 			"an OFFSETS word not in the list" => Options(new SetOption.Offsets(Name("WHERE"), true)),
 			// SetExpressions: IDENTITY_INSERT stands alone, Msg 102.
 			"IDENTITY_INSERT beside another" => Options(new SetOption.IdentityInsert(new QualifiedName([Name("t")]), true), new SetOption.IdentityInsert(new QualifiedName([Name("u")]), true)),
-			// SettingValue reads the word, which the bridge keeps in capitals.
+			// SettingValue reads the word, which the rules keep in capitals.
 			"a value named in small letters" => Options(Val("datefirst", One)),
 			// SettingValue, Msg 195.
 			"a value not in the list" => Options(Val("NO_SUCH", One)),

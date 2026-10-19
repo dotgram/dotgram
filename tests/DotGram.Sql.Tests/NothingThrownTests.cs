@@ -12,9 +12,9 @@ using Ast = DotGram.Sql.Ast;
 namespace DotGram.Sql.Tests;
 
 /// <summary>
-/// No public <c>Try</c> entry of <see cref="TransactSqlParser"/> throws: a text is read, carried across to the common
-/// tree with a gap where it has no place yet, or refused. Held over the corpus and over the shapes that once reached a
-/// throw out of the bridge: a result set that is more than columns, a statement holding one inside a script that is then
+/// No public <c>Try</c> entry of <see cref="TransactSqlParser"/> throws: a text is read into the common tree, with an
+/// extension where it has no place yet, or refused. Held over the corpus and over the shapes that once reached a throw
+/// on the way to the common tree: a result set that is more than columns, a statement holding one inside a script that is then
 /// refused, a comment between the words of what is dropped, a comment inside a type the writer cannot print, and a line
 /// comment among the words a statement keeps as text.
 /// </summary>

@@ -150,8 +150,7 @@ Fixed: SqlStandardParser read a string literal through a simple comment: `'a' --
 		     (tests/DotGram.Sql.Productions): the included rules call Nodes and Towers. -->
 		<InternalsVisibleTo Include="DotGram.Sql.Productions" />
 
-		<!-- For the tests that hold the bridge from the old T-SQL tree to the new one by its round trip; the bridge is
-		     internal and goes when the grammar builds the new tree itself. -->
+		<!-- For the tests that hold T-SQL's builders (TransactSql/Building) and the old T-SQL tree, both internal. -->
 		<InternalsVisibleTo Include="DotGram.Sql.Tests" />
 	</ItemGroup>
 

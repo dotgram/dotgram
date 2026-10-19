@@ -15519,7 +15519,7 @@ public sealed class TransactSqlTests
 
 	/// <summary>
 	/// What is dropped is said by its words, and a comment between them is no part of it: read as the words say, where the
-	/// bridge threw.
+	/// conversion to the common tree once threw.
 	/// </summary>
 	[Fact]
 	public void A_comment_between_the_words_of_what_is_dropped_is_no_part_of_them()
@@ -15538,7 +15538,7 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
-	/// Forms the common tree has no place for yet, which the bridge reports as a gap — the statement an extension that says
+	/// Forms the common tree has no place for yet, which the rules report as a gap — the statement an extension that says
 	/// why — where it threw: a result set of more than columns each with its type, read as a table's body is; a type with
 	/// a comment inside, which the writer cannot print to compare
 	/// with what was written; a line comment among the words a statement keeps as text, which the writer does not print
@@ -15559,7 +15559,7 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
-	/// A part the bridge reads again from a text of its own — a value as `SELECT value`, a condition as `SELECT 1 WHERE`,
+	/// A part the rules read again from a text of their own — a value as `SELECT value`, a condition as `SELECT 1 WHERE`,
 	/// an order as `SELECT 1 ORDER BY` — holding a source whose conversion checks the source's own text (a hint written
 	/// against its sample): read without locations, as it always was, so that the check, which needs a span, is not made
 	/// and the statement is read as before, through either door, alone and in a text of statements.

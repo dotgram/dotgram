@@ -256,7 +256,7 @@ public static partial class Sql2023Writer
 		/// <summary>
 		/// T-SQL's system types, as of SQL Server 2025, and the one-word synonyms: a closed list, compared without case and without a
 		/// name's delimiters. A type written by one of these names is <see cref="DataType.Named"/> (or the standard's own record), and
-		/// any other name is <see cref="DataType.UserDefined"/>; <c>TransactSqlWriterTests</c> holds the list to the bridge's.
+		/// any other name is <see cref="DataType.UserDefined"/>; <c>TransactSqlWriterTests</c> holds the list to the rules' (TransactSql/Building).
 		/// </summary>
 		internal static readonly HashSet<string> TransactSqlSystemTypes = new(StringComparer.OrdinalIgnoreCase)
 		{

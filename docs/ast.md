@@ -1,11 +1,11 @@
 # The tree
 
-`src/DotGram.Sql/SqlSyntax.cs` holds the tree T-SQL is read into —
-`TransactSql.gram`'s rules build it, and `Sql92Parser` built it too before it moved to the SQL:2023 tree.
-`TransactSqlParser` no longer hands it back: each entry carries it across to the SQL:2023 tree
-(`src/DotGram.Sql/TransactSql/Bridge`) until the rules build that tree themselves. This is what is
-in it and where each node comes from; the SQL:2023 tree it is to be reshaped into is
-`design/sql-ast.md`'s.
+`src/DotGram.Sql/SqlSyntax.cs` holds the tree T-SQL was read into —
+`TransactSql.gram`'s rules built it, and `Sql92Parser` built it too before it moved to the SQL:2023 tree.
+No parser builds it any more: `TransactSql.gram`'s rules build the SQL:2023 tree in their actions
+(`src/DotGram.Sql/TransactSql/Building`), and the old tree stays, with its writer, until nothing
+refers to it. This is what is in it and where each node came from; the SQL:2023 tree it was reshaped
+into is `design/sql-ast.md`'s.
 
 ## The rule
 

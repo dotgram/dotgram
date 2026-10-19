@@ -36,11 +36,13 @@ namespace DotGram.Sql.TransactSql;
 // `Auto` asks would keep this grammar on the tape (about half of its building rules are read for
 // derivations the parse may give up), and that is what the request costs: a construction runs for
 // a reading that is then abandoned, and an exception thrown there escapes the publication. Here
-// none can. The factories (SqlSyntax.cs) build records from what they are given and read no host
-// state; the dialect's version is a binding fixed at compile time and whether a reading locates is
-// a flag of the call, so a discarded derivation leaves nothing behind that a later one could read.
-// The entries' actions carry the whole reading onto the common tree (TransactSql/Bridge), and a
-// construct with no place there yet is an Extension node rather than an exception.
+// none can. The builders (TransactSql/Building) make the common tree's nodes from what they are
+// given, and a part with no place there yet is a gap they hold rather than an exception they let
+// out; what else they read — the reading's text and whether it publishes locations — is set before
+// the reading starts and does not change during it. The dialect's version is a binding fixed at
+// compile time and whether a reading locates is a flag of the call, so a discarded derivation
+// leaves nothing behind that a later one could read. The entries hand back the common tree, and a
+// construct with no place there yet as an Extension node.
 // Held to the tape by an agreement run over the ScriptDom corpus, each statement whole and cut,
 // every string of the tests, every accepted text cut at each word boundary and given a stray
 // token, through the plain and the located door: the same trees, the same messages, nothing thrown.

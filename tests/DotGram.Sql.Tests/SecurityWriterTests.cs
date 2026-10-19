@@ -144,7 +144,7 @@ public sealed class SecurityWriterTests
 	}
 
 	/// <summary>
-	/// Each statement's tree, written and read back by TransactSqlParser, carried by the bridge to the same tree.
+	/// Each statement's tree, written and read back by TransactSqlParser, as the same tree.
 	/// </summary>
 	[Theory]
 	[InlineData("Grant")]
@@ -347,7 +347,7 @@ public sealed class SecurityWriterTests
 	}
 
 	/// <summary>
-	/// Each statement's tree, written and read back by TransactSqlParser, carried by the bridge to the same tree.
+	/// Each statement's tree, written and read back by TransactSqlParser, as the same tree.
 	/// </summary>
 	[Theory]
 	[InlineData("Create role")]
@@ -713,7 +713,7 @@ public sealed class SecurityWriterTests
 	}
 
 	/// <summary>
-	/// Each statement's tree, written and read back by TransactSqlParser, carried by the bridge to the same tree.
+	/// Each statement's tree, written and read back by TransactSqlParser, as the same tree.
 	/// </summary>
 	[Theory]
 	[InlineData("Create asymmetric key")]

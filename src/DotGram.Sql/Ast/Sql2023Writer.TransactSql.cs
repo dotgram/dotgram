@@ -2,7 +2,7 @@
 
 namespace DotGram.Sql.Ast;
 
-// T-SQL's nodes are written by one file a family, as the bridge carries them (tests/DotGram.Sql.Tests/Bridge):
+// T-SQL's nodes are written by one file a family, as the rules build them (TransactSql/Building):
 // Sql2023Writer.TransactSql.<Family>.cs, each with a TryPut<Family> that writes the nodes it owns and says no
 // to the rest. The central switches of the standard's writer — a literal, a data type, an expression, a table
 // source, a statement — ask them in turn before they refuse, so that a family is filled in its own file without

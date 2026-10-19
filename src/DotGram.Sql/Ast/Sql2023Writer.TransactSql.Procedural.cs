@@ -614,7 +614,7 @@ public static partial class Sql2023Writer
 							throw Misplaced(option, "Options", "beside settings given values (SetExpressions)");
 
 						if (value.Option.Style != IdentifierStyle.Regular || !SetValues.TryGetValue(value.Option.Text, out var takes))
-							throw Misplaced(value, "Option", "that is not one of SettingValue's names, written in capitals as the bridge reads them");
+							throw Misplaced(value, "Option", "that is not one of SettingValue's names, written in capitals as the grammar reads them");
 
 						// FIPS_FLAGGER OFF stands alone, and so do the three names SetExpressions reads apart.
 						var off = value.Option.Text == "FIPS_FLAGGER" && value.Argument is Expression.Reference { Name: [{ Text: "OFF", Style: IdentifierStyle.Regular }] };
