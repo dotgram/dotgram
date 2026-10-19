@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 namespace DotGram.Finance.Fix.Fix42;
 
@@ -43,17 +44,19 @@ public abstract class FixCustomMessage : FixMessage
 	{
 	}
 
-	// Whether a finding may be added now: only while the reader hands the fields to Place, and while
-	// OnValidate runs. A message is not changed by anything else once it has been read. Each scope puts
-	// back what it found, so that a Place that validates the message keeps its own permission after it.
-	bool _adding;
+	// How many scopes in which a finding may be added are open now: the reader handing the fields to
+	// Place, and OnValidate running. A message is not changed by anything else once it has been read. A
+	// count rather than a flag, so that a Place that validates the message keeps its own permission after
+	// it; changed with Interlocked, so that two Validate calls on one message from two threads, which can
+	// both run the check, still leave it closed when both have returned.
+	int _adding;
 
 	/// <summary>Adds one finding to this message: from <see cref="Place"/> while it is read, or from <see cref="OnValidate"/> while it is validated.</summary>
 	/// <param name="finding">What is wrong.</param>
 	/// <exception cref="InvalidOperationException">Called at any other time: what reading found is not changed after the message has been read.</exception>
 	protected new void AddFinding(FixFinding finding)
 	{
-		if (!_adding)
+		if (Volatile.Read(ref _adding) == 0)
 			throw new InvalidOperationException("A finding is added to a message only from Place, while it is read, or from OnValidate, while it is validated.");
 
 		base.AddFinding(finding);
@@ -61,9 +64,7 @@ public abstract class FixCustomMessage : FixMessage
 
 	private protected sealed override void Check(Fix42Context context)
 	{
-		var adding = _adding;
-
-		_adding = true;
+		Interlocked.Increment(ref _adding);
 
 		try
 		{
@@ -71,18 +72,17 @@ public abstract class FixCustomMessage : FixMessage
 		}
 		finally
 		{
-			_adding = adding;
+			Interlocked.Decrement(ref _adding);
 		}
 	}
 
 	// Called by the reader once the factory has built the message: the type and the fields it was read with.
 	internal FixCustomMessage Read(string type, List<FixField> fields)
 	{
-		var adding = _adding;
-
 		MessageType = type;
 		Fields      = fields;
-		_adding     = true;
+
+		Interlocked.Increment(ref _adding);
 
 		try
 		{
@@ -92,7 +92,7 @@ public abstract class FixCustomMessage : FixMessage
 		}
 		finally
 		{
-			_adding = adding;
+			Interlocked.Decrement(ref _adding);
 		}
 
 		return this;

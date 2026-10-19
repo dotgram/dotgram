@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Threading;
 
 using DotGram.Finance.Fix;
 using DotGram.Finance.Fix.Fix44;
@@ -279,6 +281,76 @@ public sealed class FixCustomFieldsTests
 
 		Assert.Throws<FormatException>(() => nested.Validate(context));
 		Assert.Throws<InvalidOperationException>(() => nested.Report(new FixFinding(FixRule.RequiredFieldMissing, 25011, 0, null, -1)));
+	}
+
+	// A message whose OnValidate runs on two threads at once, the first leaving it before the second does:
+	// the order in which a saved-and-restored flag would be left open.
+	sealed class VenueRace : FixCustomMessage
+	{
+		static readonly TimeSpan Limit = TimeSpan.FromSeconds(30);
+
+		readonly Barrier              _both      = new(2);
+		readonly ManualResetEventSlim _firstDone = new();
+		int                           _entered;
+
+		public Thread? Second   { get; private set; }
+		public bool    SecondOk { get; private set; }
+
+		protected override void OnValidate(Fix44Context context)
+		{
+			if (Interlocked.Increment(ref _entered) == 1)
+			{
+				// Two threads can both pass the check that a message has been validated; the test lets the
+				// second one in deterministically rather than waiting for that race to happen.
+				typeof(FixMessage).GetField("_validated", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(this, false);
+
+				Second = new Thread(() => ValidateSecond(context));
+				Second.Start();
+
+				Assert.True(_both.SignalAndWait(Limit));
+			}
+			else
+			{
+				SecondOk = _both.SignalAndWait(Limit) && _firstDone.Wait(Limit);
+			}
+		}
+
+		// Nothing on the second thread may throw: an exception there would end the test process.
+		void ValidateSecond(Fix44Context context)
+		{
+			try
+			{
+				Validate(context);
+			}
+			catch (Exception)
+			{
+				SecondOk = false;
+			}
+		}
+
+		public void FirstDone()
+		{
+			_firstDone.Set();
+		}
+
+		public void Report(FixFinding finding)
+		{
+			AddFinding(finding);
+		}
+	}
+
+	[Fact]
+	public void Two_threads_validating_one_custom_message_leave_it_closed_to_findings()
+	{
+		var context = new Fix44Context { FixMessageFactory = type => type == "U5" ? new VenueRace() : null }.Load(Venue);
+		var race    = Assert.IsType<VenueRace>(FixParser.ParseMessage(Framed("35=U5|49=A|56=B|34=1|52=20260919-12:00:00|"), context));
+
+		race.Validate(context);
+		race.FirstDone();
+
+		Assert.True(race.Second!.Join(TimeSpan.FromSeconds(30)));
+		Assert.True(race.SecondOk);
+		Assert.Throws<InvalidOperationException>(() => race.Report(new FixFinding(FixRule.RequiredFieldMissing, 25011, 0, null, -1)));
 	}
 
 	[Fact]
