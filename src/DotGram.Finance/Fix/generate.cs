@@ -829,6 +829,12 @@ sealed class Writer
 		return $"The FIX {f.Name}, tag {f.Tag}, wire type <c>{Wire(f.Tag)}</c>; null when the field is absent.";
 	}
 
+	// The first field of an entry, which the reader builds the entry with: never absent.
+	public string DelimiterDoc(Field f)
+	{
+		return $"The FIX {f.Name}, tag {f.Tag}, wire type <c>{Wire(f.Tag)}</c>: the entry's delimiter, its first field, which every entry has.";
+	}
+
 	public static string ListDoc(Group g)
 	{
 		return $"The entries counted by {g.Counter.Name}, tag {g.Counter.Tag}; null when the group is absent.";
@@ -847,12 +853,16 @@ sealed class Writer
 			{
 				var field = (Field)m;
 
-				outLines.Add($"{pad}/// <summary>{docFunc(field)}</summary>");
-
 				if (opener != null && field.Tag == opener.Tag)
-					outLines.Add($"{pad}public required {field.TypeName} {field.Name} {{ get; init; }}");
+				{
+					outLines.Add($"{pad}/// <summary>{DelimiterDoc(field)}</summary>");
+					outLines.Add($"{pad}public {field.TypeName} {field.Name} {{ get; }}");
+				}
 				else
+				{
+					outLines.Add($"{pad}/// <summary>{docFunc(field)}</summary>");
 					outLines.Add($"{pad}public {field.TypeName}? {field.Name} {{ get; {setter}; }}");
+				}
 			}
 			else
 			{
@@ -882,6 +892,11 @@ sealed class Writer
 			$"{pad}/// <summary>One entry of the group counted by {g.Counter.Name}, tag {g.Counter.Tag}.</summary>",
 			head,
 			pad + "{",
+			$"{pad}\tinternal {e.Name}({e.Opener.TypeName} delimiter)",
+			$"{pad}\t{{",
+			$"{pad}\t\t{e.Opener.Name} = delimiter;",
+			$"{pad}\t}}",
+			"",
 		};
 
 		outLines.AddRange(ClassBody(e.Members, indent + 1, "internal set", e.Opener));
@@ -960,7 +975,7 @@ sealed class Writer
 					// The first entry of a group whose counter has not been read is entries nothing counts:
 					// said once, at the entry, by the counter's tag.
 					var uncounted = $"if ({target} is null && {holder}{group.Counter.Name} is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, {group.Counter.Const}, field.Position, field, -1));";
-					var add       = $"({target} ??= []).Add(new () {{ {opener.Name} = ({opener.TypeName})field }});";
+					var add       = $"({target} ??= []).Add(new (({opener.TypeName})field));";
 
 					if (lists.Count == 0)
 					{

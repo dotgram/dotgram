@@ -231,8 +231,13 @@ public interface IInstrument
 	/// <summary>One entry of the group counted by NoSecurityAltID, tag 454.</summary>
 	public sealed class NoSecurityAltIDGroup
 	{
-		/// <summary>The FIX SecurityAltID, tag 455, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text SecurityAltID { get; init; }
+		internal NoSecurityAltIDGroup(FixField.Text delimiter)
+		{
+			SecurityAltID = delimiter;
+		}
+
+		/// <summary>The FIX SecurityAltID, tag 455, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text SecurityAltID { get; }
 
 		/// <summary>The FIX SecurityAltIDSource, tag 456, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? SecurityAltIDSource { get; internal set; }
@@ -241,8 +246,13 @@ public interface IInstrument
 	/// <summary>One entry of the group counted by NoEvents, tag 864.</summary>
 	public sealed class NoEventsGroup
 	{
-		/// <summary>The FIX EventType, tag 865, wire type <c>int</c>; null when the field is absent.</summary>
-		public required FixField.Integer EventType { get; init; }
+		internal NoEventsGroup(FixField.Integer delimiter)
+		{
+			EventType = delimiter;
+		}
+
+		/// <summary>The FIX EventType, tag 865, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Integer EventType { get; }
 
 		/// <summary>The FIX EventDate, tag 866, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 		public FixField.Date? EventDate { get; internal set; }
@@ -274,8 +284,13 @@ public interface IInstrumentExtension
 	/// <summary>One entry of the group counted by NoInstrAttrib, tag 870.</summary>
 	public sealed class NoInstrAttribGroup
 	{
-		/// <summary>The FIX InstrAttribType, tag 871, wire type <c>int</c>; null when the field is absent.</summary>
-		public required FixField.Integer InstrAttribType { get; init; }
+		internal NoInstrAttribGroup(FixField.Integer delimiter)
+		{
+			InstrAttribType = delimiter;
+		}
+
+		/// <summary>The FIX InstrAttribType, tag 871, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Integer InstrAttribType { get; }
 
 		/// <summary>The FIX InstrAttribValue, tag 872, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? InstrAttribValue { get; internal set; }
@@ -418,8 +433,13 @@ public interface IInstrumentLeg
 	/// <summary>One entry of the group counted by NoLegSecurityAltID, tag 604.</summary>
 	public sealed class NoLegSecurityAltIDGroup
 	{
-		/// <summary>The FIX LegSecurityAltID, tag 605, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text LegSecurityAltID { get; init; }
+		internal NoLegSecurityAltIDGroup(FixField.Text delimiter)
+		{
+			LegSecurityAltID = delimiter;
+		}
+
+		/// <summary>The FIX LegSecurityAltID, tag 605, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text LegSecurityAltID { get; }
 
 		/// <summary>The FIX LegSecurityAltIDSource, tag 606, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? LegSecurityAltIDSource { get; internal set; }
@@ -459,8 +479,13 @@ public interface ILegStipulations
 	/// <summary>One entry of the group counted by NoLegStipulations, tag 683.</summary>
 	public sealed class NoLegStipulationsGroup
 	{
-		/// <summary>The FIX LegStipulationType, tag 688, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text LegStipulationType { get; init; }
+		internal NoLegStipulationsGroup(FixField.Text delimiter)
+		{
+			LegStipulationType = delimiter;
+		}
+
+		/// <summary>The FIX LegStipulationType, tag 688, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text LegStipulationType { get; }
 
 		/// <summary>The FIX LegStipulationValue, tag 689, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? LegStipulationValue { get; internal set; }
@@ -480,8 +505,13 @@ public interface INestedParties
 	/// <summary>One entry of the group counted by NoNestedPartyIDs, tag 539.</summary>
 	public sealed class NoNestedPartyIDsGroup
 	{
-		/// <summary>The FIX NestedPartyID, tag 524, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text NestedPartyID { get; init; }
+		internal NoNestedPartyIDsGroup(FixField.Text delimiter)
+		{
+			NestedPartyID = delimiter;
+		}
+
+		/// <summary>The FIX NestedPartyID, tag 524, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text NestedPartyID { get; }
 
 		/// <summary>The FIX NestedPartyIDSource, tag 525, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? NestedPartyIDSource { get; internal set; }
@@ -498,8 +528,13 @@ public interface INestedParties
 		/// <summary>One entry of the group counted by NoNestedPartySubIDs, tag 804.</summary>
 		public sealed class NoNestedPartySubIDsGroup
 		{
-			/// <summary>The FIX NestedPartySubID, tag 545, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text NestedPartySubID { get; init; }
+			internal NoNestedPartySubIDsGroup(FixField.Text delimiter)
+			{
+				NestedPartySubID = delimiter;
+			}
+
+			/// <summary>The FIX NestedPartySubID, tag 545, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text NestedPartySubID { get; }
 
 			/// <summary>The FIX NestedPartySubIDType, tag 805, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? NestedPartySubIDType { get; internal set; }
@@ -520,8 +555,13 @@ public interface INestedParties2
 	/// <summary>One entry of the group counted by NoNested2PartyIDs, tag 756.</summary>
 	public sealed class NoNested2PartyIDsGroup
 	{
-		/// <summary>The FIX Nested2PartyID, tag 757, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text Nested2PartyID { get; init; }
+		internal NoNested2PartyIDsGroup(FixField.Text delimiter)
+		{
+			Nested2PartyID = delimiter;
+		}
+
+		/// <summary>The FIX Nested2PartyID, tag 757, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text Nested2PartyID { get; }
 
 		/// <summary>The FIX Nested2PartyIDSource, tag 758, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Nested2PartyIDSource { get; internal set; }
@@ -538,8 +578,13 @@ public interface INestedParties2
 		/// <summary>One entry of the group counted by NoNested2PartySubIDs, tag 806.</summary>
 		public sealed class NoNested2PartySubIDsGroup
 		{
-			/// <summary>The FIX Nested2PartySubID, tag 760, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text Nested2PartySubID { get; init; }
+			internal NoNested2PartySubIDsGroup(FixField.Text delimiter)
+			{
+				Nested2PartySubID = delimiter;
+			}
+
+			/// <summary>The FIX Nested2PartySubID, tag 760, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text Nested2PartySubID { get; }
 
 			/// <summary>The FIX Nested2PartySubIDType, tag 807, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Nested2PartySubIDType { get; internal set; }
@@ -560,8 +605,13 @@ public interface INestedParties3
 	/// <summary>One entry of the group counted by NoNested3PartyIDs, tag 948.</summary>
 	public sealed class NoNested3PartyIDsGroup
 	{
-		/// <summary>The FIX Nested3PartyID, tag 949, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text Nested3PartyID { get; init; }
+		internal NoNested3PartyIDsGroup(FixField.Text delimiter)
+		{
+			Nested3PartyID = delimiter;
+		}
+
+		/// <summary>The FIX Nested3PartyID, tag 949, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text Nested3PartyID { get; }
 
 		/// <summary>The FIX Nested3PartyIDSource, tag 950, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Nested3PartyIDSource { get; internal set; }
@@ -578,8 +628,13 @@ public interface INestedParties3
 		/// <summary>One entry of the group counted by NoNested3PartySubIDs, tag 952.</summary>
 		public sealed class NoNested3PartySubIDsGroup
 		{
-			/// <summary>The FIX Nested3PartySubID, tag 953, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text Nested3PartySubID { get; init; }
+			internal NoNested3PartySubIDsGroup(FixField.Text delimiter)
+			{
+				Nested3PartySubID = delimiter;
+			}
+
+			/// <summary>The FIX Nested3PartySubID, tag 953, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text Nested3PartySubID { get; }
 
 			/// <summary>The FIX Nested3PartySubIDType, tag 954, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Nested3PartySubIDType { get; internal set; }
@@ -620,8 +675,13 @@ public interface IParties
 	/// <summary>One entry of the group counted by NoPartyIDs, tag 453.</summary>
 	public sealed class NoPartyIDsGroup
 	{
-		/// <summary>The FIX PartyID, tag 448, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text PartyID { get; init; }
+		internal NoPartyIDsGroup(FixField.Text delimiter)
+		{
+			PartyID = delimiter;
+		}
+
+		/// <summary>The FIX PartyID, tag 448, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text PartyID { get; }
 
 		/// <summary>The FIX PartyIDSource, tag 447, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? PartyIDSource { get; internal set; }
@@ -638,8 +698,13 @@ public interface IParties
 		/// <summary>One entry of the group counted by NoPartySubIDs, tag 802.</summary>
 		public sealed class NoPartySubIDsGroup
 		{
-			/// <summary>The FIX PartySubID, tag 523, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text PartySubID { get; init; }
+			internal NoPartySubIDsGroup(FixField.Text delimiter)
+			{
+				PartySubID = delimiter;
+			}
+
+			/// <summary>The FIX PartySubID, tag 523, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text PartySubID { get; }
 
 			/// <summary>The FIX PartySubIDType, tag 803, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? PartySubIDType { get; internal set; }
@@ -683,8 +748,13 @@ public interface IPositionAmountData
 	/// <summary>One entry of the group counted by NoPosAmt, tag 753.</summary>
 	public sealed class NoPosAmtGroup
 	{
-		/// <summary>The FIX PosAmtType, tag 707, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text PosAmtType { get; init; }
+		internal NoPosAmtGroup(FixField.Text delimiter)
+		{
+			PosAmtType = delimiter;
+		}
+
+		/// <summary>The FIX PosAmtType, tag 707, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text PosAmtType { get; }
 
 		/// <summary>The FIX PosAmt, tag 708, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public FixField.Decimal? PosAmt { get; internal set; }
@@ -704,8 +774,13 @@ public interface IPositionQty
 	/// <summary>One entry of the group counted by NoPositions, tag 702.</summary>
 	public sealed class NoPositionsGroup : INestedParties
 	{
-		/// <summary>The FIX PosType, tag 703, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text PosType { get; init; }
+		internal NoPositionsGroup(FixField.Text delimiter)
+		{
+			PosType = delimiter;
+		}
+
+		/// <summary>The FIX PosType, tag 703, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text PosType { get; }
 
 		/// <summary>The FIX LongQty, tag 704, wire type <c>Qty</c>; null when the field is absent.</summary>
 		public FixField.Decimal? LongQty { get; internal set; }
@@ -749,8 +824,13 @@ public interface ISettlInstructionsData
 	/// <summary>One entry of the group counted by NoDlvyInst, tag 85.</summary>
 	public sealed class NoDlvyInstGroup : ISettlParties
 	{
-		/// <summary>The FIX SettlInstSource, tag 165, wire type <c>char</c>; null when the field is absent.</summary>
-		public required FixField.Character SettlInstSource { get; init; }
+		internal NoDlvyInstGroup(FixField.Character delimiter)
+		{
+			SettlInstSource = delimiter;
+		}
+
+		/// <summary>The FIX SettlInstSource, tag 165, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Character SettlInstSource { get; }
 
 		/// <summary>The FIX DlvyInstType, tag 787, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? DlvyInstType { get; internal set; }
@@ -776,8 +856,13 @@ public interface ISettlParties
 	/// <summary>One entry of the group counted by NoSettlPartyIDs, tag 781.</summary>
 	public sealed class NoSettlPartyIDsGroup
 	{
-		/// <summary>The FIX SettlPartyID, tag 782, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text SettlPartyID { get; init; }
+		internal NoSettlPartyIDsGroup(FixField.Text delimiter)
+		{
+			SettlPartyID = delimiter;
+		}
+
+		/// <summary>The FIX SettlPartyID, tag 782, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text SettlPartyID { get; }
 
 		/// <summary>The FIX SettlPartyIDSource, tag 783, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SettlPartyIDSource { get; internal set; }
@@ -794,8 +879,13 @@ public interface ISettlParties
 		/// <summary>One entry of the group counted by NoSettlPartySubIDs, tag 801.</summary>
 		public sealed class NoSettlPartySubIDsGroup
 		{
-			/// <summary>The FIX SettlPartySubID, tag 785, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text SettlPartySubID { get; init; }
+			internal NoSettlPartySubIDsGroup(FixField.Text delimiter)
+			{
+				SettlPartySubID = delimiter;
+			}
+
+			/// <summary>The FIX SettlPartySubID, tag 785, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text SettlPartySubID { get; }
 
 			/// <summary>The FIX SettlPartySubIDType, tag 786, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? SettlPartySubIDType { get; internal set; }
@@ -845,8 +935,13 @@ public interface IStipulations
 	/// <summary>One entry of the group counted by NoStipulations, tag 232.</summary>
 	public sealed class NoStipulationsGroup
 	{
-		/// <summary>The FIX StipulationType, tag 233, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text StipulationType { get; init; }
+		internal NoStipulationsGroup(FixField.Text delimiter)
+		{
+			StipulationType = delimiter;
+		}
+
+		/// <summary>The FIX StipulationType, tag 233, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text StipulationType { get; }
 
 		/// <summary>The FIX StipulationValue, tag 234, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? StipulationValue { get; internal set; }
@@ -866,8 +961,13 @@ public interface ITrdRegTimestamps
 	/// <summary>One entry of the group counted by NoTrdRegTimestamps, tag 768.</summary>
 	public sealed class NoTrdRegTimestampsGroup
 	{
-		/// <summary>The FIX TrdRegTimestamp, tag 769, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public required FixField.Timestamp TrdRegTimestamp { get; init; }
+		internal NoTrdRegTimestampsGroup(FixField.Timestamp delimiter)
+		{
+			TrdRegTimestamp = delimiter;
+		}
+
+		/// <summary>The FIX TrdRegTimestamp, tag 769, wire type <c>UTCTimestamp</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Timestamp TrdRegTimestamp { get; }
 
 		/// <summary>The FIX TrdRegTimestampType, tag 770, wire type <c>int</c>; null when the field is absent.</summary>
 		public FixField.Integer? TrdRegTimestampType { get; internal set; }
@@ -1025,8 +1125,13 @@ public interface IUnderlyingInstrument : IUnderlyingStipulations
 	/// <summary>One entry of the group counted by NoUnderlyingSecurityAltID, tag 457.</summary>
 	public sealed class NoUnderlyingSecurityAltIDGroup
 	{
-		/// <summary>The FIX UnderlyingSecurityAltID, tag 458, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text UnderlyingSecurityAltID { get; init; }
+		internal NoUnderlyingSecurityAltIDGroup(FixField.Text delimiter)
+		{
+			UnderlyingSecurityAltID = delimiter;
+		}
+
+		/// <summary>The FIX UnderlyingSecurityAltID, tag 458, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text UnderlyingSecurityAltID { get; }
 
 		/// <summary>The FIX UnderlyingSecurityAltIDSource, tag 459, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? UnderlyingSecurityAltIDSource { get; internal set; }
@@ -1046,8 +1151,13 @@ public interface IUnderlyingStipulations
 	/// <summary>One entry of the group counted by NoUnderlyingStips, tag 887.</summary>
 	public sealed class NoUnderlyingStipsGroup
 	{
-		/// <summary>The FIX UnderlyingStipType, tag 888, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text UnderlyingStipType { get; init; }
+		internal NoUnderlyingStipsGroup(FixField.Text delimiter)
+		{
+			UnderlyingStipType = delimiter;
+		}
+
+		/// <summary>The FIX UnderlyingStipType, tag 888, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text UnderlyingStipType { get; }
 
 		/// <summary>The FIX UnderlyingStipValue, tag 889, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? UnderlyingStipValue { get; internal set; }

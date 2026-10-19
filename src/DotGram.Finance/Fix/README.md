@@ -134,7 +134,9 @@ and trailer's included: `order.OrderQty` is a `FixField.Decimal?`, null when the
 component's fields are properties of whatever carries it, which implements the component's
 interface (`IInstrument`). A repeating group is named for its counter: the list `<Counter>Groups`
 beside its counter, of entries of the class `<Counter>Group` nested in what carries it —
-`order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup`. `Fields` is the whole message in wire
+`order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup`. An entry begins with its delimiter, the
+group's first field, so that property is never null (`party.PartyID`); entries are built by the
+reader, and have no public constructor. `Fields` is the whole message in wire
 order, the fields of every group included.
 
 `ParseMessage` reads one complete message and throws `FormatException` where it cannot;

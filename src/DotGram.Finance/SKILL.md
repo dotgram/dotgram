@@ -160,7 +160,8 @@ switch (message)
   characters fitted it. A repeating group is named for its counter: the list
   `<Counter>Groups` beside its counter, of entries of the class `<Counter>Group` nested in
   what carries it — `order.NoPartyIDsGroups`, of `IParties.NoPartyIDsGroup` — and an entry
-  reads the same way.
+  reads the same way. Its delimiter, the group's first field, is never null
+  (`party.PartyID`); only the reader builds entries.
 - The standard header and trailer are properties of every message, and `Fields` is the whole
   message in wire order, the fields of every group included.
 - `ParseMessage` throws `FormatException`; `TryParseMessage` returns false with a

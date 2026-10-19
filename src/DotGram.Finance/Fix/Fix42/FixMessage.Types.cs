@@ -186,7 +186,7 @@ public abstract partial class FixMessage
 					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
 						if (NoOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
-						(NoOrdersGroups ??= []).Add(new () { ClOrdID = (FixField.Text)field });
+						(NoOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.OrderID:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
@@ -223,7 +223,7 @@ public abstract partial class FixMessage
 					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
 					case FixTag.LastQty:
 						if (NoExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
-						(NoExecsGroups ??= []).Add(new () { LastShares = (FixField.Decimal)field });
+						(NoExecsGroups ??= []).Add(new ((FixField.Decimal)field));
 						break;
 					case FixTag.ExecID:
 						if (NoExecsGroups is null || NoExecsGroups.Count == 0)
@@ -290,7 +290,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocPrice:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -474,7 +474,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoAllocsGroups![^1].NoMiscFeesGroups is null && NoAllocsGroups![^1].NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
-							(NoAllocsGroups![^1].NoMiscFeesGroups ??= []).Add(new () { MiscFeeAmt = (FixField.Decimal)field });
+							(NoAllocsGroups![^1].NoMiscFeesGroups ??= []).Add(new ((FixField.Decimal)field));
 						}
 						break;
 					case FixTag.MiscFeeCurr:
@@ -653,8 +653,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
 		public sealed class NoOrdersGroup
 		{
-			/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text ClOrdID { get; init; }
+			internal NoOrdersGroup(FixField.Text delimiter)
+			{
+				ClOrdID = delimiter;
+			}
+
+			/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text ClOrdID { get; }
 
 			/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? OrderID { get; internal set; }
@@ -672,8 +677,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoExecs, tag 124.</summary>
 		public sealed class NoExecsGroup
 		{
-			/// <summary>The FIX LastShares, tag 32, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public required FixField.Decimal LastShares { get; init; }
+			internal NoExecsGroup(FixField.Decimal delimiter)
+			{
+				LastShares = delimiter;
+			}
+
+			/// <summary>The FIX LastShares, tag 32, wire type <c>Qty</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Decimal LastShares { get; }
 
 			/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? ExecID { get; internal set; }
@@ -688,8 +698,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
 		public sealed class NoAllocsGroup
 		{
-			/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text AllocAccount { get; init; }
+			internal NoAllocsGroup(FixField.Text delimiter)
+			{
+				AllocAccount = delimiter;
+			}
+
+			/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text AllocAccount { get; }
 
 			/// <summary>The FIX AllocPrice, tag 366, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocPrice { get; internal set; }
@@ -763,8 +778,13 @@ public abstract partial class FixMessage
 			/// <summary>One entry of the group counted by NoMiscFees, tag 136.</summary>
 			public sealed class NoMiscFeesGroup
 			{
-				/// <summary>The FIX MiscFeeAmt, tag 137, wire type <c>Amt</c>; null when the field is absent.</summary>
-				public required FixField.Decimal MiscFeeAmt { get; init; }
+				internal NoMiscFeesGroup(FixField.Decimal delimiter)
+				{
+					MiscFeeAmt = delimiter;
+				}
+
+				/// <summary>The FIX MiscFeeAmt, tag 137, wire type <c>Amt</c>: the entry's delimiter, its first field, which every entry has.</summary>
+				public FixField.Decimal MiscFeeAmt { get; }
 
 				/// <summary>The FIX MiscFeeCurr, tag 138, wire type <c>Currency</c>; null when the field is absent.</summary>
 				public FixField.Text? MiscFeeCurr { get; internal set; }
@@ -869,7 +889,7 @@ public abstract partial class FixMessage
 					case FixTag.NoBidDescriptors: if (NoBidDescriptors is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoBidDescriptors = (FixField.Integer)field; break;
 					case FixTag.BidDescriptorType:
 						if (NoBidDescriptorsGroups is null && NoBidDescriptors is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoBidDescriptors, field.Position, field, -1));
-						(NoBidDescriptorsGroups ??= []).Add(new () { BidDescriptorType = (FixField.Integer)field });
+						(NoBidDescriptorsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.BidDescriptor:
 						if (NoBidDescriptorsGroups is null || NoBidDescriptorsGroups.Count == 0)
@@ -954,7 +974,7 @@ public abstract partial class FixMessage
 					case FixTag.NoBidComponents: if (NoBidComponents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoBidComponents = (FixField.Integer)field; break;
 					case FixTag.ListID:
 						if (NoBidComponentsGroups is null && NoBidComponents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoBidComponents, field.Position, field, -1));
-						(NoBidComponentsGroups ??= []).Add(new () { ListID = (FixField.Text)field });
+						(NoBidComponentsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.Side:
 						if (NoBidComponentsGroups is null || NoBidComponentsGroups.Count == 0)
@@ -1127,8 +1147,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoBidDescriptors, tag 398.</summary>
 		public sealed class NoBidDescriptorsGroup
 		{
-			/// <summary>The FIX BidDescriptorType, tag 399, wire type <c>int</c>; null when the field is absent.</summary>
-			public required FixField.Integer BidDescriptorType { get; init; }
+			internal NoBidDescriptorsGroup(FixField.Integer delimiter)
+			{
+				BidDescriptorType = delimiter;
+			}
+
+			/// <summary>The FIX BidDescriptorType, tag 399, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Integer BidDescriptorType { get; }
 
 			/// <summary>The FIX BidDescriptor, tag 400, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? BidDescriptor { get; internal set; }
@@ -1164,8 +1189,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoBidComponents, tag 420.</summary>
 		public sealed class NoBidComponentsGroup
 		{
-			/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text ListID { get; init; }
+			internal NoBidComponentsGroup(FixField.Text delimiter)
+			{
+				ListID = delimiter;
+			}
+
+			/// <summary>The FIX ListID, tag 66, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text ListID { get; }
 
 			/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? Side { get; internal set; }
@@ -1207,7 +1237,7 @@ public abstract partial class FixMessage
 					case FixTag.NoBidComponents: if (NoBidComponents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoBidComponents = (FixField.Integer)field; break;
 					case FixTag.Commission:
 						if (NoBidComponentsGroups is null && NoBidComponents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoBidComponents, field.Position, field, -1));
-						(NoBidComponentsGroups ??= []).Add(new () { Commission = (FixField.Decimal)field });
+						(NoBidComponentsGroups ??= []).Add(new ((FixField.Decimal)field));
 						break;
 					case FixTag.CommType:
 						if (NoBidComponentsGroups is null || NoBidComponentsGroups.Count == 0)
@@ -1346,8 +1376,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoBidComponents, tag 420.</summary>
 		public sealed class NoBidComponentsGroup
 		{
-			/// <summary>The FIX Commission, tag 12, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public required FixField.Decimal Commission { get; init; }
+			internal NoBidComponentsGroup(FixField.Decimal delimiter)
+			{
+				Commission = delimiter;
+			}
+
+			/// <summary>The FIX Commission, tag 12, wire type <c>Amt</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Decimal Commission { get; }
 
 			/// <summary>The FIX CommType, tag 13, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? CommType { get; internal set; }
@@ -1617,7 +1652,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
 						if (NoRoutingIDsGroups is null && NoRoutingIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRoutingIDs, field.Position, field, -1));
-						(NoRoutingIDsGroups ??= []).Add(new () { RoutingType = (FixField.Integer)field });
+						(NoRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
 						if (NoRoutingIDsGroups is null || NoRoutingIDsGroups.Count == 0)
@@ -1630,7 +1665,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.RelatdSym:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { RelatdSym = (FixField.Text)field });
+						(NoRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -1781,7 +1816,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
 						if (LinesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLinesOfText, field.Position, field, -1));
-						(LinesOfTextGroups ??= []).Add(new () { Text = (FixField.Text)field });
+						(LinesOfTextGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.EncodedTextLen:
 						if (LinesOfTextGroups is null || LinesOfTextGroups.Count == 0)
@@ -1862,8 +1897,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoRoutingIDs, tag 215.</summary>
 		public sealed class NoRoutingIDsGroup
 		{
-			/// <summary>The FIX RoutingType, tag 216, wire type <c>int</c>; null when the field is absent.</summary>
-			public required FixField.Integer RoutingType { get; init; }
+			internal NoRoutingIDsGroup(FixField.Integer delimiter)
+			{
+				RoutingType = delimiter;
+			}
+
+			/// <summary>The FIX RoutingType, tag 216, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Integer RoutingType { get; }
 
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
@@ -1872,8 +1912,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
 		public sealed class NoRelatedSymGroup
 		{
-			/// <summary>The FIX RelatdSym, tag 46, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text RelatdSym { get; init; }
+			internal NoRelatedSymGroup(FixField.Text delimiter)
+			{
+				RelatdSym = delimiter;
+			}
+
+			/// <summary>The FIX RelatdSym, tag 46, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text RelatdSym { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SymbolSfx { get; internal set; }
@@ -1933,8 +1978,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by LinesOfText, tag 33.</summary>
 		public sealed class LinesOfTextGroup
 		{
-			/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text Text { get; init; }
+			internal LinesOfTextGroup(FixField.Text delimiter)
+			{
+				Text = delimiter;
+			}
+
+			/// <summary>The FIX Text, tag 58, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text Text { get; }
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
 			public FixField.Integer? EncodedTextLen { get; internal set; }
@@ -1968,7 +2018,7 @@ public abstract partial class FixMessage
 					case FixTag.NoContraBrokers: if (NoContraBrokers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoContraBrokers = (FixField.Integer)field; break;
 					case FixTag.ContraBroker:
 						if (NoContraBrokersGroups is null && NoContraBrokers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoContraBrokers, field.Position, field, -1));
-						(NoContraBrokersGroups ??= []).Add(new () { ContraBroker = (FixField.Text)field });
+						(NoContraBrokersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.ContraTrader:
 						if (NoContraBrokersGroups is null || NoContraBrokersGroups.Count == 0)
@@ -2371,8 +2421,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoContraBrokers, tag 382.</summary>
 		public sealed class NoContraBrokersGroup
 		{
-			/// <summary>The FIX ContraBroker, tag 375, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text ContraBroker { get; init; }
+			internal NoContraBrokersGroup(FixField.Text delimiter)
+			{
+				ContraBroker = delimiter;
+			}
+
+			/// <summary>The FIX ContraBroker, tag 375, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text ContraBroker { get; }
 
 			/// <summary>The FIX ContraTrader, tag 337, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? ContraTrader { get; internal set; }
@@ -2462,7 +2517,7 @@ public abstract partial class FixMessage
 					case FixTag.NoIOIQualifiers: if (NoIOIQualifiers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoIOIQualifiers = (FixField.Integer)field; break;
 					case FixTag.IOIQualifier:
 						if (NoIOIQualifiersGroups is null && NoIOIQualifiers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoIOIQualifiers, field.Position, field, -1));
-						(NoIOIQualifiersGroups ??= []).Add(new () { IOIQualifier = (FixField.Character)field });
+						(NoIOIQualifiersGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
 					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
@@ -2472,7 +2527,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
 						if (NoRoutingIDsGroups is null && NoRoutingIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRoutingIDs, field.Position, field, -1));
-						(NoRoutingIDsGroups ??= []).Add(new () { RoutingType = (FixField.Integer)field });
+						(NoRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
 						if (NoRoutingIDsGroups is null || NoRoutingIDsGroups.Count == 0)
@@ -2617,15 +2672,25 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoIOIQualifiers, tag 199.</summary>
 		public sealed class NoIOIQualifiersGroup
 		{
-			/// <summary>The FIX IOIQualifier, tag 104, wire type <c>char</c>; null when the field is absent.</summary>
-			public required FixField.Character IOIQualifier { get; init; }
+			internal NoIOIQualifiersGroup(FixField.Character delimiter)
+			{
+				IOIQualifier = delimiter;
+			}
+
+			/// <summary>The FIX IOIQualifier, tag 104, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Character IOIQualifier { get; }
 		}
 
 		/// <summary>One entry of the group counted by NoRoutingIDs, tag 215.</summary>
 		public sealed class NoRoutingIDsGroup
 		{
-			/// <summary>The FIX RoutingType, tag 216, wire type <c>int</c>; null when the field is absent.</summary>
-			public required FixField.Integer RoutingType { get; init; }
+			internal NoRoutingIDsGroup(FixField.Integer delimiter)
+			{
+				RoutingType = delimiter;
+			}
+
+			/// <summary>The FIX RoutingType, tag 216, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Integer RoutingType { get; }
 
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
@@ -2760,7 +2825,7 @@ public abstract partial class FixMessage
 					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
 						if (NoOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
-						(NoOrdersGroups ??= []).Add(new () { ClOrdID = (FixField.Text)field });
+						(NoOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.CumQty:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
@@ -2883,8 +2948,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
 		public sealed class NoOrdersGroup
 		{
-			/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text ClOrdID { get; init; }
+			internal NoOrdersGroup(FixField.Text delimiter)
+			{
+				ClOrdID = delimiter;
+			}
+
+			/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text ClOrdID { get; }
 
 			/// <summary>The FIX CumQty, tag 14, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? CumQty { get; internal set; }
@@ -2977,7 +3047,7 @@ public abstract partial class FixMessage
 					case FixTag.NoStrikes: if (NoStrikes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStrikes = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoStrikesGroups is null && NoStrikes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStrikes, field.Position, field, -1));
-						(NoStrikesGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoStrikesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (NoStrikesGroups is null || NoStrikesGroups.Count == 0)
@@ -3212,8 +3282,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoStrikes, tag 428.</summary>
 		public sealed class NoStrikesGroup
 		{
-			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text Symbol { get; init; }
+			internal NoStrikesGroup(FixField.Text delimiter)
+			{
+				Symbol = delimiter;
+			}
+
+			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text Symbol { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SymbolSfx { get; internal set; }
@@ -3319,7 +3394,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMsgTypes: if (NoMsgTypes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMsgTypes = (FixField.Integer)field; break;
 					case FixTag.RefMsgType:
 						if (NoMsgTypesGroups is null && NoMsgTypes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMsgTypes, field.Position, field, -1));
-						(NoMsgTypesGroups ??= []).Add(new () { RefMsgType = (FixField.Text)field });
+						(NoMsgTypesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.MsgDirection:
 						if (NoMsgTypesGroups is null || NoMsgTypesGroups.Count == 0)
@@ -3366,8 +3441,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoMsgTypes, tag 384.</summary>
 		public sealed class NoMsgTypesGroup
 		{
-			/// <summary>The FIX RefMsgType, tag 372, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text RefMsgType { get; init; }
+			internal NoMsgTypesGroup(FixField.Text delimiter)
+			{
+				RefMsgType = delimiter;
+			}
+
+			/// <summary>The FIX RefMsgType, tag 372, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text RefMsgType { get; }
 
 			/// <summary>The FIX MsgDirection, tag 385, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? MsgDirection { get; internal set; }
@@ -3431,7 +3511,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMDEntries: if (NoMDEntries is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMDEntries = (FixField.Integer)field; break;
 					case FixTag.MDUpdateAction:
 						if (NoMDEntriesGroups is null && NoMDEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMDEntries, field.Position, field, -1));
-						(NoMDEntriesGroups ??= []).Add(new () { MDUpdateAction = (FixField.Character)field });
+						(NoMDEntriesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.DeleteReason:
 						if (NoMDEntriesGroups is null || NoMDEntriesGroups.Count == 0)
@@ -3895,8 +3975,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoMDEntries, tag 268.</summary>
 		public sealed class NoMDEntriesGroup
 		{
-			/// <summary>The FIX MDUpdateAction, tag 279, wire type <c>char</c>; null when the field is absent.</summary>
-			public required FixField.Character MDUpdateAction { get; init; }
+			internal NoMDEntriesGroup(FixField.Character delimiter)
+			{
+				MDUpdateAction = delimiter;
+			}
+
+			/// <summary>The FIX MDUpdateAction, tag 279, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Character MDUpdateAction { get; }
 
 			/// <summary>The FIX DeleteReason, tag 285, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? DeleteReason { get; internal set; }
@@ -4088,12 +4173,12 @@ public abstract partial class FixMessage
 					case FixTag.NoMDEntryTypes: if (NoMDEntryTypes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMDEntryTypes = (FixField.Integer)field; break;
 					case FixTag.MDEntryType:
 						if (NoMDEntryTypesGroups is null && NoMDEntryTypes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMDEntryTypes, field.Position, field, -1));
-						(NoMDEntryTypesGroups ??= []).Add(new () { MDEntryType = (FixField.Character)field });
+						(NoMDEntryTypesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -4287,15 +4372,25 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoMDEntryTypes, tag 267.</summary>
 		public sealed class NoMDEntryTypesGroup
 		{
-			/// <summary>The FIX MDEntryType, tag 269, wire type <c>char</c>; null when the field is absent.</summary>
-			public required FixField.Character MDEntryType { get; init; }
+			internal NoMDEntryTypesGroup(FixField.Character delimiter)
+			{
+				MDEntryType = delimiter;
+			}
+
+			/// <summary>The FIX MDEntryType, tag 269, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Character MDEntryType { get; }
 		}
 
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
 		public sealed class NoRelatedSymGroup
 		{
-			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text Symbol { get; init; }
+			internal NoRelatedSymGroup(FixField.Text delimiter)
+			{
+				Symbol = delimiter;
+			}
+
+			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text Symbol { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SymbolSfx { get; internal set; }
@@ -4443,7 +4538,7 @@ public abstract partial class FixMessage
 					case FixTag.NoMDEntries: if (NoMDEntries is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMDEntries = (FixField.Integer)field; break;
 					case FixTag.MDEntryType:
 						if (NoMDEntriesGroups is null && NoMDEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMDEntries, field.Position, field, -1));
-						(NoMDEntriesGroups ??= []).Add(new () { MDEntryType = (FixField.Character)field });
+						(NoMDEntriesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.MDEntryPx:
 						if (NoMDEntriesGroups is null || NoMDEntriesGroups.Count == 0)
@@ -4765,8 +4860,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoMDEntries, tag 268.</summary>
 		public sealed class NoMDEntriesGroup
 		{
-			/// <summary>The FIX MDEntryType, tag 269, wire type <c>char</c>; null when the field is absent.</summary>
-			public required FixField.Character MDEntryType { get; init; }
+			internal NoMDEntriesGroup(FixField.Character delimiter)
+			{
+				MDEntryType = delimiter;
+			}
+
+			/// <summary>The FIX MDEntryType, tag 269, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Character MDEntryType { get; }
 
 			/// <summary>The FIX MDEntryPx, tag 270, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? MDEntryPx { get; internal set; }
@@ -4880,7 +4980,7 @@ public abstract partial class FixMessage
 					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteSets = (FixField.Integer)field; break;
 					case FixTag.QuoteSetID:
 						if (NoQuoteSetsGroups is null && NoQuoteSets is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteSets, field.Position, field, -1));
-						(NoQuoteSetsGroups ??= []).Add(new () { QuoteSetID = (FixField.Text)field });
+						(NoQuoteSetsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (NoQuoteSetsGroups is null || NoQuoteSetsGroups.Count == 0)
@@ -5064,7 +5164,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteEntries, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups ??= []).Add(new () { QuoteEntryID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
 					case FixTag.Symbol:
@@ -5381,8 +5481,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoQuoteSets, tag 296.</summary>
 		public sealed class NoQuoteSetsGroup
 		{
-			/// <summary>The FIX QuoteSetID, tag 302, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text QuoteSetID { get; init; }
+			internal NoQuoteSetsGroup(FixField.Text delimiter)
+			{
+				QuoteSetID = delimiter;
+			}
+
+			/// <summary>The FIX QuoteSetID, tag 302, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text QuoteSetID { get; }
 
 			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingSymbol { get; internal set; }
@@ -5456,8 +5561,13 @@ public abstract partial class FixMessage
 			/// <summary>One entry of the group counted by NoQuoteEntries, tag 295.</summary>
 			public sealed class NoQuoteEntriesGroup
 			{
-				/// <summary>The FIX QuoteEntryID, tag 299, wire type <c>String</c>; null when the field is absent.</summary>
-				public required FixField.Text QuoteEntryID { get; init; }
+				internal NoQuoteEntriesGroup(FixField.Text delimiter)
+				{
+					QuoteEntryID = delimiter;
+				}
+
+				/// <summary>The FIX QuoteEntryID, tag 299, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+				public FixField.Text QuoteEntryID { get; }
 
 				/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 				public FixField.Text? Symbol { get; internal set; }
@@ -5596,7 +5706,7 @@ public abstract partial class FixMessage
 					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
 						if (NoOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
-						(NoOrdersGroups ??= []).Add(new () { ClOrdID = (FixField.Text)field });
+						(NoOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.ListSeqNo:
 						if (NoOrdersGroups is null || NoOrdersGroups.Count == 0)
@@ -5652,7 +5762,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoAllocsGroups is null && NoOrdersGroups![^1].NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
 					case FixTag.AllocQty:
@@ -5733,7 +5843,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoOrdersGroups![^1].NoTradingSessionsGroups is null && NoOrdersGroups![^1].NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-							(NoOrdersGroups![^1].NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+							(NoOrdersGroups![^1].NoTradingSessionsGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
 					case FixTag.ProcessCode:
@@ -6260,8 +6370,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
 		public sealed class NoOrdersGroup
 		{
-			/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text ClOrdID { get; init; }
+			internal NoOrdersGroup(FixField.Text delimiter)
+			{
+				ClOrdID = delimiter;
+			}
+
+			/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text ClOrdID { get; }
 
 			/// <summary>The FIX ListSeqNo, tag 67, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? ListSeqNo { get; internal set; }
@@ -6491,8 +6606,13 @@ public abstract partial class FixMessage
 			/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
 			public sealed class NoAllocsGroup
 			{
-				/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>; null when the field is absent.</summary>
-				public required FixField.Text AllocAccount { get; init; }
+				internal NoAllocsGroup(FixField.Text delimiter)
+				{
+					AllocAccount = delimiter;
+				}
+
+				/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+				public FixField.Text AllocAccount { get; }
 
 				/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocShares { get; internal set; }
@@ -6501,8 +6621,13 @@ public abstract partial class FixMessage
 			/// <summary>One entry of the group counted by NoTradingSessions, tag 386.</summary>
 			public sealed class NoTradingSessionsGroup
 			{
-				/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-				public required FixField.Text TradingSessionID { get; init; }
+				internal NoTradingSessionsGroup(FixField.Text delimiter)
+				{
+					TradingSessionID = delimiter;
+				}
+
+				/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+				public FixField.Text TradingSessionID { get; }
 			}
 		}
 
@@ -6529,7 +6654,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocQty:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -6549,7 +6674,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.ProcessCode: if (ProcessCode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ProcessCode = (FixField.Character)field; break;
 					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
@@ -6841,8 +6966,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
 		public sealed class NoAllocsGroup
 		{
-			/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text AllocAccount { get; init; }
+			internal NoAllocsGroup(FixField.Text delimiter)
+			{
+				AllocAccount = delimiter;
+			}
+
+			/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text AllocAccount { get; }
 
 			/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocShares { get; internal set; }
@@ -6851,8 +6981,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoTradingSessions, tag 386.</summary>
 		public sealed class NoTradingSessionsGroup
 		{
-			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text TradingSessionID { get; init; }
+			internal NoTradingSessionsGroup(FixField.Text delimiter)
+			{
+				TradingSessionID = delimiter;
+			}
+
+			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text TradingSessionID { get; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -6879,7 +7014,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
 						if (NoRoutingIDsGroups is null && NoRoutingIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRoutingIDs, field.Position, field, -1));
-						(NoRoutingIDsGroups ??= []).Add(new () { RoutingType = (FixField.Integer)field });
+						(NoRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
 						if (NoRoutingIDsGroups is null || NoRoutingIDsGroups.Count == 0)
@@ -6892,7 +7027,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.RelatdSym:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { RelatdSym = (FixField.Text)field });
+						(NoRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -7041,7 +7176,7 @@ public abstract partial class FixMessage
 					case FixTag.NoLinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
 						if (LinesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLinesOfText, field.Position, field, -1));
-						(LinesOfTextGroups ??= []).Add(new () { Text = (FixField.Text)field });
+						(LinesOfTextGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.EncodedTextLen:
 						if (LinesOfTextGroups is null || LinesOfTextGroups.Count == 0)
@@ -7117,8 +7252,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoRoutingIDs, tag 215.</summary>
 		public sealed class NoRoutingIDsGroup
 		{
-			/// <summary>The FIX RoutingType, tag 216, wire type <c>int</c>; null when the field is absent.</summary>
-			public required FixField.Integer RoutingType { get; init; }
+			internal NoRoutingIDsGroup(FixField.Integer delimiter)
+			{
+				RoutingType = delimiter;
+			}
+
+			/// <summary>The FIX RoutingType, tag 216, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Integer RoutingType { get; }
 
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
@@ -7127,8 +7267,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
 		public sealed class NoRelatedSymGroup
 		{
-			/// <summary>The FIX RelatdSym, tag 46, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text RelatdSym { get; init; }
+			internal NoRelatedSymGroup(FixField.Text delimiter)
+			{
+				RelatdSym = delimiter;
+			}
+
+			/// <summary>The FIX RelatdSym, tag 46, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text RelatdSym { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SymbolSfx { get; internal set; }
@@ -7188,8 +7333,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by LinesOfText, tag 33.</summary>
 		public sealed class LinesOfTextGroup
 		{
-			/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text Text { get; init; }
+			internal LinesOfTextGroup(FixField.Text delimiter)
+			{
+				Text = delimiter;
+			}
+
+			/// <summary>The FIX Text, tag 58, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text Text { get; }
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
 			public FixField.Integer? EncodedTextLen { get; internal set; }
@@ -7310,7 +7460,7 @@ public abstract partial class FixMessage
 					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
 						if (NoAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
-						(NoAllocsGroups ??= []).Add(new () { AllocAccount = (FixField.Text)field });
+						(NoAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocQty:
 						if (NoAllocsGroups is null || NoAllocsGroups.Count == 0)
@@ -7330,7 +7480,7 @@ public abstract partial class FixMessage
 					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
 						if (NoTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
-						(NoTradingSessionsGroups ??= []).Add(new () { TradingSessionID = (FixField.Text)field });
+						(NoTradingSessionsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
 					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
@@ -7615,8 +7765,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
 		public sealed class NoAllocsGroup
 		{
-			/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text AllocAccount { get; init; }
+			internal NoAllocsGroup(FixField.Text delimiter)
+			{
+				AllocAccount = delimiter;
+			}
+
+			/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text AllocAccount { get; }
 
 			/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocShares { get; internal set; }
@@ -7625,8 +7780,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoTradingSessions, tag 386.</summary>
 		public sealed class NoTradingSessionsGroup
 		{
-			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text TradingSessionID { get; init; }
+			internal NoTradingSessionsGroup(FixField.Text delimiter)
+			{
+				TradingSessionID = delimiter;
+			}
+
+			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text TradingSessionID { get; }
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -8125,7 +8285,7 @@ public abstract partial class FixMessage
 					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteSets = (FixField.Integer)field; break;
 					case FixTag.QuoteSetID:
 						if (NoQuoteSetsGroups is null && NoQuoteSets is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteSets, field.Position, field, -1));
-						(NoQuoteSetsGroups ??= []).Add(new () { QuoteSetID = (FixField.Text)field });
+						(NoQuoteSetsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (NoQuoteSetsGroups is null || NoQuoteSetsGroups.Count == 0)
@@ -8301,7 +8461,7 @@ public abstract partial class FixMessage
 						else
 						{
 							if (NoQuoteSetsGroups![^1].NoQuoteEntriesGroups is null && NoQuoteSetsGroups![^1].NoQuoteEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteEntries, field.Position, field, -1));
-							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups ??= []).Add(new () { QuoteEntryID = (FixField.Text)field });
+							(NoQuoteSetsGroups![^1].NoQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
 					case FixTag.Symbol:
@@ -8504,8 +8664,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoQuoteSets, tag 296.</summary>
 		public sealed class NoQuoteSetsGroup
 		{
-			/// <summary>The FIX QuoteSetID, tag 302, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text QuoteSetID { get; init; }
+			internal NoQuoteSetsGroup(FixField.Text delimiter)
+			{
+				QuoteSetID = delimiter;
+			}
+
+			/// <summary>The FIX QuoteSetID, tag 302, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text QuoteSetID { get; }
 
 			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingSymbol { get; internal set; }
@@ -8576,8 +8741,13 @@ public abstract partial class FixMessage
 			/// <summary>One entry of the group counted by NoQuoteEntries, tag 295.</summary>
 			public sealed class NoQuoteEntriesGroup
 			{
-				/// <summary>The FIX QuoteEntryID, tag 299, wire type <c>String</c>; null when the field is absent.</summary>
-				public required FixField.Text QuoteEntryID { get; init; }
+				internal NoQuoteEntriesGroup(FixField.Text delimiter)
+				{
+					QuoteEntryID = delimiter;
+				}
+
+				/// <summary>The FIX QuoteEntryID, tag 299, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+				public FixField.Text QuoteEntryID { get; }
 
 				/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
 				public FixField.Text? Symbol { get; internal set; }
@@ -8665,7 +8835,7 @@ public abstract partial class FixMessage
 					case FixTag.NoQuoteEntries: if (NoQuoteEntries is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteEntries = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoQuoteEntriesGroups is null && NoQuoteEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteEntries, field.Position, field, -1));
-						(NoQuoteEntriesGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (NoQuoteEntriesGroups is null || NoQuoteEntriesGroups.Count == 0)
@@ -8853,8 +9023,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoQuoteEntries, tag 295.</summary>
 		public sealed class NoQuoteEntriesGroup
 		{
-			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text Symbol { get; init; }
+			internal NoQuoteEntriesGroup(FixField.Text delimiter)
+			{
+				Symbol = delimiter;
+			}
+
+			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text Symbol { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SymbolSfx { get; internal set; }
@@ -8934,7 +9109,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { Symbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -9198,8 +9373,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
 		public sealed class NoRelatedSymGroup
 		{
-			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text Symbol { get; init; }
+			internal NoRelatedSymGroup(FixField.Text delimiter)
+			{
+				Symbol = delimiter;
+			}
+
+			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text Symbol { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SymbolSfx { get; internal set; }
@@ -9541,7 +9721,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -9814,8 +9994,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
 		public sealed class NoRelatedSymGroup
 		{
-			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text UnderlyingSymbol { get; init; }
+			internal NoRelatedSymGroup(FixField.Text delimiter)
+			{
+				UnderlyingSymbol = delimiter;
+			}
+
+			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text UnderlyingSymbol { get; }
 
 			/// <summary>The FIX UnderlyingSymbolSfx, tag 312, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingSymbolSfx { get; internal set; }
@@ -9926,7 +10111,7 @@ public abstract partial class FixMessage
 					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
 						if (NoRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
-						(NoRelatedSymGroups ??= []).Add(new () { UnderlyingSymbol = (FixField.Text)field });
+						(NoRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (NoRelatedSymGroups is null || NoRelatedSymGroups.Count == 0)
@@ -10193,8 +10378,13 @@ public abstract partial class FixMessage
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
 		public sealed class NoRelatedSymGroup
 		{
-			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
-			public required FixField.Text UnderlyingSymbol { get; init; }
+			internal NoRelatedSymGroup(FixField.Text delimiter)
+			{
+				UnderlyingSymbol = delimiter;
+			}
+
+			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+			public FixField.Text UnderlyingSymbol { get; }
 
 			/// <summary>The FIX UnderlyingSymbolSfx, tag 312, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingSymbolSfx { get; internal set; }

@@ -45,7 +45,7 @@ public abstract partial class FixMessage
 			case FixTag.NoHops: if (NoHops is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoHops = (FixField.Integer)field; break;
 			case FixTag.HopCompID:
 				if (NoHopsGroups is null && NoHops is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoHops, field.Position, field, -1));
-				(NoHopsGroups ??= []).Add(new () { HopCompID = (FixField.Text)field });
+				(NoHopsGroups ??= []).Add(new ((FixField.Text)field));
 				break;
 			case FixTag.HopSendingTime:
 				if (NoHopsGroups is null || NoHopsGroups.Count == 0)
@@ -169,8 +169,13 @@ public abstract partial class FixMessage
 	/// <summary>One entry of the group counted by NoHops, tag 627.</summary>
 	public sealed class NoHopsGroup
 	{
-		/// <summary>The FIX HopCompID, tag 628, wire type <c>String</c>; null when the field is absent.</summary>
-		public required FixField.Text HopCompID { get; init; }
+		internal NoHopsGroup(FixField.Text delimiter)
+		{
+			HopCompID = delimiter;
+		}
+
+		/// <summary>The FIX HopCompID, tag 628, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
+		public FixField.Text HopCompID { get; }
 
 		/// <summary>The FIX HopSendingTime, tag 629, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 		public FixField.Timestamp? HopSendingTime { get; internal set; }
