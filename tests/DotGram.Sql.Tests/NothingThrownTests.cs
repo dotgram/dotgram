@@ -129,6 +129,25 @@ public sealed class NothingThrownTests
 				Assert.IsType<Ast.AlterTableAction.AlterColumn>(Assert.Single(((Ast.Statement.AlterTable)expected).Actions)).Action).MaskFunction).Text);
 	}
 
+	/// <summary>
+	/// A quote inside a block comment in front of a string the statement's text is read again for leaves the string as
+	/// written: its two spaces stay two, as without the comment.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE DEFAULT d AS /* ' */ 'a  b'", "CREATE DEFAULT d AS 'a  b'")]
+	[InlineData("CREATE STATISTICS s ON t (a) WHERE a = /* ' */ 'a  b'", "CREATE STATISTICS s ON t (a) WHERE a = 'a  b'")]
+	public void A_quote_in_a_comment_leaves_the_string_after_it_as_written(string text, string plain)
+	{
+		var expected = TransactSqlParser.ParseStatement(plain);
+
+		Assert.Equal(expected, TransactSqlParser.ParseStatement(text));
+		Assert.Equal(expected, TransactSqlParser.Located.ParseStatement(text));
+		Assert.Contains(
+			"'a  b'",
+			Ast.TransactSqlWriter.Write(TransactSqlParser.ParseStatement(text)),
+			StringComparison.Ordinal);
+	}
+
 	/// <summary>Every batch of the corpus, through the script entry of both doors.</summary>
 	[Fact]
 	public void No_batch_of_the_corpus_throws()
