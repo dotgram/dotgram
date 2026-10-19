@@ -5593,7 +5593,9 @@ file.Line("return spare;");
 	/// binds nothing, a capture of a call to a rule that builds a value, under one construction
 	/// that takes its captures and nothing else — no text, span, input, context, state or
 	/// accumulator — every one of them optional and single, so that <c>default</c> stands for
-	/// the ones the alternative taken did not write, as the engine hands them.
+	/// the ones the alternative taken did not write, as the engine hands them; and nothing the
+	/// shortcut leaves out placing a state mark the rule read through could see, nor the
+	/// terminal told where it was written.
 	/// </para>
 	/// </remarks>
 	static (RuleSymbol Rule, string Read, string Type, string Method, IReadOnlyList<string> Arguments, int Kind)? Through(
@@ -5604,7 +5606,14 @@ file.Line("return spare;");
 
 		if (continuation is not { Unbound: [Node.Capture(var capture, Node.Call(var inner, { Count: 0 }))] } ||
 			valuing.Results.QualifiedOf(inner) is not { } type ||
-			graph.Trivia.ContainsKey(inner))
+			graph.Trivia.ContainsKey(inner) || graph.Located.Contains(rule))
+			return null;
+
+		// The terminal's own reading is what the shortcut leaves out — its wrappers, the choice, the
+		// capture, the construction — and a mark placed by any of them (`with state`) would stand
+		// over the rule read through, where that rule's C# may read it. Only where nothing in the
+		// terminal's body, the rule called excepted, places one.
+		if (graph.Bodies.TryGetValue(rule, out var body) && NodeWalk.Descendants(body).Any(static node => node is Node.Marked))
 			return null;
 
 		var factories = valuing.Results.FactoriesOf(graph, rule);

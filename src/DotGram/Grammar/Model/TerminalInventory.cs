@@ -2177,7 +2177,9 @@ public sealed class TerminalInventory
 		/// <para>
 		/// A lookahead's body is not looked into: a lookahead at the top is answered by the tags
 		/// over a superset of what it refuses, and accepting more there is the safe direction.
-		/// Choices are the business of <see cref="PrefixFree"/>, asked of every one of them.
+		/// The one lookahead the automaton reads, the "until" of <c>(?!L &amp; X)*</c>, it reads
+		/// exactly only where L follows the repetition and cannot overlap itself. Choices are the business of
+		/// <see cref="PrefixFree"/>, asked of every one of them.
 		/// </para>
 		/// </remarks>
 		bool Exact(Node node, Node scope, HashSet<RuleSymbol> inside)
@@ -2188,6 +2190,43 @@ public sealed class TerminalInventory
 					return false;
 
 				case Node.Lookahead:
+					return true;
+
+				// "Everything up to a delimiter", `(?!L & X)* & L`, which the automaton reads as the
+				// strings L does not occur in: exact where L follows, since L is what stops both
+				// readings; standing anywhere else the automaton admits more — the lookahead sees
+				// past what the repetition consumed, the automaton cannot — and `ab` is a token of
+				// `(?!"ab" & ['a' | 'b'])* & 'b'` to it where the rule refuses the first character.
+				case Node.Repeat(Node.Sequence([Node.Lookahead(false, Node.Literal { IgnoreCase: false }), _]), 0, null):
+					return false;
+
+				case Node.Sequence(var parts):
+					for (var i = 0; i < parts.Count; i++)
+					{
+						if (parts[i] is Node.Repeat(Node.Sequence([Node.Lookahead(false, Node.Literal(var delimiter) { IgnoreCase: false }), var item]), 0, null) &&
+							delimiter.Length > 0)
+						{
+							if (i + 1 >= parts.Count || parts[i + 1] is not Node.Literal(var next) { IgnoreCase: false } || next != delimiter)
+								return false;
+
+							// And only a delimiter that cannot overlap itself: the rule stops the run where the
+							// delimiter first begins, and the automaton lets it run on to any place the delimiter
+							// follows — `(?!"aa" & any)* & "aa"` on `aaa` is `aa` to the rule and `aaa` to it, the
+							// run having taken one `a` first. A delimiter with no proper prefix that is also its
+							// suffix cannot begin inside its own occurrence, and the two agree.
+							if (Enumerable.Range(1, delimiter.Length - 1).Any(k => string.CompareOrdinal(delimiter, 0, delimiter, delimiter.Length - k, k) == 0))
+								return false;
+
+							if (!Exact(item, scope, inside))
+								return false;
+
+							continue;
+						}
+
+						if (!Exact(parts[i], scope, inside))
+							return false;
+					}
+
 					return true;
 
 				case Node.Atomic(Node.Repeat(var one, _, null) run) when Single(one, []):
