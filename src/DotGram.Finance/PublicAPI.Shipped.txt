@@ -12,6 +12,7 @@ DotGram.Finance.Fix.Fix42.Fix42Context.LoadFile(string! fileName, string? emitTo
 DotGram.Finance.Fix.Fix42.Fix42Context.Prepare() -> void
 DotGram.Finance.Fix.Fix42.Fix42Context.With(DotGram.Finance.Fix.FixDictionary! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix42.Fix42Context!
 DotGram.Finance.Fix.Fix42.FixCustomMessage
+DotGram.Finance.Fix.Fix42.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding finding) -> void
 DotGram.Finance.Fix.Fix42.FixCustomMessage.FixCustomMessage() -> void
 DotGram.Finance.Fix.Fix42.FixMessage
 DotGram.Finance.Fix.Fix42.FixMessage.Advertisement
@@ -1696,6 +1697,7 @@ DotGram.Finance.Fix.Fix44.Fix44Context.LoadFile(string! fileName, string? emitTo
 DotGram.Finance.Fix.Fix44.Fix44Context.Prepare() -> void
 DotGram.Finance.Fix.Fix44.Fix44Context.With(DotGram.Finance.Fix.FixDictionary! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix44.Fix44Context!
 DotGram.Finance.Fix.Fix44.FixCustomMessage
+DotGram.Finance.Fix.Fix44.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding finding) -> void
 DotGram.Finance.Fix.Fix44.FixCustomMessage.FixCustomMessage() -> void
 DotGram.Finance.Fix.Fix44.FixMessage
 DotGram.Finance.Fix.Fix44.FixMessage.Advertisement
@@ -14667,6 +14669,7 @@ DotGram.Finance.Fix.Fix50.Fix50Context.LoadFile(string! fileName, string? emitTo
 DotGram.Finance.Fix.Fix50.Fix50Context.Prepare() -> void
 DotGram.Finance.Fix.Fix50.Fix50Context.With(DotGram.Finance.Fix.FixDictionary! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix50.Fix50Context!
 DotGram.Finance.Fix.Fix50.FixCustomMessage
+DotGram.Finance.Fix.Fix50.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding finding) -> void
 DotGram.Finance.Fix.Fix50.FixCustomMessage.FixCustomMessage() -> void
 DotGram.Finance.Fix.Fix50.FixMessage
 DotGram.Finance.Fix.Fix50.FixMessage.AdjustedPositionReport

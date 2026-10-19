@@ -114,7 +114,8 @@ foreach (var field in FixParser.ParseFields(wire))
   first, or use `TryGetValue`.
 - A tag the package does not know is read as the type a dictionary applied to the context gives
   it (see **Dictionaries**). A MsgType it does not know is built by `FixMessageFactory` (a
-  `FixCustomMessage` that places its own fields). A tag nothing defines is a `FixField.Invalid` of
+  `FixCustomMessage` that places its own fields and adds its own findings with `AddFinding`, from
+  `Place` or `OnValidate` only: at any other time it throws). A tag nothing defines is a `FixField.Invalid` of
   that tag with its octets, and a type the factory answers null for a `FixMessage.Invalid`. A
   standard message has no property for a tag outside its version, so such a field is out of scope
   in it.

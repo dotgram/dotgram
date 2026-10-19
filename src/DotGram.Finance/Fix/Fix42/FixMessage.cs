@@ -77,9 +77,9 @@ public abstract partial class FixMessage : IFixFindings
 	/// <summary>Asks the context for the check of this message type and runs it.</summary>
 	private protected abstract void Check(Fix42Context context);
 
-	/// <summary>Adds one finding to this message.</summary>
-	/// <param name="finding">What is wrong.</param>
-	protected internal void AddFinding(FixFinding finding)
+	// Adds one finding to this message: the reader's and the checks' own. A custom message adds its own
+	// through FixCustomMessage.AddFinding, which says when it may.
+	internal void AddFinding(FixFinding finding)
 	{
 		(InvalidFindings ??= []).Add(finding);
 	}

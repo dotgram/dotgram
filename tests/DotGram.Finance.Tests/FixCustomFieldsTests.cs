@@ -185,6 +185,35 @@ public sealed class FixCustomFieldsTests
 			quote.InvalidFindings!.Select(one => (one.Rule, one.Tag)));
 	}
 
+	// A message that reports what it reads as it places it, and offers the same call afterwards.
+	sealed class VenueTicket : FixCustomMessage
+	{
+		protected override bool Place(FixField field)
+		{
+			if (field is FixField.Text { Tag: 25005, Value: not "OPEN" } status)
+				AddFinding(new FixFinding(FixRule.InvalidValue, status.Tag, status.Position, status, -1));
+
+			return field.Tag == 25005;
+		}
+
+		public void Report(FixFinding finding)
+		{
+			AddFinding(finding);
+		}
+	}
+
+	[Fact]
+	public void A_custom_message_adds_findings_while_it_is_read_and_not_afterwards()
+	{
+		var context = new Fix44Context { FixMessageFactory = type => type == "U3" ? new VenueTicket() : null }.Load(Venue);
+		var ticket  = Assert.IsType<VenueTicket>(FixParser.ParseMessage(Framed("35=U3|49=A|56=B|34=1|52=20260919-12:00:00|25005=SHUT|"), context));
+		var found   = Assert.Single(ticket.InvalidFindings!);
+
+		Assert.Equal((FixRule.InvalidValue, 25005), (found.Rule, found.Tag));
+		Assert.Throws<InvalidOperationException>(() => ticket.Report(new FixFinding(FixRule.RequiredFieldMissing, 25006, 0, null, -1)));
+		Assert.Single(ticket.InvalidFindings!);
+	}
+
 	[Fact]
 	public void A_type_the_factory_answers_null_for_is_an_Invalid_message()
 	{

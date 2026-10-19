@@ -1498,7 +1498,7 @@ sealed class Writer
 			"\t/// theirs, so that a message type's own constructor can report what neither it nor this took.",
 			"\t/// </summary>",
 			"\t/// <param name=\"field\">The field to take.</param>",
-			"\tprotected bool SetStandardField(FixField field)",
+			"\tprivate protected bool SetStandardField(FixField field)",
 			"\t{",
 			"\t\tswitch (field.Tag)",
 			"\t\t{",
@@ -1525,7 +1525,7 @@ sealed class Writer
 			return $"The FIX {f.Name}, tag {f.Tag}, of this message's {part}; null when the field is absent.";
 		}
 
-		outLines.AddRange(ClassBody(members, 1, "protected set", doc: Doc));
+		outLines.AddRange(ClassBody(members, 1, "private protected set", doc: Doc));
 
 		while (outLines[^1] == "")
 			outLines.RemoveAt(outLines.Count - 1);

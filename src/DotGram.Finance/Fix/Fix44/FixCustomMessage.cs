@@ -37,15 +37,39 @@ public abstract class FixCustomMessage : FixMessage
 		return true;
 	}
 
-	/// <summary>Holds the body to what this message requires, adding what is wrong with <see cref="FixMessage.AddFinding"/>.</summary>
+	/// <summary>Holds the body to what this message requires, adding what is wrong with <see cref="AddFinding"/>.</summary>
 	/// <param name="context">The context the message is validated in.</param>
 	protected virtual void OnValidate(Fix44Context context)
 	{
 	}
 
+	// Whether a finding may be added now: only while the reader hands the fields to Place, and while
+	// OnValidate runs. A message is not changed by anything else once it has been read.
+	bool _adding;
+
+	/// <summary>Adds one finding to this message: from <see cref="Place"/> while it is read, or from <see cref="OnValidate"/> while it is validated.</summary>
+	/// <param name="finding">What is wrong.</param>
+	/// <exception cref="InvalidOperationException">Called at any other time: what reading found is not changed after the message has been read.</exception>
+	protected new void AddFinding(FixFinding finding)
+	{
+		if (!_adding)
+			throw new InvalidOperationException("A finding is added to a message only from Place, while it is read, or from OnValidate, while it is validated.");
+
+		base.AddFinding(finding);
+	}
+
 	private protected sealed override void Check(Fix44Context context)
 	{
-		OnValidate(context);
+		_adding = true;
+
+		try
+		{
+			OnValidate(context);
+		}
+		finally
+		{
+			_adding = false;
+		}
 	}
 
 	// Called by the reader once the factory has built the message: the type and the fields it was read with.
@@ -53,10 +77,18 @@ public abstract class FixCustomMessage : FixMessage
 	{
 		MessageType = type;
 		Fields      = fields;
+		_adding     = true;
 
-		foreach (var field in fields)
-			if (!SetStandardField(field) && !Place(field))
-				AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+		try
+		{
+			foreach (var field in fields)
+				if (!SetStandardField(field) && !Place(field))
+					base.AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+		}
+		finally
+		{
+			_adding = false;
+		}
 
 		return this;
 	}
