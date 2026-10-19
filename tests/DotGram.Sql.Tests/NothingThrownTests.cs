@@ -106,6 +106,29 @@ public sealed class NothingThrownTests
 			Assert.IsType<Ast.AtomicOption.Isolation>(((Ast.RoutineBody.Statements)((Ast.Statement.CreateRoutine)expected).Definition.Body).List[0] is Ast.Statement.Compound { Atomic: [var first, ..] } ? first : null);
 	}
 
+	/// <summary>
+	/// A block comment in text read again is a comment before anything inside it is read: a <c>--</c>, a quote or a
+	/// bracket in it is none of them, and a <c>/*</c> after a line comment's <c>--</c> is the line comment's. The
+	/// masking function's string is the same as without the comment.
+	/// </summary>
+	[Theory]
+	[InlineData("ALTER TABLE t ALTER COLUMN c ADD MASKED WITH (FUNCTION = /* -- */ 'default()')")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c ADD MASKED WITH (FUNCTION = /* ' */ 'default()')")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c ADD MASKED WITH (FUNCTION = /* [ */ 'default()')")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c ADD MASKED WITH (FUNCTION = /* a /* -- ' */ b */ 'default()')")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c ADD MASKED WITH ( -- /*\nFUNCTION = 'default()')")]
+	public void A_comment_in_text_read_again_hides_what_is_inside_it(string text)
+	{
+		var expected = TransactSqlParser.ParseStatement("ALTER TABLE t ALTER COLUMN c ADD MASKED WITH (FUNCTION = 'default()')");
+
+		Assert.Equal(expected, TransactSqlParser.ParseStatement(text));
+		Assert.Equal(expected, TransactSqlParser.Located.ParseStatement(text));
+		Assert.Equal(
+			"'default()'",
+			Assert.IsType<Ast.LiteralValue.String>(Assert.IsType<Ast.AlterColumnAction.Property>(
+				Assert.IsType<Ast.AlterTableAction.AlterColumn>(Assert.Single(((Ast.Statement.AlterTable)expected).Actions)).Action).MaskFunction).Text);
+	}
+
 	/// <summary>Every batch of the corpus, through the script entry of both doors.</summary>
 	[Fact]
 	public void No_batch_of_the_corpus_throws()

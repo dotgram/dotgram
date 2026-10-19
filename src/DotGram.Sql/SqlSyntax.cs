@@ -3779,7 +3779,9 @@ public static class Syntax
 	/// <para>
 	/// A line comment ends where its line does, so the line end after one stays a line end: made one
 	/// space, <c>--x</c> and the line under it would be one comment, which swallows what the line under
-	/// it says. A space is what the grammar's spacing is (<see cref="TransactSql.TransactSqlParser.Spacing"/>).
+	/// it says. A block comment, the comments inside it counted, is copied as it stands, so that a quote or a
+	/// <c>--</c> inside it is neither. A space is what the grammar's spacing is
+	/// (<see cref="TransactSql.TransactSqlParser.Spacing"/>).
 	/// </para>
 	/// </remarks>
 	static string Run(string words, bool raised)
@@ -3802,6 +3804,35 @@ public static class Syntax
 						made.Append(words[++at]);
 					else
 						until = '\0';
+				}
+
+				continue;
+			}
+
+			// A block comment, the comments inside it counted, kept as it was written: a quote or a `--` inside it is
+			// neither.
+			if (c == '/' && at + 1 < words.Length && words[at + 1] == '*')
+			{
+				var depth = 0;
+
+				for (; at < words.Length; at++)
+				{
+					made.Append(raised ? char.ToUpperInvariant(words[at]) : words[at]);
+
+					if (words[at] == '/' && at + 1 < words.Length && words[at + 1] == '*')
+					{
+						made.Append('*');
+						depth++;
+						at++;
+					}
+					else if (words[at] == '*' && at + 1 < words.Length && words[at + 1] == '/')
+					{
+						made.Append('/');
+						at++;
+
+						if (--depth == 0)
+							break;
+					}
 				}
 
 				continue;

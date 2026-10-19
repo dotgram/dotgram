@@ -199,9 +199,11 @@ static partial class Build
 		{
 			try
 			{
-				return Of(value) is Ast.Expression.Subquery(var query)
+				var inside = Of(value);
+
+				return inside is Ast.Expression.Subquery(var query)
 					? new Ast.Expression.Subquery(new Ast.Query.Parenthesized(query))
-					: new Ast.Expression.Parenthesized(Of(value));
+					: new Ast.Expression.Parenthesized(inside);
 			}
 			catch (BuildGap gap)
 			{
@@ -1042,6 +1044,11 @@ static partial class Build
 
 			if (old.Arguments.Length == 0 && old.Word is null && Niladic.TryGetValue(name, out var current))
 				return new Ast.Expression.Current(current);
+
+			// A call with no arguments written without its brackets, where the text says so: the common tree's invocation
+			// has them, so that is a gap; a call not located is taken to have had them.
+			if (old.Arguments.Length == 0 && old.Word is null && Recover(Spelled(old), static text => !text.TrimEnd().EndsWith(')'), false))
+				throw BuildGap.Lost(old, "whether a call with no arguments was written with brackets");
 
 			Ast.SetQuantifier? quantifier = null;
 			SqlList<Ast.Argument> arguments;

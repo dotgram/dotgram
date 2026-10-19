@@ -355,7 +355,7 @@ ValueFunction : @Ast.Expression
         => @(new Build.Values.Call(
             name,
             what is null ? [v] : [what, v],
-            how))
+            how) { From = true })
     | name: "TRIM"i & '(' & v: TSqlValueExpression & ')'      => @(new Build.Values.Call(name, [v]))
     | name: "CURRENT_DATE"i                                      => @(new Build.Values.Call(name, Build.Values.None))
     | name: "CURRENT_TIMESTAMP"i                                 => @(new Build.Values.Call(name, Build.Values.None))

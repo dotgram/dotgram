@@ -843,4 +843,27 @@ public sealed class TransactSqlRecordTests
 		Assert.Equal(owner, made.Authorization!.Name.Text);
 		Assert.Equal(elements, made.Elements.Count);
 	}
+
+	/// <summary>
+	/// TRIM keeps the <c>FROM</c> it was written with: after a specification alone, between the characters and the
+	/// string, and not where none was written.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT TRIM(LEADING FROM ' x')", true)]
+	[InlineData("SELECT TRIM(TRAILING FROM ' x')", true)]
+	[InlineData("SELECT TRIM(BOTH 'x' FROM y)", true)]
+	[InlineData("SELECT TRIM('x' FROM y)", true)]
+	[InlineData("SELECT TRIM(y)", false)]
+	public void TRIM_keeps_its_FROM(string text, bool from)
+	{
+		foreach (var made in (Ast.Statement[])[TransactSqlParser.ParseStatement(text), TransactSqlParser.Located.ParseStatement(text)])
+		{
+			var query = (Ast.Query.Select)((Ast.Statement.Select)made).Query;
+			var trim  = Assert.IsType<Ast.Expression.Trim>(((Ast.SelectColumn.ExpressionItem)query.Columns[0]).Expression);
+
+			Assert.Equal(from, trim.FromKeyword);
+		}
+
+		ReadBack.Holds(text);
+	}
 }
