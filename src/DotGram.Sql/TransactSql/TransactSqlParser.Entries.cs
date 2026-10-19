@@ -13,6 +13,21 @@ namespace DotGram.Sql.TransactSql;
 // (Build.Over).
 public abstract partial class TransactSqlParser
 {
+	/// <summary>
+	/// A deep reading handed to a stack of its own takes the reading's state with it (<see cref="SqlReading"/>): the
+	/// rules' builders read the text and whether to publish spans from there, and the hand-off carries neither.
+	/// </summary>
+	static partial void OnHandingOff(ref object? state)
+	{
+		state = SqlReading.Current;
+	}
+
+	/// <summary>The thread that takes a deep reading reads under the state it was handed, and gets its own back after.</summary>
+	static partial void OnTakingOver(ref object? state)
+	{
+		state = SqlReading.Swap((SqlReading?)state);
+	}
+
 	/// <summary>Reads the whole input as a query statement (no other kind).</summary>
 	/// <exception cref="FormatException">The input is not read. <c>TryParseSelect</c> answers instead.</exception>
 	public static Ast.Statement ParseSelect(string input)

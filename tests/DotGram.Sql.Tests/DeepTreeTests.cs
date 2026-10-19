@@ -106,6 +106,57 @@ public sealed class DeepTreeTests
 	}
 
 	/// <summary>
+	/// A plain reading and a located one taken one after the other on one thread, in either order, each hand their deep
+	/// part to the thread the first was handed to, and each keeps its own: the located tree every span, the plain one
+	/// none. And so where the caller suppressed the flow of the execution context, which the hand-off does not rely on.
+	/// </summary>
+	[Theory]
+	[InlineData(false, false)]
+	[InlineData(true, false)]
+	[InlineData(false, true)]
+	[InlineData(true, true)]
+	public void Two_readings_of_the_two_doors_on_one_thread_keep_their_own_spans(bool locatedFirst, bool suppress)
+	{
+		var text = Nested("", "(", "1", ")", "", Depth);
+
+		var (counts, thrown) = OnStack(() =>
+		{
+			var flow = suppress ? ExecutionContext.SuppressFlow() : default;
+
+			try
+			{
+				var first  = locatedFirst ? TransactSqlParser.Located.ParseExpression(text) : TransactSqlParser.ParseExpression(text);
+				var second = locatedFirst ? TransactSqlParser.ParseExpression(text) : TransactSqlParser.Located.ParseExpression(text);
+
+				return locatedFirst ? (Located: Known(first), Plain: Known(second)) : (Located: Known(second), Plain: Known(first));
+			}
+			finally
+			{
+				if (suppress)
+					flow.Undo();
+			}
+		});
+
+		Assert.Null(thrown);
+		Assert.Equal((Depth + 1, 0), counts);
+
+		static int Known(Ast.Expression root)
+		{
+			var known = 0;
+
+			SqlWalker.Walk(root, node =>
+			{
+				if (node.Span.Known)
+					known++;
+
+				return true;
+			});
+
+			return known;
+		}
+	}
+
+	/// <summary>
 	/// A chain of twenty thousand <c>+</c> is written by the writer of each tree: the writers recursed a
 	/// level a node and overflowed at about ten thousand. A hundred thousand is in
 	/// <c>DeepTreeHandOffTests</c> (DotGram.Tests.Slow).
