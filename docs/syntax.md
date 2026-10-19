@@ -2525,7 +2525,8 @@ an earlier one. Left unimplemented, both are removed at compile time with their 
 second reading of the grammar (§6.6) declares its own pair in its own class. A hook that throws
 fails the reading with what it threw, as an action that throws does, and leaves no thread
 waiting: the first is asked before a thread is taken, and the second still runs, and puts the
-thread's own state back, where the reading threw.
+thread's own state back, where the reading threw. A thread whose hook threw is not used
+again: it may still hold the host's state, so the next hand-off goes to a new one.
 
 A rule a cycle re-enters is also where a reading over tokens remembers what failed. A bracket
 may be read as a condition, then as a value, then as a subquery, and each attempt reads all

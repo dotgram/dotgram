@@ -1224,35 +1224,55 @@ sealed partial class Machine
 
 				file.Line();
 				file.Line("var handed = deepContext;");
+				file.Line("var read   = false;");
 				file.Line();
 				file.Line("deepContext = null;");
 				file.Line();
-				file.Line("if (handed == null)");
-				file.Then("ReadIn(this);");
-				file.Line("else");
-				file.Then("global::System.Threading.ExecutionContext.Run(handed, deepReadIn, this);");
-				file.Line();
-				file.Line("deepCulture   = null;");
-				file.Line("deepUiCulture = null;");
-				file.Line();
-				file.Line("global::System.Threading.Volatile.Write(ref deepState, 0);");
-				file.Line();
-				file.Line("// An interrupt the grammar's own code left pending here is dropped, as the wait above drops it,");
-				file.Line("// rather than thrown by a release that waits for the semaphore's lock, where nothing would catch it.");
 
-				using (file.Block("while (true)"))
+				using (file.Block("try"))
 				{
-					using (file.Block("try"))
-					{
-						file.Line("deepDone.Release();");
-						file.Line();
-						file.Line("break;");
-					}
+					file.Line("if (handed == null)");
+					file.Then("ReadIn(this);");
+					file.Line("else");
+					file.Then("global::System.Threading.ExecutionContext.Run(handed, deepReadIn, this);");
+					file.Line();
+					file.Line("read = true;");
+				}
 
-					using (file.Block("catch (global::System.Threading.ThreadInterruptedException)"))
+				// The reading is answered however this thread leaves it: an abort on .NET Framework passes through
+				// every catch, and the thread that handed the reading over would otherwise wait for ever.
+				using (file.Block("finally"))
+				{
+					file.Line("deepCulture   = null;");
+					file.Line("deepUiCulture = null;");
+					file.Line();
+					file.Line("if (!read)");
+					file.Then("deepRetired = true;");
+					file.Line();
+					file.Line("global::System.Threading.Volatile.Write(ref deepState, 0);");
+					file.Line();
+					file.Line("// An interrupt the grammar's own code left pending here is dropped, as the wait above drops it,");
+					file.Line("// rather than thrown by a release that waits for the semaphore's lock, where nothing would catch it.");
+
+					using (file.Block("while (true)"))
 					{
+						using (file.Block("try"))
+						{
+							file.Line("deepDone.Release();");
+							file.Line();
+							file.Line("break;");
+						}
+
+						using (file.Block("catch (global::System.Threading.ThreadInterruptedException)"))
+						{
+						}
 					}
 				}
+
+				file.Line();
+				file.Line("// Retired by the reading it just answered: no hand-off is given it again, so it ends now.");
+				file.Line("if (deepRetired)");
+				file.Then("return;");
 			}
 		}
 
@@ -1329,63 +1349,78 @@ sealed partial class Machine
 
 				using (file.Block("try"))
 				{
-					// The host's state of the reading in and this thread's own out, inside the try: a hook that
-					// throws is the reading's exception, carried back like any other.
-					file.Line($"{HandOffHooks.Taking}(ref this.handed);");
-					file.Line();
-					file.Line("taken = true;");
-					file.Line();
-					file.Line(
-						$"var reader = new {ReaderStruct}(this.whole.Span{(_readerWays ? ", this.ways" : "")}" +
-						string.Concat(state.Select(one => $", this.{one.Name}")) + ", this.whole);");
-					file.Line();
+					using (file.Block("try"))
+					{
+						// The host's state of the reading in and this thread's own out, inside the try: a hook that
+						// throws is the reading's exception, carried back like any other.
+						file.Line($"{HandOffHooks.Taking}(ref this.handed);");
+						file.Line();
+						file.Line("taken = true;");
+						file.Line();
+						file.Line(
+							$"var reader = new {ReaderStruct}(this.whole.Span{(_readerWays ? ", this.ways" : "")}" +
+							string.Concat(state.Select(one => $", this.{one.Name}")) + ", this.whole);");
+						file.Line();
 
-					foreach (var (_, name) in carried)
-						if (state.All(one => one.Name != name))
-							file.Line($"reader.{name} = this.{name};");
+						foreach (var (_, name) in carried)
+							if (state.All(one => one.Name != name))
+								file.Line($"reader.{name} = this.{name};");
 
-					file.Line("reader.probes = this.probes;");
+						file.Line("reader.probes = this.probes;");
 
-					if (_stacks > 0)
-						file.Line("reader.stacks = this.stacks;");
+						if (_stacks > 0)
+							file.Line("reader.stacks = this.stacks;");
 
-					file.Line();
+						file.Line();
 
-					using (file.Block("switch (this.which)"))
-						foreach (var one in _deep.OrderBy(each => each.Value))
-						{
-							var asked = _graph.Climbing.ContainsKey(one.Key) ? ", this.power" : "";
+						using (file.Block("switch (this.which)"))
+							foreach (var one in _deep.OrderBy(each => each.Value))
+							{
+								var asked = _graph.Climbing.ContainsKey(one.Key) ? ", this.power" : "";
 
-							file.Line(
-								$"case {one.Value}: this.end = reader.{ReaderOf(one.Key)}(this.pos{asked}); break;");
-						}
+								file.Line(
+									$"case {one.Value}: this.end = reader.{ReaderOf(one.Key)}(this.pos{asked}); break;");
+							}
 
-					file.Line();
+						file.Line();
 
-					foreach (var (_, name) in carried)
-						if (state.All(one => one.Name != name))
-							file.Line($"this.{name} = reader.{name};");
+						foreach (var (_, name) in carried)
+							if (state.All(one => one.Name != name))
+								file.Line($"this.{name} = reader.{name};");
 
-					file.Line("this.probes = reader.probes;");
+						file.Line("this.probes = reader.probes;");
+					}
+
+					using (file.Block("catch (global::System.Exception caught)"))
+					{
+						file.Line("this.thrown = caught;");
+						file.Line();
+						file.Line("// A host whose hook failed may have half its state on this thread: it is handed no more.");
+						file.Line("if (!taken)");
+						file.Then("this.deepRetired = true;");
+					}
 				}
 
-				using (file.Block("catch (global::System.Exception caught)"))
-					file.Line("this.thrown = caught;");
-
-				file.Line();
-				file.Line("// This thread's own state back, where the host's went in, whatever the reading did; a hook that throws");
-				file.Line("// here is carried back too, unless the reading threw first.");
-				file.Line("if (!taken)");
-				file.Then("return;");
-				file.Line();
-
-				using (file.Block("try"))
-					file.Line($"{HandOffHooks.Taking}(ref this.handed);");
-
-				using (file.Block("catch (global::System.Exception caught)"))
+				// In a finally, so that it runs where the catch rethrows on its own, as a ThreadAbortException does.
+				using (file.Block("finally"))
 				{
-					file.Line("if (this.thrown == null)");
-					file.Then("this.thrown = caught;");
+					file.Line("// This thread's own state back, where the host's went in, whatever the reading did; a hook that throws");
+					file.Line("// here is carried back too, unless the reading threw first, and retires the thread, which may still");
+					file.Line("// hold the host's state.");
+
+					using (file.Block("if (taken)"))
+					{
+						using (file.Block("try"))
+							file.Line($"{HandOffHooks.Taking}(ref this.handed);");
+
+						using (file.Block("catch (global::System.Exception caught)"))
+						{
+							file.Line("this.deepRetired = true;");
+							file.Line();
+							file.Line("if (this.thrown == null)");
+							file.Then("this.thrown = caught;");
+						}
+					}
 				}
 			}
 		}
@@ -6348,8 +6383,11 @@ sealed partial class Machine
 /// <para>
 /// Where a hook throws, the reading throws it. The handing one is asked before a thread is claimed, so a
 /// throw there leaves no thread waiting; the taking ones run inside the transport that carries the
-/// reading's own exceptions back, the second whenever the first returned; what the second throws comes
-/// back where the reading threw nothing, and the reading's own exception wins where it did.
+/// reading's own exceptions back, the second in a finally whenever the first returned, so that it runs
+/// where a catch rethrows on its own (an abort on .NET Framework); what the second throws comes back
+/// where the reading threw nothing, and the reading's own exception wins where it did. A thread whose
+/// taking hook failed, either call, may still hold some of the host's state, so it is retired: it ends
+/// once it has answered the reading, and the next hand-off makes another.
 /// </para>
 /// </remarks>
 internal static class HandOffHooks

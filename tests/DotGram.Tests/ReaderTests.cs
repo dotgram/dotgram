@@ -462,6 +462,108 @@ public sealed class ReaderTests
 		}
 	}
 
+	/// <summary>
+	/// A thread whose hook failed to give the host's state back is not handed another reading: it still holds that
+	/// state, which the hook here throws before it swaps. The two readings after the failure go to another thread, and what each gives back there is that thread's
+	/// own, nothing.
+	/// </summary>
+	[Fact]
+	public void A_thread_whose_hook_failed_to_give_the_state_back_reads_no_more()
+	{
+		const string members =
+			"\n#nullable enable\n" +
+			"public static bool Fail;\n" +
+			"public static int Takes;\n" +
+			"public static readonly global::System.Collections.Concurrent.ConcurrentQueue<string> Log = new global::System.Collections.Concurrent.ConcurrentQueue<string>();\n" +
+			"[global::System.ThreadStatic] static string? scope;\n" +
+			"public static object? Scoped(string text, string? within)\n" +
+			"{\n" +
+			"\tscope = within;\n" +
+			"\ttry { return TryParseStart(text).Value; }\n" +
+			"\tfinally { scope = null; }\n" +
+			"}\n" +
+			"static string Tag(string name) { return (scope ?? \"-\") + name; }\n" +
+			"static partial void OnHandingOff(ref object? state) { state = scope; }\n" +
+			"static partial void OnTakingOver(ref object? state)\n" +
+			"{\n" +
+			"\tvar call = global::System.Threading.Interlocked.Increment(ref Takes);\n" +
+			"\tLog.Enqueue(call + \" \" + global::System.Environment.CurrentManagedThreadId + \" \" + ((string?)state ?? \"none\"));\n" +
+			"\tif (Fail && call == 2) throw new global::System.InvalidOperationException(\"giving back\");\n" +
+			"\tvar mine = scope; scope = (string?)state; state = mine;\n" +
+			"}\n";
+
+		var grammar =
+			"trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\n" +
+			"Start : @string = only: Value & eof => @(only)" + Line +
+			"Value : @string = '(' & v: Value & ')' => @(v) | t: Lexical.Name => @(Tag(t))" + Line +
+			"parse Start";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName     = "Grammar",
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			Lexical       = true,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var host   = EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: members).GetType("Grammar")!;
+		var scoped = host.GetMethod("Scoped")!;
+		var log    = (System.Collections.Concurrent.ConcurrentQueue<string>)host.GetField("Log")!.GetValue(null)!;
+		var text   = new string('(', 20_000) + "a" + new string(')', 20_000);
+		var values = new List<object?>();
+		var calls  = new List<string[]>();
+
+		var thread = new System.Threading.Thread(() =>
+		{
+			foreach (var (within, fail) in new[] { ("w:", true), ("x:", false), ("y:", false) })
+			{
+				host.GetField("Fail")!.SetValue(null, fail);
+				host.GetField("Takes")!.SetValue(null, 0);
+
+				try
+				{
+					values.Add(scoped.Invoke(null, [text, within]));
+				}
+				catch (System.Reflection.TargetInvocationException caught)
+				{
+					values.Add(caught.InnerException?.Message);
+				}
+
+				calls.Add([.. log]);
+				log.Clear();
+			}
+		}, 256 * 1024);
+
+		thread.Start();
+
+		Assert.True(thread.Join(TimeSpan.FromMinutes(1)), "the readings did not come back");
+		Assert.Equal(["giving back", "x:a", "y:a"], values);
+
+		// Each reading's first call is handed its own state, and the second gives back what the thread had: nothing.
+		static (string Thread, string Handed) Call(string line, int call)
+		{
+			var parts = line.Split(' ');
+
+			Assert.Equal(call.ToString(System.Globalization.CultureInfo.InvariantCulture), parts[0]);
+
+			return (parts[1], parts[2]);
+		}
+
+		var failed = Call(calls[0][0], 1);
+
+		Assert.Equal("w:", failed.Handed);
+
+		foreach (var (reading, within) in new[] { (1, "x:"), (2, "y:") })
+		{
+			var taken = Call(calls[reading][0], 1);
+			var given = Call(calls[reading][1], 2);
+
+			Assert.Equal(within, taken.Handed);
+			Assert.Equal("none", given.Handed);
+			Assert.NotEqual(failed.Thread, taken.Thread);
+		}
+	}
+
 	/// <summary>A rule that reaches itself, which is what makes a reading able to run out of stack.</summary>
 	const string Deep =
 		"Start : @string = only: Value & eof => @(only)" + Line +

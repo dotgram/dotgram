@@ -3627,33 +3627,48 @@ namespace DotGram.Snapshots
 					}
 
 					var handed = deepContext;
+					var read   = false;
 
 					deepContext = null;
 
-					if (handed == null)
-						ReadIn(this);
-					else
-						global::System.Threading.ExecutionContext.Run(handed, deepReadIn, this);
-
-					deepCulture   = null;
-					deepUiCulture = null;
-
-					global::System.Threading.Volatile.Write(ref deepState, 0);
-
-					// An interrupt the grammar's own code left pending here is dropped, as the wait above drops it,
-					// rather than thrown by a release that waits for the semaphore's lock, where nothing would catch it.
-					while (true)
+					try
 					{
-						try
-						{
-							deepDone.Release();
+						if (handed == null)
+							ReadIn(this);
+						else
+							global::System.Threading.ExecutionContext.Run(handed, deepReadIn, this);
 
-							break;
-						}
-						catch (global::System.Threading.ThreadInterruptedException)
+						read = true;
+					}
+					finally
+					{
+						deepCulture   = null;
+						deepUiCulture = null;
+
+						if (!read)
+							deepRetired = true;
+
+						global::System.Threading.Volatile.Write(ref deepState, 0);
+
+						// An interrupt the grammar's own code left pending here is dropped, as the wait above drops it,
+						// rather than thrown by a release that waits for the semaphore's lock, where nothing would catch it.
+						while (true)
 						{
+							try
+							{
+								deepDone.Release();
+
+								break;
+							}
+							catch (global::System.Threading.ThreadInterruptedException)
+							{
+							}
 						}
 					}
+
+					// Retired by the reading it just answered: no hand-off is given it again, so it ends now.
+					if (deepRetired)
+						return;
 				}
 			}
 
@@ -3683,43 +3698,55 @@ namespace DotGram.Snapshots
 
 				try
 				{
-					OnTakingOver(ref this.handed);
-
-					taken = true;
-
-					var reader = new Reader_DotGram_Sum(this.whole.Span, this.ways, this.whole);
-
-					reader.failure = this.failure;
-					reader.last1 = this.last1;
-					reader.probes = this.probes;
-
-					switch (this.which)
+					try
 					{
-						case 0: this.end = reader.Read_Sum_Sum(this.pos, this.power); break;
+						OnTakingOver(ref this.handed);
+
+						taken = true;
+
+						var reader = new Reader_DotGram_Sum(this.whole.Span, this.ways, this.whole);
+
+						reader.failure = this.failure;
+						reader.last1 = this.last1;
+						reader.probes = this.probes;
+
+						switch (this.which)
+						{
+							case 0: this.end = reader.Read_Sum_Sum(this.pos, this.power); break;
+						}
+
+						this.failure = reader.failure;
+						this.last1 = reader.last1;
+						this.probes = reader.probes;
 					}
-
-					this.failure = reader.failure;
-					this.last1 = reader.last1;
-					this.probes = reader.probes;
-				}
-				catch (global::System.Exception caught)
-				{
-					this.thrown = caught;
-				}
-
-				// This thread's own state back, where the host's went in, whatever the reading did; a hook that throws
-				// here is carried back too, unless the reading threw first.
-				if (!taken)
-					return;
-
-				try
-				{
-					OnTakingOver(ref this.handed);
-				}
-				catch (global::System.Exception caught)
-				{
-					if (this.thrown == null)
+					catch (global::System.Exception caught)
+					{
 						this.thrown = caught;
+
+						// A host whose hook failed may have half its state on this thread: it is handed no more.
+						if (!taken)
+							this.deepRetired = true;
+					}
+				}
+				finally
+				{
+					// This thread's own state back, where the host's went in, whatever the reading did; a hook that throws
+					// here is carried back too, unless the reading threw first, and retires the thread, which may still
+					// hold the host's state.
+					if (taken)
+					{
+						try
+						{
+							OnTakingOver(ref this.handed);
+						}
+						catch (global::System.Exception caught)
+						{
+							this.deepRetired = true;
+
+							if (this.thrown == null)
+								this.thrown = caught;
+						}
+					}
 				}
 			}
 		}
