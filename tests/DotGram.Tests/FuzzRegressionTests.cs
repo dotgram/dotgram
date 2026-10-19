@@ -1,0 +1,98 @@
+﻿using System;
+
+using DotGram.Grammar;
+using DotGram.Grammar.Model;
+
+using Xunit;
+
+namespace DotGram.Tests;
+
+/// <summary>
+/// Grammars the mutation fuzz (<see cref="FuzzTests"/>) found the compiler throwing on, kept as
+/// they were found: each is answered with a diagnostic or a parser, never an exception.
+/// </summary>
+public sealed class FuzzRegressionTests
+{
+	/// <summary>
+	/// The URL grammar with the <c>&amp;</c> before <c>('?' &amp; query: Rest)?</c> mutated away: seed 12,
+	/// round 267 of the fuzz on CI, a key <c>query: Rest</c> not found while the machine was built —
+	/// the group had become an argument of <c>Path</c>, which takes none, and the capture in it had no
+	/// slot. Answered now: the call is refused for its arguments.
+	/// </summary>
+	[Fact]
+	public void A_capture_in_a_juxtaposed_group_is_answered()
+	{
+		const string grammar =
+			"""
+			// A URL, after RFC 3986 — the example docs/syntax.md §7.3 builds the capture rules on,
+			// and the case the whole no-runtime decision was taken for: a parser that is really a
+			// regular expression, in a project that should acquire no dependency for it.
+			//
+			// A capture sits where the value is, not where the syntax is: the '@' after a userinfo
+			// and the ':' before a port are punctuation, so they stay outside the capture and the
+			// result holds "8080" rather than ":8080". Url.gram.g.cs is the file this turns into,
+			// and the types at the top of it are what a caller sees.
+
+			Url        = scheme: Scheme & "://" & authority: Authority & path: Path
+			('?' & query: Rest)? & ('#' & fragment: Rest)?
+
+			Scheme     = "https" | "http" | "ftp"
+
+			// A userinfo is followed by '@'. Nothing else is, so trying the group and giving it
+			// back is the whole of "is there a userinfo here" — no lookahead, no ordering trick.
+			Authority  = (user: UserInfo & '@')? & host: Host & (':' & port: Digit+)?
+			UserInfo   = (Unreserved | SubDelim | PctEncoded | ':')+
+			Host       = IPLiteral | IPv4 | RegName
+
+			IPv4       = Octet & '.' & Octet & '.' & Octet & '.' & Octet
+			Octet      = Digit{1,3}
+			RegName    = (Unreserved | SubDelim | PctEncoded)+
+
+			// RFC 3986 verbatim, nine alternatives and all. It is written this way because `::`
+			// stands for a run of zero groups whose length is only known from how many groups are
+			// on either side — there is no way to say that except by enumerating the cases.
+			//
+			// Nothing here works without backtracking. Every alternative shares a prefix with the
+			// ones around it, and the optional part in front of `::` is a greedy run that has to
+			// hand groups back one at a time until what follows fits. Written against the previous
+			// recognizer this rule would have matched almost nothing.
+			//
+			// (IPvFuture — `[v7.whatever]` — is left out. It has never been assigned.)
+			IPLiteral  = '[' & IPv6 & ']'
+
+			IPv6       =                                (H16 & ':'){6} & LS32
+			|                          "::" & (H16 & ':'){5} & LS32
+			| H16?                   & "::" & (H16 & ':'){4} & LS32
+			| (Group{0,1} & H16)?    & "::" & (H16 & ':'){3} & LS32
+			| (Group{0,2} & H16)?    & "::" & (H16 & ':'){2} & LS32
+			| (Group{0,3} & H16)?    & "::" & (H16 & ':')    & LS32
+			| (Group{0,4} & H16)?    & "::" & LS32
+			| (Group{0,5} & H16)?    & "::" & H16
+			| (Group{0,6} & H16)?    & "::"
+
+			Group      = H16 & ':'
+			LS32       = (H16 & ':' & H16) | IPv4
+			H16        = Hex{1,4}
+
+			Path       = ('/' & Segment)*
+			Segment    = (Unreserved | SubDelim | PctEncoded | ':' | '@')*
+
+			Rest       = (Unreserved | SubDelim | PctEncoded | ':' | '@' | '/' | '?')*
+
+			PctEncoded = '%' & Hex & Hex
+
+			Digit      = ['0'..'9']
+			Hex        = [Digit | 'a'..'f' | 'A'..'F']
+			Unreserved = [Digit | 'a'..'z' | 'A'..'Z' | '-' | '.' | '_' | '~']
+			SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
+
+			parse Url
+			find Url as AllUrls
+			""";
+
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions { ClassName = "Fuzz", CSharpScanner = DotGram.Generation.RoslynCSharpScanner.Instance });
+
+		// The lost `&` made `Path (…)?` a call with an argument, to a rule that takes none.
+		Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.UnbuiltCall && one.Message.Contains("'Path' takes no parameters", StringComparison.Ordinal));
+	}
+}

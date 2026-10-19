@@ -561,7 +561,24 @@ public sealed partial class GrammarNormalizer
 	Node LowerCall(RuleSymbol rule, IReadOnlyList<Expr> arguments, GrammarNamespace ns, Location at)
 	{
 		if (rule.Declaration is not { Params.Count: > 0 })
-			return CallTo(rule, [.. arguments.Select(argument => Lower(argument, ns))]);
+		{
+			// A rule declared without parameters called with arguments: `Path ('?' & q: Rest)?`
+			// with the `&` lost is a call, and its arguments went on into the call, where nothing
+			// reads them but the walks over the graph — a capture in one of them had no slot, and
+			// the machine threw on it. Refused as a parameterized rule refuses the wrong count.
+			if (arguments.Count > 0)
+			{
+				Report(
+					UnbuiltCall,
+					$"'{rule.Name}' takes no parameters and is given " +
+					$"{arguments.Count} {(arguments.Count == 1 ? "argument" : "arguments")}.",
+					at);
+
+				return Refused();
+			}
+
+			return CallTo(rule, []);
+		}
 
 		var call = Specialize(rule, arguments, ns, at);
 
