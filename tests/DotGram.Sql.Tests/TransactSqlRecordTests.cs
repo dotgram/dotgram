@@ -866,4 +866,37 @@ public sealed class TransactSqlRecordTests
 
 		ReadBack.Holds(text);
 	}
+
+	/// <summary>
+	/// A subquery in a second pair of brackets is a value written in brackets to the rules that ask: <c>RECEIVE TOP</c>
+	/// keeps its brackets, PREDICT takes it as a model, and a MERGE row of one holds the subquery.
+	/// </summary>
+	[Theory]
+	[InlineData("RECEIVE TOP ((SELECT 1)) * FROM q")]
+	[InlineData("RECEIVE TOP (((SELECT 1))) message_body FROM q")]
+	public void RECEIVE_TOP_keeps_the_brackets_around_a_subquery(string text)
+	{
+		foreach (var made in (Ast.Statement[])[TransactSqlParser.ParseStatement(text), TransactSqlParser.Located.ParseStatement(text)])
+			Assert.True(Assert.IsType<Ast.Statement.Receive>(made).Top!.Parentheses);
+
+		ReadBack.Holds(text);
+	}
+
+	[Theory]
+	[InlineData("SELECT * FROM PREDICT(MODEL = ((SELECT 1)), DATA = dbo.t AS d) WITH (x int) AS p")]
+	[InlineData("SELECT * FROM PREDICT(DATA = dbo.t AS d, MODEL = (((SELECT 1)))) WITH (x int) AS p")]
+	[InlineData("MERGE t USING s ON 1 = 1 WHEN NOT MATCHED THEN INSERT VALUES ((SELECT 1));")]
+	public void A_subquery_in_brackets_of_its_own_is_a_bracketed_value(string text)
+	{
+		ReadBack.Holds(text);
+	}
+
+	[Fact]
+	public void A_MERGE_row_of_a_subquery_in_brackets_holds_the_subquery()
+	{
+		var merge  = Assert.IsType<Ast.Statement.Merge>(TransactSqlParser.ParseStatement("MERGE t USING s ON 1 = 1 WHEN NOT MATCHED THEN INSERT VALUES ((SELECT 1));"));
+		var insert = Assert.IsType<Ast.MergeInsertAction>(Assert.IsType<Ast.MergeClause.NotMatched>(Assert.Single(merge.Clauses)).Action);
+
+		Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Expression.Subquery>(Assert.Single(insert.Values)).Query);
+	}
 }
