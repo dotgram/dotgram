@@ -253,7 +253,17 @@ static partial class Build
 	}
 
 	/// <summary>Whether the reading under way is skimmed: its statements hold what their rules were handed, and are not built.</summary>
-	[ThreadStatic] static bool skimming;
+	static bool skimming
+	{
+		get
+		{
+			return SqlReading.Current is { Skimming: true };
+		}
+		set
+		{
+			SqlReading.Writable.Skimming = value;
+		}
+	}
 
 	/// <summary>
 	/// A reading told its text, which the builders read the words their records leave out from, and whether it publishes
@@ -261,23 +271,22 @@ static partial class Build
 	/// </summary>
 	internal static Prior Over(string text, bool locate)
 	{
-		var outer = new Prior(source, locating, unlocated);
+		var outer   = SqlReading.Begin();
+		var reading = SqlReading.Current!;
 
-		source                 = text;
-		SqlLocation.Publishing = locate;
-		unlocated              = false;
+		reading.Source     = text;
+		reading.Publishing = locate;
+		reading.Unlocated  = false;
 
-		return outer;
+		return new Prior(outer);
 	}
 
 	/// <summary>The carriage that stood before a reading, put back when it ends; a value, so that a reading allocates none.</summary>
-	internal readonly struct Prior(string? source, bool locating, bool unlocated) : IDisposable
+	internal readonly struct Prior(SqlReading.Prior outer) : IDisposable
 	{
 		public void Dispose()
 		{
-			Build.source          = source;
-			SqlLocation.Publishing = locating;
-			Build.unlocated       = unlocated;
+			outer.End();
 		}
 	}
 
@@ -304,7 +313,17 @@ static partial class Build
 	}
 
 	/// <summary>Whether the reading under way is a plain one a builder made (<see cref="Reread"/>), whose records have no span.</summary>
-	[ThreadStatic] static bool unlocated;
+	static bool unlocated
+	{
+		get
+		{
+			return SqlReading.Current is { Unlocated: true };
+		}
+		set
+		{
+			SqlReading.Writable.Unlocated = value;
+		}
+	}
 
 	/// <summary>The statements, queries and sources the rules built on the common tree: each taken as what it holds.</summary>
 	internal static class Built
