@@ -26107,3 +26107,46 @@ under a statement is values, names, types and those clauses, which are the next 
   `TryParseSql` and `TryParseStatement`, and through `TryParseSelect`, `TryParseExpression` and
   `TryParseSearchCondition`: the same trees, spans and refusals, byte for byte. A table source's record left unlocated
   before its conversion made 1,876 of those readings differ, which is what the check is for.
+
+## T-SQL's values build the common tree
+
+The value rules of `TransactSql.gram` — expressions and their operators, predicates and conditions, names, literals,
+types, calls and their windows — now build the nodes of `DotGram.Sql.Ast` in their own actions, through builders in
+`src/DotGram.Sql/TransactSql/Building` (`Build.Values`). No rule builds the old tree of `SqlSyntax.cs` any more; it
+stays, with `SqlWriter`, until nothing refers to it. The statements, queries, table sources and clauses that still
+gather their parts before they are built keep records of their own (`Build.Read.cs`), whose values are common-tree
+nodes, and their builders take them apart as the bridge took the old records apart. The bridge is gone with the old
+records it carried: its folder is the builders', and its oracle, baselines and design page are retired.
+
+- **A value that is not a node yet.** Some values are read before what they are is known: a call, whose name, word and
+  window decide whether it is a function of its own (`CAST`, `DATEADD`, a JSON function, an ODBC escape); a word that
+  is a column or a date part depending on where it stands; an argument with a word in front of it. These are held as
+  internal nodes (`Build.Values.Held`) and resolved where a builder takes them (`Values.Of`). A part the common tree
+  has no place for is held as a gap (`Values.Unbuilt`) that says what it was read as, and becomes the statement's
+  extension at the entry, as before.
+- **Spans.** A common-tree node is told its rule's range in every reading, since a builder reads the words a record
+  leaves out from the text through it, but publishes it only in a located reading (`SqlLocation.Publishing`): the
+  plain door hands back nodes that say nothing, as it did.
+- **Held to the tree before.** Every batch of the corpus, every string of `TransactSqlTests` in five endings, the
+  re-parse combinations and the comment fuzz, through both doors of every public entry: the same trees, spans and
+  refusals as before, but for one text, `CREATE RULE r AS @x = NEXT/**/VALUE/**/FOR s` and its fellows, which is now
+  refused as the engine refuses NEXT VALUE FOR in a rule (Msg 11719): the check had looked for the three words side by
+  side. No public `Try` entry throws on any of them, nor on the shapes that threw before the scanner fixes (a
+  zero-width space or a control character where a blank stands).
+- **What a refused reading costs.** On the Immediate carrier every construction runs as its alternative is read, so a
+  refused text builds what it read before it stopped: now common-tree values (a reference is a `Reference`, a
+  `QualifiedName` and an `Identifier` where the old tree had one record with a string) and, for a query, both the
+  query's records and its common-tree node. Against main the refused rows are faster and smaller (refused-early 1,912
+  to 1,728 bytes, refused-late 5,368 to 4,496), and against the commit before the query rules built the common tree
+  (b804fd08: 920 and 2,488 bytes) still larger, by the values. A select list built straight into the common tree,
+  with no records under the query, is what would take the rest.
+- **A deep chain.** A source a chain of pivots turns is converted level by level, and the first version of the
+  builders overflowed the stack on ten thousand of them, where the bridge had carried its conversion onto a stack of
+  its own; the builders now do the same (`Build.Deeper`).
+- **Speed.** Against main, a paired stand in a shared window, T-SQL rows, five runs each with the parent's A/A
+  (directional): conditions1000 -22.4% (A/A -0.4%), script400 -12.2% (+0.2%), select-long -7.4% (-2.8%), select-join
+  -6.8% (+0.1%), update-subquery -6.3% (+0.3%), columns1000 -5.7% (-2.3%), insert-values -2.1% (-0.8%), refused-early
+  -10.0% (-1.0%), refused-late -11.7% (-1.0%); create-table +5.8% (+0.9%) and 12,840 to 13,072 bytes, most of it, by the
+  allocation profile, the token lists its tails are read through since a word inside a comment or a string is no
+  longer taken for one. Against b804fd08
+  every row that reads is 15-37% faster, and the refused rows slower, refused-early +28.3% and refused-late +39.9%.

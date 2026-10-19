@@ -170,16 +170,13 @@ dotnet .build/bin/DotGram.Benchmarks/release/DotGram.Benchmarks.dll --stand --re
 prints one line to stderr and `exit 3`, nothing else — no stack trace, and no run of the stand
 in between.
 
-### A known slowdown: T-SQL read through the bridge
+### T-SQL read through the bridge, and after it
 
-T-SQL's entries hand back the common tree (`DotGram.Sql.Ast`) while the grammar's rules still build the T-SQL
-tree of `SqlSyntax.cs`: each entry reads that tree, with locations, and carries it across
-(`src/DotGram.Sql/TransactSql/Bridge`), reading the words the old tree drops (an `AS`, a `ROWS` against a `ROW`)
-from the text at the old nodes' places. So every T-SQL row of the stand is slower and allocates more from the
-commit that switched the entries until the rules that build the T-SQL tree build the common tree themselves, and a
-T-SQL row that moves in that period is held against the carriage's cost before anybody chases it. Measured on the
-switch over the main it was merged onto (`--stand-paired`, that main against the switch, T-SQL rows, three runs kept in
-a shared window, the parent's A/A within 3% on every row):
+From the commit that switched T-SQL's entries to the common tree (`DotGram.Sql.Ast`) until the rules built that tree
+themselves, each entry read the old tree of `SqlSyntax.cs` and carried it across, reading the words the old tree
+drops from the text at the old nodes' places, and every T-SQL row of the stand was slower and allocated more for it:
+measured on the switch, an accepted reading cost two to three times as long and three to five times the bytes, and a
+refusal only what locating costs it.
 
 | row | before ns | after ns | change | before B | after B |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -193,14 +190,15 @@ a shared window, the parent's A/A within 3% on every row):
 | tsql/script400 | 299,684 | 839,363 | +180% | 400,000 | 1,494,440 |
 | tsql/refused-late | 2,635 | 2,798 | +6% | 2,488 | 2,488 |
 
-A refusal costs only what locating costs it (every entry reads with locations, which the bridge needs); an
-accepted reading costs two to three times as long and three to five times the bytes. The SQL:2023 and SQL-92 rows
-are not touched by it.
-
-While it lasts, no T-SQL figure the stand takes on main is quoted, and neither this page nor the other pages of
-figures are refreshed from main. A stand run for another change leaves the `tsql/*` rows out, or compares them
-against a main of the same period, never against one from before the switch. This ends when the T-SQL rules
-build the common tree themselves and the carriage is gone.
+The carriage is gone: the statement, query and source rules build the common tree in their actions, and since
+2026-10-18 the value rules too. Against b804fd08, the last commit before the query and source rules did (paired, a
+shared window, five runs each with the A/A beside them), every row that reads is 15-37% faster and allocates a third
+to a half less (select-join 7,796 to 5,700 ns, 13,512 to 9,024 B; columns1000 274,806 to 185,828 ns, 681,821 to
+329,127 B), and the two refused rows are slower: refused-early 1,084 to 1,391 ns and 920 to 1,728 B, refused-late 2,744
+to 3,839 ns and 2,488 to 4,496 B. A refused text builds what it read before it stopped, and that is now the common
+tree's values, and a query's records with its node. The T-SQL rows are still not set against figures taken before
+the switch: the rows that read moved by the whole of the carriage both ways, and a figure from before it says nothing
+of today.
 
 ### A short probe in a cold process overstates its first rows
 
