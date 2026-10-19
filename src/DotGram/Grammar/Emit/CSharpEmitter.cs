@@ -634,6 +634,13 @@ public static partial class CSharpEmitter
 			Publish(null);
 		}
 
+		// The hooks a reading handed to another stack calls, once a class however many machines probe.
+		if (machines.Any(static one => one.Machine.Probes))
+		{
+			file.Write(HandOffHooks.Declarations);
+			file.Line();
+		}
+
 
 		foreach (var rule in results.Built)
 		{

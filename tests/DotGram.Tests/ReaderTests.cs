@@ -283,6 +283,87 @@ public sealed class ReaderTests
 		Assert.Contains("deep.stacks = this.stacks + 1;", written, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// What a host keeps for its actions outside the reading goes with a reading handed to another stack where the host
+	/// implements the two hooks (docs/syntax.md §6.5), and stays behind where it does not: a thread-static field, with
+	/// the context's flow suppressed or not, and handed afresh to a thread that took an earlier reading.
+	/// </summary>
+	[Fact]
+	public void A_host_carries_its_own_state_onto_the_stack_a_reading_is_handed_to()
+	{
+		const string scoped =
+			"\n#nullable enable\n" +
+			"[global::System.ThreadStatic] static string? scope;\n" +
+			"public static object? Scoped(string text, string? within, bool suppress)\n" +
+			"{\n" +
+			"\tscope = within;\n" +
+			"\tvar flow = suppress ? global::System.Threading.ExecutionContext.SuppressFlow() : default;\n" +
+			"\ttry { return TryParseStart(text).Value; }\n" +
+			"\tfinally { scope = null; if (suppress) flow.Undo(); }\n" +
+			"}\n" +
+			"static string Tag(string name) { return (scope ?? \"-\") + name; }\n";
+		const string hooks =
+			"static partial void OnHandingOff(ref object? state) { state = scope; }\n" +
+			"static partial void OnTakingOver(ref object? state) { var mine = scope; scope = (string?)state; state = mine; }\n";
+
+		var grammar =
+			"trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\n" +
+			"Start : @string = only: Value & eof => @(only)" + Line +
+			"Value : @string = '(' & v: Value & ')' => @(v) | t: Lexical.Name => @(Tag(t))" + Line +
+			"parse Start";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName     = "Grammar",
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			Lexical       = true,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var source = Assert.Single(result.Sources).Text;
+
+		Assert.Contains("static partial void OnHandingOff(ref object? state);", source, StringComparison.Ordinal);
+		Assert.Contains("static partial void OnTakingOver(ref object? state);", source, StringComparison.Ordinal);
+
+		var text = new string('(', 20_000) + "a" + new string(')', 20_000);
+
+		// Without the hooks the name is read on the other stack, where the field says nothing: the hand-off happened.
+		Assert.Equal(["-a", "-a", "-a", "-a"], Read(EmittedCode.Compile(source, declarationMembers: scoped)));
+
+		// With them, each reading's own, one after another from one thread, so that the later ones go to the thread
+		// the first was handed to while it lingers.
+		Assert.Equal(["x:a", "y:a", "z:a", "-a"], Read(EmittedCode.Compile(source, declarationMembers: scoped + hooks)));
+
+		object?[] Read(System.Reflection.Assembly assembly)
+		{
+			var method = assembly.GetType("Grammar")!.GetMethod("Scoped")!;
+			var values = new object?[4];
+			Exception? thrown = null;
+
+			var thread = new System.Threading.Thread(() =>
+			{
+				try
+				{
+					values[0] = method.Invoke(null, [text, "x:", false]);
+					values[1] = method.Invoke(null, [text, "y:", false]);
+					values[2] = method.Invoke(null, [text, "z:", true]);
+					values[3] = method.Invoke(null, [text, null, false]);
+				}
+				catch (Exception caught)
+				{
+					thrown = caught;
+				}
+			}, 256 * 1024);
+
+			thread.Start();
+			thread.Join();
+
+			Assert.Null(thrown);
+
+			return values;
+		}
+	}
+
 	/// <summary>A rule that reaches itself, which is what makes a reading able to run out of stack.</summary>
 	const string Deep =
 		"Start : @string = only: Value & eof => @(only)" + Line +
