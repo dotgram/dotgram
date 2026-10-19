@@ -53,6 +53,15 @@ static partial class Build
 			return made;
 		}
 
+		/// <summary>
+		/// What an entry rule hands back: a held value resolved, so that a reading of an internal entry hands back the
+		/// common tree's node, and one with no place the extension the public entry makes of it (<see cref="Carried(Ast.Expression, bool)"/>).
+		/// </summary>
+		public static Ast.Expression Entered(Ast.Expression value)
+		{
+			return Carried(value, locating);
+		}
+
 		/// <summary>A value built at once, or the gap that says why it could not be: the value of every builder below.</summary>
 		static Ast.Expression Gapped(BuildGap gap)
 		{

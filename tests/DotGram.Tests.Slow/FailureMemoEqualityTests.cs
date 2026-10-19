@@ -188,6 +188,10 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 			case null:
 				return "null";
 
+			// An extension, which stands for what the tree has no place for, has no text: it is said by what it says.
+			case DotGram.Sql.Ast.Expression.Extension extension:
+				return $"extension {extension.Dialect}: {extension.Kind}";
+
 			case ISqlNode node:
 				return Sql2023Writer.Write(node);
 

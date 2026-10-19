@@ -1743,14 +1743,15 @@ ForName = '(' & Quoted & ')'
 //
 // The rules a program asks for by name: the standard's levels — an expression, a search condition, a
 // statement and a text of statements — and a query statement, which only T-SQL publishes. They build the
-// T-SQL tree, and are published to this assembly alone: TransactSqlParser's public entries, of the same
-// names without `Syntax`, carry what these read onto the common tree (TransactSqlParser.Entries.cs) until
-// the rules build the common tree themselves.
+// common tree, a statement inside the records its rule read it into, and are published to this assembly
+// alone: TransactSqlParser's public entries, of the same names without `Syntax`, take the common tree out
+// of what these read (TransactSqlParser.Entries.cs). A value held for a builder is resolved here, so that
+// the internal entries hand back the common tree's nodes too, and one with no place its extension.
 namespace Dialect
 {
 	Select    : @Build.Statement   = q: TSqlDirectSelect    => @(q)
-	Condition : @Ast.Expression  = c: SearchCondition     => @(c)
-	Value     : @Ast.Expression  = v: TSqlValueExpression => @(v)
+	Condition : @Ast.Expression  = c: SearchCondition     => @(Build.Values.Entered(c))
+	Value     : @Ast.Expression  = v: TSqlValueExpression => @(Build.Values.Entered(v))
 	Statement : @Build.Statement   = s: TSqlStatement       => @(s)
 	Sql       : @Build.Statement[] = s: SqlText             => @(s)
 }

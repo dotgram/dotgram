@@ -209,6 +209,14 @@ public sealed class PositionalSplitWebTests
 		if (type.IsPrimitive || type.IsEnum || value is decimal || value is DateTime || value is DateTimeOffset || value is TimeSpan || value is Guid)
 			return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? "";
 
+		// What its members would lead a walk through reflection from: an exception to the method that threw it, a
+		// delegate to the one it calls, a member to its type and assembly. Each is said by what it is.
+		if (value is Exception thrown)
+			return type.Name + "(" + Show(thrown.Message) + ")";
+
+		if (value is Delegate or MemberInfo)
+			return type.Name;
+
 		if (value is IEnumerable items)
 		{
 			var listed = new StringBuilder("[");
