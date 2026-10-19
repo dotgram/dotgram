@@ -364,6 +364,104 @@ public sealed class ReaderTests
 		}
 	}
 
+	/// <summary>
+	/// A hand-off hook that throws fails the reading with what it threw, whichever of the three calls it is: before
+	/// the hand-off, as the other thread takes the reading, or as it gives its own state back. Nothing hangs, the
+	/// thread the reading was handed to is not left claimed, and the next reading from the same thread works.
+	/// </summary>
+	[Theory]
+	[InlineData(1, "handing")]
+	[InlineData(2, "taking")]
+	[InlineData(3, "giving back")]
+	public void A_hand_off_hook_that_throws_fails_the_reading_and_leaves_no_thread_waiting(int failing, string message)
+	{
+		const string members =
+			"\n#nullable enable\n" +
+			"public static int Fail;\n" +
+			"public static int Takes;\n" +
+			"[global::System.ThreadStatic] static string? scope;\n" +
+			"public static object? Scoped(string text, string? within)\n" +
+			"{\n" +
+			"\tscope = within;\n" +
+			"\ttry { return TryParseStart(text).Value; }\n" +
+			"\tfinally { scope = null; }\n" +
+			"}\n" +
+			"static string Tag(string name) { return (scope ?? \"-\") + name; }\n" +
+			"static partial void OnHandingOff(ref object? state)\n" +
+			"{\n" +
+			"\tif (Fail == 1) throw new global::System.InvalidOperationException(\"handing\");\n" +
+			"\tstate = scope;\n" +
+			"}\n" +
+			"static partial void OnTakingOver(ref object? state)\n" +
+			"{\n" +
+			"\tvar call = global::System.Threading.Interlocked.Increment(ref Takes);\n" +
+			"\tif (Fail == 2 && call == 1) throw new global::System.InvalidOperationException(\"taking\");\n" +
+			"\tif (Fail == 3 && call == 2) throw new global::System.InvalidOperationException(\"giving back\");\n" +
+			"\tvar mine = scope; scope = (string?)state; state = mine;\n" +
+			"}\n";
+
+		var grammar =
+			"trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\n" +
+			"Start : @string = only: Value & eof => @(only)" + Line +
+			"Value : @string = '(' & v: Value & ')' => @(v) | t: Lexical.Name => @(Tag(t))" + Line +
+			"parse Start";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName     = "Grammar",
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			Lexical       = true,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly  = EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: members);
+		var host      = assembly.GetType("Grammar")!;
+		var scoped    = host.GetMethod("Scoped")!;
+		var deep      = host.GetNestedType("Deep_DotGram", System.Reflection.BindingFlags.NonPublic)!;
+		var lingering = deep.GetField("deepLingering", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+		var claim     = deep.GetField("deepState", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+		var text      = new string('(', 20_000) + "a" + new string(')', 20_000);
+
+		object? before = null, after = null, thrown = null, worker = null;
+		var state = -1;
+
+		var thread = new System.Threading.Thread(() =>
+		{
+			before = Read(0, "x:");
+
+			try
+			{
+				Read(failing, "y:");
+			}
+			catch (System.Reflection.TargetInvocationException caught)
+			{
+				thrown = caught.InnerException;
+			}
+
+			// The reading is back, so the thread it went to is waiting for the next, or gone: never still claimed.
+			worker = lingering.GetValue(null);
+			state  = worker is null ? -1 : (int)claim.GetValue(worker)!;
+			after  = Read(0, "z:");
+		}, 256 * 1024);
+
+		thread.Start();
+
+		Assert.True(thread.Join(TimeSpan.FromMinutes(1)), "the readings did not come back");
+		Assert.Equal("x:a", before);
+		Assert.Equal(message, Assert.IsType<InvalidOperationException>(thrown).Message);
+		Assert.NotNull(worker);
+		Assert.NotEqual(1, state);
+		Assert.Equal("z:a", after);
+
+		object? Read(int fail, string within)
+		{
+			host.GetField("Fail")!.SetValue(null, fail);
+			host.GetField("Takes")!.SetValue(null, 0);
+
+			return scoped.Invoke(null, [text, within]);
+		}
+	}
+
 	/// <summary>A rule that reaches itself, which is what makes a reading able to run out of stack.</summary>
 	const string Deep =
 		"Start : @string = only: Value & eof => @(only)" + Line +

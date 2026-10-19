@@ -2522,7 +2522,10 @@ static partial void OnTakingOver(ref object? state)   // on the thread that take
 The second runs before the reading and again after it, so the exchange puts the thread's own
 state back; the slot is filled afresh for every hand-off, including one to a thread that took
 an earlier one. Left unimplemented, both are removed at compile time with their calls. A
-second reading of the grammar (§6.6) declares its own pair in its own class.
+second reading of the grammar (§6.6) declares its own pair in its own class. A hook that throws
+fails the reading with what it threw, as an action that throws does, and leaves no thread
+waiting: the first is asked before a thread is taken, and the second still runs, and puts the
+thread's own state back, where the reading threw.
 
 A rule a cycle re-enters is also where a reading over tokens remembers what failed. A bracket
 may be read as a condition, then as a value, then as a subquery, and each attempt reads all

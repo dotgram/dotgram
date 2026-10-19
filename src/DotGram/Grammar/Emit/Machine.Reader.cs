@@ -952,6 +952,13 @@ sealed partial class Machine
 				file.Line();
 			}
 
+			// What the host keeps of the reading outside it, where it asked to be told, before a thread is claimed or
+			// the sink told: a hook that throws leaves none claimed, and nothing waiting for a reading that never comes.
+			file.Line("object? handed = null;");
+			file.Line();
+			file.Line($"{HandOffHooks.Handing}(ref handed);");
+			file.Line();
+
 			// The sink travels with the failure, and is told before the reading moves.
 			if (Tracing is not null)
 			{
@@ -977,8 +984,7 @@ sealed partial class Machine
 			file.Line("deep.which  = which;");
 			file.Line("deep.power  = power;");
 			file.Line();
-			file.Line($"// What the host keeps of the reading outside it, where it asked to be told ({HandOffHooks.Handing}).");
-			file.Line($"{HandOffHooks.Handing}(ref deep.handed);");
+			file.Line("deep.handed = handed;");
 			file.Line();
 			file.Line("deep.Go();");
 			file.Line();
@@ -1318,55 +1324,69 @@ sealed partial class Machine
 
 			using (file.Block("internal void Run()"))
 			{
-				// The host's state of the reading in, this thread's own out, and back again after.
-				file.Line($"{HandOffHooks.Taking}(ref this.handed);");
+				file.Line("var taken = false;");
 				file.Line();
 
 				using (file.Block("try"))
 				{
-					using (file.Block("try"))
-					{
-						file.Line(
-							$"var reader = new {ReaderStruct}(this.whole.Span{(_readerWays ? ", this.ways" : "")}" +
-							string.Concat(state.Select(one => $", this.{one.Name}")) + ", this.whole);");
-						file.Line();
+					// The host's state of the reading in and this thread's own out, inside the try: a hook that
+					// throws is the reading's exception, carried back like any other.
+					file.Line($"{HandOffHooks.Taking}(ref this.handed);");
+					file.Line();
+					file.Line("taken = true;");
+					file.Line();
+					file.Line(
+						$"var reader = new {ReaderStruct}(this.whole.Span{(_readerWays ? ", this.ways" : "")}" +
+						string.Concat(state.Select(one => $", this.{one.Name}")) + ", this.whole);");
+					file.Line();
 
-						foreach (var (_, name) in carried)
-							if (state.All(one => one.Name != name))
-								file.Line($"reader.{name} = this.{name};");
+					foreach (var (_, name) in carried)
+						if (state.All(one => one.Name != name))
+							file.Line($"reader.{name} = this.{name};");
 
 					file.Line("reader.probes = this.probes;");
 
-						if (_stacks > 0)
-							file.Line("reader.stacks = this.stacks;");
+					if (_stacks > 0)
+						file.Line("reader.stacks = this.stacks;");
 
-						file.Line();
+					file.Line();
 
-						using (file.Block("switch (this.which)"))
-							foreach (var one in _deep.OrderBy(each => each.Value))
-							{
-								var asked = _graph.Climbing.ContainsKey(one.Key) ? ", this.power" : "";
+					using (file.Block("switch (this.which)"))
+						foreach (var one in _deep.OrderBy(each => each.Value))
+						{
+							var asked = _graph.Climbing.ContainsKey(one.Key) ? ", this.power" : "";
 
-								file.Line(
-									$"case {one.Value}: this.end = reader.{ReaderOf(one.Key)}(this.pos{asked}); break;");
-							}
+							file.Line(
+								$"case {one.Value}: this.end = reader.{ReaderOf(one.Key)}(this.pos{asked}); break;");
+						}
 
-						file.Line();
+					file.Line();
 
-						foreach (var (_, name) in carried)
-							if (state.All(one => one.Name != name))
-								file.Line($"this.{name} = reader.{name};");
+					foreach (var (_, name) in carried)
+						if (state.All(one => one.Name != name))
+							file.Line($"this.{name} = reader.{name};");
 
 					file.Line("this.probes = reader.probes;");
-
-					}
-
-					using (file.Block("catch (global::System.Exception caught)"))
-						file.Line("this.thrown = caught;");
 				}
 
-				using (file.Block("finally"))
+				using (file.Block("catch (global::System.Exception caught)"))
+					file.Line("this.thrown = caught;");
+
+				file.Line();
+				file.Line("// This thread's own state back, where the host's went in, whatever the reading did; a hook that throws");
+				file.Line("// here is carried back too, unless the reading threw first.");
+				file.Line("if (!taken)");
+				file.Then("return;");
+				file.Line();
+
+				using (file.Block("try"))
 					file.Line($"{HandOffHooks.Taking}(ref this.handed);");
+
+				using (file.Block("catch (global::System.Exception caught)"))
+				{
+					file.Line("if (this.thrown == null)");
+					file.Then("this.thrown = caught;");
+				}
 			}
 		}
 	}
@@ -6319,6 +6339,17 @@ sealed partial class Machine
 /// </para>
 /// <para>
 /// Partial methods: a host that implements neither compiles as if they were not there, calls and all.
+/// What stays is a slot, a null written into it and a flag on each hand-off, and the second exchange's own
+/// catch: written for every grammar that probes, because whether the host implements the pair is decided in
+/// the host's half of the class, which the generator does not see, and what a consumer compiles should not
+/// depend on how it was built. All of it is on the hand-off, which a reading reaches only where its stack
+/// ran low, and none on the path that reads.
+/// </para>
+/// <para>
+/// Where a hook throws, the reading throws it. The handing one is asked before a thread is claimed, so a
+/// throw there leaves no thread waiting; the taking ones run inside the transport that carries the
+/// reading's own exceptions back, the second whenever the first returned; what the second throws comes
+/// back where the reading threw nothing, and the reading's own exception wins where it did.
 /// </para>
 /// </remarks>
 internal static class HandOffHooks
