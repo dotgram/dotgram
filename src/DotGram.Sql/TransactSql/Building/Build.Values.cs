@@ -120,6 +120,7 @@ static partial class Build
 			return value switch
 			{
 				Ast.Expression.Parenthesized(var inner)               => inner,
+				Enclosed(var inner)                                   => inner,
 				Unbuilt { Shape: "Expression.Parenthesized", Parts: [var inner] } => inner,
 				_                                                     => null,
 			};
@@ -191,9 +192,9 @@ static partial class Build
 		// ── The operators ─────────────────────────────────────────────────────────
 
 		/// <summary>
-		/// A pair of brackets around a value. Around a subquery, which has brackets of its own, the new tree
-		/// takes the second pair as the query's (<see cref="Ast.Query.Parenthesized"/>): <c>((SELECT 1))</c> is a
-		/// subquery of a bracketed query, where the old tree has a bracketed subquery.
+		/// A pair of brackets around a value. Around a subquery, which has brackets of its own, the value stays a bracketed
+		/// subquery for the rules that ask whether a value was written in brackets (<see cref="Bracketed"/>), and is the
+		/// subquery of a bracketed query on the common tree (<see cref="Enclosed"/>).
 		/// </summary>
 		public static Ast.Expression Parenthesized(Ast.Expression value)
 		{
@@ -201,8 +202,8 @@ static partial class Build
 			{
 				var inside = Of(value);
 
-				return inside is Ast.Expression.Subquery(var query)
-					? new Ast.Expression.Subquery(new Ast.Query.Parenthesized(query))
+				return inside is Ast.Expression.Subquery subquery
+					? new Enclosed(subquery)
 					: new Ast.Expression.Parenthesized(inside);
 			}
 			catch (BuildGap gap)
@@ -1567,6 +1568,20 @@ static partial class Build
 			public override Ast.Expression Resolved()
 			{
 				throw Gap;
+			}
+		}
+
+		/// <summary>
+		/// A subquery in a pair of brackets of its own, <c>((SELECT 1))</c>: kept as written until a builder takes it, so that
+		/// a rule that asks whether a value was written in brackets (<c>TOP</c>, <c>RECEIVE TOP</c>) or whether it is a
+		/// subquery (<c>PREDICT</c>'s model and data) is answered as for any other bracketed value. As a value it is the
+		/// common tree's subquery of a bracketed query: the second pair is the query's (<see cref="Ast.Query.Parenthesized"/>).
+		/// </summary>
+		internal sealed record Enclosed(Ast.Expression.Subquery Value) : Held("Expression.Parenthesized")
+		{
+			public override Ast.Expression Resolved()
+			{
+				return new Ast.Expression.Subquery(new Ast.Query.Parenthesized(Value.Query));
 			}
 		}
 
