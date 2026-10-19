@@ -164,6 +164,9 @@ switch (message)
   (`party.PartyID`); only the reader builds entries.
 - The standard header and trailer are properties of every message, and `Fields` is the whole
   message in wire order, the fields of every group included.
+- `Fields` and the group lists are plain `List<T>`: a message read is the caller's to change, but
+  nothing keeps the lists and the properties in step, so change one and the others still say what
+  was read.
 - `ParseMessage` throws `FormatException`; `TryParseMessage` returns false with a
   `FixParseError` saying where and why, and the compiler knows `message` is not null after true and
   `error` after false. A null argument throws `ArgumentNullException` from every call. The same pair for readers and streams is

@@ -33,6 +33,10 @@ public abstract partial class FixMessage : IFixFindings
 	/// <summary>
 	/// All fields in wire order, including header and trailer; group entries are flattened into the list.
 	/// </summary>
+	/// <remarks>
+	/// A plain list, as every group's is: once read, the message is the caller's. Nothing keeps it in step
+	/// with the properties, so a field removed here is still where its property holds it.
+	/// </remarks>
 	public List<FixField> Fields      { get; private protected set; }
 
 

@@ -139,6 +139,10 @@ group's first field, so that property is never null (`party.PartyID`); entries a
 reader, and have no public constructor. `Fields` is the whole message in wire
 order, the fields of every group included.
 
+`Fields` and every `<Counter>Groups` are plain `List<T>`: once read, a message is the caller's, to
+keep or to change. The lists are not kept in step with one another or with the properties:
+removing a field from `Fields` leaves its property set.
+
 `ParseMessage` reads one complete message and throws `FormatException` where it cannot;
 `TryParseMessage` returns false with a `FixParseError` saying where and why. `ParseMessages` reads a
 buffer of several. `BuildMessage(source, fields)` builds the message from fields `ParseFields`
