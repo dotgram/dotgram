@@ -5155,7 +5155,13 @@ sealed partial class Machine
 				$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, target)}, p, call, atomic, " +
 				$"repeat, lookahead, 0{KeptPower}));");
 			writer.Line($"Step_DotGram(\"push choice\", {Mark(Lands, target)}, p, entries.Count{Traced});");
-			writer.Line($"goto {Label(writer, first)};");
+
+			// A rule that necessarily begins with fixed text is not called where the text is not
+			// there: the characters are tested after the entry, and a miss fails to it as the
+			// rule's own reading would have (Guarded).
+			var entered = Guarded(alternatives, i) is { } literals ? CompileGuard(literals, first, following) : first;
+
+			writer.Line($"goto {Label(writer, entered)};");
 
 			if (asked is not null)
 				_dispatchers[state] = (asked, target);
