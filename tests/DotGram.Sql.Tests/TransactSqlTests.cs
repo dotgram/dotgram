@@ -12036,6 +12036,9 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE RULE r AS @x > 1 OR @y < 2")]
 	[InlineData("CREATE RULE r AS @x > 1 AND @x2 < 2")]
 	[InlineData("CREATE RULE r AS @x = NEXT VALUE FOR s")]
+	// The same with a comment between the three words, which are still NEXT VALUE FOR (Msg 11719).
+	[InlineData("CREATE RULE r AS @x = NEXT/**/VALUE/**/FOR s")]
+	[InlineData("CREATE RULE r AS @x = NEXT --c\nVALUE --c\nFOR s")]
 	[InlineData("CREATE RULE db.dbo.r AS @x > 1")]
 	[InlineData("CREATE RULE r @x > 1")]
 	[InlineData("CREATE DEFAULT db.dbo.d AS 1")]
@@ -12044,6 +12047,7 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE DEFAULT d 1")]
 	[InlineData("CREATE DEFAULT d AS NEXT VALUE FOR s")]
 	[InlineData("CREATE DEFAULT d AS 1 + NEXT VALUE FOR s")]
+	[InlineData("CREATE DEFAULT d AS 1 + NEXT /* a /* b */ c */ VALUE FOR s")]
 	[InlineData("CREATE AGGREGATE a () RETURNS INT EXTERNAL NAME asm")]
 	[InlineData("CREATE AGGREGATE a (@x INT = 1) RETURNS INT EXTERNAL NAME asm")]
 	[InlineData("CREATE AGGREGATE a (@x INT OUTPUT) RETURNS INT EXTERNAL NAME asm")]
