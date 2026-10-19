@@ -320,6 +320,13 @@ public sealed class TerminalInventory
 		/// </summary>
 		public LexicalAutomaton? Tagged { get; init; }
 
+		/// <summary>
+		/// The alternatives that bind nothing, as written, where <see cref="Tagged"/> stands: a
+		/// token the tags passed was read whole through one of them, and its value may be read
+		/// through that one alone (CSharpEmitter.Through).
+		/// </summary>
+		public IReadOnlyList<Node> Unbound { get; init; } = [];
+
 		/// <summary>The beginning, where it is one fixed spelling; what a longer token is asked to start with.</summary>
 		public string? Beginning { get; init; }
 
@@ -1734,9 +1741,10 @@ public sealed class TerminalInventory
 				// Where the terminal's alternatives that bind no text can be read whole by the
 				// automaton, they are, and the rule is not read again for a token none of the
 				// others could have been (Skipping); else the longest regular prefix begins it.
-				if (Skipping(rule, body) is var (shape, tags))
+				if (Skipping(rule, body) is var (shape, tags, unbound))
 				{
-					_skips[rule] = tags;
+					_skips[rule]   = tags;
+					_unbound[rule] = unbound;
 					_tails[rule] = (shape, new Node.Call(rule, []), null, true);
 
 					return _tails[rule];
@@ -1929,6 +1937,9 @@ public sealed class TerminalInventory
 		/// <summary>By terminal, what its alternatives that bind text necessarily begin with (<see cref="Skipping"/>).</summary>
 		readonly Dictionary<RuleSymbol, Node> _skips = [];
 
+		/// <summary>By terminal, its alternatives that bind nothing, as written (<see cref="Skipping"/>).</summary>
+		readonly Dictionary<RuleSymbol, IReadOnlyList<Node>> _unbound = [];
+
 		/// <summary>By rule, what it necessarily begins with through its binding (<see cref="Necessary"/>), remembered as a beginning is.</summary>
 		readonly Dictionary<RuleSymbol, Node> _necessary = [];
 
@@ -1958,7 +1969,7 @@ public sealed class TerminalInventory
 		/// of a token (docs/syntax.md §3.5.1).
 		/// </para>
 		/// </remarks>
-		(Node Shape, Node Tags)? Skipping(RuleSymbol rule, Node body)
+		(Node Shape, Node Tags, IReadOnlyList<Node> Unbound)? Skipping(RuleSymbol rule, Node body)
 		{
 			var inner = body;
 
@@ -1981,6 +1992,7 @@ public sealed class TerminalInventory
 			var shapes       = new List<Node>(alternatives.Count);
 			var tags         = new List<Node>();
 			var whole        = new List<Node>();
+			var unbound      = new List<Node>();
 			var looks        = new List<(Node Before, Node Seen)>();
 
 			foreach (var alternative in alternatives)
@@ -2003,6 +2015,7 @@ public sealed class TerminalInventory
 
 				shapes.Add(relaxed);
 				whole.Add(relaxed);
+				unbound.Add(alternative);
 			}
 
 			if (tags.Count == 0 || whole.Count == 0 || shapes.Any(static one => one is Node.Empty))
@@ -2034,7 +2047,7 @@ public sealed class TerminalInventory
 					if (!PrefixFree(nested.Nodes))
 						return null;
 
-			return (shapes.Count == 1 ? shapes[0] : new Node.Choice(shapes), tagged);
+			return (shapes.Count == 1 ? shapes[0] : new Node.Choice(shapes), tagged, unbound);
 		}
 
 		/// <summary>Whether no alternative matches a string that begins, or is, a string another matches.</summary>
@@ -2418,6 +2431,7 @@ public sealed class TerminalInventory
 				FromStart      = true,
 				Shared         = shared,
 				Tagged         = _skips.TryGetValue(pattern.Rule, out var tags) ? LexicalAutomaton.Of(graph, [tags], []) : null,
+				Unbound        = _unbound.TryGetValue(pattern.Rule, out var unbound) ? unbound : [],
 				Beginning      = (spelled as Node.Literal)?.Text,
 				BeginningFolds = spelled is Node.Literal { IgnoreCase: true },
 			};
