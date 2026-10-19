@@ -2167,8 +2167,12 @@ public sealed class TerminalInventory
 		/// one character (<c>{ C+ }</c>, no upper bound) that nothing after it can begin with
 		/// (<see cref="Follow"/>), the run itself through the repetition around it excepted — a
 		/// run followed by the same run is one run. The possessive reading then takes exactly the
-		/// characters any reading would. A bounded run, <c>{ C{2,5} }</c>, can: five and one is
-		/// not three and three.
+		/// characters any reading would, but in fewer turns of that repetition: one that has to
+		/// turn more than once is owed turns the merged run cannot pay (<c>({ 'a'+ }){2} &amp;
+		/// 'c'</c> refuses <c>aac</c>), so every repetition around the run whose body the run can
+		/// begin must be free to turn once or not at all; an upper bound takes nothing away, since
+		/// merging only lessens the turns. A bounded run, <c>{ C{2,5} }</c>, can give back: five
+		/// and one is not three and three.
 		/// </para>
 		/// <para>
 		/// A lookahead's body is not looked into: a lookahead at the top is answered by the tags
@@ -2190,7 +2194,7 @@ public sealed class TerminalInventory
 				{
 					var first = FirstSets.Of(one, graph);
 
-					return Follow(scope, node, FirstSets.First.None, []) is { } follow && !follow.Overlaps(first) && Exact(run, scope, inside);
+					return Follow(scope, node, first, FirstSets.First.None, []) is { } follow && !follow.Overlaps(first) && Exact(run, scope, inside);
 				}
 
 				case Node.Atomic(var kept):
@@ -2248,9 +2252,11 @@ public sealed class TerminalInventory
 		/// What can follow <paramref name="target"/> wherever it stands under <paramref name="scope"/>:
 		/// the first characters of what comes after it, through what may match nothing, and of the
 		/// body of a repetition around it entered again — the target's own contribution to that
-		/// left out. Null where the target is not under the scope.
+		/// left out. Everything, where a repetition around it that the target's characters
+		/// (<paramref name="first"/>) can begin must turn more than once: the merged run would owe
+		/// it turns. Null where the target is not under the scope.
 		/// </summary>
-		FirstSets.First? Follow(Node scope, Node target, FirstSets.First follow, HashSet<RuleSymbol> inside)
+		FirstSets.First? Follow(Node scope, Node target, FirstSets.First first, FirstSets.First follow, HashSet<RuleSymbol> inside)
 		{
 			if (ReferenceEquals(scope, target))
 				return follow;
@@ -2278,7 +2284,7 @@ public sealed class TerminalInventory
 						if (nullable)
 							after = after.Or(follow);
 
-						if (Follow(parts[i], target, after, inside) is { } inner)
+						if (Follow(parts[i], target, first, after, inside) is { } inner)
 							found = found is null ? inner : found.Or(inner);
 					}
 
@@ -2290,17 +2296,23 @@ public sealed class TerminalInventory
 					FirstSets.First? found = null;
 
 					foreach (var alternative in alternatives)
-						if (Follow(alternative, target, follow, inside) is { } inner)
+						if (Follow(alternative, target, first, follow, inside) is { } inner)
 							found = found is null ? inner : found.Or(inner);
 
 					return found;
 				}
 
-				case Node.Repeat(var body, _, var max):
+				case Node.Repeat(var body, var min, var max):
 				{
+					if (!Holds(body, target, []))
+						return null;
+
+					if (min > 1 && FirstSets.Of(body, graph).Overlaps(first))
+						return FirstSets.First.All;
+
 					var again = max == 1 ? FirstSets.First.None : FirstWithout(body, target, []).First;
 
-					return Follow(body, target, again.Or(follow), inside);
+					return Follow(body, target, first, again.Or(follow), inside);
 				}
 
 				case Node.Call(var called, _):
@@ -2308,7 +2320,7 @@ public sealed class TerminalInventory
 					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
 						return null;
 
-					var found = Follow(body, target, follow, inside);
+					var found = Follow(body, target, first, follow, inside);
 
 					inside.Remove(called);
 
@@ -2323,7 +2335,7 @@ public sealed class TerminalInventory
 					FirstSets.First? found = null;
 
 					foreach (var child in scope.Children)
-						if (Follow(child, target, follow, inside) is { } inner)
+						if (Follow(child, target, first, follow, inside) is { } inner)
 							found = found is null ? inner : found.Or(inner);
 
 					return found;

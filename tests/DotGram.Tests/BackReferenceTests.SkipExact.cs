@@ -40,7 +40,10 @@ public sealed partial class BackReferenceTests
 	/// split them; a bounded run, <c>{ 'a'{2,5} }</c>, refuses six where five and one is not three and
 	/// three. Such an alternative is read again — unless the group is a run of one character, with no
 	/// upper bound, that nothing after it can begin with but the run itself again, which gives back
-	/// nothing anyone would take: the string's run, and the escape beside it, keep the skip.
+	/// nothing anyone would take: the string's run, and the escape beside it, keep the skip. Not where
+	/// the repetition the run comes again through has to turn more than once — <c>({ 'a'+ }){2} &amp;
+	/// 'c'</c> refuses <c>aac</c>, the first run having taken both and the second turn owed — however
+	/// deep; one that need not turn at all, or one whose body the run does not begin, may.
 	/// </summary>
 	[Theory]
 	[InlineData("T = { $q: 'x' & $q | { 'a'+ } & 'a' }", "aa", false, false)]
@@ -48,6 +51,12 @@ public sealed partial class BackReferenceTests
 	[InlineData("T = { $q: 'x' & $q | ({ 'a'{2,5} })* & 'c' }", "aaaaaac", false, false)]
 	[InlineData("T = { $q: 'x' & $q | ({ 'a'{2,5} })* & 'c' }", "aaaaaaac", false, true)]
 	[InlineData("T = { $q: 'x' & $q | R & 'a' }\n\tR = { 'a'+ }", "aa", false, false)]
+	[InlineData("T = { $q: 'x' & $q | ({ 'a'+ }){2} & 'c' }", "aac", false, false)]
+	[InlineData("T = { $q: 'x' & $q | ({ 'a'+ }){2,} & 'c' }", "aac", false, false)]
+	[InlineData("T = { $q: 'x' & $q | ({ 'a'+ }){2,3} & 'c' }", "aac", false, false)]
+	[InlineData("T = { $q: 'x' & $q | (({ 'a'+ })+){2} & 'c' }", "aac", false, false)]
+	[InlineData("T = { $q: 'x' & $q | ({ 'a'+ }){0,2} & 'c' }", "aac", true, true)]
+	[InlineData("T = { $q: 'x' & $q | ('x' & { 'a'+ } & 'y'){2} }", "xayxaay", true, true)]
 	[InlineData("T = { $q: 'x' & $q | { 'a'+ } & 'b' }", "aab", true, true)]
 	[InlineData("T = { $q: 'x' & $q | ({ 'a'+ } | 'b')* & 'c' }", "aabaac", true, true)]
 	[InlineData("T = { $q: 'x' & $q | '\"' & ('\\\\' & any | { [^ '\"' | '\\\\']+ })* & '\"' }", "\"ab\\\"c\"", true, true)]
