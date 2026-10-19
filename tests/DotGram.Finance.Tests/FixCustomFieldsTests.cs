@@ -332,6 +332,82 @@ public sealed class FixCustomFieldsTests
 		Assert.Throws<InvalidOperationException>(() => race.Report(FixFinding.Missing(25011)));
 	}
 
+	// A message that, while one thread is inside Place or OnValidate, lets another call its public wrapper
+	// around AddFinding: the scope of the callback is that thread's, and the other is refused.
+	sealed class VenueHeld : FixCustomMessage
+	{
+		static readonly TimeSpan Limit = TimeSpan.FromSeconds(30);
+
+		public bool InPlace { get; init; }
+
+		public Exception? Other { get; private set; }
+
+		public bool Called { get; private set; }
+
+		protected override bool Place(FixField field)
+		{
+			if (InPlace && field.Tag == 25005)
+				FromAnotherThread();
+
+			return field.Tag == 25005;
+		}
+
+		protected override void OnValidate(Fix44Context context, ICollection<FixFinding> findings)
+		{
+			if (!InPlace)
+				FromAnotherThread();
+		}
+
+		// This thread waits inside the callback until the other has tried.
+		void FromAnotherThread()
+		{
+			using var both  = new Barrier(2);
+			var       other = new Thread(() =>
+			{
+				both.SignalAndWait(Limit);
+
+				try
+				{
+					Report(FixFinding.Missing(25011));
+				}
+				catch (Exception exception)
+				{
+					Other = exception;
+				}
+
+				Called = true;
+				both.SignalAndWait(Limit);
+			});
+
+			other.Start();
+
+			Assert.True(both.SignalAndWait(Limit));
+			Assert.True(both.SignalAndWait(Limit));
+			Assert.True(other.Join(Limit));
+		}
+
+		public void Report(FixFinding finding)
+		{
+			AddFinding(finding);
+		}
+	}
+
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void Another_thread_adds_no_finding_while_one_is_inside_a_callback(bool inPlace)
+	{
+		var context = new Fix44Context { FixMessageFactory = type => type == "U6" ? new VenueHeld { InPlace = inPlace } : null }.Load(Venue);
+		var held    = Assert.IsType<VenueHeld>(FixParser.ParseMessage(Framed("35=U6|49=A|56=B|34=1|52=20260919-12:00:00|25005=OPEN|"), context));
+
+		if (!inPlace)
+			Assert.Empty(held.Validate(context));
+
+		Assert.True(held.Called);
+		Assert.IsType<InvalidOperationException>(held.Other);
+		Assert.Empty(held.Findings);
+	}
+
 	[Fact]
 	public void A_type_the_factory_answers_null_for_is_an_Unknown_message()
 	{

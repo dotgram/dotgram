@@ -51,19 +51,19 @@ public abstract class FixCustomMessage : FixMessage
 	{
 	}
 
-	// Whether the reader is handing the fields to Place now, the one time a finding may be added to the
-	// message: what reading found is not changed once the message has been read, and the reader is done
-	// before any caller holds the message.
-	bool _reading;
+	// The thread the reader hands the fields to Place on, while it does, or 0: the one time and the one
+	// thread a finding may be added to the message. What reading found is not changed once the message has
+	// been read, and a Place that hands the message to another thread does not give that thread the right.
+	int _reader;
 
-	/// <summary>Adds one finding of the reading to this message, from <see cref="Place"/> while it is read.</summary>
+	/// <summary>Adds one finding of the reading to this message, from <see cref="Place"/> while it is read, on the thread that reads it.</summary>
 	/// <param name="finding">What is wrong.</param>
 	/// <exception cref="InvalidOperationException">Called at any other time: what reading found is not changed after the message has been read, and a finding of the validation goes to the collection <see cref="OnValidate"/> is given.</exception>
 	protected new void AddFinding(FixFinding finding)
 	{
 		if (finding == null) throw new ArgumentNullException(nameof(finding));
 
-		if (!_reading)
+		if (_reader != Environment.CurrentManagedThreadId)
 			throw new InvalidOperationException("A finding is added to a message only from Place, while it is read; OnValidate adds its own to the collection it is given.");
 
 		base.AddFinding(finding);
@@ -80,7 +80,7 @@ public abstract class FixCustomMessage : FixMessage
 		MessageType = type;
 		Fields      = fields;
 
-		_reading = true;
+		_reader = Environment.CurrentManagedThreadId;
 
 		try
 		{
@@ -90,7 +90,7 @@ public abstract class FixCustomMessage : FixMessage
 		}
 		finally
 		{
-			_reading = false;
+			_reader = 0;
 		}
 
 		return this;

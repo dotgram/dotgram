@@ -369,8 +369,10 @@ every `Validate`, from as many threads as validate the message, and keeps nothin
 `Place` finds while the message is read it adds with `AddFinding`, which it can call only then; at
 any other time it throws `InvalidOperationException`, so what reading found does not change once the
 message has been read.
-The standard header and trailer are the reader's: their properties are set before `Place` is
-asked, and a custom message cannot set them.
+The standard header and trailer are the reader's, and a custom message cannot set them. The reader
+hands the fields over in one pass, in wire order, so a header or trailer property is set when its
+field is met: during `Place` the header before the field is there, and `CheckSum` is not yet. A
+check of the whole message belongs in `OnValidate`.
 
 A tag neither the version nor a dictionary defines is a `FixField.Invalid` of that tag with its
 octets, and a type the factory answers null for is a `FixMessage.Unknown`, its finding
