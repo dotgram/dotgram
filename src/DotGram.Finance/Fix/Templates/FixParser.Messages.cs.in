@@ -171,7 +171,7 @@ public static partial class FixParser
 			return (type.Length, type.Length > 0 ? type[0] : '\0', type.Length > 1 ? type[1] : '\0') switch
 			{
 @@MessageSwitch@@
-				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Invalid(type, fields)),
+				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Unknown(type, fields)),
 			};
 		}
 	}

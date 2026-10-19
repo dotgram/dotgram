@@ -289,7 +289,7 @@ public static partial class FixParser
 				(2, 'C', 'C') => new FixMessage.StreamAssignmentRequest                 (fields),
 				(2, 'C', 'D') => new FixMessage.StreamAssignmentReport                  (fields),
 				(2, 'C', 'E') => new FixMessage.StreamAssignmentReportACK               (fields),
-				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Invalid(type, fields)),
+				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Unknown(type, fields)),
 			};
 		}
 	}

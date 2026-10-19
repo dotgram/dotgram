@@ -71,7 +71,7 @@ public sealed record Fix42Context : FixContext
 	/// <summary>Builds the message of a MsgType FIX 4.2 does not define: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.</summary>
 	/// <remarks>
 	/// Asked only of a type the package has no class for. What it builds is handed the fields; where it
-	/// answers null, or there is none, the message is a <see cref="FixMessage.Invalid"/>.
+	/// answers null, or there is none, the message is a <see cref="FixMessage.Unknown"/>.
 	/// </remarks>
 	public Func<string,FixCustomMessage?>? FixMessageFactory { get; init; }
 

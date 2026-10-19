@@ -219,7 +219,7 @@ public static partial class FixParser
 				(1, 'k', _  ) => new FixMessage.BidRequest                    (fields),
 				(1, 'l', _  ) => new FixMessage.BidResponse                   (fields),
 				(1, 'm', _  ) => new FixMessage.ListStrikePrice               (fields),
-				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Invalid(type, fields)),
+				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Unknown(type, fields)),
 			};
 		}
 	}

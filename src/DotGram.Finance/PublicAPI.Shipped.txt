@@ -461,7 +461,6 @@ DotGram.Finance.Fix.Fix42.FixMessage.IndicationofInterest.Text.get -> DotGram.Fi
 DotGram.Finance.Fix.Fix42.FixMessage.IndicationofInterest.TransactTime.get -> DotGram.Finance.Fix.FixField.Timestamp?
 DotGram.Finance.Fix.Fix42.FixMessage.IndicationofInterest.URLLink.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix42.FixMessage.IndicationofInterest.ValidUntilTime.get -> DotGram.Finance.Fix.FixField.Timestamp?
-DotGram.Finance.Fix.Fix42.FixMessage.Invalid
 DotGram.Finance.Fix.Fix42.FixMessage.InvalidFindings.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixFinding>?
 DotGram.Finance.Fix.Fix42.FixMessage.IsValid.get -> bool
 DotGram.Finance.Fix.Fix42.FixMessage.LastMsgSeqNumProcessed.get -> DotGram.Finance.Fix.FixField.Integer?
@@ -1604,6 +1603,7 @@ DotGram.Finance.Fix.Fix42.FixMessage.TradingSessionStatusRequest.TradSesMethod.g
 DotGram.Finance.Fix.Fix42.FixMessage.TradingSessionStatusRequest.TradSesMode.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix42.FixMessage.TradingSessionStatusRequest.TradSesReqID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix42.FixMessage.TradingSessionStatusRequest.TradingSessionID.get -> DotGram.Finance.Fix.FixField.Text?
+DotGram.Finance.Fix.Fix42.FixMessage.Unknown
 DotGram.Finance.Fix.Fix42.FixMessage.Validate(DotGram.Finance.Fix.Fix42.Fix42Context! context) -> bool
 DotGram.Finance.Fix.Fix42.FixMessage.XmlData.get -> DotGram.Finance.Fix.FixField.Data?
 DotGram.Finance.Fix.Fix42.FixMessage.XmlDataLen.get -> DotGram.Finance.Fix.FixField.Integer?
@@ -5833,7 +5833,6 @@ DotGram.Finance.Fix.Fix44.FixMessage.IndicationOfInterest.YieldRedemptionDate.ge
 DotGram.Finance.Fix.Fix44.FixMessage.IndicationOfInterest.YieldRedemptionPrice.get -> DotGram.Finance.Fix.FixField.Decimal?
 DotGram.Finance.Fix.Fix44.FixMessage.IndicationOfInterest.YieldRedemptionPriceType.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix44.FixMessage.IndicationOfInterest.YieldType.get -> DotGram.Finance.Fix.FixField.Text?
-DotGram.Finance.Fix.Fix44.FixMessage.Invalid
 DotGram.Finance.Fix.Fix44.FixMessage.InvalidFindings.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixFinding>?
 DotGram.Finance.Fix.Fix44.FixMessage.IsValid.get -> bool
 DotGram.Finance.Fix.Fix44.FixMessage.LastMsgSeqNumProcessed.get -> DotGram.Finance.Fix.FixField.Integer?
@@ -13763,6 +13762,7 @@ DotGram.Finance.Fix.Fix44.FixMessage.TradingSessionStatusRequest.TradSesMode.get
 DotGram.Finance.Fix.Fix44.FixMessage.TradingSessionStatusRequest.TradSesReqID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix44.FixMessage.TradingSessionStatusRequest.TradingSessionID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix44.FixMessage.TradingSessionStatusRequest.TradingSessionSubID.get -> DotGram.Finance.Fix.FixField.Text?
+DotGram.Finance.Fix.Fix44.FixMessage.Unknown
 DotGram.Finance.Fix.Fix44.FixMessage.UserRequest
 DotGram.Finance.Fix.Fix44.FixMessage.UserRequest.NewPassword.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix44.FixMessage.UserRequest.Password.get -> DotGram.Finance.Fix.FixField.Text?
@@ -21744,7 +21744,6 @@ DotGram.Finance.Fix.Fix50.FixMessage.IOI.YieldRedemptionDate.get -> DotGram.Fina
 DotGram.Finance.Fix.Fix50.FixMessage.IOI.YieldRedemptionPrice.get -> DotGram.Finance.Fix.FixField.Decimal?
 DotGram.Finance.Fix.Fix50.FixMessage.IOI.YieldRedemptionPriceType.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix50.FixMessage.IOI.YieldType.get -> DotGram.Finance.Fix.FixField.Text?
-DotGram.Finance.Fix.Fix50.FixMessage.Invalid
 DotGram.Finance.Fix.Fix50.FixMessage.InvalidFindings.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixFinding>?
 DotGram.Finance.Fix.Fix50.FixMessage.IsValid.get -> bool
 DotGram.Finance.Fix.Fix50.FixMessage.LastMsgSeqNumProcessed.get -> DotGram.Finance.Fix.FixField.Integer?
@@ -35932,6 +35931,7 @@ DotGram.Finance.Fix.Fix50.FixMessage.TradingSessionStatusRequest.TradSesMode.get
 DotGram.Finance.Fix.Fix50.FixMessage.TradingSessionStatusRequest.TradSesReqID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix50.FixMessage.TradingSessionStatusRequest.TradingSessionID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix50.FixMessage.TradingSessionStatusRequest.TradingSessionSubID.get -> DotGram.Finance.Fix.FixField.Text?
+DotGram.Finance.Fix.Fix50.FixMessage.Unknown
 DotGram.Finance.Fix.Fix50.FixMessage.UserNotification
 DotGram.Finance.Fix.Fix50.FixMessage.UserNotification.EncodedText.get -> DotGram.Finance.Fix.FixField.Data?
 DotGram.Finance.Fix.Fix50.FixMessage.UserNotification.EncodedTextLen.get -> DotGram.Finance.Fix.FixField.Integer?

@@ -116,7 +116,7 @@ foreach (var field in FixParser.ParseFields(wire))
   it (see **Dictionaries**). A MsgType it does not know is built by `FixMessageFactory` (a
   `FixCustomMessage` that places its own fields and adds its own findings with `AddFinding`, from
   `Place` or `OnValidate` only: at any other time it throws). A tag nothing defines is a `FixField.Invalid` of
-  that tag with its octets, and a type the factory answers null for a `FixMessage.Invalid`. A
+  that tag with its octets, and a type the factory answers null for a `FixMessage.Unknown`. A
   standard message has no property for a tag outside its version, so such a field is out of scope
   in it.
 - A syntax error does not throw. It becomes one `FixField.Invalid`, and reading
@@ -152,7 +152,7 @@ switch (message)
 - A version's messages (93 in FIX 4.4) are the cases of its `FixMessage`, nested in it: write
   `FixMessage.NewOrderSingle`, and a `switch` over them reads as the closed set it is. A
   MsgType the schema does not know is the consumer's `FixCustomMessage` or a
-  `FixMessage.Invalid`, carrying the type it read and its fields — that case is why the set can
+  `FixMessage.Unknown`, carrying the type it read and its fields — that case is why the set can
   be closed without covering every MsgType that exists.
 - A message's properties are named after its fields and are the typed fields themselves:
   `order.Symbol` is a `FixField.Text?`, `order.OrderQty` a `FixField.Decimal?`, null when the field is absent. `Value` on one is

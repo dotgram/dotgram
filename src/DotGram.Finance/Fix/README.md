@@ -331,7 +331,7 @@ The standard header and trailer are the reader's: their properties are set befor
 asked, and a custom message cannot set them.
 
 A tag neither the version nor a dictionary defines is a `FixField.Invalid` of that tag with its
-octets, and a type the factory answers null for is a `FixMessage.Invalid`, its finding
+octets, and a type the factory answers null for is a `FixMessage.Unknown`, its finding
 `UnknownMessageType`.
 
 ## Attribution

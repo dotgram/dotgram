@@ -268,7 +268,7 @@ public sealed class Fix44Tests
 
 		Assert.True(FixParser.TryParseMessage(wire, out var result, out var error), error?.ToString());
 
-		var custom = Assert.IsType<FixMessage.Invalid>(result);
+		var custom = Assert.IsType<FixMessage.Unknown>(result);
 
 		Assert.Equal("U1", custom.MessageType);
 		Assert.Equal(new[] { 9001, 9002 }, Body(custom).Select(f => f.Tag));

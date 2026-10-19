@@ -215,11 +215,11 @@ public sealed class FixCustomFieldsTests
 	}
 
 	[Fact]
-	public void A_type_the_factory_answers_null_for_is_an_Invalid_message()
+	public void A_type_the_factory_answers_null_for_is_an_Unknown_message()
 	{
 		var message = FixParser.ParseMessage(Framed("35=U2|49=A|56=B|34=1|52=20260919-12:00:00|58=note|"), Venues());
 
-		var invalid = Assert.IsType<FixMessage.Invalid>(message);
+		var invalid = Assert.IsType<FixMessage.Unknown>(message);
 
 		Assert.False(invalid.IsValid);
 		Assert.Equal(FixRule.UnknownMessageType, Assert.Single(invalid.InvalidFindings!).Rule);

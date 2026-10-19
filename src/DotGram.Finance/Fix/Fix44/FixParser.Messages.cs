@@ -266,7 +266,7 @@ public static partial class FixParser
 				(2, 'B', 'F') => new FixMessage.UserResponse                      (fields),
 				(2, 'B', 'G') => new FixMessage.CollateralInquiryAck              (fields),
 				(2, 'B', 'H') => new FixMessage.ConfirmationRequest               (fields),
-				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Invalid(type, fields)),
+				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Unknown(type, fields)),
 			};
 		}
 	}

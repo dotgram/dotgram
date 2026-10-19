@@ -25,6 +25,10 @@ public abstract partial class FixMessage : IFixFindings
 	/// <summary>
 	/// The MsgType, tag 35.
 	/// </summary>
+	/// <remarks>
+	/// The type this message was read as, never null; <see cref="MsgType"/> is the field it was read from,
+	/// with its position in the input.
+	/// </remarks>
 	public string         MessageType { get; private protected set; }
 	/// <summary>
 	/// All fields in wire order, including header and trailer; group entries are flattened into the list.
@@ -92,9 +96,9 @@ public abstract partial class FixMessage : IFixFindings
 	/// as <see cref="FixRule.UnknownMessageType"/>. The standard header and trailer are the standard's
 	/// and are read as themselves; <see cref="Validate"/> holds them to it and asks nothing more.
 	/// </remarks>
-	public sealed class Invalid : FixMessage
+	public sealed class Unknown : FixMessage
 	{
-		internal Invalid(string type, List<FixField> fields) : base(type, fields)
+		internal Unknown(string type, List<FixField> fields) : base(type, fields)
 		{
 			foreach (var field in fields)
 				SetStandardField(field);

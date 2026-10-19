@@ -11,7 +11,7 @@ namespace DotGram.Finance.Fix.@@Ns@@;
 /// standard header and trailer are taken as every message takes them, and each other field goes to
 /// <see cref="Place"/>, which puts it where the message keeps it and answers whether it belongs. A
 /// field that does not is out of scope. Where the factory answers null, or there is none, the
-/// message is a <see cref="FixMessage.Invalid"/>.
+/// message is a <see cref="FixMessage.Unknown"/>.
 /// </para>
 /// <para>
 /// <see cref="FixMessage.Validate"/> holds the header to the standard, and then asks
