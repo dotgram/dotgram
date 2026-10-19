@@ -47,24 +47,24 @@ public abstract partial class FixMessage
 			case FixTag.LastMsgSeqNumProcessed: if (LastMsgSeqNumProcessed is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastMsgSeqNumProcessed = (FixField.Integer)field; break;
 			case FixTag.NoHops: if (NoHops is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoHops = (FixField.Integer)field; break;
 			case FixTag.HopCompID:
-				if (NoHopsGroups is null && NoHops is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoHops, field.Position, field, -1));
-				(NoHopsGroups ??= []).Add(new ((FixField.Text)field));
+				if (noHopsGroups is null && NoHops is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoHops, field.Position, field, -1));
+				(noHopsGroups ??= []).Add(new ((FixField.Text)field));
 				break;
 			case FixTag.HopSendingTime:
-				if (NoHopsGroups is null || NoHopsGroups.Count == 0)
+				if (noHopsGroups is null || noHopsGroups.Count == 0)
 					AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
-				else if (NoHopsGroups![^1].HopSendingTime is not null)
-					AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, NoHopsGroups!.Count - 1));
+				else if (noHopsGroups![^1].HopSendingTime is not null)
+					AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noHopsGroups!.Count - 1));
 				else
-					NoHopsGroups![^1].HopSendingTime = (FixField.Timestamp)field;
+					noHopsGroups![^1].HopSendingTime = (FixField.Timestamp)field;
 				break;
 			case FixTag.HopRefID:
-				if (NoHopsGroups is null || NoHopsGroups.Count == 0)
+				if (noHopsGroups is null || noHopsGroups.Count == 0)
 					AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
-				else if (NoHopsGroups![^1].HopRefID is not null)
-					AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, NoHopsGroups!.Count - 1));
+				else if (noHopsGroups![^1].HopRefID is not null)
+					AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noHopsGroups!.Count - 1));
 				else
-					NoHopsGroups![^1].HopRefID = (FixField.Integer)field;
+					noHopsGroups![^1].HopRefID = (FixField.Integer)field;
 				break;
 			case FixTag.SignatureLength: if (SignatureLength is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SignatureLength = (FixField.Integer)field; break;
 			case FixTag.Signature: if (Signature is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Signature = (FixField.Data)field; break;
@@ -167,7 +167,8 @@ public abstract partial class FixMessage
 	public FixField.Integer? NoHops { get; private protected set; }
 
 	/// <summary>The entries counted by NoHops, tag 627; null when the group is absent.</summary>
-	public List<FixMessage.NoHopsGroup>? NoHopsGroups { get; private protected set; }
+	public List<FixMessage.NoHopsGroup>? NoHopsGroups => noHopsGroups;
+	internal List<NoHopsGroup>? noHopsGroups;
 
 	/// <summary>The FIX SignatureLength, tag 93, of this message's StandardTrailer; null when the field is absent.</summary>
 	public FixField.Integer? SignatureLength { get; private protected set; }

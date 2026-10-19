@@ -523,7 +523,8 @@ public interface INestedParties
 		public FixField.Integer? NoNestedPartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartySubIDs, tag 804; null when the group is absent.</summary>
-		public List<INestedParties.NoNestedPartyIDsGroup.NoNestedPartySubIDsGroup>? NoNestedPartySubIDsGroups { get; internal set; }
+		public List<INestedParties.NoNestedPartyIDsGroup.NoNestedPartySubIDsGroup>? NoNestedPartySubIDsGroups => noNestedPartySubIDsGroups;
+		internal List<NoNestedPartySubIDsGroup>? noNestedPartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoNestedPartySubIDs, tag 804.</summary>
 		public sealed class NoNestedPartySubIDsGroup
@@ -573,7 +574,8 @@ public interface INestedParties2
 		public FixField.Integer? NoNested2PartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNested2PartySubIDs, tag 806; null when the group is absent.</summary>
-		public List<INestedParties2.NoNested2PartyIDsGroup.NoNested2PartySubIDsGroup>? NoNested2PartySubIDsGroups { get; internal set; }
+		public List<INestedParties2.NoNested2PartyIDsGroup.NoNested2PartySubIDsGroup>? NoNested2PartySubIDsGroups => noNested2PartySubIDsGroups;
+		internal List<NoNested2PartySubIDsGroup>? noNested2PartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoNested2PartySubIDs, tag 806.</summary>
 		public sealed class NoNested2PartySubIDsGroup
@@ -623,7 +625,8 @@ public interface INestedParties3
 		public FixField.Integer? NoNested3PartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNested3PartySubIDs, tag 952; null when the group is absent.</summary>
-		public List<INestedParties3.NoNested3PartyIDsGroup.NoNested3PartySubIDsGroup>? NoNested3PartySubIDsGroups { get; internal set; }
+		public List<INestedParties3.NoNested3PartyIDsGroup.NoNested3PartySubIDsGroup>? NoNested3PartySubIDsGroups => noNested3PartySubIDsGroups;
+		internal List<NoNested3PartySubIDsGroup>? noNested3PartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoNested3PartySubIDs, tag 952.</summary>
 		public sealed class NoNested3PartySubIDsGroup
@@ -693,7 +696,8 @@ public interface IParties
 		public FixField.Integer? NoPartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoPartySubIDs, tag 802; null when the group is absent.</summary>
-		public List<IParties.NoPartyIDsGroup.NoPartySubIDsGroup>? NoPartySubIDsGroups { get; internal set; }
+		public List<IParties.NoPartyIDsGroup.NoPartySubIDsGroup>? NoPartySubIDsGroups => noPartySubIDsGroups;
+		internal List<NoPartySubIDsGroup>? noPartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoPartySubIDs, tag 802.</summary>
 		public sealed class NoPartySubIDsGroup
@@ -795,7 +799,8 @@ public interface IPositionQty
 		public FixField.Integer? NoNestedPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
-		public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; internal set; }
+		public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups => noNestedPartyIDsGroups;
+		internal List<INestedParties.NoNestedPartyIDsGroup>? noNestedPartyIDsGroups;
 	}
 }
 
@@ -839,7 +844,8 @@ public interface ISettlInstructionsData
 		public FixField.Integer? NoSettlPartyIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoSettlPartyIDs, tag 781; null when the group is absent.</summary>
-		public List<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups { get; internal set; }
+		public List<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups => noSettlPartyIDsGroups;
+		internal List<ISettlParties.NoSettlPartyIDsGroup>? noSettlPartyIDsGroups;
 	}
 }
 
@@ -874,7 +880,8 @@ public interface ISettlParties
 		public FixField.Integer? NoSettlPartySubIDs { get; internal set; }
 
 		/// <summary>The entries counted by NoSettlPartySubIDs, tag 801; null when the group is absent.</summary>
-		public List<ISettlParties.NoSettlPartyIDsGroup.NoSettlPartySubIDsGroup>? NoSettlPartySubIDsGroups { get; internal set; }
+		public List<ISettlParties.NoSettlPartyIDsGroup.NoSettlPartySubIDsGroup>? NoSettlPartySubIDsGroups => noSettlPartySubIDsGroups;
+		internal List<NoSettlPartySubIDsGroup>? noSettlPartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoSettlPartySubIDs, tag 801.</summary>
 		public sealed class NoSettlPartySubIDsGroup
