@@ -281,7 +281,9 @@ foreach (var message in FixParser.ReadMessages(stream, context))
 Each `FixFinding` names its rule, its tag, the field, where in the source it begins (-1 for a field
 that is absent from the message), and the `Path` to it through repeating groups, outermost first —
 "tag 448 is wrong" says nothing where a message carries nine parties. As a line it reads
-`453[1].802[0] tag 803 at 86: DuplicateField`: the first sub-ID entry of the second party. Code
+`453[1].802[0] tag 803 at 86: DuplicateField`: the first sub-ID entry of the second party. The path
+is read-only, and a finding of the whole message — a length not followed by its data — carries the
+path of the entry its field is in. Code
 ported from a library that stops at the first problem handles one finding per message; `Validate`
 answers all of them. A finding is made with `FixFinding.Missing(tag)` or `FixFinding.Of(rule, field)`,
 each with the path, if any, after it.

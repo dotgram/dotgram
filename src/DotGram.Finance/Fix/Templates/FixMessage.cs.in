@@ -197,10 +197,37 @@ public abstract partial class FixMessage
 		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, counter, field.Position, field, [new(outer1, index1), new(outer2, index2), new(outer3, index3), new(outer4, index4)]));
 	}
 
-	// A field of an entry with no entry open to hold it: the group's count does not match what follows.
+	// A field of an entry with no entry open to hold it: the group's count does not match what follows. Said
+	// in the entries that are open around it.
 	private protected void Unentered(FixField field)
 	{
 		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, field.Tag, field.Position, field, null));
+	}
+
+	private protected void Unentered(FixField field, int counter, int index)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, field.Tag, field.Position, field, [new(counter, index)]));
+	}
+
+	private protected void Unentered(FixField field, int counter1, int index1, int counter2, int index2)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, field.Tag, field.Position, field, [new(counter1, index1), new(counter2, index2)]));
+	}
+
+	private protected void Unentered(FixField field, int counter1, int index1, int counter2, int index2, int counter3, int index3)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, field.Tag, field.Position, field, [new(counter1, index1), new(counter2, index2), new(counter3, index3)]));
+	}
+
+	private protected void Unentered(FixField field, int counter1, int index1, int counter2, int index2, int counter3, int index3, int counter4, int index4)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, field.Tag, field.Position, field, [new(counter1, index1), new(counter2, index2), new(counter3, index3), new(counter4, index4)]));
+	}
+
+	// Whether a group has no entry open: none read yet, where its fields would go.
+	private protected static bool None<TEntry>(List<TEntry>? entries)
+	{
+		return entries is null || entries.Count == 0;
 	}
 
 	// A field the type has no place for.

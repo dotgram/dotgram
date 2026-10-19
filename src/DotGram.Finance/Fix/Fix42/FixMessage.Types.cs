@@ -189,7 +189,7 @@ public abstract partial class FixMessage
 						(noOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.OrderID:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].OrderID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -197,7 +197,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].OrderID = (FixField.Text)field;
 						break;
 					case FixTag.SecondaryOrderID:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SecondaryOrderID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -205,7 +205,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SecondaryOrderID = (FixField.Text)field;
 						break;
 					case FixTag.ListID:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ListID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -213,7 +213,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ListID = (FixField.Text)field;
 						break;
 					case FixTag.WaveNo:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].WaveNo is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -226,7 +226,7 @@ public abstract partial class FixMessage
 						(noExecsGroups ??= []).Add(new ((FixField.Decimal)field));
 						break;
 					case FixTag.ExecID:
-						if (noExecsGroups is null || noExecsGroups.Count == 0)
+						if (None(noExecsGroups))
 							Unentered(field);
 						else if (noExecsGroups![^1].ExecID is not null)
 							Duplicate(field, FixTag.NoExecs, noExecsGroups!.Count - 1);
@@ -234,7 +234,7 @@ public abstract partial class FixMessage
 							noExecsGroups![^1].ExecID = (FixField.Text)field;
 						break;
 					case FixTag.LastPx:
-						if (noExecsGroups is null || noExecsGroups.Count == 0)
+						if (None(noExecsGroups))
 							Unentered(field);
 						else if (noExecsGroups![^1].LastPx is not null)
 							Duplicate(field, FixTag.NoExecs, noExecsGroups!.Count - 1);
@@ -242,7 +242,7 @@ public abstract partial class FixMessage
 							noExecsGroups![^1].LastPx = (FixField.Decimal)field;
 						break;
 					case FixTag.LastCapacity:
-						if (noExecsGroups is null || noExecsGroups.Count == 0)
+						if (None(noExecsGroups))
 							Unentered(field);
 						else if (noExecsGroups![^1].LastCapacity is not null)
 							Duplicate(field, FixTag.NoExecs, noExecsGroups!.Count - 1);
@@ -293,7 +293,7 @@ public abstract partial class FixMessage
 						(noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocPrice:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].AllocPrice is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -301,7 +301,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].AllocPrice = (FixField.Decimal)field;
 						break;
 					case FixTag.AllocQty:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].AllocShares is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -309,7 +309,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
 						break;
 					case FixTag.ProcessCode:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].ProcessCode is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -317,7 +317,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].ProcessCode = (FixField.Character)field;
 						break;
 					case FixTag.BrokerOfCredit:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].BrokerOfCredit is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -325,7 +325,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].BrokerOfCredit = (FixField.Text)field;
 						break;
 					case FixTag.NotifyBrokerOfCredit:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].NotifyBrokerOfCredit is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -333,7 +333,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].NotifyBrokerOfCredit = (FixField.Boolean)field;
 						break;
 					case FixTag.AllocHandlInst:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].AllocHandlInst is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -341,7 +341,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].AllocHandlInst = (FixField.Integer)field;
 						break;
 					case FixTag.AllocText:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].AllocText is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -349,7 +349,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].AllocText = (FixField.Text)field;
 						break;
 					case FixTag.EncodedAllocTextLen:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].EncodedAllocTextLen is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -357,7 +357,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].EncodedAllocTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedAllocText:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].EncodedAllocText is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -365,7 +365,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].EncodedAllocText = (FixField.Data)field;
 						break;
 					case FixTag.ExecBroker:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].ExecBroker is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -373,7 +373,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].ExecBroker = (FixField.Text)field;
 						break;
 					case FixTag.ClientID:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].ClientID is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -381,7 +381,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].ClientID = (FixField.Text)field;
 						break;
 					case FixTag.Commission:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].Commission is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -389,7 +389,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].Commission = (FixField.Decimal)field;
 						break;
 					case FixTag.CommType:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].CommType is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -397,7 +397,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].CommType = (FixField.Character)field;
 						break;
 					case FixTag.AllocAvgPx:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].AllocAvgPx is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -405,7 +405,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].AllocAvgPx = (FixField.Decimal)field;
 						break;
 					case FixTag.AllocNetMoney:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].AllocNetMoney is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -413,7 +413,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].AllocNetMoney = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlCurrAmt:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].SettlCurrAmt is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -421,7 +421,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].SettlCurrAmt = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlCurrency:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].SettlCurrency is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -429,7 +429,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].SettlCurrency = (FixField.Text)field;
 						break;
 					case FixTag.SettlCurrFxRate:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].SettlCurrFxRate is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -437,7 +437,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].SettlCurrFxRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlCurrFxRateCalc:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].SettlCurrFxRateCalc is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -445,7 +445,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].SettlCurrFxRateCalc = (FixField.Character)field;
 						break;
 					case FixTag.AccruedInterestAmt:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].AccruedInterestAmt is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -453,7 +453,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].AccruedInterestAmt = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlInstMode:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].SettlInstMode is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -461,7 +461,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].SettlInstMode = (FixField.Character)field;
 						break;
 					case FixTag.NoMiscFees:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].NoMiscFees is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -469,7 +469,7 @@ public abstract partial class FixMessage
 							noAllocsGroups![^1].NoMiscFees = (FixField.Integer)field;
 						break;
 					case FixTag.MiscFeeAmt:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else
 						{
@@ -478,16 +478,20 @@ public abstract partial class FixMessage
 						}
 						break;
 					case FixTag.MiscFeeCurr:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0 || noAllocsGroups![^1].noMiscFeesGroups is null || noAllocsGroups![^1].noMiscFeesGroups!.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
+						else if (None(noAllocsGroups![^1].noMiscFeesGroups))
+							Unentered(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else if (noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeCurr is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1, FixTag.NoMiscFees, noAllocsGroups![^1].noMiscFeesGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeCurr = (FixField.Text)field;
 						break;
 					case FixTag.MiscFeeType:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0 || noAllocsGroups![^1].noMiscFeesGroups is null || noAllocsGroups![^1].noMiscFeesGroups!.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
+						else if (None(noAllocsGroups![^1].noMiscFeesGroups))
+							Unentered(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else if (noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeType is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1, FixTag.NoMiscFees, noAllocsGroups![^1].noMiscFeesGroups!.Count - 1);
 						else
@@ -654,7 +658,7 @@ public abstract partial class FixMessage
 		internal List<NoAllocsGroup>? noAllocsGroups;
 
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
-		public sealed class NoOrdersGroup
+		public sealed class NoOrdersGroup : IFixEntry
 		{
 			internal NoOrdersGroup(FixField.Text delimiter)
 			{
@@ -675,10 +679,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX WaveNo, tag 105, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? WaveNo { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == ClOrdID || field == OrderID || field == SecondaryOrderID || field == ListID || field == WaveNo;
+			}
 		}
 
 		/// <summary>One entry of the group counted by NoExecs, tag 124.</summary>
-		public sealed class NoExecsGroup
+		public sealed class NoExecsGroup : IFixEntry
 		{
 			internal NoExecsGroup(FixField.Decimal delimiter)
 			{
@@ -696,10 +705,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX LastCapacity, tag 29, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? LastCapacity { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == LastShares || field == ExecID || field == LastPx || field == LastCapacity;
+			}
 		}
 
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
-		public sealed class NoAllocsGroup
+		public sealed class NoAllocsGroup : IFixEntry
 		{
 			internal NoAllocsGroup(FixField.Text delimiter)
 			{
@@ -780,7 +794,7 @@ public abstract partial class FixMessage
 			internal List<NoMiscFeesGroup>? noMiscFeesGroups;
 
 			/// <summary>One entry of the group counted by NoMiscFees, tag 136.</summary>
-			public sealed class NoMiscFeesGroup
+			public sealed class NoMiscFeesGroup : IFixEntry
 			{
 				internal NoMiscFeesGroup(FixField.Decimal delimiter)
 				{
@@ -795,6 +809,21 @@ public abstract partial class FixMessage
 
 				/// <summary>The FIX MiscFeeType, tag 139, wire type <c>char</c>; null when the field is absent.</summary>
 				public FixField.Character? MiscFeeType { get; internal set; }
+
+				bool IFixEntry.Holds(FixField field)
+				{
+					return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType;
+				}
+			}
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == AllocAccount || field == AllocPrice || field == AllocShares || field == ProcessCode ||
+					field == BrokerOfCredit || field == NotifyBrokerOfCredit || field == AllocHandlInst || field == AllocText ||
+					field == EncodedAllocTextLen || field == EncodedAllocText || field == ExecBroker || field == ClientID ||
+					field == Commission || field == CommType || field == AllocAvgPx || field == AllocNetMoney ||
+					field == SettlCurrAmt || field == SettlCurrency || field == SettlCurrFxRate || field == SettlCurrFxRateCalc ||
+					field == AccruedInterestAmt || field == SettlInstMode || field == NoMiscFees;
 			}
 		}
 
@@ -896,7 +925,7 @@ public abstract partial class FixMessage
 						(noBidDescriptorsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.BidDescriptor:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].BidDescriptor is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -904,7 +933,7 @@ public abstract partial class FixMessage
 							noBidDescriptorsGroups![^1].BidDescriptor = (FixField.Text)field;
 						break;
 					case FixTag.SideValueInd:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].SideValueInd is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -912,7 +941,7 @@ public abstract partial class FixMessage
 							noBidDescriptorsGroups![^1].SideValueInd = (FixField.Integer)field;
 						break;
 					case FixTag.LiquidityValue:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].LiquidityValue is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -920,7 +949,7 @@ public abstract partial class FixMessage
 							noBidDescriptorsGroups![^1].LiquidityValue = (FixField.Decimal)field;
 						break;
 					case FixTag.LiquidityNumSecurities:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].LiquidityNumSecurities is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -928,7 +957,7 @@ public abstract partial class FixMessage
 							noBidDescriptorsGroups![^1].LiquidityNumSecurities = (FixField.Integer)field;
 						break;
 					case FixTag.LiquidityPctLow:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].LiquidityPctLow is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -936,7 +965,7 @@ public abstract partial class FixMessage
 							noBidDescriptorsGroups![^1].LiquidityPctLow = (FixField.Decimal)field;
 						break;
 					case FixTag.LiquidityPctHigh:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].LiquidityPctHigh is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -944,7 +973,7 @@ public abstract partial class FixMessage
 							noBidDescriptorsGroups![^1].LiquidityPctHigh = (FixField.Decimal)field;
 						break;
 					case FixTag.EFPTrackingError:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].EFPTrackingError is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -952,7 +981,7 @@ public abstract partial class FixMessage
 							noBidDescriptorsGroups![^1].EFPTrackingError = (FixField.Decimal)field;
 						break;
 					case FixTag.FairValue:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].FairValue is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -960,7 +989,7 @@ public abstract partial class FixMessage
 							noBidDescriptorsGroups![^1].FairValue = (FixField.Decimal)field;
 						break;
 					case FixTag.OutsideIndexPct:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].OutsideIndexPct is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -968,7 +997,7 @@ public abstract partial class FixMessage
 							noBidDescriptorsGroups![^1].OutsideIndexPct = (FixField.Decimal)field;
 						break;
 					case FixTag.ValueOfFutures:
-						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
+						if (None(noBidDescriptorsGroups))
 							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].ValueOfFutures is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
@@ -981,7 +1010,7 @@ public abstract partial class FixMessage
 						(noBidComponentsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.Side:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].Side is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -989,7 +1018,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.TradingSessionID:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].TradingSessionID is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -997,7 +1026,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.NetGrossInd:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].NetGrossInd is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1005,7 +1034,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].NetGrossInd = (FixField.Integer)field;
 						break;
 					case FixTag.SettlType:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].SettlmntTyp is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1013,7 +1042,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].SettlmntTyp = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].FutSettDate is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1021,7 +1050,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.Account:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].Account is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1151,7 +1180,7 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoBidDescriptors, tag 398.</summary>
-		public sealed class NoBidDescriptorsGroup
+		public sealed class NoBidDescriptorsGroup : IFixEntry
 		{
 			internal NoBidDescriptorsGroup(FixField.Integer delimiter)
 			{
@@ -1190,10 +1219,17 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX ValueOfFutures, tag 408, wire type <c>Amt</c>; null when the field is absent.</summary>
 			public FixField.Decimal? ValueOfFutures { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == BidDescriptorType || field == BidDescriptor || field == SideValueInd || field == LiquidityValue ||
+					field == LiquidityNumSecurities || field == LiquidityPctLow || field == LiquidityPctHigh ||
+					field == EFPTrackingError || field == FairValue || field == OutsideIndexPct || field == ValueOfFutures;
+			}
 		}
 
 		/// <summary>One entry of the group counted by NoBidComponents, tag 420.</summary>
-		public sealed class NoBidComponentsGroup
+		public sealed class NoBidComponentsGroup : IFixEntry
 		{
 			internal NoBidComponentsGroup(FixField.Text delimiter)
 			{
@@ -1220,6 +1256,12 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? Account { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == ListID || field == Side || field == TradingSessionID || field == NetGrossInd ||
+					field == SettlmntTyp || field == FutSettDate || field == Account;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -1246,7 +1288,7 @@ public abstract partial class FixMessage
 						(noBidComponentsGroups ??= []).Add(new ((FixField.Decimal)field));
 						break;
 					case FixTag.CommType:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].CommType is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1254,7 +1296,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].CommType = (FixField.Character)field;
 						break;
 					case FixTag.ListID:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].ListID is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1262,7 +1304,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].ListID = (FixField.Text)field;
 						break;
 					case FixTag.Country:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].Country is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1270,7 +1312,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].Country = (FixField.Text)field;
 						break;
 					case FixTag.Side:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].Side is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1278,7 +1320,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.Price:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].Price is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1286,7 +1328,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].Price = (FixField.Decimal)field;
 						break;
 					case FixTag.PriceType:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].PriceType is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1294,7 +1336,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].PriceType = (FixField.Integer)field;
 						break;
 					case FixTag.FairValue:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].FairValue is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1302,7 +1344,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].FairValue = (FixField.Decimal)field;
 						break;
 					case FixTag.NetGrossInd:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].NetGrossInd is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1310,7 +1352,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].NetGrossInd = (FixField.Integer)field;
 						break;
 					case FixTag.SettlType:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].SettlmntTyp is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1318,7 +1360,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].SettlmntTyp = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].FutSettDate is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1326,7 +1368,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.TradingSessionID:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].TradingSessionID is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1334,7 +1376,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.Text:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].Text is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1342,7 +1384,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].EncodedTextLen is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1350,7 +1392,7 @@ public abstract partial class FixMessage
 							noBidComponentsGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
-						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
+						if (None(noBidComponentsGroups))
 							Unentered(field);
 						else if (noBidComponentsGroups![^1].EncodedText is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
@@ -1381,7 +1423,7 @@ public abstract partial class FixMessage
 		internal List<NoBidComponentsGroup>? noBidComponentsGroups;
 
 		/// <summary>One entry of the group counted by NoBidComponents, tag 420.</summary>
-		public sealed class NoBidComponentsGroup
+		public sealed class NoBidComponentsGroup : IFixEntry
 		{
 			internal NoBidComponentsGroup(FixField.Decimal delimiter)
 			{
@@ -1432,6 +1474,14 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == Commission || field == CommType || field == ListID || field == Country || field == Side ||
+					field == Price || field == PriceType || field == FairValue || field == NetGrossInd || field == SettlmntTyp ||
+					field == FutSettDate || field == TradingSessionID || field == Text || field == EncodedTextLen ||
+					field == EncodedText;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -1662,7 +1712,7 @@ public abstract partial class FixMessage
 						(noRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
-						if (noRoutingIDsGroups is null || noRoutingIDsGroups.Count == 0)
+						if (None(noRoutingIDsGroups))
 							Unentered(field);
 						else if (noRoutingIDsGroups![^1].RoutingID is not null)
 							Duplicate(field, FixTag.NoRoutingIDs, noRoutingIDsGroups!.Count - 1);
@@ -1675,7 +1725,7 @@ public abstract partial class FixMessage
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1683,7 +1733,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1691,7 +1741,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1699,7 +1749,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1707,7 +1757,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1715,7 +1765,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1723,7 +1773,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1731,7 +1781,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1739,7 +1789,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1747,7 +1797,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1755,7 +1805,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1763,7 +1813,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1771,7 +1821,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1779,7 +1829,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1787,7 +1837,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1795,7 +1845,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1803,7 +1853,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1811,7 +1861,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -1826,7 +1876,7 @@ public abstract partial class FixMessage
 						(linesOfTextGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.EncodedTextLen:
-						if (linesOfTextGroups is null || linesOfTextGroups.Count == 0)
+						if (None(linesOfTextGroups))
 							Unentered(field);
 						else if (linesOfTextGroups![^1].EncodedTextLen is not null)
 							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
@@ -1834,7 +1884,7 @@ public abstract partial class FixMessage
 							linesOfTextGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
-						if (linesOfTextGroups is null || linesOfTextGroups.Count == 0)
+						if (None(linesOfTextGroups))
 							Unentered(field);
 						else if (linesOfTextGroups![^1].EncodedText is not null)
 							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
@@ -1905,7 +1955,7 @@ public abstract partial class FixMessage
 		public FixField.Data? RawData { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoRoutingIDs, tag 215.</summary>
-		public sealed class NoRoutingIDsGroup
+		public sealed class NoRoutingIDsGroup : IFixEntry
 		{
 			internal NoRoutingIDsGroup(FixField.Integer delimiter)
 			{
@@ -1917,10 +1967,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == RoutingType || field == RoutingID;
+			}
 		}
 
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
-		public sealed class NoRelatedSymGroup
+		public sealed class NoRelatedSymGroup : IFixEntry
 		{
 			internal NoRelatedSymGroup(FixField.Text delimiter)
 			{
@@ -1983,10 +2038,19 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == RelatdSym || field == SymbolSfx || field == SecurityID || field == IDSource ||
+					field == SecurityType || field == MaturityMonthYear || field == MaturityDay || field == PutOrCall ||
+					field == StrikePrice || field == OptAttribute || field == ContractMultiplier || field == CouponRate ||
+					field == SecurityExchange || field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer ||
+					field == SecurityDesc || field == EncodedSecurityDescLen || field == EncodedSecurityDesc;
+			}
 		}
 
 		/// <summary>One entry of the group counted by LinesOfText, tag 33.</summary>
-		public sealed class LinesOfTextGroup
+		public sealed class LinesOfTextGroup : IFixEntry
 		{
 			internal LinesOfTextGroup(FixField.Text delimiter)
 			{
@@ -2001,6 +2065,11 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == Text || field == EncodedTextLen || field == EncodedText;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -2031,7 +2100,7 @@ public abstract partial class FixMessage
 						(noContraBrokersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.ContraTrader:
-						if (noContraBrokersGroups is null || noContraBrokersGroups.Count == 0)
+						if (None(noContraBrokersGroups))
 							Unentered(field);
 						else if (noContraBrokersGroups![^1].ContraTrader is not null)
 							Duplicate(field, FixTag.NoContraBrokers, noContraBrokersGroups!.Count - 1);
@@ -2039,7 +2108,7 @@ public abstract partial class FixMessage
 							noContraBrokersGroups![^1].ContraTrader = (FixField.Text)field;
 						break;
 					case FixTag.ContraTradeQty:
-						if (noContraBrokersGroups is null || noContraBrokersGroups.Count == 0)
+						if (None(noContraBrokersGroups))
 							Unentered(field);
 						else if (noContraBrokersGroups![^1].ContraTradeQty is not null)
 							Duplicate(field, FixTag.NoContraBrokers, noContraBrokersGroups!.Count - 1);
@@ -2047,7 +2116,7 @@ public abstract partial class FixMessage
 							noContraBrokersGroups![^1].ContraTradeQty = (FixField.Decimal)field;
 						break;
 					case FixTag.ContraTradeTime:
-						if (noContraBrokersGroups is null || noContraBrokersGroups.Count == 0)
+						if (None(noContraBrokersGroups))
 							Unentered(field);
 						else if (noContraBrokersGroups![^1].ContraTradeTime is not null)
 							Duplicate(field, FixTag.NoContraBrokers, noContraBrokersGroups!.Count - 1);
@@ -2430,7 +2499,7 @@ public abstract partial class FixMessage
 		public FixField.Character? MultiLegReportingType { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoContraBrokers, tag 382.</summary>
-		public sealed class NoContraBrokersGroup
+		public sealed class NoContraBrokersGroup : IFixEntry
 		{
 			internal NoContraBrokersGroup(FixField.Text delimiter)
 			{
@@ -2448,6 +2517,11 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX ContraTradeTime, tag 438, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 			public FixField.Timestamp? ContraTradeTime { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == ContraBroker || field == ContraTrader || field == ContraTradeQty || field == ContraTradeTime;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -2541,7 +2615,7 @@ public abstract partial class FixMessage
 						(noRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
-						if (noRoutingIDsGroups is null || noRoutingIDsGroups.Count == 0)
+						if (None(noRoutingIDsGroups))
 							Unentered(field);
 						else if (noRoutingIDsGroups![^1].RoutingID is not null)
 							Duplicate(field, FixTag.NoRoutingIDs, noRoutingIDsGroups!.Count - 1);
@@ -2683,7 +2757,7 @@ public abstract partial class FixMessage
 		public FixField.Character? Benchmark { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoIOIQualifiers, tag 199.</summary>
-		public sealed class NoIOIQualifiersGroup
+		public sealed class NoIOIQualifiersGroup : IFixEntry
 		{
 			internal NoIOIQualifiersGroup(FixField.Character delimiter)
 			{
@@ -2692,10 +2766,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX IOIQualifier, tag 104, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Character IOIQualifier { get; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == IOIQualifier;
+			}
 		}
 
 		/// <summary>One entry of the group counted by NoRoutingIDs, tag 215.</summary>
-		public sealed class NoRoutingIDsGroup
+		public sealed class NoRoutingIDsGroup : IFixEntry
 		{
 			internal NoRoutingIDsGroup(FixField.Integer delimiter)
 			{
@@ -2707,6 +2786,11 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == RoutingType || field == RoutingID;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -2841,7 +2925,7 @@ public abstract partial class FixMessage
 						(noOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.CumQty:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].CumQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -2849,7 +2933,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].CumQty = (FixField.Decimal)field;
 						break;
 					case FixTag.OrdStatus:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].OrdStatus is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -2857,7 +2941,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].OrdStatus = (FixField.Character)field;
 						break;
 					case FixTag.LeavesQty:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].LeavesQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -2865,7 +2949,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].LeavesQty = (FixField.Decimal)field;
 						break;
 					case FixTag.CxlQty:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].CxlQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -2873,7 +2957,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].CxlQty = (FixField.Decimal)field;
 						break;
 					case FixTag.AvgPx:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].AvgPx is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -2881,7 +2965,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].AvgPx = (FixField.Decimal)field;
 						break;
 					case FixTag.OrdRejReason:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].OrdRejReason is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -2889,7 +2973,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].OrdRejReason = (FixField.Integer)field;
 						break;
 					case FixTag.Text:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Text is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -2897,7 +2981,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedTextLen is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -2905,7 +2989,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedText is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -2960,7 +3044,7 @@ public abstract partial class FixMessage
 		internal List<NoOrdersGroup>? noOrdersGroups;
 
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
-		public sealed class NoOrdersGroup
+		public sealed class NoOrdersGroup : IFixEntry
 		{
 			internal NoOrdersGroup(FixField.Text delimiter)
 			{
@@ -2996,6 +3080,12 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == ClOrdID || field == CumQty || field == OrdStatus || field == LeavesQty || field == CxlQty ||
+					field == AvgPx || field == OrdRejReason || field == Text || field == EncodedTextLen || field == EncodedText;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -3064,7 +3154,7 @@ public abstract partial class FixMessage
 						(noStrikesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3072,7 +3162,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3080,7 +3170,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3088,7 +3178,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3096,7 +3186,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3104,7 +3194,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3112,7 +3202,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3120,7 +3210,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3128,7 +3218,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3136,7 +3226,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3144,7 +3234,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3152,7 +3242,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3160,7 +3250,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3168,7 +3258,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3176,7 +3266,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3184,7 +3274,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3192,7 +3282,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3200,7 +3290,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3208,7 +3298,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.PrevClosePx:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].PrevClosePx is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3216,7 +3306,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].PrevClosePx = (FixField.Decimal)field;
 						break;
 					case FixTag.ClOrdID:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].ClOrdID is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3224,7 +3314,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].ClOrdID = (FixField.Text)field;
 						break;
 					case FixTag.Side:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].Side is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3232,7 +3322,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.Price:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].Price is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3240,7 +3330,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].Price = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].Currency is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3248,7 +3338,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].Currency = (FixField.Text)field;
 						break;
 					case FixTag.Text:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].Text is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3256,7 +3346,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedTextLen is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3264,7 +3354,7 @@ public abstract partial class FixMessage
 							noStrikesGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
-						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
+						if (None(noStrikesGroups))
 							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedText is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
@@ -3295,7 +3385,7 @@ public abstract partial class FixMessage
 		internal List<NoStrikesGroup>? noStrikesGroups;
 
 		/// <summary>One entry of the group counted by NoStrikes, tag 428.</summary>
-		public sealed class NoStrikesGroup
+		public sealed class NoStrikesGroup : IFixEntry
 		{
 			internal NoStrikesGroup(FixField.Text delimiter)
 			{
@@ -3382,6 +3472,17 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource || field == SecurityType ||
+					field == MaturityMonthYear || field == MaturityDay || field == PutOrCall || field == StrikePrice ||
+					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
+					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
+					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == PrevClosePx || field == ClOrdID ||
+					field == Side || field == Price || field == Currency || field == Text || field == EncodedTextLen ||
+					field == EncodedText;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -3412,7 +3513,7 @@ public abstract partial class FixMessage
 						(noMsgTypesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.MsgDirection:
-						if (noMsgTypesGroups is null || noMsgTypesGroups.Count == 0)
+						if (None(noMsgTypesGroups))
 							Unentered(field);
 						else if (noMsgTypesGroups![^1].MsgDirection is not null)
 							Duplicate(field, FixTag.NoMsgTypes, noMsgTypesGroups!.Count - 1);
@@ -3455,7 +3556,7 @@ public abstract partial class FixMessage
 		internal List<NoMsgTypesGroup>? noMsgTypesGroups;
 
 		/// <summary>One entry of the group counted by NoMsgTypes, tag 384.</summary>
-		public sealed class NoMsgTypesGroup
+		public sealed class NoMsgTypesGroup : IFixEntry
 		{
 			internal NoMsgTypesGroup(FixField.Text delimiter)
 			{
@@ -3467,6 +3568,11 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX MsgDirection, tag 385, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? MsgDirection { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == RefMsgType || field == MsgDirection;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -3530,7 +3636,7 @@ public abstract partial class FixMessage
 						(noMDEntriesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.DeleteReason:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].DeleteReason is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3538,7 +3644,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].DeleteReason = (FixField.Character)field;
 						break;
 					case FixTag.MDEntryType:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryType is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3546,7 +3652,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryType = (FixField.Character)field;
 						break;
 					case FixTag.MDEntryID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3554,7 +3660,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryID = (FixField.Text)field;
 						break;
 					case FixTag.MDEntryRefID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryRefID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3562,7 +3668,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryRefID = (FixField.Text)field;
 						break;
 					case FixTag.Symbol:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].Symbol is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3570,7 +3676,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].Symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3578,7 +3684,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3586,7 +3692,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3594,7 +3700,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3602,7 +3708,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3610,7 +3716,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3618,7 +3724,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3626,7 +3732,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3634,7 +3740,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3642,7 +3748,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3650,7 +3756,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3658,7 +3764,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3666,7 +3772,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3674,7 +3780,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3682,7 +3788,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3690,7 +3796,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3698,7 +3804,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3706,7 +3812,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3714,7 +3820,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.FinancialStatus:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].FinancialStatus is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3722,7 +3828,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].FinancialStatus = (FixField.Character)field;
 						break;
 					case FixTag.CorporateAction:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].CorporateAction is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3730,7 +3836,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].CorporateAction = (FixField.Character)field;
 						break;
 					case FixTag.MDEntryPx:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryPx is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3738,7 +3844,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryPx = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].Currency is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3746,7 +3852,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].Currency = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySize:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntrySize is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3754,7 +3860,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntrySize = (FixField.Decimal)field;
 						break;
 					case FixTag.MDEntryDate:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryDate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3762,7 +3868,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryDate = (FixField.Date)field;
 						break;
 					case FixTag.MDEntryTime:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryTime is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3770,7 +3876,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryTime = (FixField.Time)field;
 						break;
 					case FixTag.TickDirection:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].TickDirection is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3778,7 +3884,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].TickDirection = (FixField.Character)field;
 						break;
 					case FixTag.MDMkt:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDMkt is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3786,7 +3892,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDMkt = (FixField.Text)field;
 						break;
 					case FixTag.TradingSessionID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].TradingSessionID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3794,7 +3900,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteCondition:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].QuoteCondition is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3802,7 +3908,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].QuoteCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.TradeCondition:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].TradeCondition is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3810,7 +3916,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].TradeCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.MDEntryOriginator:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryOriginator is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3818,7 +3924,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryOriginator = (FixField.Text)field;
 						break;
 					case FixTag.LocationID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].LocationID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3826,7 +3932,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].LocationID = (FixField.Text)field;
 						break;
 					case FixTag.DeskID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].DeskID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3834,7 +3940,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].DeskID = (FixField.Text)field;
 						break;
 					case FixTag.OpenCloseSettlFlag:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].OpenCloseSettleFlag is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3842,7 +3948,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].OpenCloseSettleFlag = (FixField.Character)field;
 						break;
 					case FixTag.TimeInForce:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].TimeInForce is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3850,7 +3956,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].TimeInForce = (FixField.Character)field;
 						break;
 					case FixTag.ExpireDate:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExpireDate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3858,7 +3964,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].ExpireDate = (FixField.Date)field;
 						break;
 					case FixTag.ExpireTime:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExpireTime is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3866,7 +3972,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].ExpireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.MinQty:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MinQty is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3874,7 +3980,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MinQty = (FixField.Decimal)field;
 						break;
 					case FixTag.ExecInst:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExecInst is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3882,7 +3988,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].ExecInst = (FixField.Multiple)field;
 						break;
 					case FixTag.SellerDays:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].SellerDays is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3890,7 +3996,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].SellerDays = (FixField.Integer)field;
 						break;
 					case FixTag.OrderID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].OrderID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3898,7 +4004,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].OrderID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteEntryID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].QuoteEntryID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3906,7 +4012,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].QuoteEntryID = (FixField.Text)field;
 						break;
 					case FixTag.MDEntryBuyer:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryBuyer is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3914,7 +4020,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryBuyer = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySeller:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntrySeller is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3922,7 +4028,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntrySeller = (FixField.Text)field;
 						break;
 					case FixTag.NumberOfOrders:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].NumberOfOrders is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3930,7 +4036,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].NumberOfOrders = (FixField.Integer)field;
 						break;
 					case FixTag.MDEntryPositionNo:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryPositionNo is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3938,7 +4044,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryPositionNo = (FixField.Integer)field;
 						break;
 					case FixTag.TotalVolumeTraded:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].TotalVolumeTraded is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3946,7 +4052,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].TotalVolumeTraded = (FixField.Decimal)field;
 						break;
 					case FixTag.Text:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].Text is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3954,7 +4060,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedTextLen is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3962,7 +4068,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedText is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -3990,7 +4096,7 @@ public abstract partial class FixMessage
 		internal List<NoMDEntriesGroup>? noMDEntriesGroups;
 
 		/// <summary>One entry of the group counted by NoMDEntries, tag 268.</summary>
-		public sealed class NoMDEntriesGroup
+		public sealed class NoMDEntriesGroup : IFixEntry
 		{
 			internal NoMDEntriesGroup(FixField.Character delimiter)
 			{
@@ -4164,6 +4270,24 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == MDUpdateAction || field == DeleteReason || field == MDEntryType || field == MDEntryID ||
+					field == MDEntryRefID || field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource ||
+					field == SecurityType || field == MaturityMonthYear || field == MaturityDay || field == PutOrCall ||
+					field == StrikePrice || field == OptAttribute || field == ContractMultiplier || field == CouponRate ||
+					field == SecurityExchange || field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer ||
+					field == SecurityDesc || field == EncodedSecurityDescLen || field == EncodedSecurityDesc ||
+					field == FinancialStatus || field == CorporateAction || field == MDEntryPx || field == Currency ||
+					field == MDEntrySize || field == MDEntryDate || field == MDEntryTime || field == TickDirection ||
+					field == MDMkt || field == TradingSessionID || field == QuoteCondition || field == TradeCondition ||
+					field == MDEntryOriginator || field == LocationID || field == DeskID || field == OpenCloseSettleFlag ||
+					field == TimeInForce || field == ExpireDate || field == ExpireTime || field == MinQty || field == ExecInst ||
+					field == SellerDays || field == OrderID || field == QuoteEntryID || field == MDEntryBuyer ||
+					field == MDEntrySeller || field == NumberOfOrders || field == MDEntryPositionNo || field == TotalVolumeTraded ||
+					field == Text || field == EncodedTextLen || field == EncodedText;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -4198,7 +4322,7 @@ public abstract partial class FixMessage
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4206,7 +4330,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4214,7 +4338,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4222,7 +4346,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4230,7 +4354,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4238,7 +4362,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4246,7 +4370,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4254,7 +4378,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4262,7 +4386,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4270,7 +4394,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4278,7 +4402,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4286,7 +4410,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4294,7 +4418,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4302,7 +4426,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4310,7 +4434,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4318,7 +4442,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4326,7 +4450,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4334,7 +4458,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4342,7 +4466,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.TradingSessionID:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].TradingSessionID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -4389,7 +4513,7 @@ public abstract partial class FixMessage
 		internal List<NoRelatedSymGroup>? noRelatedSymGroups;
 
 		/// <summary>One entry of the group counted by NoMDEntryTypes, tag 267.</summary>
-		public sealed class NoMDEntryTypesGroup
+		public sealed class NoMDEntryTypesGroup : IFixEntry
 		{
 			internal NoMDEntryTypesGroup(FixField.Character delimiter)
 			{
@@ -4398,10 +4522,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX MDEntryType, tag 269, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Character MDEntryType { get; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == MDEntryType;
+			}
 		}
 
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
-		public sealed class NoRelatedSymGroup
+		public sealed class NoRelatedSymGroup : IFixEntry
 		{
 			internal NoRelatedSymGroup(FixField.Text delimiter)
 			{
@@ -4467,6 +4596,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionID { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource || field == SecurityType ||
+					field == MaturityMonthYear || field == MaturityDay || field == PutOrCall || field == StrikePrice ||
+					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
+					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
+					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == TradingSessionID;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -4560,7 +4698,7 @@ public abstract partial class FixMessage
 						(noMDEntriesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.MDEntryPx:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryPx is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4568,7 +4706,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryPx = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].Currency is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4576,7 +4714,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].Currency = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySize:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntrySize is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4584,7 +4722,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntrySize = (FixField.Decimal)field;
 						break;
 					case FixTag.MDEntryDate:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryDate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4592,7 +4730,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryDate = (FixField.Date)field;
 						break;
 					case FixTag.MDEntryTime:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryTime is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4600,7 +4738,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryTime = (FixField.Time)field;
 						break;
 					case FixTag.TickDirection:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].TickDirection is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4608,7 +4746,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].TickDirection = (FixField.Character)field;
 						break;
 					case FixTag.MDMkt:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDMkt is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4616,7 +4754,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDMkt = (FixField.Text)field;
 						break;
 					case FixTag.TradingSessionID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].TradingSessionID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4624,7 +4762,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteCondition:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].QuoteCondition is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4632,7 +4770,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].QuoteCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.TradeCondition:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].TradeCondition is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4640,7 +4778,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].TradeCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.MDEntryOriginator:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryOriginator is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4648,7 +4786,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryOriginator = (FixField.Text)field;
 						break;
 					case FixTag.LocationID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].LocationID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4656,7 +4794,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].LocationID = (FixField.Text)field;
 						break;
 					case FixTag.DeskID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].DeskID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4664,7 +4802,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].DeskID = (FixField.Text)field;
 						break;
 					case FixTag.OpenCloseSettlFlag:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].OpenCloseSettleFlag is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4672,7 +4810,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].OpenCloseSettleFlag = (FixField.Character)field;
 						break;
 					case FixTag.TimeInForce:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].TimeInForce is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4680,7 +4818,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].TimeInForce = (FixField.Character)field;
 						break;
 					case FixTag.ExpireDate:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExpireDate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4688,7 +4826,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].ExpireDate = (FixField.Date)field;
 						break;
 					case FixTag.ExpireTime:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExpireTime is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4696,7 +4834,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].ExpireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.MinQty:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MinQty is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4704,7 +4842,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MinQty = (FixField.Decimal)field;
 						break;
 					case FixTag.ExecInst:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExecInst is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4712,7 +4850,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].ExecInst = (FixField.Multiple)field;
 						break;
 					case FixTag.SellerDays:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].SellerDays is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4720,7 +4858,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].SellerDays = (FixField.Integer)field;
 						break;
 					case FixTag.OrderID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].OrderID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4728,7 +4866,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].OrderID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteEntryID:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].QuoteEntryID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4736,7 +4874,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].QuoteEntryID = (FixField.Text)field;
 						break;
 					case FixTag.MDEntryBuyer:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryBuyer is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4744,7 +4882,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryBuyer = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySeller:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntrySeller is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4752,7 +4890,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntrySeller = (FixField.Text)field;
 						break;
 					case FixTag.NumberOfOrders:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].NumberOfOrders is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4760,7 +4898,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].NumberOfOrders = (FixField.Integer)field;
 						break;
 					case FixTag.MDEntryPositionNo:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryPositionNo is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4768,7 +4906,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].MDEntryPositionNo = (FixField.Integer)field;
 						break;
 					case FixTag.Text:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].Text is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4776,7 +4914,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedTextLen is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4784,7 +4922,7 @@ public abstract partial class FixMessage
 							noMDEntriesGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
-						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
+						if (None(noMDEntriesGroups))
 							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedText is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
@@ -4878,7 +5016,7 @@ public abstract partial class FixMessage
 		internal List<NoMDEntriesGroup>? noMDEntriesGroups;
 
 		/// <summary>One entry of the group counted by NoMDEntries, tag 268.</summary>
-		public sealed class NoMDEntriesGroup
+		public sealed class NoMDEntriesGroup : IFixEntry
 		{
 			internal NoMDEntriesGroup(FixField.Character delimiter)
 			{
@@ -4974,6 +5112,18 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == MDEntryType || field == MDEntryPx || field == Currency || field == MDEntrySize ||
+					field == MDEntryDate || field == MDEntryTime || field == TickDirection || field == MDMkt ||
+					field == TradingSessionID || field == QuoteCondition || field == TradeCondition || field == MDEntryOriginator ||
+					field == LocationID || field == DeskID || field == OpenCloseSettleFlag || field == TimeInForce ||
+					field == ExpireDate || field == ExpireTime || field == MinQty || field == ExecInst || field == SellerDays ||
+					field == OrderID || field == QuoteEntryID || field == MDEntryBuyer || field == MDEntrySeller ||
+					field == NumberOfOrders || field == MDEntryPositionNo || field == Text || field == EncodedTextLen ||
+					field == EncodedText;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -5003,7 +5153,7 @@ public abstract partial class FixMessage
 						(noQuoteSetsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbol:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSymbol is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5011,7 +5161,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSymbol = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSymbolSfx:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSymbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5019,7 +5169,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5027,7 +5177,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingIDSource is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5035,7 +5185,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5043,7 +5193,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5051,7 +5201,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingMaturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5059,7 +5209,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingPutOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5067,7 +5217,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingStrikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5075,7 +5225,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingOptAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5083,7 +5233,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingContractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5091,7 +5241,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingCouponRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5099,7 +5249,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5107,7 +5257,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5115,7 +5265,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5123,7 +5273,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5131,7 +5281,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5139,7 +5289,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5147,7 +5297,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5155,7 +5305,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.QuoteSetValidUntilTime:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].QuoteSetValidUntilTime is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5163,7 +5313,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].QuoteSetValidUntilTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.TotNoQuoteEntries:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].TotQuoteEntries is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5171,7 +5321,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].TotQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.NoQuoteEntries:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].NoQuoteEntries is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -5179,7 +5329,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].NoQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.QuoteEntryID:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else
 						{
@@ -5188,280 +5338,350 @@ public abstract partial class FixMessage
 						}
 						break;
 					case FixTag.Symbol:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.BidPx:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidPx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidPx = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferPx:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferPx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferPx = (FixField.Decimal)field;
 						break;
 					case FixTag.BidSize:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSize is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSize = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferSize:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSize is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSize = (FixField.Decimal)field;
 						break;
 					case FixTag.ValidUntilTime:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ValidUntilTime is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ValidUntilTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.BidSpotRate:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSpotRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSpotRate = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferSpotRate:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSpotRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSpotRate = (FixField.Decimal)field;
 						break;
 					case FixTag.BidForwardPoints:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidForwardPoints is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidForwardPoints = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferForwardPoints:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferForwardPoints is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferForwardPoints = (FixField.Decimal)field;
 						break;
 					case FixTag.TransactTime:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TransactTime is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TransactTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.TradingSessionID:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TradingSessionID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.SettlDate:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.OrdType:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrdType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrdType = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate2:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate2 is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate2 = (FixField.Date)field;
 						break;
 					case FixTag.OrderQty2:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrderQty2 is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrderQty2 = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Currency is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
@@ -5500,7 +5720,7 @@ public abstract partial class FixMessage
 		internal List<NoQuoteSetsGroup>? noQuoteSetsGroups;
 
 		/// <summary>One entry of the group counted by NoQuoteSets, tag 296.</summary>
-		public sealed class NoQuoteSetsGroup
+		public sealed class NoQuoteSetsGroup : IFixEntry
 		{
 			internal NoQuoteSetsGroup(FixField.Text delimiter)
 			{
@@ -5581,7 +5801,7 @@ public abstract partial class FixMessage
 			internal List<NoQuoteEntriesGroup>? noQuoteEntriesGroups;
 
 			/// <summary>One entry of the group counted by NoQuoteEntries, tag 295.</summary>
-			public sealed class NoQuoteEntriesGroup
+			public sealed class NoQuoteEntriesGroup : IFixEntry
 			{
 				internal NoQuoteEntriesGroup(FixField.Text delimiter)
 				{
@@ -5695,6 +5915,32 @@ public abstract partial class FixMessage
 
 				/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 				public FixField.Text? Currency { get; internal set; }
+
+				bool IFixEntry.Holds(FixField field)
+				{
+					return field == QuoteEntryID || field == Symbol || field == SymbolSfx || field == SecurityID ||
+						field == IDSource || field == SecurityType || field == MaturityMonthYear || field == MaturityDay ||
+						field == PutOrCall || field == StrikePrice || field == OptAttribute || field == ContractMultiplier ||
+						field == CouponRate || field == SecurityExchange || field == Issuer || field == EncodedIssuerLen ||
+						field == EncodedIssuer || field == SecurityDesc || field == EncodedSecurityDescLen ||
+						field == EncodedSecurityDesc || field == BidPx || field == OfferPx || field == BidSize ||
+						field == OfferSize || field == ValidUntilTime || field == BidSpotRate || field == OfferSpotRate ||
+						field == BidForwardPoints || field == OfferForwardPoints || field == TransactTime ||
+						field == TradingSessionID || field == FutSettDate || field == OrdType || field == FutSettDate2 ||
+						field == OrderQty2 || field == Currency;
+				}
+			}
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == QuoteSetID || field == UnderlyingSymbol || field == UnderlyingSymbolSfx ||
+					field == UnderlyingSecurityID || field == UnderlyingIDSource || field == UnderlyingSecurityType ||
+					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDay || field == UnderlyingPutOrCall ||
+					field == UnderlyingStrikePrice || field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier ||
+					field == UnderlyingCouponRate || field == UnderlyingSecurityExchange || field == UnderlyingIssuer ||
+					field == EncodedUnderlyingIssuerLen || field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
+					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
+					field == QuoteSetValidUntilTime || field == TotQuoteEntries || field == NoQuoteEntries;
 			}
 		}
 
@@ -5731,7 +5977,7 @@ public abstract partial class FixMessage
 						(noOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.ListSeqNo:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ListSeqNo is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5739,7 +5985,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ListSeqNo = (FixField.Integer)field;
 						break;
 					case FixTag.SettlInstMode:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SettlInstMode is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5747,7 +5993,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SettlInstMode = (FixField.Character)field;
 						break;
 					case FixTag.ClientID:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ClientID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5755,7 +6001,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ClientID = (FixField.Text)field;
 						break;
 					case FixTag.ExecBroker:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ExecBroker is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5763,7 +6009,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ExecBroker = (FixField.Text)field;
 						break;
 					case FixTag.Account:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Account is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5771,7 +6017,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Account = (FixField.Text)field;
 						break;
 					case FixTag.NoAllocs:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].NoAllocs is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5779,7 +6025,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].NoAllocs = (FixField.Integer)field;
 						break;
 					case FixTag.AllocAccount:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else
 						{
@@ -5788,15 +6034,17 @@ public abstract partial class FixMessage
 						}
 						break;
 					case FixTag.AllocQty:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0 || noOrdersGroups![^1].noAllocsGroups is null || noOrdersGroups![^1].noAllocsGroups!.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
+						else if (None(noOrdersGroups![^1].noAllocsGroups))
+							Unentered(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else if (noOrdersGroups![^1].noAllocsGroups![^1].AllocShares is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1, FixTag.NoAllocs, noOrdersGroups![^1].noAllocsGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlType:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SettlmntTyp is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5804,7 +6052,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SettlmntTyp = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].FutSettDate is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5812,7 +6060,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.HandlInst:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].HandlInst is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5820,7 +6068,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].HandlInst = (FixField.Character)field;
 						break;
 					case FixTag.ExecInst:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ExecInst is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5828,7 +6076,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ExecInst = (FixField.Multiple)field;
 						break;
 					case FixTag.MinQty:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].MinQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5836,7 +6084,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].MinQty = (FixField.Decimal)field;
 						break;
 					case FixTag.MaxFloor:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].MaxFloor is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5844,7 +6092,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].MaxFloor = (FixField.Decimal)field;
 						break;
 					case FixTag.ExDestination:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ExDestination is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5852,7 +6100,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ExDestination = (FixField.Text)field;
 						break;
 					case FixTag.NoTradingSessions:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].NoTradingSessions is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5860,7 +6108,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].NoTradingSessions = (FixField.Integer)field;
 						break;
 					case FixTag.TradingSessionID:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else
 						{
@@ -5869,7 +6117,7 @@ public abstract partial class FixMessage
 						}
 						break;
 					case FixTag.ProcessCode:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ProcessCode is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5877,7 +6125,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ProcessCode = (FixField.Character)field;
 						break;
 					case FixTag.Symbol:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Symbol is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5885,7 +6133,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5893,7 +6141,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5901,7 +6149,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5909,7 +6157,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5917,7 +6165,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5925,7 +6173,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5933,7 +6181,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5941,7 +6189,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5949,7 +6197,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5957,7 +6205,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5965,7 +6213,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5973,7 +6221,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5981,7 +6229,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5989,7 +6237,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -5997,7 +6245,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6005,7 +6253,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6013,7 +6261,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6021,7 +6269,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6029,7 +6277,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.PrevClosePx:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].PrevClosePx is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6037,7 +6285,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].PrevClosePx = (FixField.Decimal)field;
 						break;
 					case FixTag.Side:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Side is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6045,7 +6293,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.SideValueInd:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SideValueInd is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6053,7 +6301,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SideValueInd = (FixField.Integer)field;
 						break;
 					case FixTag.LocateReqd:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].LocateReqd is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6061,7 +6309,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].LocateReqd = (FixField.Boolean)field;
 						break;
 					case FixTag.TransactTime:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].TransactTime is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6069,7 +6317,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].TransactTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.OrderQty:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].OrderQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6077,7 +6325,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].OrderQty = (FixField.Decimal)field;
 						break;
 					case FixTag.CashOrderQty:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].CashOrderQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6085,7 +6333,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].CashOrderQty = (FixField.Decimal)field;
 						break;
 					case FixTag.OrdType:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].OrdType is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6093,7 +6341,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].OrdType = (FixField.Character)field;
 						break;
 					case FixTag.Price:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Price is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6101,7 +6349,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Price = (FixField.Decimal)field;
 						break;
 					case FixTag.StopPx:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].StopPx is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6109,7 +6357,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].StopPx = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Currency is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6117,7 +6365,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Currency = (FixField.Text)field;
 						break;
 					case FixTag.ComplianceID:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ComplianceID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6125,7 +6373,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ComplianceID = (FixField.Text)field;
 						break;
 					case FixTag.SolicitedFlag:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SolicitedFlag is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6133,7 +6381,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SolicitedFlag = (FixField.Boolean)field;
 						break;
 					case FixTag.IOIID:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].IOIid is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6141,7 +6389,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].IOIid = (FixField.Text)field;
 						break;
 					case FixTag.QuoteID:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].QuoteID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6149,7 +6397,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].QuoteID = (FixField.Text)field;
 						break;
 					case FixTag.TimeInForce:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].TimeInForce is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6157,7 +6405,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].TimeInForce = (FixField.Character)field;
 						break;
 					case FixTag.EffectiveTime:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].EffectiveTime is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6165,7 +6413,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].EffectiveTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.ExpireDate:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ExpireDate is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6173,7 +6421,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ExpireDate = (FixField.Date)field;
 						break;
 					case FixTag.ExpireTime:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ExpireTime is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6181,7 +6429,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ExpireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.GTBookingInst:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].GTBookingInst is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6189,7 +6437,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].GTBookingInst = (FixField.Integer)field;
 						break;
 					case FixTag.Commission:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Commission is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6197,7 +6445,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Commission = (FixField.Decimal)field;
 						break;
 					case FixTag.CommType:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].CommType is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6205,7 +6453,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].CommType = (FixField.Character)field;
 						break;
 					case FixTag.Rule80A:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Rule80A is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6213,7 +6461,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Rule80A = (FixField.Character)field;
 						break;
 					case FixTag.ForexReq:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ForexReq is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6221,7 +6469,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ForexReq = (FixField.Boolean)field;
 						break;
 					case FixTag.SettlCurrency:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].SettlCurrency is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6229,7 +6477,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].SettlCurrency = (FixField.Text)field;
 						break;
 					case FixTag.Text:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].Text is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6237,7 +6485,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedTextLen is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6245,7 +6493,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedText is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6253,7 +6501,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].EncodedText = (FixField.Data)field;
 						break;
 					case FixTag.SettlDate2:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].FutSettDate2 is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6261,7 +6509,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].FutSettDate2 = (FixField.Date)field;
 						break;
 					case FixTag.OrderQty2:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].OrderQty2 is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6269,7 +6517,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].OrderQty2 = (FixField.Decimal)field;
 						break;
 					case FixTag.PositionEffect:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].OpenClose is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6277,7 +6525,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].OpenClose = (FixField.Character)field;
 						break;
 					case FixTag.CoveredOrUncovered:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].CoveredOrUncovered is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6285,7 +6533,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].CoveredOrUncovered = (FixField.Integer)field;
 						break;
 					case FixTag.CustomerOrFirm:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].CustomerOrFirm is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6293,7 +6541,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].CustomerOrFirm = (FixField.Integer)field;
 						break;
 					case FixTag.MaxShow:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].MaxShow is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6301,7 +6549,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].MaxShow = (FixField.Decimal)field;
 						break;
 					case FixTag.PegOffsetValue:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].PegDifference is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6309,7 +6557,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].PegDifference = (FixField.Decimal)field;
 						break;
 					case FixTag.DiscretionInst:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].DiscretionInst is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6317,7 +6565,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].DiscretionInst = (FixField.Character)field;
 						break;
 					case FixTag.DiscretionOffsetValue:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].DiscretionOffset is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6325,7 +6573,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].DiscretionOffset = (FixField.Decimal)field;
 						break;
 					case FixTag.ClearingFirm:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ClearingFirm is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6333,7 +6581,7 @@ public abstract partial class FixMessage
 							noOrdersGroups![^1].ClearingFirm = (FixField.Text)field;
 						break;
 					case FixTag.ClearingAccount:
-						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
+						if (None(noOrdersGroups))
 							Unentered(field);
 						else if (noOrdersGroups![^1].ClearingAccount is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
@@ -6391,7 +6639,7 @@ public abstract partial class FixMessage
 		internal List<NoOrdersGroup>? noOrdersGroups;
 
 		/// <summary>One entry of the group counted by NoOrders, tag 73.</summary>
-		public sealed class NoOrdersGroup
+		public sealed class NoOrdersGroup : IFixEntry
 		{
 			internal NoOrdersGroup(FixField.Text delimiter)
 			{
@@ -6629,7 +6877,7 @@ public abstract partial class FixMessage
 			public FixField.Text? ClearingAccount { get; internal set; }
 
 			/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
-			public sealed class NoAllocsGroup
+			public sealed class NoAllocsGroup : IFixEntry
 			{
 				internal NoAllocsGroup(FixField.Text delimiter)
 				{
@@ -6641,10 +6889,15 @@ public abstract partial class FixMessage
 
 				/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocShares { get; internal set; }
+
+				bool IFixEntry.Holds(FixField field)
+				{
+					return field == AllocAccount || field == AllocShares;
+				}
 			}
 
 			/// <summary>One entry of the group counted by NoTradingSessions, tag 386.</summary>
-			public sealed class NoTradingSessionsGroup
+			public sealed class NoTradingSessionsGroup : IFixEntry
 			{
 				internal NoTradingSessionsGroup(FixField.Text delimiter)
 				{
@@ -6653,6 +6906,33 @@ public abstract partial class FixMessage
 
 				/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 				public FixField.Text TradingSessionID { get; }
+
+				bool IFixEntry.Holds(FixField field)
+				{
+					return field == TradingSessionID;
+				}
+			}
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == ClOrdID || field == ListSeqNo || field == SettlInstMode || field == ClientID ||
+					field == ExecBroker || field == Account || field == NoAllocs || field == SettlmntTyp || field == FutSettDate ||
+					field == HandlInst || field == ExecInst || field == MinQty || field == MaxFloor || field == ExDestination ||
+					field == NoTradingSessions || field == ProcessCode || field == Symbol || field == SymbolSfx ||
+					field == SecurityID || field == IDSource || field == SecurityType || field == MaturityMonthYear ||
+					field == MaturityDay || field == PutOrCall || field == StrikePrice || field == OptAttribute ||
+					field == ContractMultiplier || field == CouponRate || field == SecurityExchange || field == Issuer ||
+					field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
+					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == PrevClosePx || field == Side ||
+					field == SideValueInd || field == LocateReqd || field == TransactTime || field == OrderQty ||
+					field == CashOrderQty || field == OrdType || field == Price || field == StopPx || field == Currency ||
+					field == ComplianceID || field == SolicitedFlag || field == IOIid || field == QuoteID || field == TimeInForce ||
+					field == EffectiveTime || field == ExpireDate || field == ExpireTime || field == GTBookingInst ||
+					field == Commission || field == CommType || field == Rule80A || field == ForexReq || field == SettlCurrency ||
+					field == Text || field == EncodedTextLen || field == EncodedText || field == FutSettDate2 ||
+					field == OrderQty2 || field == OpenClose || field == CoveredOrUncovered || field == CustomerOrFirm ||
+					field == MaxShow || field == PegDifference || field == DiscretionInst || field == DiscretionOffset ||
+					field == ClearingFirm || field == ClearingAccount;
 			}
 		}
 
@@ -6682,7 +6962,7 @@ public abstract partial class FixMessage
 						(noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocQty:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].AllocShares is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -6991,7 +7271,7 @@ public abstract partial class FixMessage
 		public FixField.Text? ClearingAccount { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
-		public sealed class NoAllocsGroup
+		public sealed class NoAllocsGroup : IFixEntry
 		{
 			internal NoAllocsGroup(FixField.Text delimiter)
 			{
@@ -7003,10 +7283,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocShares { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == AllocAccount || field == AllocShares;
+			}
 		}
 
 		/// <summary>One entry of the group counted by NoTradingSessions, tag 386.</summary>
-		public sealed class NoTradingSessionsGroup
+		public sealed class NoTradingSessionsGroup : IFixEntry
 		{
 			internal NoTradingSessionsGroup(FixField.Text delimiter)
 			{
@@ -7015,6 +7300,11 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text TradingSessionID { get; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == TradingSessionID;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -7044,7 +7334,7 @@ public abstract partial class FixMessage
 						(noRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
-						if (noRoutingIDsGroups is null || noRoutingIDsGroups.Count == 0)
+						if (None(noRoutingIDsGroups))
 							Unentered(field);
 						else if (noRoutingIDsGroups![^1].RoutingID is not null)
 							Duplicate(field, FixTag.NoRoutingIDs, noRoutingIDsGroups!.Count - 1);
@@ -7057,7 +7347,7 @@ public abstract partial class FixMessage
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7065,7 +7355,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7073,7 +7363,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7081,7 +7371,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7089,7 +7379,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7097,7 +7387,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7105,7 +7395,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7113,7 +7403,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7121,7 +7411,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7129,7 +7419,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7137,7 +7427,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7145,7 +7435,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7153,7 +7443,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7161,7 +7451,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7169,7 +7459,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7177,7 +7467,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7185,7 +7475,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7193,7 +7483,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -7206,7 +7496,7 @@ public abstract partial class FixMessage
 						(linesOfTextGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.EncodedTextLen:
-						if (linesOfTextGroups is null || linesOfTextGroups.Count == 0)
+						if (None(linesOfTextGroups))
 							Unentered(field);
 						else if (linesOfTextGroups![^1].EncodedTextLen is not null)
 							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
@@ -7214,7 +7504,7 @@ public abstract partial class FixMessage
 							linesOfTextGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
-						if (linesOfTextGroups is null || linesOfTextGroups.Count == 0)
+						if (None(linesOfTextGroups))
 							Unentered(field);
 						else if (linesOfTextGroups![^1].EncodedText is not null)
 							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
@@ -7280,7 +7570,7 @@ public abstract partial class FixMessage
 		public FixField.Data? RawData { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoRoutingIDs, tag 215.</summary>
-		public sealed class NoRoutingIDsGroup
+		public sealed class NoRoutingIDsGroup : IFixEntry
 		{
 			internal NoRoutingIDsGroup(FixField.Integer delimiter)
 			{
@@ -7292,10 +7582,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == RoutingType || field == RoutingID;
+			}
 		}
 
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
-		public sealed class NoRelatedSymGroup
+		public sealed class NoRelatedSymGroup : IFixEntry
 		{
 			internal NoRelatedSymGroup(FixField.Text delimiter)
 			{
@@ -7358,10 +7653,19 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == RelatdSym || field == SymbolSfx || field == SecurityID || field == IDSource ||
+					field == SecurityType || field == MaturityMonthYear || field == MaturityDay || field == PutOrCall ||
+					field == StrikePrice || field == OptAttribute || field == ContractMultiplier || field == CouponRate ||
+					field == SecurityExchange || field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer ||
+					field == SecurityDesc || field == EncodedSecurityDescLen || field == EncodedSecurityDesc;
+			}
 		}
 
 		/// <summary>One entry of the group counted by LinesOfText, tag 33.</summary>
-		public sealed class LinesOfTextGroup
+		public sealed class LinesOfTextGroup : IFixEntry
 		{
 			internal LinesOfTextGroup(FixField.Text delimiter)
 			{
@@ -7376,6 +7680,11 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == Text || field == EncodedTextLen || field == EncodedText;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -7493,7 +7802,7 @@ public abstract partial class FixMessage
 						(noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocQty:
-						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
+						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (noAllocsGroups![^1].AllocShares is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
@@ -7795,7 +8104,7 @@ public abstract partial class FixMessage
 		public FixField.Text? ClearingAccount { get; internal set; }
 
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
-		public sealed class NoAllocsGroup
+		public sealed class NoAllocsGroup : IFixEntry
 		{
 			internal NoAllocsGroup(FixField.Text delimiter)
 			{
@@ -7807,10 +8116,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocShares { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == AllocAccount || field == AllocShares;
+			}
 		}
 
 		/// <summary>One entry of the group counted by NoTradingSessions, tag 386.</summary>
-		public sealed class NoTradingSessionsGroup
+		public sealed class NoTradingSessionsGroup : IFixEntry
 		{
 			internal NoTradingSessionsGroup(FixField.Text delimiter)
 			{
@@ -7819,6 +8133,11 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text TradingSessionID { get; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == TradingSessionID;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -8320,7 +8639,7 @@ public abstract partial class FixMessage
 						(noQuoteSetsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbol:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSymbol is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8328,7 +8647,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSymbol = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSymbolSfx:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSymbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8336,7 +8655,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8344,7 +8663,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingIDSource is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8352,7 +8671,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8360,7 +8679,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8368,7 +8687,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingMaturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8376,7 +8695,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingPutOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8384,7 +8703,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingStrikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8392,7 +8711,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingOptAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8400,7 +8719,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingContractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8408,7 +8727,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingCouponRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8416,7 +8735,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8424,7 +8743,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8432,7 +8751,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8440,7 +8759,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8448,7 +8767,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8456,7 +8775,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8464,7 +8783,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8472,7 +8791,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.TotNoQuoteEntries:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].TotQuoteEntries is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8480,7 +8799,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].TotQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.NoQuoteEntries:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (noQuoteSetsGroups![^1].NoQuoteEntries is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
@@ -8488,7 +8807,7 @@ public abstract partial class FixMessage
 							noQuoteSetsGroups![^1].NoQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.QuoteEntryID:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else
 						{
@@ -8497,160 +8816,200 @@ public abstract partial class FixMessage
 						}
 						break;
 					case FixTag.Symbol:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.QuoteEntryRejectReason:
-						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
+						if (None(noQuoteSetsGroups))
 							Unentered(field);
+						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
+							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].QuoteEntryRejectReason is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
@@ -8695,7 +9054,7 @@ public abstract partial class FixMessage
 		internal List<NoQuoteSetsGroup>? noQuoteSetsGroups;
 
 		/// <summary>One entry of the group counted by NoQuoteSets, tag 296.</summary>
-		public sealed class NoQuoteSetsGroup
+		public sealed class NoQuoteSetsGroup : IFixEntry
 		{
 			internal NoQuoteSetsGroup(FixField.Text delimiter)
 			{
@@ -8773,7 +9132,7 @@ public abstract partial class FixMessage
 			internal List<NoQuoteEntriesGroup>? noQuoteEntriesGroups;
 
 			/// <summary>One entry of the group counted by NoQuoteEntries, tag 295.</summary>
-			public sealed class NoQuoteEntriesGroup
+			public sealed class NoQuoteEntriesGroup : IFixEntry
 			{
 				internal NoQuoteEntriesGroup(FixField.Text delimiter)
 				{
@@ -8842,6 +9201,28 @@ public abstract partial class FixMessage
 
 				/// <summary>The FIX QuoteEntryRejectReason, tag 368, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? QuoteEntryRejectReason { get; internal set; }
+
+				bool IFixEntry.Holds(FixField field)
+				{
+					return field == QuoteEntryID || field == Symbol || field == SymbolSfx || field == SecurityID ||
+						field == IDSource || field == SecurityType || field == MaturityMonthYear || field == MaturityDay ||
+						field == PutOrCall || field == StrikePrice || field == OptAttribute || field == ContractMultiplier ||
+						field == CouponRate || field == SecurityExchange || field == Issuer || field == EncodedIssuerLen ||
+						field == EncodedIssuer || field == SecurityDesc || field == EncodedSecurityDescLen ||
+						field == EncodedSecurityDesc || field == QuoteEntryRejectReason;
+				}
+			}
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == QuoteSetID || field == UnderlyingSymbol || field == UnderlyingSymbolSfx ||
+					field == UnderlyingSecurityID || field == UnderlyingIDSource || field == UnderlyingSecurityType ||
+					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDay || field == UnderlyingPutOrCall ||
+					field == UnderlyingStrikePrice || field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier ||
+					field == UnderlyingCouponRate || field == UnderlyingSecurityExchange || field == UnderlyingIssuer ||
+					field == EncodedUnderlyingIssuerLen || field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
+					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
+					field == TotQuoteEntries || field == NoQuoteEntries;
 			}
 		}
 
@@ -8872,7 +9253,7 @@ public abstract partial class FixMessage
 						(noQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8880,7 +9261,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8888,7 +9269,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8896,7 +9277,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8904,7 +9285,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8912,7 +9293,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8920,7 +9301,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8928,7 +9309,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8936,7 +9317,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8944,7 +9325,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8952,7 +9333,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8960,7 +9341,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8968,7 +9349,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8976,7 +9357,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8984,7 +9365,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -8992,7 +9373,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -9000,7 +9381,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -9008,7 +9389,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -9016,7 +9397,7 @@ public abstract partial class FixMessage
 							noQuoteEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSymbol:
-						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
+						if (None(noQuoteEntriesGroups))
 							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].UnderlyingSymbol is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
@@ -9056,7 +9437,7 @@ public abstract partial class FixMessage
 		internal List<NoQuoteEntriesGroup>? noQuoteEntriesGroups;
 
 		/// <summary>One entry of the group counted by NoQuoteEntries, tag 295.</summary>
-		public sealed class NoQuoteEntriesGroup
+		public sealed class NoQuoteEntriesGroup : IFixEntry
 		{
 			internal NoQuoteEntriesGroup(FixField.Text delimiter)
 			{
@@ -9122,6 +9503,15 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingSymbol { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource || field == SecurityType ||
+					field == MaturityMonthYear || field == MaturityDay || field == PutOrCall || field == StrikePrice ||
+					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
+					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
+					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == UnderlyingSymbol;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -9147,7 +9537,7 @@ public abstract partial class FixMessage
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9155,7 +9545,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9163,7 +9553,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].IDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9171,7 +9561,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9179,7 +9569,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9187,7 +9577,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9195,7 +9585,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].PutOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9203,7 +9593,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].StrikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9211,7 +9601,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].OptAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9219,7 +9609,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9227,7 +9617,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].CouponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9235,7 +9625,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9243,7 +9633,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].Issuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9251,7 +9641,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9259,7 +9649,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9267,7 +9657,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9275,7 +9665,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9283,7 +9673,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9291,7 +9681,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.PrevClosePx:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].PrevClosePx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9299,7 +9689,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].PrevClosePx = (FixField.Decimal)field;
 						break;
 					case FixTag.QuoteRequestType:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].QuoteRequestType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9307,7 +9697,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].QuoteRequestType = (FixField.Integer)field;
 						break;
 					case FixTag.TradingSessionID:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].TradingSessionID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9315,7 +9705,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.Side:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].Side is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9323,7 +9713,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.OrderQty:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].OrderQty is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9331,7 +9721,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].OrderQty = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlDate:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].FutSettDate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9339,7 +9729,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.OrdType:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].OrdType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9347,7 +9737,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].OrdType = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate2:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].FutSettDate2 is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9355,7 +9745,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].FutSettDate2 = (FixField.Date)field;
 						break;
 					case FixTag.OrderQty2:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].OrderQty2 is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9363,7 +9753,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].OrderQty2 = (FixField.Decimal)field;
 						break;
 					case FixTag.ExpireTime:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].ExpireTime is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9371,7 +9761,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].ExpireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.TransactTime:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].TransactTime is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9379,7 +9769,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].TransactTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.Currency:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].Currency is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9407,7 +9797,7 @@ public abstract partial class FixMessage
 		internal List<NoRelatedSymGroup>? noRelatedSymGroups;
 
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
-		public sealed class NoRelatedSymGroup
+		public sealed class NoRelatedSymGroup : IFixEntry
 		{
 			internal NoRelatedSymGroup(FixField.Text delimiter)
 			{
@@ -9506,6 +9896,18 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 			public FixField.Text? Currency { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource || field == SecurityType ||
+					field == MaturityMonthYear || field == MaturityDay || field == PutOrCall || field == StrikePrice ||
+					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
+					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
+					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == PrevClosePx ||
+					field == QuoteRequestType || field == TradingSessionID || field == Side || field == OrderQty ||
+					field == FutSettDate || field == OrdType || field == FutSettDate2 || field == OrderQty2 ||
+					field == ExpireTime || field == TransactTime || field == Currency;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -9760,7 +10162,7 @@ public abstract partial class FixMessage
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbolSfx:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSymbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9768,7 +10170,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9776,7 +10178,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingIDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9784,7 +10186,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9792,7 +10194,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingMaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9800,7 +10202,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingMaturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9808,7 +10210,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingPutOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9816,7 +10218,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingStrikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9824,7 +10226,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingOptAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9832,7 +10234,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingContractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9840,7 +10242,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingCouponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9848,7 +10250,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9856,7 +10258,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9864,7 +10266,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9872,7 +10274,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9880,7 +10282,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9888,7 +10290,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9896,7 +10298,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9904,7 +10306,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.RatioQty:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].RatioQty is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9912,7 +10314,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].RatioQty = (FixField.Decimal)field;
 						break;
 					case FixTag.Side:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].Side is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -9920,7 +10322,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingCurrency:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingCurrency is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10029,7 +10431,7 @@ public abstract partial class FixMessage
 		internal List<NoRelatedSymGroup>? noRelatedSymGroups;
 
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
-		public sealed class NoRelatedSymGroup
+		public sealed class NoRelatedSymGroup : IFixEntry
 		{
 			internal NoRelatedSymGroup(FixField.Text delimiter)
 			{
@@ -10101,6 +10503,18 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX UnderlyingCurrency, tag 318, wire type <c>Currency</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingCurrency { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
+					field == UnderlyingIDSource || field == UnderlyingSecurityType || field == UnderlyingMaturityMonthYear ||
+					field == UnderlyingMaturityDay || field == UnderlyingPutOrCall || field == UnderlyingStrikePrice ||
+					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
+					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
+					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
+					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc || field == RatioQty ||
+					field == Side || field == UnderlyingCurrency;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -10151,7 +10565,7 @@ public abstract partial class FixMessage
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbolSfx:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSymbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10159,7 +10573,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10167,7 +10581,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingIDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10175,7 +10589,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10183,7 +10597,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingMaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10191,7 +10605,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingMaturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10199,7 +10613,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingPutOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10207,7 +10621,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingStrikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10215,7 +10629,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingOptAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10223,7 +10637,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingContractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10231,7 +10645,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingCouponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10239,7 +10653,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10247,7 +10661,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10255,7 +10669,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10263,7 +10677,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10271,7 +10685,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10279,7 +10693,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10287,7 +10701,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10295,7 +10709,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.RatioQty:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].RatioQty is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10303,7 +10717,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].RatioQty = (FixField.Decimal)field;
 						break;
 					case FixTag.Side:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].Side is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10311,7 +10725,7 @@ public abstract partial class FixMessage
 							noRelatedSymGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingCurrency:
-						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
+						if (None(noRelatedSymGroups))
 							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingCurrency is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
@@ -10414,7 +10828,7 @@ public abstract partial class FixMessage
 		internal List<NoRelatedSymGroup>? noRelatedSymGroups;
 
 		/// <summary>One entry of the group counted by NoRelatedSym, tag 146.</summary>
-		public sealed class NoRelatedSymGroup
+		public sealed class NoRelatedSymGroup : IFixEntry
 		{
 			internal NoRelatedSymGroup(FixField.Text delimiter)
 			{
@@ -10486,6 +10900,18 @@ public abstract partial class FixMessage
 
 			/// <summary>The FIX UnderlyingCurrency, tag 318, wire type <c>Currency</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingCurrency { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
+					field == UnderlyingIDSource || field == UnderlyingSecurityType || field == UnderlyingMaturityMonthYear ||
+					field == UnderlyingMaturityDay || field == UnderlyingPutOrCall || field == UnderlyingStrikePrice ||
+					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
+					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
+					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
+					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc || field == RatioQty ||
+					field == Side || field == UnderlyingCurrency;
+			}
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>

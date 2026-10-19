@@ -37,9 +37,10 @@ partial class @@Validator@@ : FixValidator
 		if (message.BodyLength is { IsValid: true } declared && message.MeasuredBodyLength >= 0 && declared.Value != message.MeasuredBodyLength)
 			check.Add(FixRule.BodyLengthMismatch, FixTag.BodyLength, declared.Position, declared);
 
+		// A CheckSum that did not read is not three digits either.
 		if (message.CheckSum is { } sum)
 		{
-			if (sum.Value.Length != 3 || sum.Value.AsSpan().ToTag() is var expected && expected < 0)
+			if (!sum.IsValid || sum.Value.Length != 3 || sum.Value.AsSpan().ToTag() is var expected && expected < 0)
 				check.Add(FixRule.InvalidValue, FixTag.CheckSum, sum.Position, sum);
 			else if (message.MeasuredCheckSum >= 0 && expected != message.MeasuredCheckSum)
 				check.Add(FixRule.CheckSumMismatch, FixTag.CheckSum, sum.Position, sum);
@@ -50,7 +51,8 @@ partial class @@Validator@@ : FixValidator
 		// asked here.
 		var body = false;
 
-		var length = 0;
+		// The last field read, where it is a length: a finding about it is said in the entry it is in.
+		FixField? length = null;
 
 		// An Encoded field is text in the encoding MessageEncoding names, and without it nobody can
 		// say what the octets are: said once, at the first such field.
@@ -59,14 +61,14 @@ partial class @@Validator@@ : FixValidator
 		foreach (var field in message.Fields)
 		{
 			// A length field is followed by the data it measures, and by nothing else.
-			if (length != 0 && field.Tag != context.DataTag(length))
-				check.Add(FixRule.LengthFieldNotBeforeData, length, field.Position, field);
+			if (length is not null && field.Tag != context.DataTag(length.Tag))
+				check.AddAt(FixRule.LengthFieldNotBeforeData, length.Tag, field, length);
 
-			length = context.Kind(field.Tag) > 0 ? field.Tag : 0;
+			length = context.Kind(field.Tag) > 0 ? field : null;
 
 			if (!encoding && IsEncoded(field.Tag))
 			{
-				check.Add(FixRule.MessageEncodingMissing, FixTag.MessageEncoding, field.Position, field);
+				check.AddAt(FixRule.MessageEncodingMissing, FixTag.MessageEncoding, field, field);
 				encoding = true;
 			}
 
@@ -83,9 +85,11 @@ partial class @@Validator@@ : FixValidator
 	/// <summary>Holds each entry of a group to its check, in order; nothing where the group is absent.</summary>
 	/// <remarks>
 	/// What every check calls for a group, rather than writing the loop in its text: the walk is where the
-	/// check enters the group and moves from entry to entry, which every finding inside says with its path.
+	/// check enters the group and moves from entry to entry, which every finding inside says with its path,
+	/// and where a finding of the whole message about a field of an entry is given that entry's.
 	/// </remarks>
 	internal static void Each<TEntry>(@@Context@@ context, FixCheck check, int counter, List<TEntry>? entries, Action<@@Context@@, FixCheck, TEntry> slot)
+		where TEntry : IFixEntry
 	{
 		if (entries is null)
 			return;
@@ -95,6 +99,10 @@ partial class @@Validator@@ : FixValidator
 		for (var i = 0; i < entries.Count; i++)
 		{
 			check.At(i);
+
+			if (check.Waiting)
+				check.Locate(entries[i]);
+
 			slot(context, check, entries[i]);
 		}
 

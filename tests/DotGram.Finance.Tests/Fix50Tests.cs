@@ -27,6 +27,15 @@ public sealed class Fix50Tests
 	const string Order = "1128=9|11=ORD-1|55=IBM|541=20270115|1079=13:09+05:30|54=1|60=20260920-12:00:00|38=300|40=2|44=101.25|" +
 		"453=2|448=BROKER|447=D|452=1|448=CLIENT|447=D|452=3|";
 
+	/// <summary>A coded field whose text did not read is an invalid value, never an exception.</summary>
+	[Fact]
+	public void A_coded_value_that_did_not_read_is_a_finding()
+	{
+		var order = FixParser.ParseMessage(Wire("D", Order.Replace("54=1|", "54=XYZ|")));
+
+		Assert.Contains(order.Validate(Fix50Context.Default), one => one.Rule == FixRule.InvalidValue && one.Tag == FixTag.Side);
+	}
+
 	[Fact]
 	public void An_order_is_read_into_its_class_under_the_session_layers_BeginString()
 	{

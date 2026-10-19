@@ -2766,13 +2766,13 @@ partial class FixValidator44
 
 	static void ValidateAdvSide(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('B' or 'S' or 'T' or 'X'))
+		if (!field.IsValid || field.Value is not ('B' or 'S' or 'T' or 'X'))
 			Invalid(check, field);
 	}
 
 	static void ValidateAdvTransType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("C" or "N" or "R"))
+		if (!field.IsValid || field.Value is not ("C" or "N" or "R"))
 			Invalid(check, field);
 	}
 
@@ -2820,7 +2820,7 @@ partial class FixValidator44
 
 	static void ValidateCommType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3' or '4' or '5' or '6'))
 			Invalid(check, field);
 	}
 
@@ -2850,15 +2850,19 @@ partial class FixValidator44
 
 	static void ValidateExecInst(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
-			if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or
-				"C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or "M" or "N" or "O" or "P" or
-				"Q" or "R" or "S" or "U" or "V" or "W" or "X" or "Y" or "Z" or "a" or "b" or "c" or "d" or "e"))
-			{
-				Invalid(check, field);
+		if (!field.IsValid)
+			Invalid(check, field);
+		else
+			foreach (var code in field.Value)
+				if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or
+					"C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or "M" or "N" or "O" or
+					"P" or "Q" or "R" or "S" or "U" or "V" or "W" or "X" or "Y" or "Z" or "a" or "b" or "c" or
+					"d" or "e"))
+				{
+					Invalid(check, field);
 
-				break;
-			}
+					break;
+				}
 	}
 
 	static void ValidateExecRefID(Fix44Context context, FixCheck check, FixField.Text field)
@@ -2869,14 +2873,14 @@ partial class FixValidator44
 
 	static void ValidateHandlInst(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3'))
 			Invalid(check, field);
 	}
 
 	static void ValidateSecurityIDSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or "C" or
-			"D" or "E" or "F" or "G" or "H" or "I" or "J"))
+		if (!field.IsValid || field.Value is not ("1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or
+			"A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J"))
 			Invalid(check, field);
 	}
 
@@ -2888,7 +2892,7 @@ partial class FixValidator44
 
 	static void ValidateIOIQltyInd(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('H' or 'L' or 'M'))
+		if (!field.IsValid || field.Value is not ('H' or 'L' or 'M'))
 			Invalid(check, field);
 	}
 
@@ -2900,19 +2904,19 @@ partial class FixValidator44
 
 	static void ValidateIOIQty(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("L" or "M" or "S"))
+		if (!field.IsValid || field.Value is not ("L" or "M" or "S"))
 			Invalid(check, field);
 	}
 
 	static void ValidateIOITransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('C' or 'N' or 'R'))
+		if (!field.IsValid || field.Value is not ('C' or 'N' or 'R'))
 			Invalid(check, field);
 	}
 
 	static void ValidateLastCapacity(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3' or '4'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3' or '4'))
 			Invalid(check, field);
 	}
 
@@ -2948,13 +2952,13 @@ partial class FixValidator44
 
 	static void ValidateMsgType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "AA" or
-			"AB" or "AC" or "AD" or "AE" or "AF" or "AG" or "AH" or "AI" or "AJ" or "AK" or "AL" or "AM" or "AN" or
-			"AO" or "AP" or "AQ" or "AR" or "AS" or "AT" or "AU" or "AV" or "AW" or "AX" or "AY" or "AZ" or "B" or
-			"BA" or "BB" or "BC" or "BD" or "BE" or "BF" or "BG" or "BH" or "C" or "D" or "E" or "F" or "G" or
-			"H" or "J" or "K" or "L" or "M" or "N" or "P" or "Q" or "R" or "S" or "T" or "V" or "W" or "X" or "Y" or
-			"Z" or "a" or "b" or "c" or "d" or "e" or "f" or "g" or "h" or "i" or "j" or "k" or "l" or "m" or "n" or
-			"o" or "p" or "q" or "r" or "s" or "t" or "u" or "v" or "w" or "x" or "y" or "z"))
+		if (!field.IsValid || field.Value is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or
+			"9" or "A" or "AA" or "AB" or "AC" or "AD" or "AE" or "AF" or "AG" or "AH" or "AI" or "AJ" or "AK" or
+			"AL" or "AM" or "AN" or "AO" or "AP" or "AQ" or "AR" or "AS" or "AT" or "AU" or "AV" or "AW" or "AX" or
+			"AY" or "AZ" or "B" or "BA" or "BB" or "BC" or "BD" or "BE" or "BF" or "BG" or "BH" or "C" or "D" or
+			"E" or "F" or "G" or "H" or "J" or "K" or "L" or "M" or "N" or "P" or "Q" or "R" or "S" or "T" or "V" or
+			"W" or "X" or "Y" or "Z" or "a" or "b" or "c" or "d" or "e" or "f" or "g" or "h" or "i" or "j" or "k" or
+			"l" or "m" or "n" or "o" or "p" or "q" or "r" or "s" or "t" or "u" or "v" or "w" or "x" or "y" or "z"))
 			Invalid(check, field);
 	}
 
@@ -2978,15 +2982,15 @@ partial class FixValidator44
 
 	static void ValidateOrdStatus(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or
-			'D' or 'E'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2' or '3' or '4' or '6' or '7' or '8' or '9' or
+			'A' or 'B' or 'C' or 'D' or 'E'))
 			Invalid(check, field);
 	}
 
 	static void ValidateOrdType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3' or '4' or '6' or '7' or '8' or '9' or 'D' or 'E' or 'G' or 'I' or
-			'J' or 'K' or 'L' or 'M' or 'P'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3' or '4' or '6' or '7' or '8' or '9' or 'D' or
+			'E' or 'G' or 'I' or 'J' or 'K' or 'L' or 'M' or 'P'))
 			Invalid(check, field);
 	}
 
@@ -3052,8 +3056,8 @@ partial class FixValidator44
 
 	static void ValidateSide(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or
-			'D' or 'E' or 'F' or 'G'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or
+			'A' or 'B' or 'C' or 'D' or 'E' or 'F' or 'G'))
 			Invalid(check, field);
 	}
 
@@ -3083,7 +3087,7 @@ partial class FixValidator44
 
 	static void ValidateTimeInForce(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7'))
 			Invalid(check, field);
 	}
 
@@ -3095,7 +3099,7 @@ partial class FixValidator44
 
 	static void ValidateUrgency(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
@@ -3107,7 +3111,7 @@ partial class FixValidator44
 
 	static void ValidateSettlType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9'))
 			Invalid(check, field);
 	}
 
@@ -3155,7 +3159,7 @@ partial class FixValidator44
 
 	static void ValidateAllocTransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
@@ -3185,7 +3189,7 @@ partial class FixValidator44
 
 	static void ValidatePositionEffect(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('C' or 'F' or 'O' or 'R'))
+		if (!field.IsValid || field.Value is not ('C' or 'F' or 'O' or 'R'))
 			Invalid(check, field);
 	}
 
@@ -3209,7 +3213,7 @@ partial class FixValidator44
 
 	static void ValidateProcessCode(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6'))
 			Invalid(check, field);
 	}
 
@@ -3279,7 +3283,7 @@ partial class FixValidator44
 
 	static void ValidateEmailType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
@@ -3340,8 +3344,8 @@ partial class FixValidator44
 
 	static void ValidateIOIQualifier(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('A' or 'B' or 'C' or 'D' or 'I' or 'L' or 'M' or 'O' or 'P' or 'Q' or 'R' or 'S' or
-			'T' or 'V' or 'W' or 'X' or 'Y' or 'Z'))
+		if (!field.IsValid || field.Value is not ('A' or 'B' or 'C' or 'D' or 'I' or 'L' or 'M' or 'O' or 'P' or
+			'Q' or 'R' or 'S' or 'T' or 'V' or 'W' or 'X' or 'Y' or 'Z'))
 			Invalid(check, field);
 	}
 
@@ -3461,7 +3465,7 @@ partial class FixValidator44
 
 	static void ValidateDKReason(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('A' or 'B' or 'C' or 'D' or 'E' or 'F' or 'Z'))
+		if (!field.IsValid || field.Value is not ('A' or 'B' or 'C' or 'D' or 'E' or 'F' or 'Z'))
 			Invalid(check, field);
 	}
 
@@ -3533,7 +3537,8 @@ partial class FixValidator44
 
 	static void ValidateMiscFeeType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("1" or "10" or "11" or "12" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9"))
+		if (!field.IsValid || field.Value is not ("1" or "10" or "11" or "12" or "2" or "3" or "4" or "5" or "6" or
+			"7" or "8" or "9"))
 			Invalid(check, field);
 	}
 
@@ -3599,8 +3604,8 @@ partial class FixValidator44
 
 	static void ValidateExecType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or 'D' or
-			'E' or 'F' or 'G' or 'H' or 'I'))
+		if (!field.IsValid || field.Value is not ('0' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or
+			'B' or 'C' or 'D' or 'E' or 'F' or 'G' or 'H' or 'I'))
 			Invalid(check, field);
 	}
 
@@ -3636,7 +3641,7 @@ partial class FixValidator44
 
 	static void ValidateSettlCurrFxRateCalc(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('D' or 'M'))
+		if (!field.IsValid || field.Value is not ('D' or 'M'))
 			Invalid(check, field);
 	}
 
@@ -3660,7 +3665,7 @@ partial class FixValidator44
 
 	static void ValidateSettlInstMode(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '4' or '5'))
+		if (!field.IsValid || field.Value is not ('1' or '4' or '5'))
 			Invalid(check, field);
 	}
 
@@ -3678,7 +3683,7 @@ partial class FixValidator44
 
 	static void ValidateSettlInstTransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('C' or 'N' or 'R' or 'T'))
+		if (!field.IsValid || field.Value is not ('C' or 'N' or 'R' or 'T'))
 			Invalid(check, field);
 	}
 
@@ -3690,22 +3695,22 @@ partial class FixValidator44
 
 	static void ValidateSettlInstSource(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3'))
 			Invalid(check, field);
 	}
 
 	static void ValidateSecurityType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("ABS" or "AMENDED" or "AN" or "BA" or "BN" or "BOX" or "BRADY" or "BRIDGE" or
-			"BUYSELL" or "CB" or "CD" or "CL" or "CMBS" or "CMO" or "COFO" or "COFP" or "CORP" or "CP" or "CPP" or
-			"CS" or "DEFLTED" or "DINP" or "DN" or "DUAL" or "EUCD" or "EUCORP" or "EUCP" or "EUSOV" or "EUSUPRA" or
-			"FAC" or "FADN" or "FOR" or "FORWARD" or "FUT" or "GO" or "IET" or "LOFC" or "LQN" or "MATURED" or
-			"MBS" or "MF" or "MIO" or "MLEG" or "MPO" or "MPP" or "MPT" or "MT" or "MTN" or "NONE" or "ONITE" or
-			"OPT" or "PEF" or "PFAND" or "PN" or "PS" or "PZFJ" or "RAN" or "REPLACD" or "REPO" or "RETIRED" or
-			"REV" or "RVLV" or "RVLVTRM" or "SECLOAN" or "SECPLEDGE" or "SPCLA" or "SPCLO" or "SPCLT" or "STN" or
-			"STRUCT" or "SUPRA" or "SWING" or "TAN" or "TAXA" or "TBA" or "TBILL" or "TBOND" or "TCAL" or "TD" or
-			"TECP" or "TERM" or "TINT" or "TIPS" or "TNOTE" or "TPRN" or "TRAN" or "UST" or "USTB" or "VRDN" or
-			"WAR" or "WITHDRN" or "XCN" or "XLINKD" or "YANK" or "YCD"))
+		if (!field.IsValid || field.Value is not ("ABS" or "AMENDED" or "AN" or "BA" or "BN" or "BOX" or "BRADY" or
+			"BRIDGE" or "BUYSELL" or "CB" or "CD" or "CL" or "CMBS" or "CMO" or "COFO" or "COFP" or "CORP" or
+			"CP" or "CPP" or "CS" or "DEFLTED" or "DINP" or "DN" or "DUAL" or "EUCD" or "EUCORP" or "EUCP" or
+			"EUSOV" or "EUSUPRA" or "FAC" or "FADN" or "FOR" or "FORWARD" or "FUT" or "GO" or "IET" or "LOFC" or
+			"LQN" or "MATURED" or "MBS" or "MF" or "MIO" or "MLEG" or "MPO" or "MPP" or "MPT" or "MT" or "MTN" or
+			"NONE" or "ONITE" or "OPT" or "PEF" or "PFAND" or "PN" or "PS" or "PZFJ" or "RAN" or "REPLACD" or
+			"REPO" or "RETIRED" or "REV" or "RVLV" or "RVLVTRM" or "SECLOAN" or "SECPLEDGE" or "SPCLA" or "SPCLO" or
+			"SPCLT" or "STN" or "STRUCT" or "SUPRA" or "SWING" or "TAN" or "TAXA" or "TBA" or "TBILL" or "TBOND" or
+			"TCAL" or "TD" or "TECP" or "TERM" or "TINT" or "TIPS" or "TNOTE" or "TPRN" or "TRAN" or "UST" or
+			"USTB" or "VRDN" or "WAR" or "WITHDRN" or "XCN" or "XLINKD" or "YANK" or "YCD"))
 			Invalid(check, field);
 	}
 
@@ -4007,13 +4012,13 @@ partial class FixValidator44
 
 	static void ValidateStipulationType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("AMT" or "AUTOREINV" or "BANKQUAL" or "BGNCON" or "COUPON" or "CURRENCY" or
-			"CUSTOMDATE" or "GEOG" or "HAIRCUT" or "INSURED" or "ISSUE" or "ISSUER" or "ISSUESIZE" or "LOOKBACK" or
-			"LOT" or "LOTVAR" or "MAT" or "MATURITY" or "MAXSUBS" or "MINDNOM" or "MININCR" or "MINQTY" or
-			"PAYFREQ" or "PIECES" or "PMAX" or "PPL" or "PPM" or "PPT" or "PRICE" or "PRICEFREQ" or "PROD" or
-			"PROTECT" or "PURPOSE" or "PXSOURCE" or "RATING" or "REDEMPTION" or "RESTRICTED" or "SECTOR" or
-			"SECTYPE" or "STRUCT" or "SUBSFREQ" or "SUBSLEFT" or "TEXT" or "TRDVAR" or "WAC" or "WAL" or "WALA" or
-			"WAM" or "WHOLE" or "YIELD"))
+		if (!field.IsValid || field.Value is not ("AMT" or "AUTOREINV" or "BANKQUAL" or "BGNCON" or "COUPON" or
+			"CURRENCY" or "CUSTOMDATE" or "GEOG" or "HAIRCUT" or "INSURED" or "ISSUE" or "ISSUER" or "ISSUESIZE" or
+			"LOOKBACK" or "LOT" or "LOTVAR" or "MAT" or "MATURITY" or "MAXSUBS" or "MINDNOM" or "MININCR" or
+			"MINQTY" or "PAYFREQ" or "PIECES" or "PMAX" or "PPL" or "PPM" or "PPT" or "PRICE" or "PRICEFREQ" or
+			"PROD" or "PROTECT" or "PURPOSE" or "PXSOURCE" or "RATING" or "REDEMPTION" or "RESTRICTED" or
+			"SECTOR" or "SECTYPE" or "STRUCT" or "SUBSFREQ" or "SUBSLEFT" or "TEXT" or "TRDVAR" or "WAC" or "WAL" or
+			"WALA" or "WAM" or "WHOLE" or "YIELD"))
 			Invalid(check, field);
 	}
 
@@ -4025,8 +4030,8 @@ partial class FixValidator44
 
 	static void ValidateYieldType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("AFTERTAX" or "ANNUAL" or "ATISSUE" or "AVGMATURITY" or "BOOK" or "CALL" or
-			"CHANGE" or "CLOSE" or "COMPOUND" or "CURRENT" or "GOVTEQUIV" or "GROSS" or "INFLATION" or
+		if (!field.IsValid || field.Value is not ("AFTERTAX" or "ANNUAL" or "ATISSUE" or "AVGMATURITY" or "BOOK" or
+			"CALL" or "CHANGE" or "CLOSE" or "COMPOUND" or "CURRENT" or "GOVTEQUIV" or "GROSS" or "INFLATION" or
 			"INVERSEFLOATER" or "LASTCLOSE" or "LASTMONTH" or "LASTQUARTER" or "LASTYEAR" or "LONGAVGLIFE" or
 			"MARK" or "MATURITY" or "NEXTREFUND" or "OPENAVG" or "PREVCLOSE" or "PROCEEDS" or "PUT" or
 			"SEMIANNUAL" or "SHORTAVGLIFE" or "SIMPLE" or "TAXEQUIV" or "TENDER" or "TRUE" or "VALUE1/32" or "WORST"))
@@ -4191,7 +4196,7 @@ partial class FixValidator44
 
 	static void ValidateSubscriptionRequestType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
@@ -4229,8 +4234,8 @@ partial class FixValidator44
 
 	static void ValidateMDEntryType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or
-			'C'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or
+			'9' or 'A' or 'B' or 'C'))
 			Invalid(check, field);
 	}
 
@@ -4260,7 +4265,7 @@ partial class FixValidator44
 
 	static void ValidateTickDirection(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2' or '3'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2' or '3'))
 			Invalid(check, field);
 	}
 
@@ -4272,25 +4277,31 @@ partial class FixValidator44
 
 	static void ValidateQuoteCondition(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
-			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I"))
-			{
-				Invalid(check, field);
+		if (!field.IsValid)
+			Invalid(check, field);
+		else
+			foreach (var code in field.Value)
+				if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I"))
+				{
+					Invalid(check, field);
 
-				break;
-			}
+					break;
+				}
 	}
 
 	static void ValidateTradeCondition(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
-			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or
-				"M" or "N" or "P" or "Q" or "R"))
-			{
-				Invalid(check, field);
+		if (!field.IsValid)
+			Invalid(check, field);
+		else
+			foreach (var code in field.Value)
+				if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or
+					"M" or "N" or "P" or "Q" or "R"))
+				{
+					Invalid(check, field);
 
-				break;
-			}
+					break;
+				}
 	}
 
 	static void ValidateMDEntryID(Fix44Context context, FixCheck check, FixField.Text field)
@@ -4301,7 +4312,7 @@ partial class FixValidator44
 
 	static void ValidateMDUpdateAction(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
@@ -4313,8 +4324,8 @@ partial class FixValidator44
 
 	static void ValidateMDReqRejReason(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or
-			'C'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or
+			'9' or 'A' or 'B' or 'C'))
 			Invalid(check, field);
 	}
 
@@ -4338,19 +4349,22 @@ partial class FixValidator44
 
 	static void ValidateDeleteReason(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1'))
+		if (!field.IsValid || field.Value is not ('0' or '1'))
 			Invalid(check, field);
 	}
 
 	static void ValidateOpenCloseSettlFlag(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
-			if (code is not ("0" or "1" or "2" or "3" or "4" or "5"))
-			{
-				Invalid(check, field);
+		if (!field.IsValid)
+			Invalid(check, field);
+		else
+			foreach (var code in field.Value)
+				if (code is not ("0" or "1" or "2" or "3" or "4" or "5"))
+				{
+					Invalid(check, field);
 
-				break;
-			}
+					break;
+				}
 	}
 
 	static void ValidateSellerDays(Fix44Context context, FixCheck check, FixField.Integer field)
@@ -4379,24 +4393,30 @@ partial class FixValidator44
 
 	static void ValidateFinancialStatus(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
-			if (code is not ("1" or "2"))
-			{
-				Invalid(check, field);
+		if (!field.IsValid)
+			Invalid(check, field);
+		else
+			foreach (var code in field.Value)
+				if (code is not ("1" or "2"))
+				{
+					Invalid(check, field);
 
-				break;
-			}
+					break;
+				}
 	}
 
 	static void ValidateCorporateAction(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
-			if (code is not ("A" or "B" or "C" or "D" or "E"))
-			{
-				Invalid(check, field);
+		if (!field.IsValid)
+			Invalid(check, field);
+		else
+			foreach (var code in field.Value)
+				if (code is not ("A" or "B" or "C" or "D" or "E"))
+				{
+					Invalid(check, field);
 
-				break;
-			}
+					break;
+				}
 	}
 
 	static void ValidateDefBidSize(Fix44Context context, FixCheck check, FixField.Decimal field)
@@ -4611,7 +4631,7 @@ partial class FixValidator44
 
 	static void ValidateHaltReason(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('D' or 'E' or 'I' or 'M' or 'P' or 'X'))
+		if (!field.IsValid || field.Value is not ('D' or 'E' or 'I' or 'M' or 'P' or 'X'))
 			Invalid(check, field);
 	}
 
@@ -4739,7 +4759,7 @@ partial class FixValidator44
 
 	static void ValidateMessageEncoding(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("EUC-JP" or "ISO-2022-JP" or "Shift_JIS" or "UTF-8"))
+		if (!field.IsValid || field.Value is not ("EUC-JP" or "ISO-2022-JP" or "Shift_JIS" or "UTF-8"))
 			Invalid(check, field);
 	}
 
@@ -4898,7 +4918,7 @@ partial class FixValidator44
 
 	static void ValidateBidRequestTransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('C' or 'N'))
+		if (!field.IsValid || field.Value is not ('C' or 'N'))
 			Invalid(check, field);
 	}
 
@@ -4968,7 +4988,7 @@ partial class FixValidator44
 
 	static void ValidateMsgDirection(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('R' or 'S'))
+		if (!field.IsValid || field.Value is not ('R' or 'S'))
 			Invalid(check, field);
 	}
 
@@ -4986,7 +5006,7 @@ partial class FixValidator44
 
 	static void ValidateDiscretionInst(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6'))
 			Invalid(check, field);
 	}
 
@@ -5178,14 +5198,14 @@ partial class FixValidator44
 
 	static void ValidateBidTradeType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('A' or 'G' or 'J' or 'R'))
+		if (!field.IsValid || field.Value is not ('A' or 'G' or 'J' or 'R'))
 			Invalid(check, field);
 	}
 
 	static void ValidateBasisPxType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or 'D' or
-			'Z'))
+		if (!field.IsValid || field.Value is not ('2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or
+			'B' or 'C' or 'D' or 'Z'))
 			Invalid(check, field);
 	}
 
@@ -5279,13 +5299,13 @@ partial class FixValidator44
 
 	static void ValidateListExecInstType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3' or '4' or '5'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3' or '4' or '5'))
 			Invalid(check, field);
 	}
 
 	static void ValidateCxlRejResponseTo(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2'))
+		if (!field.IsValid || field.Value is not ('1' or '2'))
 			Invalid(check, field);
 	}
 
@@ -5321,7 +5341,7 @@ partial class FixValidator44
 
 	static void ValidateMultiLegReportingType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3'))
 			Invalid(check, field);
 	}
 
@@ -5351,8 +5371,8 @@ partial class FixValidator44
 
 	static void ValidatePartyIDSource(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or
-			'D' or 'E' or 'F' or 'G' or 'H' or 'I'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or
+			'A' or 'B' or 'C' or 'D' or 'E' or 'F' or 'G' or 'H' or 'I'))
 			Invalid(check, field);
 	}
 
@@ -5466,7 +5486,7 @@ partial class FixValidator44
 
 	static void ValidateRoundingDirection(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
@@ -5540,13 +5560,13 @@ partial class FixValidator44
 
 	static void ValidateCancellationRights(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('M' or 'N' or 'O' or 'Y'))
+		if (!field.IsValid || field.Value is not ('M' or 'N' or 'O' or 'Y'))
 			Invalid(check, field);
 	}
 
 	static void ValidateMoneyLaunderingStatus(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3' or 'N' or 'Y'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3' or 'N' or 'Y'))
 			Invalid(check, field);
 	}
 
@@ -5564,7 +5584,7 @@ partial class FixValidator44
 
 	static void ValidateExecPriceType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('B' or 'C' or 'D' or 'E' or 'O' or 'P' or 'Q' or 'S'))
+		if (!field.IsValid || field.Value is not ('B' or 'C' or 'D' or 'E' or 'O' or 'P' or 'Q' or 'S'))
 			Invalid(check, field);
 	}
 
@@ -5647,7 +5667,7 @@ partial class FixValidator44
 
 	static void ValidateFundRenewWaiv(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('N' or 'Y'))
+		if (!field.IsValid || field.Value is not ('N' or 'Y'))
 			Invalid(check, field);
 	}
 
@@ -5701,7 +5721,7 @@ partial class FixValidator44
 
 	static void ValidateRegistStatus(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('A' or 'H' or 'N' or 'R'))
+		if (!field.IsValid || field.Value is not ('A' or 'H' or 'N' or 'R'))
 			Invalid(check, field);
 	}
 
@@ -5752,7 +5772,7 @@ partial class FixValidator44
 
 	static void ValidateRegistTransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
@@ -5770,7 +5790,7 @@ partial class FixValidator44
 
 	static void ValidateOwnershipType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('2' or 'J' or 'T'))
+		if (!field.IsValid || field.Value is not ('2' or 'J' or 'T'))
 			Invalid(check, field);
 	}
 
@@ -5840,36 +5860,39 @@ partial class FixValidator44
 
 	static void ValidateOrderCapacity(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('A' or 'G' or 'I' or 'P' or 'R' or 'W'))
+		if (!field.IsValid || field.Value is not ('A' or 'G' or 'I' or 'P' or 'R' or 'W'))
 			Invalid(check, field);
 	}
 
 	static void ValidateOrderRestrictions(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
-			if (code is not ("1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A"))
-			{
-				Invalid(check, field);
+		if (!field.IsValid)
+			Invalid(check, field);
+		else
+			foreach (var code in field.Value)
+				if (code is not ("1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A"))
+				{
+					Invalid(check, field);
 
-				break;
-			}
+					break;
+				}
 	}
 
 	static void ValidateMassCancelRequestType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7'))
 			Invalid(check, field);
 	}
 
 	static void ValidateMassCancelResponse(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7'))
 			Invalid(check, field);
 	}
 
 	static void ValidateMassCancelRejectReason(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "99"))
+		if (!field.IsValid || field.Value is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "99"))
 			Invalid(check, field);
 	}
 
@@ -5943,7 +5966,7 @@ partial class FixValidator44
 
 	static void ValidateCashMargin(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('1' or '2' or '3'))
+		if (!field.IsValid || field.Value is not ('1' or '2' or '3'))
 			Invalid(check, field);
 	}
 
@@ -5955,13 +5978,16 @@ partial class FixValidator44
 
 	static void ValidateScope(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
-		foreach (var code in field.Value)
-			if (code is not ("1" or "2" or "3"))
-			{
-				Invalid(check, field);
+		if (!field.IsValid)
+			Invalid(check, field);
+		else
+			foreach (var code in field.Value)
+				if (code is not ("1" or "2" or "3"))
+				{
+					Invalid(check, field);
 
-				break;
-			}
+					break;
+				}
 	}
 
 	static void ValidateMDImplicitDelete(Fix44Context context, FixCheck check, FixField.Boolean field)
@@ -6138,14 +6164,14 @@ partial class FixValidator44
 
 	static void ValidateMatchStatus(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
 	static void ValidateMatchType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("A1" or "A2" or "A3" or "A4" or "A5" or "AQ" or "M1" or "M2" or "M3" or "M4" or
-			"M5" or "M6" or "MT" or "S1" or "S2" or "S3" or "S4" or "S5"))
+		if (!field.IsValid || field.Value is not ("A1" or "A2" or "A3" or "A4" or "A5" or "AQ" or "M1" or "M2" or
+			"M3" or "M4" or "M5" or "M6" or "MT" or "S1" or "S2" or "S3" or "S4" or "S5"))
 			Invalid(check, field);
 	}
 
@@ -6243,19 +6269,19 @@ partial class FixValidator44
 
 	static void ValidateDayBookingInst(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
 	static void ValidateBookingUnit(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1' or '2'))
+		if (!field.IsValid || field.Value is not ('0' or '1' or '2'))
 			Invalid(check, field);
 	}
 
 	static void ValidatePreallocMethod(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('0' or '1'))
+		if (!field.IsValid || field.Value is not ('0' or '1'))
 			Invalid(check, field);
 	}
 
@@ -6521,8 +6547,8 @@ partial class FixValidator44
 
 	static void ValidateClearingFeeIndicator(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("1" or "2" or "3" or "4" or "5" or "9" or "B" or "C" or "E" or "F" or "H" or "I" or
-			"L" or "M"))
+		if (!field.IsValid || field.Value is not ("1" or "2" or "3" or "4" or "5" or "9" or "B" or "C" or "E" or
+			"F" or "H" or "I" or "L" or "M"))
 			Invalid(check, field);
 	}
 
@@ -6936,8 +6962,8 @@ partial class FixValidator44
 
 	static void ValidatePosType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("ALC" or "AS" or "ASF" or "DLV" or "ETR" or "EX" or "FIN" or "IAS" or "IES" or
-			"PA" or "PIT" or "SOD" or "SPL" or "TA" or "TOT" or "TQ" or "TRF" or "TX" or "XM"))
+		if (!field.IsValid || field.Value is not ("ALC" or "AS" or "ASF" or "DLV" or "ETR" or "EX" or "FIN" or
+			"IAS" or "IES" or "PA" or "PIT" or "SOD" or "SPL" or "TA" or "TOT" or "TQ" or "TRF" or "TX" or "XM"))
 			Invalid(check, field);
 	}
 
@@ -6963,7 +6989,8 @@ partial class FixValidator44
 
 	static void ValidatePosAmtType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("CASH" or "CRES" or "FMTM" or "IMTM" or "PREM" or "SMTM" or "TVAR" or "VADJ"))
+		if (!field.IsValid || field.Value is not ("CASH" or "CRES" or "FMTM" or "IMTM" or "PREM" or "SMTM" or
+			"TVAR" or "VADJ"))
 			Invalid(check, field);
 	}
 
@@ -7021,7 +7048,7 @@ partial class FixValidator44
 
 	static void ValidateSettlSessID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
-		if (field.Value is not ("ETH" or "ITD" or "RTH"))
+		if (!field.IsValid || field.Value is not ("ETH" or "ITD" or "RTH"))
 			Invalid(check, field);
 	}
 
@@ -7205,7 +7232,7 @@ partial class FixValidator44
 
 	static void ValidateAssignmentMethod(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('P' or 'R'))
+		if (!field.IsValid || field.Value is not ('P' or 'R'))
 			Invalid(check, field);
 	}
 
@@ -7223,7 +7250,7 @@ partial class FixValidator44
 
 	static void ValidateExerciseMethod(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('A' or 'M'))
+		if (!field.IsValid || field.Value is not ('A' or 'M'))
 			Invalid(check, field);
 	}
 
@@ -7481,7 +7508,7 @@ partial class FixValidator44
 
 	static void ValidateDlvyInstType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
-		if (field.Value is not ('C' or 'S'))
+		if (!field.IsValid || field.Value is not ('C' or 'S'))
 			Invalid(check, field);
 	}
 

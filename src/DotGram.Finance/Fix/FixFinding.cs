@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text;
 
@@ -82,9 +83,12 @@ public readonly record struct FixGroupStep(int CounterTag, int Index)
 /// </remarks>
 public sealed class FixFinding
 {
-	readonly FixGroupStep[]? _path;
+	// A read-only view of the steps, never the array itself, so that a caller cannot cast the path back to
+	// an array and move a finding, or the findings of one entry, which share it. Set once more only by the
+	// check, before the finding is handed to anyone: a finding of the whole message found inside an entry.
+	ReadOnlyCollection<FixGroupStep>? _path;
 
-	FixFinding(FixRule rule, int tag, int position, FixField? field, FixGroupStep[]? path)
+	FixFinding(FixRule rule, int tag, int position, FixField? field, ReadOnlyCollection<FixGroupStep>? path)
 	{
 		Rule     = rule;
 		Tag      = tag;
@@ -106,7 +110,7 @@ public sealed class FixFinding
 	public FixField? Field    { get; }
 
 	/// <summary>The groups and entries the finding is in, outermost first; empty outside every group.</summary>
-	public IReadOnlyList<FixGroupStep> Path => _path ?? Array.Empty<FixGroupStep>();
+	public IReadOnlyList<FixGroupStep> Path => (IReadOnlyList<FixGroupStep>?)_path ?? Array.Empty<FixGroupStep>();
 
 	/// <summary>A required field that is absent: from the message, or from the entry the path names.</summary>
 	/// <param name="tag">The field's tag.</param>
@@ -136,11 +140,22 @@ public sealed class FixFinding
 		return new FixFinding(rule, tag, -1, null, Copy(path));
 	}
 
-	// The package's own: a path it made for this finding, or shares between findings of one entry, and
-	// does not change.
+	// The package's own: a path it made for this finding and does not change.
 	internal static FixFinding At(FixRule rule, int tag, int position, FixField? field, FixGroupStep[]? path)
 	{
+		return new FixFinding(rule, tag, position, field, path is null ? null : new ReadOnlyCollection<FixGroupStep>(path));
+	}
+
+	// The check's: a path it shares between the findings of one entry.
+	internal static FixFinding Shared(FixRule rule, int tag, int position, FixField? field, ReadOnlyCollection<FixGroupStep>? path)
+	{
 		return new FixFinding(rule, tag, position, field, path);
+	}
+
+	// The check's, for a finding of the whole message about a field it then finds inside an entry.
+	internal void Within(ReadOnlyCollection<FixGroupStep> path)
+	{
+		_path = path;
 	}
 
 	/// <summary>The finding as a line: where in the groups, which tag, where in the input, and what is wrong.</summary>
@@ -168,11 +183,11 @@ public sealed class FixFinding
 	}
 
 	// A caller's path is copied, so that what it does with its array afterwards does not move the finding.
-	static FixGroupStep[]? Copy(FixGroupStep[]? path)
+	static ReadOnlyCollection<FixGroupStep>? Copy(FixGroupStep[]? path)
 	{
 		if (path is null || path.Length == 0)
 			return null;
 
-		return (FixGroupStep[])path.Clone();
+		return new ReadOnlyCollection<FixGroupStep>((FixGroupStep[])path.Clone());
 	}
 }

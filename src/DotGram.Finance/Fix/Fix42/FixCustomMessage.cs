@@ -51,19 +51,21 @@ public abstract class FixCustomMessage : FixMessage
 	{
 	}
 
-	// The thread the reader hands the fields to Place on, while it does, or 0: the one time and the one
-	// thread a finding may be added to the message. What reading found is not changed once the message has
-	// been read, and a Place that hands the message to another thread does not give that thread the right.
-	int _reader;
+	// The thread inside a call of Place now, or 0: the one time and the one thread a finding may be added to
+	// the message. What reading found is not changed once the message has been read; a Place that hands the
+	// message to another thread does not give that thread the right; an OnValidate that runs inside a Place,
+	// through Validate, has none either; and a Place that reads another message into this one finds its own
+	// right restored when the inner reading ends.
+	int _placing;
 
-	/// <summary>Adds one finding of the reading to this message, from <see cref="Place"/> while it is read, on the thread that reads it.</summary>
+	/// <summary>Adds one finding of the reading to this message: from <see cref="Place"/>, on the thread that reads it, and nowhere else.</summary>
 	/// <param name="finding">What is wrong.</param>
-	/// <exception cref="InvalidOperationException">Called at any other time: what reading found is not changed after the message has been read, and a finding of the validation goes to the collection <see cref="OnValidate"/> is given.</exception>
+	/// <exception cref="InvalidOperationException">Called at any other time, from another thread, or from <see cref="OnValidate"/>: what reading found is not changed after the message has been read, and a finding of the validation goes to the collection <see cref="OnValidate"/> is given.</exception>
 	protected new void AddFinding(FixFinding finding)
 	{
 		if (finding == null) throw new ArgumentNullException(nameof(finding));
 
-		if (_reader != Environment.CurrentManagedThreadId)
+		if (_placing != Environment.CurrentManagedThreadId)
 			throw new InvalidOperationException("A finding is added to a message only from Place, while it is read; OnValidate adds its own to the collection it is given.");
 
 		base.AddFinding(finding);
@@ -71,7 +73,23 @@ public abstract class FixCustomMessage : FixMessage
 
 	private protected sealed override void Check(Fix42Context context, FixCheck check)
 	{
-		OnValidate(context, check.Findings);
+		// Validated from inside a Place on this thread: the right to add is the Place's, not OnValidate's. Only
+		// this thread's own right is set aside; another thread's Place is left as it is.
+		var thread = Environment.CurrentManagedThreadId;
+		var placed = _placing == thread;
+
+		if (placed)
+			_placing = 0;
+
+		try
+		{
+			OnValidate(context, check.Findings);
+		}
+		finally
+		{
+			if (placed)
+				_placing = thread;
+		}
 	}
 
 	// Called by the reader once the factory has built the message: the type and the fields it was read with.
@@ -80,19 +98,27 @@ public abstract class FixCustomMessage : FixMessage
 		MessageType = type;
 		Fields      = fields;
 
-		_reader = Environment.CurrentManagedThreadId;
+		foreach (var field in fields)
+			if (!SetStandardField(field) && !Placed(field))
+				OutOfScope(field);
+
+		return this;
+	}
+
+	// One call of Place, with the right to add a finding for its length, and whatever was before restored after.
+	bool Placed(FixField field)
+	{
+		var outer = _placing;
+
+		_placing = Environment.CurrentManagedThreadId;
 
 		try
 		{
-			foreach (var field in fields)
-				if (!SetStandardField(field) && !Place(field))
-					OutOfScope(field);
+			return Place(field);
 		}
 		finally
 		{
-			_reader = 0;
+			_placing = outer;
 		}
-
-		return this;
 	}
 }

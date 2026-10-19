@@ -229,7 +229,7 @@ public interface IInstrument
 	FixField.Date? InterestAccrualDate { get; }
 
 	/// <summary>One entry of the group counted by NoSecurityAltID, tag 454.</summary>
-	public sealed class NoSecurityAltIDGroup
+	public sealed class NoSecurityAltIDGroup : IFixEntry
 	{
 		internal NoSecurityAltIDGroup(FixField.Text delimiter)
 		{
@@ -241,10 +241,15 @@ public interface IInstrument
 
 		/// <summary>The FIX SecurityAltIDSource, tag 456, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? SecurityAltIDSource { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == SecurityAltID || field == SecurityAltIDSource;
+		}
 	}
 
 	/// <summary>One entry of the group counted by NoEvents, tag 864.</summary>
-	public sealed class NoEventsGroup
+	public sealed class NoEventsGroup : IFixEntry
 	{
 		internal NoEventsGroup(FixField.Integer delimiter)
 		{
@@ -262,6 +267,11 @@ public interface IInstrument
 
 		/// <summary>The FIX EventText, tag 868, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? EventText { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == EventType || field == EventDate || field == EventPx || field == EventText;
+		}
 	}
 }
 
@@ -282,7 +292,7 @@ public interface IInstrumentExtension
 	List<IInstrumentExtension.NoInstrAttribGroup>? NoInstrAttribGroups { get; }
 
 	/// <summary>One entry of the group counted by NoInstrAttrib, tag 870.</summary>
-	public sealed class NoInstrAttribGroup
+	public sealed class NoInstrAttribGroup : IFixEntry
 	{
 		internal NoInstrAttribGroup(FixField.Integer delimiter)
 		{
@@ -294,6 +304,11 @@ public interface IInstrumentExtension
 
 		/// <summary>The FIX InstrAttribValue, tag 872, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? InstrAttribValue { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == InstrAttribType || field == InstrAttribValue;
+		}
 	}
 }
 
@@ -431,7 +446,7 @@ public interface IInstrumentLeg
 	FixField.Date? LegInterestAccrualDate { get; }
 
 	/// <summary>One entry of the group counted by NoLegSecurityAltID, tag 604.</summary>
-	public sealed class NoLegSecurityAltIDGroup
+	public sealed class NoLegSecurityAltIDGroup : IFixEntry
 	{
 		internal NoLegSecurityAltIDGroup(FixField.Text delimiter)
 		{
@@ -443,6 +458,11 @@ public interface IInstrumentLeg
 
 		/// <summary>The FIX LegSecurityAltIDSource, tag 606, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? LegSecurityAltIDSource { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == LegSecurityAltID || field == LegSecurityAltIDSource;
+		}
 	}
 }
 
@@ -477,7 +497,7 @@ public interface ILegStipulations
 	List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoLegStipulations, tag 683.</summary>
-	public sealed class NoLegStipulationsGroup
+	public sealed class NoLegStipulationsGroup : IFixEntry
 	{
 		internal NoLegStipulationsGroup(FixField.Text delimiter)
 		{
@@ -489,6 +509,11 @@ public interface ILegStipulations
 
 		/// <summary>The FIX LegStipulationValue, tag 689, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? LegStipulationValue { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == LegStipulationType || field == LegStipulationValue;
+		}
 	}
 }
 
@@ -503,7 +528,7 @@ public interface INestedParties
 	List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoNestedPartyIDs, tag 539.</summary>
-	public sealed class NoNestedPartyIDsGroup
+	public sealed class NoNestedPartyIDsGroup : IFixEntry
 	{
 		internal NoNestedPartyIDsGroup(FixField.Text delimiter)
 		{
@@ -527,7 +552,7 @@ public interface INestedParties
 		internal List<NoNestedPartySubIDsGroup>? noNestedPartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoNestedPartySubIDs, tag 804.</summary>
-		public sealed class NoNestedPartySubIDsGroup
+		public sealed class NoNestedPartySubIDsGroup : IFixEntry
 		{
 			internal NoNestedPartySubIDsGroup(FixField.Text delimiter)
 			{
@@ -539,6 +564,17 @@ public interface INestedParties
 
 			/// <summary>The FIX NestedPartySubIDType, tag 805, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? NestedPartySubIDType { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == NestedPartySubID || field == NestedPartySubIDType;
+			}
+		}
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == NestedPartyID || field == NestedPartyIDSource || field == NestedPartyRole ||
+				field == NoNestedPartySubIDs;
 		}
 	}
 }
@@ -554,7 +590,7 @@ public interface INestedParties2
 	List<INestedParties2.NoNested2PartyIDsGroup>? NoNested2PartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoNested2PartyIDs, tag 756.</summary>
-	public sealed class NoNested2PartyIDsGroup
+	public sealed class NoNested2PartyIDsGroup : IFixEntry
 	{
 		internal NoNested2PartyIDsGroup(FixField.Text delimiter)
 		{
@@ -578,7 +614,7 @@ public interface INestedParties2
 		internal List<NoNested2PartySubIDsGroup>? noNested2PartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoNested2PartySubIDs, tag 806.</summary>
-		public sealed class NoNested2PartySubIDsGroup
+		public sealed class NoNested2PartySubIDsGroup : IFixEntry
 		{
 			internal NoNested2PartySubIDsGroup(FixField.Text delimiter)
 			{
@@ -590,6 +626,17 @@ public interface INestedParties2
 
 			/// <summary>The FIX Nested2PartySubIDType, tag 807, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Nested2PartySubIDType { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == Nested2PartySubID || field == Nested2PartySubIDType;
+			}
+		}
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == Nested2PartyID || field == Nested2PartyIDSource || field == Nested2PartyRole ||
+				field == NoNested2PartySubIDs;
 		}
 	}
 }
@@ -605,7 +652,7 @@ public interface INestedParties3
 	List<INestedParties3.NoNested3PartyIDsGroup>? NoNested3PartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoNested3PartyIDs, tag 948.</summary>
-	public sealed class NoNested3PartyIDsGroup
+	public sealed class NoNested3PartyIDsGroup : IFixEntry
 	{
 		internal NoNested3PartyIDsGroup(FixField.Text delimiter)
 		{
@@ -629,7 +676,7 @@ public interface INestedParties3
 		internal List<NoNested3PartySubIDsGroup>? noNested3PartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoNested3PartySubIDs, tag 952.</summary>
-		public sealed class NoNested3PartySubIDsGroup
+		public sealed class NoNested3PartySubIDsGroup : IFixEntry
 		{
 			internal NoNested3PartySubIDsGroup(FixField.Text delimiter)
 			{
@@ -641,6 +688,17 @@ public interface INestedParties3
 
 			/// <summary>The FIX Nested3PartySubIDType, tag 954, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Nested3PartySubIDType { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == Nested3PartySubID || field == Nested3PartySubIDType;
+			}
+		}
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == Nested3PartyID || field == Nested3PartyIDSource || field == Nested3PartyRole ||
+				field == NoNested3PartySubIDs;
 		}
 	}
 }
@@ -676,7 +734,7 @@ public interface IParties
 	List<IParties.NoPartyIDsGroup>? NoPartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoPartyIDs, tag 453.</summary>
-	public sealed class NoPartyIDsGroup
+	public sealed class NoPartyIDsGroup : IFixEntry
 	{
 		internal NoPartyIDsGroup(FixField.Text delimiter)
 		{
@@ -700,7 +758,7 @@ public interface IParties
 		internal List<NoPartySubIDsGroup>? noPartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoPartySubIDs, tag 802.</summary>
-		public sealed class NoPartySubIDsGroup
+		public sealed class NoPartySubIDsGroup : IFixEntry
 		{
 			internal NoPartySubIDsGroup(FixField.Text delimiter)
 			{
@@ -712,6 +770,16 @@ public interface IParties
 
 			/// <summary>The FIX PartySubIDType, tag 803, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? PartySubIDType { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == PartySubID || field == PartySubIDType;
+			}
+		}
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == PartyID || field == PartyIDSource || field == PartyRole || field == NoPartySubIDs;
 		}
 	}
 }
@@ -750,7 +818,7 @@ public interface IPositionAmountData
 	List<IPositionAmountData.NoPosAmtGroup>? NoPosAmtGroups { get; }
 
 	/// <summary>One entry of the group counted by NoPosAmt, tag 753.</summary>
-	public sealed class NoPosAmtGroup
+	public sealed class NoPosAmtGroup : IFixEntry
 	{
 		internal NoPosAmtGroup(FixField.Text delimiter)
 		{
@@ -762,6 +830,11 @@ public interface IPositionAmountData
 
 		/// <summary>The FIX PosAmt, tag 708, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public FixField.Decimal? PosAmt { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == PosAmtType || field == PosAmt;
+		}
 	}
 }
 
@@ -776,7 +849,7 @@ public interface IPositionQty
 	List<IPositionQty.NoPositionsGroup>? NoPositionsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoPositions, tag 702.</summary>
-	public sealed class NoPositionsGroup : INestedParties
+	public sealed class NoPositionsGroup : INestedParties, IFixEntry
 	{
 		internal NoPositionsGroup(FixField.Text delimiter)
 		{
@@ -801,6 +874,11 @@ public interface IPositionQty
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups => noNestedPartyIDsGroups;
 		internal List<INestedParties.NoNestedPartyIDsGroup>? noNestedPartyIDsGroups;
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == PosType || field == LongQty || field == ShortQty || field == PosQtyStatus || field == NoNestedPartyIDs;
+		}
 	}
 }
 
@@ -827,7 +905,7 @@ public interface ISettlInstructionsData
 	List<ISettlInstructionsData.NoDlvyInstGroup>? NoDlvyInstGroups { get; }
 
 	/// <summary>One entry of the group counted by NoDlvyInst, tag 85.</summary>
-	public sealed class NoDlvyInstGroup : ISettlParties
+	public sealed class NoDlvyInstGroup : ISettlParties, IFixEntry
 	{
 		internal NoDlvyInstGroup(FixField.Character delimiter)
 		{
@@ -846,6 +924,11 @@ public interface ISettlInstructionsData
 		/// <summary>The entries counted by NoSettlPartyIDs, tag 781; null when the group is absent.</summary>
 		public List<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups => noSettlPartyIDsGroups;
 		internal List<ISettlParties.NoSettlPartyIDsGroup>? noSettlPartyIDsGroups;
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == SettlInstSource || field == DlvyInstType || field == NoSettlPartyIDs;
+		}
 	}
 }
 
@@ -860,7 +943,7 @@ public interface ISettlParties
 	List<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoSettlPartyIDs, tag 781.</summary>
-	public sealed class NoSettlPartyIDsGroup
+	public sealed class NoSettlPartyIDsGroup : IFixEntry
 	{
 		internal NoSettlPartyIDsGroup(FixField.Text delimiter)
 		{
@@ -884,7 +967,7 @@ public interface ISettlParties
 		internal List<NoSettlPartySubIDsGroup>? noSettlPartySubIDsGroups;
 
 		/// <summary>One entry of the group counted by NoSettlPartySubIDs, tag 801.</summary>
-		public sealed class NoSettlPartySubIDsGroup
+		public sealed class NoSettlPartySubIDsGroup : IFixEntry
 		{
 			internal NoSettlPartySubIDsGroup(FixField.Text delimiter)
 			{
@@ -896,6 +979,16 @@ public interface ISettlParties
 
 			/// <summary>The FIX SettlPartySubIDType, tag 786, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? SettlPartySubIDType { get; internal set; }
+
+			bool IFixEntry.Holds(FixField field)
+			{
+				return field == SettlPartySubID || field == SettlPartySubIDType;
+			}
+		}
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == SettlPartyID || field == SettlPartyIDSource || field == SettlPartyRole || field == NoSettlPartySubIDs;
 		}
 	}
 }
@@ -940,7 +1033,7 @@ public interface IStipulations
 	List<IStipulations.NoStipulationsGroup>? NoStipulationsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoStipulations, tag 232.</summary>
-	public sealed class NoStipulationsGroup
+	public sealed class NoStipulationsGroup : IFixEntry
 	{
 		internal NoStipulationsGroup(FixField.Text delimiter)
 		{
@@ -952,6 +1045,11 @@ public interface IStipulations
 
 		/// <summary>The FIX StipulationValue, tag 234, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? StipulationValue { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == StipulationType || field == StipulationValue;
+		}
 	}
 }
 
@@ -966,7 +1064,7 @@ public interface ITrdRegTimestamps
 	List<ITrdRegTimestamps.NoTrdRegTimestampsGroup>? NoTrdRegTimestampsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoTrdRegTimestamps, tag 768.</summary>
-	public sealed class NoTrdRegTimestampsGroup
+	public sealed class NoTrdRegTimestampsGroup : IFixEntry
 	{
 		internal NoTrdRegTimestampsGroup(FixField.Timestamp delimiter)
 		{
@@ -981,6 +1079,11 @@ public interface ITrdRegTimestamps
 
 		/// <summary>The FIX TrdRegTimestampOrigin, tag 771, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TrdRegTimestampOrigin { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == TrdRegTimestamp || field == TrdRegTimestampType || field == TrdRegTimestampOrigin;
+		}
 	}
 }
 
@@ -1130,7 +1233,7 @@ public interface IUnderlyingInstrument : IUnderlyingStipulations
 	FixField.Decimal? UnderlyingEndValue { get; }
 
 	/// <summary>One entry of the group counted by NoUnderlyingSecurityAltID, tag 457.</summary>
-	public sealed class NoUnderlyingSecurityAltIDGroup
+	public sealed class NoUnderlyingSecurityAltIDGroup : IFixEntry
 	{
 		internal NoUnderlyingSecurityAltIDGroup(FixField.Text delimiter)
 		{
@@ -1142,6 +1245,11 @@ public interface IUnderlyingInstrument : IUnderlyingStipulations
 
 		/// <summary>The FIX UnderlyingSecurityAltIDSource, tag 459, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? UnderlyingSecurityAltIDSource { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == UnderlyingSecurityAltID || field == UnderlyingSecurityAltIDSource;
+		}
 	}
 }
 
@@ -1156,7 +1264,7 @@ public interface IUnderlyingStipulations
 	List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups { get; }
 
 	/// <summary>One entry of the group counted by NoUnderlyingStips, tag 887.</summary>
-	public sealed class NoUnderlyingStipsGroup
+	public sealed class NoUnderlyingStipsGroup : IFixEntry
 	{
 		internal NoUnderlyingStipsGroup(FixField.Text delimiter)
 		{
@@ -1168,6 +1276,11 @@ public interface IUnderlyingStipulations
 
 		/// <summary>The FIX UnderlyingStipValue, tag 889, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? UnderlyingStipValue { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == UnderlyingStipType || field == UnderlyingStipValue;
+		}
 	}
 }
 

@@ -901,7 +901,7 @@ sealed class Writer
 		var pad = new string('\t', indent);
 		var e   = g.Entry;
 		var implements = Fx.BlocksOf(_m, e.Members);
-		var head = $"{pad}public sealed class {e.Name}" + (implements.Count > 0 ? " : " + string.Join(", ", implements.Select(b => "I" + b)) : "");
+		var head = $"{pad}public sealed class {e.Name} : " + string.Join(", ", implements.Select(b => "I" + b).Append("IFixEntry"));
 		var outLines = new List<string>
 		{
 			$"{pad}/// <summary>One entry of the group counted by {g.Counter.Name}, tag {g.Counter.Tag}.</summary>",
@@ -919,6 +919,17 @@ sealed class Writer
 		while (outLines[^1] == "")
 			outLines.RemoveAt(outLines.Count - 1);
 
+		// What a check of the whole message asks of an entry, to say which entry a field it found is in:
+		// the entry's own fields, the blocks it carries included.
+		var own = Fx.PropertiesOf(_m, e.Members).Select(p => p.Member).OfType<Field>().Prepend(e.Opener)
+			.Select(f => f.Name).Distinct().Select(name => "field == " + name).ToList();
+
+		outLines.Add("");
+		outLines.Add($"{pad}\tbool IFixEntry.Holds(FixField field)");
+		outLines.Add($"{pad}\t{{");
+		outLines.AddRange(Wrapped(own, $"{pad}\t\treturn", $"{pad}\t\t\t", separator: " ||", width: 132));
+		outLines[^1] += ";";
+		outLines.Add($"{pad}\t}}");
 		outLines.Add(pad + "}");
 		outLines.Add("");
 
@@ -934,23 +945,21 @@ sealed class Writer
 	{
 		var outLines = new List<string>();
 
-		string Path()
+		// The path through the first `depth` groups, every one of them with an entry open.
+		string Path(int depth)
 		{
-			return string.Concat(lists.Select((l, i) => $", {counters[i]}, {l}!.Count - 1"));
+			return string.Concat(lists.Take(depth).Select((l, i) => $", {counters[i]}, {l}!.Count - 1"));
 		}
 
-		string Failing()
+		// A field of an entry with no entry open to hold it, one level at a time, outermost first: said in
+		// the entries that are open, and no deeper, since the entry it would be in was never begun.
+		void Unentering()
 		{
-			var parts = new List<string>();
-
 			for (var i = 0; i < lists.Count; i++)
 			{
-				var l = lists[i];
-
-				parts.Add(i == 0 ? $"{l} is null || {l}.Count == 0" : $"{l} is null || {l}!.Count == 0");
+				outLines.Add($"{pad}\t{(i == 0 ? "if" : "else if")} (None({lists[i]}))");
+				outLines.Add($"{pad}\t\tUnentered(field{Path(i)});");
 			}
-
-			return string.Join(" || ", parts);
 		}
 
 		void Place(Field f)
@@ -962,10 +971,9 @@ sealed class Writer
 			}
 
 			outLines.Add($"{pad}case {f.Const}:");
-			outLines.Add($"{pad}\tif ({Failing()})");
-			outLines.Add($"{pad}\t\tUnentered(field);");
+			Unentering();
 			outLines.Add($"{pad}\telse if ({holder}{f.Name} is not null)");
-			outLines.Add($"{pad}\t\tDuplicate(field{Path()});");
+			outLines.Add($"{pad}\t\tDuplicate(field{Path(lists.Count)});");
 			outLines.Add($"{pad}\telse");
 			outLines.Add($"{pad}\t\t{holder}{f.Name} = ({f.TypeName})field;");
 			outLines.Add($"{pad}\tbreak;");
@@ -996,7 +1004,7 @@ sealed class Writer
 
 					// The first entry of a group whose counter has not been read is entries nothing counts:
 					// said once, at the entry, by the counter's tag.
-					var uncounted = $"if ({target} is null && {holder}{group.Counter.Name} is null) Uncounted({group.Counter.Const}, field{Path()});";
+					var uncounted = $"if ({target} is null && {holder}{group.Counter.Name} is null) Uncounted({group.Counter.Const}, field{Path(lists.Count)});";
 					var add       = $"({target} ??= []).Add(new (({opener.TypeName})field));";
 
 					if (lists.Count == 0)
@@ -1009,8 +1017,7 @@ sealed class Writer
 					else
 					{
 						outLines.Add($"{pad}case {opener.Const}:");
-						outLines.Add($"{pad}\tif ({Failing()})");
-						outLines.Add($"{pad}\t\tUnentered(field);");
+						Unentering();
 						outLines.Add($"{pad}\telse");
 						outLines.Add($"{pad}\t{{");
 						outLines.Add($"{pad}\t\t{uncounted}");
@@ -1377,14 +1384,14 @@ sealed class Writer
 	}
 
 	/// <summary>The alternatives of a pattern, `a or b or c`, broken at `or` where a line passes the width.</summary>
-	public static List<string> Wrapped(List<string> items, string first, string pad, int width = 116)
+	public static List<string> Wrapped(List<string> items, string first, string pad, int width = 116, string separator = " or")
 	{
 		var lines = new List<string>();
 		var line  = first;
 
 		for (var k = 0; k < items.Count; k++)
 		{
-			var piece = items[k] + (k < items.Count - 1 ? " or" : "");
+			var piece = items[k] + (k < items.Count - 1 ? separator : "");
 
 			if (Fx.ExpandTabs(line, 4).Length + piece.Length + 1 > width && !line.EndsWith("("))
 			{
@@ -1465,21 +1472,25 @@ sealed class Writer
 
 				if (cls == "Multiple")
 				{
-					outLines.Add("\t\tforeach (var code in field.Value)");
+					// A value that did not read has no codes to ask: it is invalid as it stands, and Value would throw.
+					outLines.Add("\t\tif (!field.IsValid)");
+					outLines.Add("\t\t\tInvalid(check, field);");
+					outLines.Add("\t\telse");
+					outLines.Add("\t\t\tforeach (var code in field.Value)");
 
-					var wrapped = Wrapped(items, "\t\t\tif (code is not (", "\t\t\t\t");
+					var wrapped = Wrapped(items, "\t\t\t\tif (code is not (", "\t\t\t\t\t");
 
 					wrapped[^1] += "))";
 					outLines.AddRange(wrapped);
-					outLines.Add("\t\t\t{");
-					outLines.Add("\t\t\t\tInvalid(check, field);");
+					outLines.Add("\t\t\t\t{");
+					outLines.Add("\t\t\t\t\tInvalid(check, field);");
 					outLines.Add("");
-					outLines.Add("\t\t\t\tbreak;");
-					outLines.Add("\t\t\t}");
+					outLines.Add("\t\t\t\t\tbreak;");
+					outLines.Add("\t\t\t\t}");
 				}
 				else if (cls == "Text" || cls == "Character")
 				{
-					var wrapped = Wrapped(items, "\t\tif (field.Value is not (", "\t\t\t");
+					var wrapped = Wrapped(items, "\t\tif (!field.IsValid || field.Value is not (", "\t\t\t");
 
 					wrapped[^1] += "))";
 					outLines.AddRange(wrapped);

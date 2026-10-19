@@ -212,6 +212,84 @@ public sealed class FixValidationTests
 		Assert.Equal(FixTag.Account, Assert.Single(order.Validate(strict)).Tag);
 	}
 
+	/// <summary>A path is a view: cast back to an array or a list it cannot be written, so no finding moves another.</summary>
+	[Fact]
+	public void A_finding_path_cannot_be_written_through_a_cast()
+	{
+		// A duplicate the reading finds and two bad values the check finds, all in party 1's sub-ID entry.
+		var order = FixParser.ParseMessage(FixFixtures.Wire("D",
+			"11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|453=2|448=P1|452=1|448=P2|452=3|802=1|523=S1|803=1|803=2|"));
+		var value = FixParser.ParseMessage(FixFixtures.Wire("D",
+			"11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|453=2|448=P1|452=1|448=P2|452=x|802=1|523=S1|803=x|"));
+
+		foreach (var finding in order.Validate(Fix44Context.Default).Concat(value.Validate(Fix44Context.Default)))
+		{
+			Assert.NotEmpty(finding.Path);
+			Assert.False(finding.Path is FixGroupStep[]);
+			Assert.False(finding.Path is IList<FixGroupStep> { IsReadOnly: false });
+			Assert.Throws<NotSupportedException>(() => ((IList<FixGroupStep>)finding.Path)[0] = new FixGroupStep(999, 99));
+		}
+
+		Assert.Equal("453[1].802[0]", string.Join(".", Assert.Single(order.Findings).Path));
+		Assert.Equal("453[1].802[0]", string.Join(".", Assert.Single(order.Validate(Fix44Context.Default)).Path));
+	}
+
+	/// <summary>A field of an entry that was never begun is said in the entries that are open around it, and no deeper.</summary>
+	[Fact]
+	public void A_field_of_an_unopened_entry_names_the_entries_open_around_it()
+	{
+		var order = FixParser.ParseMessage(FixFixtures.Wire("D",
+			"11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|453=2|448=P1|452=1|448=P2|452=3|802=0|803=1|"));
+
+		var finding = Assert.Single(order.Findings);
+
+		Assert.Equal((FixRule.GroupCountMismatch, FixTag.PartySubIDType), (finding.Rule, finding.Tag));
+		Assert.Equal([new FixGroupStep(FixTag.NoPartyIDs, 1)], finding.Path);
+
+		// Outside every entry there is nothing open, and nothing to say.
+		var bare = FixParser.ParseMessage(FixFixtures.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|452=3|"));
+
+		Assert.Empty(Assert.Single(bare.Findings).Path);
+	}
+
+	/// <summary>A finding of the whole message about a field inside an entry carries that entry's path.</summary>
+	[Fact]
+	public void A_finding_of_the_whole_message_names_the_entry_its_field_is_in()
+	{
+		// EncodedLegIssuerLen (618) in the second leg, followed by LegRatioQty (623) and not its data.
+		var legs = FixParser.ParseMessage(FixFixtures.Wire("AB",
+			"11=ML|54=1|55=ABC|60=20260915-12:00:00|40=1|555=2|600=L1|600=L2|618=1|623=1|"));
+
+		var length = Assert.Single(legs.Validate(Fix44Context.Default), one => one.Rule == FixRule.LengthFieldNotBeforeData);
+
+		Assert.Equal(FixTag.EncodedLegIssuerLen, length.Tag);
+		Assert.Equal([new FixGroupStep(FixTag.NoLegs, 1)], length.Path);
+
+		// EncodedLegIssuer with no MessageEncoding, in the first leg.
+		var encoded = FixParser.ParseMessage(FixFixtures.Wire("AB",
+			"11=ML|54=1|55=ABC|60=20260915-12:00:00|40=1|555=2|600=L1|618=2|619=ab|600=L2|"));
+
+		var missing = Assert.Single(encoded.Validate(Fix44Context.Default), one => one.Rule == FixRule.MessageEncodingMissing);
+
+		Assert.Equal([new FixGroupStep(FixTag.NoLegs, 0)], missing.Path);
+
+		// The same rule about a field of the message itself has no path.
+		var top = FixParser.ParseMessage(FixFixtures.Wire("B", "148=NEWS|354=3|355=abc|33=0|"));
+
+		Assert.Empty(Assert.Single(top.Validate(Fix44Context.Default), one => one.Rule == FixRule.MessageEncodingMissing).Path);
+	}
+
+	/// <summary>A coded field whose text did not read is an invalid value, never an exception.</summary>
+	[Theory]
+	[InlineData("D", "11=X|55=X|54=XYZ|60=20260915-12:00:00|38=1|40=1|", FixTag.Side)]
+	[InlineData("8", "37=O|17=E|150=XY|39=0|55=X|54=1|151=0|14=0|6=0|", FixTag.ExecType)]
+	public void A_coded_value_that_did_not_read_is_a_finding(string type, string body, int tag)
+	{
+		var message = FixParser.ParseMessage(FixFixtures.Wire(type, body));
+
+		Assert.Contains(message.Validate(Fix44Context.Default), one => one.Rule == FixRule.InvalidValue && one.Tag == tag);
+	}
+
 	/// <summary>The appending form adds what the other answers, after what the collection holds, and counts it.</summary>
 	[Fact]
 	public void Validate_adds_to_a_callers_collection_and_says_how_many()
@@ -247,6 +325,15 @@ public sealed class FixValidationTests
 
 		Assert.NotSame(message.Findings, answer);
 		Assert.Single(message.Findings);
+
+		// Nor the path of one: a write through a cast would follow the message into every later Validate.
+		var order = FixParser.ParseMessage(FixFixtures.Wire("D",
+			"11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|453=2|448=P1|452=1|448=P2|452=3|802=1|523=S1|803=1|803=2|"));
+		var path  = Assert.Single(order.Findings).Path;
+
+		Assert.False(path is FixGroupStep[]);
+		Assert.Throws<NotSupportedException>(() => ((IList<FixGroupStep>)path)[0] = new FixGroupStep(999, 99));
+		Assert.Equal("453[1].802[0]", string.Join(".", Assert.Single(order.Validate(Fix44Context.Default)).Path));
 	}
 
 	/// <summary>A message validated from many threads at once answers each of them alike.</summary>

@@ -48,7 +48,7 @@ public abstract partial class FixMessage
 				(noHopsGroups ??= []).Add(new ((FixField.Text)field));
 				break;
 			case FixTag.HopSendingTime:
-				if (noHopsGroups is null || noHopsGroups.Count == 0)
+				if (None(noHopsGroups))
 					Unentered(field);
 				else if (noHopsGroups![^1].HopSendingTime is not null)
 					Duplicate(field, FixTag.NoHops, noHopsGroups!.Count - 1);
@@ -56,7 +56,7 @@ public abstract partial class FixMessage
 					noHopsGroups![^1].HopSendingTime = (FixField.Timestamp)field;
 				break;
 			case FixTag.HopRefID:
-				if (noHopsGroups is null || noHopsGroups.Count == 0)
+				if (None(noHopsGroups))
 					Unentered(field);
 				else if (noHopsGroups![^1].HopRefID is not null)
 					Duplicate(field, FixTag.NoHops, noHopsGroups!.Count - 1);
@@ -168,7 +168,7 @@ public abstract partial class FixMessage
 	public FixField.Text? CheckSum { get; private protected set; }
 
 	/// <summary>One entry of the group counted by NoHops, tag 627.</summary>
-	public sealed class NoHopsGroup
+	public sealed class NoHopsGroup : IFixEntry
 	{
 		internal NoHopsGroup(FixField.Text delimiter)
 		{
@@ -183,5 +183,10 @@ public abstract partial class FixMessage
 
 		/// <summary>The FIX HopRefID, tag 630, wire type <c>SeqNum</c>; null when the field is absent.</summary>
 		public FixField.Integer? HopRefID { get; internal set; }
+
+		bool IFixEntry.Holds(FixField field)
+		{
+			return field == HopCompID || field == HopSendingTime || field == HopRefID;
+		}
 	}
 }

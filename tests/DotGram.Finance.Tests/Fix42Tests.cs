@@ -115,6 +115,15 @@ public sealed class Fix42Tests
 		Assert.Contains(message.Validate(context), one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 22);
 	}
 
+	/// <summary>A coded field whose text did not read is an invalid value, never an exception.</summary>
+	[Fact]
+	public void A_coded_value_that_did_not_read_is_a_finding()
+	{
+		var order = FixParser.ParseMessage(Wire("D", Order.Replace("54=1|", "54=XYZ|")));
+
+		Assert.Contains(order.Validate(Fix42Context.Default), one => one.Rule == FixRule.InvalidValue && one.Tag == FixTag.Side);
+	}
+
 	static readonly string Corpus = Path.Combine(TestPaths.Tests, "Corpus", "Fix");
 
 	/// <summary>A FIX 4.2 message of the given type around a body written with '|' for SOH.</summary>

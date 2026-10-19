@@ -408,6 +408,87 @@ public sealed class FixCustomFieldsTests
 		Assert.Empty(held.Findings);
 	}
 
+	// A message whose Place validates it, and whose OnValidate then tries AddFinding on the reading thread.
+	sealed class VenueInner : FixCustomMessage
+	{
+		public Fix44Context? Context { get; init; }
+
+		public Exception? FromOnValidate { get; private set; }
+
+		protected override bool Place(FixField field)
+		{
+			if (field.Tag != 25005)
+				return false;
+
+			Validate(Context!);
+			AddFinding(FixFinding.Of(FixRule.InvalidValue, field));
+
+			return true;
+		}
+
+		protected override void OnValidate(Fix44Context context, ICollection<FixFinding> findings)
+		{
+			try
+			{
+				AddFinding(FixFinding.Missing(25011));
+			}
+			catch (Exception exception)
+			{
+				FromOnValidate = exception;
+			}
+		}
+	}
+
+	[Fact]
+	public void OnValidate_adds_no_finding_of_the_reading_even_inside_Place()
+	{
+		Fix44Context? context = null;
+
+		context = new Fix44Context { FixMessageFactory = type => type == "U7" ? new VenueInner { Context = context } : null }.Load(Venue);
+
+		var inner = Assert.IsType<VenueInner>(FixParser.ParseMessage(Framed("35=U7|49=A|56=B|34=1|52=20260919-12:00:00|25005=OPEN|"), context));
+
+		Assert.IsType<InvalidOperationException>(inner.FromOnValidate);
+
+		// The Place's own finding after the Validate is there; OnValidate's is not.
+		Assert.Equal([25005], inner.Findings.Select(one => one.Tag));
+	}
+
+	// One instance the factory answers for every message, whose Place reads another message into itself.
+	sealed class VenueReread : FixCustomMessage
+	{
+		public Fix44Context? Context { get; set; }
+
+		public string? Inner { get; init; }
+
+		protected override bool Place(FixField field)
+		{
+			if (field.Tag != 25005)
+				return false;
+
+			if (Inner is { } inner && field is FixField.Text { Value: "OUTER" })
+				FixParser.ParseMessage(inner, Context);
+
+			AddFinding(FixFinding.Of(FixRule.InvalidValue, field));
+
+			return true;
+		}
+	}
+
+	[Fact]
+	public void A_Place_that_reads_into_its_own_message_keeps_its_right_to_add()
+	{
+		var one     = new VenueReread { Inner = Framed("35=U8|49=A|56=B|34=1|52=20260919-12:00:00|25005=INNER|") };
+		var context = new Fix44Context { FixMessageFactory = type => type == "U8" ? one : null }.Load(Venue);
+
+		one.Context = context;
+
+		var read = FixParser.ParseMessage(Framed("35=U8|49=A|56=B|34=1|52=20260919-12:00:00|25005=OUTER|"), context);
+
+		Assert.Same(one, read);
+		Assert.Equal(2, read.Findings.Count(f => f.Rule == FixRule.InvalidValue));
+	}
+
 	[Fact]
 	public void A_type_the_factory_answers_null_for_is_an_Unknown_message()
 	{
