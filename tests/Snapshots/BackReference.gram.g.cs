@@ -1633,6 +1633,10 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
+		static partial void OnHandingOff(ref object? state);
+
+		static partial void OnTakingOver(ref object? state);
+
 		static string Construct_Pair(string c, string r) =>
 #line 48 "BackReference.gram"
                                                  (c + "|" + r);
@@ -3293,6 +3297,9 @@ namespace DotGram.Snapshots
 				deep.which  = which;
 				deep.power  = power;
 
+				// What the host keeps of the reading outside it, where it asked to be told (OnHandingOff).
+				OnHandingOff(ref deep.handed);
+
 				deep.Go();
 
 				this.failure = deep.failure;
@@ -3613,6 +3620,7 @@ namespace DotGram.Snapshots
 			internal int power;
 			internal int end;
 			internal global::System.Exception? thrown;
+			internal object? handed;
 
 			[global::System.ThreadStatic]
 			static Deep_DotGram_Element? deepLingering;
@@ -3707,6 +3715,7 @@ namespace DotGram.Snapshots
 				failure = default!;
 				unbuilt = default!;
 				thrown = null;
+				handed = null;
 			}
 
 			void Loop()
@@ -3783,26 +3792,35 @@ namespace DotGram.Snapshots
 
 			internal void Run()
 			{
+				OnTakingOver(ref this.handed);
+
 				try
 				{
-					var reader = new Reader_DotGram_Element(this.whole.Span, this.ways, this.whole);
-
-					reader.failure = this.failure;
-					reader.unbuilt = this.unbuilt;
-					reader.probes = this.probes;
-
-					switch (this.which)
+					try
 					{
-						case 0: this.end = reader.Read_Element_Element(this.pos); break;
-					}
+						var reader = new Reader_DotGram_Element(this.whole.Span, this.ways, this.whole);
 
-					this.failure = reader.failure;
-					this.unbuilt = reader.unbuilt;
-					this.probes = reader.probes;
+						reader.failure = this.failure;
+						reader.unbuilt = this.unbuilt;
+						reader.probes = this.probes;
+
+						switch (this.which)
+						{
+							case 0: this.end = reader.Read_Element_Element(this.pos); break;
+						}
+
+						this.failure = reader.failure;
+						this.unbuilt = reader.unbuilt;
+						this.probes = reader.probes;
+					}
+					catch (global::System.Exception caught)
+					{
+						this.thrown = caught;
+					}
 				}
-				catch (global::System.Exception caught)
+				finally
 				{
-					this.thrown = caught;
+					OnTakingOver(ref this.handed);
 				}
 			}
 		}

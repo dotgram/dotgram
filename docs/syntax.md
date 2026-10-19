@@ -2501,6 +2501,29 @@ grammar with no cycle in it never probes.
 One thing is not carried: a reading over a window (§6.3) has no whole input to hand to
 another stack, so a streamed parse that runs low fails.
 
+What goes across is the reading's own state, the execution context and the cultures. What a
+host keeps for its semantic actions outside the reading — a thread-static field, or an
+`AsyncLocal` where the caller suppressed the flow of the context — stays behind. A host that
+keeps such state says what to carry, in two partial methods the generated class declares
+wherever a rule probes:
+
+```csharp
+static partial void OnHandingOff(ref object? state)   // on the thread that hands off: fill the slot
+{
+	state = Scope.Current;
+}
+
+static partial void OnTakingOver(ref object? state)   // on the thread that takes it, before and after
+{
+	state = Scope.Swap((Scope?)state);                // the handed state in, this thread's own out
+}
+```
+
+The second runs before the reading and again after it, so the exchange puts the thread's own
+state back; the slot is filled afresh for every hand-off, including one to a thread that took
+an earlier one. Left unimplemented, both are removed at compile time with their calls. A
+second reading of the grammar (§6.6) declares its own pair in its own class.
+
 A rule a cycle re-enters is also where a reading over tokens remembers what failed. A bracket
 may be read as a condition, then as a value, then as a subquery, and each attempt reads all
 that is inside it again: left to itself a nest of brackets costs a power of its depth. So such
