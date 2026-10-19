@@ -72,13 +72,13 @@ partial class FixValidator50 : FixValidator
 		{
 			// A length field is followed by the data it measures, and by nothing else.
 			if (length is not null && field.Tag != context.DataTag(length.Tag))
-				check.AddAt(FixRule.LengthFieldNotBeforeData, length.Tag, field, length);
+				check.AddAt(FixRule.LengthFieldNotBeforeData, length.Tag, field, message, length);
 
 			length = context.Kind(field.Tag) > 0 ? field : null;
 
 			if (!encoding && IsEncoded(field.Tag))
 			{
-				check.AddAt(FixRule.MessageEncodingMissing, FixTag.MessageEncoding, field, field);
+				check.AddAt(FixRule.MessageEncodingMissing, FixTag.MessageEncoding, field, message, field);
 				encoding = true;
 			}
 
@@ -97,11 +97,9 @@ partial class FixValidator50 : FixValidator
 	/// <summary>Holds each entry of a group to its check, in order; nothing where the group is absent.</summary>
 	/// <remarks>
 	/// What every check calls for a group, rather than writing the loop in its text: the walk is where the
-	/// check enters the group and moves from entry to entry, which every finding inside says with its path,
-	/// and where a finding of the whole message about a field of an entry is given that entry's.
+	/// check enters the group and moves from entry to entry, which every finding inside says with its path.
 	/// </remarks>
 	internal static void Each<TEntry>(Fix50Context context, FixCheck check, int counter, List<TEntry>? entries, Action<Fix50Context, FixCheck, TEntry> slot)
-		where TEntry : IFixEntry
 	{
 		if (entries is null)
 			return;
@@ -111,10 +109,6 @@ partial class FixValidator50 : FixValidator
 		for (var i = 0; i < entries.Count; i++)
 		{
 			check.At(i);
-
-			if (check.Waiting)
-				check.Locate(entries[i]);
-
 			slot(context, check, entries[i]);
 		}
 

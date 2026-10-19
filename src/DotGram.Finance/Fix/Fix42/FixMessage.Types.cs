@@ -680,9 +680,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX WaveNo, tag 105, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? WaveNo { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ClOrdID || field == OrderID || field == SecondaryOrderID || field == ListID || field == WaveNo;
+				return tag is 11 or 37 or 66 or 105 or 198;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -706,9 +715,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LastCapacity, tag 29, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? LastCapacity { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LastShares;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LastShares || field == ExecID || field == LastPx || field == LastCapacity;
+				return tag is 17 or 29 or 31 or 32;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -810,21 +828,41 @@ public abstract partial class FixMessage
 				/// <summary>The FIX MiscFeeType, tag 139, wire type <c>char</c>; null when the field is absent.</summary>
 				public FixField.Character? MiscFeeType { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => MiscFeeAmt;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType;
+					return tag is 137 or 138 or 139;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocPrice || field == AllocShares || field == ProcessCode ||
-					field == BrokerOfCredit || field == NotifyBrokerOfCredit || field == AllocHandlInst || field == AllocText ||
-					field == EncodedAllocTextLen || field == EncodedAllocText || field == ExecBroker || field == ClientID ||
-					field == Commission || field == CommType || field == AllocAvgPx || field == AllocNetMoney ||
-					field == SettlCurrAmt || field == SettlCurrency || field == SettlCurrFxRate || field == SettlCurrFxRateCalc ||
-					field == AccruedInterestAmt || field == SettlInstMode || field == NoMiscFees;
+				return tag is 12 or 13 or 76 or 79 or 80 or 81 or 92 or 109 or 119 or 120 or 136 or 137 or 138 or 139 or 153 or
+					154 or 155 or 156 or 159 or 160 or 161 or 208 or 209 or 360 or 361 or 366;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoOrdersGroups, FixTag.NoOrders, tag, position, out step) ??
+				FixEntries.Holding(NoExecsGroups, FixTag.NoExecs, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -1220,11 +1258,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ValueOfFutures, tag 408, wire type <c>Amt</c>; null when the field is absent.</summary>
 			public FixField.Decimal? ValueOfFutures { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => BidDescriptorType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == BidDescriptorType || field == BidDescriptor || field == SideValueInd || field == LiquidityValue ||
-					field == LiquidityNumSecurities || field == LiquidityPctLow || field == LiquidityPctHigh ||
-					field == EFPTrackingError || field == FairValue || field == OutsideIndexPct || field == ValueOfFutures;
+				return tag is 399 or 400 or 401 or 402 or 403 or 404 or 405 or 406 or 407 or 408 or 441;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -1257,11 +1302,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? Account { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ListID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ListID || field == Side || field == TradingSessionID || field == NetGrossInd ||
-					field == SettlmntTyp || field == FutSettDate || field == Account;
+				return tag is 1 or 54 or 63 or 64 or 66 or 336 or 430;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoBidDescriptorsGroups, FixTag.NoBidDescriptors, tag, position, out step) ??
+				FixEntries.Holding(NoBidComponentsGroups, FixTag.NoBidComponents, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -1475,13 +1535,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Commission;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Commission || field == CommType || field == ListID || field == Country || field == Side ||
-					field == Price || field == PriceType || field == FairValue || field == NetGrossInd || field == SettlmntTyp ||
-					field == FutSettDate || field == TradingSessionID || field == Text || field == EncodedTextLen ||
-					field == EncodedText;
+				return tag is 12 or 13 or 44 or 54 or 58 or 63 or 64 or 66 or 336 or 354 or 355 or 406 or 421 or 423 or 430;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoBidComponentsGroups, FixTag.NoBidComponents, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -1968,9 +2040,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RoutingType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RoutingType || field == RoutingID;
+				return tag is 216 or 217;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -2039,13 +2120,19 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedSecurityDesc { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RelatdSym;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RelatdSym || field == SymbolSfx || field == SecurityID || field == IDSource ||
-					field == SecurityType || field == MaturityMonthYear || field == MaturityDay || field == PutOrCall ||
-					field == StrikePrice || field == OptAttribute || field == ContractMultiplier || field == CouponRate ||
-					field == SecurityExchange || field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer ||
-					field == SecurityDesc || field == EncodedSecurityDescLen || field == EncodedSecurityDesc;
+				return tag is 22 or 46 or 48 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 205 or 206 or 207 or 223 or 231 or
+					348 or 349 or 350 or 351;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -2066,10 +2153,27 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Text;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Text || field == EncodedTextLen || field == EncodedText;
+				return tag is 58 or 354 or 355;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRoutingIDsGroups, FixTag.NoRoutingIDs, tag, position, out step) ??
+				FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step) ??
+				FixEntries.Holding(LinesOfTextGroups, FixTag.NoLinesOfText, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -2518,10 +2622,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ContraTradeTime, tag 438, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 			public FixField.Timestamp? ContraTradeTime { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ContraBroker;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ContraBroker || field == ContraTrader || field == ContraTradeQty || field == ContraTradeTime;
+				return tag is 337 or 375 or 437 or 438;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoContraBrokersGroups, FixTag.NoContraBrokers, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -2767,9 +2886,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX IOIQualifier, tag 104, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Character IOIQualifier { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => IOIQualifier;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == IOIQualifier;
+				return tag is 104;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -2787,10 +2915,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RoutingType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RoutingType || field == RoutingID;
+				return tag is 216 or 217;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoIOIQualifiersGroups, FixTag.NoIOIQualifiers, tag, position, out step) ??
+				FixEntries.Holding(NoRoutingIDsGroups, FixTag.NoRoutingIDs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -3081,11 +3225,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ClOrdID || field == CumQty || field == OrdStatus || field == LeavesQty || field == CxlQty ||
-					field == AvgPx || field == OrdRejReason || field == Text || field == EncodedTextLen || field == EncodedText;
+				return tag is 6 or 11 or 14 or 39 or 58 or 84 or 103 or 151 or 354 or 355;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoOrdersGroups, FixTag.NoOrders, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -3473,16 +3631,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource || field == SecurityType ||
-					field == MaturityMonthYear || field == MaturityDay || field == PutOrCall || field == StrikePrice ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == PrevClosePx || field == ClOrdID ||
-					field == Side || field == Price || field == Currency || field == Text || field == EncodedTextLen ||
-					field == EncodedText;
+				return tag is 11 or 15 or 22 or 44 or 48 or 54 or 55 or 58 or 65 or 106 or 107 or 140 or 167 or 200 or 201 or 202 or
+					205 or 206 or 207 or 223 or 231 or 348 or 349 or 350 or 351 or 354 or 355;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoStrikesGroups, FixTag.NoStrikes, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -3569,10 +3737,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MsgDirection, tag 385, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? MsgDirection { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RefMsgType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RefMsgType || field == MsgDirection;
+				return tag is 372 or 385;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoMsgTypesGroups, FixTag.NoMsgTypes, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -4271,23 +4454,28 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MDUpdateAction;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MDUpdateAction || field == DeleteReason || field == MDEntryType || field == MDEntryID ||
-					field == MDEntryRefID || field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource ||
-					field == SecurityType || field == MaturityMonthYear || field == MaturityDay || field == PutOrCall ||
-					field == StrikePrice || field == OptAttribute || field == ContractMultiplier || field == CouponRate ||
-					field == SecurityExchange || field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer ||
-					field == SecurityDesc || field == EncodedSecurityDescLen || field == EncodedSecurityDesc ||
-					field == FinancialStatus || field == CorporateAction || field == MDEntryPx || field == Currency ||
-					field == MDEntrySize || field == MDEntryDate || field == MDEntryTime || field == TickDirection ||
-					field == MDMkt || field == TradingSessionID || field == QuoteCondition || field == TradeCondition ||
-					field == MDEntryOriginator || field == LocationID || field == DeskID || field == OpenCloseSettleFlag ||
-					field == TimeInForce || field == ExpireDate || field == ExpireTime || field == MinQty || field == ExecInst ||
-					field == SellerDays || field == OrderID || field == QuoteEntryID || field == MDEntryBuyer ||
-					field == MDEntrySeller || field == NumberOfOrders || field == MDEntryPositionNo || field == TotalVolumeTraded ||
-					field == Text || field == EncodedTextLen || field == EncodedText;
+				return tag is 15 or 18 or 22 or 37 or 48 or 55 or 58 or 59 or 65 or 106 or 107 or 110 or 126 or 167 or 200 or 201 or
+					202 or 205 or 206 or 207 or 223 or 231 or 269 or 270 or 271 or 272 or 273 or 274 or 275 or 276 or 277 or 278 or
+					279 or 280 or 282 or 283 or 284 or 285 or 286 or 287 or 288 or 289 or 290 or 291 or 292 or 299 or 336 or 346 or
+					348 or 349 or 350 or 351 or 354 or 355 or 387 or 432;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoMDEntriesGroups, FixTag.NoMDEntries, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -4523,9 +4711,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MDEntryType, tag 269, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Character MDEntryType { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MDEntryType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MDEntryType;
+				return tag is 269;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -4597,14 +4794,27 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource || field == SecurityType ||
-					field == MaturityMonthYear || field == MaturityDay || field == PutOrCall || field == StrikePrice ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == TradingSessionID;
+				return tag is 22 or 48 or 55 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 205 or 206 or 207 or 223 or 231 or
+					336 or 348 or 349 or 350 or 351;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoMDEntryTypesGroups, FixTag.NoMDEntryTypes, tag, position, out step) ??
+				FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -5113,17 +5323,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MDEntryType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MDEntryType || field == MDEntryPx || field == Currency || field == MDEntrySize ||
-					field == MDEntryDate || field == MDEntryTime || field == TickDirection || field == MDMkt ||
-					field == TradingSessionID || field == QuoteCondition || field == TradeCondition || field == MDEntryOriginator ||
-					field == LocationID || field == DeskID || field == OpenCloseSettleFlag || field == TimeInForce ||
-					field == ExpireDate || field == ExpireTime || field == MinQty || field == ExecInst || field == SellerDays ||
-					field == OrderID || field == QuoteEntryID || field == MDEntryBuyer || field == MDEntrySeller ||
-					field == NumberOfOrders || field == MDEntryPositionNo || field == Text || field == EncodedTextLen ||
-					field == EncodedText;
+				return tag is 15 or 18 or 37 or 58 or 59 or 110 or 126 or 269 or 270 or 271 or 272 or 273 or 274 or 275 or 276 or
+					277 or 282 or 283 or 284 or 286 or 287 or 288 or 289 or 290 or 299 or 336 or 346 or 354 or 355 or 432;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoMDEntriesGroups, FixTag.NoMDEntries, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -5916,32 +6135,43 @@ public abstract partial class FixMessage
 				/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 				public FixField.Text? Currency { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => QuoteEntryID;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == QuoteEntryID || field == Symbol || field == SymbolSfx || field == SecurityID ||
-						field == IDSource || field == SecurityType || field == MaturityMonthYear || field == MaturityDay ||
-						field == PutOrCall || field == StrikePrice || field == OptAttribute || field == ContractMultiplier ||
-						field == CouponRate || field == SecurityExchange || field == Issuer || field == EncodedIssuerLen ||
-						field == EncodedIssuer || field == SecurityDesc || field == EncodedSecurityDescLen ||
-						field == EncodedSecurityDesc || field == BidPx || field == OfferPx || field == BidSize ||
-						field == OfferSize || field == ValidUntilTime || field == BidSpotRate || field == OfferSpotRate ||
-						field == BidForwardPoints || field == OfferForwardPoints || field == TransactTime ||
-						field == TradingSessionID || field == FutSettDate || field == OrdType || field == FutSettDate2 ||
-						field == OrderQty2 || field == Currency;
+					return tag is 15 or 22 or 40 or 48 or 55 or 60 or 62 or 64 or 65 or 106 or 107 or 132 or 133 or 134 or 135 or
+						167 or 188 or 189 or 190 or 191 or 192 or 193 or 200 or 201 or 202 or 205 or 206 or 207 or 223 or 231 or
+						299 or 336 or 348 or 349 or 350 or 351;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => QuoteSetID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == QuoteSetID || field == UnderlyingSymbol || field == UnderlyingSymbolSfx ||
-					field == UnderlyingSecurityID || field == UnderlyingIDSource || field == UnderlyingSecurityType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDay || field == UnderlyingPutOrCall ||
-					field == UnderlyingStrikePrice || field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier ||
-					field == UnderlyingCouponRate || field == UnderlyingSecurityExchange || field == UnderlyingIssuer ||
-					field == EncodedUnderlyingIssuerLen || field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == QuoteSetValidUntilTime || field == TotQuoteEntries || field == NoQuoteEntries;
+				return tag is 15 or 22 or 40 or 48 or 55 or 60 or 62 or 64 or 65 or 106 or 107 or 132 or 133 or 134 or 135 or 167 or
+					188 or 189 or 190 or 191 or 192 or 193 or 200 or 201 or 202 or 205 or 206 or 207 or 223 or 231 or 295 or 299 or
+					302 or 304 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 314 or 315 or 316 or 317 or 336 or
+					348 or 349 or 350 or 351 or 362 or 363 or 364 or 365 or 367 or 435 or 436;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixEntries.Holding(NoQuoteEntriesGroups, FixTag.NoQuoteEntries, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoQuoteSetsGroups, FixTag.NoQuoteSets, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -6890,9 +7120,18 @@ public abstract partial class FixMessage
 				/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocShares { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => AllocAccount;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == AllocAccount || field == AllocShares;
+					return tag is 79 or 80;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
@@ -6907,33 +7146,43 @@ public abstract partial class FixMessage
 				/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 				public FixField.Text TradingSessionID { get; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => TradingSessionID;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == TradingSessionID;
+					return tag is 336;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ClOrdID || field == ListSeqNo || field == SettlInstMode || field == ClientID ||
-					field == ExecBroker || field == Account || field == NoAllocs || field == SettlmntTyp || field == FutSettDate ||
-					field == HandlInst || field == ExecInst || field == MinQty || field == MaxFloor || field == ExDestination ||
-					field == NoTradingSessions || field == ProcessCode || field == Symbol || field == SymbolSfx ||
-					field == SecurityID || field == IDSource || field == SecurityType || field == MaturityMonthYear ||
-					field == MaturityDay || field == PutOrCall || field == StrikePrice || field == OptAttribute ||
-					field == ContractMultiplier || field == CouponRate || field == SecurityExchange || field == Issuer ||
-					field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == PrevClosePx || field == Side ||
-					field == SideValueInd || field == LocateReqd || field == TransactTime || field == OrderQty ||
-					field == CashOrderQty || field == OrdType || field == Price || field == StopPx || field == Currency ||
-					field == ComplianceID || field == SolicitedFlag || field == IOIid || field == QuoteID || field == TimeInForce ||
-					field == EffectiveTime || field == ExpireDate || field == ExpireTime || field == GTBookingInst ||
-					field == Commission || field == CommType || field == Rule80A || field == ForexReq || field == SettlCurrency ||
-					field == Text || field == EncodedTextLen || field == EncodedText || field == FutSettDate2 ||
-					field == OrderQty2 || field == OpenClose || field == CoveredOrUncovered || field == CustomerOrFirm ||
-					field == MaxShow || field == PegDifference || field == DiscretionInst || field == DiscretionOffset ||
-					field == ClearingFirm || field == ClearingAccount;
+				return tag is 1 or 11 or 12 or 13 or 15 or 18 or 21 or 22 or 23 or 38 or 40 or 44 or 47 or 48 or 54 or 55 or 58 or
+					59 or 60 or 63 or 64 or 65 or 67 or 76 or 77 or 78 or 79 or 80 or 81 or 99 or 100 or 106 or 107 or 109 or 110 or
+					111 or 114 or 117 or 120 or 121 or 126 or 140 or 152 or 160 or 167 or 168 or 192 or 193 or 200 or 201 or 202 or
+					203 or 204 or 205 or 206 or 207 or 210 or 211 or 223 or 231 or 336 or 348 or 349 or 350 or 351 or 354 or 355 or
+					376 or 377 or 386 or 388 or 389 or 401 or 427 or 432 or 439 or 440;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step) ??
+					FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoOrdersGroups, FixTag.NoOrders, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -7284,9 +7533,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocShares { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocShares;
+				return tag is 79 or 80;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -7301,10 +7559,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text TradingSessionID { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID;
+				return tag is 336;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -7583,9 +7857,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RoutingType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RoutingType || field == RoutingID;
+				return tag is 216 or 217;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -7654,13 +7937,19 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedSecurityDesc { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RelatdSym;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RelatdSym || field == SymbolSfx || field == SecurityID || field == IDSource ||
-					field == SecurityType || field == MaturityMonthYear || field == MaturityDay || field == PutOrCall ||
-					field == StrikePrice || field == OptAttribute || field == ContractMultiplier || field == CouponRate ||
-					field == SecurityExchange || field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer ||
-					field == SecurityDesc || field == EncodedSecurityDescLen || field == EncodedSecurityDesc;
+				return tag is 22 or 46 or 48 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 205 or 206 or 207 or 223 or 231 or
+					348 or 349 or 350 or 351;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -7681,10 +7970,27 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Text;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Text || field == EncodedTextLen || field == EncodedText;
+				return tag is 58 or 354 or 355;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRoutingIDsGroups, FixTag.NoRoutingIDs, tag, position, out step) ??
+				FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step) ??
+				FixEntries.Holding(LinesOfTextGroups, FixTag.NoLinesOfText, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -8117,9 +8423,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocShares { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocShares;
+				return tag is 79 or 80;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -8134,10 +8449,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text TradingSessionID { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID;
+				return tag is 336;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -9202,28 +9533,41 @@ public abstract partial class FixMessage
 				/// <summary>The FIX QuoteEntryRejectReason, tag 368, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? QuoteEntryRejectReason { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => QuoteEntryID;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == QuoteEntryID || field == Symbol || field == SymbolSfx || field == SecurityID ||
-						field == IDSource || field == SecurityType || field == MaturityMonthYear || field == MaturityDay ||
-						field == PutOrCall || field == StrikePrice || field == OptAttribute || field == ContractMultiplier ||
-						field == CouponRate || field == SecurityExchange || field == Issuer || field == EncodedIssuerLen ||
-						field == EncodedIssuer || field == SecurityDesc || field == EncodedSecurityDescLen ||
-						field == EncodedSecurityDesc || field == QuoteEntryRejectReason;
+					return tag is 22 or 48 or 55 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 205 or 206 or 207 or 223 or
+						231 or 299 or 348 or 349 or 350 or 351 or 368;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => QuoteSetID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == QuoteSetID || field == UnderlyingSymbol || field == UnderlyingSymbolSfx ||
-					field == UnderlyingSecurityID || field == UnderlyingIDSource || field == UnderlyingSecurityType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDay || field == UnderlyingPutOrCall ||
-					field == UnderlyingStrikePrice || field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier ||
-					field == UnderlyingCouponRate || field == UnderlyingSecurityExchange || field == UnderlyingIssuer ||
-					field == EncodedUnderlyingIssuerLen || field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == TotQuoteEntries || field == NoQuoteEntries;
+				return tag is 22 or 48 or 55 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 205 or 206 or 207 or 223 or 231 or
+					295 or 299 or 302 or 304 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 314 or 315 or 316 or
+					317 or 348 or 349 or 350 or 351 or 362 or 363 or 364 or 365 or 368 or 435 or 436;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixEntries.Holding(NoQuoteEntriesGroups, FixTag.NoQuoteEntries, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoQuoteSetsGroups, FixTag.NoQuoteSets, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -9504,14 +9848,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingSymbol { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource || field == SecurityType ||
-					field == MaturityMonthYear || field == MaturityDay || field == PutOrCall || field == StrikePrice ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == UnderlyingSymbol;
+				return tag is 22 or 48 or 55 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 205 or 206 or 207 or 223 or 231 or
+					311 or 348 or 349 or 350 or 351;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoQuoteEntriesGroups, FixTag.NoQuoteEntries, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -9897,17 +10253,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
 			public FixField.Text? Currency { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == IDSource || field == SecurityType ||
-					field == MaturityMonthYear || field == MaturityDay || field == PutOrCall || field == StrikePrice ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == PrevClosePx ||
-					field == QuoteRequestType || field == TradingSessionID || field == Side || field == OrderQty ||
-					field == FutSettDate || field == OrdType || field == FutSettDate2 || field == OrderQty2 ||
-					field == ExpireTime || field == TransactTime || field == Currency;
+				return tag is 15 or 22 or 38 or 40 or 48 or 54 or 55 or 60 or 64 or 65 or 106 or 107 or 126 or 140 or 167 or 192 or
+					193 or 200 or 201 or 202 or 205 or 206 or 207 or 223 or 231 or 303 or 336 or 348 or 349 or 350 or 351;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -10504,17 +10869,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX UnderlyingCurrency, tag 318, wire type <c>Currency</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingCurrency { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingIDSource || field == UnderlyingSecurityType || field == UnderlyingMaturityMonthYear ||
-					field == UnderlyingMaturityDay || field == UnderlyingPutOrCall || field == UnderlyingStrikePrice ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc || field == RatioQty ||
-					field == Side || field == UnderlyingCurrency;
+				return tag is 54 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 314 or 315 or 316 or 317 or
+					318 or 319 or 362 or 363 or 364 or 365 or 435 or 436;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -10901,17 +11275,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX UnderlyingCurrency, tag 318, wire type <c>Currency</c>; null when the field is absent.</summary>
 			public FixField.Text? UnderlyingCurrency { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingIDSource || field == UnderlyingSecurityType || field == UnderlyingMaturityMonthYear ||
-					field == UnderlyingMaturityDay || field == UnderlyingPutOrCall || field == UnderlyingStrikePrice ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc || field == RatioQty ||
-					field == Side || field == UnderlyingCurrency;
+				return tag is 54 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 314 or 315 or 316 or 317 or
+					318 or 319 or 362 or 363 or 364 or 365 or 435 or 436;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>

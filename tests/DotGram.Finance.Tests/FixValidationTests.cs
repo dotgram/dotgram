@@ -279,6 +279,108 @@ public sealed class FixValidationTests
 		Assert.Empty(Assert.Single(top.Validate(Fix44Context.Default), one => one.Rule == FixRule.MessageEncodingMissing).Path);
 	}
 
+	// A collection that writes each finding down as it is added: what a caller keying a set by a finding sees.
+	sealed class Written : List<FixFinding>, ICollection<FixFinding>
+	{
+		public List<string> Lines { get; } = [];
+
+		void ICollection<FixFinding>.Add(FixFinding item)
+		{
+			Lines.Add(item.ToString());
+			Add(item);
+		}
+	}
+
+	/// <summary>A finding of the whole message is whole when it is added: its path never changes after.</summary>
+	[Fact]
+	public void A_finding_of_the_whole_message_has_its_path_when_it_is_added()
+	{
+		var legs    = FixParser.ParseMessage(FixFixtures.Wire("AB", "11=ML|54=1|55=ABC|60=20260915-12:00:00|40=1|555=1|600=L1|618=1|623=1|"));
+		var written = new Written();
+
+		Assert.True(legs.Validate(Fix44Context.Default, written) > 0);
+		Assert.Equal(written.Lines, written.Select(one => one.ToString()));
+		Assert.Contains(written.Lines, line => line.StartsWith("555[0] tag 618 ", StringComparison.Ordinal));
+	}
+
+	/// <summary>The path is the reader's, not the checks': a context whose check of the type skips the group says it too.</summary>
+	[Fact]
+	public void A_finding_of_the_whole_message_has_its_path_whatever_checks_the_context_runs()
+	{
+		var context = Fix44Context.Default.Load(
+			"""
+			<fix>
+			  <messages>
+			    <message name="NewOrderMultileg" msgtype="AB">
+			      <field name="ClOrdID" required="Y" />
+			    </message>
+			  </messages>
+			</fix>
+			""");
+
+		var encoded = FixParser.ParseMessage(FixFixtures.Wire("AB",
+			"11=ML|54=1|55=ABC|60=20260915-12:00:00|40=1|555=2|600=L1|618=2|619=ab|600=L2|"));
+
+		var missing = Assert.Single(encoded.Validate(context), one => one.Rule == FixRule.MessageEncodingMissing);
+
+		Assert.Equal([new FixGroupStep(FixTag.NoLegs, 0)], missing.Path);
+	}
+
+	/// <summary>A length field read twice in an entry, the second not kept by it, is still said in that entry.</summary>
+	[Fact]
+	public void A_finding_about_a_duplicate_the_entry_did_not_keep_names_the_entry()
+	{
+		var legs = FixParser.ParseMessage(FixFixtures.Wire("AB",
+			"11=ML|54=1|55=ABC|60=20260915-12:00:00|40=1|555=1|600=L1|618=1|618=1|623=1|"));
+
+		var lengths = legs.Validate(Fix44Context.Default).Where(one => one.Rule == FixRule.LengthFieldNotBeforeData).ToList();
+
+		Assert.Equal(2, lengths.Count);
+		Assert.All(lengths, one => Assert.Equal([new FixGroupStep(FixTag.NoLegs, 0)], one.Path));
+	}
+
+	/// <summary>Saying where a finding of the whole message is costs in proportion to the message, not its square.</summary>
+	[Fact]
+	public void Paths_of_whole_message_findings_cost_linear_time()
+	{
+		static FixMessage Legs(int count)
+		{
+			var body = new System.Text.StringBuilder("11=ML|54=1|55=ABC|60=20260915-12:00:00|40=1|555=" + count + "|");
+
+			for (var i = 0; i < count; i++)
+				body.Append("600=L|618=1|623=1|");
+
+			return FixParser.ParseMessage(FixFixtures.Wire("AB", body.ToString()));
+		}
+
+		static double Best(FixMessage message, int expected)
+		{
+			var best = double.MaxValue;
+
+			for (var run = 0; run < 3; run++)
+			{
+				var watch = System.Diagnostics.Stopwatch.StartNew();
+				var found = message.Validate(Fix44Context.Default).Count(one => one.Rule == FixRule.LengthFieldNotBeforeData);
+
+				best = Math.Min(best, watch.Elapsed.TotalMilliseconds);
+				Assert.Equal(expected, found);
+			}
+
+			return best;
+		}
+
+		var small = Legs(1_000);
+		var large = Legs(10_000);
+
+		Best(small, 1_000);
+
+		var one = Best(small, 1_000);
+		var ten = Best(large, 10_000);
+
+		// Ten times the legs: about ten times the time where it is linear, a hundred where it is quadratic.
+		Assert.True(ten < 40 * Math.Max(one, 0.5), $"1 000 legs {one:F2} ms, 10 000 legs {ten:F2} ms");
+	}
+
 	/// <summary>A coded field whose text did not read is an invalid value, never an exception.</summary>
 	[Theory]
 	[InlineData("D", "11=X|55=X|54=XYZ|60=20260915-12:00:00|38=1|40=1|", FixTag.Side)]

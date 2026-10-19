@@ -1229,20 +1229,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -1403,27 +1401,28 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -3574,11 +3573,16 @@ public abstract partial class FixMessage
 			/// <summary>The FIX OrderBookingQty, tag 800, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? OrderBookingQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ClOrdID || field == OrderID || field == SecondaryOrderID || field == SecondaryClOrdID ||
-					field == ListID || field == NoNested2PartyIDs || field == OrderQty || field == OrderAvgPx ||
-					field == OrderBookingQty;
+				return tag is 11 or 37 or 38 or 66 or 198 or 526 or 756 or 757 or 758 or 759 or 760 or 799 or 800 or 806 or 807;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties2(this, tag, position, out step);
 			}
 		}
 
@@ -3608,10 +3612,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LastCapacity, tag 29, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? LastCapacity { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LastQty;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LastQty || field == ExecID || field == SecondaryExecID || field == LastPx || field == LastParPx ||
-					field == LastCapacity;
+				return tag is 17 or 29 or 31 or 32 or 527 or 669;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -3772,26 +3784,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -3933,20 +3938,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -4099,9 +4102,18 @@ public abstract partial class FixMessage
 				/// <summary>The FIX MiscFeeBasis, tag 891, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? MiscFeeBasis { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => MiscFeeAmt;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType || field == MiscFeeBasis;
+					return tag is 137 or 138 or 139 or 891;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
@@ -4116,25 +4128,52 @@ public abstract partial class FixMessage
 				/// <summary>The FIX ClearingInstruction, tag 577, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
 				public FixField.Integer ClearingInstruction { get; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => ClearingInstruction;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == ClearingInstruction;
+					return tag is 577;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocAcctIDSource || field == MatchStatus || field == AllocPrice ||
-					field == AllocQty || field == IndividualAllocID || field == ProcessCode || field == NoNestedPartyIDs ||
-					field == NotifyBrokerOfCredit || field == AllocHandlInst || field == AllocText ||
-					field == EncodedAllocTextLen || field == EncodedAllocText || field == Commission || field == CommType ||
-					field == CommCurrency || field == FundRenewWaiv || field == AllocAvgPx || field == AllocNetMoney ||
-					field == SettlCurrAmt || field == AllocSettlCurrAmt || field == SettlCurrency || field == AllocSettlCurrency ||
-					field == SettlCurrFxRate || field == SettlCurrFxRateCalc || field == AllocAccruedInterestAmt ||
-					field == AllocInterestAtMaturity || field == NoMiscFees || field == NoClearingInstructions ||
-					field == AllocSettlInstType || field == SettlDeliveryType || field == StandInstDbType ||
-					field == StandInstDbName || field == StandInstDbID || field == NoDlvyInst;
+				return tag is 12 or 13 or 79 or 80 or 81 or 85 or 119 or 120 or 136 or 137 or 138 or 139 or 153 or 154 or 155 or
+					156 or 161 or 165 or 169 or 170 or 171 or 172 or 208 or 209 or 360 or 361 or 366 or 467 or 479 or 497 or 524 or
+					525 or 538 or 539 or 545 or 573 or 576 or 577 or 661 or 736 or 737 or 741 or 742 or 780 or 781 or 782 or 783 or
+					784 or 785 or 786 or 787 or 801 or 804 or 805 or 891;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties(this, tag, position, out step) ??
+					FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step) ??
+					FixEntries.Holding(NoClearingInstructionsGroups, FixTag.NoClearingInstructions, tag, position, out step) ??
+					FixBlocks.SettlInstructionsData(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoOrdersGroups, FixTag.NoOrders, tag, position, out step) ??
+				FixEntries.Holding(NoExecsGroups, FixTag.NoExecs, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -4374,12 +4413,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedAllocText, tag 361, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedAllocText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocAcctIDSource || field == AllocPrice || field == IndividualAllocID ||
-					field == IndividualAllocRejCode || field == AllocText || field == EncodedAllocTextLen ||
-					field == EncodedAllocText;
+				return tag is 79 or 161 or 360 or 361 or 366 or 467 or 661 or 776;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -6546,11 +6599,16 @@ public abstract partial class FixMessage
 			/// <summary>The FIX OrderBookingQty, tag 800, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? OrderBookingQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ClOrdID || field == OrderID || field == SecondaryOrderID || field == SecondaryClOrdID ||
-					field == ListID || field == NoNested2PartyIDs || field == OrderQty || field == OrderAvgPx ||
-					field == OrderBookingQty;
+				return tag is 11 or 37 or 38 or 66 or 198 or 526 or 756 or 757 or 758 or 759 or 760 or 799 or 800 or 806 or 807;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties2(this, tag, position, out step);
 			}
 		}
 
@@ -6580,10 +6638,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LastCapacity, tag 29, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? LastCapacity { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LastQty;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LastQty || field == ExecID || field == SecondaryExecID || field == LastPx || field == LastParPx ||
-					field == LastCapacity;
+				return tag is 17 or 29 or 31 or 32 or 527 or 669;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -6744,26 +6810,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -6905,20 +6964,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -7071,9 +7128,18 @@ public abstract partial class FixMessage
 				/// <summary>The FIX MiscFeeBasis, tag 891, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? MiscFeeBasis { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => MiscFeeAmt;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType || field == MiscFeeBasis;
+					return tag is 137 or 138 or 139 or 891;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
@@ -7088,25 +7154,52 @@ public abstract partial class FixMessage
 				/// <summary>The FIX ClearingInstruction, tag 577, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
 				public FixField.Integer ClearingInstruction { get; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => ClearingInstruction;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == ClearingInstruction;
+					return tag is 577;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocAcctIDSource || field == MatchStatus || field == AllocPrice ||
-					field == AllocQty || field == IndividualAllocID || field == ProcessCode || field == NoNestedPartyIDs ||
-					field == NotifyBrokerOfCredit || field == AllocHandlInst || field == AllocText ||
-					field == EncodedAllocTextLen || field == EncodedAllocText || field == Commission || field == CommType ||
-					field == CommCurrency || field == FundRenewWaiv || field == AllocAvgPx || field == AllocNetMoney ||
-					field == SettlCurrAmt || field == AllocSettlCurrAmt || field == SettlCurrency || field == AllocSettlCurrency ||
-					field == SettlCurrFxRate || field == SettlCurrFxRateCalc || field == AllocAccruedInterestAmt ||
-					field == AllocInterestAtMaturity || field == NoMiscFees || field == NoClearingInstructions ||
-					field == AllocSettlInstType || field == SettlDeliveryType || field == StandInstDbType ||
-					field == StandInstDbName || field == StandInstDbID || field == NoDlvyInst;
+				return tag is 12 or 13 or 79 or 80 or 81 or 85 or 119 or 120 or 136 or 137 or 138 or 139 or 153 or 154 or 155 or
+					156 or 161 or 165 or 169 or 170 or 171 or 172 or 208 or 209 or 360 or 361 or 366 or 467 or 479 or 497 or 524 or
+					525 or 538 or 539 or 545 or 573 or 576 or 577 or 661 or 736 or 737 or 741 or 742 or 780 or 781 or 782 or 783 or
+					784 or 785 or 786 or 787 or 801 or 804 or 805 or 891;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties(this, tag, position, out step) ??
+					FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step) ??
+					FixEntries.Holding(NoClearingInstructionsGroups, FixTag.NoClearingInstructions, tag, position, out step) ??
+					FixBlocks.SettlInstructionsData(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoOrdersGroups, FixTag.NoOrders, tag, position, out step) ??
+				FixEntries.Holding(NoExecsGroups, FixTag.NoExecs, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -7350,12 +7443,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedAllocText, tag 361, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedAllocText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocAcctIDSource || field == AllocPrice || field == IndividualAllocID ||
-					field == IndividualAllocRejCode || field == AllocText || field == EncodedAllocTextLen ||
-					field == EncodedAllocText;
+				return tag is 79 or 161 or 360 or 361 or 366 or 467 or 661 or 776;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -8784,20 +8891,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -8958,27 +9063,31 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.PositionQty(this, tag, position, out step) ??
+				FixBlocks.PositionAmountData(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -9324,11 +9433,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ValueOfFutures, tag 408, wire type <c>Amt</c>; null when the field is absent.</summary>
 			public FixField.Decimal? ValueOfFutures { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => BidDescriptorType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == BidDescriptorType || field == BidDescriptor || field == SideValueInd || field == LiquidityValue ||
-					field == LiquidityNumSecurities || field == LiquidityPctLow || field == LiquidityPctHigh ||
-					field == EFPTrackingError || field == FairValue || field == OutsideIndexPct || field == ValueOfFutures;
+				return tag is 399 or 400 or 401 or 402 or 403 or 404 or 405 or 406 or 407 or 408 or 441;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -9367,11 +9483,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AcctIDSource, tag 660, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? AcctIDSource { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ListID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ListID || field == Side || field == TradingSessionID || field == TradingSessionSubID ||
-					field == NetGrossInd || field == SettlType || field == SettlDate || field == Account || field == AcctIDSource;
+				return tag is 1 or 54 or 63 or 64 or 66 or 336 or 430 or 625 or 660;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoBidDescriptorsGroups, FixTag.NoBidDescriptors, tag, position, out step) ??
+				FixEntries.Holding(NoBidComponentsGroups, FixTag.NoBidComponents, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -9618,14 +9749,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Commission;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Commission || field == CommType || field == CommCurrency || field == FundRenewWaiv ||
-					field == ListID || field == Country || field == Side || field == Price || field == PriceType ||
-					field == FairValue || field == NetGrossInd || field == SettlType || field == SettlDate ||
-					field == TradingSessionID || field == TradingSessionSubID || field == Text || field == EncodedTextLen ||
-					field == EncodedText;
+				return tag is 12 or 13 or 44 or 54 or 58 or 63 or 64 or 66 or 336 or 354 or 355 or 406 or 421 or 423 or 430 or
+					479 or 497 or 625;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoBidComponentsGroups, FixTag.NoBidComponents, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -11209,9 +11352,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text ExecID { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ExecID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ExecID;
+				return tag is 17;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -11229,9 +11381,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX SecondaryTradeReportID, tag 818, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SecondaryTradeReportID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradeReportID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradeReportID || field == SecondaryTradeReportID;
+				return tag is 571 or 818;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -11373,20 +11534,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -11550,26 +11709,19 @@ public abstract partial class FixMessage
 			/// <summary>The FIX CollAction, tag 944, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? CollAction { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips || field == CollAction;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941 or 944;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -11593,10 +11745,34 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MiscFeeBasis, tag 891, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? MiscFeeBasis { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MiscFeeAmt;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType || field == MiscFeeBasis;
+				return tag is 137 or 138 or 139 or 891;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoExecsGroups, FixTag.NoExecs, tag, position, out step) ??
+				FixEntries.Holding(NoTradesGroups, FixTag.NoTrades, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.TrdRegTimestamps(this, tag, position, out step) ??
+				FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixBlocks.SettlInstructionsData(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -13082,9 +13258,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX CollInquiryQualifier, tag 896, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Integer CollInquiryQualifier { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => CollInquiryQualifier;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == CollInquiryQualifier;
+				return tag is 896;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -13099,9 +13284,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text ExecID { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ExecID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ExecID;
+				return tag is 17;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -13119,9 +13313,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX SecondaryTradeReportID, tag 818, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SecondaryTradeReportID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradeReportID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradeReportID || field == SecondaryTradeReportID;
+				return tag is 571 or 818;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -13263,20 +13466,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -13437,27 +13638,35 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoCollInquiryQualifierGroups, FixTag.NoCollInquiryQualifier, tag, position, out step) ??
+				FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoExecsGroups, FixTag.NoExecs, tag, position, out step) ??
+				FixEntries.Holding(NoTradesGroups, FixTag.NoTrades, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.TrdRegTimestamps(this, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixBlocks.SettlInstructionsData(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -14725,9 +14934,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX CollInquiryQualifier, tag 896, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Integer CollInquiryQualifier { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => CollInquiryQualifier;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == CollInquiryQualifier;
+				return tag is 896;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -14742,9 +14960,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text ExecID { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ExecID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ExecID;
+				return tag is 17;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -14762,9 +14989,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX SecondaryTradeReportID, tag 818, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SecondaryTradeReportID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradeReportID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradeReportID || field == SecondaryTradeReportID;
+				return tag is 571 or 818;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -14906,20 +15142,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -15080,27 +15314,32 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoCollInquiryQualifierGroups, FixTag.NoCollInquiryQualifier, tag, position, out step) ??
+				FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoExecsGroups, FixTag.NoExecs, tag, position, out step) ??
+				FixEntries.Holding(NoTradesGroups, FixTag.NoTrades, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -16614,9 +16853,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text ExecID { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ExecID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ExecID;
+				return tag is 17;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -16634,9 +16882,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX SecondaryTradeReportID, tag 818, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SecondaryTradeReportID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradeReportID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradeReportID || field == SecondaryTradeReportID;
+				return tag is 571 or 818;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -16778,20 +17035,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -16952,26 +17207,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -16995,10 +17243,34 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MiscFeeBasis, tag 891, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? MiscFeeBasis { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MiscFeeAmt;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType || field == MiscFeeBasis;
+				return tag is 137 or 138 or 139 or 891;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoExecsGroups, FixTag.NoExecs, tag, position, out step) ??
+				FixEntries.Holding(NoTradesGroups, FixTag.NoTrades, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.TrdRegTimestamps(this, tag, position, out step) ??
+				FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixBlocks.SettlInstructionsData(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -18410,9 +18682,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text ExecID { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ExecID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ExecID;
+				return tag is 17;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -18430,9 +18711,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX SecondaryTradeReportID, tag 818, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SecondaryTradeReportID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradeReportID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradeReportID || field == SecondaryTradeReportID;
+				return tag is 571 or 818;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -18574,20 +18864,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -18751,26 +19039,19 @@ public abstract partial class FixMessage
 			/// <summary>The FIX CollAction, tag 944, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? CollAction { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips || field == CollAction;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941 or 944;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -18794,10 +19075,33 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MiscFeeBasis, tag 891, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? MiscFeeBasis { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MiscFeeAmt;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType || field == MiscFeeBasis;
+				return tag is 137 or 138 or 139 or 891;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoExecsGroups, FixTag.NoExecs, tag, position, out step) ??
+				FixEntries.Holding(NoTradesGroups, FixTag.NoTrades, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.TrdRegTimestamps(this, tag, position, out step) ??
+				FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -20205,9 +20509,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text ExecID { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ExecID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ExecID;
+				return tag is 17;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -20225,9 +20538,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX SecondaryTradeReportID, tag 818, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? SecondaryTradeReportID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradeReportID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradeReportID || field == SecondaryTradeReportID;
+				return tag is 571 or 818;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -20369,20 +20691,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -20546,26 +20866,19 @@ public abstract partial class FixMessage
 			/// <summary>The FIX CollAction, tag 944, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? CollAction { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips || field == CollAction;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941 or 944;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -20589,10 +20902,33 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MiscFeeBasis, tag 891, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? MiscFeeBasis { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MiscFeeAmt;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType || field == MiscFeeBasis;
+				return tag is 137 or 138 or 139 or 891;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoExecsGroups, FixTag.NoExecs, tag, position, out step) ??
+				FixEntries.Holding(NoTradesGroups, FixTag.NoTrades, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.TrdRegTimestamps(this, tag, position, out step) ??
+				FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -22404,11 +22740,16 @@ public abstract partial class FixMessage
 			/// <summary>The FIX OrderBookingQty, tag 800, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? OrderBookingQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ClOrdID || field == OrderID || field == SecondaryOrderID || field == SecondaryClOrdID ||
-					field == ListID || field == NoNested2PartyIDs || field == OrderQty || field == OrderAvgPx ||
-					field == OrderBookingQty;
+				return tag is 11 or 37 or 38 or 66 or 198 or 526 or 756 or 757 or 758 or 759 or 760 or 799 or 800 or 806 or 807;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties2(this, tag, position, out step);
 			}
 		}
 
@@ -22569,26 +22910,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -22730,20 +23064,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -22764,9 +23096,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX OrderCapacityQty, tag 863, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? OrderCapacityQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => OrderCapacity;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == OrderCapacity || field == OrderRestrictions || field == OrderCapacityQty;
+				return tag is 528 or 529 or 863;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -22790,10 +23131,35 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MiscFeeBasis, tag 891, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? MiscFeeBasis { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MiscFeeAmt;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType || field == MiscFeeBasis;
+				return tag is 137 or 138 or 139 or 891;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoOrdersGroups, FixTag.NoOrders, tag, position, out step) ??
+				FixBlocks.TrdRegTimestamps(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoCapacitiesGroups, FixTag.NoCapacities, tag, position, out step) ??
+				FixBlocks.SettlInstructionsData(this, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -23109,12 +23475,23 @@ public abstract partial class FixMessage
 			/// <summary>The FIX OrderBookingQty, tag 800, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? OrderBookingQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ClOrdID || field == OrderID || field == SecondaryOrderID || field == SecondaryClOrdID ||
-					field == ListID || field == NoNested2PartyIDs || field == OrderQty || field == OrderAvgPx ||
-					field == OrderBookingQty;
+				return tag is 11 or 37 or 38 or 66 or 198 or 526 or 756 or 757 or 758 or 759 or 760 or 799 or 800 or 806 or 807;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties2(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoOrdersGroups, FixTag.NoOrders, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -25121,25 +25498,33 @@ public abstract partial class FixMessage
 				/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocQty { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => AllocAccount;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == AllocAccount || field == AllocAcctIDSource || field == AllocSettlCurrency ||
-						field == IndividualAllocID || field == NoNestedPartyIDs || field == AllocQty;
+					return tag is 79 or 80 or 467 or 524 or 525 or 538 or 539 or 545 or 661 or 736 or 804 or 805;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.NestedParties(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Side;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Side || field == ClOrdID || field == SecondaryClOrdID || field == ClOrdLinkID ||
-					field == NoPartyIDs || field == TradeOriginationDate || field == TradeDate || field == Account ||
-					field == AcctIDSource || field == AccountType || field == DayBookingInst || field == BookingUnit ||
-					field == PreallocMethod || field == AllocID || field == NoAllocs || field == QtyType || field == OrderQty ||
-					field == CashOrderQty || field == OrderPercent || field == RoundingDirection || field == RoundingModulus ||
-					field == Commission || field == CommType || field == CommCurrency || field == FundRenewWaiv ||
-					field == OrderCapacity || field == OrderRestrictions || field == CustOrderCapacity || field == ForexReq ||
-					field == SettlCurrency || field == BookingType || field == Text || field == EncodedTextLen ||
-					field == EncodedText || field == PositionEffect || field == CoveredOrUncovered || field == CashMargin ||
-					field == ClearingFeeIndicator || field == SolicitedFlag || field == SideComplianceID;
+				return tag is 1 or 11 or 12 or 13 or 38 or 54 or 58 or 70 or 75 or 77 or 78 or 79 or 80 or 120 or 121 or 152 or
+					203 or 229 or 354 or 355 or 377 or 447 or 448 or 452 or 453 or 467 or 468 or 469 or 479 or 497 or 516 or 523 or
+					524 or 525 or 526 or 528 or 529 or 538 or 539 or 544 or 545 or 581 or 582 or 583 or 589 or 590 or 591 or 635 or
+					659 or 660 or 661 or 736 or 775 or 802 or 803 or 804 or 805 or 854;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Parties(this, tag, position, out step) ??
+					FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step);
 			}
 		}
 
@@ -25300,26 +25685,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -25461,20 +25839,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -25492,10 +25868,30 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoSidesGroups, FixTag.NoSides, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -26821,13 +27217,17 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Side;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Side || field == OrigClOrdID || field == ClOrdID || field == SecondaryClOrdID ||
-					field == ClOrdLinkID || field == OrigOrdModTime || field == NoPartyIDs || field == TradeOriginationDate ||
-					field == TradeDate || field == OrderQty || field == CashOrderQty || field == OrderPercent ||
-					field == RoundingDirection || field == RoundingModulus || field == ComplianceID || field == Text ||
-					field == EncodedTextLen || field == EncodedText;
+				return tag is 11 or 38 or 41 or 54 or 58 or 75 or 152 or 229 or 354 or 355 or 376 or 447 or 448 or 452 or 453 or
+					468 or 469 or 516 or 523 or 526 or 583 or 586 or 802 or 803;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Parties(this, tag, position, out step);
 			}
 		}
 
@@ -26988,26 +27388,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -27149,21 +27542,28 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoSidesGroups, FixTag.NoSides, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -28711,42 +29111,47 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 				public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-						field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-						field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-						field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-						field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor ||
-						field == LegCreditRating || field == LegInstrRegistry || field == LegCountryOfIssue ||
-						field == LegStateOrProvinceOfIssue || field == LegLocaleOfIssue || field == LegRedemptionDate ||
-						field == LegStrikePrice || field == LegStrikeCurrency || field == LegOptAttribute ||
-						field == LegContractMultiplier || field == LegCouponRate || field == LegSecurityExchange ||
-						field == LegIssuer || field == EncodedLegIssuerLen || field == EncodedLegIssuer ||
-						field == LegSecurityDesc || field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc ||
-						field == LegRatioQty || field == LegSide || field == LegCurrency || field == LegPool ||
-						field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+					return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+						601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or
+						616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.InstrumentLeg(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate || field == Currency || field == ExpirationCycle ||
-					field == DeliveryForm || field == PctAtRisk || field == NoInstrAttrib || field == NoLegs ||
-					field == TradingSessionID || field == TradingSessionSubID || field == Text || field == EncodedTextLen ||
-					field == EncodedText;
+				return tag is 15 or 22 or 48 or 55 or 58 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 206 or 207 or 223 or
+					224 or 225 or 226 or 227 or 228 or 231 or 239 or 240 or 248 or 249 or 250 or 251 or 252 or 253 or 254 or 255 or
+					257 or 336 or 348 or 349 or 350 or 351 or 354 or 355 or 454 or 455 or 456 or 460 or 461 or 470 or 471 or 472 or
+					541 or 543 or 555 or 556 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or
+					608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or
+					624 or 625 or 667 or 668 or 691 or 739 or 740 or 762 or 764 or 827 or 864 or 865 or 866 or 867 or 868 or 869 or
+					870 or 871 or 872 or 873 or 874 or 875 or 876 or 942 or 947 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step) ??
+					FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+					FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.UnderlyingInstrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -29034,6 +29439,12 @@ public abstract partial class FixMessage
 
 		/// <summary>The FIX SubscriptionRequestType, tag 263, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? SubscriptionRequestType { get; internal set; }
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix44Context context, FixCheck check)
@@ -30275,26 +30686,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -30436,21 +30840,27 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -31764,9 +32174,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RoutingType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RoutingType || field == RoutingID;
+				return tag is 216 or 217;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -31915,20 +32334,19 @@ public abstract partial class FixMessage
 			/// <summary>The FIX InterestAccrualDate, tag 874, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? InterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate;
+				return tag is 22 or 48 or 55 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or 225 or
+					226 or 227 or 228 or 231 or 239 or 240 or 255 or 348 or 349 or 350 or 351 or 454 or 455 or 456 or 460 or 461 or
+					470 or 471 or 472 or 541 or 543 or 667 or 691 or 762 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or
+					876 or 947;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step);
 			}
 		}
 
@@ -32089,26 +32507,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -32250,20 +32661,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -32284,10 +32693,29 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Text;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Text || field == EncodedTextLen || field == EncodedText;
+				return tag is 58 or 354 or 355;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRoutingIDsGroups, FixTag.NoRoutingIDs, tag, position, out step) ??
+				FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(LinesOfTextGroups, FixTag.NoLinesOfText, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -34360,10 +34788,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ContraLegRefID, tag 655, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? ContraLegRefID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ContraBroker;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ContraBroker || field == ContraTrader || field == ContraTradeQty || field == ContraTradeTime ||
-					field == ContraLegRefID;
+				return tag is 337 or 375 or 437 or 438 or 655;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -34524,26 +34960,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -34564,9 +34993,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX ContAmtCurr, tag 521, wire type <c>Currency</c>; null when the field is absent.</summary>
 			public FixField.Text? ContAmtCurr { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ContAmtType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ContAmtType || field == ContAmtValue || field == ContAmtCurr;
+				return tag is 519 or 520 or 521;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -34749,23 +35187,22 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegLastPx, tag 637, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? LegLastPx { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth ||
-					field == LegInterestAccrualDate || field == LegQty || field == LegSwapType || field == NoLegStipulations ||
-					field == LegPositionEffect || field == LegCoveredOrUncovered || field == NoNestedPartyIDs ||
-					field == LegRefID || field == LegPrice || field == LegSettlType || field == LegSettlDate || field == LegLastPx;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+					564 or 565 or 566 or 587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or
+					607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or
+					623 or 624 or 637 or 654 or 683 or 687 or 688 or 689 or 690 or 739 or 740 or 764 or 804 or 805 or 942 or 955 or
+					956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+					FixBlocks.LegStipulations(this, tag, position, out step) ??
+					FixBlocks.NestedParties(this, tag, position, out step);
 			}
 		}
 
@@ -34789,10 +35226,32 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MiscFeeBasis, tag 891, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? MiscFeeBasis { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MiscFeeAmt;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType || field == MiscFeeBasis;
+				return tag is 137 or 138 or 139 or 891;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoContraBrokersGroups, FixTag.NoContraBrokers, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixEntries.Holding(NoContAmtsGroups, FixTag.NoContAmts, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -36272,26 +36731,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -36443,21 +36895,20 @@ public abstract partial class FixMessage
 			public List<ILegStipulations.NoLegStipulationsGroup>? NoLegStipulationsGroups => noLegStipulationsGroups;
 			internal List<ILegStipulations.NoLegStipulationsGroup>? noLegStipulationsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth ||
-					field == LegInterestAccrualDate || field == LegIOIQty || field == NoLegStipulations;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 682 or 683 or 688 or 689 or 739 or 740 or 764 or 942 or
+					955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+					FixBlocks.LegStipulations(this, tag, position, out step);
 			}
 		}
 
@@ -36472,9 +36923,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX IOIQualifier, tag 104, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Character IOIQualifier { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => IOIQualifier;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == IOIQualifier;
+				return tag is 104;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -36492,10 +36952,30 @@ public abstract partial class FixMessage
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RoutingType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RoutingType || field == RoutingID;
+				return tag is 216 or 217;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoIOIQualifiersGroups, FixTag.NoIOIQualifiers, tag, position, out step) ??
+				FixEntries.Holding(NoRoutingIDsGroups, FixTag.NoRoutingIDs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -36820,12 +37300,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ClOrdID || field == SecondaryClOrdID || field == CumQty || field == OrdStatus ||
-					field == WorkingIndicator || field == LeavesQty || field == CxlQty || field == AvgPx || field == OrdRejReason ||
-					field == Text || field == EncodedTextLen || field == EncodedText;
+				return tag is 6 or 11 or 14 or 39 or 58 or 84 or 103 or 151 or 354 or 355 or 526 or 636;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoOrdersGroups, FixTag.NoOrders, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -37949,20 +38442,19 @@ public abstract partial class FixMessage
 			/// <summary>The FIX InterestAccrualDate, tag 874, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? InterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate;
+				return tag is 22 or 48 or 55 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or 225 or
+					226 or 227 or 228 or 231 or 239 or 240 or 255 or 348 or 349 or 350 or 351 or 454 or 455 or 456 or 460 or 461 or
+					470 or 471 or 472 or 541 or 543 or 667 or 691 or 762 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or
+					876 or 947;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step);
 			}
 		}
 
@@ -38150,29 +38642,27 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips || field == PrevClosePx || field == ClOrdID ||
-					field == SecondaryClOrdID || field == Side || field == Price || field == Currency || field == Text ||
-					field == EncodedTextLen || field == EncodedText;
+				return tag is 11 or 15 or 44 or 54 or 58 or 140 or 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or
+					306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 315 or 316 or 317 or 318 or 354 or 355 or 362 or 363 or
+					364 or 365 or 435 or 436 or 457 or 458 or 459 or 462 or 463 or 526 or 542 or 592 or 593 or 594 or 595 or 763 or
+					810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or 886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoStrikesGroups, FixTag.NoStrikes, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -38275,10 +38765,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MsgDirection, tag 385, wire type <c>char</c>; null when the field is absent.</summary>
 			public FixField.Character? MsgDirection { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RefMsgType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RefMsgType || field == MsgDirection;
+				return tag is 372 or 385;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoMsgTypesGroups, FixTag.NoMsgTypes, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -40492,26 +40997,19 @@ public abstract partial class FixMessage
 				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 				internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => UnderlyingSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-						field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-						field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-						field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-						field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-						field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-						field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-						field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-						field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-						field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-						field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-						field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-						field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-						field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-						field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-						field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-						field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-						field == UnderlyingEndValue || field == NoUnderlyingStips;
+					return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+						311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or
+						459 or 462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or
+						884 or 885 or 886 or 887 or 888 or 889 or 941;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 				}
 			}
 
@@ -40653,49 +41151,51 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 				public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-						field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-						field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-						field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-						field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor ||
-						field == LegCreditRating || field == LegInstrRegistry || field == LegCountryOfIssue ||
-						field == LegStateOrProvinceOfIssue || field == LegLocaleOfIssue || field == LegRedemptionDate ||
-						field == LegStrikePrice || field == LegStrikeCurrency || field == LegOptAttribute ||
-						field == LegContractMultiplier || field == LegCouponRate || field == LegSecurityExchange ||
-						field == LegIssuer || field == EncodedLegIssuerLen || field == EncodedLegIssuer ||
-						field == LegSecurityDesc || field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc ||
-						field == LegRatioQty || field == LegSide || field == LegCurrency || field == LegPool ||
-						field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+					return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+						601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or
+						616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.InstrumentLeg(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MDUpdateAction;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MDUpdateAction || field == DeleteReason || field == MDEntryType || field == MDEntryID ||
-					field == MDEntryRefID || field == Symbol || field == SymbolSfx || field == SecurityID ||
-					field == SecurityIDSource || field == NoSecurityAltID || field == Product || field == CFICode ||
-					field == SecurityType || field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate ||
-					field == PutOrCall || field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate || field == NoUnderlyings || field == NoLegs ||
-					field == FinancialStatus || field == CorporateAction || field == MDEntryPx || field == Currency ||
-					field == MDEntrySize || field == MDEntryDate || field == MDEntryTime || field == TickDirection ||
-					field == MDMkt || field == TradingSessionID || field == TradingSessionSubID || field == QuoteCondition ||
-					field == TradeCondition || field == MDEntryOriginator || field == LocationID || field == DeskID ||
-					field == OpenCloseSettlFlag || field == TimeInForce || field == ExpireDate || field == ExpireTime ||
-					field == MinQty || field == ExecInst || field == SellerDays || field == OrderID || field == QuoteEntryID ||
-					field == MDEntryBuyer || field == MDEntrySeller || field == NumberOfOrders || field == MDEntryPositionNo ||
-					field == Scope || field == PriceDelta || field == NetChgPrevDay || field == Text || field == EncodedTextLen ||
-					field == EncodedText;
+				return tag is 15 or 18 or 22 or 37 or 48 or 55 or 58 or 59 or 65 or 106 or 107 or 110 or 126 or 167 or 200 or 201 or
+					202 or 206 or 207 or 223 or 224 or 225 or 226 or 227 or 228 or 231 or 239 or 240 or 241 or 242 or 243 or 244 or
+					245 or 246 or 247 or 248 or 249 or 250 or 251 or 252 or 253 or 254 or 255 or 256 or 257 or 269 or 270 or 271 or
+					272 or 273 or 274 or 275 or 276 or 277 or 278 or 279 or 280 or 282 or 283 or 284 or 285 or 286 or 287 or 288 or
+					289 or 290 or 291 or 292 or 299 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 315 or 316 or
+					317 or 318 or 336 or 346 or 348 or 349 or 350 or 351 or 354 or 355 or 362 or 363 or 364 or 365 or 432 or 435 or
+					436 or 451 or 454 or 455 or 456 or 457 or 458 or 459 or 460 or 461 or 462 or 463 or 470 or 471 or 472 or 541 or
+					542 or 543 or 546 or 555 or 556 or 592 or 593 or 594 or 595 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or
+					603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or
+					619 or 620 or 621 or 622 or 623 or 624 or 625 or 667 or 691 or 711 or 739 or 740 or 762 or 763 or 764 or 810 or
+					811 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or 876 or 877 or 878 or 879 or 882 or 883 or 884 or
+					885 or 886 or 887 or 888 or 889 or 941 or 942 or 947 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step) ??
+					FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+					FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoMDEntriesGroups, FixTag.NoMDEntries, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -42186,9 +42686,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX MDEntryType, tag 269, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Character MDEntryType { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MDEntryType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MDEntryType;
+				return tag is 269;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -42508,26 +43017,19 @@ public abstract partial class FixMessage
 				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 				internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => UnderlyingSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-						field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-						field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-						field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-						field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-						field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-						field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-						field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-						field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-						field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-						field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-						field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-						field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-						field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-						field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-						field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-						field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-						field == UnderlyingEndValue || field == NoUnderlyingStips;
+					return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+						311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or
+						459 or 462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or
+						884 or 885 or 886 or 887 or 888 or 889 or 941;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 				}
 			}
 
@@ -42669,38 +43171,42 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 				public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-						field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-						field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-						field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-						field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor ||
-						field == LegCreditRating || field == LegInstrRegistry || field == LegCountryOfIssue ||
-						field == LegStateOrProvinceOfIssue || field == LegLocaleOfIssue || field == LegRedemptionDate ||
-						field == LegStrikePrice || field == LegStrikeCurrency || field == LegOptAttribute ||
-						field == LegContractMultiplier || field == LegCouponRate || field == LegSecurityExchange ||
-						field == LegIssuer || field == EncodedLegIssuerLen || field == EncodedLegIssuer ||
-						field == LegSecurityDesc || field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc ||
-						field == LegRatioQty || field == LegSide || field == LegCurrency || field == LegPool ||
-						field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+					return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+						601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or
+						616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.InstrumentLeg(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate || field == NoUnderlyings || field == NoLegs;
+				return tag is 22 or 48 or 55 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or 225 or
+					226 or 227 or 228 or 231 or 239 or 240 or 241 or 242 or 243 or 244 or 245 or 246 or 247 or 248 or 249 or 250 or
+					251 or 252 or 253 or 254 or 255 or 256 or 257 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or
+					315 or 316 or 317 or 318 or 348 or 349 or 350 or 351 or 362 or 363 or 364 or 365 or 435 or 436 or 454 or 455 or
+					456 or 457 or 458 or 459 or 460 or 461 or 462 or 463 or 470 or 471 or 472 or 541 or 542 or 543 or 555 or 556 or
+					592 or 593 or 594 or 595 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or
+					608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or
+					624 or 667 or 691 or 711 or 739 or 740 or 762 or 763 or 764 or 810 or 864 or 865 or 866 or 867 or 868 or 873 or
+					874 or 875 or 876 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or 886 or 887 or 888 or 889 or 941 or 942 or
+					947 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step) ??
+					FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+					FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 			}
 		}
 
@@ -42718,10 +43224,27 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoMDEntryTypesGroups, FixTag.NoMDEntryTypes, tag, position, out step) ??
+				FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -42793,10 +43316,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AltMDSourceID, tag 817, wire type <c>String</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Text AltMDSourceID { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AltMDSourceID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AltMDSourceID;
+				return tag is 817;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoAltMDSourceGroups, FixTag.NoAltMDSource, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -44271,26 +44809,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -44432,20 +44963,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -44556,17 +45085,30 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => MDEntryType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == MDEntryType || field == MDEntryPx || field == Currency || field == MDEntrySize ||
-					field == MDEntryDate || field == MDEntryTime || field == TickDirection || field == MDMkt ||
-					field == TradingSessionID || field == TradingSessionSubID || field == QuoteCondition ||
-					field == TradeCondition || field == MDEntryOriginator || field == LocationID || field == DeskID ||
-					field == OpenCloseSettlFlag || field == TimeInForce || field == ExpireDate || field == ExpireTime ||
-					field == MinQty || field == ExecInst || field == SellerDays || field == OrderID || field == QuoteEntryID ||
-					field == MDEntryBuyer || field == MDEntrySeller || field == NumberOfOrders || field == MDEntryPositionNo ||
-					field == Scope || field == PriceDelta || field == Text || field == EncodedTextLen || field == EncodedText;
+				return tag is 15 or 18 or 37 or 58 or 59 or 110 or 126 or 269 or 270 or 271 or 272 or 273 or 274 or 275 or 276 or
+					277 or 282 or 283 or 284 or 286 or 287 or 288 or 289 or 290 or 299 or 336 or 346 or 354 or 355 or 432 or 546 or
+					625 or 811;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoMDEntriesGroups, FixTag.NoMDEntries, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -46961,70 +47503,72 @@ public abstract partial class FixMessage
 					/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 					public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-					bool IFixEntry.Holds(FixField field)
+					FixField IFixEntry.Opener => LegSymbol;
+
+					bool IFixEntry.Has(int tag)
 					{
-						return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID ||
-							field == LegSecurityIDSource || field == NoLegSecurityAltID || field == LegProduct ||
-							field == LegCFICode || field == LegSecurityType || field == LegSecuritySubType ||
-							field == LegMaturityMonthYear || field == LegMaturityDate || field == LegCouponPaymentDate ||
-							field == LegIssueDate || field == LegRepoCollateralSecurityType || field == LegRepurchaseTerm ||
-							field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-							field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-							field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-							field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-							field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer ||
-							field == EncodedLegIssuerLen || field == EncodedLegIssuer || field == LegSecurityDesc ||
-							field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc || field == LegRatioQty ||
-							field == LegSide || field == LegCurrency || field == LegPool || field == LegDatedDate ||
-							field == LegContractSettlMonth || field == LegInterestAccrualDate;
+						return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or
+							600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or
+							615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or
+							956;
+					}
+
+					IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+					{
+						return FixBlocks.InstrumentLeg(this, tag, position, out step);
 					}
 				}
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => QuoteEntryID;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == QuoteEntryID || field == Symbol || field == SymbolSfx || field == SecurityID ||
-						field == SecurityIDSource || field == NoSecurityAltID || field == Product || field == CFICode ||
-						field == SecurityType || field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate ||
-						field == PutOrCall || field == CouponPaymentDate || field == IssueDate ||
-						field == RepoCollateralSecurityType || field == RepurchaseTerm || field == RepurchaseRate ||
-						field == Factor || field == CreditRating || field == InstrRegistry || field == CountryOfIssue ||
-						field == StateOrProvinceOfIssue || field == LocaleOfIssue || field == RedemptionDate ||
-						field == StrikePrice || field == StrikeCurrency || field == OptAttribute || field == ContractMultiplier ||
-						field == CouponRate || field == SecurityExchange || field == Issuer || field == EncodedIssuerLen ||
-						field == EncodedIssuer || field == SecurityDesc || field == EncodedSecurityDescLen ||
-						field == EncodedSecurityDesc || field == Pool || field == ContractSettlMonth || field == CPProgram ||
-						field == CPRegType || field == NoEvents || field == DatedDate || field == InterestAccrualDate ||
-						field == NoLegs || field == BidPx || field == OfferPx || field == BidSize || field == OfferSize ||
-						field == ValidUntilTime || field == BidSpotRate || field == OfferSpotRate || field == BidForwardPoints ||
-						field == OfferForwardPoints || field == MidPx || field == BidYield || field == MidYield ||
-						field == OfferYield || field == TransactTime || field == TradingSessionID || field == TradingSessionSubID ||
-						field == SettlDate || field == OrdType || field == SettlDate2 || field == OrderQty2 ||
-						field == BidForwardPoints2 || field == OfferForwardPoints2 || field == Currency;
+					return tag is 15 or 22 or 40 or 48 or 55 or 60 or 62 or 64 or 65 or 106 or 107 or 132 or 133 or 134 or 135 or
+						167 or 188 or 189 or 190 or 191 or 192 or 193 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or 225 or
+						226 or 227 or 228 or 231 or 239 or 240 or 248 or 249 or 250 or 251 or 252 or 253 or 254 or 255 or 257 or
+						299 or 336 or 348 or 349 or 350 or 351 or 454 or 455 or 456 or 460 or 461 or 470 or 471 or 472 or 541 or
+						543 or 555 or 556 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or
+						608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or
+						623 or 624 or 625 or 631 or 632 or 633 or 634 or 642 or 643 or 667 or 691 or 739 or 740 or 762 or 764 or
+						864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or 876 or 942 or 947 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.Instrument(this, tag, position, out step) ??
+						FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => QuoteSetID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == QuoteSetID || field == UnderlyingSymbol || field == UnderlyingSymbolSfx ||
-					field == UnderlyingSecurityID || field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID ||
-					field == UnderlyingProduct || field == UnderlyingCFICode || field == UnderlyingSecurityType ||
-					field == UnderlyingSecuritySubType || field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate ||
-					field == UnderlyingPutOrCall || field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips || field == QuoteSetValidUntilTime ||
-					field == TotNoQuoteEntries || field == LastFragment || field == NoQuoteEntries;
+				return tag is 15 or 22 or 40 or 48 or 55 or 60 or 62 or 64 or 65 or 106 or 107 or 132 or 133 or 134 or 135 or 167 or
+					188 or 189 or 190 or 191 or 192 or 193 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or 225 or 226 or 227 or
+					228 or 231 or 239 or 240 or 241 or 242 or 243 or 244 or 245 or 246 or 247 or 248 or 249 or 250 or 251 or 252 or
+					253 or 254 or 255 or 256 or 257 or 295 or 299 or 302 or 304 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or
+					312 or 313 or 315 or 316 or 317 or 318 or 336 or 348 or 349 or 350 or 351 or 362 or 363 or 364 or 365 or 367 or
+					435 or 436 or 454 or 455 or 456 or 457 or 458 or 459 or 460 or 461 or 462 or 463 or 470 or 471 or 472 or 541 or
+					542 or 543 or 555 or 556 or 592 or 593 or 594 or 595 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or
+					604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or
+					620 or 621 or 622 or 623 or 624 or 625 or 631 or 632 or 633 or 634 or 642 or 643 or 667 or 691 or 739 or 740 or
+					762 or 763 or 764 or 810 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or 876 or 877 or 878 or 879 or
+					882 or 883 or 884 or 885 or 886 or 887 or 888 or 889 or 893 or 941 or 942 or 947 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step) ??
+					FixEntries.Holding(NoQuoteEntriesGroups, FixTag.NoQuoteEntries, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoQuoteSetsGroups, FixTag.NoQuoteSets, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -49433,71 +49977,72 @@ public abstract partial class FixMessage
 					/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 					public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-					bool IFixEntry.Holds(FixField field)
+					FixField IFixEntry.Opener => LegSymbol;
+
+					bool IFixEntry.Has(int tag)
 					{
-						return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID ||
-							field == LegSecurityIDSource || field == NoLegSecurityAltID || field == LegProduct ||
-							field == LegCFICode || field == LegSecurityType || field == LegSecuritySubType ||
-							field == LegMaturityMonthYear || field == LegMaturityDate || field == LegCouponPaymentDate ||
-							field == LegIssueDate || field == LegRepoCollateralSecurityType || field == LegRepurchaseTerm ||
-							field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-							field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-							field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-							field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-							field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer ||
-							field == EncodedLegIssuerLen || field == EncodedLegIssuer || field == LegSecurityDesc ||
-							field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc || field == LegRatioQty ||
-							field == LegSide || field == LegCurrency || field == LegPool || field == LegDatedDate ||
-							field == LegContractSettlMonth || field == LegInterestAccrualDate;
+						return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or
+							600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or
+							615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or
+							956;
+					}
+
+					IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+					{
+						return FixBlocks.InstrumentLeg(this, tag, position, out step);
 					}
 				}
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => QuoteEntryID;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == QuoteEntryID || field == Symbol || field == SymbolSfx || field == SecurityID ||
-						field == SecurityIDSource || field == NoSecurityAltID || field == Product || field == CFICode ||
-						field == SecurityType || field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate ||
-						field == PutOrCall || field == CouponPaymentDate || field == IssueDate ||
-						field == RepoCollateralSecurityType || field == RepurchaseTerm || field == RepurchaseRate ||
-						field == Factor || field == CreditRating || field == InstrRegistry || field == CountryOfIssue ||
-						field == StateOrProvinceOfIssue || field == LocaleOfIssue || field == RedemptionDate ||
-						field == StrikePrice || field == StrikeCurrency || field == OptAttribute || field == ContractMultiplier ||
-						field == CouponRate || field == SecurityExchange || field == Issuer || field == EncodedIssuerLen ||
-						field == EncodedIssuer || field == SecurityDesc || field == EncodedSecurityDescLen ||
-						field == EncodedSecurityDesc || field == Pool || field == ContractSettlMonth || field == CPProgram ||
-						field == CPRegType || field == NoEvents || field == DatedDate || field == InterestAccrualDate ||
-						field == NoLegs || field == BidPx || field == OfferPx || field == BidSize || field == OfferSize ||
-						field == ValidUntilTime || field == BidSpotRate || field == OfferSpotRate || field == BidForwardPoints ||
-						field == OfferForwardPoints || field == MidPx || field == BidYield || field == MidYield ||
-						field == OfferYield || field == TransactTime || field == TradingSessionID || field == TradingSessionSubID ||
-						field == SettlDate || field == OrdType || field == SettlDate2 || field == OrderQty2 ||
-						field == BidForwardPoints2 || field == OfferForwardPoints2 || field == Currency ||
-						field == QuoteEntryRejectReason;
+					return tag is 15 or 22 or 40 or 48 or 55 or 60 or 62 or 64 or 65 or 106 or 107 or 132 or 133 or 134 or 135 or
+						167 or 188 or 189 or 190 or 191 or 192 or 193 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or 225 or
+						226 or 227 or 228 or 231 or 239 or 240 or 248 or 249 or 250 or 251 or 252 or 253 or 254 or 255 or 257 or
+						299 or 336 or 348 or 349 or 350 or 351 or 368 or 454 or 455 or 456 or 460 or 461 or 470 or 471 or 472 or
+						541 or 543 or 555 or 556 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or
+						607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or
+						622 or 623 or 624 or 625 or 631 or 632 or 633 or 634 or 642 or 643 or 667 or 691 or 739 or 740 or 762 or
+						764 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or 876 or 942 or 947 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.Instrument(this, tag, position, out step) ??
+						FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => QuoteSetID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == QuoteSetID || field == UnderlyingSymbol || field == UnderlyingSymbolSfx ||
-					field == UnderlyingSecurityID || field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID ||
-					field == UnderlyingProduct || field == UnderlyingCFICode || field == UnderlyingSecurityType ||
-					field == UnderlyingSecuritySubType || field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate ||
-					field == UnderlyingPutOrCall || field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips || field == TotNoQuoteEntries ||
-					field == LastFragment || field == NoQuoteEntries;
+				return tag is 15 or 22 or 40 or 48 or 55 or 60 or 62 or 64 or 65 or 106 or 107 or 132 or 133 or 134 or 135 or 167 or
+					188 or 189 or 190 or 191 or 192 or 193 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or 225 or 226 or 227 or
+					228 or 231 or 239 or 240 or 241 or 242 or 243 or 244 or 245 or 246 or 247 or 248 or 249 or 250 or 251 or 252 or
+					253 or 254 or 255 or 256 or 257 or 295 or 299 or 302 or 304 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or
+					312 or 313 or 315 or 316 or 317 or 318 or 336 or 348 or 349 or 350 or 351 or 362 or 363 or 364 or 365 or 368 or
+					435 or 436 or 454 or 455 or 456 or 457 or 458 or 459 or 460 or 461 or 462 or 463 or 470 or 471 or 472 or 541 or
+					542 or 543 or 555 or 556 or 592 or 593 or 594 or 595 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or
+					604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or
+					620 or 621 or 622 or 623 or 624 or 625 or 631 or 632 or 633 or 634 or 642 or 643 or 667 or 691 or 739 or 740 or
+					762 or 763 or 764 or 810 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or 876 or 877 or 878 or 879 or
+					882 or 883 or 884 or 885 or 886 or 887 or 888 or 889 or 893 or 941 or 942 or 947 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step) ??
+					FixEntries.Holding(NoQuoteEntriesGroups, FixTag.NoQuoteEntries, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoQuoteSetsGroups, FixTag.NoQuoteSets, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -51388,10 +51933,16 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocAcctIDSource || field == AllocSettlCurrency ||
-					field == IndividualAllocID || field == NoNested3PartyIDs || field == AllocQty;
+				return tag is 79 or 80 or 467 or 661 or 736 or 948 or 949 or 950 or 951 or 952 or 953 or 954;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties3(this, tag, position, out step);
 			}
 		}
 
@@ -51409,9 +51960,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -51572,26 +52132,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -51808,32 +52361,48 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegSettlCurrency, tag 675, wire type <c>Currency</c>; null when the field is absent.</summary>
 				public FixField.Text? LegSettlCurrency { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegAllocAccount;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegAllocAccount || field == LegIndividualAllocID || field == NoNested2PartyIDs ||
-						field == LegAllocQty || field == LegAllocAcctIDSource || field == LegSettlCurrency;
+					return tag is 671 or 672 or 673 or 674 or 675 or 756 or 757 or 758 or 759 or 760 or 806 or 807;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.NestedParties2(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth ||
-					field == LegInterestAccrualDate || field == LegQty || field == LegSwapType || field == NoLegStipulations ||
-					field == NoLegAllocs || field == LegPositionEffect || field == LegCoveredOrUncovered ||
-					field == NoNestedPartyIDs || field == LegRefID || field == LegPrice || field == LegSettlType ||
-					field == LegSettlDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+					564 or 565 or 566 or 587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or
+					607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or
+					623 or 624 or 654 or 670 or 671 or 672 or 673 or 674 or 675 or 683 or 687 or 688 or 689 or 690 or 739 or 740 or
+					756 or 757 or 758 or 759 or 760 or 764 or 804 or 805 or 806 or 807 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+					FixBlocks.LegStipulations(this, tag, position, out step) ??
+					FixEntries.Holding(NoLegAllocsGroups, FixTag.NoLegAllocs, tag, position, out step) ??
+					FixBlocks.NestedParties(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -51926,10 +52495,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX DeskID, tag 284, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? DeskID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RefCompID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RefCompID || field == RefSubID || field == LocationID || field == DeskID;
+				return tag is 283 or 284 or 930 or 931;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoCompIDsGroups, FixTag.NoCompIDs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -52052,11 +52636,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX StatusText, tag 929, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? StatusText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RefCompID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RefCompID || field == RefSubID || field == LocationID || field == DeskID || field == StatusValue ||
-					field == StatusText;
+				return tag is 283 or 284 or 928 or 929 or 930 or 931;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoCompIDsGroups, FixTag.NoCompIDs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -54055,25 +54653,33 @@ public abstract partial class FixMessage
 				/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocQty { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => AllocAccount;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == AllocAccount || field == AllocAcctIDSource || field == AllocSettlCurrency ||
-						field == IndividualAllocID || field == NoNestedPartyIDs || field == AllocQty;
+					return tag is 79 or 80 or 467 or 524 or 525 or 538 or 539 or 545 or 661 or 736 or 804 or 805;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.NestedParties(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Side;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Side || field == ClOrdID || field == SecondaryClOrdID || field == ClOrdLinkID ||
-					field == NoPartyIDs || field == TradeOriginationDate || field == TradeDate || field == Account ||
-					field == AcctIDSource || field == AccountType || field == DayBookingInst || field == BookingUnit ||
-					field == PreallocMethod || field == AllocID || field == NoAllocs || field == QtyType || field == OrderQty ||
-					field == CashOrderQty || field == OrderPercent || field == RoundingDirection || field == RoundingModulus ||
-					field == Commission || field == CommType || field == CommCurrency || field == FundRenewWaiv ||
-					field == OrderCapacity || field == OrderRestrictions || field == CustOrderCapacity || field == ForexReq ||
-					field == SettlCurrency || field == BookingType || field == Text || field == EncodedTextLen ||
-					field == EncodedText || field == PositionEffect || field == CoveredOrUncovered || field == CashMargin ||
-					field == ClearingFeeIndicator || field == SolicitedFlag || field == SideComplianceID;
+				return tag is 1 or 11 or 12 or 13 or 38 or 54 or 58 or 70 or 75 or 77 or 78 or 79 or 80 or 120 or 121 or 152 or
+					203 or 229 or 354 or 355 or 377 or 447 or 448 or 452 or 453 or 467 or 468 or 469 or 479 or 497 or 516 or 523 or
+					524 or 525 or 526 or 528 or 529 or 538 or 539 or 544 or 545 or 581 or 582 or 583 or 589 or 590 or 591 or 635 or
+					659 or 660 or 661 or 736 or 775 or 802 or 803 or 804 or 805 or 854;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Parties(this, tag, position, out step) ??
+					FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step);
 			}
 		}
 
@@ -54234,26 +54840,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -54395,20 +54994,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -54426,10 +55023,30 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoSidesGroups, FixTag.NoSides, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -57023,10 +57640,16 @@ public abstract partial class FixMessage
 				/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocQty { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => AllocAccount;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == AllocAccount || field == AllocAcctIDSource || field == AllocSettlCurrency ||
-						field == IndividualAllocID || field == NoNestedPartyIDs || field == AllocQty;
+					return tag is 79 or 80 or 467 or 524 or 525 or 538 or 539 or 545 or 661 or 736 or 804 or 805;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.NestedParties(this, tag, position, out step);
 				}
 			}
 
@@ -57044,9 +57667,18 @@ public abstract partial class FixMessage
 				/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 				public FixField.Text? TradingSessionSubID { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => TradingSessionID;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == TradingSessionID || field == TradingSessionSubID;
+					return tag is 336 or 625;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
@@ -57207,70 +57839,57 @@ public abstract partial class FixMessage
 				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 				internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => UnderlyingSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-						field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-						field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-						field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-						field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-						field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-						field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-						field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-						field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-						field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-						field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-						field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-						field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-						field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-						field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-						field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-						field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-						field == UnderlyingEndValue || field == NoUnderlyingStips;
+					return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+						311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or
+						459 or 462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or
+						884 or 885 or 886 or 887 or 888 or 889 or 941;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => ClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == ClOrdID || field == SecondaryClOrdID || field == ListSeqNo || field == ClOrdLinkID ||
-					field == SettlInstMode || field == NoPartyIDs || field == TradeOriginationDate || field == TradeDate ||
-					field == Account || field == AcctIDSource || field == AccountType || field == DayBookingInst ||
-					field == BookingUnit || field == AllocID || field == PreallocMethod || field == NoAllocs ||
-					field == SettlType || field == SettlDate || field == CashMargin || field == ClearingFeeIndicator ||
-					field == HandlInst || field == ExecInst || field == MinQty || field == MaxFloor || field == ExDestination ||
-					field == NoTradingSessions || field == ProcessCode || field == Symbol || field == SymbolSfx ||
-					field == SecurityID || field == SecurityIDSource || field == NoSecurityAltID || field == Product ||
-					field == CFICode || field == SecurityType || field == SecuritySubType || field == MaturityMonthYear ||
-					field == MaturityDate || field == PutOrCall || field == CouponPaymentDate || field == IssueDate ||
-					field == RepoCollateralSecurityType || field == RepurchaseTerm || field == RepurchaseRate || field == Factor ||
-					field == CreditRating || field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate || field == NoUnderlyings || field == PrevClosePx ||
-					field == Side || field == SideValueInd || field == LocateReqd || field == TransactTime ||
-					field == NoStipulations || field == QtyType || field == OrderQty || field == CashOrderQty ||
-					field == OrderPercent || field == RoundingDirection || field == RoundingModulus || field == OrdType ||
-					field == PriceType || field == Price || field == StopPx || field == Spread || field == BenchmarkCurveCurrency ||
-					field == BenchmarkCurveName || field == BenchmarkCurvePoint || field == BenchmarkPrice ||
-					field == BenchmarkPriceType || field == BenchmarkSecurityID || field == BenchmarkSecurityIDSource ||
-					field == YieldType || field == Yield || field == YieldCalcDate || field == YieldRedemptionDate ||
-					field == YieldRedemptionPrice || field == YieldRedemptionPriceType || field == Currency ||
-					field == ComplianceID || field == SolicitedFlag || field == IOIid || field == QuoteID || field == TimeInForce ||
-					field == EffectiveTime || field == ExpireDate || field == ExpireTime || field == GTBookingInst ||
-					field == Commission || field == CommType || field == CommCurrency || field == FundRenewWaiv ||
-					field == OrderCapacity || field == OrderRestrictions || field == CustOrderCapacity || field == ForexReq ||
-					field == SettlCurrency || field == BookingType || field == Text || field == EncodedTextLen ||
-					field == EncodedText || field == SettlDate2 || field == OrderQty2 || field == Price2 ||
-					field == PositionEffect || field == CoveredOrUncovered || field == MaxShow || field == PegOffsetValue ||
-					field == PegMoveType || field == PegOffsetType || field == PegLimitType || field == PegRoundDirection ||
-					field == PegScope || field == DiscretionInst || field == DiscretionOffsetValue || field == DiscretionMoveType ||
-					field == DiscretionOffsetType || field == DiscretionLimitType || field == DiscretionRoundDirection ||
-					field == DiscretionScope || field == TargetStrategy || field == TargetStrategyParameters ||
-					field == ParticipationRate || field == Designation;
+				return tag is 1 or 11 or 12 or 13 or 15 or 18 or 21 or 22 or 23 or 38 or 40 or 44 or 48 or 54 or 55 or 58 or 59 or
+					60 or 63 or 64 or 65 or 67 or 70 or 75 or 77 or 78 or 79 or 80 or 81 or 99 or 100 or 106 or 107 or 110 or 111 or
+					114 or 117 or 120 or 121 or 126 or 140 or 152 or 160 or 167 or 168 or 192 or 193 or 200 or 201 or 202 or 203 or
+					206 or 207 or 210 or 211 or 218 or 220 or 221 or 222 or 223 or 224 or 225 or 226 or 227 or 228 or 229 or 231 or
+					232 or 233 or 234 or 235 or 236 or 239 or 240 or 241 or 242 or 243 or 244 or 245 or 246 or 247 or 255 or 256 or
+					305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 315 or 316 or 317 or 318 or 336 or 348 or 349 or
+					350 or 351 or 354 or 355 or 362 or 363 or 364 or 365 or 376 or 377 or 386 or 388 or 389 or 401 or 423 or 427 or
+					432 or 435 or 436 or 447 or 448 or 452 or 453 or 454 or 455 or 456 or 457 or 458 or 459 or 460 or 461 or 462 or
+					463 or 467 or 468 or 469 or 470 or 471 or 472 or 479 or 494 or 497 or 516 or 523 or 524 or 525 or 526 or 528 or
+					529 or 538 or 539 or 541 or 542 or 543 or 544 or 545 or 581 or 582 or 583 or 589 or 590 or 591 or 592 or 593 or
+					594 or 595 or 625 or 635 or 640 or 660 or 661 or 662 or 663 or 667 or 691 or 696 or 697 or 698 or 699 or 701 or
+					711 or 736 or 761 or 762 or 763 or 775 or 802 or 803 or 804 or 805 or 810 or 835 or 836 or 837 or 838 or 840 or
+					841 or 842 or 843 or 844 or 846 or 847 or 848 or 849 or 854 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or
+					875 or 876 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or 886 or 887 or 888 or 889 or 941 or 947;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Parties(this, tag, position, out step) ??
+					FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step) ??
+					FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step) ??
+					FixBlocks.Instrument(this, tag, position, out step) ??
+					FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+					FixBlocks.Stipulations(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoOrdersGroups, FixTag.NoOrders, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -59149,10 +59768,16 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocAcctIDSource || field == AllocSettlCurrency ||
-					field == IndividualAllocID || field == NoNested3PartyIDs || field == AllocQty;
+				return tag is 79 or 80 or 467 or 661 or 736 or 948 or 949 or 950 or 951 or 952 or 953 or 954;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties3(this, tag, position, out step);
 			}
 		}
 
@@ -59170,9 +59795,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -59333,26 +59967,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -59569,32 +60196,48 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegSettlCurrency, tag 675, wire type <c>Currency</c>; null when the field is absent.</summary>
 				public FixField.Text? LegSettlCurrency { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegAllocAccount;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegAllocAccount || field == LegIndividualAllocID || field == NoNested2PartyIDs ||
-						field == LegAllocQty || field == LegAllocAcctIDSource || field == LegSettlCurrency;
+					return tag is 671 or 672 or 673 or 674 or 675 or 756 or 757 or 758 or 759 or 760 or 806 or 807;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.NestedParties2(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth ||
-					field == LegInterestAccrualDate || field == LegQty || field == LegSwapType || field == NoLegStipulations ||
-					field == NoLegAllocs || field == LegPositionEffect || field == LegCoveredOrUncovered ||
-					field == NoNestedPartyIDs || field == LegRefID || field == LegPrice || field == LegSettlType ||
-					field == LegSettlDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+					564 or 565 or 566 or 587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or
+					607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or
+					623 or 624 or 654 or 670 or 671 or 672 or 673 or 674 or 675 or 683 or 687 or 688 or 689 or 690 or 739 or 740 or
+					756 or 757 or 758 or 759 or 760 or 764 or 804 or 805 or 806 or 807 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+					FixBlocks.LegStipulations(this, tag, position, out step) ??
+					FixEntries.Holding(NoLegAllocsGroups, FixTag.NoLegAllocs, tag, position, out step) ??
+					FixBlocks.NestedParties(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -60932,10 +61575,16 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocAcctIDSource || field == AllocSettlCurrency ||
-					field == IndividualAllocID || field == NoNestedPartyIDs || field == AllocQty;
+				return tag is 79 or 80 or 467 or 524 or 525 or 538 or 539 or 545 or 661 or 736 or 804 or 805;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties(this, tag, position, out step);
 			}
 		}
 
@@ -60953,9 +61602,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -61116,27 +61774,31 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -62442,9 +63104,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? RoutingID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RoutingType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RoutingType || field == RoutingID;
+				return tag is 216 or 217;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -62593,20 +63264,19 @@ public abstract partial class FixMessage
 			/// <summary>The FIX InterestAccrualDate, tag 874, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? InterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate;
+				return tag is 22 or 48 or 55 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or 225 or
+					226 or 227 or 228 or 231 or 239 or 240 or 255 or 348 or 349 or 350 or 351 or 454 or 455 or 456 or 460 or 461 or
+					470 or 471 or 472 or 541 or 543 or 667 or 691 or 762 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or
+					876 or 947;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step);
 			}
 		}
 
@@ -62748,20 +63418,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -62922,26 +63590,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -62962,10 +63623,29 @@ public abstract partial class FixMessage
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 			public FixField.Data? EncodedText { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Text;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Text || field == EncodedTextLen || field == EncodedText;
+				return tag is 58 or 354 or 355;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRoutingIDsGroups, FixTag.NoRoutingIDs, tag, position, out step) ??
+				FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(LinesOfTextGroups, FixTag.NoLinesOfText, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -64393,10 +65073,16 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocAcctIDSource || field == AllocSettlCurrency ||
-					field == IndividualAllocID || field == NoNestedPartyIDs || field == AllocQty;
+				return tag is 79 or 80 or 467 or 524 or 525 or 538 or 539 or 545 or 661 or 736 or 804 or 805;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties(this, tag, position, out step);
 			}
 		}
 
@@ -64414,9 +65100,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -64577,27 +65272,30 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -65596,27 +66294,28 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -66190,10 +66889,27 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AffectedSecondaryOrderID, tag 536, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? AffectedSecondaryOrderID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => OrigClOrdID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == OrigClOrdID || field == AffectedOrderID || field == AffectedSecondaryOrderID;
+				return tag is 41 or 535 or 536;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoAffectedOrdersGroups, FixTag.NoAffectedOrders, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -66701,6 +67417,13 @@ public abstract partial class FixMessage
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
 		public FixField.Data? EncodedText { get; internal set; }
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix44Context context, FixCheck check)
@@ -67250,6 +67973,14 @@ public abstract partial class FixMessage
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
 		public FixField.Character? Side { get; internal set; }
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix44Context context, FixCheck check)
@@ -68195,27 +68926,28 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -69660,20 +70392,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -69834,26 +70564,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -69871,10 +70594,31 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step) ??
+				FixBlocks.PositionQty(this, tag, position, out step) ??
+				FixBlocks.PositionAmountData(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -71299,20 +72043,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -71473,26 +72215,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -71510,10 +72245,30 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step) ??
+				FixBlocks.PositionQty(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -72962,20 +73717,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -73142,28 +73895,31 @@ public abstract partial class FixMessage
 			/// <summary>The FIX UnderlyingSettlPriceType, tag 733, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? UnderlyingSettlPriceType { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips || field == UnderlyingSettlPrice ||
-					field == UnderlyingSettlPriceType;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 732 or 733 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or
+					884 or 885 or 886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.PositionQty(this, tag, position, out step) ??
+				FixBlocks.PositionAmountData(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -74788,9 +75544,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX QuoteQualifier, tag 695, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Character QuoteQualifier { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => QuoteQualifier;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == QuoteQualifier;
+				return tag is 695;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -74951,26 +75716,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -75162,26 +75920,34 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegBenchmarkPriceType, tag 680, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegBenchmarkPriceType { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth ||
-					field == LegInterestAccrualDate || field == LegQty || field == LegSwapType || field == LegSettlType ||
-					field == LegSettlDate || field == NoLegStipulations || field == NoNestedPartyIDs || field == LegPriceType ||
-					field == LegBidPx || field == LegOfferPx || field == LegBenchmarkCurveCurrency ||
-					field == LegBenchmarkCurveName || field == LegBenchmarkCurvePoint || field == LegBenchmarkPrice ||
-					field == LegBenchmarkPriceType;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+					587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or
+					610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 676 or
+					677 or 678 or 679 or 680 or 681 or 683 or 684 or 686 or 687 or 688 or 689 or 690 or 739 or 740 or 764 or 804 or
+					805 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+					FixBlocks.LegStipulations(this, tag, position, out step) ??
+					FixBlocks.NestedParties(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoQuoteQualifiersGroups, FixTag.NoQuoteQualifiers, tag, position, out step) ??
+				FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -77095,26 +77861,19 @@ public abstract partial class FixMessage
 				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 				internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => UnderlyingSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-						field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-						field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-						field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-						field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-						field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-						field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-						field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-						field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-						field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-						field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-						field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-						field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-						field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-						field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-						field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-						field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-						field == UnderlyingEndValue || field == NoUnderlyingStips;
+					return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+						311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or
+						459 or 462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or
+						884 or 885 or 886 or 887 or 888 or 889 or 941;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 				}
 			}
 
@@ -77256,41 +78015,50 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 				public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-						field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-						field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-						field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-						field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor ||
-						field == LegCreditRating || field == LegInstrRegistry || field == LegCountryOfIssue ||
-						field == LegStateOrProvinceOfIssue || field == LegLocaleOfIssue || field == LegRedemptionDate ||
-						field == LegStrikePrice || field == LegStrikeCurrency || field == LegOptAttribute ||
-						field == LegContractMultiplier || field == LegCouponRate || field == LegSecurityExchange ||
-						field == LegIssuer || field == EncodedLegIssuerLen || field == EncodedLegIssuer ||
-						field == LegSecurityDesc || field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc ||
-						field == LegRatioQty || field == LegSide || field == LegCurrency || field == LegPool ||
-						field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+					return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+						601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or
+						616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.InstrumentLeg(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate || field == AgreementDesc || field == AgreementID ||
-					field == AgreementDate || field == AgreementCurrency || field == TerminationType || field == StartDate ||
-					field == EndDate || field == DeliveryType || field == MarginRatio || field == NoUnderlyings || field == NoLegs;
+				return tag is 22 or 48 or 55 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or 225 or
+					226 or 227 or 228 or 231 or 239 or 240 or 241 or 242 or 243 or 244 or 245 or 246 or 247 or 248 or 249 or 250 or
+					251 or 252 or 253 or 254 or 255 or 256 or 257 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or
+					315 or 316 or 317 or 318 or 348 or 349 or 350 or 351 or 362 or 363 or 364 or 365 or 435 or 436 or 454 or 455 or
+					456 or 457 or 458 or 459 or 460 or 461 or 462 or 463 or 470 or 471 or 472 or 541 or 542 or 543 or 555 or 556 or
+					592 or 593 or 594 or 595 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or
+					608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or
+					624 or 667 or 691 or 711 or 739 or 740 or 762 or 763 or 764 or 788 or 810 or 864 or 865 or 866 or 867 or 868 or
+					873 or 874 or 875 or 876 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or 886 or 887 or 888 or 889 or 898 or
+					913 or 914 or 915 or 916 or 917 or 918 or 919 or 941 or 942 or 947 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step) ??
+					FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+					FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoQuoteEntriesGroups, FixTag.NoQuoteEntries, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -79956,26 +80724,19 @@ public abstract partial class FixMessage
 				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 				internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => UnderlyingSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-						field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-						field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-						field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-						field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-						field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-						field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-						field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-						field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-						field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-						field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-						field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-						field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-						field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-						field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-						field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-						field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-						field == UnderlyingEndValue || field == NoUnderlyingStips;
+					return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+						311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or
+						459 or 462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or
+						884 or 885 or 886 or 887 or 888 or 889 or 941;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 				}
 			}
 
@@ -80158,25 +80919,22 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegBenchmarkPriceType, tag 680, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegBenchmarkPriceType { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-						field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-						field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-						field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-						field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor ||
-						field == LegCreditRating || field == LegInstrRegistry || field == LegCountryOfIssue ||
-						field == LegStateOrProvinceOfIssue || field == LegLocaleOfIssue || field == LegRedemptionDate ||
-						field == LegStrikePrice || field == LegStrikeCurrency || field == LegOptAttribute ||
-						field == LegContractMultiplier || field == LegCouponRate || field == LegSecurityExchange ||
-						field == LegIssuer || field == EncodedLegIssuerLen || field == EncodedLegIssuer ||
-						field == LegSecurityDesc || field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc ||
-						field == LegRatioQty || field == LegSide || field == LegCurrency || field == LegPool ||
-						field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate ||
-						field == LegQty || field == LegSwapType || field == LegSettlType || field == LegSettlDate ||
-						field == NoLegStipulations || field == NoNestedPartyIDs || field == LegBenchmarkCurveCurrency ||
-						field == LegBenchmarkCurveName || field == LegBenchmarkCurvePoint || field == LegBenchmarkPrice ||
-						field == LegBenchmarkPriceType;
+					return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+						587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or
+						609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or
+						624 or 676 or 677 or 678 or 679 or 680 or 683 or 687 or 688 or 689 or 690 or 739 or 740 or 764 or 804 or
+						805 or 942 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+						FixBlocks.LegStipulations(this, tag, position, out step) ??
+						FixBlocks.NestedParties(this, tag, position, out step);
 				}
 			}
 
@@ -80191,42 +80949,57 @@ public abstract partial class FixMessage
 				/// <summary>The FIX QuoteQualifier, tag 695, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 				public FixField.Character QuoteQualifier { get; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => QuoteQualifier;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == QuoteQualifier;
+					return tag is 695;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate || field == AgreementDesc || field == AgreementID ||
-					field == AgreementDate || field == AgreementCurrency || field == TerminationType || field == StartDate ||
-					field == EndDate || field == DeliveryType || field == MarginRatio || field == NoUnderlyings ||
-					field == PrevClosePx || field == QuoteRequestType || field == QuoteType || field == TradingSessionID ||
-					field == TradingSessionSubID || field == TradeOriginationDate || field == Side || field == QtyType ||
-					field == OrderQty || field == CashOrderQty || field == OrderPercent || field == RoundingDirection ||
-					field == RoundingModulus || field == SettlType || field == SettlDate || field == SettlDate2 ||
-					field == OrderQty2 || field == Currency || field == NoStipulations || field == Account ||
-					field == AcctIDSource || field == AccountType || field == NoLegs || field == NoQuoteQualifiers ||
-					field == QuotePriceType || field == OrdType || field == ValidUntilTime || field == ExpireTime ||
-					field == TransactTime || field == Spread || field == BenchmarkCurveCurrency || field == BenchmarkCurveName ||
-					field == BenchmarkCurvePoint || field == BenchmarkPrice || field == BenchmarkPriceType ||
-					field == BenchmarkSecurityID || field == BenchmarkSecurityIDSource || field == PriceType || field == Price ||
-					field == Price2 || field == YieldType || field == Yield || field == YieldCalcDate ||
-					field == YieldRedemptionDate || field == YieldRedemptionPrice || field == YieldRedemptionPriceType ||
-					field == NoPartyIDs;
+				return tag is 1 or 15 or 22 or 38 or 40 or 44 or 48 or 54 or 55 or 60 or 62 or 63 or 64 or 65 or 106 or 107 or
+					126 or 140 or 152 or 167 or 192 or 193 or 200 or 201 or 202 or 206 or 207 or 218 or 220 or 221 or 222 or 223 or
+					224 or 225 or 226 or 227 or 228 or 229 or 231 or 232 or 233 or 234 or 235 or 236 or 239 or 240 or 241 or 242 or
+					243 or 244 or 245 or 246 or 247 or 248 or 249 or 250 or 251 or 252 or 253 or 254 or 255 or 256 or 257 or 303 or
+					305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 315 or 316 or 317 or 318 or 336 or 348 or 349 or
+					350 or 351 or 362 or 363 or 364 or 365 or 423 or 435 or 436 or 447 or 448 or 452 or 453 or 454 or 455 or 456 or
+					457 or 458 or 459 or 460 or 461 or 462 or 463 or 468 or 469 or 470 or 471 or 472 or 516 or 523 or 524 or 525 or
+					537 or 538 or 539 or 541 or 542 or 543 or 545 or 555 or 556 or 581 or 587 or 588 or 592 or 593 or 594 or 595 or
+					596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or
+					612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 625 or 640 or 660 or
+					662 or 663 or 667 or 676 or 677 or 678 or 679 or 680 or 683 or 687 or 688 or 689 or 690 or 691 or 692 or 695 or
+					696 or 697 or 698 or 699 or 701 or 711 or 735 or 739 or 740 or 761 or 762 or 763 or 764 or 788 or 802 or 803 or
+					804 or 805 or 810 or 854 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or 876 or 877 or 878 or 879 or
+					882 or 883 or 884 or 885 or 886 or 887 or 888 or 889 or 898 or 913 or 914 or 915 or 916 or 917 or 918 or 919 or
+					941 or 942 or 947 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step) ??
+					FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+					FixBlocks.Stipulations(this, tag, position, out step) ??
+					FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+					FixEntries.Holding(NoQuoteQualifiersGroups, FixTag.NoQuoteQualifiers, tag, position, out step) ??
+					FixBlocks.Parties(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -82877,26 +83650,19 @@ public abstract partial class FixMessage
 				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 				internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => UnderlyingSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-						field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-						field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-						field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-						field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-						field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-						field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-						field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-						field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-						field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-						field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-						field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-						field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-						field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-						field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-						field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-						field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-						field == UnderlyingEndValue || field == NoUnderlyingStips;
+					return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+						311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or
+						459 or 462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or
+						884 or 885 or 886 or 887 or 888 or 889 or 941;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 				}
 			}
 
@@ -83079,25 +83845,22 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegBenchmarkPriceType, tag 680, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegBenchmarkPriceType { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-						field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-						field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-						field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-						field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor ||
-						field == LegCreditRating || field == LegInstrRegistry || field == LegCountryOfIssue ||
-						field == LegStateOrProvinceOfIssue || field == LegLocaleOfIssue || field == LegRedemptionDate ||
-						field == LegStrikePrice || field == LegStrikeCurrency || field == LegOptAttribute ||
-						field == LegContractMultiplier || field == LegCouponRate || field == LegSecurityExchange ||
-						field == LegIssuer || field == EncodedLegIssuerLen || field == EncodedLegIssuer ||
-						field == LegSecurityDesc || field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc ||
-						field == LegRatioQty || field == LegSide || field == LegCurrency || field == LegPool ||
-						field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate ||
-						field == LegQty || field == LegSwapType || field == LegSettlType || field == LegSettlDate ||
-						field == NoLegStipulations || field == NoNestedPartyIDs || field == LegBenchmarkCurveCurrency ||
-						field == LegBenchmarkCurveName || field == LegBenchmarkCurvePoint || field == LegBenchmarkPrice ||
-						field == LegBenchmarkPriceType;
+					return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+						587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or
+						609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or
+						624 or 676 or 677 or 678 or 679 or 680 or 683 or 687 or 688 or 689 or 690 or 739 or 740 or 764 or 804 or
+						805 or 942 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+						FixBlocks.LegStipulations(this, tag, position, out step) ??
+						FixBlocks.NestedParties(this, tag, position, out step);
 				}
 			}
 
@@ -83112,42 +83875,57 @@ public abstract partial class FixMessage
 				/// <summary>The FIX QuoteQualifier, tag 695, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 				public FixField.Character QuoteQualifier { get; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => QuoteQualifier;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == QuoteQualifier;
+					return tag is 695;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate || field == AgreementDesc || field == AgreementID ||
-					field == AgreementDate || field == AgreementCurrency || field == TerminationType || field == StartDate ||
-					field == EndDate || field == DeliveryType || field == MarginRatio || field == NoUnderlyings ||
-					field == PrevClosePx || field == QuoteRequestType || field == QuoteType || field == TradingSessionID ||
-					field == TradingSessionSubID || field == TradeOriginationDate || field == Side || field == QtyType ||
-					field == OrderQty || field == CashOrderQty || field == OrderPercent || field == RoundingDirection ||
-					field == RoundingModulus || field == SettlType || field == SettlDate || field == SettlDate2 ||
-					field == OrderQty2 || field == Currency || field == NoStipulations || field == Account ||
-					field == AcctIDSource || field == AccountType || field == NoLegs || field == NoQuoteQualifiers ||
-					field == QuotePriceType || field == OrdType || field == ExpireTime || field == TransactTime ||
-					field == Spread || field == BenchmarkCurveCurrency || field == BenchmarkCurveName ||
-					field == BenchmarkCurvePoint || field == BenchmarkPrice || field == BenchmarkPriceType ||
-					field == BenchmarkSecurityID || field == BenchmarkSecurityIDSource || field == PriceType || field == Price ||
-					field == Price2 || field == YieldType || field == Yield || field == YieldCalcDate ||
-					field == YieldRedemptionDate || field == YieldRedemptionPrice || field == YieldRedemptionPriceType ||
-					field == NoPartyIDs;
+				return tag is 1 or 15 or 22 or 38 or 40 or 44 or 48 or 54 or 55 or 60 or 63 or 64 or 65 or 106 or 107 or 126 or
+					140 or 152 or 167 or 192 or 193 or 200 or 201 or 202 or 206 or 207 or 218 or 220 or 221 or 222 or 223 or 224 or
+					225 or 226 or 227 or 228 or 229 or 231 or 232 or 233 or 234 or 235 or 236 or 239 or 240 or 241 or 242 or 243 or
+					244 or 245 or 246 or 247 or 248 or 249 or 250 or 251 or 252 or 253 or 254 or 255 or 256 or 257 or 303 or 305 or
+					306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 315 or 316 or 317 or 318 or 336 or 348 or 349 or 350 or
+					351 or 362 or 363 or 364 or 365 or 423 or 435 or 436 or 447 or 448 or 452 or 453 or 454 or 455 or 456 or 457 or
+					458 or 459 or 460 or 461 or 462 or 463 or 468 or 469 or 470 or 471 or 472 or 516 or 523 or 524 or 525 or 537 or
+					538 or 539 or 541 or 542 or 543 or 545 or 555 or 556 or 581 or 587 or 588 or 592 or 593 or 594 or 595 or 596 or
+					597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or
+					613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 625 or 640 or 660 or 662 or
+					663 or 667 or 676 or 677 or 678 or 679 or 680 or 683 or 687 or 688 or 689 or 690 or 691 or 692 or 695 or 696 or
+					697 or 698 or 699 or 701 or 711 or 735 or 739 or 740 or 761 or 762 or 763 or 764 or 788 or 802 or 803 or 804 or
+					805 or 810 or 854 or 864 or 865 or 866 or 867 or 868 or 873 or 874 or 875 or 876 or 877 or 878 or 879 or 882 or
+					883 or 884 or 885 or 886 or 887 or 888 or 889 or 898 or 913 or 914 or 915 or 916 or 917 or 918 or 919 or 941 or
+					942 or 947 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step) ??
+					FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+					FixBlocks.Stipulations(this, tag, position, out step) ??
+					FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+					FixEntries.Holding(NoQuoteQualifiersGroups, FixTag.NoQuoteQualifiers, tag, position, out step) ??
+					FixBlocks.Parties(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -84780,9 +85558,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX QuoteQualifier, tag 695, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Character QuoteQualifier { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => QuoteQualifier;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == QuoteQualifier;
+				return tag is 695;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
@@ -84943,26 +85730,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -85154,26 +85934,34 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegBenchmarkPriceType, tag 680, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? LegBenchmarkPriceType { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth ||
-					field == LegInterestAccrualDate || field == LegQty || field == LegSwapType || field == LegSettlType ||
-					field == LegSettlDate || field == NoLegStipulations || field == NoNestedPartyIDs || field == LegPriceType ||
-					field == LegBidPx || field == LegOfferPx || field == LegBenchmarkCurveCurrency ||
-					field == LegBenchmarkCurveName || field == LegBenchmarkCurvePoint || field == LegBenchmarkPrice ||
-					field == LegBenchmarkPriceType;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+					587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or
+					610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 676 or
+					677 or 678 or 679 or 680 or 681 or 683 or 684 or 686 or 687 or 688 or 689 or 690 or 739 or 740 or 764 or 804 or
+					805 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+					FixBlocks.LegStipulations(this, tag, position, out step) ??
+					FixBlocks.NestedParties(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoQuoteQualifiersGroups, FixTag.NoQuoteQualifiers, tag, position, out step) ??
+				FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -86888,26 +87676,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -87075,22 +87856,21 @@ public abstract partial class FixMessage
 			public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups => noNestedPartyIDsGroups;
 			internal List<INestedParties.NoNestedPartyIDsGroup>? noNestedPartyIDsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth ||
-					field == LegInterestAccrualDate || field == LegQty || field == LegSwapType || field == LegSettlType ||
-					field == LegSettlDate || field == NoLegStipulations || field == NoNestedPartyIDs;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+					587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or
+					610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 683 or
+					687 or 688 or 689 or 690 or 739 or 740 or 764 or 804 or 805 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+					FixBlocks.LegStipulations(this, tag, position, out step) ??
+					FixBlocks.NestedParties(this, tag, position, out step);
 			}
 		}
 
@@ -87105,10 +87885,30 @@ public abstract partial class FixMessage
 			/// <summary>The FIX QuoteQualifier, tag 695, wire type <c>char</c>: the entry's delimiter, its first field, which every entry has.</summary>
 			public FixField.Character QuoteQualifier { get; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => QuoteQualifier;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == QuoteQualifier;
+				return tag is 695;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.Stipulations(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoQuoteQualifiersGroups, FixTag.NoQuoteQualifiers, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -88414,26 +89214,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -88575,21 +89368,28 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixBlocks.Parties(this, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -90376,26 +91176,19 @@ public abstract partial class FixMessage
 				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 				internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => UnderlyingSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-						field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-						field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-						field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-						field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-						field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-						field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-						field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-						field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-						field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-						field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-						field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-						field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-						field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-						field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-						field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-						field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-						field == UnderlyingEndValue || field == NoUnderlyingStips;
+					return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+						311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or
+						459 or 462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or
+						884 or 885 or 886 or 887 or 888 or 889 or 941;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 				}
 			}
 
@@ -90537,41 +91330,49 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 				public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-						field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-						field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-						field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-						field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor ||
-						field == LegCreditRating || field == LegInstrRegistry || field == LegCountryOfIssue ||
-						field == LegStateOrProvinceOfIssue || field == LegLocaleOfIssue || field == LegRedemptionDate ||
-						field == LegStrikePrice || field == LegStrikeCurrency || field == LegOptAttribute ||
-						field == LegContractMultiplier || field == LegCouponRate || field == LegSecurityExchange ||
-						field == LegIssuer || field == EncodedLegIssuerLen || field == EncodedLegIssuer ||
-						field == LegSecurityDesc || field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc ||
-						field == LegRatioQty || field == LegSide || field == LegCurrency || field == LegPool ||
-						field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+					return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+						601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or
+						616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.InstrumentLeg(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate || field == NoUnderlyings || field == NoLegs ||
-					field == PrevClosePx || field == QuoteRequestType || field == QuoteType || field == TradingSessionID ||
-					field == TradingSessionSubID;
+				return tag is 22 or 48 or 55 or 65 or 106 or 107 or 140 or 167 or 200 or 201 or 202 or 206 or 207 or 223 or 224 or
+					225 or 226 or 227 or 228 or 231 or 239 or 240 or 241 or 242 or 243 or 244 or 245 or 246 or 247 or 248 or 249 or
+					250 or 251 or 252 or 253 or 254 or 255 or 256 or 257 or 303 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or
+					312 or 313 or 315 or 316 or 317 or 318 or 336 or 348 or 349 or 350 or 351 or 362 or 363 or 364 or 365 or 435 or
+					436 or 454 or 455 or 456 or 457 or 458 or 459 or 460 or 461 or 462 or 463 or 470 or 471 or 472 or 537 or 541 or
+					542 or 543 or 555 or 556 or 592 or 593 or 594 or 595 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or
+					604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or
+					620 or 621 or 622 or 623 or 624 or 625 or 667 or 691 or 711 or 739 or 740 or 762 or 763 or 764 or 810 or 864 or
+					865 or 866 or 867 or 868 or 873 or 874 or 875 or 876 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or 886 or
+					887 or 888 or 889 or 941 or 942 or 947 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step) ??
+					FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+					FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -90925,10 +91726,16 @@ public abstract partial class FixMessage
 			/// <summary>The FIX InvestorCountryOfResidence, tag 475, wire type <c>Country</c>; null when the field is absent.</summary>
 			public FixField.Text? InvestorCountryOfResidence { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => RegistDtls;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == RegistDtls || field == RegistEmail || field == MailingDtls || field == MailingInst ||
-					field == NoNestedPartyIDs || field == OwnerType || field == DateOfBirth || field == InvestorCountryOfResidence;
+				return tag is 474 or 475 or 482 or 486 or 509 or 511 or 522 or 524 or 525 or 538 or 539 or 545 or 804 or 805;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties(this, tag, position, out step);
 			}
 		}
 
@@ -90964,12 +91771,27 @@ public abstract partial class FixMessage
 			/// <summary>The FIX CashDistribAgentAcctName, tag 502, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? CashDistribAgentAcctName { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => DistribPaymentMethod;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == DistribPaymentMethod || field == DistribPercentage || field == CashDistribCurr ||
-					field == CashDistribAgentName || field == CashDistribAgentCode || field == CashDistribAgentAcctNumber ||
-					field == CashDistribPayRef || field == CashDistribAgentAcctName;
+				return tag is 477 or 478 or 498 or 499 or 500 or 501 or 502 or 512;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixEntries.Holding(NoRegistDtlsGroups, FixTag.NoRegistDtls, tag, position, out step) ??
+				FixEntries.Holding(NoDistribInstsGroups, FixTag.NoDistribInsts, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -91088,6 +91910,12 @@ public abstract partial class FixMessage
 
 		/// <summary>The FIX RegistRejReasonText, tag 496, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? RegistRejReasonText { get; internal set; }
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step);
+		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix44Context context, FixCheck check)
@@ -92447,20 +93275,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -92621,26 +93447,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -92658,10 +93477,29 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TradingSessionSubID, tag 625, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? TradingSessionSubID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradingSessionID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradingSessionID || field == TradingSessionSubID;
+				return tag is 336 or 625;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoTradingSessionsGroups, FixTag.NoTradingSessions, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -93940,20 +94778,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -94114,27 +94950,29 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -95427,26 +96265,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -95588,21 +96419,28 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -96853,26 +97691,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -97014,21 +97845,28 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -99317,26 +100155,19 @@ public abstract partial class FixMessage
 				public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 				internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => UnderlyingSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-						field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-						field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-						field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-						field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-						field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-						field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-						field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-						field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-						field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-						field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-						field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-						field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-						field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-						field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-						field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-						field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-						field == UnderlyingEndValue || field == NoUnderlyingStips;
+					return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+						311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or
+						459 or 462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or
+						884 or 885 or 886 or 887 or 888 or 889 or 941;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 				}
 			}
 
@@ -99506,52 +100337,56 @@ public abstract partial class FixMessage
 				/// <summary>The FIX LegBenchmarkPriceType, tag 680, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? LegBenchmarkPriceType { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => LegSymbol;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-						field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-						field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-						field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-						field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor ||
-						field == LegCreditRating || field == LegInstrRegistry || field == LegCountryOfIssue ||
-						field == LegStateOrProvinceOfIssue || field == LegLocaleOfIssue || field == LegRedemptionDate ||
-						field == LegStrikePrice || field == LegStrikeCurrency || field == LegOptAttribute ||
-						field == LegContractMultiplier || field == LegCouponRate || field == LegSecurityExchange ||
-						field == LegIssuer || field == EncodedLegIssuerLen || field == EncodedLegIssuer ||
-						field == LegSecurityDesc || field == EncodedLegSecurityDescLen || field == EncodedLegSecurityDesc ||
-						field == LegRatioQty || field == LegSide || field == LegCurrency || field == LegPool ||
-						field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate ||
-						field == LegSwapType || field == LegSettlType || field == NoLegStipulations ||
-						field == LegBenchmarkCurveCurrency || field == LegBenchmarkCurveName || field == LegBenchmarkCurvePoint ||
-						field == LegBenchmarkPrice || field == LegBenchmarkPriceType;
+					return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 587 or 596 or 597 or 598 or 599 or
+						600 or 601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or
+						615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 676 or 677 or 678 or 679 or 680 or
+						683 or 688 or 689 or 690 or 739 or 740 or 764 or 942 or 955 or 956;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+						FixBlocks.LegStipulations(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Symbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Symbol || field == SymbolSfx || field == SecurityID || field == SecurityIDSource ||
-					field == NoSecurityAltID || field == Product || field == CFICode || field == SecurityType ||
-					field == SecuritySubType || field == MaturityMonthYear || field == MaturityDate || field == PutOrCall ||
-					field == CouponPaymentDate || field == IssueDate || field == RepoCollateralSecurityType ||
-					field == RepurchaseTerm || field == RepurchaseRate || field == Factor || field == CreditRating ||
-					field == InstrRegistry || field == CountryOfIssue || field == StateOrProvinceOfIssue ||
-					field == LocaleOfIssue || field == RedemptionDate || field == StrikePrice || field == StrikeCurrency ||
-					field == OptAttribute || field == ContractMultiplier || field == CouponRate || field == SecurityExchange ||
-					field == Issuer || field == EncodedIssuerLen || field == EncodedIssuer || field == SecurityDesc ||
-					field == EncodedSecurityDescLen || field == EncodedSecurityDesc || field == Pool ||
-					field == ContractSettlMonth || field == CPProgram || field == CPRegType || field == NoEvents ||
-					field == DatedDate || field == InterestAccrualDate || field == DeliveryForm || field == PctAtRisk ||
-					field == NoInstrAttrib || field == AgreementDesc || field == AgreementID || field == AgreementDate ||
-					field == AgreementCurrency || field == TerminationType || field == StartDate || field == EndDate ||
-					field == DeliveryType || field == MarginRatio || field == NoUnderlyings || field == Currency ||
-					field == NoStipulations || field == NoLegs || field == Spread || field == BenchmarkCurveCurrency ||
-					field == BenchmarkCurveName || field == BenchmarkCurvePoint || field == BenchmarkPrice ||
-					field == BenchmarkPriceType || field == BenchmarkSecurityID || field == BenchmarkSecurityIDSource ||
-					field == YieldType || field == Yield || field == YieldCalcDate || field == YieldRedemptionDate ||
-					field == YieldRedemptionPrice || field == YieldRedemptionPriceType || field == RoundLot ||
-					field == MinTradeVol || field == TradingSessionID || field == TradingSessionSubID || field == ExpirationCycle ||
-					field == Text || field == EncodedTextLen || field == EncodedText;
+				return tag is 15 or 22 or 48 or 55 or 58 or 65 or 106 or 107 or 167 or 200 or 201 or 202 or 206 or 207 or 218 or
+					220 or 221 or 222 or 223 or 224 or 225 or 226 or 227 or 228 or 231 or 232 or 233 or 234 or 235 or 236 or 239 or
+					240 or 241 or 242 or 243 or 244 or 245 or 246 or 247 or 248 or 249 or 250 or 251 or 252 or 253 or 254 or 255 or
+					256 or 257 or 305 or 306 or 307 or 308 or 309 or 310 or 311 or 312 or 313 or 315 or 316 or 317 or 318 or 336 or
+					348 or 349 or 350 or 351 or 354 or 355 or 362 or 363 or 364 or 365 or 435 or 436 or 454 or 455 or 456 or 457 or
+					458 or 459 or 460 or 461 or 462 or 463 or 470 or 471 or 472 or 541 or 542 or 543 or 555 or 556 or 561 or 562 or
+					587 or 592 or 593 or 594 or 595 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or
+					607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or
+					623 or 624 or 625 or 662 or 663 or 667 or 668 or 676 or 677 or 678 or 679 or 680 or 683 or 688 or 689 or 690 or
+					691 or 696 or 697 or 698 or 699 or 701 or 711 or 739 or 740 or 761 or 762 or 763 or 764 or 788 or 810 or 827 or
+					864 or 865 or 866 or 867 or 868 or 869 or 870 or 871 or 872 or 873 or 874 or 875 or 876 or 877 or 878 or 879 or
+					882 or 883 or 884 or 885 or 886 or 887 or 888 or 889 or 898 or 913 or 914 or 915 or 916 or 917 or 918 or 919 or
+					941 or 942 or 947 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Instrument(this, tag, position, out step) ??
+					FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+					FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+					FixBlocks.Stipulations(this, tag, position, out step) ??
+					FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoRelatedSymGroups, FixTag.NoRelatedSym, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -100834,26 +101669,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -100995,21 +101823,28 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -102304,26 +103139,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -102465,21 +103293,28 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -103710,26 +104545,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -103871,21 +104699,28 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -104076,10 +104911,25 @@ public abstract partial class FixMessage
 			/// <summary>The FIX CFICode, tag 461, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? CFICode { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => SecurityType;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == SecurityType || field == SecuritySubType || field == Product || field == CFICode;
+				return tag is 167 or 460 or 461 or 762;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoSecurityTypesGroups, FixTag.NoSecurityTypes, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -104252,6 +105102,12 @@ public abstract partial class FixMessage
 
 		/// <summary>The FIX StandInstDbID, tag 171, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? StandInstDbID { get; internal set; }
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step);
+		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix44Context context, FixCheck check)
@@ -104775,15 +105631,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX PaymentRemitterID, tag 505, wire type <c>String</c>; null when the field is absent.</summary>
 			public FixField.Text? PaymentRemitterID { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => SettlInstID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == SettlInstID || field == SettlInstTransType || field == SettlInstRefID || field == NoPartyIDs ||
-					field == Side || field == Product || field == SecurityType || field == CFICode || field == EffectiveTime ||
-					field == ExpireTime || field == LastUpdateTime || field == SettlDeliveryType || field == StandInstDbType ||
-					field == StandInstDbName || field == StandInstDbID || field == NoDlvyInst || field == PaymentMethod ||
-					field == PaymentRef || field == CardHolderName || field == CardNumber || field == CardStartDate ||
-					field == CardExpDate || field == CardIssNum || field == PaymentDate || field == PaymentRemitterID;
+				return tag is 54 or 85 or 126 or 162 or 163 or 165 or 167 or 168 or 169 or 170 or 171 or 172 or 214 or 447 or 448 or
+					452 or 453 or 460 or 461 or 476 or 488 or 489 or 490 or 491 or 492 or 503 or 504 or 505 or 523 or 779 or 781 or
+					782 or 783 or 784 or 785 or 786 or 787 or 801 or 802 or 803;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Parties(this, tag, position, out step) ??
+					FixBlocks.SettlInstructionsData(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoSettlInstGroups, FixTag.NoSettlInst, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -107296,26 +108163,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -107498,23 +108358,22 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegLastPx, tag 637, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? LegLastPx { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth ||
-					field == LegInterestAccrualDate || field == LegQty || field == LegSwapType || field == NoLegStipulations ||
-					field == LegPositionEffect || field == LegCoveredOrUncovered || field == NoNestedPartyIDs ||
-					field == LegRefID || field == LegPrice || field == LegSettlType || field == LegSettlDate || field == LegLastPx;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+					564 or 565 or 566 or 587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or
+					607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or
+					623 or 624 or 637 or 654 or 683 or 687 or 688 or 689 or 690 or 739 or 740 or 764 or 804 or 805 or 942 or 955 or
+					956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+					FixBlocks.LegStipulations(this, tag, position, out step) ??
+					FixBlocks.NestedParties(this, tag, position, out step);
 			}
 		}
 
@@ -107744,9 +108603,18 @@ public abstract partial class FixMessage
 				/// <summary>The FIX ClearingInstruction, tag 577, wire type <c>int</c>: the entry's delimiter, its first field, which every entry has.</summary>
 				public FixField.Integer ClearingInstruction { get; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => ClearingInstruction;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == ClearingInstruction;
+					return tag is 577;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
@@ -107767,9 +108635,18 @@ public abstract partial class FixMessage
 				/// <summary>The FIX ContAmtCurr, tag 521, wire type <c>Currency</c>; null when the field is absent.</summary>
 				public FixField.Text? ContAmtCurr { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => ContAmtType;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == ContAmtType || field == ContAmtValue || field == ContAmtCurr;
+					return tag is 519 or 520 or 521;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
@@ -107793,9 +108670,18 @@ public abstract partial class FixMessage
 				/// <summary>The FIX MiscFeeBasis, tag 891, wire type <c>int</c>; null when the field is absent.</summary>
 				public FixField.Integer? MiscFeeBasis { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => MiscFeeAmt;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == MiscFeeAmt || field == MiscFeeCurr || field == MiscFeeType || field == MiscFeeBasis;
+					return tag is 137 or 138 or 139 or 891;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					step = default;
+
+					return null;
 				}
 			}
 
@@ -107829,32 +108715,51 @@ public abstract partial class FixMessage
 				/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 				public FixField.Decimal? AllocQty { get; internal set; }
 
-				bool IFixEntry.Holds(FixField field)
+				FixField IFixEntry.Opener => AllocAccount;
+
+				bool IFixEntry.Has(int tag)
 				{
-					return field == AllocAccount || field == AllocAcctIDSource || field == AllocSettlCurrency ||
-						field == IndividualAllocID || field == NoNested2PartyIDs || field == AllocQty;
+					return tag is 79 or 80 or 467 or 661 or 736 or 756 or 757 or 758 or 759 or 760 or 806 or 807;
+				}
+
+				IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+				{
+					return FixBlocks.NestedParties2(this, tag, position, out step);
 				}
 			}
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Side;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Side || field == OrderID || field == SecondaryOrderID || field == ClOrdID ||
-					field == SecondaryClOrdID || field == ListID || field == NoPartyIDs || field == Account ||
-					field == AcctIDSource || field == AccountType || field == ProcessCode || field == OddLot ||
-					field == NoClearingInstructions || field == TradeInputSource || field == TradeInputDevice ||
-					field == OrderInputDevice || field == Currency || field == ComplianceID || field == SolicitedFlag ||
-					field == OrderCapacity || field == OrderRestrictions || field == CustOrderCapacity || field == OrdType ||
-					field == ExecInst || field == TransBkdTime || field == TradingSessionID || field == TradingSessionSubID ||
-					field == TimeBracket || field == Commission || field == CommType || field == CommCurrency ||
-					field == FundRenewWaiv || field == GrossTradeAmt || field == NumDaysInterest || field == ExDate ||
-					field == AccruedInterestRate || field == AccruedInterestAmt || field == InterestAtMaturity ||
-					field == EndAccruedInterestAmt || field == StartCash || field == EndCash || field == Concession ||
-					field == TotalTakedown || field == NetMoney || field == SettlCurrAmt || field == SettlCurrency ||
-					field == SettlCurrFxRate || field == SettlCurrFxRateCalc || field == PositionEffect || field == Text ||
-					field == EncodedTextLen || field == EncodedText || field == SideMultiLegReportingType || field == NoContAmts ||
-					field == NoStipulations || field == NoMiscFees || field == ExchangeRule || field == TradeAllocIndicator ||
-					field == PreallocMethod || field == AllocID || field == NoAllocs;
+				return tag is 1 or 11 or 12 or 13 or 15 or 18 or 37 or 40 or 54 or 58 or 66 or 70 or 77 or 78 or 79 or 80 or 81 or
+					118 or 119 or 120 or 136 or 137 or 138 or 139 or 155 or 156 or 157 or 158 or 159 or 198 or 230 or 232 or 233 or
+					234 or 237 or 238 or 336 or 354 or 355 or 376 or 377 or 381 or 447 or 448 or 452 or 453 or 467 or 479 or 483 or
+					497 or 518 or 519 or 520 or 521 or 523 or 526 or 528 or 529 or 575 or 576 or 577 or 578 or 579 or 581 or 582 or
+					591 or 625 or 660 or 661 or 736 or 738 or 752 or 756 or 757 or 758 or 759 or 760 or 802 or 803 or 806 or 807 or
+					821 or 825 or 826 or 891 or 920 or 921 or 922 or 943;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.Parties(this, tag, position, out step) ??
+					FixEntries.Holding(NoClearingInstructionsGroups, FixTag.NoClearingInstructions, tag, position, out step) ??
+					FixEntries.Holding(NoContAmtsGroups, FixTag.NoContAmts, tag, position, out step) ??
+					FixBlocks.Stipulations(this, tag, position, out step) ??
+					FixEntries.Holding(NoMiscFeesGroups, FixTag.NoMiscFees, tag, position, out step) ??
+					FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixBlocks.PositionAmountData(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixBlocks.TrdRegTimestamps(this, tag, position, out step) ??
+				FixEntries.Holding(NoSidesGroups, FixTag.NoSides, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -109084,23 +109989,22 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegLastPx, tag 637, wire type <c>Price</c>; null when the field is absent.</summary>
 			public FixField.Decimal? LegLastPx { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth ||
-					field == LegInterestAccrualDate || field == LegQty || field == LegSwapType || field == NoLegStipulations ||
-					field == LegPositionEffect || field == LegCoveredOrUncovered || field == NoNestedPartyIDs ||
-					field == LegRefID || field == LegPrice || field == LegSettlType || field == LegSettlDate || field == LegLastPx;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 524 or 525 or 538 or 539 or 545 or 556 or
+					564 or 565 or 566 or 587 or 588 or 596 or 597 or 598 or 599 or 600 or 601 or 602 or 603 or 604 or 605 or 606 or
+					607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or 617 or 618 or 619 or 620 or 621 or 622 or
+					623 or 624 or 637 or 654 or 683 or 687 or 688 or 689 or 690 or 739 or 740 or 764 or 804 or 805 or 942 or 955 or
+					956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step) ??
+					FixBlocks.LegStipulations(this, tag, position, out step) ??
+					FixBlocks.NestedParties(this, tag, position, out step);
 			}
 		}
 
@@ -109134,11 +110038,26 @@ public abstract partial class FixMessage
 			/// <summary>The FIX AllocQty, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
 			public FixField.Decimal? AllocQty { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => AllocAccount;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == AllocAccount || field == AllocAcctIDSource || field == AllocSettlCurrency ||
-					field == IndividualAllocID || field == NoNested2PartyIDs || field == AllocQty;
+				return tag is 79 or 80 or 467 or 661 or 736 or 756 or 757 or 758 or 759 or 760 or 806 or 807;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.NestedParties2(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.TrdRegTimestamps(this, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoAllocsGroups, FixTag.NoAllocs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -110576,26 +111495,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -110737,20 +111649,18 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
 			}
 		}
 
@@ -110768,10 +111678,30 @@ public abstract partial class FixMessage
 			/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
 			public FixField.Timestamp? TransactTime { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => TradeDate;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == TradeDate || field == TransactTime;
+				return tag is 60 or 75;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Parties(this, tag, position, out step) ??
+				FixBlocks.Instrument(this, tag, position, out step) ??
+				FixBlocks.InstrumentExtension(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step) ??
+				FixEntries.Holding(NoDatesGroups, FixTag.NoDates, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
@@ -112002,26 +112932,19 @@ public abstract partial class FixMessage
 			public List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? NoUnderlyingStipsGroups => noUnderlyingStipsGroups;
 			internal List<IUnderlyingStipulations.NoUnderlyingStipsGroup>? noUnderlyingStipsGroups;
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => UnderlyingSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == UnderlyingSymbol || field == UnderlyingSymbolSfx || field == UnderlyingSecurityID ||
-					field == UnderlyingSecurityIDSource || field == NoUnderlyingSecurityAltID || field == UnderlyingProduct ||
-					field == UnderlyingCFICode || field == UnderlyingSecurityType || field == UnderlyingSecuritySubType ||
-					field == UnderlyingMaturityMonthYear || field == UnderlyingMaturityDate || field == UnderlyingPutOrCall ||
-					field == UnderlyingCouponPaymentDate || field == UnderlyingIssueDate ||
-					field == UnderlyingRepoCollateralSecurityType || field == UnderlyingRepurchaseTerm ||
-					field == UnderlyingRepurchaseRate || field == UnderlyingFactor || field == UnderlyingCreditRating ||
-					field == UnderlyingInstrRegistry || field == UnderlyingCountryOfIssue ||
-					field == UnderlyingStateOrProvinceOfIssue || field == UnderlyingLocaleOfIssue ||
-					field == UnderlyingRedemptionDate || field == UnderlyingStrikePrice || field == UnderlyingStrikeCurrency ||
-					field == UnderlyingOptAttribute || field == UnderlyingContractMultiplier || field == UnderlyingCouponRate ||
-					field == UnderlyingSecurityExchange || field == UnderlyingIssuer || field == EncodedUnderlyingIssuerLen ||
-					field == EncodedUnderlyingIssuer || field == UnderlyingSecurityDesc ||
-					field == EncodedUnderlyingSecurityDescLen || field == EncodedUnderlyingSecurityDesc ||
-					field == UnderlyingCPProgram || field == UnderlyingCPRegType || field == UnderlyingCurrency ||
-					field == UnderlyingQty || field == UnderlyingPx || field == UnderlyingDirtyPrice ||
-					field == UnderlyingEndPrice || field == UnderlyingStartValue || field == UnderlyingCurrentValue ||
-					field == UnderlyingEndValue || field == NoUnderlyingStips;
+				return tag is 241 or 242 or 243 or 244 or 245 or 246 or 247 or 256 or 305 or 306 or 307 or 308 or 309 or 310 or
+					311 or 312 or 313 or 315 or 316 or 317 or 318 or 362 or 363 or 364 or 365 or 435 or 436 or 457 or 458 or 459 or
+					462 or 463 or 542 or 592 or 593 or 594 or 595 or 763 or 810 or 877 or 878 or 879 or 882 or 883 or 884 or 885 or
+					886 or 887 or 888 or 889 or 941;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.UnderlyingInstrument(this, tag, position, out step);
 			}
 		}
 
@@ -112163,21 +113086,27 @@ public abstract partial class FixMessage
 			/// <summary>The FIX LegInterestAccrualDate, tag 956, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
 			public FixField.Date? LegInterestAccrualDate { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => LegSymbol;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == LegSymbol || field == LegSymbolSfx || field == LegSecurityID || field == LegSecurityIDSource ||
-					field == NoLegSecurityAltID || field == LegProduct || field == LegCFICode || field == LegSecurityType ||
-					field == LegSecuritySubType || field == LegMaturityMonthYear || field == LegMaturityDate ||
-					field == LegCouponPaymentDate || field == LegIssueDate || field == LegRepoCollateralSecurityType ||
-					field == LegRepurchaseTerm || field == LegRepurchaseRate || field == LegFactor || field == LegCreditRating ||
-					field == LegInstrRegistry || field == LegCountryOfIssue || field == LegStateOrProvinceOfIssue ||
-					field == LegLocaleOfIssue || field == LegRedemptionDate || field == LegStrikePrice ||
-					field == LegStrikeCurrency || field == LegOptAttribute || field == LegContractMultiplier ||
-					field == LegCouponRate || field == LegSecurityExchange || field == LegIssuer || field == EncodedLegIssuerLen ||
-					field == EncodedLegIssuer || field == LegSecurityDesc || field == EncodedLegSecurityDescLen ||
-					field == EncodedLegSecurityDesc || field == LegRatioQty || field == LegSide || field == LegCurrency ||
-					field == LegPool || field == LegDatedDate || field == LegContractSettlMonth || field == LegInterestAccrualDate;
+				return tag is 248 or 249 or 250 or 251 or 252 or 253 or 254 or 257 or 556 or 596 or 597 or 598 or 599 or 600 or
+					601 or 602 or 603 or 604 or 605 or 606 or 607 or 608 or 609 or 610 or 611 or 612 or 613 or 614 or 615 or 616 or
+					617 or 618 or 619 or 620 or 621 or 622 or 623 or 624 or 739 or 740 or 764 or 942 or 955 or 956;
 			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				return FixBlocks.InstrumentLeg(this, tag, position, out step);
+			}
+		}
+
+		// The entry of this type's groups the reader put a field of the tag and position in.
+		private protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.Instrument(this, tag, position, out step) ??
+				FixEntries.Holding(NoUnderlyingsGroups, FixTag.NoUnderlyings, tag, position, out step) ??
+				FixEntries.Holding(NoLegsGroups, FixTag.NoLegs, tag, position, out step);
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>

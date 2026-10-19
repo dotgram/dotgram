@@ -17,7 +17,7 @@ namespace DotGram.Finance.Fix.Fix44;
 /// thing IS where it is written, and puts the base type in front of every arm of every switch,
 /// which is what makes the hierarchy visibly closed where it is taken apart.
 /// </remarks>
-public abstract partial class FixMessage
+public abstract partial class FixMessage : IFixCarrier
 {
 	internal FixMessage(string messageType, List<FixField> fields)
 	{
@@ -231,6 +231,20 @@ public abstract partial class FixMessage
 	private protected static bool None<TEntry>(List<TEntry>? entries)
 	{
 		return entries is null || entries.Count == 0;
+	}
+
+	IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+	{
+		return Holder(tag, position, out step);
+	}
+
+	// The entry of this type's groups the reader put a field of the tag and position in; a type with no groups
+	// has none.
+	private protected virtual IFixEntry? Holder(int tag, int position, out FixGroupStep step)
+	{
+		step = default;
+
+		return null;
 	}
 
 	// A field the type has no place for.

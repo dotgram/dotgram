@@ -242,9 +242,18 @@ public interface IInstrument
 		/// <summary>The FIX SecurityAltIDSource, tag 456, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? SecurityAltIDSource { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => SecurityAltID;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == SecurityAltID || field == SecurityAltIDSource;
+			return tag is 455 or 456;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 
@@ -268,9 +277,18 @@ public interface IInstrument
 		/// <summary>The FIX EventText, tag 868, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? EventText { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => EventType;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == EventType || field == EventDate || field == EventPx || field == EventText;
+			return tag is 865 or 866 or 867 or 868;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }
@@ -305,9 +323,18 @@ public interface IInstrumentExtension
 		/// <summary>The FIX InstrAttribValue, tag 872, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? InstrAttribValue { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => InstrAttribType;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == InstrAttribType || field == InstrAttribValue;
+			return tag is 871 or 872;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }
@@ -459,9 +486,18 @@ public interface IInstrumentLeg
 		/// <summary>The FIX LegSecurityAltIDSource, tag 606, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? LegSecurityAltIDSource { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => LegSecurityAltID;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == LegSecurityAltID || field == LegSecurityAltIDSource;
+			return tag is 605 or 606;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }
@@ -510,9 +546,18 @@ public interface ILegStipulations
 		/// <summary>The FIX LegStipulationValue, tag 689, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? LegStipulationValue { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => LegStipulationType;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == LegStipulationType || field == LegStipulationValue;
+			return tag is 688 or 689;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }
@@ -565,16 +610,31 @@ public interface INestedParties
 			/// <summary>The FIX NestedPartySubIDType, tag 805, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? NestedPartySubIDType { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => NestedPartySubID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == NestedPartySubID || field == NestedPartySubIDType;
+				return tag is 545 or 805;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => NestedPartyID;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == NestedPartyID || field == NestedPartyIDSource || field == NestedPartyRole ||
-				field == NoNestedPartySubIDs;
+			return tag is 524 or 525 or 538 or 545 or 804 or 805;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoNestedPartySubIDsGroups, FixTag.NoNestedPartySubIDs, tag, position, out step);
 		}
 	}
 }
@@ -627,16 +687,31 @@ public interface INestedParties2
 			/// <summary>The FIX Nested2PartySubIDType, tag 807, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Nested2PartySubIDType { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Nested2PartySubID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Nested2PartySubID || field == Nested2PartySubIDType;
+				return tag is 760 or 807;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => Nested2PartyID;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == Nested2PartyID || field == Nested2PartyIDSource || field == Nested2PartyRole ||
-				field == NoNested2PartySubIDs;
+			return tag is 757 or 758 or 759 or 760 or 806 or 807;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoNested2PartySubIDsGroups, FixTag.NoNested2PartySubIDs, tag, position, out step);
 		}
 	}
 }
@@ -689,16 +764,31 @@ public interface INestedParties3
 			/// <summary>The FIX Nested3PartySubIDType, tag 954, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? Nested3PartySubIDType { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => Nested3PartySubID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == Nested3PartySubID || field == Nested3PartySubIDType;
+				return tag is 953 or 954;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => Nested3PartyID;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == Nested3PartyID || field == Nested3PartyIDSource || field == Nested3PartyRole ||
-				field == NoNested3PartySubIDs;
+			return tag is 949 or 950 or 951 or 952 or 953 or 954;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoNested3PartySubIDsGroups, FixTag.NoNested3PartySubIDs, tag, position, out step);
 		}
 	}
 }
@@ -771,15 +861,31 @@ public interface IParties
 			/// <summary>The FIX PartySubIDType, tag 803, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? PartySubIDType { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => PartySubID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == PartySubID || field == PartySubIDType;
+				return tag is 523 or 803;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => PartyID;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == PartyID || field == PartyIDSource || field == PartyRole || field == NoPartySubIDs;
+			return tag is 447 or 448 or 452 or 523 or 802 or 803;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoPartySubIDsGroups, FixTag.NoPartySubIDs, tag, position, out step);
 		}
 	}
 }
@@ -831,9 +937,18 @@ public interface IPositionAmountData
 		/// <summary>The FIX PosAmt, tag 708, wire type <c>Amt</c>; null when the field is absent.</summary>
 		public FixField.Decimal? PosAmt { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => PosAmtType;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == PosAmtType || field == PosAmt;
+			return tag is 707 or 708;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }
@@ -875,9 +990,16 @@ public interface IPositionQty
 		public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups => noNestedPartyIDsGroups;
 		internal List<INestedParties.NoNestedPartyIDsGroup>? noNestedPartyIDsGroups;
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => PosType;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == PosType || field == LongQty || field == ShortQty || field == PosQtyStatus || field == NoNestedPartyIDs;
+			return tag is 524 or 525 or 538 or 539 or 545 or 703 or 704 or 705 or 706 or 804 or 805;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.NestedParties(this, tag, position, out step);
 		}
 	}
 }
@@ -925,9 +1047,16 @@ public interface ISettlInstructionsData
 		public List<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups => noSettlPartyIDsGroups;
 		internal List<ISettlParties.NoSettlPartyIDsGroup>? noSettlPartyIDsGroups;
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => SettlInstSource;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == SettlInstSource || field == DlvyInstType || field == NoSettlPartyIDs;
+			return tag is 165 or 781 or 782 or 783 or 784 or 785 or 786 or 787 or 801;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixBlocks.SettlParties(this, tag, position, out step);
 		}
 	}
 }
@@ -980,15 +1109,31 @@ public interface ISettlParties
 			/// <summary>The FIX SettlPartySubIDType, tag 786, wire type <c>int</c>; null when the field is absent.</summary>
 			public FixField.Integer? SettlPartySubIDType { get; internal set; }
 
-			bool IFixEntry.Holds(FixField field)
+			FixField IFixEntry.Opener => SettlPartySubID;
+
+			bool IFixEntry.Has(int tag)
 			{
-				return field == SettlPartySubID || field == SettlPartySubIDType;
+				return tag is 785 or 786;
+			}
+
+			IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+			{
+				step = default;
+
+				return null;
 			}
 		}
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => SettlPartyID;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == SettlPartyID || field == SettlPartyIDSource || field == SettlPartyRole || field == NoSettlPartySubIDs;
+			return tag is 782 or 783 or 784 or 785 or 786 or 801;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			return FixEntries.Holding(NoSettlPartySubIDsGroups, FixTag.NoSettlPartySubIDs, tag, position, out step);
 		}
 	}
 }
@@ -1046,9 +1191,18 @@ public interface IStipulations
 		/// <summary>The FIX StipulationValue, tag 234, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? StipulationValue { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => StipulationType;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == StipulationType || field == StipulationValue;
+			return tag is 233 or 234;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }
@@ -1080,9 +1234,18 @@ public interface ITrdRegTimestamps
 		/// <summary>The FIX TrdRegTimestampOrigin, tag 771, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? TrdRegTimestampOrigin { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => TrdRegTimestamp;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == TrdRegTimestamp || field == TrdRegTimestampType || field == TrdRegTimestampOrigin;
+			return tag is 769 or 770 or 771;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }
@@ -1246,9 +1409,18 @@ public interface IUnderlyingInstrument : IUnderlyingStipulations
 		/// <summary>The FIX UnderlyingSecurityAltIDSource, tag 459, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? UnderlyingSecurityAltIDSource { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => UnderlyingSecurityAltID;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == UnderlyingSecurityAltID || field == UnderlyingSecurityAltIDSource;
+			return tag is 458 or 459;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }
@@ -1277,9 +1449,18 @@ public interface IUnderlyingStipulations
 		/// <summary>The FIX UnderlyingStipValue, tag 889, wire type <c>String</c>; null when the field is absent.</summary>
 		public FixField.Text? UnderlyingStipValue { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => UnderlyingStipType;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == UnderlyingStipType || field == UnderlyingStipValue;
+			return tag is 888 or 889;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }
@@ -1305,4 +1486,90 @@ public interface IYieldData
 
 	/// <summary>The FIX YieldRedemptionPriceType, tag 698.</summary>
 	FixField.Integer? YieldRedemptionPriceType { get; }
+}
+
+/// <summary>The entry of a component's groups the reader put a field of a tag and position in.</summary>
+static class FixBlocks
+{
+	internal static IFixEntry? Instrument(IInstrument block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoSecurityAltIDGroups, FixTag.NoSecurityAltID, tag, position, out step) ??
+			FixEntries.Holding(block.NoEventsGroups, FixTag.NoEvents, tag, position, out step);
+	}
+
+	internal static IFixEntry? InstrumentExtension(IInstrumentExtension block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoInstrAttribGroups, FixTag.NoInstrAttrib, tag, position, out step);
+	}
+
+	internal static IFixEntry? InstrumentLeg(IInstrumentLeg block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoLegSecurityAltIDGroups, FixTag.NoLegSecurityAltID, tag, position, out step);
+	}
+
+	internal static IFixEntry? LegStipulations(ILegStipulations block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoLegStipulationsGroups, FixTag.NoLegStipulations, tag, position, out step);
+	}
+
+	internal static IFixEntry? NestedParties(INestedParties block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoNestedPartyIDsGroups, FixTag.NoNestedPartyIDs, tag, position, out step);
+	}
+
+	internal static IFixEntry? NestedParties2(INestedParties2 block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoNested2PartyIDsGroups, FixTag.NoNested2PartyIDs, tag, position, out step);
+	}
+
+	internal static IFixEntry? NestedParties3(INestedParties3 block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoNested3PartyIDsGroups, FixTag.NoNested3PartyIDs, tag, position, out step);
+	}
+
+	internal static IFixEntry? Parties(IParties block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoPartyIDsGroups, FixTag.NoPartyIDs, tag, position, out step);
+	}
+
+	internal static IFixEntry? PositionAmountData(IPositionAmountData block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoPosAmtGroups, FixTag.NoPosAmt, tag, position, out step);
+	}
+
+	internal static IFixEntry? PositionQty(IPositionQty block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoPositionsGroups, FixTag.NoPositions, tag, position, out step);
+	}
+
+	internal static IFixEntry? SettlInstructionsData(ISettlInstructionsData block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoDlvyInstGroups, FixTag.NoDlvyInst, tag, position, out step);
+	}
+
+	internal static IFixEntry? SettlParties(ISettlParties block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoSettlPartyIDsGroups, FixTag.NoSettlPartyIDs, tag, position, out step);
+	}
+
+	internal static IFixEntry? Stipulations(IStipulations block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoStipulationsGroups, FixTag.NoStipulations, tag, position, out step);
+	}
+
+	internal static IFixEntry? TrdRegTimestamps(ITrdRegTimestamps block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoTrdRegTimestampsGroups, FixTag.NoTrdRegTimestamps, tag, position, out step);
+	}
+
+	internal static IFixEntry? UnderlyingInstrument(IUnderlyingInstrument block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoUnderlyingSecurityAltIDGroups, FixTag.NoUnderlyingSecurityAltID, tag, position, out step) ??
+			FixBlocks.UnderlyingStipulations(block, tag, position, out step);
+	}
+
+	internal static IFixEntry? UnderlyingStipulations(IUnderlyingStipulations block, int tag, int position, out FixGroupStep step)
+	{
+		return FixEntries.Holding(block.NoUnderlyingStipsGroups, FixTag.NoUnderlyingStips, tag, position, out step);
+	}
 }

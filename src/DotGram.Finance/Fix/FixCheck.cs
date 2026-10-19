@@ -23,10 +23,10 @@ namespace DotGram.Finance.Fix;
 /// </para>
 /// <para>
 /// The checks of the whole message — a length not followed by its data, an encoded field without
-/// MessageEncoding — read the fields in wire order, before the walk, and do not know which entry a
-/// field is in. Such a finding is kept as waiting, and the walk, which knows, gives it the path of
-/// the innermost entry that holds its field. Nothing waits on a valid message, and the walk then
-/// asks one flag an entry.
+/// MessageEncoding — read the fields in wire order and are not in the walk. Their findings ask the
+/// message which entries the reader put the field in (<see cref="IFixCarrier"/>), from the groups the
+/// message has, so the path is the same whatever checks a context runs, and the finding is whole
+/// when it is added.
 /// </para>
 /// </remarks>
 sealed class FixCheck
@@ -41,10 +41,6 @@ sealed class FixCheck
 	FixGroupStep[]                    _steps  = new FixGroupStep[8];
 	int                               _depth;
 	ReadOnlyCollection<FixGroupStep>? _shared;
-
-	// The findings of the whole message that wait for the walk to say which entry their field is in.
-	(FixFinding Finding, FixField At)[]? _waiting;
-	int                                  _waitingCount;
 
 	FixCheck()
 	{
@@ -79,14 +75,10 @@ sealed class FixCheck
 		else
 			_buffer.Clear();
 
-		if (_waiting is not null)
-			Array.Clear(_waiting, 0, _waitingCount);
-
-		_findings     = _buffer;
-		_depth        = 0;
-		_shared       = null;
-		_waitingCount = 0;
-		_spare        = this;
+		_findings = _buffer;
+		_depth    = 0;
+		_shared   = null;
+		_spare    = this;
 	}
 
 	/// <summary>Adds one finding, said in the groups and entries the check is in now.</summary>
@@ -96,31 +88,32 @@ sealed class FixCheck
 	}
 
 	/// <summary>
-	/// Adds one finding of the whole message, about a field, whose path is the entry that holds <paramref name="at"/>:
-	/// the walk, which knows the entries, says it.
+	/// Adds one finding of the whole message about a field, said in the entries the reader put
+	/// <paramref name="at"/> in: asked of the message's own groups, by the field's tag and position, so it
+	/// does not depend on which checks a context runs, and is the finding's whole path when it is added.
 	/// </summary>
-	public void AddAt(FixRule rule, int tag, FixField field, FixField at)
+	public void AddAt(FixRule rule, int tag, FixField field, IFixCarrier message, FixField at)
 	{
-		var finding = FixFinding.Shared(rule, tag, field.Position, field, null);
+		FixGroupStep[]? steps = null;
 
-		if (_waiting is null)
-			_waiting = new (FixFinding, FixField)[4];
-		else if (_waitingCount == _waiting.Length)
-			Array.Resize(ref _waiting, _waitingCount * 2);
+		var depth   = 0;
+		var carrier = message;
 
-		_waiting[_waitingCount++] = (finding, at);
-		_findings.Add(finding);
-	}
+		while (carrier.Holder(at.Tag, at.Position, out var step) is { } entry)
+		{
+			if (steps is null)
+				steps = new FixGroupStep[4];
+			else if (depth == steps.Length)
+				Array.Resize(ref steps, depth * 2);
 
-	/// <summary>Whether a finding of the whole message waits for the walk to say where its field is.</summary>
-	public bool Waiting => _waitingCount > 0;
+			steps[depth++] = step;
+			carrier        = entry;
+		}
 
-	/// <summary>Gives every waiting finding whose field the entry the check is at holds the path to it; a deeper entry, asked later, says it again.</summary>
-	public void Locate(IFixEntry entry)
-	{
-		for (var i = 0; i < _waitingCount; i++)
-			if (entry.Holds(_waiting![i].At))
-				_waiting[i].Finding.Within(Path()!);
+		if (steps is not null && depth < steps.Length)
+			Array.Resize(ref steps, depth);
+
+		_findings.Add(FixFinding.At(rule, tag, field.Position, field, steps));
 	}
 
 	// The path of the entry the check is at, made once an entry and shared; null outside every group.
@@ -166,12 +159,60 @@ sealed class FixCheck
 	}
 }
 
-/// <summary>An entry of a repeating group, as the check asks it: whether a field is one of its own.</summary>
-/// <remarks>Its own fields only, the blocks it carries included; an entry of a group inside it answers for its own.</remarks>
-interface IFixEntry
+/// <summary>What carries repeating groups — a message or an entry — as a finding of the whole message asks it.</summary>
+interface IFixCarrier
 {
-	/// <summary>Whether the field is one this entry holds.</summary>
-	bool Holds(FixField field);
+	/// <summary>
+	/// The entry of one of its groups the reader put a field of this tag and position in, and the step to it;
+	/// null where the tag is not one of its groups'.
+	/// </summary>
+	/// <remarks>
+	/// The reader puts a field of a group's tag in the entry opened last before it, so that entry is the one
+	/// whose first field is the last before the position, duplicates the entry did not keep included.
+	/// </remarks>
+	IFixEntry? Holder(int tag, int position, out FixGroupStep step);
+}
+
+/// <summary>An entry of a repeating group, as a finding of the whole message asks it.</summary>
+interface IFixEntry : IFixCarrier
+{
+	/// <summary>The field the entry opened with.</summary>
+	FixField Opener { get; }
+
+	/// <summary>Whether a field of this tag goes in an entry of this group: its own, or one of a group inside it.</summary>
+	bool Has(int tag);
+}
+
+/// <summary>The search a carrier's <see cref="IFixCarrier.Holder"/> makes in one of its groups.</summary>
+static class FixEntries
+{
+	/// <summary>The entry of this group that holds a field of the tag at the position, by the entries' first fields, or null.</summary>
+	internal static IFixEntry? Holding<TEntry>(List<TEntry>? entries, int counter, int tag, int position, out FixGroupStep step)
+		where TEntry : class, IFixEntry
+	{
+		step = default;
+
+		if (entries is null || entries.Count == 0 || !entries[0].Has(tag) || entries[0].Opener.Position > position)
+			return null;
+
+		// The last entry whose first field is at or before the position: the entries are in wire order.
+		var low  = 0;
+		var high = entries.Count - 1;
+
+		while (low < high)
+		{
+			var middle = (low + high + 1) / 2;
+
+			if (entries[middle].Opener.Position <= position)
+				low = middle;
+			else
+				high = middle - 1;
+		}
+
+		step = new FixGroupStep(counter, low);
+
+		return entries[low];
+	}
 }
 
 /// <summary>What reading found wrong with a message: added to while it is read, and only read after.</summary>

@@ -184,9 +184,18 @@ public abstract partial class FixMessage
 		/// <summary>The FIX HopRefID, tag 630, wire type <c>SeqNum</c>; null when the field is absent.</summary>
 		public FixField.Integer? HopRefID { get; internal set; }
 
-		bool IFixEntry.Holds(FixField field)
+		FixField IFixEntry.Opener => HopCompID;
+
+		bool IFixEntry.Has(int tag)
 		{
-			return field == HopCompID || field == HopSendingTime || field == HopRefID;
+			return tag is 628 or 629 or 630;
+		}
+
+		IFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)
+		{
+			step = default;
+
+			return null;
 		}
 	}
 }

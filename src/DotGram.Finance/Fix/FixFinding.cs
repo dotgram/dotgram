@@ -84,9 +84,8 @@ public readonly record struct FixGroupStep(int CounterTag, int Index)
 public sealed class FixFinding
 {
 	// A read-only view of the steps, never the array itself, so that a caller cannot cast the path back to
-	// an array and move a finding, or the findings of one entry, which share it. Set once more only by the
-	// check, before the finding is handed to anyone: a finding of the whole message found inside an entry.
-	ReadOnlyCollection<FixGroupStep>? _path;
+	// an array and move a finding, or the findings of one entry, which share it.
+	readonly ReadOnlyCollection<FixGroupStep>? _path;
 
 	FixFinding(FixRule rule, int tag, int position, FixField? field, ReadOnlyCollection<FixGroupStep>? path)
 	{
@@ -150,12 +149,6 @@ public sealed class FixFinding
 	internal static FixFinding Shared(FixRule rule, int tag, int position, FixField? field, ReadOnlyCollection<FixGroupStep>? path)
 	{
 		return new FixFinding(rule, tag, position, field, path);
-	}
-
-	// The check's, for a finding of the whole message about a field it then finds inside an entry.
-	internal void Within(ReadOnlyCollection<FixGroupStep> path)
-	{
-		_path = path;
 	}
 
 	/// <summary>The finding as a line: where in the groups, which tag, where in the input, and what is wrong.</summary>

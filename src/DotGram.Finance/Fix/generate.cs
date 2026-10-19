@@ -919,21 +919,86 @@ sealed class Writer
 		while (outLines[^1] == "")
 			outLines.RemoveAt(outLines.Count - 1);
 
-		// What a check of the whole message asks of an entry, to say which entry a field it found is in:
-		// the entry's own fields, the blocks it carries included.
-		var own = Fx.PropertiesOf(_m, e.Members).Select(p => p.Member).OfType<Field>().Prepend(e.Opener)
-			.Select(f => f.Name).Distinct().Select(name => "field == " + name).ToList();
+		// What a check of the whole message asks of an entry, to say which entry the reader put a field in:
+		// the field it opened with, the tags that go in it or in a group inside it, and its own groups. The
+		// tags as numbers: a deep entry lists a hundred of them, and their names would be most of its text.
+		var tags = TagsOf(e.Members).Prepend(e.Opener.Tag).Distinct().OrderBy(t => t).Select(t => t.ToString(CultureInfo.InvariantCulture)).ToList();
 
 		outLines.Add("");
-		outLines.Add($"{pad}\tbool IFixEntry.Holds(FixField field)");
+		outLines.Add($"{pad}\tFixField IFixEntry.Opener => {e.Opener.Name};");
+		outLines.Add("");
+		outLines.Add($"{pad}\tbool IFixEntry.Has(int tag)");
 		outLines.Add($"{pad}\t{{");
-		outLines.AddRange(Wrapped(own, $"{pad}\t\treturn", $"{pad}\t\t\t", separator: " ||", width: 132));
+		outLines.AddRange(Wrapped(tags, $"{pad}\t\treturn tag is", $"{pad}\t\t\t", width: 132));
 		outLines[^1] += ";";
+		outLines.Add($"{pad}\t}}");
+		outLines.Add("");
+		outLines.Add($"{pad}\tIFixEntry? IFixCarrier.Holder(int tag, int position, out FixGroupStep step)");
+		outLines.Add($"{pad}\t{{");
+		outLines.AddRange(HolderBody(e.Members, "", "this", pad + "\t\t"));
 		outLines.Add($"{pad}\t}}");
 		outLines.Add(pad + "}");
 		outLines.Add("");
 
 		return outLines;
+	}
+
+	// Every tag that goes in a carrier of these members, or in an entry of a group it carries.
+	List<int> TagsOf(List<Member> members)
+	{
+		var tags = new List<int>();
+
+		foreach (var m in members)
+		{
+			if (m is Field f)
+			{
+				tags.Add(f.Tag);
+			}
+			else if (m is Block block)
+			{
+				tags.AddRange(TagsOf(_m.InterfacesByName[block.Name].Members));
+			}
+			else
+			{
+				var group = (Group)m;
+
+				tags.Add(group.Counter.Tag);
+				tags.AddRange(TagsOf(group.Entry.Members));
+			}
+		}
+
+		return tags;
+	}
+
+	// Whether a carrier of these members has a group, its own or a block's.
+	bool HasGroups(List<Member> members)
+	{
+		return members.Any(m => m is Group || m is Block block && HasGroups(_m.InterfacesByName[block.Name].Members));
+	}
+
+	// The body of a carrier's Holder: each of its groups searched, and each block that has groups asked, in
+	// turn, the first that answers being the one. `subject` reaches a group list, `self` is the carrier.
+	List<string> HolderBody(List<Member> members, string subject, string self, string pad)
+	{
+		var calls = new List<string>();
+
+		foreach (var m in members)
+		{
+			if (m is Group group)
+				calls.Add($"FixEntries.Holding({subject}{group.List}, {group.Counter.Const}, tag, position, out step)");
+			else if (m is Block block && HasGroups(_m.InterfacesByName[block.Name].Members))
+				calls.Add($"FixBlocks.{block.Name}({self}, tag, position, out step)");
+		}
+
+		if (calls.Count == 0)
+			return new List<string> { $"{pad}step = default;", "", $"{pad}return null;" };
+
+		var lines = new List<string> { $"{pad}return {calls[0]}" + (calls.Count == 1 ? ";" : " ??") };
+
+		for (var i = 1; i < calls.Count; i++)
+			lines.Add($"{pad}\t{calls[i]}" + (i == calls.Count - 1 ? ";" : " ??"));
+
+		return lines;
 	}
 
 	// The reading: one switch over the tags of a type, each arm placing its field where it belongs —
@@ -1073,6 +1138,16 @@ sealed class Writer
 		});
 
 		outLines.AddRange(ClassBody(members, 2, "internal set"));
+		if (HasGroups(members))
+		{
+			outLines.Add("\t\t// The entry of this type's groups the reader put a field of the tag and position in.");
+			outLines.Add("\t\tprivate protected override IFixEntry? Holder(int tag, int position, out FixGroupStep step)");
+			outLines.Add("\t\t{");
+			outLines.AddRange(HolderBody(members, "", "this", "\t\t\t"));
+			outLines.Add("\t\t}");
+			outLines.Add("");
+		}
+
 		outLines.AddRange(new[]
 		{
 			"\t\t/// <summary>Asks the context for the check of this type and runs it.</summary>",
@@ -1758,6 +1833,29 @@ sealed class Writer
 
 		foreach (var i in m.InterfacesOrdered)
 			components.AddRange(InterfaceText(i));
+
+		// For a finding of the whole message, which entry of a component's groups the reader put a field in:
+		// one search a component that has groups, asked by every carrier of it.
+		var blocks = m.InterfacesOrdered.Where(i => HasGroups(i.Members)).ToList();
+
+		if (blocks.Count > 0)
+		{
+			components.Add("/// <summary>The entry of a component's groups the reader put a field of a tag and position in.</summary>");
+			components.Add("static class FixBlocks");
+			components.Add("{");
+
+			foreach (var i in blocks)
+			{
+				components.Add($"\tinternal static IFixEntry? {i.Name}({i.TypeName} block, int tag, int position, out FixGroupStep step)");
+				components.Add("\t{");
+				components.AddRange(HolderBody(i.Members, "block.", "block", "\t\t"));
+				components.Add("\t}");
+				components.Add("");
+			}
+
+			components[^1] = "}";
+			components.Add("");
+		}
 
 		var width = m.FieldName.Keys.Max(t => m.TagNameOf(t).Length);
 		var standard = new List<string>
