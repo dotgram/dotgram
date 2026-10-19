@@ -116,9 +116,17 @@ static partial class Build
 	/// The one dispatcher: the first family that owns the record converts it, and the node is told where the record was
 	/// written where the reading publishes it.
 	/// </summary>
+	/// <remarks>
+	/// Every record that can hold another of its kind passes here — a source a pivot turns, the joins hung on a source —
+	/// so this is where a deep one's conversion checks its stack: where it runs low, the rest goes on with a stack of its
+	/// own (<see cref="SqlStack"/>), as the reader that read it did, rather than overflowing it.
+	/// </remarks>
 	static T Convert<T>(object read)
 		where T : Ast.ISqlNode
 	{
+		if (!SqlStack.Enough())
+			return Deeper(read, static node => Convert<T>(node));
+
 		foreach (var family in Families)
 			if (family(read, out var made))
 			{
@@ -132,6 +140,52 @@ static partial class Build
 			}
 
 		throw BuildGap.Missing(read, "no family converts it");
+	}
+
+	/// <summary>
+	/// A conversion on a stack of its own, with this thread's reading — its text, whether it is skimmed or a plain
+	/// reading a builder made, and whether it publishes locations — taken across. Called where the stack runs low, by
+	/// <see cref="Convert{T}"/> and by <see cref="Values.Of"/>.
+	/// </summary>
+	internal static T Deeper<T>(object read, Func<object, T> convert)
+	{
+		var reading = Reading.Here();
+		var made    = new object?[1];
+
+		SqlStack.Deeper(read, (reading, convert), made, static (node, state, result) =>
+		{
+			var outer = Reading.Here();
+
+			state.reading.Restore();
+
+			try
+			{
+				result[0] = state.convert(node);
+			}
+			finally
+			{
+				outer.Restore();
+			}
+		});
+
+		return (T)made[0]!;
+	}
+
+	/// <summary>What a thread knows of the reading under way, to be taken onto another stack and back.</summary>
+	sealed class Reading(string? source, bool skimming, bool unlocated, bool publishing)
+	{
+		public static Reading Here()
+		{
+			return new Reading(Build.source, Build.skimming, Build.unlocated, SqlLocation.Publishing);
+		}
+
+		public void Restore()
+		{
+			Build.source           = source;
+			Build.skimming         = skimming;
+			Build.unlocated        = unlocated;
+			SqlLocation.Publishing = publishing;
+		}
 	}
 
 	/// <summary>

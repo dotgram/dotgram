@@ -41,6 +41,10 @@ static partial class Build
 			if (value is not Held held)
 				return value;
 
+			// A held shape may hold others, a call's arguments its own calls: deep, the rest goes on with a stack of its own.
+			if (!SqlStack.Enough())
+				return Deeper(value, static node => Of((Ast.Expression)node));
+
 			var made = held.Resolved();
 
 			if (locating && held.Read is { Known: true } span)
