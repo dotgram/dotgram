@@ -977,6 +977,9 @@ sealed partial class Machine
 			file.Line("deep.which  = which;");
 			file.Line("deep.power  = power;");
 			file.Line();
+			file.Line($"// What the host keeps of the reading outside it, where it asked to be told ({HandOffHooks.Handing}).");
+			file.Line($"{HandOffHooks.Handing}(ref deep.handed);");
+			file.Line();
 			file.Line("deep.Go();");
 			file.Line();
 
@@ -1034,6 +1037,16 @@ sealed partial class Machine
 	/// to the next is its thread-static state, which in generated code is the spare stores that are
 	/// kept per thread to be reused, so a reused thread is what they are for; nothing emitted assumes
 	/// a fresh one.
+	/// </para>
+	/// <para>
+	/// <b>What a host keeps outside the reading.</b> A thread-static field a semantic action reads is
+	/// the thread's and not the reading's, and is not taken across; nor is any context where the
+	/// caller suppressed its flow (then nothing is captured and the reading runs in this thread's
+	/// own). A host that keeps such state carries it through two partial methods it implements
+	/// (<see cref="HandOffHooks"/>): one on the handing thread fills the slot the reading takes across,
+	/// one on this thread exchanges it with this thread's own before the reading and back after. A
+	/// thread reused for another hand-off is handed the slot afresh each time, so nothing one reading
+	/// left in the thread's fields is read by the next.
 	/// </para>
 	/// <para>
 	/// <b>How many there are.</b> One for every thread that handed a reading off in the last
@@ -1176,6 +1189,7 @@ sealed partial class Machine
 				file.Line($"{name} = default!;");
 
 			file.Line("thrown = null;");
+			file.Line("handed = null;");
 		}
 
 		file.Line();
@@ -1298,50 +1312,61 @@ sealed partial class Machine
 			file.Line("internal int power;");
 			file.Line("internal int end;");
 			file.Line("internal global::System.Exception? thrown;");
+			file.Line("internal object? handed;");
 			file.Line();
 			RenderLingering(file, carried);
 
 			using (file.Block("internal void Run()"))
 			{
+				// The host's state of the reading in, this thread's own out, and back again after.
+				file.Line($"{HandOffHooks.Taking}(ref this.handed);");
+				file.Line();
+
 				using (file.Block("try"))
 				{
-					file.Line(
-						$"var reader = new {ReaderStruct}(this.whole.Span{(_readerWays ? ", this.ways" : "")}" +
-						string.Concat(state.Select(one => $", this.{one.Name}")) + ", this.whole);");
-					file.Line();
+					using (file.Block("try"))
+					{
+						file.Line(
+							$"var reader = new {ReaderStruct}(this.whole.Span{(_readerWays ? ", this.ways" : "")}" +
+							string.Concat(state.Select(one => $", this.{one.Name}")) + ", this.whole);");
+						file.Line();
 
-					foreach (var (_, name) in carried)
-						if (state.All(one => one.Name != name))
-							file.Line($"reader.{name} = this.{name};");
+						foreach (var (_, name) in carried)
+							if (state.All(one => one.Name != name))
+								file.Line($"reader.{name} = this.{name};");
 
-				file.Line("reader.probes = this.probes;");
+					file.Line("reader.probes = this.probes;");
 
-					if (_stacks > 0)
-						file.Line("reader.stacks = this.stacks;");
+						if (_stacks > 0)
+							file.Line("reader.stacks = this.stacks;");
 
-					file.Line();
+						file.Line();
 
-					using (file.Block("switch (this.which)"))
-						foreach (var one in _deep.OrderBy(each => each.Value))
-						{
-							var asked = _graph.Climbing.ContainsKey(one.Key) ? ", this.power" : "";
+						using (file.Block("switch (this.which)"))
+							foreach (var one in _deep.OrderBy(each => each.Value))
+							{
+								var asked = _graph.Climbing.ContainsKey(one.Key) ? ", this.power" : "";
 
-							file.Line(
-								$"case {one.Value}: this.end = reader.{ReaderOf(one.Key)}(this.pos{asked}); break;");
-						}
+								file.Line(
+									$"case {one.Value}: this.end = reader.{ReaderOf(one.Key)}(this.pos{asked}); break;");
+							}
 
-					file.Line();
+						file.Line();
 
-					foreach (var (_, name) in carried)
-						if (state.All(one => one.Name != name))
-							file.Line($"this.{name} = reader.{name};");
+						foreach (var (_, name) in carried)
+							if (state.All(one => one.Name != name))
+								file.Line($"this.{name} = reader.{name};");
 
-				file.Line("this.probes = reader.probes;");
+					file.Line("this.probes = reader.probes;");
 
+					}
+
+					using (file.Block("catch (global::System.Exception caught)"))
+						file.Line("this.thrown = caught;");
 				}
 
-				using (file.Block("catch (global::System.Exception caught)"))
-					file.Line("this.thrown = caught;");
+				using (file.Block("finally"))
+					file.Line($"{HandOffHooks.Taking}(ref this.handed);");
 			}
 		}
 	}
@@ -6276,4 +6301,46 @@ sealed partial class Machine
 				: $"{Refusing}(ref failure, p, {expected});";
 		}
 	}
+}
+
+/// <summary>
+/// The two hooks a host implements to carry state of its own with a reading handed to another stack
+/// (docs/syntax.md §6.5). Declared once a class, wherever a machine of it probes the stack.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A hand-off takes the reading's own state across, and the execution context and the cultures; it
+/// does not take what a host keeps for its semantic actions outside the reading, in a thread-static
+/// field, nor an <c>AsyncLocal</c> where the caller suppressed the flow of the context. A host that
+/// keeps such state says what to carry: the first hook runs on the thread that hands the reading off
+/// and is given an empty slot to fill, the second runs on the thread that takes it, before the reading
+/// and again after it, and exchanges what is in the slot with what that thread had, so that the second
+/// call puts the thread's own back.
+/// </para>
+/// <para>
+/// Partial methods: a host that implements neither compiles as if they were not there, calls and all.
+/// </para>
+/// </remarks>
+internal static class HandOffHooks
+{
+	public const string Handing = "OnHandingOff";
+
+	public const string Taking = "OnTakingOver";
+
+	public const string Declarations = """
+		/// <summary>
+		/// Called on the thread that hands a deep reading to a stack of its own, just before it goes
+		/// (docs/syntax.md §6.5): put in <paramref name="state"/> what the reading's semantic actions need of
+		/// this thread and the reading does not carry, such as a thread-static field. Leave it alone and
+		/// every call to it is removed at compile time.
+		/// </summary>
+		static partial void OnHandingOff(ref object? state);
+
+		/// <summary>
+		/// Called on the thread that takes a deep reading, before it reads and again after: exchange
+		/// <paramref name="state"/>, what <see cref="OnHandingOff"/> put in it, with this thread's own, so
+		/// that the second call puts the thread's own back.
+		/// </summary>
+		static partial void OnTakingOver(ref object? state);
+		""";
 }
