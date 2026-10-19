@@ -433,7 +433,15 @@ public static partial class CSharpEmitter
 		if (valuing is not null && lexical is not null)
 		{
 			foreach (var rule in lexical.Valued)
+			{
 				valuing.Register(rule, whole: true);
+
+				// And the alternative that binds nothing of a terminal whose other alternatives
+				// bind text: a token the tags passed is read for its value through it alone, as
+				// a whole root of its own (Through).
+				if (Through(lexical, valuing, rule) is { } through)
+					valuing.Register(through.Rule, whole: true);
+			}
 
 			// And what measures the rest of a terminal the lexer only begins. Not whole: it is
 			// entered where the beginning ended, and where it stops is the answer.
@@ -5492,11 +5500,29 @@ file.Line("return spare;");
 			file.Write(valuing.RenderWrapper(rule, read, engine, whole: true));
 			file.Line();
 
+			var through = Through(lexical, valuing, rule);
+
+			if (through is { } taken)
+			{
+				file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth, read through <c>{taken.Rule.Name}</c> alone.</summary>");
+				file.Write(valuing.RenderWrapper(taken.Rule, taken.Read, engine, whole: true));
+				file.Line();
+			}
+
 			file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth.</summary>");
 			file.Line("/// <remarks>");
 			file.Line("/// Read where the token stands in the text and not over a copy of it: the span ends");
 			file.Line("/// where the token ends, so the whole reading still has to consume exactly the token,");
 			file.Line("/// and a position inside it is a position in the input.");
+
+			if (through is not null)
+			{
+				file.Line("/// Where none of the alternatives that bind text could begin the token — the tags");
+				file.Line("/// the tokenizer asked, asked again over the token — it was read whole through the");
+				file.Line("/// one that binds nothing, and its value is that alternative's, handed to the");
+				file.Line("/// construction alone.");
+			}
+
 			file.Line("/// </remarks>");
 
 			// Over the source up to the token's end, entered where the token begins. A cut-out
@@ -5506,11 +5532,27 @@ file.Line("return spare;");
 			// the end of the span says it was the token that was read.
 			using (file.Block($"static {type} Value_{IdentifierOf(rule)}_DotGram(string source, int at, int length)"))
 			{
+				var input = valuing.UsesInput ? ", source" : "";
+				var text  = "global::System.MemoryExtensions.AsSpan(source, 0, at + length)";
+
 				file.Line($"var failure = new {FailureType} {{ Quiet = true }};");
+
+				if (through is { } one)
+				{
+					file.Line($"var text    = {text};");
+					file.Line();
+					file.Line($"Scan_Tag{one.Kind}(text, at, out var tagged);");
+					file.Line();
+					file.Line("if (tagged == 0)");
+					file.Then(
+						$"return {one.Read}(text, at, ref failure, out {one.Type} through{input}) < 0 " +
+						$"? default! : {one.Method}({string.Join(", ", one.Arguments)});");
+
+					text = "text";
+				}
+
 				file.Line();
-				file.Line(
-					$"return {read}(global::System.MemoryExtensions.AsSpan(source, 0, at + length), at, " +
-					$"ref failure, out {type} value{(valuing.UsesInput ? ", source" : "")}) < 0 ? default! : value;");
+				file.Line($"return {read}({text}, at, ref failure, out {type} value{input}) < 0 ? default! : value;");
 			}
 
 			file.Line();
@@ -5526,6 +5568,77 @@ file.Line("return spare;");
 		}
 
 		return file.ToString();
+	}
+
+	/// <summary>
+	/// For a terminal that binds text in some alternatives and not in the one other, how its
+	/// value is read where the tags say no binding alternative could begin the token: the rule
+	/// the other alternative calls, read whole as a root of its own, and the terminal's
+	/// construction handed that value in the capture's place and nothing in the others'. Null
+	/// where the terminal is read for its value as written.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The same fact the tokenizer rests on (TerminalInventory.Skipping): a tag that accepts no
+	/// prefix of the token rules its alternative out, and the alternatives that bind nothing
+	/// are held apart, so the token is one alternative's reading whole. The rule read for its
+	/// value would try the binding alternatives first, fail each on its tag, and read the
+	/// other inside an atomic choice, a capture and a construction — the frame of the choice
+	/// paid on every token for an answer the tags already gave. Over the token alone the tags
+	/// say the same: a binding alternative that matched the token would have its necessary
+	/// beginning inside it.
+	/// </para>
+	/// <para>
+	/// Only the plain shape, which is what a string beside a raw one is: one alternative that
+	/// binds nothing, a capture of a call to a rule that builds a value, under one construction
+	/// that takes its captures and nothing else — no text, span, input, context, state or
+	/// accumulator — every one of them optional and single, so that <c>default</c> stands for
+	/// the ones the alternative taken did not write, as the engine hands them.
+	/// </para>
+	/// </remarks>
+	static (RuleSymbol Rule, string Read, string Type, string Method, IReadOnlyList<string> Arguments, int Kind)? Through(
+		LexicalSplit lexical, Machine valuing, RuleSymbol rule)
+	{
+		var graph        = lexical.Source;
+		var continuation = lexical.Inventory.Continued.FirstOrDefault(one => one.Pattern.Rule == rule && one.Tagged is not null);
+
+		if (continuation is not { Unbound: [Node.Capture(var capture, Node.Call(var inner, { Count: 0 }))] } ||
+			valuing.Results.QualifiedOf(inner) is not { } type ||
+			graph.Trivia.ContainsKey(inner))
+			return null;
+
+		var factories = valuing.Results.FactoriesOf(graph, rule);
+
+		if (factories is not [{ Accumulator: null, Located: false } factory] ||
+			WantsText(graph, factory) || TakesSpan(graph, factory) ||
+			Asks(graph, factory, "parserInput") || Asks(graph, factory, "context") ||
+			Asks(graph, factory, "parserState") || Asks(graph, factory, "parserMarks"))
+			return null;
+
+		var arguments = new List<string>(factory.Members.Count);
+		var found     = false;
+
+		foreach (var member in factory.Members)
+		{
+			if (!member.IsOptional || member.IsSequence || member.Joins.Count > 0 || member.Element is not null)
+				return null;
+
+			if (member.Name == capture)
+			{
+				if (member.Rule != inner)
+					return null;
+
+				found = true;
+				arguments.Add("through");
+			}
+			else
+				arguments.Add("default");
+		}
+
+		if (!found)
+			return null;
+
+		return (inner, $"Reread_{IdentifierOf(inner)}_For_{IdentifierOf(rule)}_DotGram", type, factory.Method, arguments, continuation.Kind);
 	}
 
 	/// <summary>
